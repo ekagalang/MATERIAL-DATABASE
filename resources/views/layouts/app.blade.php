@@ -89,6 +89,8 @@
             <a href="{{ route('materials.index') }}" class="{{ request()->routeIs('materials.*') ? 'active' : '' }}">Database Material</a>
             <a href="{{ route('cats.index') }}" class="{{ request()->routeIs('cats.*') ? 'active' : '' }}">Database Cat</a>
             <a href="{{ route('bricks.index') }}" class="{{ request()->routeIs('bricks.*') ? 'active' : '' }}">Database Bata</a>
+            <a href="{{ route('cements.index') }}" class="{{ request()->routeIs('cements.*') ? 'active' : '' }}">Database Semen</a>
+            <a href="{{ route('sands.index') }}" class="{{ request()->routeIs('sands.*') ? 'active' : '' }}">Database Pasir</a>
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">Database Satuan</a>
         </div>
 
