@@ -52,6 +52,15 @@
         /* Button Groups */
         .btn-group { display: flex; gap: 10px; margin-top: 20px; }
         .btn-group-right { justify-content: flex-end; }
+
+        /* Satuan M3 dan M2 */
+        .raise {
+            display: inline-block;       /* perlu agar transform bekerja */
+            font-size: inherit;          /* sama besar dengan 'm' */
+            transform: translateY(-0.28em); /* nilai kenaikan, atur sesuai selera */
+            line-height: 1;
+        }
+
         
         /* Alerts */
         .alert { padding: 15px 20px; border-radius: 4px; margin-bottom: 20px; }
@@ -78,6 +87,8 @@
     <div class="container">
         <div class="nav">
             <a href="{{ route('materials.index') }}" class="{{ request()->routeIs('materials.*') ? 'active' : '' }}">Database Material</a>
+            <a href="{{ route('cats.index') }}" class="{{ request()->routeIs('cats.*') ? 'active' : '' }}">Database Cat</a>
+            <a href="{{ route('bricks.index') }}" class="{{ request()->routeIs('bricks.*') ? 'active' : '' }}">Database Bata</a>
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">Database Satuan</a>
         </div>
 

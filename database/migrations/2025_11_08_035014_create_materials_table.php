@@ -8,9 +8,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('materials', function (Blueprint $table) {
+        Schema::create('cats', function (Blueprint $table) {
             $table->id();
-            $table->string('material_name'); // Nama Material
+            $table->string('cat_name'); // Nama Cat
             $table->string('type')->nullable(); // Jenis (CAT, dll)
             $table->string('photo')->nullable(); // Path foto
             $table->string('brand')->nullable(); // Merek
@@ -44,6 +44,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('materials');
+        Schema::dropIfExists('cats');
     }
 };
