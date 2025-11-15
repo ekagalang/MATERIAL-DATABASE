@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan migrate:fresh:*)",
+      "Bash(vendor/bin/pint:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

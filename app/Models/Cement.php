@@ -11,6 +11,9 @@ class Cement extends Model
 {
     use HasFactory;
 
+    // Beberapa inflector menganggap "cement" tak berbilang; pastikan pakai tabel plural
+    protected $table = 'cements';
+
     protected $fillable = [
         'cement_name',
         'type',
@@ -27,14 +30,14 @@ class Cement extends Model
         'short_address',
         'package_price',
         'price_unit',
-        'comparison_price_per_kg'
+        'comparison_price_per_kg',
     ];
 
     protected $casts = [
         'package_weight_gross' => 'decimal:2',
         'package_weight_net' => 'decimal:2',
         'package_price' => 'decimal:2',
-        'comparison_price_per_kg' => 'decimal:2'
+        'comparison_price_per_kg' => 'decimal:2',
     ];
 
     // Relasi ke Unit untuk package_unit
@@ -50,9 +53,11 @@ class Cement extends Model
             $unit = Unit::where('code', $this->package_unit)->first();
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
+
                 return $this->package_weight_net;
             }
         }
+
         return $this->package_weight_gross;
     }
 
@@ -61,15 +66,17 @@ class Cement extends Model
     {
         if ($this->package_weight_net && $this->package_weight_net > 0 && $this->package_price) {
             $this->comparison_price_per_kg = $this->package_price / $this->package_weight_net;
+
             return $this->comparison_price_per_kg;
         }
+
         return 0;
     }
 
     // Accessor URL foto
     public function getPhotoUrlAttribute(): ?string
     {
-        if (!$this->photo) {
+        if (! $this->photo) {
             return null;
         }
 
@@ -88,6 +95,6 @@ class Cement extends Model
             return asset($path);
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        return asset('storage/'.ltrim($path, '/'));
     }
 }

@@ -11,7 +11,7 @@ class SandController extends Controller
     public function index(Request $request)
     {
         $query = Sand::query();
-        
+
         // Pencarian
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -31,7 +31,9 @@ class SandController extends Controller
 
     public function create()
     {
-        return view('sands.create');
+        $units = \App\Models\Unit::orderBy('code')->get();
+
+        return view('sands.create', compact('units'));
     }
 
     public function store(Request $request)
@@ -40,6 +42,9 @@ class SandController extends Controller
             'type' => 'nullable|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'brand' => 'nullable|string|max:255',
+            'package_unit' => 'nullable|string|max:20',
+            'package_weight_gross' => 'nullable|numeric|min:0',
+            'package_weight_net' => 'nullable|numeric|min:0',
             'dimension_length' => 'nullable|numeric|min:0',
             'dimension_width' => 'nullable|numeric|min:0',
             'dimension_height' => 'nullable|numeric|min:0',
@@ -72,13 +77,18 @@ class SandController extends Controller
         if (empty($data['sand_name'])) {
             $parts = array_filter([
                 $data['type'] ?? '',
-                $data['brand'] ?? ''
+                $data['brand'] ?? '',
             ]);
             $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
         }
 
         // Buat sand
         $sand = Sand::create($data);
+
+        // Kalkulasi berat bersih dari berat kotor dan berat kemasan
+        if ($sand->package_weight_gross && $sand->package_unit) {
+            $sand->calculateNetWeight();
+        }
 
         // Kalkulasi volume dari dimensi
         if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
@@ -103,7 +113,9 @@ class SandController extends Controller
 
     public function edit(Sand $sand)
     {
-        return view('sands.edit', compact('sand'));
+        $units = \App\Models\Unit::orderBy('code')->get();
+
+        return view('sands.edit', compact('sand', 'units'));
     }
 
     public function update(Request $request, Sand $sand)
@@ -112,6 +124,9 @@ class SandController extends Controller
             'type' => 'nullable|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'brand' => 'nullable|string|max:255',
+            'package_unit' => 'nullable|string|max:20',
+            'package_weight_gross' => 'nullable|numeric|min:0',
+            'package_weight_net' => 'nullable|numeric|min:0',
             'dimension_length' => 'nullable|numeric|min:0',
             'dimension_width' => 'nullable|numeric|min:0',
             'dimension_height' => 'nullable|numeric|min:0',
@@ -127,7 +142,7 @@ class SandController extends Controller
         if (empty($data['sand_name'])) {
             $parts = array_filter([
                 $data['type'] ?? '',
-                $data['brand'] ?? ''
+                $data['brand'] ?? '',
             ]);
             $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
         }
@@ -156,6 +171,11 @@ class SandController extends Controller
 
         // Update sand
         $sand->update($data);
+
+        // Kalkulasi berat bersih dari berat kotor dan berat kemasan
+        if ($sand->package_weight_gross && $sand->package_unit) {
+            $sand->calculateNetWeight();
+        }
 
         // Kalkulasi volume dari dimensi
         if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
@@ -195,10 +215,10 @@ class SandController extends Controller
     {
         // Bidang yang diizinkan untuk auto-suggest
         $allowedFields = [
-            'type', 'brand', 'store', 'short_address', 'address'
+            'type', 'brand', 'store', 'short_address', 'address',
         ];
 
-        if (!in_array($field, $allowedFields)) {
+        if (! in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 

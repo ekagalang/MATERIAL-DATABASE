@@ -14,22 +14,27 @@ return new class extends Migration
             $table->string('type')->nullable(); // Jenis (Pasir, dll)
             $table->string('photo')->nullable(); // Path foto
             $table->string('brand')->nullable(); // Merek
-            
+
+            // Kemasan - Unit/Satuan (seperti Sak, Karung, dll)
+            $table->string('package_unit')->nullable(); // Satuan kemasan (FK ke units)
+            $table->decimal('package_weight_gross', 10, 2)->nullable(); // Berat kotor dalam Kg
+            $table->decimal('package_weight_net', 10, 2)->nullable(); // Berat bersih dalam Kg
+
             // Kemasan - Dimensi untuk kalkulasi volume
             $table->decimal('dimension_length', 10, 2)->nullable(); // Panjang (m)
             $table->decimal('dimension_width', 10, 2)->nullable(); // Lebar (m)
             $table->decimal('dimension_height', 10, 2)->nullable(); // Tinggi (m)
             $table->decimal('package_volume', 10, 6)->nullable(); // Volume dalam m³ (hasil kalkulasi)
-            
+
             // Toko
             $table->string('store')->nullable(); // Nama Toko
             $table->text('address')->nullable(); // Alamat Lengkap
             $table->string('short_address')->nullable(); // Alamat Singkat
-            
+
             // Harga
             $table->decimal('package_price', 15, 2)->nullable(); // Harga per kemasan
             $table->decimal('comparison_price_per_m3', 15, 2)->nullable(); // Harga komparasi per m³
-            
+
             $table->timestamps();
         });
     }

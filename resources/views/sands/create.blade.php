@@ -1,4 +1,4 @@
-<div class="card">
+﻿<div class="card">
     @if($errors->any())
         <div class="alert alert-danger">
             <strong>Terdapat kesalahan:</strong>
@@ -36,6 +36,32 @@
                         <input type="text" name="brand" id="brand" value="{{ old('brand') }}" class="autocomplete-input" data-field="brand" autocomplete="off" placeholder="Ketik atau pilih..." style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
                         <div class="autocomplete-list" id="brand-list"></div>
                     </div>
+                </div>
+
+                <!-- Kemasan (Unit & Berat) -->
+                <div class="row">
+                    <label>Kemasan</label>
+                    <div style="display: flex; flex: 1; gap: 6px; align-items: center;">
+                        <select name="package_unit" id="package_unit" style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                            <option value="">-- Satuan --</option>
+                            @foreach($units as $unit)
+                                <option value="{{ $unit->code }}" data-weight="{{ $unit->package_weight }}" {{ old('package_unit') == $unit->code ? 'selected' : '' }}>
+                                    {{ $unit->code }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <!-- Berat Kotor & Bersih 
+                        <input type="number" name="package_weight_gross" id="package_weight_gross" value="{{ old('package_weight_gross') }}" step="0.01" min="0" placeholder="Berat Kotor" style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <span style="white-space: nowrap; font-size: 13px;">Kg</span>
+                        <input type="number" name="package_weight_net" id="package_weight_net" value="{{ old('package_weight_net') }}" step="0.01" min="0" placeholder="Berat Bersih" style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <span style="white-space: nowrap; font-size: 13px;">Kg</span>
+                        -->
+                    </div>
+                </div>
+                <div style="margin-left: 140px; margin-bottom: 15px;">
+                    <small style="color: #7f8c8d;">
+                        Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: bold; color: #27ae60;">-</span>
+                    </small>
                 </div>
 
                 <!-- Dimensi Kemasan (P × L × T) -->
