@@ -105,7 +105,7 @@
                     <div class="row">
                         <label>Volume Bentuk</label>
                         <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                            <span id="volume_display" style="font-weight: bold; color: #27ae60;">-</span> M3</span>
+                            <span id="volume_display" style="font-weight: bold; color: #27ae60;">-</span>M3</span>
                         </div>
                     </div>
                 </div>
@@ -128,7 +128,7 @@
                         <span style="margin-right: 5px; padding-top: 6px;">Rp</span>
                         <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3') }}">
                         <input type="text" id="comparison_price_display" inputmode="numeric" placeholder="0" style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px; max-width: 82.5%;">
-                        <span style="padding: 0 4px;">/ M3</span>
+                        <span style="padding: 0 4px;">/M3</span>
                     </div>
                 </div>
 

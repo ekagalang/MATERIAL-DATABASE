@@ -103,7 +103,7 @@
                     <div class="row">
                         <label>Volume Bentuk</label>
                         <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                            <span id="volume_display" style="font-weight: bold; color: #27ae60;">-</span> M3</span>
+                            <span id="volume_display" style="font-weight: bold; color: #27ae60;">-</span>M3</span>
                         </div>
                     </div>
                 </div>

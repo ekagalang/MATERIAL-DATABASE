@@ -4,45 +4,66 @@
 
 @section('content')
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Database Satuan</h2>
-        <a href="{{ route('units.create') }}" class="btn btn-success">+ Tambah Satuan</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
+        <h2 style="margin-bottom: 0;">Database Satuan</h2>
+        <a href="{{ route('units.create') }}" class="btn btn-success open-modal">
+            <i class="bi bi-plus-lg"></i> Tambah Satuan
+        </a>
     </div>
 
     @if($units->count() > 0)
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 60px;">No</th>
-                    <th>Kode</th>
-                    <th>Nama Satuan</th>
-                    <th style="width: 150px;">Berat Kemasan (Kg)</th>
-                    <th>Keterangan</th>
-                    <th style="width: 180px; text-align: center;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($units as $index => $unit)
-                <tr>
-                    <td>{{ $units->firstItem() + $index }}</td>
-                    <td><strong>{{ $unit->code }}</strong></td>
-                    <td>{{ $unit->name }}</td>
-                    <td>{{ number_format($unit->package_weight, 2, ',', '.') }}</td>
-                    <td>{{ $unit->description ?? '-' }}</td>
-                    <td>
-                        <div class="actions" style="justify-content: center;">
-                            <a href="{{ route('units.edit', $unit->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                            <form action="{{ route('units.destroy', $unit->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus satuan ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Kode</th>
+                        <th>Nama Satuan</th>
+                        <th>Berat Kemasan (Kg)</th>
+                        <th>Keterangan</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($units as $index => $unit)
+                    <tr>
+                        <td style="text-align: center; font-weight: 500; color: #64748b;">
+                            {{ $units->firstItem() + $index }}
+                        </td>
+                        <td>
+                            <strong style="color: #0f172a; font-weight: 600;">{{ $unit->code }}</strong>
+                        </td>
+                        <td style="color: #475569;">{{ $unit->name }}</td>
+                        <td style="text-align: right; color: #475569; font-size: 13px;">
+                            {{ number_format($unit->package_weight, 2, ',', '.') }}
+                        </td>
+                        <td style="color: #64748b; font-size: 13px;">{{ $unit->description ?? '-' }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{{ route('units.edit', $unit->id) }}"
+                                   class="btn btn-warning btn-sm"
+                                   title="Edit">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+
+                                <form action="{{ route('units.destroy', $unit->id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('Yakin ingin menghapus satuan ini?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            title="Hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
         <div class="pagination">
             {{ $units->links('pagination::simple-default') }}
@@ -51,7 +72,236 @@
         <div class="empty-state">
             <div class="empty-state-icon">📦</div>
             <p>Belum ada data satuan</p>
+            <a href="{{ route('units.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;">
+                <i class="bi bi-plus-lg"></i> Tambah Data Pertama
+            </a>
         </div>
     @endif
 </div>
+
+<!-- Floating Modal Container -->
+<div id="floatingModal" class="floating-modal">
+    <div class="floating-modal-backdrop"></div>
+    <div class="floating-modal-content">
+        <div class="floating-modal-header">
+            <h2 id="modalTitle">Form Satuan</h2>
+            <button class="floating-modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="floating-modal-body" id="modalBody">
+            <div style="text-align: center; padding: 60px; color: #94a3b8;">
+                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                <div style="font-weight: 500;">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Modal Styles - Modern & Minimalist */
+.floating-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
+.floating-modal.active {
+    display: block;
+}
+
+.floating-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.floating-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+    max-width: 95%;
+    max-height: 95vh;
+    width: 800px;
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-modal-header {
+    padding: 24px 32px;
+    border-bottom: 1.5px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+}
+
+.floating-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.floating-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    color: #94a3b8;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.floating-modal-close:hover {
+    background: #fee2e2;
+    color: #ef4444;
+}
+
+.floating-modal-body {
+    padding: 32px;
+    overflow-y: auto;
+    max-height: calc(95vh - 90px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translate(-50%, -48%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar styling */
+.floating-modal-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.floating-modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.floating-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+}
+
+.floating-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Input focus styles */
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+    outline: none;
+    border-color: #891313 !important;
+    box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1) !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('floatingModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const closeBtn = document.getElementById('closeModal');
+    const backdrop = modal.querySelector('.floating-modal-backdrop');
+
+    // Intercept form submission in modal
+    function interceptFormSubmit() {
+        const form = modalBody.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Let form submit normally - akan redirect
+            });
+        }
+    }
+
+    // Open modal
+    document.querySelectorAll('.open-modal').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = this.href;
+
+            // Show modal
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            // Update title
+            if (url.includes('/create')) {
+                modalTitle.textContent = 'Tambah Satuan Baru';
+            } else if (url.includes('/edit')) {
+                modalTitle.textContent = 'Edit Satuan';
+            } else {
+                modalTitle.textContent = 'Detail Satuan';
+            }
+
+            // Load content via AJAX
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
+                modalBody.innerHTML = content ? content.outerHTML : html;
+                interceptFormSubmit();
+            })
+            .catch(err => {
+                modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
+                console.error('Fetch error:', err);
+            });
+        });
+    });
+
+    // Close modal
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        setTimeout(() => {
+            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+        }, 300);
+    }
+
+    closeBtn.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    // ESC key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+});
+</script>
 @endsection

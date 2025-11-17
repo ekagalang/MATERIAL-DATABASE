@@ -4,111 +4,148 @@
 
 @section('content')
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <h2>Database Pasir</h2>
-        <a href="{{ route('sands.create') }}" class="btn btn-success open-modal">+ Tambah Pasir</a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
+        <h2 style="margin-bottom: 0;">Database Pasir</h2>
+        <a href="{{ route('sands.create') }}" class="btn btn-success open-modal">
+            <i class="bi bi-plus-lg"></i> Tambah Pasir
+        </a>
     </div>
 
     <!-- Search Form -->
-    <form action="{{ route('sands.index') }}" method="GET" style="margin-bottom: 20px;">
-        <div style="display: flex; gap: 10px;">
-            <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari jenis, merek, toko..." style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
-            <button type="submit" class="btn btn-primary">Cari</button>
+    <form action="{{ route('sands.index') }}" method="GET" style="margin-bottom: 24px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="flex: 1; position: relative;">
+                <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <input type="text"
+                       name="search"
+                       value="{{ request('search') }}"
+                       placeholder="Cari jenis, merek, toko..."
+                       style="width: 100%; padding: 11px 14px 11px 40px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Cari
+            </button>
             @if(request('search'))
-                <a href="{{ route('sands.index') }}" class="btn btn-secondary">Reset</a>
+                <a href="{{ route('sands.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-lg"></i> Reset
+                </a>
             @endif
         </div>
     </form>
 
     @if($sands->count() > 0)
-        <div style="overflow-x: auto;">
+        <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th style="width: 50px;">No</th>
+                        <th>No</th>
                         <th>Material</th>
                         <th>Jenis</th>
-                        <th style="width: 80px;">Foto</th>
+                        <th>Foto</th>
                         <th>Merek</th>
                         <th>Dimensi (m)</th>
-                        <th>Volume (M<span class="raise">3</span>)</th>
+                        <th>Volume ( M3)</th>
                         <th>Toko</th>
                         <th>Alamat Singkat</th>
                         <th>Harga Kemasan</th>
-                        <th>Harga/M<span class="raise">3</span></th>
-                        <th style="text-align: center;">Aksi</th>
+                        <th>Harga/ M3</th>
+                        <th>Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($sands as $index => $sand)
                     <tr>
-                        <td>{{ $sands->firstItem() + $index }}</td>
-                        <td><strong>Pasir</strong></td>
-                        <td>{{ $sand->type ?? '-' }}</td>
+                        <td style="text-align: center; font-weight: 500; color: #64748b;">
+                            {{ $sands->firstItem() + $index }}
+                        </td>
+                        <td>
+                            <strong style="color: #0f172a; font-weight: 600;">Pasir</strong>
+                        </td>
+                        <td style="color: #475569;">{{ $sand->type ?? '-' }}</td>
                         <td style="text-align: center;">
                             @if($sand->photo_url)
                                 <img src="{{ $sand->photo_url }}"
                                      alt="Photo"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
-                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-                                <span style="color: #95a5a6; display: none;">📷</span>
+                                     style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
+                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
                             @else
-                                <span style="color: #95a5a6;">-</span>
+                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
                             @endif
                         </td>
-                        <td>{{ $sand->brand ?? '-' }}</td>
-                        <td>
+                        <td style="color: #475569;">{{ $sand->brand ?? '-' }}</td>
+                        <td style="color: #475569; font-size: 12px;">
                             @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
-                                {{ number_format($sand->dimension_length, 2, ',', '.') }} × 
-                                {{ number_format($sand->dimension_width, 2, ',', '.') }} × 
+                                {{ number_format($sand->dimension_length, 2, ',', '.') }} ×
+                                {{ number_format($sand->dimension_width, 2, ',', '.') }} ×
                                 {{ number_format($sand->dimension_height, 2, ',', '.') }}
                             @else
-                                -
+                                <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
-                        <td style="text-align: right">
+                        <td style="text-align: right; color: #475569; font-size: 12px;">
                             @if($sand->package_volume)
                                 {{ number_format($sand->package_volume, 6, ',', '.') }}
                             @else
-                                -
+                                <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
-                        <td>{{ $sand->store ?? '-' }}</td>
-                        <td style="max-width: 300px; white-space: normal; word-break: break-word;">
+                        <td>
+                            <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
+                                {{ $sand->store ?? '-' }}
+                            </span>
+                        </td>
+                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
                             {{ $sand->short_address ?? '-' }}
                         </td>
                         <td>
                             @if($sand->package_price)
-                                <div style="display: flex; width: 120px;">
-                                    <span style="width: 30px;">Rp.</span>
-                                    <span style="text-align: right; flex: 1;">
+                                <div style="display: flex; width: 100%; font-size: 13px;">
+                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
+                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
                                         {{ number_format($sand->package_price, 0, ',', '.') }}
                                     </span>
                                 </div>
                             @else
-                                -
+                                <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
                         <td>
                             @if($sand->comparison_price_per_m3)
-                                <div style="display: flex; width: 120px;">
-                                    <span style="width: 30px;">Rp.</span>
-                                    <span style="text-align: right; flex: 1;">
+                                <div style="display: flex; width: 100%; font-size: 13px;">
+                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
+                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
                                         {{ number_format($sand->comparison_price_per_m3, 0, ',', '.') }}
                                     </span>
                                 </div>
                             @else
-                                -
+                                <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
                         <td>
-                            <div class="actions" style="justify-content: center;">
-                                <a href="{{ route('sands.show', $sand->id) }}" class="btn btn-primary btn-sm open-modal">Detail</a>
-                                <a href="{{ route('sands.edit', $sand->id) }}" class="btn btn-warning btn-sm open-modal">Edit</a>
-                                <form action="{{ route('sands.destroy', $sand->id) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus data pasir ini?')">
+                            <div class="btn-group">
+                                <a href="{{ route('sands.show', $sand->id) }}"
+                                   class="btn btn-primary btn-sm open-modal"
+                                   title="Detail">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+
+                                <a href="{{ route('sands.edit', $sand->id) }}"
+                                   class="btn btn-warning btn-sm open-modal"
+                                   title="Edit">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+
+                                <form action="{{ route('sands.destroy', $sand->id) }}"
+                                      method="POST"
+                                      onsubmit="return confirm('Yakin ingin menghapus data pasir ini?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-danger btn-sm">Hapus</button>
+                                    <button type="submit"
+                                            class="btn btn-danger btn-sm"
+                                            title="Hapus">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </form>
                             </div>
                         </td>
@@ -125,6 +162,11 @@
         <div class="empty-state">
             <div class="empty-state-icon">🏖️</div>
             <p>{{ request('search') ? 'Tidak ada data pasir yang sesuai dengan pencarian' : 'Belum ada data pasir' }}</p>
+            @if(!request('search'))
+                <a href="{{ route('sands.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;">
+                    <i class="bi bi-plus-lg"></i> Tambah Data Pertama
+                </a>
+            @endif
         </div>
     @endif
 </div>
@@ -138,15 +180,16 @@
             <button class="floating-modal-close" id="closeModal">&times;</button>
         </div>
         <div class="floating-modal-body" id="modalBody">
-            <div style="text-align: center; padding: 40px; color: #95a5a6;">
-                <div style="font-size: 48px; margin-bottom: 10px;">⏳</div>
-                <div>Loading...</div>
+            <div style="text-align: center; padding: 60px; color: #94a3b8;">
+                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                <div style="font-weight: 500;">Loading...</div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
+/* Modal Styles - Modern & Minimalist */
 .floating-modal {
     display: none;
     position: fixed;
@@ -155,7 +198,7 @@
     width: 100%;
     height: 100%;
     z-index: 9999;
-    animation: fadeIn 0.3s ease;
+    animation: fadeIn 0.2s ease;
 }
 
 .floating-modal.active {
@@ -168,7 +211,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
 }
@@ -178,55 +221,56 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
     max-width: 95%;
     max-height: 95vh;
     width: 1200px;
     overflow: hidden;
-    animation: slideUp 0.3s ease;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .floating-modal-header {
-    padding: 20px 30px;
-    border-bottom: 1px solid #e3e3e0;
+    padding: 24px 32px;
+    border-bottom: 1.5px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #f8f9fa;
+    background: #f8fafc;
 }
 
 .floating-modal-header h2 {
     margin: 0;
     font-size: 20px;
-    color: #2c3e50;
+    font-weight: 700;
+    color: #0f172a;
 }
 
 .floating-modal-close {
-    background: none;
+    background: transparent;
     border: none;
-    font-size: 32px;
-    color: #95a5a6;
+    font-size: 28px;
+    color: #94a3b8;
     cursor: pointer;
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    transition: all 0.2s;
+    border-radius: 8px;
+    transition: all 0.2s ease;
 }
 
 .floating-modal-close:hover {
-    background: #e74c3c;
-    color: #fff;
+    background: #fee2e2;
+    color: #ef4444;
 }
 
 .floating-modal-body {
-    padding: 30px;
+    padding: 32px;
     overflow-y: auto;
-    max-height: calc(95vh - 80px);
+    max-height: calc(95vh - 90px);
 }
 
 @keyframes fadeIn {
@@ -236,7 +280,7 @@
 
 @keyframes slideUp {
     from {
-        transform: translate(-50%, -45%);
+        transform: translate(-50%, -48%);
         opacity: 0;
     }
     to {
@@ -245,27 +289,30 @@
     }
 }
 
+/* Scrollbar styling */
 .floating-modal-body::-webkit-scrollbar {
-    width: 8px;
+    width: 10px;
 }
 
 .floating-modal-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
+    background: #f1f5f9;
+    border-radius: 5px;
 }
 
 .floating-modal-body::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
+    background: #cbd5e1;
+    border-radius: 5px;
 }
 
 .floating-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #555;
+    background: #94a3b8;
 }
 
-.raise {
-    font-size: 0.7em;
-    vertical-align: super;
+/* Input focus styles */
+input[type="text"]:focus {
+    outline: none;
+    border-color: #891313 !important;
+    box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1) !important;
 }
 </style>
 
@@ -277,23 +324,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeBtn = document.getElementById('closeModal');
     const backdrop = modal.querySelector('.floating-modal-backdrop');
 
+    // Intercept form submission in modal
     function interceptFormSubmit() {
         const form = modalBody.querySelector('form');
         if (form) {
             form.addEventListener('submit', function(e) {
-                // Let form submit normally
+                // Let form submit normally - akan redirect
             });
         }
     }
 
+    // Open modal
     document.querySelectorAll('.open-modal').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const url = this.href;
 
+            // Show modal
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
-            
+
+            // Update title
             if (url.includes('/create')) {
                 modalTitle.textContent = 'Tambah Data Pasir Baru';
             } else if (url.includes('/edit')) {
@@ -301,7 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 modalTitle.textContent = 'Detail Data Pasir';
             }
-            
+
+            // Load content via AJAX
             fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -309,8 +361,12 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.text())
             .then(html => {
-                modalBody.innerHTML = html;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
+                modalBody.innerHTML = content ? content.outerHTML : html;
 
+                // Load sand-form.js if not loaded
                 if (!window.sandFormScriptLoaded) {
                     const script = document.createElement('script');
                     script.src = '/js/sand-form.js';
@@ -318,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         window.sandFormScriptLoaded = true;
                         setTimeout(() => {
                             if (typeof initSandForm === 'function') {
-                                initSandForm();
+                                initSandForm(modalBody);
                             }
                             interceptFormSubmit();
                         }, 100);
@@ -327,29 +383,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     setTimeout(() => {
                         if (typeof initSandForm === 'function') {
-                            initSandForm();
+                            initSandForm(modalBody);
                         }
                         interceptFormSubmit();
                     }, 100);
                 }
             })
-            .catch(error => {
-                modalBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #e74c3c;"><div style="font-size: 48px; margin-bottom: 10px;">❌</div><div>Gagal memuat form</div></div>';
+            .catch(err => {
+                modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
+                console.error('Fetch error:', err);
             });
         });
     });
 
+    // Close modal
     function closeModal() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
-            modalBody.innerHTML = '<div style="text-align: center; padding: 40px; color: #95a5a6;"><div style="font-size: 48px; margin-bottom: 10px;">⏳</div><div>Loading...</div></div>';
+            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
         }, 300);
     }
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
 
+    // ESC key to close
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             closeModal();
