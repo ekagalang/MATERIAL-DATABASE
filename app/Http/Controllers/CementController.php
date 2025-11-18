@@ -34,7 +34,7 @@ class CementController extends Controller
 
     public function create()
     {
-        $units = Unit::orderBy('code')->get();
+        $units = Cement::getAvailableUnits();
         return view('cements.create', compact('units'));
     }
 
@@ -115,7 +115,7 @@ class CementController extends Controller
 
     public function edit(Cement $cement)
     {
-        $units = Unit::orderBy('code')->get();
+        $units = Cement::getAvailableUnits();
         return view('cements.edit', compact('cement', 'units'));
     }
 

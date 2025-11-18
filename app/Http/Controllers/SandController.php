@@ -31,8 +31,7 @@ class SandController extends Controller
 
     public function create()
     {
-        $units = \App\Models\Unit::orderBy('code')->get();
-
+        $units = Sand::getAvailableUnits();
         return view('sands.create', compact('units'));
     }
 
@@ -113,8 +112,7 @@ class SandController extends Controller
 
     public function edit(Sand $sand)
     {
-        $units = \App\Models\Unit::orderBy('code')->get();
-
+        $units = Sand::getAvailableUnits();
         return view('sands.edit', compact('sand', 'units'));
     }
 

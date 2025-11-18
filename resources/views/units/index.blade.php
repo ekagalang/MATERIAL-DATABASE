@@ -11,12 +11,38 @@
         </a>
     </div>
 
+    <!-- Filter Form -->
+    <form action="{{ route('units.index') }}" method="GET" style="margin-bottom: 24px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <div style="flex: 1;">
+                <select name="material_type" 
+                        style="width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit;">
+                    <option value="">Semua Material Type</option>
+                    @foreach($materialTypes as $type => $label)
+                        <option value="{{ $type }}" {{ request('material_type') == $type ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-funnel"></i> Filter
+            </button>
+            @if(request('material_type'))
+                <a href="{{ route('units.index') }}" class="btn btn-secondary">
+                    <i class="bi bi-x-lg"></i> Reset
+                </a>
+            @endif
+        </div>
+    </form>
+
     @if($units->count() > 0)
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>No</th>
+                        <th>Material Type</th>
                         <th>Kode</th>
                         <th>Nama Satuan</th>
                         <th>Berat Kemasan (Kg)</th>
@@ -31,27 +57,33 @@
                             {{ $units->firstItem() + $index }}
                         </td>
                         <td>
+                            <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 600; color: #475569;">
+                                {{ ucfirst($unit->material_type) }}
+                            </span>
+                        </td>
+                        <td>
                             <strong style="color: #0f172a; font-weight: 600;">{{ $unit->code }}</strong>
                         </td>
                         <td style="color: #475569;">{{ $unit->name }}</td>
                         <td style="text-align: right; color: #475569; font-size: 13px;">
-                            {{ number_format($unit->package_weight, 2, ',', '.') }}
+                            {{ $unit->package_weight }}
                         </td>
                         <td style="color: #64748b; font-size: 13px;">{{ $unit->description ?? '-' }}</td>
                         <td>
                             <div class="btn-group">
                                 <a href="{{ route('units.edit', $unit->id) }}"
-                                   class="btn btn-warning btn-sm"
+                                   class="btn btn-warning btn-sm open-modal"
                                    title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
 
                                 <form action="{{ route('units.destroy', $unit->id) }}"
                                       method="POST"
-                                      onsubmit="return confirm('Yakin ingin menghapus satuan ini?')">
+                                      onsubmit="return confirm('Yakin ingin menghapus satuan ini?')"
+                                      style="display: inline;">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit"
+                                    <button type="submit" 
                                             class="btn btn-danger btn-sm"
                                             title="Hapus">
                                         <i class="bi bi-trash"></i>
@@ -65,39 +97,41 @@
             </table>
         </div>
 
-        <div class="pagination">
-            {{ $units->links('pagination::simple-default') }}
+        <!-- Pagination -->
+        <div style="margin-top: 24px;">
+            {{ $units->links() }}
         </div>
     @else
         <div class="empty-state">
-            <div class="empty-state-icon">📦</div>
-            <p>Belum ada data satuan</p>
-            <a href="{{ route('units.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;">
-                <i class="bi bi-plus-lg"></i> Tambah Data Pertama
-            </a>
+            <div class="empty-state-icon">📏</div>
+            <p>Belum ada satuan yang terdaftar</p>
         </div>
     @endif
 </div>
 
-<!-- Floating Modal Container -->
+<!-- Floating Modal -->
 <div id="floatingModal" class="floating-modal">
     <div class="floating-modal-backdrop"></div>
     <div class="floating-modal-content">
         <div class="floating-modal-header">
-            <h2 id="modalTitle">Form Satuan</h2>
-            <button class="floating-modal-close" id="closeModal">&times;</button>
+            <h3 id="modalTitle">Form Satuan</h3>
+            <button type="button" id="closeModal" class="floating-modal-close">
+                <i class="bi bi-x-lg"></i>
+            </button>
         </div>
         <div class="floating-modal-body" id="modalBody">
-            <div style="text-align: center; padding: 60px; color: #94a3b8;">
-                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-                <div style="font-weight: 500;">Loading...</div>
+            <!-- Content akan di-load via AJAX -->
+            <div style="text-align: center; padding: 40px;">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-/* Modal Styles - Modern & Minimalist */
+/* Floating Modal Styles */
 .floating-modal {
     display: none;
     position: fixed;
@@ -106,11 +140,13 @@
     width: 100%;
     height: 100%;
     z-index: 9999;
-    animation: fadeIn 0.2s ease;
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .floating-modal.active {
     display: block;
+    opacity: 1;
 }
 
 .floating-modal-backdrop {
@@ -119,9 +155,8 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
 }
 
 .floating-modal-content {
@@ -129,100 +164,95 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: #ffffff;
+    background: #fff;
     border-radius: 16px;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-    max-width: 95%;
-    max-height: 95vh;
-    width: 800px;
-    overflow: hidden;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .floating-modal-header {
-    padding: 24px 32px;
-    border-bottom: 1.5px solid #f1f5f9;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: #f8fafc;
+    padding: 24px 28px;
+    border-bottom: 1.5px solid #f1f5f9;
 }
 
-.floating-modal-header h2 {
+.floating-modal-header h3 {
     margin: 0;
     font-size: 20px;
-    font-weight: 700;
+    font-weight: 600;
     color: #0f172a;
 }
 
 .floating-modal-close {
-    background: transparent;
+    background: none;
     border: none;
-    font-size: 28px;
-    color: #94a3b8;
+    font-size: 20px;
+    color: #64748b;
     cursor: pointer;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
+    padding: 8px;
+    line-height: 1;
     transition: all 0.2s ease;
+    border-radius: 6px;
 }
 
 .floating-modal-close:hover {
-    background: #fee2e2;
-    color: #ef4444;
+    background: #f1f5f9;
+    color: #0f172a;
 }
 
 .floating-modal-body {
-    padding: 32px;
+    padding: 28px;
     overflow-y: auto;
-    max-height: calc(95vh - 90px);
+    flex: 1;
 }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+/* Form inside modal */
+.floating-modal-body .form-group {
+    margin-bottom: 20px;
 }
 
-@keyframes slideUp {
-    from {
-        transform: translate(-50%, -48%);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, -50%);
-        opacity: 1;
-    }
+.floating-modal-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #475569;
+    font-size: 14px;
 }
 
-/* Scrollbar styling */
-.floating-modal-body::-webkit-scrollbar {
-    width: 10px;
+.floating-modal-body .form-control {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: all 0.2s ease;
 }
 
-.floating-modal-body::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 5px;
-}
-
-.floating-modal-body::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 5px;
-}
-
-.floating-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* Input focus styles */
-input[type="text"]:focus,
-input[type="number"]:focus,
-textarea:focus {
+.floating-modal-body .form-control:focus {
     outline: none;
-    border-color: #891313 !important;
-    box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1) !important;
+    border-color: #891313;
+    box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1);
+}
+
+.floating-modal-body .form-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.floating-modal-body .text-danger {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+    display: block;
 }
 </style>
 
@@ -289,14 +319,14 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
-            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+            modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
         }, 300);
     }
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
 
-    // ESC key to close
+    // Close on ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             closeModal();

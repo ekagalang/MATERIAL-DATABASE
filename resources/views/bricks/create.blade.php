@@ -1,27 +1,36 @@
 <div class="card">
     @if($errors->any())
         <div class="alert alert-danger">
-            <strong>Terdapat kesalahan:</strong>
-            <ul style="margin: 10px 0 0 20px;">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+            <div>
+                <strong>Terdapat kesalahan pada input:</strong>
+                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
     @endif
 
     <form action="{{ route('bricks.store') }}" method="POST" enctype="multipart/form-data" id="brickForm">
         @csrf
 
-        <div style="display: flex; gap: 40px;">
-            <!-- Form Fields - Kolom Kiri -->
-            <div style="flex: 0 0 calc(65% - 20px); max-width: calc(65% - 20px);">
+        <div style="display: flex; gap: 32px;">
+            <!-- Kolom Kiri - Form Fields -->
+            <div style="flex: 0 0 calc(65% - 16px); max-width: calc(65% - 16px);">
 
                 <!-- Jenis -->
                 <div class="row">
                     <label>Jenis</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="type" id="type" value="{{ old('type') }}" class="autocomplete-input" data-field="type" autocomplete="off" placeholder="Ketik atau pilih..." style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="type" 
+                               id="type" 
+                               value="{{ old('type') }}" 
+                               class="autocomplete-input" 
+                               data-field="type" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik jenis...">
                         <div class="autocomplete-list" id="type-list"></div>
                     </div>
                 </div>
@@ -30,7 +39,14 @@
                 <div class="row">
                     <label>Merek</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="brand" id="brand" value="{{ old('brand') }}" class="autocomplete-input" data-field="brand" autocomplete="off" placeholder="Ketik atau pilih..." style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="brand" 
+                               id="brand" 
+                               value="{{ old('brand') }}" 
+                               class="autocomplete-input" 
+                               data-field="brand" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik merek...">
                         <div class="autocomplete-list" id="brand-list"></div>
                     </div>
                 </div>
@@ -39,7 +55,14 @@
                 <div class="row">
                     <label>Bentuk</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="form" id="form" value="{{ old('form') }}" class="autocomplete-input" data-field="form" autocomplete="off" placeholder="Ketik atau pilih..." style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="form" 
+                               id="form" 
+                               value="{{ old('form') }}" 
+                               class="autocomplete-input" 
+                               data-field="form" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik bentuk...">
                         <div class="autocomplete-list" id="form-list"></div>
                     </div>
                 </div>
@@ -48,33 +71,45 @@
                 <div class="row">
                     <label>Dimensi</label>
                     <div style="flex: 1;">
-                        <div style="display: flex; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; align-items: center;">
+                        <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; align-items: center;">
                             <!-- Panjang -->
-                            <input type="text" id="dimension_length_input" placeholder="P" style="padding: 7px 8px; border: 1px solid #999; border-radius: 2px; font-size: 13px; width: 100%;">
-                            <select id="dimension_length_unit" style="padding: 7px 4px; border: 1px solid #999; border-radius: 2px; font-size: 12px; width: 50px;">
+                            <input type="text" 
+                                   id="dimension_length_input" 
+                                   placeholder="Panjang" 
+                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                            <select id="dimension_length_unit" 
+                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm" selected>cm</option>
-                                <option value="m">M</option>
+                                <option value="m">m</option>
                             </select>
                             
-                            <span style="color: #999; text-align: center;">×</span>
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
                             
                             <!-- Lebar -->
-                            <input type="text" id="dimension_width_input" placeholder="L" style="padding: 7px 8px; border: 1px solid #999; border-radius: 2px; font-size: 13px; width: 100%;">
-                            <select id="dimension_width_unit" style="padding: 7px 4px; border: 1px solid #999; border-radius: 2px; font-size: 12px; width: 50px;">
+                            <input type="text" 
+                                   id="dimension_width_input" 
+                                   placeholder="Lebar" 
+                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                            <select id="dimension_width_unit" 
+                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm" selected>cm</option>
-                                <option value="m">M</option>
+                                <option value="m">m</option>
                             </select>
                             
-                            <span style="color: #999; text-align: center;">×</span>
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
                             
                             <!-- Tinggi -->
-                            <input type="text" id="dimension_height_input" placeholder="T" style="padding: 7px 8px; border: 1px solid #999; border-radius: 2px; font-size: 13px; width: 100%;">
-                            <select id="dimension_height_unit" style="padding: 7px 4px; border: 1px solid #999; border-radius: 2px; font-size: 12px; width: 50px;">
+                            <input type="text" 
+                                   id="dimension_height_input" 
+                                   placeholder="Tinggi" 
+                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                            <select id="dimension_height_unit" 
+                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm" selected>cm</option>
-                                <option value="m">M</option>
+                                <option value="m">m</option>
                             </select>
                         </div>
                         
@@ -84,51 +119,65 @@
                         <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height') }}">
                         
                         <!-- Display hasil konversi -->
-                        <div style="display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; margin-top: 3px;">
-                            <small style="color: #7f8c8d; font-size: 10px; text-align: left;">
-                                Panjang <span id="length_cm_display">-</span> cm
+                        <div style="display: grid; grid-template-columns: 1fr 72px 1fr 72px 1fr; gap: 8px; margin-top: 6px;">
+                            <small style="color: #94a3b8; font-size: 11px;">
+                                <span id="length_cm_display" style="font-weight: 600; color: #64748b;">-</span> cm
                             </small>
-                            <span style="width: 10px"></span>
-                            <small style="color: #7f8c8d; font-size: 10px; text-align: left;">
-                                Lebar <span id="width_cm_display">-</span> cm
+                            <span></span>
+                            <small style="color: #94a3b8; font-size: 11px;">
+                                <span id="width_cm_display" style="font-weight: 600; color: #64748b;">-</span> cm
                             </small>
-                            <span style="width: 10px"></span>
-                            <small style="color: #7f8c8d; font-size: 10px; text-align: left;">
-                                Tinggi <span id="height_cm_display">-</span> cm
+                            <span></span>
+                            <small style="color: #94a3b8; font-size: 11px;">
+                                <span id="height_cm_display" style="font-weight: 600; color: #64748b;">-</span> cm
                             </small>
                         </div>
                     </div>
                 </div>
 
-                <div> 
-                    <!-- Volume (Hasil Kalkulasi) -->
-                    <div class="row">
-                        <label>Volume Bentuk</label>
-                        <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                            <span id="volume_display" style="font-weight: bold; color: #27ae60;">-</span>M3</span>
+                <!-- Volume Bentuk -->
+                <div class="row">
+                    <label>Volume</label>
+                    <div style="flex: 1;">
+                        <div style="padding: 10px 14px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 10px; display: inline-block; min-width: 120px;">
+                            <span id="volume_display" style="font-weight: 700; color: #15803d; font-size: 14px;">-</span>
+                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> m³</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Harga per Buah -->
                 <div class="row">
-                    <label>Harga per Buah</label>
-                    <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                        <span style="margin-right: 5px; padding-top: 6px;">Rp</span>
-                        <input type="hidden" name="price_per_piece" id="price_per_piece" value="{{ old('price_per_piece') }}">
-                        <input type="text" id="price_per_piece_display" value="{{ old('price_per_piece') }}" inputmode="numeric" placeholder="0" style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-                        <span style="padding: 0 4px;">/ Buah</span>
+                    <label>Harga/Buah</label>
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                            <input type="hidden" name="price_per_piece" id="price_per_piece" value="{{ old('price_per_piece') }}">
+                            <input type="text" 
+                                   id="price_per_piece_display" 
+                                   value="{{ old('price_per_piece') }}" 
+                                   inputmode="numeric" 
+                                   placeholder="0" 
+                                   style="flex: 1; max-width: 240px;">
+                            <span style="color: #94a3b8; font-size: 13px;">/buah</span>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Harga Komparasi per m³ -->
                 <div class="row">
-                    <label>Harga Komparasi</label>
-                    <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                        <span style="margin-right: 5px; padding-top: 6px;">Rp</span>
-                        <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3') }}">
-                        <input type="text" id="comparison_price_display" inputmode="numeric" placeholder="0" style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px; max-width: 82.5%;">
-                        <span style="padding: 0 4px;">/M3</span>
+                    <label>Harga/m³</label>
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                            <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3') }}">
+                            <input type="text" 
+                                   id="comparison_price_display" 
+                                   inputmode="numeric" 
+                                   placeholder="0" 
+                                   style="flex: 1; max-width: 240px;">
+                            <span style="color: #94a3b8; font-size: 13px;">/m³</span>
+                        </div>
                     </div>
                 </div>
 
@@ -136,7 +185,14 @@
                 <div class="row">
                     <label>Toko</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="store" id="store" value="{{ old('store') }}" class="autocomplete-input" data-field="store" autocomplete="off" placeholder="Ketik atau pilih..." style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="store" 
+                               id="store" 
+                               value="{{ old('store') }}" 
+                               class="autocomplete-input" 
+                               data-field="store" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik nama toko...">
                         <div class="autocomplete-list" id="store-list"></div>
                     </div>
                 </div>
@@ -145,7 +201,14 @@
                 <div class="row">
                     <label>Alamat Singkat</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="short_address" id="short_address" value="{{ old('short_address') }}" class="autocomplete-input" data-field="short_address" autocomplete="off" placeholder="Contoh: Roxy, CitraLand, dsb" style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="short_address" 
+                               id="short_address" 
+                               value="{{ old('short_address') }}" 
+                               class="autocomplete-input" 
+                               data-field="short_address" 
+                               autocomplete="off" 
+                               placeholder="Contoh: Roxy, CitraLand, Taman Semanggi">
                         <div class="autocomplete-list" id="short_address-list"></div>
                     </div>
                 </div>
@@ -154,91 +217,165 @@
                 <div class="row">
                     <label>Alamat Lengkap</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="address" id="address" value="{{ old('address') }}" class="autocomplete-input" data-field="address" autocomplete="off" placeholder="Ketik atau pilih..." style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="address" 
+                               id="address" 
+                               value="{{ old('address') }}" 
+                               class="autocomplete-input" 
+                               data-field="address" 
+                               autocomplete="off" 
+                               placeholder="Alamat lengkap toko...">
                         <div class="autocomplete-list" id="address-list"></div>
                     </div>
                 </div>
 
             </div>
 
-            <!-- Photo Upload Area - Kolom Kanan -->
-            <div style="flex: 0 0 calc(35% - 20px); max-width: calc(35% - 20px);">
-                <div class="right" id="photoPreviewArea" style="border: 1px solid #999; height: 380px; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #f9f9f9; cursor: pointer; position: relative; overflow: hidden; width: 100%;">
-                    <div id="photoPlaceholder" style="text-align: center; color: #999;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
-                        <div>Klik untuk upload foto</div>
-                        <div style="font-size: 12px; margin-top: 5px;">JPG, PNG, GIF (Max 2MB)</div>
+            <!-- Kolom Kanan - Upload Foto -->
+            <div style="flex: 0 0 calc(35% - 16px); max-width: calc(35% - 16px);">
+                <div id="photoPreviewArea"
+                     style="border: 2px dashed #e2e8f0;
+                            height: 420px;
+                            border-radius: 16px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
+                            cursor: pointer;
+                            position: relative;
+                            overflow: hidden;
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                    <div id="photoPlaceholder" style="text-align: center; color: #cbd5e1; position: relative; z-index: 1;">
+                        <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Upload Foto Produk</div>
+                        <div style="font-size: 12px; color: #94a3b8;">JPG, PNG, GIF (Max 2MB)</div>
                     </div>
-                    <img id="photoPreview" src="" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                    <img id="photoPreview"
+                         src=""
+                         alt="Preview"
+                         style="display: none;
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                z-index: 2;">
                 </div>
+                
                 <input type="file" name="photo" id="photo" accept="image/*" style="display: none;">
-                <div class="uploadDel" style="margin-top: 10px; font-size: 12px; color: #c02c2c;">
-                    <span style="margin-right: 20px; cursor: pointer;" id="uploadBtn">↑ Upload</span>
-                    <span style="cursor: pointer; display: none;" id="deletePhotoBtn">✕ Hapus</span>
+                
+                <div class="uploadDel" style="margin-top: 14px; display: flex; gap: 20px; font-size: 13px;">
+                    <span style="cursor: pointer; 
+                                 color: #891313; 
+                                 font-weight: 600; 
+                                 display: flex; 
+                                 align-items: center; 
+                                 gap: 6px;" 
+                          id="uploadBtn">
+                        <i class="bi bi-upload"></i> Upload Foto
+                    </span>
+                    <span style="cursor: pointer; 
+                                 color: #ef4444; 
+                                 font-weight: 600; 
+                                 display: none; 
+                                 align-items: center; 
+                                 gap: 6px;" 
+                          id="deletePhotoBtn">
+                        <i class="bi bi-trash"></i> Hapus Foto
+                    </span>
                 </div>
             </div>
-
         </div>
 
-        <!-- Buttons -->
-        <div class="btnArea" style="text-align: right; margin-top: 25px;">
-            <button type="button" class="btn red" onclick="window.parent.document.getElementById('closeModal').click()" style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: transparent; color: #c02c2c;">Batalkan</button>
-            <button type="submit" class="btn green" style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: #76b245; color: #fff;">Simpan</button>
+        <!-- Action Buttons -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+            <button type="button" 
+                    class="btn btn-secondary" 
+                    onclick="window.parent.document.getElementById('closeModal').click()"
+                    style="background: transparent; color: #64748b; border: 1.5px solid #e2e8f0; box-shadow: none;">
+                <i class="bi bi-x-lg"></i> Batalkan
+            </button>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-lg"></i> Simpan Data
+            </button>
         </div>
 
     </form>
 </div>
 
 <style>
-    .row { display: flex; margin-bottom: 15px; align-items: center; }
-    label { width: 140px; padding-top: 4px; font-size: 14px; font-weight: 600; }
-    input, select { flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px; }
+    /* Autocomplete styling untuk memastikan muncul dengan baik */
     .autocomplete-list {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-top: none;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 10000;
-        width: 100%;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        display: none;
-        margin-top: 1px;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: #fff !important;
+        border: 1.5px solid #e2e8f0 !important;
+        border-top: none !important;
+        border-radius: 0 0 10px 10px !important;
+        max-height: 240px !important;
+        overflow-y: auto !important;
+        z-index: 10000 !important;
+        width: 100% !important;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+        display: none !important;
+        margin-top: -1px !important;
     }
+
     .autocomplete-item {
-        padding: 10px 12px;
-        cursor: pointer;
-        border-bottom: 1px solid #f0f0f0;
-        transition: background 0.15s ease;
+        padding: 12px 16px !important;
+        cursor: pointer !important;
+        border-bottom: 1px solid #f8fafc !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-size: 13.5px !important;
+        color: #475569 !important;
     }
+
     .autocomplete-item:hover {
-        background: #f5f5f5;
+        background: linear-gradient(to right, #fef2f2 0%, #fef8f8 100%) !important;
+        color: #891313 !important;
+        padding-left: 20px !important;
     }
+
     .autocomplete-item:last-child {
-        border-bottom: none;
+        border-bottom: none !important;
     }
-    /* Scrollbar untuk autocomplete */
+
+    /* Scrollbar */
     .autocomplete-list::-webkit-scrollbar {
         width: 6px;
     }
+
     .autocomplete-list::-webkit-scrollbar-track {
-        background: #f1f1f1;
-    }
-    .autocomplete-list::-webkit-scrollbar-thumb {
-        background: #888;
+        background: #f8fafc;
         border-radius: 3px;
     }
-    .autocomplete-list::-webkit-scrollbar-thumb:hover {
-        background: #555;
+
+    .autocomplete-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
     }
-    .raise { font-size: 0.7em; vertical-align: super; }
+
+    .autocomplete-list::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* Input yang sedang aktif */
+    .autocomplete-input:focus {
+        border-color: #891313 !important;
+        box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.08) !important;
+        background: #fffbfb !important;
+    }
+
+    /* Container untuk relative positioning */
+    .row > div {
+        position: relative;
+    }
 </style>
 
-<script src="/js/brick-form.js"></script>
+<script src="/js/brick-form.js?v={{ time() }}"></script>
 <script>
     if (typeof initBrickForm === 'function') {
         initBrickForm();

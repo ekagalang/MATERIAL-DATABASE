@@ -76,9 +76,9 @@
                         <td style="color: #475569;">{{ $sand->brand ?? '-' }}</td>
                         <td style="color: #475569; font-size: 12px;">
                             @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
-                                {{ number_format($sand->dimension_length, 2, ',', '.') }} ×
-                                {{ number_format($sand->dimension_width, 2, ',', '.') }} ×
-                                {{ number_format($sand->dimension_height, 2, ',', '.') }}
+                                {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} ×
+                                {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} ×
+                                {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }}
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif

@@ -99,7 +99,7 @@
                         </td>
                         <td style="text-align: right; color: #475569; font-size: 12px;">
                             @if($cat->package_weight_net)
-                                {{ number_format($cat->package_weight_net, 2, ',', '.') }} Kg
+                                {{ rtrim(rtrim(number_format($cat->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif

@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Helpers\MaterialTypeDetector;
 
 class Cement extends Model
 {
     use HasFactory;
 
-    // Beberapa inflector menganggap "cement" tak berbilang; pastikan pakai tabel plural
     protected $table = 'cements';
 
     protected $fillable = [
@@ -34,26 +34,49 @@ class Cement extends Model
     ];
 
     protected $casts = [
-        'package_weight_gross' => 'decimal:2',
-        'package_weight_net' => 'decimal:2',
-        'package_price' => 'decimal:2',
-        'comparison_price_per_kg' => 'decimal:2',
+        'package_weight_gross' => 'float',
+        'package_weight_net' => 'float',
+        'package_price' => 'float',
+        'comparison_price_per_kg' => 'float',
     ];
 
-    // Relasi ke Unit untuk package_unit
-    public function packageUnit()
+    /**
+     * Get material type untuk model ini
+     */
+    public static function getMaterialType(): string
     {
-        return $this->belongsTo(Unit::class, 'package_unit', 'code');
+        return 'cement';
     }
 
-    // Method untuk kalkulasi berat bersih
+    /**
+     * Get available units untuk material ini
+     */
+    public static function getAvailableUnits()
+    {
+        return Unit::forMaterial(self::getMaterialType())->orderBy('code')->get();
+    }
+
+    /**
+     * Relasi ke Unit untuk package_unit
+     */
+    public function packageUnit()
+    {
+        return $this->belongsTo(Unit::class, 'package_unit', 'code')
+            ->where('material_type', self::getMaterialType());
+    }
+
+    /**
+     * Method untuk kalkulasi berat bersih
+     */
     public function calculateNetWeight()
     {
         if ($this->package_weight_gross && $this->package_unit) {
-            $unit = Unit::where('code', $this->package_unit)->first();
+            $unit = Unit::where('code', $this->package_unit)
+                ->where('material_type', self::getMaterialType())
+                ->first();
+            
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
-
                 return $this->package_weight_net;
             }
         }
@@ -61,22 +84,25 @@ class Cement extends Model
         return $this->package_weight_gross;
     }
 
-    // Method untuk kalkulasi harga komparasi per kg
+    /**
+     * Method untuk kalkulasi harga komparasi per kg
+     */
     public function calculateComparisonPrice()
     {
         if ($this->package_weight_net && $this->package_weight_net > 0 && $this->package_price) {
             $this->comparison_price_per_kg = $this->package_price / $this->package_weight_net;
-
             return $this->comparison_price_per_kg;
         }
 
         return 0;
     }
 
-    // Accessor URL foto
+    /**
+     * Accessor URL foto
+     */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (! $this->photo) {
+        if (!$this->photo) {
             return null;
         }
 

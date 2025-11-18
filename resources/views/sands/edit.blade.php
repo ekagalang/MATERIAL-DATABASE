@@ -202,7 +202,7 @@
                     <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
                         <span id="volume_display"
                             style="font-weight: bold; color: #27ae60;">-</span>
-                        <span>M<span class="raise">3</span></span>
+                        <span>M3</span>
                     </div>
                 </div>
 
@@ -238,7 +238,7 @@
                             value="{{ $sand->comparison_price_per_m3 ? number_format($sand->comparison_price_per_m3, 0, ',', '.') : '' }}"
                             style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px; max-width: 80%;">
 
-                        <span style="padding: 0 4px;">/M<span class="raise">3</span></span>
+                        <span style="padding: 0 4px;">/M3</span>
                     </div>
                 </div>
 

@@ -1,128 +1,324 @@
 <div class="card">
-    <div style="display: flex; gap: 40px; margin-top: 20px;">
-        <!-- Detail Info - Kolom Kiri -->
+    <div style="display: flex; gap: 32px;">
+        <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; width: 180px; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Nama Semen</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;"><strong>{{ $cement->cement_name }}</strong></td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Jenis</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->type ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Merek</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->brand ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Sub Merek</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->sub_brand ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Code</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->code ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Warna</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->color ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Kemasan</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">
-                        @if($cement->package_unit)
-                            {{ $cement->package_unit }}
-                            @if($cement->package_weight_gross)
-                                - {{ number_format($cement->package_weight_gross, 2, ',', '.') }} Kg (Kotor)
+            <div style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
+                        border: 1px solid #f1f5f9; 
+                        border-radius: 12px; 
+                        overflow: hidden;">
+                <table style="width: 100%; font-size: 13.5px;">
+                    <tr style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 700; 
+                                   width: 200px; 
+                                   color: #334155; 
+                                   border-bottom: 1px solid #e2e8f0;
+                                   font-size: 12px;
+                                   text-transform: uppercase;
+                                   letter-spacing: 0.5px;">
+                            Nama Semen
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #e2e8f0;
+                                   color: #0f172a;
+                                   font-weight: 600;">
+                            {{ $cement->cement_name }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Jenis
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->type ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Merek
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->brand ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Sub Merek
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->sub_brand ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Code
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->code ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Warna
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->color ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Kemasan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($cement->package_unit)
+                                <span style="display: inline-block; 
+                                             padding: 4px 10px; 
+                                             background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
+                                             border: 1.5px solid #93c5fd; 
+                                             border-radius: 6px; 
+                                             font-weight: 600; 
+                                             color: #1e40af; 
+                                             font-size: 12px;">
+                                    {{ $cement->package_unit }}
+                                </span>
+                                @if($cement->package_weight_gross)
+                                    <span style="color: #64748b; margin-left: 8px; font-size: 12.5px;">
+                                        {{ rtrim(rtrim(number_format($cement->package_weight_gross, 2, ',', '.'), '0'), ',') }} Kg (Kotor)
+                                    </span>
+                                @endif
+                            @else
+                                -
                             @endif
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Berat Bersih</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">
-                        @if($cement->package_weight_net)
-                            {{ number_format($cement->package_weight_net, 2, ',', '.') }} Kg
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Harga Kemasan</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">
-                        @if($cement->package_price)
-                            <strong style="color: #e67e22;">Rp {{ number_format($cement->package_price, 0, ',', '.') }}</strong> / {{ $cement->price_unit ?? 'unit' }}
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Harga Komparasi</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">
-                        @if($cement->comparison_price_per_kg)
-                            <strong style="color: #27ae60;">Rp {{ number_format($cement->comparison_price_per_kg, 0, ',', '.') }}</strong> / Kg
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Toko</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->store ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; border-bottom: 1px solid #e3e3e0; background: #f8f9fa;">Alamat Singkat</td>
-                    <td style="padding: 12px; border-bottom: 1px solid #e3e3e0;">{{ $cement->short_address ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 12px; font-weight: 600; background: #f8f9fa;">Alamat Lengkap</td>
-                    <td style="padding: 12px;">{{ $cement->address ?? '-' }}</td>
-                </tr>
-            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Berat Bersih
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($cement->package_weight_net)
+                                <div style="display: inline-block; 
+                                            padding: 6px 12px; 
+                                            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
+                                            border: 1.5px solid #86efac; 
+                                            border-radius: 8px;">
+                                    <span style="font-weight: 700; color: #15803d;">
+                                        {{ rtrim(rtrim(number_format($cement->package_weight_net, 2, ',', '.'), '0'), ',') }}
+                                    </span>
+                                    <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> Kg</span>
+                                </div>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Harga Kemasan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($cement->package_price)
+                                <span style="font-weight: 600; color: #64748b;">Rp</span>
+                                <span style="font-weight: 700; color: #0f172a;">
+                                    {{ number_format($cement->package_price, 0, ',', '.') }}
+                                </span>
+                                <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/{{ $cement->price_unit ?? 'unit' }}</span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Harga per Kg
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($cement->comparison_price_per_kg)
+                                <div style="display: inline-block; 
+                                            padding: 8px 16px; 
+                                            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); 
+                                            border: 1.5px solid #fca5a5; 
+                                            border-radius: 10px;">
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
+                                    <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
+                                        {{ number_format($cement->comparison_price_per_kg, 0, ',', '.') }}
+                                    </span>
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/Kg</span>
+                                </div>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Toko
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->store ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Alamat Singkat
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->short_address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569;
+                                   font-size: 13px;">
+                            Alamat Lengkap
+                        </td>
+                        <td style="padding: 14px 20px;
+                                   color: #1e293b;
+                                   line-height: 1.6;">
+                            {{ $cement->address ?? '-' }}
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
 
-        <!-- Photo - Kolom Kanan -->
-        <div style="flex: 0 0 300px; max-width: 300px;">
-            @if($cement->photo_url)
-                <div style="border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #f9f9f9;">
+        <!-- Kolom Kanan - Foto Produk -->
+        @if($cement->photo_url)
+        <div style="flex: 0 0 360px; max-width: 360px;">
+            <div style="border: 2px solid #f1f5f9; 
+                        border-radius: 16px; 
+                        padding: 8px; 
+                        background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+                <div style="border-radius: 12px; 
+                            overflow: hidden; 
+                            position: relative; 
+                            background: #f8fafc;">
                     <img src="{{ $cement->photo_url }}"
                          alt="{{ $cement->cement_name }}"
                          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                         style="width: 100%; height: auto; display: block;">
-                    <div style="display: none; align-items: center; justify-content: center; min-height: 300px; color: #95a5a6; flex-direction: column;">
-                        <div style="font-size: 48px;">📷</div>
-                        <div style="margin-top: 10px;">Gambar tidak tersedia</div>
+                         style="width: 100%; 
+                                height: auto; 
+                                display: block;
+                                border-radius: 8px;">
+                    <div style="display: none; 
+                                align-items: center; 
+                                justify-content: center; 
+                                min-height: 300px; 
+                                color: #cbd5e1; 
+                                flex-direction: column;
+                                text-align: center;">
+                        <div style="font-size: 64px; opacity: 0.4; margin-bottom: 16px;">📷</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Gambar tidak tersedia</div>
                     </div>
                 </div>
-            @else
-                <div style="border: 1px solid #ddd; border-radius: 8px; display: flex; align-items: center; justify-content: center; min-height: 300px; color: #95a5a6; flex-direction: column; background: #f9f9f9;">
-                    <div style="font-size: 64px;">📷</div>
-                    <div style="margin-top: 10px; font-size: 14px;">Tidak ada foto</div>
-                </div>
-            @endif
+            </div>
         </div>
-    </div>
-
-    <!-- Buttons -->
-    <div class="btnArea" style="text-align: right; margin-top: 25px; padding-top: 20px; border-top: 1px solid #e3e3e0;">
-        <button type="button" class="btn red" onclick="window.parent.document.getElementById('closeModal').click()" style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: transparent; color: #c02c2c;">Tutup</button>
+        @else
+        <div style="flex: 0 0 360px; max-width: 360px;">
+            <div style="border: 2px dashed #e2e8f0; 
+                        border-radius: 16px; 
+                        padding: 8px; 
+                        background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);">
+                <div style="border-radius: 12px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            min-height: 300px; 
+                            color: #cbd5e1; 
+                            flex-direction: column;
+                            text-align: center;
+                            background: #f8fafc;">
+                    <div style="font-size: 64px; opacity: 0.4; margin-bottom: 16px;">📷</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Tidak ada foto</div>
+                </div>
+            </div>
+        </div>
+        @endif
     </div>
 </div>
 
-<style>
-    .card {
-        background: #fff;
-        padding: 0;
-    }
-    .card h2 {
-        margin: 0 0 20px 0;
-        font-size: 20px;
-        color: #2c3e50;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #3498db;
-    }
-</style>
+<!-- Tombol Tutup -->
+<div style="display: flex; 
+            justify-content: flex-end; 
+            margin-top: 24px; 
+            padding-top: 24px; 
+            border-top: 1px solid #f1f5f9;">
+    <button type="button" 
+            class="btn btn-secondary" 
+            onclick="window.parent.document.getElementById('closeModal').click()"
+            style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
+                   color: #ffffff; 
+                   display: flex; 
+                   align-items: center; 
+                   gap: 8px;">
+        <i class="bi bi-x-lg"></i> Tutup
+    </button>
+</div>

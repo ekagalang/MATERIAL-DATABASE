@@ -6,13 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Helpers\MaterialTypeDetector;
 
 class Sand extends Model
 {
     use HasFactory;
 
-    // Doctrine inflector menganggap "sand" tak berbilang (uncountable),
-    // maka Eloquent akan default ke tabel `sand`. Paksa ke tabel plural yang kita pakai.
     protected $table = 'sands';
 
     protected $fillable = [
@@ -35,22 +34,39 @@ class Sand extends Model
     ];
 
     protected $casts = [
-        'package_weight_gross' => 'decimal:2',
-        'package_weight_net' => 'decimal:2',
-        'dimension_length' => 'decimal:2',
-        'dimension_width' => 'decimal:2',
-        'dimension_height' => 'decimal:2',
-        'package_volume' => 'decimal:6',
-        'package_price' => 'decimal:2',
-        'comparison_price_per_m3' => 'decimal:2',
+        'package_weight_gross' => 'float',
+        'package_weight_net' => 'dfloat',
+        'dimension_length' => 'float',
+        'dimension_width' => 'float',
+        'dimension_height' => 'float',
+        'package_volume' => 'float',
+        'package_price' => 'float',
+        'comparison_price_per_m3' => 'float',
     ];
+
+    /**
+     * Get material type untuk model ini
+     */
+    public static function getMaterialType(): string
+    {
+        return 'sand';
+    }
+
+    /**
+     * Get available units untuk material ini
+     */
+    public static function getAvailableUnits()
+    {
+        return Unit::forMaterial(self::getMaterialType())->orderBy('code')->get();
+    }
 
     /**
      * Relasi ke Unit untuk package_unit
      */
     public function packageUnit()
     {
-        return $this->belongsTo(Unit::class, 'package_unit', 'code');
+        return $this->belongsTo(Unit::class, 'package_unit', 'code')
+            ->where('material_type', self::getMaterialType());
     }
 
     /**
@@ -59,10 +75,12 @@ class Sand extends Model
     public function calculateNetWeight()
     {
         if ($this->package_weight_gross && $this->package_unit) {
-            $unit = Unit::where('code', $this->package_unit)->first();
+            $unit = Unit::where('code', $this->package_unit)
+                ->where('material_type', self::getMaterialType())
+                ->first();
+            
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
-
                 return $this->package_weight_net;
             }
         }
@@ -78,9 +96,7 @@ class Sand extends Model
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
             // Langsung dalam m³
             $volumeM3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
-
             $this->package_volume = $volumeM3;
-
             return $volumeM3;
         }
 
@@ -89,13 +105,11 @@ class Sand extends Model
 
     /**
      * Kalkulasi harga komparasi per m³
-     * Harga per kemasan / volume kemasan
      */
     public function calculateComparisonPrice(): float
     {
         if ($this->package_price && $this->package_volume && $this->package_volume > 0) {
             $this->comparison_price_per_m3 = $this->package_price / $this->package_volume;
-
             return $this->comparison_price_per_m3;
         }
 
@@ -107,7 +121,7 @@ class Sand extends Model
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (! $this->photo) {
+        if (!$this->photo) {
             return null;
         }
 

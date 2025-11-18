@@ -18,9 +18,9 @@
                     <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Dimensi Kemasan</td>
                     <td style="padding: 10px; border-bottom: 1px solid #ddd;">
                         @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
-                            {{ number_format($sand->dimension_length, 2, ',', '.') }} m × 
-                            {{ number_format($sand->dimension_width, 2, ',', '.') }} m × 
-                            {{ number_format($sand->dimension_height, 2, ',', '.') }} m
+                            {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} m × 
+                            {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} m × 
+                            {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }} m
                         @else
                             -
                         @endif
@@ -30,7 +30,7 @@
                     <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Volume Kemasan</td>
                     <td style="padding: 10px; border-bottom: 1px solid #ddd;">
                         @if($sand->package_volume)
-                            {{ number_format($sand->package_volume, 6, ',', '.') }} M<span class="raise">3</span>
+                            {{ number_format($sand->package_volume, 6, ',', '.') }} M3
                         @else
                             -
                         @endif
@@ -59,10 +59,10 @@
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding: 10px; font-weight: 600;">Harga Komparasi per M<span class="raise">3</span></td>
+                    <td style="padding: 10px; font-weight: 600;">Harga Komparasi per M3</td>
                     <td style="padding: 10px;">
                         @if($sand->comparison_price_per_m3)
-                            <strong style="color: #27ae60;">Rp {{ number_format($sand->comparison_price_per_m3, 0, ',', '.') }} /M<span class="raise">3</span></strong>
+                            <strong style="color: #27ae60;">Rp {{ number_format($sand->comparison_price_per_m3, 0, ',', '.') }} /M3</strong>
                         @else
                             -
                         @endif

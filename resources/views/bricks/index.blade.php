@@ -78,9 +78,9 @@
                         <td style="color: #475569;">{{ $brick->form ?? '-' }}</td>
                         <td style="color: #475569; font-size: 12px;">
                             @if($brick->dimension_length && $brick->dimension_width && $brick->dimension_height)
-                                {{ number_format($brick->dimension_length, 1, ',', '.') }} × 
-                                {{ number_format($brick->dimension_width, 1, ',', '.') }} × 
-                                {{ number_format($brick->dimension_height, 1, ',', '.') }}
+                                {{ rtrim(rtrim(number_format($brick->dimension_length, 1, ',', '.'), '0'), ',') }} × 
+                                {{ rtrim(rtrim(number_format($brick->dimension_width, 1, ',', '.'), '0'), ',') }} × 
+                                {{ rtrim(rtrim(number_format($brick->dimension_height, 1, ',', '.'), '0'), ',') }}
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Load brick-form.js if not loaded
                 if (!window.brickFormScriptLoaded) {
                     const script = document.createElement('script');
-                    script.src = '/js/brick-form.js';
+                    script.src = '/js/brick-form.js?v=' + Date.now();
                     script.onload = () => {
                         window.brickFormScriptLoaded = true;
                         setTimeout(() => {

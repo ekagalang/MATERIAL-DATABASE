@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Helpers\MaterialTypeDetector;
 
 class Brick extends Model
 {
@@ -31,13 +32,29 @@ class Brick extends Model
     protected function casts(): array
     {
         return [
-            'dimension_length' => 'decimal:2',
-            'dimension_width' => 'decimal:2',
-            'dimension_height' => 'decimal:2',
-            'package_volume' => 'decimal:6',
-            'price_per_piece' => 'decimal:2',
-            'comparison_price_per_m3' => 'decimal:2'
+            'dimension_length' => 'float',
+            'dimension_width' => 'float',
+            'dimension_height' => 'float',
+            'package_volume' => 'float',
+            'price_per_piece' => 'float',
+            'comparison_price_per_m3' => 'float'
         ];
+    }
+
+    /**
+     * Get material type untuk model ini
+     */
+    public static function getMaterialType(): string
+    {
+        return 'brick';
+    }
+
+    /**
+     * Get available units untuk material ini
+     */
+    public static function getAvailableUnits()
+    {
+        return Unit::forMaterial(self::getMaterialType())->orderBy('code')->get();
     }
 
     /**
@@ -62,7 +79,6 @@ class Brick extends Model
 
     /**
      * Kalkulasi harga komparasi per m³
-     * Harga per buah / volume per buah
      */
     public function calculateComparisonPrice(): float
     {
@@ -98,6 +114,6 @@ class Brick extends Model
             return asset($path);
         }
 
-        return asset('storage/' . ltrim($path, '/'));
+        return asset('storage/'.ltrim($path, '/'));
     }
 }

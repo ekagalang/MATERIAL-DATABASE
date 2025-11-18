@@ -72,7 +72,7 @@ function initBrickForm(root) {
                     photoPreview.src = e.target.result;
                     photoPreview.style.display = 'block';
                     photoPlaceholder.style.display = 'none';
-                    deletePhotoBtn.style.display = 'inline';
+                    deletePhotoBtn.style.display = 'flex';
                 };
                 reader.readAsDataURL(this.files[0]);
             }

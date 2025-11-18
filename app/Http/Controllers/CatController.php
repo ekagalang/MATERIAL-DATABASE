@@ -31,8 +31,7 @@ class CatController extends Controller
 
     public function create()
     {
-        $units = Unit::orderBy('code')->get();
-
+        $units = Cat::getAvailableUnits();
         return view('cats.create', compact('units'));
     }
 
@@ -117,8 +116,7 @@ class CatController extends Controller
 
     public function edit(Cat $cat)
     {
-        $units = Unit::orderBy('code')->get();
-
+        $units = Cat::getAvailableUnits();
         return view('cats.edit', compact('cat', 'units'));
     }
 
