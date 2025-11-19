@@ -5,7 +5,8 @@
       "Bash(vendor/bin/pint:*)",
       "Bash(php artisan:*)",
       "Bash(dir:*)",
-      "Bash(nul)"
+      "Bash(nul)",
+      "Bash(php -r:*)"
     ],
     "deny": [],
     "ask": []

@@ -35,13 +35,17 @@ class Sand extends Model
 
     protected $casts = [
         'package_weight_gross' => 'float',
-        'package_weight_net' => 'dfloat',
+        'package_weight_net' => 'float',
         'dimension_length' => 'float',
         'dimension_width' => 'float',
         'dimension_height' => 'float',
         'package_volume' => 'float',
         'package_price' => 'float',
         'comparison_price_per_m3' => 'float',
+    ];
+
+    protected $appends = [
+        'photo_url',
     ];
 
     /**

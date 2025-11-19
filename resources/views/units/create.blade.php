@@ -1,24 +1,36 @@
 <div class="card">
     @if($errors->any())
         <div class="alert alert-danger">
-            <strong>Terdapat kesalahan:</strong>
-            <ul style="margin: 10px 0 0 20px;">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+            <div>
+                <strong>Terdapat kesalahan pada input:</strong>
+                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
     @endif
 
     <form action="{{ route('units.store') }}" method="POST" id="unitForm">
         @csrf
 
-        <div style="max-width: 600px;">
+        <div style="max-width: 680px;">
             <!-- Material Type -->
             <div class="row">
-                <label>Material Type <span style="color: red;">*</span></label>
+                <label>Material Type <span style="color: #ef4444;">*</span></label>
                 <div style="flex: 1;">
-                    <select name="material_type" id="material_type" required style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                    <select name="material_type" 
+                            id="material_type" 
+                            required 
+                            style="width: 100%; 
+                                   padding: 10px 14px; 
+                                   border: 1.5px solid #e2e8f0; 
+                                   border-radius: 10px; 
+                                   font-size: 13.5px; 
+                                   cursor: pointer;
+                                   background: #ffffff;
+                                   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                         <option value="">-- Pilih Material Type --</option>
                         @foreach($materialTypes as $type => $label)
                             <option value="{{ $type }}" {{ old('material_type') == $type ? 'selected' : '' }}>
@@ -27,41 +39,90 @@
                         @endforeach
                     </select>
                     @error('material_type')
-                        <small style="color: #dc2626; font-size: 12px; display: block; margin-top: 4px;">{{ $message }}</small>
+                        <small style="color: #ef4444; font-size: 12px; display: block; margin-top: 6px; font-weight: 500;">
+                            <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                        </small>
                     @enderror
                 </div>
             </div>
 
             <!-- Code -->
             <div class="row">
-                <label>Kode Satuan <span style="color: red;">*</span></label>
+                <label>Kode Satuan <span style="color: #ef4444;">*</span></label>
                 <div style="flex: 1;">
-                    <input type="text" name="code" id="code" value="{{ old('code') }}" required placeholder="Contoh: Kg, Galon, Sak" style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                    <input type="text" 
+                           name="code" 
+                           id="code" 
+                           value="{{ old('code') }}" 
+                           required 
+                           placeholder="Contoh: Kg, Galon, Sak" 
+                           style="width: 100%; 
+                                  padding: 10px 14px; 
+                                  border: 1.5px solid #e2e8f0; 
+                                  border-radius: 10px; 
+                                  font-size: 13.5px;
+                                  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                     @error('code')
-                        <small style="color: #dc2626; font-size: 12px; display: block; margin-top: 4px;">{{ $message }}</small>
+                        <small style="color: #ef4444; font-size: 12px; display: block; margin-top: 6px; font-weight: 500;">
+                            <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                        </small>
                     @enderror
                 </div>
             </div>
 
             <!-- Name -->
             <div class="row">
-                <label>Nama Satuan <span style="color: red;">*</span></label>
+                <label>Nama Satuan <span style="color: #ef4444;">*</span></label>
                 <div style="flex: 1;">
-                    <input type="text" name="name" id="name" value="{{ old('name') }}" required placeholder="Contoh: Kilogram, Galon, Sak" style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                    <input type="text" 
+                           name="name" 
+                           id="name" 
+                           value="{{ old('name') }}" 
+                           required 
+                           placeholder="Contoh: Kilogram, Galon, Sak" 
+                           style="width: 100%; 
+                                  padding: 10px 14px; 
+                                  border: 1.5px solid #e2e8f0; 
+                                  border-radius: 10px; 
+                                  font-size: 13.5px;
+                                  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                     @error('name')
-                        <small style="color: #dc2626; font-size: 12px; display: block; margin-top: 4px;">{{ $message }}</small>
+                        <small style="color: #ef4444; font-size: 12px; display: block; margin-top: 6px; font-weight: 500;">
+                            <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                        </small>
                     @enderror
                 </div>
             </div>
 
             <!-- Package Weight -->
             <div class="row">
-                <label>Berat Kemasan (Kg) <span style="color: red;">*</span></label>
+                <label>Berat Kemasan <span style="color: #ef4444;">*</span></label>
                 <div style="flex: 1;">
-                    <input type="number" name="package_weight" id="package_weight" value="{{ old('package_weight', 0) }}" step="0.01" min="0" required placeholder="0" style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-                    <small style="color: #7f8c8d; font-size: 12px; display: block; margin-top: 4px;">Berat kemasan kosong dalam Kg (0 jika tidak ada)</small>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="number" 
+                               name="package_weight" 
+                               id="package_weight" 
+                               value="{{ old('package_weight', 0) }}" 
+                               step="0.01" 
+                               min="0" 
+                               required 
+                               placeholder="0" 
+                               style="flex: 1; 
+                                      max-width: 200px;
+                                      padding: 10px 14px; 
+                                      border: 1.5px solid #e2e8f0; 
+                                      border-radius: 10px; 
+                                      font-size: 13.5px;
+                                      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                        <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
+                    </div>
+                    <small style="color: #94a3b8; font-size: 11.5px; display: block; margin-top: 6px;">
+                        Berat kemasan kosong dalam Kg (isi 0 jika tidak ada kemasan)
+                    </small>
                     @error('package_weight')
-                        <small style="color: #dc2626; font-size: 12px; display: block; margin-top: 4px;">{{ $message }}</small>
+                        <small style="color: #ef4444; font-size: 12px; display: block; margin-top: 6px; font-weight: 500;">
+                            <i class="bi bi-exclamation-circle"></i> {{ $message }}
+                        </small>
                     @enderror
                 </div>
             </div>
@@ -70,15 +131,65 @@
             <div class="row">
                 <label>Keterangan</label>
                 <div style="flex: 1;">
-                    <textarea name="description" id="description" rows="3" placeholder="Keterangan tambahan (optional)" style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px; resize: vertical; min-height: 80px;">{{ old('description') }}</textarea>
+                    <textarea name="description" 
+                              id="description" 
+                              rows="3" 
+                              placeholder="Keterangan tambahan (opsional)" 
+                              style="width: 100%; 
+                                     padding: 10px 14px; 
+                                     border: 1.5px solid #e2e8f0; 
+                                     border-radius: 10px; 
+                                     font-size: 13.5px; 
+                                     resize: vertical; 
+                                     min-height: 90px;
+                                     font-family: inherit;
+                                     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">{{ old('description') }}</textarea>
                 </div>
             </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="btnArea" style="text-align: right; margin-top: 25px;">
-            <button type="button" class="btn red" onclick="window.parent.document.getElementById('closeModal').click()" style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: transparent; color: #c02c2c;">Batalkan</button>
-            <button type="submit" class="btn green" style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: #76b245; color: #fff;">Simpan</button>
+        <!-- Action Buttons -->
+        <div style="display: flex; 
+                    justify-content: flex-end; 
+                    gap: 12px; 
+                    margin-top: 32px; 
+                    padding-top: 24px; 
+                    border-top: 1px solid #f1f5f9;">
+            <button type="button" 
+                    class="btn btn-secondary" 
+                    onclick="window.parent.document.getElementById('closeModal').click()"
+                    style="background: transparent; 
+                           color: #64748b; 
+                           border: 1.5px solid #e2e8f0; 
+                           box-shadow: none;
+                           padding: 10px 20px;
+                           border-radius: 10px;
+                           cursor: pointer;
+                           font-size: 13.5px;
+                           font-weight: 600;
+                           display: inline-flex;
+                           align-items: center;
+                           gap: 6px;
+                           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                <i class="bi bi-x-lg"></i> Batalkan
+            </button>
+            <button type="submit" 
+                    class="btn btn-success"
+                    style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                           color: #fff;
+                           border: none;
+                           padding: 10px 20px;
+                           border-radius: 10px;
+                           cursor: pointer;
+                           font-size: 13.5px;
+                           font-weight: 600;
+                           display: inline-flex;
+                           align-items: center;
+                           gap: 6px;
+                           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+                           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                <i class="bi bi-check-lg"></i> Simpan Data
+            </button>
         </div>
 
     </form>
@@ -87,33 +198,42 @@
 <style>
     .row { 
         display: flex; 
-        margin-bottom: 15px; 
-        align-items: flex-start; 
+        margin-bottom: 18px; 
+        align-items: flex-start;
+        gap: 16px;
     }
     
     label { 
         width: 180px; 
-        padding-top: 8px; 
-        font-size: 14px; 
-        font-weight: 600; 
-    }
-    
-    input, select, textarea { 
-        flex: 1; 
-        padding: 7px; 
-        border: 1px solid #999; 
-        border-radius: 2px; 
-        font-family: inherit;
-        font-size: 14px;
+        padding-top: 10px; 
+        font-size: 13.5px; 
+        font-weight: 600;
+        color: #334155;
+        flex-shrink: 0;
     }
     
     input:focus, select:focus, textarea:focus {
         outline: none;
-        border-color: #891313;
-        box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1);
+        border-color: #891313 !important;
+        box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.08) !important;
+        background: #fffbfb !important;
     }
     
-    select {
-        cursor: pointer;
+    input::placeholder, textarea::placeholder {
+        color: #94a3b8;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    .btn-secondary:hover {
+        background: #f8fafc !important;
+        border-color: #cbd5e1 !important;
+    }
+    
+    .btn-success:hover {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3) !important;
     }
 </style>

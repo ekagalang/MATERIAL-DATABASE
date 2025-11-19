@@ -41,6 +41,10 @@ class Brick extends Model
         ];
     }
 
+    protected $appends = [
+        'photo_url',
+    ];
+
     /**
      * Get material type untuk model ini
      */

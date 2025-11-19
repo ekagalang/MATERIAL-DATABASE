@@ -1,36 +1,39 @@
 ﻿<div class="card">
-    @if ($errors->any())
+    @if($errors->any())
         <div class="alert alert-danger">
-            <strong>Terdapat kesalahan:</strong>
-            <ul style="margin: 10px 0 0 20px;">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+            <div>
+                <strong>Terdapat kesalahan pada input:</strong>
+                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
     @endif
 
-    <form action="{{ route('sands.update', $sand->id) }}" method="POST" enctype="multipart/form-data"
-        id="sandForm">
+    <form action="{{ route('sands.update', $sand->id) }}" method="POST" enctype="multipart/form-data" id="sandForm">
         @csrf
         @method('PUT')
 
-        <div style="display: flex; gap: 40px;">
+        <div style="display: flex; gap: 32px;">
+            <!-- Kolom Kiri - Form Fields -->
+            <div style="flex: 0 0 calc(65% - 16px); max-width: calc(65% - 16px);">
 
-            <!-- Kolom kiri -->
-            <div style="flex: 0 0 calc(65% - 20px); max-width: calc(65% - 20px);">
-
-                <input type="hidden" name="sand_name" id="sand_name"
-                    value="{{ old('sand_name', $sand->sand_name) }}">
+                <input type="hidden" name="sand_name" id="sand_name" value="{{ old('sand_name', $sand->sand_name) }}">
 
                 <!-- Jenis -->
                 <div class="row">
                     <label>Jenis</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="type" id="type"
-                            value="{{ old('type', $sand->type) }}" class="autocomplete-input" data-field="type"
-                            autocomplete="off"
-                            style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="type" 
+                               id="type" 
+                               value="{{ old('type', $sand->type) }}" 
+                               class="autocomplete-input" 
+                               data-field="type" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik jenis pasir...">
                         <div class="autocomplete-list" id="type-list"></div>
                     </div>
                 </div>
@@ -39,206 +42,200 @@
                 <div class="row">
                     <label>Merek</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="brand" id="brand"
-                            value="{{ old('brand', $sand->brand) }}" class="autocomplete-input"
-                            data-field="brand" autocomplete="off"
-                            style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="brand" 
+                               id="brand" 
+                               value="{{ old('brand', $sand->brand) }}" 
+                               class="autocomplete-input" 
+                               data-field="brand" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik merek...">
                         <div class="autocomplete-list" id="brand-list"></div>
                     </div>
                 </div>
 
-                <!-- Kemasan (Unit & Berat) -->
+                <!-- Kemasan -->
                 <div class="row">
                     <label>Kemasan</label>
-                    <div style="display: flex; flex: 1; gap: 6px; align-items: center;">
-
-                        <select name="package_unit" id="package_unit"
-                            style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-                            <option value="">-- Satuan --</option>
-                            @foreach ($units as $unit)
-                                <option value="{{ $unit->code }}" data-weight="{{ $unit->package_weight }}"
-                                    {{ old('package_unit', $sand->package_unit) == $unit->code ? 'selected' : '' }}>
-                                    {{ $unit->code }}
-                                </option>
-                            @endforeach
-                        </select>
-
-                        <input type="number" name="package_weight_gross" id="package_weight_gross"
-                            value="{{ old('package_weight_gross', $sand->package_weight_gross) }}" step="0.01"
-                            min="0" placeholder="Berat Kotor"
-                            style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-
-                        <span style="white-space: nowrap; font-size: 13px;">Kg</span>
-
-                        <input type="number" name="package_weight_net" id="package_weight_net"
-                            value="{{ old('package_weight_net', $sand->package_weight_net) }}" step="0.01" min="0"
-                            placeholder="Berat Bersih"
-                            style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-
-                        <span style="white-space: nowrap; font-size: 13px;">Kg</span>
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <select name="package_unit" 
+                                    id="package_unit" 
+                                    style="flex: 0 0 120px;">
+                                <option value="">-- Satuan --</option>
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit->code }}" 
+                                            data-weight="{{ $unit->package_weight }}" 
+                                            {{ old('package_unit', $sand->package_unit) == $unit->code ? 'selected' : '' }}>
+                                        {{ $unit->code }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <input type="number" 
+                                   name="package_weight_gross" 
+                                   id="package_weight_gross" 
+                                   value="{{ old('package_weight_gross', $sand->package_weight_gross) }}" 
+                                   step="0.01" 
+                                   min="0" 
+                                   placeholder="Berat Kotor" 
+                                   style="flex: 1;">
+                            <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
+                            <input type="number" 
+                                   name="package_weight_net" 
+                                   id="package_weight_net" 
+                                   value="{{ old('package_weight_net', $sand->package_weight_net) }}" 
+                                   step="0.01" 
+                                   min="0" 
+                                   placeholder="Berat Bersih" 
+                                   style="flex: 1;">
+                            <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
+                        </div>
+                        <div style="margin-top: 6px; padding: 8px 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 8px; display: inline-block;">
+                            <small style="color: #15803d; font-size: 11px; font-weight: 600;">
+                                Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">{{ $sand->package_weight_net ? number_format($sand->package_weight_net, 2, '.', '') : '-' }}</span>
+                            </small>
+                        </div>
                     </div>
                 </div>
 
-                <div style="margin-left: 140px; margin-bottom: 15px;">
-                    <small style="color: #7f8c8d;">
-                        Berat Bersih (Kalkulasi):
-                        <span id="net_weight_display"
-                            style="font-weight: bold; color: #27ae60;">
-                            {{ $sand->package_weight_net ? number_format($sand->package_weight_net, 2, '.', '') : '-' }}
-                        </span>
-                    </small>
-                </div>
-
-                <!-- Kemasan (Preset Volume) -->
+                <!-- Preset Kemasan -->
                 <div class="row">
-                    <label>Kemasan</label>
-                    <div style="flex: 1; display: flex; gap: 8px; align-items: center;">
-                        <select id="package_preset"
-                            style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-                            <option value="">-- Pilih kemasan (opsional) --</option>
-                            <option value="1">1 m3</option>
-                            <option value="0.5">0,5 m3</option>
-                            <option value="1.5">Pick-up 1,5 m3</option>
-                            <option value="5">Truk Kecil 5 m3</option>
-                            <option value="8">Truk Sedang 8 m3</option>
-                            <option value="10">Truk Besar 10 m3</option>
-                            <option value="0.03">Karung ±30L (0,03 m3)</option>
-                            <option value="0.05">Karung ±50L (0,05 m3)</option>
-                            <option value="0.1">Karung ±100L (0,1 m3)</option>
+                    <label>Preset Kemasan</label>
+                    <div style="flex: 1;">
+                        <select id="package_preset" 
+                                style="width: 100%;">
+                            <option value="">-- Pilih preset kemasan (opsional) --</option>
+                            <option value="1">1 m³</option>
+                            <option value="0.5">0,5 m³</option>
+                            <option value="1.5">Pick-up 1,5 m³</option>
+                            <option value="5">Truk Kecil 5 m³</option>
+                            <option value="8">Truk Sedang 8 m³</option>
+                            <option value="10">Truk Besar 10 m³</option>
+                            <option value="0.03">Karung ±30L (0,03 m³)</option>
+                            <option value="0.05">Karung ±50L (0,05 m³)</option>
+                            <option value="0.1">Karung ±100L (0,1 m³)</option>
                         </select>
-
-                        <small style="color: #7f8c8d;">Atau isi dimensi di bawah</small>
+                        <small style="color: #94a3b8; font-size: 11px; margin-top: 4px; display: block;">
+                            Atau isi dimensi manual di bawah
+                        </small>
                     </div>
                 </div>
 
-                <!-- Dimensi Kemasan -->
+                <!-- Dimensi Kemasan (P × L × T) -->
                 <div class="row">
                     <label>Dimensi Kemasan</label>
-
                     <div style="flex: 1;">
-
-                        <div style="display: flex; gap: 6px; align-items: center;">
-
+                        <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; align-items: center;">
                             <!-- Panjang -->
-                            <input type="text" id="dimension_length_input"
-                                value="{{ old('dimension_length', $sand->dimension_length) }}" placeholder="P"
-                                style="padding: 7px 8px; border: 1px solid #999; border-radius: 2px; font-size: 13px; width: 100%;">
-                            <select id="dimension_length_unit"
-                                style="padding: 7px 4px; border: 1px solid #999; border-radius: 2px; font-size: 12px; width: 50px;">
+                            <input type="text" 
+                                   id="dimension_length_input" 
+                                   value="{{ old('dimension_length', $sand->dimension_length) }}" 
+                                   placeholder="Panjang" 
+                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                            <select id="dimension_length_unit" 
+                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm">cm</option>
-                                <option value="m" selected>M</option>
+                                <option value="m" selected>m</option>
                             </select>
-
-                            <span style="color: #999; text-align: center;">×</span>
-
+                            
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
+                            
                             <!-- Lebar -->
-                            <input type="text" id="dimension_width_input"
-                                value="{{ old('dimension_width', $sand->dimension_width) }}" placeholder="L"
-                                style="padding: 7px 8px; border: 1px solid #999; border-radius: 2px; font-size: 13px; width: 100%;">
-                            <select id="dimension_width_unit"
-                                style="padding: 7px 4px; border: 1px solid #999; border-radius: 2px; font-size: 12px; width: 50px;">
+                            <input type="text" 
+                                   id="dimension_width_input" 
+                                   value="{{ old('dimension_width', $sand->dimension_width) }}" 
+                                   placeholder="Lebar" 
+                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                            <select id="dimension_width_unit" 
+                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm">cm</option>
-                                <option value="m" selected>M</option>
+                                <option value="m" selected>m</option>
                             </select>
-
-                            <span style="color: #999; text-align: center;">×</span>
-
+                            
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
+                            
                             <!-- Tinggi -->
-                            <input type="text" id="dimension_height_input"
-                                value="{{ old('dimension_height', $sand->dimension_height) }}" placeholder="T"
-                                style="padding: 7px 8px; border: 1px solid #999; border-radius: 2px; font-size: 13px; width: 100%;">
-                            <select id="dimension_height_unit"
-                                style="padding: 7px 4px; border: 1px solid #999; border-radius: 2px; font-size: 12px; width: 50px;">
+                            <input type="text" 
+                                   id="dimension_height_input" 
+                                   value="{{ old('dimension_height', $sand->dimension_height) }}" 
+                                   placeholder="Tinggi" 
+                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                            <select id="dimension_height_unit" 
+                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm">cm</option>
-                                <option value="m" selected>M</option>
+                                <option value="m" selected>m</option>
                             </select>
                         </div>
-
-                        <!-- hidden -->
-                        <input type="hidden" name="dimension_length" id="dimension_length"
-                            value="{{ old('dimension_length', $sand->dimension_length) }}">
-                        <input type="hidden" name="dimension_width" id="dimension_width"
-                            value="{{ old('dimension_width', $sand->dimension_width) }}">
-                        <input type="hidden" name="dimension_height" id="dimension_height"
-                            value="{{ old('dimension_height', $sand->dimension_height) }}">
-
-                        <!-- Display hasil -->
-                        <div
-                            style="display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 6px; margin-top: 3px;">
-                            <small style="color: #7f8c8d; font-size: 10px; text-align: left;">
-                                Panjang
-                                <span id="length_m_display">
-                                    {{ $sand->dimension_length ? number_format($sand->dimension_length, 2, '.', '') : '-' }}
-                                </span> m
+                        
+                        <!-- Hidden inputs -->
+                        <input type="hidden" name="dimension_length" id="dimension_length" value="{{ old('dimension_length', $sand->dimension_length) }}">
+                        <input type="hidden" name="dimension_width" id="dimension_width" value="{{ old('dimension_width', $sand->dimension_width) }}">
+                        <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height', $sand->dimension_height) }}">
+                        
+                        <!-- Display hasil konversi -->
+                        <div style="display: grid; grid-template-columns: 1fr 72px 1fr 72px 1fr; gap: 8px; margin-top: 6px;">
+                            <small style="color: #94a3b8; font-size: 11px;">
+                                <span id="length_m_display" style="font-weight: 600; color: #64748b;">{{ $sand->dimension_length ? number_format($sand->dimension_length, 2, '.', '') : '-' }}</span> m
                             </small>
-
-                            <span style="width: 10px"></span>
-
-                            <small style="color: #7f8c8d; font-size: 10px; text-align: left;">
-                                Lebar
-                                <span id="width_m_display">
-                                    {{ $sand->dimension_width ? number_format($sand->dimension_width, 2, '.', '') : '-' }}
-                                </span> m
+                            <span></span>
+                            <small style="color: #94a3b8; font-size: 11px;">
+                                <span id="width_m_display" style="font-weight: 600; color: #64748b;">{{ $sand->dimension_width ? number_format($sand->dimension_width, 2, '.', '') : '-' }}</span> m
                             </small>
-
-                            <span style="width: 10px"></span>
-
-                            <small style="color: #7f8c8d; font-size: 10px; text-align: left;">
-                                Tinggi
-                                <span id="height_m_display">
-                                    {{ $sand->dimension_height ? number_format($sand->dimension_height, 2, '.', '') : '-' }}
-                                </span> m
+                            <span></span>
+                            <small style="color: #94a3b8; font-size: 11px;">
+                                <span id="height_m_display" style="font-weight: 600; color: #64748b;">{{ $sand->dimension_height ? number_format($sand->dimension_height, 2, '.', '') : '-' }}</span> m
                             </small>
                         </div>
                     </div>
                 </div>
 
-                <!-- Volume -->
+                <!-- Volume Kemasan -->
                 <div class="row">
-                    <label>Volume Kemasan</label>
-                    <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                        <span id="volume_display"
-                            style="font-weight: bold; color: #27ae60;">-</span>
-                        <span>M3</span>
+                    <label>Volume</label>
+                    <div style="flex: 1;">
+                        <div style="padding: 10px 14px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 10px; display: inline-block; min-width: 120px;">
+                            <span id="volume_display" style="font-weight: 700; color: #15803d; font-size: 14px;">-</span>
+                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> m³</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Harga Kemasan -->
+                <!-- Harga per Kemasan -->
                 <div class="row">
                     <label>Harga Kemasan</label>
-                    <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                        <span style="margin-right: 5px; padding-top: 6px;">Rp</span>
-
-                        <input type="hidden" name="package_price" id="package_price"
-                            value="{{ old('package_price', $sand->package_price) }}">
-
-                        <input type="text" id="package_price_display"
-                            value="{{ old('package_price', $sand->package_price) }}" inputmode="numeric"
-                            placeholder="0"
-                            style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px;">
-
-                        <span style="padding: 0 4px;">/Kemasan</span>
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                            <input type="hidden" name="package_price" id="package_price" value="{{ old('package_price', $sand->package_price) }}">
+                            <input type="text" 
+                                   id="package_price_display" 
+                                   value="{{ old('package_price', $sand->package_price) }}" 
+                                   inputmode="numeric" 
+                                   placeholder="0" 
+                                   style="flex: 1; max-width: 240px;">
+                            <span style="color: #94a3b8; font-size: 13px;">/kemasan</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Harga Komparasi -->
+                <!-- Harga Komparasi per m³ -->
                 <div class="row">
-                    <label>Harga Komparasi</label>
-                    <div style="display: flex; flex: 1; gap: 8px; align-items: center;">
-                        <span style="margin-right: 5px; padding-top: 6px;">Rp</span>
-
-                        <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3"
-                            value="{{ old('comparison_price_per_m3', $sand->comparison_price_per_m3) }}">
-
-                        <input type="text" id="comparison_price_display" inputmode="numeric"
-                            placeholder="0"
-                            value="{{ $sand->comparison_price_per_m3 ? number_format($sand->comparison_price_per_m3, 0, ',', '.') : '' }}"
-                            style="flex: 1; padding: 7px; border: 1px solid #999; border-radius: 2px; max-width: 80%;">
-
-                        <span style="padding: 0 4px;">/M3</span>
+                    <label>Harga/m³</label>
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                            <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3', $sand->comparison_price_per_m3) }}">
+                            <input type="text" 
+                                   id="comparison_price_display" 
+                                   value="{{ $sand->comparison_price_per_m3 ? number_format($sand->comparison_price_per_m3, 0, ',', '.') : '' }}" 
+                                   inputmode="numeric" 
+                                   placeholder="0" 
+                                   style="flex: 1; max-width: 240px;">
+                            <span style="color: #94a3b8; font-size: 13px;">/m³</span>
+                        </div>
                     </div>
                 </div>
 
@@ -246,10 +243,14 @@
                 <div class="row">
                     <label>Toko</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="store" id="store"
-                            value="{{ old('store', $sand->store) }}" class="autocomplete-input" data-field="store"
-                            autocomplete="off"
-                            style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="store" 
+                               id="store" 
+                               value="{{ old('store', $sand->store) }}" 
+                               class="autocomplete-input" 
+                               data-field="store" 
+                               autocomplete="off" 
+                               placeholder="Pilih atau ketik nama toko...">
                         <div class="autocomplete-list" id="store-list"></div>
                     </div>
                 </div>
@@ -258,11 +259,14 @@
                 <div class="row">
                     <label>Alamat Singkat</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="short_address" id="short_address"
-                            value="{{ old('short_address', $sand->short_address) }}" class="autocomplete-input"
-                            data-field="short_address" autocomplete="off"
-                            placeholder="Contoh: Roxy, CitraLand, dsb"
-                            style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="short_address" 
+                               id="short_address" 
+                               value="{{ old('short_address', $sand->short_address) }}" 
+                               class="autocomplete-input" 
+                               data-field="short_address" 
+                               autocomplete="off" 
+                               placeholder="Contoh: Roxy, CitraLand, Taman Semanggi">
                         <div class="autocomplete-list" id="short_address-list"></div>
                     </div>
                 </div>
@@ -271,143 +275,171 @@
                 <div class="row">
                     <label>Alamat Lengkap</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" name="address" id="address"
-                            value="{{ old('address', $sand->address) }}" class="autocomplete-input"
-                            data-field="address" placeholder="Alamat lengkap toko" autocomplete="off"
-                            style="width: 100%; padding: 7px; border: 1px solid #999; border-radius: 2px;">
+                        <input type="text" 
+                               name="address" 
+                               id="address" 
+                               value="{{ old('address', $sand->address) }}" 
+                               class="autocomplete-input" 
+                               data-field="address" 
+                               autocomplete="off" 
+                               placeholder="Alamat lengkap toko...">
                         <div class="autocomplete-list" id="address-list"></div>
                     </div>
                 </div>
+
             </div>
 
-            <!-- Kolom kanan (foto) -->
-            <div style="flex: 0 0 calc(35% - 20px); max-width: calc(35% - 20px);">
-                <div id="photoPreviewArea"
-                    style="border: 1px solid #999; height: 380px; border-radius: 4px; display: flex; align-items: center; justify-content: center; background: #f9f9f9; cursor: pointer; position: relative; overflow: hidden; width: 100%;">
-
-                    @if ($sand->photo_url)
-                        <div id="photoPlaceholder"
-                            style="display:none;text-align: center; color: #999;">
-                            <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
-                            <div>Klik untuk upload foto</div>
-                            <div style="font-size: 12px; margin-top: 5px;">JPG, PNG, GIF (Max
-                                2MB)</div>
+            <!-- Kolom Kanan - Upload Foto -->
+            <div style="flex: 0 0 calc(35% - 16px); max-width: calc(35% - 16px);">
+                <div id="photoPreviewArea" 
+                     style="border: 2px dashed #e2e8f0; 
+                            height: 420px; 
+                            border-radius: 16px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
+                            cursor: pointer; 
+                            position: relative; 
+                            overflow: hidden; 
+                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                    @if($sand->photo_url)
+                        <div id="photoPlaceholder" style="display: none; text-align: center; color: #cbd5e1;">
+                            <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Upload Foto Produk</div>
+                            <div style="font-size: 12px; color: #94a3b8;">JPG, PNG, GIF (Max 2MB)</div>
                         </div>
-
-                        <img id="photoPreview" src="{{ $sand->photo_url }}" alt="Preview"
-                            style="width: 100%; height: 100%; object-fit: cover;">
+                        <img id="photoPreview" 
+                             src="{{ $sand->photo_url }}" 
+                             alt="Preview" 
+                             style="width: 100%; 
+                                    height: 100%; 
+                                    object-fit: cover;">
                     @else
-                        <div id="photoPlaceholder" style="text-align: center; color: #999;">
-                            <div style="font-size: 48px; margin-bottom: 10px;">📷</div>
-                            <div>Klik untuk upload foto</div>
-                            <div style="font-size: 12px; margin-top: 5px;">JPG, PNG, GIF (Max
-                                2MB)</div>
+                        <div id="photoPlaceholder" style="text-align: center; color: #cbd5e1;">
+                            <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Upload Foto Produk</div>
+                            <div style="font-size: 12px; color: #94a3b8;">JPG, PNG, GIF (Max 2MB)</div>
                         </div>
-                        <img id="photoPreview" src="" alt="Preview"
-                            style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                        <img id="photoPreview" 
+                             src="" 
+                             alt="Preview" 
+                             style="display: none; 
+                                    width: 100%; 
+                                    height: 100%; 
+                                    object-fit: cover;">
                     @endif
                 </div>
-
+                
                 <input type="file" name="photo" id="photo" accept="image/*" style="display: none;">
-
-                <div class="uploadDel" style="margin-top: 10px; font-size: 12px; color: #c02c2c;">
-                    <span id="uploadBtn" style="margin-right: 20px; cursor: pointer;">↑ Upload</span>
-                    <span id="deletePhotoBtn"
-                        style="cursor: pointer; {{ $sand->photo_url ? '' : 'display:none;' }}">✖
-                        Hapus</span>
+                
+                <div class="uploadDel" style="margin-top: 14px; display: flex; gap: 20px; font-size: 13px;">
+                    <span style="cursor: pointer; 
+                                 color: #891313; 
+                                 font-weight: 600; 
+                                 display: flex; 
+                                 align-items: center; 
+                                 gap: 6px;" 
+                          id="uploadBtn">
+                        <i class="bi bi-upload"></i> Upload Foto
+                    </span>
+                    <span style="cursor: pointer; 
+                                 color: #ef4444; 
+                                 font-weight: 600; 
+                                 display: {{ $sand->photo_url ? 'flex' : 'none' }}; 
+                                 align-items: center; 
+                                 gap: 6px;" 
+                          id="deletePhotoBtn">
+                        <i class="bi bi-trash"></i> Hapus Foto
+                    </span>
                 </div>
             </div>
         </div>
 
-        <div class="btnArea" style="text-align: right; margin-top: 25px;">
-            <button type="button" class="btn red"
-                onclick="window.parent.document.getElementById('closeModal').click()"
-                style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: transparent; color: #c02c2c;">
-                Batalkan
+        <!-- Action Buttons -->
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+            <button type="button" 
+                    class="btn btn-secondary" 
+                    onclick="window.parent.document.getElementById('closeModal').click()"
+                    style="background: transparent; color: #64748b; border: 1.5px solid #e2e8f0; box-shadow: none;">
+                <i class="bi bi-x-lg"></i> Batalkan
             </button>
-
-            <button type="submit" class="btn green"
-                style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: #76b245; color: #fff;">
-                Update
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-lg"></i> Update Data
             </button>
         </div>
+
     </form>
 </div>
 
 <style>
-    .row {
-        display: flex;
-        margin-bottom: 15px;
-        align-items: center;
-    }
-
-    label {
-        width: 140px;
-        padding-top: 4px;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    input,
-    select {
-        flex: 1;
-        padding: 7px;
-        border: 1px solid #999;
-        border-radius: 2px;
-    }
-
+    /* Autocomplete styling */
     .autocomplete-list {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        background: #fff;
-        border: 1px solid #ddd;
-        border-top: none;
-        max-height: 200px;
-        overflow-y: auto;
-        z-index: 10000;
-        width: 100%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        display: none;
-        margin-top: 1px;
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: #fff !important;
+        border: 1.5px solid #e2e8f0 !important;
+        border-top: none !important;
+        border-radius: 0 0 10px 10px !important;
+        max-height: 240px !important;
+        overflow-y: auto !important;
+        z-index: 10000 !important;
+        width: 100% !important;
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08) !important;
+        display: none !important;
+        margin-top: -1px !important;
     }
 
     .autocomplete-item {
-        padding: 10px 12px;
-        cursor: pointer;
-        border-bottom: 1px solid #f0f0f0;
-        transition: background 0.15s ease;
+        padding: 12px 16px !important;
+        cursor: pointer !important;
+        border-bottom: 1px solid #f8fafc !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        font-size: 13.5px !important;
+        color: #475569 !important;
     }
 
     .autocomplete-item:hover {
-        background: #f5f5f5;
+        background: linear-gradient(to right, #fef2f2 0%, #fef8f8 100%) !important;
+        color: #891313 !important;
+        padding-left: 20px !important;
     }
 
     .autocomplete-item:last-child {
-        border-bottom: none;
+        border-bottom: none !important;
     }
 
+    /* Scrollbar */
     .autocomplete-list::-webkit-scrollbar {
         width: 6px;
     }
 
     .autocomplete-list::-webkit-scrollbar-track {
-        background: #f1f1f1;
+        background: #f8fafc;
+        border-radius: 3px;
     }
 
     .autocomplete-list::-webkit-scrollbar-thumb {
-        background: #888;
+        background: #cbd5e1;
         border-radius: 3px;
     }
 
     .autocomplete-list::-webkit-scrollbar-thumb:hover {
-        background: #555;
+        background: #94a3b8;
     }
 
-    .raise {
-        font-size: 0.7em;
-        vertical-align: super;
+    /* Input focus */
+    .autocomplete-input:focus {
+        border-color: #891313 !important;
+        box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.08) !important;
+        background: #fffbfb !important;
+    }
+
+    /* Container positioning */
+    .row > div {
+        position: relative;
     }
 </style>
 

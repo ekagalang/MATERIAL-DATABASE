@@ -161,12 +161,17 @@
                                    style="flex: 1;">
                             <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
                         </div>
-                        <div style="margin-top: 6px; padding: 8px 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 8px; display: inline-block;">
-                            <small style="color: #15803d; font-size: 11px; font-weight: 600;">
-                                Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">-</span>
-                            </small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label>Berat Bersih (Kalkulasi)
+                    <div style="flex: 1;">
+                        <div style="color: #15803d; font-size: 11px; font-weight: 600; display: flex; gap: 8px; align-items: center;">
+                            <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">-</span>
                         </div>
                     </div>
+                    </label>    
                 </div>
 
                 <!-- Harga -->
@@ -200,7 +205,7 @@
 
                 <!-- Harga Komparasi per Kg -->
                 <div class="row">
-                    <label>Harga/Kg</label>
+                    <label>Harga / Kg</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -210,7 +215,7 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 200px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/Kg</span>
+                            <span style="color: #94a3b8; font-size: 13px;">/ Kg</span>
                         </div>
                     </div>
                 </div>

@@ -42,6 +42,10 @@ class Cat extends Model
         'comparison_price_per_kg' => 'float'
     ];
 
+    protected $appends = [
+        'photo_url',
+    ];
+
     /**
      * Get material type untuk model ini
      */

@@ -44,13 +44,13 @@
                         <th>Foto</th>
                         <th>Merek</th>
                         <th>Sub Merek</th>
-                        <th>Code Warna</th>
-                        <th>Nama Warna</th>
+                        <th style="text-align: right;">Code</th>
+                        <th style="text-align: left;">Warna</th>
                         <th>Kemasan</th>
                         <th>Volume</th>
                         <th>Berat Bersih</th>
                         <th>Toko</th>
-                        <th>Alamat Singkat</th>
+                        <th style="text-align: left;">Alamat Singkat</th>
                         <th>Harga Beli</th>
                         <th>Harga/Kg</th>
                         <th>Aksi</th>
@@ -79,10 +79,10 @@
                         </td>
                         <td style="color: #475569;">{{ $cat->brand ?? '-' }}</td>
                         <td style="color: #475569;">{{ $cat->sub_brand ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 12px;">
+                        <td style="color: #475569; font-size: 12px; text-align:right;">
                             {{ $cat->color_code ?? '-' }}
                         </td>
-                        <td style="color: #475569;">{{ $cat->color_name ?? '-' }}</td>
+                        <td style="color: #475569; text-align:left;">{{ $cat->color_name ?? '-' }}</td>
                         <td style="color: #475569; font-size: 13px;">
                             @if($cat->package_unit)
                                 {{ $cat->package_unit }} ({{ $cat->package_weight_gross }} Kg)
@@ -109,7 +109,7 @@
                                 {{ $cat->store ?? '-' }}
                             </span>
                         </td>
-                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
+                        <td style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: left;">
                             {{ $cat->short_address ?? '-' }}
                         </td>
                         <td>

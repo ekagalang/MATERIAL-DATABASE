@@ -1,86 +1,233 @@
 <div class="card">
-    <div style="display: flex; gap: 40px;">
+    <div style="display: flex; gap: 32px;">
+        <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
-            <table style="width: 100%;">
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; width: 200px; border-bottom: 1px solid #ddd;">Nama Material</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ $sand->sand_name }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Jenis</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ $sand->type ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Merek</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ $sand->brand ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Dimensi Kemasan</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
-                        @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
-                            {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} m × 
-                            {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} m × 
-                            {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }} m
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Volume Kemasan</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
-                        @if($sand->package_volume)
-                            {{ number_format($sand->package_volume, 6, ',', '.') }} M3
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Toko</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ $sand->store ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Alamat Singkat</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ $sand->short_address ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Alamat Lengkap</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">{{ $sand->address ?? '-' }}</td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600; border-bottom: 1px solid #ddd;">Harga per Kemasan</td>
-                    <td style="padding: 10px; border-bottom: 1px solid #ddd;">
-                        @if($sand->package_price)
-                            Rp {{ number_format($sand->package_price, 0, ',', '.') }}
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-                <tr>
-                    <td style="padding: 10px; font-weight: 600;">Harga Komparasi per M3</td>
-                    <td style="padding: 10px;">
-                        @if($sand->comparison_price_per_m3)
-                            <strong style="color: #27ae60;">Rp {{ number_format($sand->comparison_price_per_m3, 0, ',', '.') }} /M3</strong>
-                        @else
-                            -
-                        @endif
-                    </td>
-                </tr>
-            </table>
+            <div style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
+                        border: 1px solid #f1f5f9; 
+                        border-radius: 12px; 
+                        overflow: hidden;">
+                <table style="width: 100%; font-size: 13.5px;">
+                    <tr style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 700; 
+                                   width: 200px; 
+                                   color: #334155; 
+                                   border-bottom: 1px solid #e2e8f0;
+                                   font-size: 12px;
+                                   text-transform: uppercase;
+                                   letter-spacing: 0.5px;">
+                            Nama Material
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #e2e8f0;
+                                   color: #0f172a;
+                                   font-weight: 600;">
+                            {{ $sand->sand_name }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Jenis
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $sand->type ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Merek
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $sand->brand ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Dimensi Kemasan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
+                                <span style="font-weight: 600;">
+                                    {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} m 
+                                    <span style="color: #cbd5e1; font-weight: 300;">×</span>
+                                    {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} m 
+                                    <span style="color: #cbd5e1; font-weight: 300;">×</span>
+                                    {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }} m
+                                </span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Volume Kemasan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($sand->package_volume)
+                                <div style="display: inline-block; 
+                                            padding: 6px 12px; 
+                                            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
+                                            border: 1.5px solid #86efac; 
+                                            border-radius: 8px;">
+                                    <span style="font-weight: 700; color: #15803d;">
+                                        {{ number_format($sand->package_volume, 6, ',', '.') }}
+                                    </span>
+                                    <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> m³</span>
+                                </div>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Toko
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $sand->store ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Alamat Singkat
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $sand->short_address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Alamat Lengkap
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;
+                                   line-height: 1.6;">
+                            {{ $sand->address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Harga per Kemasan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($sand->package_price)
+                                <span style="font-weight: 600; color: #64748b;">Rp</span>
+                                <span style="font-weight: 700; color: #0f172a;">
+                                    {{ number_format($sand->package_price, 0, ',', '.') }}
+                                </span>
+                                <span style="color: #94a3b8; font-size: 12px;">/kemasan</span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569;
+                                   font-size: 13px;">
+                            Harga per m³
+                        </td>
+                        <td style="padding: 14px 20px;
+                                   color: #1e293b;">
+                            @if($sand->comparison_price_per_m3)
+                                <div style="display: inline-block; 
+                                            padding: 8px 16px; 
+                                            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); 
+                                            border: 1.5px solid #fca5a5; 
+                                            border-radius: 10px;">
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
+                                    <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
+                                        {{ number_format($sand->comparison_price_per_m3, 0, ',', '.') }}
+                                    </span>
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/m³</span>
+                                </div>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                </table>
+            </div>
         </div>
 
+        <!-- Kolom Kanan - Foto Produk -->
         @if($sand->photo_url)
-        <div style="width: 300px;">
-            <div style="border: 1px solid #ddd; border-radius: 4px; padding: 10px; position: relative;">
-                <img src="{{ $sand->photo_url }}"
-                     alt="{{ $sand->sand_name }}"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-                     style="width: 100%; border-radius: 4px;">
-                <div style="display: none; align-items: center; justify-content: center; min-height: 200px; color: #95a5a6; flex-direction: column;">
-                    <div style="font-size: 48px;">📷</div>
-                    <div style="margin-top: 10px;">Gambar tidak tersedia</div>
+        <div style="flex: 0 0 360px; max-width: 360px;">
+            <div style="border: 2px solid #f1f5f9; 
+                        border-radius: 16px; 
+                        padding: 8px; 
+                        background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);">
+                <div style="border-radius: 12px; 
+                            overflow: hidden; 
+                            position: relative; 
+                            background: #f8fafc;">
+                    <img src="{{ $sand->photo_url }}"
+                         alt="{{ $sand->sand_name }}"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+                         style="width: 100%; 
+                                height: auto; 
+                                display: block;
+                                border-radius: 8px;">
+                    <div style="display: none; 
+                                align-items: center; 
+                                justify-content: center; 
+                                min-height: 300px; 
+                                color: #cbd5e1; 
+                                flex-direction: column;
+                                text-align: center;">
+                        <div style="font-size: 64px; opacity: 0.4; margin-bottom: 16px;">📷</div>
+                        <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Gambar tidak tersedia</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -88,11 +235,20 @@
     </div>
 </div>
 
-<!-- Tombol Tutup Modal -->
-<div class="btnArea" style="text-align: right; margin-top: 25px;">
-    <button type="button" class="btn red" onclick="window.parent.document.getElementById('closeModal').click()" style="padding: 10px 25px; border: 0; border-radius: 3px; font-size: 14px; cursor: pointer; background: transparent; color: #c02c2c;">Tutup</button>
+<!-- Tombol Tutup -->
+<div style="display: flex; 
+            justify-content: flex-end; 
+            margin-top: 24px; 
+            padding-top: 24px; 
+            border-top: 1px solid #f1f5f9;">
+    <button type="button" 
+            class="btn btn-secondary" 
+            onclick="window.parent.document.getElementById('closeModal').click()"
+            style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
+                   color: #ffffff; 
+                   display: flex; 
+                   align-items: center; 
+                   gap: 8px;">
+        <i class="bi bi-x-lg"></i> Tutup
+    </button>
 </div>
-
-<style>
-    .raise { font-size: 0.7em; vertical-align: super; }
-</style>
