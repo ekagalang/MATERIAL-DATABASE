@@ -1,4 +1,4 @@
-<div class="card">
+    <div class="card">
     <div style="display: flex; gap: 32px;">
         <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
@@ -9,19 +9,21 @@
                 <table style="width: 100%; font-size: 13.5px;">
                     <tr style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
                         <td style="padding: 14px 20px; 
-                                   font-weight: 700; 
-                                   width: 200px; 
-                                   color: #334155; 
-                                   border-bottom: 1px solid #e2e8f0;
-                                   font-size: 12px;
-                                   text-transform: uppercase;
-                                   letter-spacing: 0.5px;">
+                                font-weight: 700; 
+                                width: 35%; 
+                                color: #334155; 
+                                border-bottom: 1px solid #e2e8f0;
+                                font-size: 12px;
+                                text-transform: uppercase;
+                                letter-spacing: 0.5px;
+                                text-align: left;">
                             Nama Semen
                         </td>
                         <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #e2e8f0;
-                                   color: #0f172a;
-                                   font-weight: 600;">
+                                width: 65%;
+                                border-bottom: 1px solid #e2e8f0;
+                                color: #0f172a;
+                                font-weight: 600;">
                             {{ $cement->cement_name }}
                         </td>
                     </tr>
@@ -30,7 +32,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Jenis
                         </td>
                         <td style="padding: 14px 20px; 
@@ -44,7 +47,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Merek
                         </td>
                         <td style="padding: 14px 20px; 
@@ -58,7 +62,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Sub Merek
                         </td>
                         <td style="padding: 14px 20px; 
@@ -72,7 +77,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Code
                         </td>
                         <td style="padding: 14px 20px; 
@@ -86,7 +92,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Warna
                         </td>
                         <td style="padding: 14px 20px; 
@@ -100,7 +107,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Kemasan
                         </td>
                         <td style="padding: 14px 20px; 
@@ -117,11 +125,6 @@
                                              font-size: 12px;">
                                     {{ $cement->package_unit }}
                                 </span>
-                                @if($cement->package_weight_gross)
-                                    <span style="color: #64748b; margin-left: 8px; font-size: 12.5px;">
-                                        {{ rtrim(rtrim(number_format($cement->package_weight_gross, 2, ',', '.'), '0'), ',') }} Kg (Kotor)
-                                    </span>
-                                @endif
                             @else
                                 -
                             @endif
@@ -132,8 +135,9 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Berat Bersih
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Berat
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -159,8 +163,9 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Harga Kemasan
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Harga
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -170,7 +175,7 @@
                                 <span style="font-weight: 700; color: #0f172a;">
                                     {{ number_format($cement->package_price, 0, ',', '.') }}
                                 </span>
-                                <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/{{ $cement->price_unit ?? 'unit' }}</span>
+                                <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/ {{ $cement->price_unit ?? 'unit' }}</span>
                             @else
                                 -
                             @endif
@@ -181,7 +186,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Harga per Kg
                         </td>
                         <td style="padding: 14px 20px; 
@@ -197,7 +203,7 @@
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
                                         {{ number_format($cement->comparison_price_per_kg, 0, ',', '.') }}
                                     </span>
-                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/Kg</span>
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ Kg</span>
                                 </div>
                             @else
                                 -
@@ -209,7 +215,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Toko
                         </td>
                         <td style="padding: 14px 20px; 
@@ -223,7 +230,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Alamat Singkat
                         </td>
                         <td style="padding: 14px 20px; 
@@ -236,7 +244,8 @@
                         <td style="padding: 14px 20px; 
                                    font-weight: 600; 
                                    color: #475569;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Alamat Lengkap
                         </td>
                         <td style="padding: 14px 20px;

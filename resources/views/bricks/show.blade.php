@@ -10,15 +10,17 @@
                     <tr style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
                         <td style="padding: 14px 20px; 
                                    font-weight: 700; 
-                                   width: 200px; 
+                                   width: 35%; 
                                    color: #334155; 
                                    border-bottom: 1px solid #e2e8f0;
                                    font-size: 12px;
                                    text-transform: uppercase;
-                                   letter-spacing: 0.5px;">
+                                   letter-spacing: 0.5px;
+                                   text-align: left;">
                             Material
                         </td>
                         <td style="padding: 14px 20px; 
+                                   width: 65%;
                                    border-bottom: 1px solid #e2e8f0;
                                    color: #0f172a;
                                    font-weight: 600;">
@@ -30,7 +32,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Jenis
                         </td>
                         <td style="padding: 14px 20px; 
@@ -44,7 +47,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Merek
                         </td>
                         <td style="padding: 14px 20px; 
@@ -58,7 +62,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Bentuk
                         </td>
                         <td style="padding: 14px 20px; 
@@ -72,7 +77,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Dimensi
                         </td>
                         <td style="padding: 14px 20px; 
@@ -96,7 +102,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Volume
                         </td>
                         <td style="padding: 14px 20px; 
@@ -111,7 +118,7 @@
                                     <span style="font-weight: 700; color: #15803d;">
                                         {{ number_format($brick->package_volume, 6, ',', '.') }}
                                     </span>
-                                    <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> m³</span>
+                                    <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> M3</span>
                                 </div>
                             @else
                                 -
@@ -123,50 +130,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Toko
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $brick->store ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Alamat Singkat
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $brick->short_address ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Alamat Lengkap
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;
-                                   line-height: 1.6;">
-                            {{ $brick->address ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Harga per Buah
                         </td>
                         <td style="padding: 14px 20px; 
@@ -177,7 +142,7 @@
                                 <span style="font-weight: 700; color: #0f172a;">
                                     {{ number_format($brick->price_per_piece, 0, ',', '.') }}
                                 </span>
-                                <span style="color: #94a3b8; font-size: 12px;">/buah</span>
+                                <span style="color: #94a3b8; font-size: 12px;">/ Buah</span>
                             @else
                                 -
                             @endif
@@ -187,7 +152,8 @@
                         <td style="padding: 14px 20px; 
                                    font-weight: 600; 
                                    color: #475569;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Harga per m³
                         </td>
                         <td style="padding: 14px 20px;
@@ -207,6 +173,52 @@
                             @else
                                 -
                             @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Toko
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $brick->store ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Alamat Singkat
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $brick->short_address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Alamat Lengkap
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;
+                                   line-height: 1.6;">
+                            {{ $brick->address ?? '-' }}
                         </td>
                     </tr>
                 </table>
@@ -242,6 +254,26 @@
                         <div style="font-size: 64px; opacity: 0.4; margin-bottom: 16px;">📷</div>
                         <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Gambar tidak tersedia</div>
                     </div>
+                </div>
+            </div>
+        </div>
+        @else
+        <div style="flex: 0 0 360px; max-width: 360px;">
+            <div style="border: 2px dashed #e2e8f0; 
+                        border-radius: 16px; 
+                        padding: 8px; 
+                        background: linear-gradient(135deg, #fafbfc 0%, #ffffff 100%);">
+                <div style="border-radius: 12px; 
+                            display: flex; 
+                            align-items: center; 
+                            justify-content: center; 
+                            min-height: 300px; 
+                            color: #cbd5e1; 
+                            flex-direction: column;
+                            text-align: center;
+                            background: #f8fafc;">
+                    <div style="font-size: 64px; opacity: 0.4; margin-bottom: 16px;">📷</div>
+                    <div style="font-size: 14px; font-weight: 600; color: #94a3b8;">Tidak ada foto</div>
                 </div>
             </div>
         </div>

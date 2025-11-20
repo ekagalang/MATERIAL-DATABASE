@@ -10,15 +10,17 @@
                     <tr style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);">
                         <td style="padding: 14px 20px; 
                                    font-weight: 700; 
-                                   width: 200px; 
+                                   width: 35%; 
                                    color: #334155; 
                                    border-bottom: 1px solid #e2e8f0;
                                    font-size: 12px;
                                    text-transform: uppercase;
-                                   letter-spacing: 0.5px;">
+                                   letter-spacing: 0.5px;
+                                   text-align: left;">
                             Nama Cat
                         </td>
                         <td style="padding: 14px 20px; 
+                                   width: 65%;
                                    border-bottom: 1px solid #e2e8f0;
                                    color: #0f172a;
                                    font-weight: 600;">
@@ -30,7 +32,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Jenis
                         </td>
                         <td style="padding: 14px 20px; 
@@ -44,7 +47,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Merek
                         </td>
                         <td style="padding: 14px 20px; 
@@ -58,7 +62,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Sub Merek
                         </td>
                         <td style="padding: 14px 20px; 
@@ -72,7 +77,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Warna
                         </td>
                         <td style="padding: 14px 20px; 
@@ -93,7 +99,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Volume
                         </td>
                         <td style="padding: 14px 20px; 
@@ -114,7 +121,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Kemasan
                         </td>
                         <td style="padding: 14px 20px; 
@@ -146,7 +154,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Berat Bersih
                         </td>
                         <td style="padding: 14px 20px; 
@@ -173,7 +182,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Harga Beli
                         </td>
                         <td style="padding: 14px 20px; 
@@ -184,7 +194,7 @@
                                 <span style="font-weight: 700; color: #0f172a;">
                                     {{ number_format($cat->purchase_price, 0, ',', '.') }}
                                 </span>
-                                <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/{{ $cat->price_unit ?? 'unit' }}</span>
+                                <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/ {{ $cat->price_unit ?? 'unit' }}</span>
                             @else
                                 -
                             @endif
@@ -195,7 +205,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Harga per Kg
                         </td>
                         <td style="padding: 14px 20px; 
@@ -211,7 +222,7 @@
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
                                         {{ number_format($cat->comparison_price_per_kg, 0, ',', '.') }}
                                     </span>
-                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/Kg</span>
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ Kg</span>
                                 </div>
                             @else
                                 -
@@ -223,7 +234,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Toko
                         </td>
                         <td style="padding: 14px 20px; 
@@ -237,7 +249,8 @@
                                    font-weight: 600; 
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Alamat Singkat
                         </td>
                         <td style="padding: 14px 20px; 
@@ -250,7 +263,8 @@
                         <td style="padding: 14px 20px; 
                                    font-weight: 600; 
                                    color: #475569;
-                                   font-size: 13px;">
+                                   font-size: 13px;
+                                   text-align: left;">
                             Alamat Lengkap
                         </td>
                         <td style="padding: 14px 20px;

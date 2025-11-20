@@ -126,7 +126,6 @@ function initCementForm() {
 
     // Kalkulasi: Berat Kemasan (kalkulasi) + Harga Komparasi per Kg
     const grossInput = document.getElementById('package_weight_gross');
-    const netInput = document.getElementById('package_weight_net');
     const unitSelect = document.getElementById('package_unit');
     const netCalcDisplay = document.getElementById('net_weight_display');
     const packagePrice = document.getElementById('package_price');
@@ -139,17 +138,21 @@ function initCementForm() {
 
     function updateNetCalc() {
         if (!grossInput || !unitSelect || !netCalcDisplay) return 0;
+        
+        // Kalkulasi dari berat kotor - berat kemasan
         const gross = parseFloat(grossInput.value) || 0;
         const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
         const netCalc = Math.max(gross - tare, 0);
-        netCalcDisplay.textContent = netCalc > 0 ? netCalc.toFixed(2) + ' Kg' : '-';
+        const formattedValue = netCalc > 0 ? parseFloat(netCalc.toFixed(2)).toString() + ' Kg' : '-';
+        netCalcDisplay.textContent = formattedValue;
         return netCalc;
     }
 
     function getCurrentWeight() {
-        const netManual = parseFloat(netInput?.value) || 0;
-        const netCalc = updateNetCalc();
-        return netManual > 0 ? netManual : netCalc;
+        // Kalkulasi dari berat kotor - berat kemasan
+        const gross = parseFloat(grossInput?.value) || 0;
+        const tare = parseFloat(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
+        return Math.max(gross - tare, 0);
     }
 
     function recalculatePrices() {
@@ -176,19 +179,23 @@ function initCementForm() {
     }
 
     if (grossInput) grossInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
-    if (netInput) netInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
 
     // Sinkronkan satuan harga mengikuti satuan kemasan
-    let priceUnitDirty = false;
-    if (priceUnitInput) {
-        priceUnitInput.addEventListener('input', () => { priceUnitDirty = true; });
-    }
+    const priceUnitDisplay = document.getElementById('price_unit_display');
 
     function syncPriceUnit() {
         if (!unitSelect || !priceUnitInput) return;
         const unit = unitSelect.value || '';
-        if (!priceUnitDirty || !priceUnitInput.value) {
-            if (unit) priceUnitInput.value = unit;
+        if (unit) {
+            priceUnitInput.value = unit;
+            if (priceUnitDisplay) {
+                priceUnitDisplay.textContent = unit;
+            }
+        } else {
+            priceUnitInput.value = '';
+            if (priceUnitDisplay) {
+                priceUnitDisplay.textContent = '-';
+            }
         }
     }
 

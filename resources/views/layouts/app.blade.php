@@ -104,12 +104,11 @@
             color: #475569;
             padding: 14px 16px;
             text-align: left;
-            font-weight: 600;
+            font-weight: 900;
             font-size: 12px;
             letter-spacing: 0.3px;
             border-bottom: 2px solid #e2e8f0;
             white-space: nowrap;
-            text-transform: uppercase;
         }
         
         table td { 
@@ -489,9 +488,7 @@
             border-color: #86efac;
         }
         
-        .alert-success::before {
-            content: "\f26a";
-        }
+
         
         .alert-danger { 
             background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);

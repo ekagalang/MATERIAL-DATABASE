@@ -121,31 +121,30 @@
                                 @endforeach
                             </select>
                             <input type="number" 
-                                   name="package_weight_gross" 
-                                   id="package_weight_gross" 
-                                   value="{{ old('package_weight_gross', $cement->package_weight_gross) }}" 
-                                   step="0.01" 
-                                   min="0" 
-                                   placeholder="Berat Kotor" 
-                                   style="flex: 1;">
-                            <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
-                            <input type="number" 
-                                   name="package_weight_net" 
-                                   id="package_weight_net" 
-                                   value="{{ old('package_weight_net', $cement->package_weight_net) }}" 
-                                   step="0.01" 
-                                   min="0" 
-                                   placeholder="Berat Bersih" 
-                                   style="flex: 1;">
+                                name="package_weight_gross" 
+                                id="package_weight_gross" 
+                                value="{{ old('package_weight_gross', $cement->package_weight_gross) }}" 
+                                step="0.01" 
+                                min="0" 
+                                placeholder="Berat" 
+                                style="flex: 1;">
                             <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Berat Bersih (Kalkulasi) 
+                <div class="row">
+                    <label>Berat Bersih (Kalkulasi)</label>
+                    <div style="flex: 1;">
                         <div style="margin-top: 6px; padding: 8px 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 8px; display: inline-block;">
                             <small style="color: #15803d; font-size: 11px; font-weight: 600;">
-                                Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">-</span>
+                                Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">{{ $cement->package_weight_net ? rtrim(rtrim(number_format($cement->package_weight_net, 2, ',', '.'), '0'), ',') . ' Kg' : '-' }}</span>
                             </small>
                         </div>
                     </div>
                 </div>
+                -->
 
                 <!-- Harga Kemasan -->
                 <div class="row">
@@ -155,23 +154,16 @@
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
                             <input type="hidden" name="package_price" id="package_price" value="{{ old('package_price', $cement->package_price) }}">
                             <input type="text" 
-                                   id="package_price_display" 
-                                   value="{{ old('package_price', $cement->package_price) }}" 
-                                   inputmode="numeric" 
-                                   placeholder="0" 
-                                   style="flex: 1; max-width: 200px;">
-                            <span style="color: #cbd5e1; font-size: 14px;">/</span>
-                            <div style="position: relative; flex: 0 0 35%;">
-                                <input type="text" 
-                                       name="price_unit" 
-                                       id="price_unit" 
-                                       value="{{ old('price_unit', $cement->price_unit) }}" 
-                                       class="autocomplete-input" 
-                                       data-field="price_unit" 
-                                       autocomplete="off" 
-                                       placeholder="Sak, Kg, dll">
-                                <div class="autocomplete-list" id="price_unit-list"></div>
+                                id="package_price_display" 
+                                value="{{ old('package_price', $cement->package_price) }}" 
+                                inputmode="numeric" 
+                                placeholder="0" 
+                                style="flex: 1; max-width: 200px;">
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                <span style="color: #cbd5e1; font-size: 14px;">/</span>
+                                <span id="price_unit_display" style="color: #94a3b8; font-size: 13px;">{{ old('price_unit', $cement->price_unit) ?: '-' }}</span>
                             </div>
+                            <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit', $cement->price_unit) }}">
                         </div>
                     </div>
                 </div>
@@ -189,7 +181,7 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 200px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/Kg</span>
+                            <span style="color: #94a3b8; font-size: 13px;">/ Kg</span>
                         </div>
                     </div>
                 </div>

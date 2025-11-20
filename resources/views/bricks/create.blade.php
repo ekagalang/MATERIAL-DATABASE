@@ -74,42 +74,42 @@
                         <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; align-items: center;">
                             <!-- Panjang -->
                             <input type="text" 
-                                   id="dimension_length_input" 
-                                   placeholder="Panjang" 
-                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                                id="dimension_length_input" 
+                                placeholder="Panjang" 
+                                style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
                             <select id="dimension_length_unit" 
                                     style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm" selected>cm</option>
-                                <option value="m">m</option>
+                                <option value="m">M</option>
                             </select>
                             
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
                             
                             <!-- Lebar -->
                             <input type="text" 
-                                   id="dimension_width_input" 
-                                   placeholder="Lebar" 
-                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                                id="dimension_width_input" 
+                                placeholder="Lebar" 
+                                style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
                             <select id="dimension_width_unit" 
                                     style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm" selected>cm</option>
-                                <option value="m">m</option>
+                                <option value="m">M</option>
                             </select>
                             
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
                             
                             <!-- Tinggi -->
                             <input type="text" 
-                                   id="dimension_height_input" 
-                                   placeholder="Tinggi" 
-                                   style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
+                                id="dimension_height_input" 
+                                placeholder="Tinggi" 
+                                style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
                             <select id="dimension_height_unit" 
                                     style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
                                 <option value="cm" selected>cm</option>
-                                <option value="m">m</option>
+                                <option value="m">M</option>
                             </select>
                         </div>
                         
@@ -119,18 +119,21 @@
                         <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height') }}">
                         
                         <!-- Display hasil konversi -->
-                        <div style="display: grid; grid-template-columns: 1fr 72px 1fr 72px 1fr; gap: 8px; margin-top: 6px;">
-                            <small style="color: #94a3b8; font-size: 11px;">
-                                <span id="length_cm_display" style="font-weight: 600; color: #64748b;">-</span> cm
+                        <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; margin-top: 6px;">
+                            <small style="color: #15803d; font-size: 11px;">
+                                <span id="length_cm_display" style="font-weight: 600;">-</span> cm
                             </small>
                             <span></span>
-                            <small style="color: #94a3b8; font-size: 11px;">
-                                <span id="width_cm_display" style="font-weight: 600; color: #64748b;">-</span> cm
+                            <span></span>
+                            <small style="color: #15803d; font-size: 11px;">
+                                <span id="width_cm_display" style="font-weight: 600;">-</span> cm
                             </small>
                             <span></span>
-                            <small style="color: #94a3b8; font-size: 11px;">
-                                <span id="height_cm_display" style="font-weight: 600; color: #64748b;">-</span> cm
+                            <span></span>
+                            <small style="color: #15803d; font-size: 11px;;">
+                                <span id="height_cm_display" style="font-weight: 600;">-</span> cm
                             </small>
+                            <span></span>
                         </div>
                     </div>
                 </div>
@@ -141,14 +144,14 @@
                     <div style="flex: 1;">
                         <div style="padding: 10px 14px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 10px; display: inline-block; min-width: 120px;">
                             <span id="volume_display" style="font-weight: 700; color: #15803d; font-size: 14px;">-</span>
-                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> m³</span>
+                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> M3</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Harga per Buah -->
                 <div class="row">
-                    <label>Harga/Buah</label>
+                    <label>Harga / Buah</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -159,14 +162,14 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 240px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/buah</span>
+                            <span style="color: #94a3b8; font-size: 13px;">/ Buah</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Harga Komparasi per m³ -->
                 <div class="row">
-                    <label>Harga/m³</label>
+                    <label>Harga / M3</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -176,7 +179,7 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 240px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/m³</span>
+                            <span style="color: #94a3b8; font-size: 13px;">/ M3</span>
                         </div>
                     </div>
                 </div>

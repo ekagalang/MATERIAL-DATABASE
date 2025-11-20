@@ -48,11 +48,13 @@
                         <th style="text-align: left;">Warna</th>
                         <th>Kemasan</th>
                         <th>Volume</th>
-                        <th>Berat Bersih</th>
+                        <th style="text-align: left;">
+                            Berat </br>Bersih
+                        </th>
                         <th>Toko</th>
-                        <th style="text-align: left;">Alamat Singkat</th>
+                        <th style="text-align: left;">Alamat</br>Singkat</th>
                         <th>Harga Beli</th>
-                        <th>Harga/Kg</th>
+                        <th>Harga / Kg</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -85,19 +87,19 @@
                         <td style="color: #475569; text-align:left;">{{ $cat->color_name ?? '-' }}</td>
                         <td style="color: #475569; font-size: 13px;">
                             @if($cat->package_unit)
-                                {{ $cat->package_unit }} ({{ $cat->package_weight_gross }} Kg)
+                                {{ $cat->package_unit }}</br> ({{ $cat->package_weight_gross }} Kg)
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
                         <td style="text-align: right; color: #475569; font-size: 12px;">
                             @if($cat->volume)
-                                {{ number_format($cat->volume, 2, ',', '.') }} {{ $cat->volume_unit }}
+                                {{ rtrim(rtrim(number_format($cat->volume, 2, ',', '.'), '0'), ',') }} {{ $cat->volume_unit }}
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
-                        <td style="text-align: right; color: #475569; font-size: 12px;">
+                        <td style="text-align: left; color: #475569; font-size: 12px;">
                             @if($cat->package_weight_net)
                                 {{ rtrim(rtrim(number_format($cat->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
                             @else

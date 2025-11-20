@@ -44,15 +44,15 @@
                         <th>Foto</th>
                         <th>Merek</th>
                         <th>Sub Merek</th>
-                        <th>Code</th>
-                        <th>Warna</th>
+                        <th style="text-align: right">Code</th>
+                        <th style="text-align: left">Warna</th>
                         <th>Kemasan</th>
-                        <th>Berat Bersih</th>
+                        <th>Berat</th>
                         <th>Toko</th>
                         <th>Alamat Singkat</th>
                         <th>Harga Kemasan</th>
-                        <th>Harga/Kg</th>
-                        <th>Aksi</th>
+                        <th>Harga / Kg</th>
+                        <th style="text-align: center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,20 +78,20 @@
                         </td>
                         <td style="color: #475569;">{{ $cement->brand ?? '-' }}</td>
                         <td style="color: #475569;">{{ $cement->sub_brand ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 12px;">
+                        <td style="color: #475569; font-size: 12px; text-align: right;">
                             {{ $cement->code ?? '-' }}
                         </td>
-                        <td style="color: #475569;">{{ $cement->color ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 13px;">
+                        <td style="color: #475569; text-align: left;">{{ $cement->color ?? '-' }}</td>
+                        <td style="color: #475569; font-size: 13px; text-align: right;">
                             @if($cement->package_unit)
-                                {{ $cement->package_weight_gross }} {{ $cement->package_unit }}
+                                <!-- {{ $cement->package_weight_gross }} --> {{ $cement->package_unit }}
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
-                        <td style="text-align: right; color: #475569; font-size: 12px;">
+                        <td style="text-align: left; color: #475569; font-size: 12px;">
                             @if($cement->package_weight_net)
-                                {{ number_format($cement->package_weight_net, 2, ',', '.') }} Kg
+                                {{ rtrim(rtrim(number_format($cement->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif

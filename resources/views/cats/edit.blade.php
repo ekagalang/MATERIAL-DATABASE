@@ -75,17 +75,6 @@
                 <div class="row">
                     <label>Warna</label>
                     <div style="flex: 1; display: flex; gap: 10px;">
-                        <div style="position: relative; flex: 1;">
-                            <input type="text" 
-                                   name="color_name" 
-                                   id="color_name" 
-                                   value="{{ old('color_name', $cat->color_name) }}" 
-                                   class="autocomplete-input" 
-                                   data-field="color_name" 
-                                   autocomplete="off" 
-                                   placeholder="Nama warna">
-                            <div class="autocomplete-list" id="color_name-list"></div>
-                        </div>
                         <div style="position: relative; flex: 0 0 45%;">
                             <input type="text" 
                                    name="color_code" 
@@ -96,6 +85,17 @@
                                    autocomplete="off" 
                                    placeholder="Kode warna">
                             <div class="autocomplete-list" id="color_code-list"></div>
+                        </div>
+                        <div style="position: relative; flex: 1;">
+                            <input type="text" 
+                                   name="color_name" 
+                                   id="color_name" 
+                                   value="{{ old('color_name', $cat->color_name) }}" 
+                                   class="autocomplete-input" 
+                                   data-field="color_name" 
+                                   autocomplete="off" 
+                                   placeholder="Nama warna">
+                            <div class="autocomplete-list" id="color_name-list"></div>
                         </div>
                     </div>
                 </div>
@@ -172,7 +172,7 @@
 
                 <!-- Harga -->
                 <div class="row">
-                    <label>Harga Beli</label>
+                    <label>Harga</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -183,25 +183,18 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 200px;">
-                            <span style="color: #cbd5e1; font-size: 14px;">/</span>
-                            <div style="position: relative; flex: 0 0 35%;">
-                                <input type="text" 
-                                       name="price_unit" 
-                                       id="price_unit" 
-                                       value="{{ old('price_unit', $cat->price_unit) }}" 
-                                       class="autocomplete-input" 
-                                       data-field="price_unit" 
-                                       autocomplete="off" 
-                                       placeholder="Pcs, Kg, dll">
-                                <div class="autocomplete-list" id="price_unit-list"></div>
+                            <div style="display: flex; gap: 4px; align-items: center; flex: 0 0 auto;">
+                                <span style="color: #cbd5e1; font-size: 14px;">/</span>
+                                <span id="price_unit_display" style="color: #94a3b8; font-size: 13px;">{{ old('price_unit', $cat->price_unit) ?: '-' }}</span>
                             </div>
+                            <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit', $cat->price_unit) }}">
                         </div>
                     </div>
                 </div>
 
                 <!-- Harga Komparasi per Kg -->
                 <div class="row">
-                    <label>Harga/Kg</label>
+                    <label>Harga / Kg</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -212,7 +205,7 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 200px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/Kg</span>
+                            <span style="color: #94a3b8; font-size: 13px;">/ Kg</span>
                         </div>
                     </div>
                 </div>

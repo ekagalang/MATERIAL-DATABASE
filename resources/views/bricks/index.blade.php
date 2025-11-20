@@ -48,8 +48,8 @@
                         <th>Volume (M3)</th>
                         <th>Toko</th>
                         <th>Alamat Singkat</th>
-                        <th>Harga/Buah</th>
-                        <th>Harga/M3</th>
+                        <th>Harga / Buah</th>
+                        <th>Harga / M3</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>

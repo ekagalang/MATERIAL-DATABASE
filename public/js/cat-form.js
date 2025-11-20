@@ -141,17 +141,57 @@ function initCatForm() {
 
     function updateNetCalc() {
         if (!grossInput || !unitSelect || !netCalcDisplay) return 0;
+        
         const gross = parseFloat(grossInput.value) || 0;
+        const netManual = parseFloat(netInput?.value) || 0;
+        
+        // Validasi: Berat bersih tidak boleh melebihi berat kotor
+        if (netManual > 0 && gross > 0 && netManual > gross) {
+            netCalcDisplay.textContent = 'Berat bersih melebihi berat kotor!';
+            netCalcDisplay.style.color = '#e74c3c';
+            if (netInput) {
+                netInput.style.borderColor = '#e74c3c';
+            }
+            return 0;
+        } else {
+            netCalcDisplay.style.color = '#15803d';
+            if (netInput) {
+                netInput.style.borderColor = '#e2e8f0';
+            }
+        }
+        
+        // Prioritas: Jika berat bersih diisi manual, gunakan itu
+        if (netManual > 0) {
+            const formattedValue = parseFloat(netManual.toFixed(2)).toString() + ' Kg';
+            netCalcDisplay.textContent = formattedValue;
+            return netManual;
+        }
+        
+        // Jika tidak, kalkulasi dari berat kotor - berat kemasan
         const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
         const netCalc = Math.max(gross - tare, 0);
-        netCalcDisplay.textContent = netCalc > 0 ? netCalc.toFixed(2) + ' Kg' : '-';
+        const formattedValue = netCalc > 0 ? parseFloat(netCalc.toFixed(2)).toString() + ' Kg' : '-';
+        netCalcDisplay.textContent = formattedValue;
         return netCalc;
     }
 
     function getCurrentWeight() {
+        const gross = parseFloat(grossInput?.value) || 0;
         const netManual = parseFloat(netInput?.value) || 0;
-        const netCalc = updateNetCalc();
-        return netManual > 0 ? netManual : netCalc;
+        
+        // Validasi: Berat bersih tidak boleh melebihi berat kotor
+        if (netManual > 0 && gross > 0 && netManual > gross) {
+            return 0; // Return 0 jika invalid
+        }
+        
+        // Prioritas: Berat bersih manual > Berat kalkulasi
+        if (netManual > 0) {
+            return netManual;
+        }
+        
+        // Kalkulasi dari berat kotor - berat kemasan
+        const tare = parseFloat(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
+        return Math.max(gross - tare, 0);
     }
 
     function recalculatePrices() {
@@ -181,16 +221,21 @@ function initCatForm() {
     if (netInput) netInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
 
     // Sinkronkan satuan harga mengikuti satuan kemasan
-    let priceUnitDirty = false;
-    if (priceUnitInput) {
-        priceUnitInput.addEventListener('input', () => { priceUnitDirty = true; });
-    }
+    const priceUnitDisplay = document.getElementById('price_unit_display');
 
     function syncPriceUnit() {
         if (!unitSelect || !priceUnitInput) return;
         const unit = unitSelect.value || '';
-        if (!priceUnitDirty || !priceUnitInput.value) {
-            if (unit) priceUnitInput.value = unit;
+        if (unit) {
+            priceUnitInput.value = unit;
+            if (priceUnitDisplay) {
+                priceUnitDisplay.textContent = unit;
+            }
+        } else {
+            priceUnitInput.value = '';
+            if (priceUnitDisplay) {
+                priceUnitDisplay.textContent = '-';
+            }
         }
     }
 

@@ -124,8 +124,8 @@ function initBrickForm(root) {
             if (rawValue === '') {
                 hiddenElement.value = '';
                 displayElement.textContent = '-';
-                displayElement.style.color = '#7f8c8d';
-                inputElement.style.borderColor = '#999';
+                displayElement.style.color = '#15803d';
+                inputElement.style.borderColor = '#e2e8f0';
                 calculateVolume();
                 return;
             }
@@ -134,9 +134,11 @@ function initBrickForm(root) {
             
             if (cmValue !== null) {
                 hiddenElement.value = cmValue.toFixed(2);
-                displayElement.textContent = cmValue.toFixed(2);
-                displayElement.style.color = '#27ae60';
-                inputElement.style.borderColor = '#999';
+                // Format angka tanpa trailing zeros
+                const formattedValue = parseFloat(cmValue.toFixed(2)).toString();
+                displayElement.textContent = formattedValue;
+                displayElement.style.color = '#15803d';
+                inputElement.style.borderColor = '#e2e8f0';
             } else {
                 hiddenElement.value = '';
                 displayElement.textContent = 'Angka tidak valid';
@@ -197,7 +199,7 @@ function initBrickForm(root) {
         } else {
             currentVolume = 0;
             volumeDisplay.textContent = '-';
-            volumeDisplay.style.color = '#7f8c8d';
+            volumeDisplay.style.color = '#15803d';
         }
     }
 

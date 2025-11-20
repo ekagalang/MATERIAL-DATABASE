@@ -74,17 +74,6 @@
                 <div class="row">
                     <label>Warna</label>
                     <div style="flex: 1; display: flex; gap: 10px;">
-                        <div style="position: relative; flex: 1;">
-                            <input type="text" 
-                                   name="color_name" 
-                                   id="color_name" 
-                                   value="{{ old('color_name') }}" 
-                                   class="autocomplete-input" 
-                                   data-field="color_name" 
-                                   autocomplete="off" 
-                                   placeholder="Nama warna">
-                            <div class="autocomplete-list" id="color_name-list"></div>
-                        </div>
                         <div style="position: relative; flex: 0 0 45%;">
                             <input type="text" 
                                    name="color_code" 
@@ -95,6 +84,17 @@
                                    autocomplete="off" 
                                    placeholder="Kode warna">
                             <div class="autocomplete-list" id="color_code-list"></div>
+                        </div>
+                        <div style="position: relative; flex: 1;">
+                            <input type="text" 
+                                   name="color_name" 
+                                   id="color_name" 
+                                   value="{{ old('color_name') }}" 
+                                   class="autocomplete-input" 
+                                   data-field="color_name" 
+                                   autocomplete="off" 
+                                   placeholder="Nama warna">
+                            <div class="autocomplete-list" id="color_name-list"></div>
                         </div>
                     </div>
                 </div>
@@ -119,7 +119,7 @@
                                    class="autocomplete-input" 
                                    data-field="volume_unit" 
                                    autocomplete="off" 
-                                   placeholder="L, ml, gallon">
+                                   placeholder="L, ml, gallyon">
                             <div class="autocomplete-list" id="volume_unit-list"></div>
                         </div>
                     </div>
@@ -161,22 +161,17 @@
                                    style="flex: 1;">
                             <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
                         </div>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <label>Berat Bersih (Kalkulasi)
-                    <div style="flex: 1;">
-                        <div style="color: #15803d; font-size: 11px; font-weight: 600; display: flex; gap: 8px; align-items: center;">
-                            <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">-</span>
+                        <div style="margin-top: 6px; padding: 8px 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 8px; display: inline-block;">
+                            <small style="color: #15803d; font-size: 11px; font-weight: 600;">
+                                Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">-</span>
+                            </small>
                         </div>
                     </div>
-                    </label>    
                 </div>
 
                 <!-- Harga -->
                 <div class="row">
-                    <label>Harga Beli</label>
+                    <label>Harga</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -187,18 +182,11 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 200px;">
-                            <span style="color: #cbd5e1; font-size: 14px;">/</span>
-                            <div style="position: relative; flex: 0 0 35%;">
-                                <input type="text" 
-                                       name="price_unit" 
-                                       id="price_unit" 
-                                       value="{{ old('price_unit') }}" 
-                                       class="autocomplete-input" 
-                                       data-field="price_unit" 
-                                       autocomplete="off" 
-                                       placeholder="Pcs, Kg, dll">
-                                <div class="autocomplete-list" id="price_unit-list"></div>
+                            <div style="display: flex; gap: 4px; align-items: center; flex: 0 0 auto;">
+                                <span style="color: #cbd5e1; font-size: 14px;">/</span>
+                                <span id="price_unit_display" style="color: #94a3b8; font-size: 13px;">-</span>
                             </div>
+                            <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit') }}">
                         </div>
                     </div>
                 </div>
