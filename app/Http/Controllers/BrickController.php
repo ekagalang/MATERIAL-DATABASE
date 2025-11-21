@@ -24,7 +24,30 @@ class BrickController extends Controller
             });
         }
 
-        $bricks = $query->orderBy('created_at', 'desc')->paginate(15);
+        // Sorting
+        $sortBy = $request->get('sort_by');
+        $sortDirection = $request->get('sort_direction');
+
+        // Validasi kolom yang boleh di-sort
+        $allowedSorts = [
+            'material_name', 'type', 'brand', 'form',
+            'dimension_length', 'dimension_width', 'dimension_height',
+            'package_volume', 'store', 'short_address',
+            'price_per_piece', 'comparison_price_per_m3', 'created_at'
+        ];
+
+        // Default sorting jika tidak ada atau tidak valid
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+            $sortDirection = 'desc';
+        } else {
+            // Validasi direction
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'asc';
+            }
+        }
+
+        $bricks = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
         return view('bricks.index', compact('bricks'));
     }

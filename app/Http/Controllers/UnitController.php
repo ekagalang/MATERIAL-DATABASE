@@ -11,17 +11,35 @@ class UnitController extends Controller
     public function index(Request $request)
     {
         $query = Unit::query();
-        
+
         // Filter by material type
         if ($request->has('material_type') && $request->material_type != '') {
             $query->where('material_type', $request->material_type);
         }
-        
-        $units = $query->orderBy('material_type')->orderBy('code')->paginate(20);
-        
+
+        // Sorting
+        $sortBy = $request->get('sort_by');
+        $sortDirection = $request->get('sort_direction');
+
+        // Validasi kolom yang boleh di-sort
+        $allowedSorts = ['code', 'material_type', 'name', 'package_weight', 'created_at'];
+
+        // Default sorting jika tidak ada atau tidak valid
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'name';
+            $sortDirection = 'asc';
+            $units = $query->orderBy($sortBy, $sortDirection)->paginate(20)->appends($request->query());
+        } else {
+            // Validasi direction
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'asc';
+            }
+            $units = $query->orderBy($sortBy, $sortDirection)->paginate(20)->appends($request->query());
+        }
+
         // Get material types untuk filter dropdown
         $materialTypes = Unit::getMaterialTypesWithLabels();
-        
+
         return view('units.index', compact('units', 'materialTypes'));
     }
 

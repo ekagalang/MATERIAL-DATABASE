@@ -37,64 +37,192 @@
     </form>
 
     @if($units->count() > 0)
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>No</th>
-                        <th>Material Type</th>
-                        <th>Kode</th>
-                        <th>Nama Satuan</th>
-                        <th>Berat Kemasan (Kg)</th>
-                        <th>Keterangan</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($units as $index => $unit)
-                    <tr>
-                        <td style="text-align: center; font-weight: 500; color: #64748b;">
-                            {{ $units->firstItem() + $index }}
-                        </td>
-                        <td>
-                            <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 600; color: #475569;">
-                                {{ ucfirst($unit->material_type) }}
-                            </span>
-                        </td>
-                        <td>
-                            <strong style="color: #0f172a; font-weight: 600;">{{ $unit->code }}</strong>
-                        </td>
-                        <td style="color: #475569;">{{ $unit->name }}</td>
-                        <td style="text-align: right; color: #475569; font-size: 13px;">
-                            {{ $unit->package_weight }}
-                        </td>
-                        <td style="color: #64748b; font-size: 13px;">{{ $unit->description ?? '-' }}</td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="{{ route('units.edit', $unit->id) }}"
-                                   class="btn btn-warning btn-sm open-modal"
-                                   title="Edit">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
+        <!-- Grid 2 Kolom Tabel -->
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
+            @php
+                // Ambil items dari paginator (sudah tersortir dari controller)
+                $unitsArray = $units->items();
 
-                                <form action="{{ route('units.destroy', $unit->id) }}"
-                                      method="POST"
-                                      onsubmit="return confirm('Yakin ingin menghapus satuan ini?')"
-                                      style="display: inline;">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                            class="btn btn-danger btn-sm"
-                                            title="Hapus">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+                $totalUnits = count($unitsArray);
+                $halfCount = ceil($totalUnits / 2);
+                $leftColumn = array_slice($unitsArray, 0, $halfCount);
+                $rightColumn = array_slice($unitsArray, $halfCount);
+            @endphp
+
+            <!-- Kolom Kiri -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">No</th>
+                            @php
+                                function getUnitSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
+                                    $params = array_merge($requestQuery, []);
+                                    unset($params['sort_by'], $params['sort_direction']);
+                                    if ($currentSortBy === $column) {
+                                        if ($currentDirection === 'asc') {
+                                            $params['sort_by'] = $column;
+                                            $params['sort_direction'] = 'desc';
+                                        }
+                                    } else {
+                                        $params['sort_by'] = $column;
+                                        $params['sort_direction'] = 'asc';
+                                    }
+                                    return route('units.index', $params);
+                                }
+                                $unitSortColumns = [
+                                    'name' => 'Nama',
+                                    'code' => 'Kode',
+                                    'package_weight' => 'Berat (Kg)',
+                                    'material_type' => 'Material',
+                                ];
+                            @endphp
+
+                            @foreach(['name', 'code', 'package_weight', 'material_type'] as $col)
+                                <th class="sortable" style="width: {{ $col == 'name' ? 'auto' : ($col == 'code' ? '80px' : '90px') }};">
+                                    <a href="{{ getUnitSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                       style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                        <span>{{ $unitSortColumns[$col] }}</span>
+                                        @if(request('sort_by') == $col)
+                                            <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        @endif
+                                    </a>
+                                </th>
+                            @endforeach
+                            <th style="width: 100px; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($leftColumn as $index => $unit)
+                        <tr>
+                            <td style="text-align: center; font-weight: 500; color: #64748b;">
+                                {{ $index + 1 }}
+                            </td>
+                            <td style="color: #475569; font-size: 13px; font-weight: 500;">
+                                {{ $unit->name }}
+                            </td>
+                            <td style="text-align: center;">
+                                <strong style="color: #0f172a; font-weight: 600; font-size: 13px;">{{ $unit->code }}</strong>
+                            </td>
+                            <td style="text-align: right; color: #475569; font-size: 13px;">
+                                @if($unit->package_weight && $unit->package_weight > 0)
+                                    {{ rtrim(rtrim(number_format($unit->package_weight, 2, ',', '.'), '0'), ',') }}
+                                @else
+                                    <span style="color: #cbd5e1;">-</span>
+                                @endif
+                            </td>
+                            <td style="text-align: center;">
+                                <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;">
+                                    {{ ucfirst($unit->material_type) }}
+                                </span>
+                            </td>
+                            <td style="text-align: center">
+                                <div class="btn-group" style="display: flex; justify-content: center;">
+                                    <a href="{{ route('units.edit', $unit->id) }}"
+                                       class="btn btn-warning btn-sm open-modal"
+                                       title="Edit"
+                                       style="padding: 6px 10px;">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+
+                                    <form action="{{ route('units.destroy', $unit->id) }}"
+                                          method="POST"
+                                          onsubmit="return confirm('Yakin ingin menghapus satuan ini?')"
+                                          style="display: inline; margin: 0;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="btn btn-danger btn-sm"
+                                                title="Hapus"
+                                                style="padding: 6px 10px;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Kolom Kanan -->
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">No</th>
+                            @foreach(['name', 'code', 'package_weight', 'material_type'] as $col)
+                                <th class="sortable" style="width: {{ $col == 'name' ? 'auto' : ($col == 'code' ? '80px' : '90px') }};">
+                                    <a href="{{ getUnitSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                       style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                        <span>{{ $unitSortColumns[$col] }}</span>
+                                        @if(request('sort_by') == $col)
+                                            <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        @else
+                                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        @endif
+                                    </a>
+                                </th>
+                            @endforeach
+                            <th style="width: 100px; text-align: center;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($rightColumn as $index => $unit)
+                        <tr>
+                            <td style="text-align: center; font-weight: 500; color: #64748b;">
+                                {{ $halfCount + $index + 1 }}
+                            </td>
+                            <td style="color: #475569; font-size: 13px; font-weight: 500;">
+                                {{ $unit->name }}
+                            </td>
+                            <td style="text-align: center;">
+                                <strong style="color: #0f172a; font-weight: 600; font-size: 13px;">{{ $unit->code }}</strong>
+                            </td>
+                            <td style="text-align: right; color: #475569; font-size: 13px;">
+                                @if($unit->package_weight && $unit->package_weight > 0)
+                                    {{ rtrim(rtrim(number_format($unit->package_weight, 2, ',', '.'), '0'), ',') }}
+                                @else
+                                    <span style="color: #cbd5e1;">-</span>
+                                @endif
+                            </td>
+                            <td style="text-align: center;">
+                                <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;">
+                                    {{ ucfirst($unit->material_type) }}
+                                </span>
+                            </td>
+                            <td style="text-align: center">
+                                <div class="btn-group" style="display: flex; justify-content: center;">
+                                    <a href="{{ route('units.edit', $unit->id) }}"
+                                       class="btn btn-warning btn-sm open-modal"
+                                       title="Edit"
+                                       style="padding: 6px 10px;">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+
+                                    <form action="{{ route('units.destroy', $unit->id) }}"
+                                          method="POST"
+                                          onsubmit="return confirm('Yakin ingin menghapus satuan ini?')"
+                                          style="display: inline; margin: 0;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="btn btn-danger btn-sm"
+                                                title="Hapus"
+                                                style="padding: 6px 10px;">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Pagination -->
@@ -103,7 +231,7 @@
         </div>
     @else
         <div class="empty-state">
-            <div class="empty-state-icon">📏</div>
+            <div class="empty-state-icon">📦</div>
             <p>Belum ada satuan yang terdaftar</p>
         </div>
     @endif
@@ -131,6 +259,13 @@
 </div>
 
 <style>
+/* Responsive untuk layar kecil */
+@media (max-width: 1024px) {
+    .card > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+}
+
 /* Floating Modal Styles */
 .floating-modal {
     display: none;
@@ -253,6 +388,28 @@
     font-size: 12px;
     margin-top: 4px;
     display: block;
+}
+
+/* Sortable header styles */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable a {
+    transition: all 0.2s ease;
+}
+
+th.sortable:hover a {
+    color: #891313 !important;
+}
+
+th.sortable:hover i {
+    opacity: 1 !important;
+}
+
+th.sortable i {
+    transition: opacity 0.2s ease;
 }
 </style>
 

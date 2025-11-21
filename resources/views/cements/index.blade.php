@@ -39,19 +39,67 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Material</th>
-                        <th>Jenis</th>
+                        @php
+                            function getCementSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
+                                $params = array_merge($requestQuery, []);
+                                unset($params['sort_by'], $params['sort_direction']);
+                                if ($currentSortBy === $column) {
+                                    if ($currentDirection === 'asc') {
+                                        $params['sort_by'] = $column;
+                                        $params['sort_direction'] = 'desc';
+                                    }
+                                } else {
+                                    $params['sort_by'] = $column;
+                                    $params['sort_direction'] = 'asc';
+                                }
+                                return route('cements.index', $params);
+                            }
+                            $cementSortColumns = [
+                                'cement_name' => ['label' => 'Material', 'align' => ''],
+                                'type' => ['label' => 'Jenis', 'align' => ''],
+                                'brand' => ['label' => 'Merek', 'align' => ''],
+                                'sub_brand' => ['label' => 'Sub Merek', 'align' => ''],
+                                'code' => ['label' => 'Code', 'align' => 'right'],
+                                'color' => ['label' => 'Warna', 'align' => 'left'],
+                                'package_unit' => ['label' => 'Kemasan', 'align' => ''],
+                                'package_weight_net' => ['label' => 'Berat', 'align' => ''],
+                                'store' => ['label' => 'Toko', 'align' => ''],
+                                'short_address' => ['label' => 'Alamat Singkat', 'align' => ''],
+                                'package_price' => ['label' => 'Harga', 'align' => ''],
+                                'comparison_price_per_kg' => ['label' => 'Harga / Kg', 'align' => ''],
+                            ];
+                        @endphp
+
+                        @foreach(['cement_name', 'type'] as $col)
+                            <th class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
+                                <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $cementSortColumns[$col]['label'] }}</span>
+                                    @if(request('sort_by') == $col)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
                         <th>Foto</th>
-                        <th>Merek</th>
-                        <th>Sub Merek</th>
-                        <th style="text-align: right">Code</th>
-                        <th style="text-align: left">Warna</th>
-                        <th>Kemasan</th>
-                        <th>Berat</th>
-                        <th>Toko</th>
-                        <th>Alamat Singkat</th>
-                        <th>Harga</th>
-                        <th>Harga / Kg</th>
+
+                        @foreach(['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net', 'store', 'short_address', 'package_price', 'comparison_price_per_kg'] as $col)
+                            <th class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
+                                <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $cementSortColumns[$col]['label'] }}</span>
+                                    @if(request('sort_by') == $col)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
                         <th style="text-align: center">Aksi</th>
                     </tr>
                 </thead>
@@ -319,6 +367,28 @@ input[type="text"]:focus {
     outline: none;
     border-color: #891313 !important;
     box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1) !important;
+}
+
+/* Sortable header styles */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable a {
+    transition: all 0.2s ease;
+}
+
+th.sortable:hover a {
+    color: #891313 !important;
+}
+
+th.sortable:hover i {
+    opacity: 1 !important;
+}
+
+th.sortable i {
+    transition: opacity 0.2s ease;
 }
 </style>
 

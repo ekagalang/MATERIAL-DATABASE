@@ -24,7 +24,30 @@ class CatController extends Controller
             });
         }
 
-        $cats = $query->orderBy('created_at', 'desc')->paginate(15);
+        // Sorting
+        $sortBy = $request->get('sort_by');
+        $sortDirection = $request->get('sort_direction');
+
+        // Validasi kolom yang boleh di-sort
+        $allowedSorts = [
+            'cat_name', 'type', 'brand', 'sub_brand', 'color_name', 'color_code',
+            'form', 'package_unit', 'package_weight_gross', 'package_weight_net',
+            'volume', 'volume_unit', 'store', 'short_address',
+            'purchase_price', 'comparison_price_per_kg', 'created_at'
+        ];
+
+        // Default sorting jika tidak ada atau tidak valid
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+            $sortDirection = 'desc';
+        } else {
+            // Validasi direction
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'asc';
+            }
+        }
+
+        $cats = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
         return view('cats.index', compact('cats'));
     }

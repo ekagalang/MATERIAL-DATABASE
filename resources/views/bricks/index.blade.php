@@ -39,18 +39,100 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Material</th>
-                        <th>Jenis</th>
+                        @php
+                            $sortableColumns = [
+                                'material_name' => 'Material',
+                                'type' => 'Jenis',
+                                'brand' => 'Merek',
+                                'form' => 'Bentuk',
+                                'dimension_length' => 'Panjang (cm)',
+                                'dimension_width' => 'Lebar (cm)',
+                                'dimension_height' => 'Tinggi (cm)',
+                                'package_volume' => 'Volume (M3)',
+                                'store' => 'Toko',
+                                'short_address' => 'Alamat Singkat',
+                                'price_per_piece' => 'Harga / Buah',
+                                'comparison_price_per_m3' => 'Harga / M3',
+                            ];
+
+                            // Function to get next sort state
+                            function getNextSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
+                                $params = array_merge($requestQuery, []);
+                                unset($params['sort_by'], $params['sort_direction']);
+
+                                // 3-state logic: asc -> desc -> reset (no sort)
+                                if ($currentSortBy === $column) {
+                                    if ($currentDirection === 'asc') {
+                                        $params['sort_by'] = $column;
+                                        $params['sort_direction'] = 'desc';
+                                    }
+                                    // If desc, don't add params (reset to default)
+                                } else {
+                                    $params['sort_by'] = $column;
+                                    $params['sort_direction'] = 'asc';
+                                }
+
+                                return route('bricks.index', $params);
+                            }
+                        @endphp
+
+                        @foreach(['material_name', 'type'] as $column)
+                            <th class="sortable">
+                                <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $sortableColumns[$column] }}</span>
+                                    @if(request('sort_by') == $column)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
                         <th>Foto</th>
-                        <th>Merek</th>
-                        <th>Bentuk</th>
-                        <th>Dimensi (cm)</th>
-                        <th>Volume (M3)</th>
-                        <th>Toko</th>
-                        <th>Alamat Singkat</th>
-                        <th>Harga / Buah</th>
-                        <th>Harga / M3</th>
-                        <th>Aksi</th>
+
+                        @foreach(['brand', 'form'] as $column)
+                            <th class="sortable">
+                                <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $sortableColumns[$column] }}</span>
+                                    @if(request('sort_by') == $column)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
+                        <th class="sortable">
+                            <a href="{{ getNextSortUrl('dimension_length', request('sort_by'), request('sort_direction'), request()->query()) }}"
+                               style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                <span>Dimensi (cm)</span>
+                                @if(in_array(request('sort_by'), ['dimension_length', 'dimension_width', 'dimension_height']))
+                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                @else
+                                    <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                @endif
+                            </a>
+                        </th>
+
+                        @foreach(['package_volume', 'store', 'short_address', 'price_per_piece', 'comparison_price_per_m3'] as $column)
+                            <th class="sortable">
+                                <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $sortableColumns[$column] }}</span>
+                                    @if(request('sort_by') == $column)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
+                        <th style="text-align: center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -124,7 +206,7 @@
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
-                        <td>
+                        <td style="text-align: center">
                             <div class="btn-group">
                                 <a href="{{ route('bricks.show', $brick->id) }}"
                                    class="btn btn-primary btn-sm open-modal"
@@ -326,6 +408,28 @@ input[type="text"]:focus {
     font-size: 12px;
     font-weight: 500;
     color: #475569;
+}
+
+/* Sortable header styles */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable a {
+    transition: all 0.2s ease;
+}
+
+th.sortable:hover a {
+    color: #891313 !important;
+}
+
+th.sortable:hover i {
+    opacity: 1 !important;
+}
+
+th.sortable i {
+    transition: opacity 0.2s ease;
 }
 </style>
 

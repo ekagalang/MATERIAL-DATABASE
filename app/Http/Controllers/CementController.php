@@ -27,7 +27,29 @@ class CementController extends Controller
             });
         }
 
-        $cements = $query->orderBy('created_at', 'desc')->paginate(15);
+        // Sorting
+        $sortBy = $request->get('sort_by');
+        $sortDirection = $request->get('sort_direction');
+
+        // Validasi kolom yang boleh di-sort
+        $allowedSorts = [
+            'cement_name', 'type', 'brand', 'sub_brand', 'code', 'color',
+            'package_unit', 'package_weight_gross', 'package_weight_net',
+            'store', 'short_address', 'package_price', 'comparison_price_per_kg', 'created_at'
+        ];
+
+        // Default sorting jika tidak ada atau tidak valid
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+            $sortDirection = 'desc';
+        } else {
+            // Validasi direction
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'asc';
+            }
+        }
+
+        $cements = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
         return view('cements.index', compact('cements'));
     }

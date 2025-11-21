@@ -39,22 +39,68 @@
                 <thead>
                     <tr>
                         <th>No</th>
-                        <th>Material</th>
-                        <th>Jenis</th>
+                        @php
+                            function getSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
+                                $params = array_merge($requestQuery, []);
+                                unset($params['sort_by'], $params['sort_direction']);
+                                if ($currentSortBy === $column) {
+                                    if ($currentDirection === 'asc') {
+                                        $params['sort_by'] = $column;
+                                        $params['sort_direction'] = 'desc';
+                                    }
+                                } else {
+                                    $params['sort_by'] = $column;
+                                    $params['sort_direction'] = 'asc';
+                                }
+                                return route('cats.index', $params);
+                            }
+                            $sortColumns = [
+                                'cat_name' => ['label' => 'Material', 'align' => ''],
+                                'type' => ['label' => 'Jenis', 'align' => ''],
+                                'brand' => ['label' => 'Merek', 'align' => ''],
+                                'sub_brand' => ['label' => 'Sub Merek', 'align' => ''],
+                                'color_code' => ['label' => 'Code', 'align' => 'right'],
+                                'color_name' => ['label' => 'Warna', 'align' => 'left'],
+                                'package_unit' => ['label' => 'Kemasan', 'align' => ''],
+                                'volume' => ['label' => 'Volume', 'align' => ''],
+                                'package_weight_net' => ['label' => 'Berat Bersih', 'align' => 'left'],
+                                'store' => ['label' => 'Toko', 'align' => ''],
+                                'short_address' => ['label' => 'Alamat Singkat', 'align' => 'left'],
+                                'purchase_price' => ['label' => 'Harga', 'align' => ''],
+                                'comparison_price_per_kg' => ['label' => 'Harga / Kg', 'align' => ''],
+                            ];
+                        @endphp
+
+                        @foreach(['cat_name', 'type'] as $col)
+                            <th class="sortable" @if($sortColumns[$col]['align']) style="text-align: {{ $sortColumns[$col]['align'] }};" @endif>
+                                <a href="{{ getSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $sortColumns[$col]['label'] }}</span>
+                                    @if(request('sort_by') == $col)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
                         <th>Foto</th>
-                        <th>Merek</th>
-                        <th>Sub Merek</th>
-                        <th style="text-align: right;">Code</th>
-                        <th style="text-align: left;">Warna</th>
-                        <th>Kemasan</th>
-                        <th>Volume</th>
-                        <th style="text-align: left;">
-                            Berat Bersih
-                        </th>
-                        <th>Toko</th>
-                        <th style="text-align: left;">Alamat Singkat</th>
-                        <th>Harga</th>
-                        <th>Harga / Kg</th>
+
+                        @foreach(['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume', 'package_weight_net', 'store', 'short_address', 'purchase_price', 'comparison_price_per_kg'] as $col)
+                            <th class="sortable" @if($sortColumns[$col]['align']) style="text-align: {{ $sortColumns[$col]['align'] }};" @endif>
+                                <a href="{{ getSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $sortColumns[$col]['label'] }}</span>
+                                    @if(request('sort_by') == $col)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -348,6 +394,28 @@ table th:nth-child(13), table td:nth-child(13) { width: 200px; }
 table th:nth-child(14), table td:nth-child(14) { width: 120px; }
 table th:nth-child(15), table td:nth-child(15) { width: 120px; }
 table th:nth-child(16), table td:nth-child(16) { width: 150px; text-align: center; }
+
+/* Sortable header styles */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable a {
+    transition: all 0.2s ease;
+}
+
+th.sortable:hover a {
+    color: #891313 !important;
+}
+
+th.sortable:hover i {
+    opacity: 1 !important;
+}
+
+th.sortable i {
+    transition: opacity 0.2s ease;
+}
 </style>
 
 <script>
