@@ -119,11 +119,11 @@
                                              padding: 4px 10px; 
                                              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
                                              border: 1.5px solid #93c5fd; 
-                                             border-radius: 6px; 
-                                             font-weight: 600; 
-                                             color: #1e40af; 
+                                             border-radius: 6px;
+                                             font-weight: 600;
+                                             color: #1e40af;
                                              font-size: 12px;">
-                                    {{ $cement->package_unit }}
+                                    {{ $cement->packageUnit->name ?? $cement->package_unit }}
                                 </span>
                             @else
                                 -
@@ -188,7 +188,7 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Harga per Kg
+                            Harga / Kg
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;

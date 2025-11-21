@@ -11,8 +11,8 @@ class CementController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Cement::query();
-        
+        $query = Cement::query()->with('packageUnit');
+
         // Pencarian
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -110,6 +110,7 @@ class CementController extends Controller
 
     public function show(Cement $cement)
     {
+        $cement->load('packageUnit');
         return view('cements.show', compact('cement'));
     }
 

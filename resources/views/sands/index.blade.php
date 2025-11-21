@@ -43,13 +43,14 @@
                         <th>Jenis</th>
                         <th>Foto</th>
                         <th>Merek</th>
-                        <th>Dimensi (m)</th>
-                        <th>Volume ( M3)</th>
+                        <th>Kemasan</th>
+                        <th>Dimensi (M)</th>
+                        <th>Volume (M3)</th>
                         <th>Toko</th>
                         <th>Alamat Singkat</th>
-                        <th>Harga Kemasan</th>
-                        <th>Harga/ M3</th>
-                        <th>Aksi</th>
+                        <th>Harga</th>
+                        <th>Harga / M3</th>
+                        <th style="text-align: center">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,6 +75,11 @@
                             @endif
                         </td>
                         <td style="color: #475569;">{{ $sand->brand ?? '-' }}</td>
+                        <td>
+                            <span style="display: inline-block; border-radius: 6px; font-size: 12px; font-weight: 600;">
+                                {{ $sand->packageUnit->name ?? $sand->package_unit ?? '-' }}
+                            </span>
+                        </td>
                         <td style="color: #475569; font-size: 12px;">
                             @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
                                 {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} ×

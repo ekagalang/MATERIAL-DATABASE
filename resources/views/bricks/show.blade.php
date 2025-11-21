@@ -132,7 +132,7 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Harga per Buah
+                            Harga / Buah
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -154,7 +154,7 @@
                                    color: #475569;
                                    font-size: 13px;
                                    text-align: left;">
-                            Harga per m³
+                            Harga / M3
                         </td>
                         <td style="padding: 14px 20px;
                                    color: #1e293b;">

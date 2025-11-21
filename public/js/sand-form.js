@@ -89,26 +89,30 @@ function initSandForm(root) {
         });
     }
 
-    // ========== KALKULASI BERAT BERSIH KEMASAN ==========
+    // ========== UPDATE PRICE UNIT DISPLAY ==========
 
-    const grossInput = scope.querySelector('#package_weight_gross') || document.getElementById('package_weight_gross');
-    const netInput = scope.querySelector('#package_weight_net') || document.getElementById('package_weight_net');
     const unitSelect = scope.querySelector('#package_unit') || document.getElementById('package_unit');
-    const netCalcDisplay = scope.querySelector('#net_weight_display') || document.getElementById('net_weight_display');
+    const priceUnitDisplay = scope.querySelector('#price_unit_display') || document.getElementById('price_unit_display');
+    const priceUnitInput = scope.querySelector('#price_unit') || document.getElementById('price_unit');
 
-    function updateNetCalc() {
-        if (!grossInput || !unitSelect || !netCalcDisplay) return 0;
-        const gross = parseFloat(grossInput.value) || 0;
-        const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
-        const netCalc = Math.max(gross - tare, 0);
-        netCalcDisplay.textContent = netCalc > 0 ? netCalc.toFixed(2) + ' Kg' : '-';
-        return netCalc;
+    function updatePriceUnitDisplay() {
+        if (!unitSelect) return;
+        const selectedOption = unitSelect.selectedOptions[0];
+        const unitName = selectedOption?.dataset?.name || selectedOption?.text || '';
+
+        if (unitName && unitName !== '-- Satuan --') {
+            if (priceUnitInput) priceUnitInput.value = unitName;
+            if (priceUnitDisplay) priceUnitDisplay.textContent = unitName;
+        } else {
+            if (priceUnitInput) priceUnitInput.value = '';
+            if (priceUnitDisplay) priceUnitDisplay.textContent = '-';
+        }
     }
 
-    if (grossInput) grossInput.addEventListener('input', updateNetCalc);
-    if (unitSelect) unitSelect.addEventListener('change', updateNetCalc);
-
-    updateNetCalc();
+    if (unitSelect) {
+        unitSelect.addEventListener('change', updatePriceUnitDisplay);
+        updatePriceUnitDisplay();
+    }
 
     // ========== VALIDASI DAN KONVERSI DIMENSI ==========
 

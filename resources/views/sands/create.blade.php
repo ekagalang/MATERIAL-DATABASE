@@ -58,23 +58,19 @@
                 <div class="row">
                     <label>Kemasan</label>
                     <div style="flex: 1;">
-                        <select name="package_unit" 
-                                id="package_unit" 
+                        <select name="package_unit"
+                                id="package_unit"
                                 style="width: 100%;">
                             <option value="">-- Satuan --</option>
                             @foreach($units as $unit)
-                                <option value="{{ $unit->code }}" 
-                                        data-weight="{{ $unit->package_weight }}" 
+                                <option value="{{ $unit->code }}"
+                                        data-weight="{{ $unit->package_weight }}"
+                                        data-name="{{ $unit->name }}"
                                         {{ old('package_unit') == $unit->code ? 'selected' : '' }}>
-                                    {{ $unit->code }}
+                                    {{ $unit->name }}
                                 </option>
                             @endforeach
                         </select>
-                        <div style="margin-top: 6px; padding: 8px 12px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 8px; display: inline-block;">
-                            <small style="color: #15803d; font-size: 11px; font-weight: 600;">
-                                Berat Bersih (Kalkulasi): <span id="net_weight_display" style="font-weight: 700; font-size: 12px;">-</span>
-                            </small>
-                        </div>
                     </div>
                 </div>
 
@@ -88,39 +84,39 @@
                                    id="dimension_length_input" 
                                    placeholder="Panjang" 
                                    style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
-                            <select id="dimension_length_unit" 
+                            <select id="dimension_length_unit"
                                     style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
-                                <option value="cm">cm</option>
-                                <option value="m" selected>m</option>
+                                <option value="cm" selected>cm</option>
+                                <option value="m">m</option>
                             </select>
-                            
+
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
-                            
+
                             <!-- Lebar -->
-                            <input type="text" 
-                                   id="dimension_width_input" 
-                                   placeholder="Lebar" 
+                            <input type="text"
+                                   id="dimension_width_input"
+                                   placeholder="Lebar"
                                    style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
-                            <select id="dimension_width_unit" 
+                            <select id="dimension_width_unit"
                                     style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
-                                <option value="cm">cm</option>
-                                <option value="m" selected>m</option>
+                                <option value="cm" selected>cm</option>
+                                <option value="m">m</option>
                             </select>
-                            
+
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
-                            
+
                             <!-- Tinggi -->
-                            <input type="text" 
-                                   id="dimension_height_input" 
-                                   placeholder="Tinggi" 
+                            <input type="text"
+                                   id="dimension_height_input"
+                                   placeholder="Tinggi"
                                    style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
-                            <select id="dimension_height_unit" 
+                            <select id="dimension_height_unit"
                                     style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
                                 <option value="mm">mm</option>
-                                <option value="cm">cm</option>
-                                <option value="m" selected>m</option>
+                                <option value="cm" selected>cm</option>
+                                <option value="m">m</option>
                             </select>
                         </div>
                         
@@ -128,20 +124,23 @@
                         <input type="hidden" name="dimension_length" id="dimension_length" value="{{ old('dimension_length') }}">
                         <input type="hidden" name="dimension_width" id="dimension_width" value="{{ old('dimension_width') }}">
                         <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height') }}">
-                        
+
                         <!-- Display hasil konversi -->
-                        <div style="display: grid; grid-template-columns: 1fr 72px 1fr 72px 1fr; gap: 8px; margin-top: 6px;">
-                            <small style="color: #94a3b8; font-size: 11px;">
-                                <span id="length_m_display" style="font-weight: 600; color: #64748b;">-</span> m
+                        <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; margin-top: 6px;">
+                            <small style="color: #15803d; font-size: 11px;">
+                                <span id="length_m_display" style="font-weight: 600;">-</span> M
                             </small>
                             <span></span>
-                            <small style="color: #94a3b8; font-size: 11px;">
-                                <span id="width_m_display" style="font-weight: 600; color: #64748b;">-</span> m
+                            <span></span>
+                            <small style="color: #15803d; font-size: 11px;">
+                                <span id="width_m_display" style="font-weight: 600;">-</span> M
                             </small>
                             <span></span>
-                            <small style="color: #94a3b8; font-size: 11px;">
-                                <span id="height_m_display" style="font-weight: 600; color: #64748b;">-</span> m
+                            <span></span>
+                            <small style="color: #15803d; font-size: 11px;;">
+                                <span id="height_m_display" style="font-weight: 600;">-</span> M
                             </small>
+                            <span></span>
                         </div>
                     </div>
                 </div>
@@ -152,32 +151,36 @@
                     <div style="flex: 1;">
                         <div style="padding: 10px 14px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 10px; display: inline-block; min-width: 120px;">
                             <span id="volume_display" style="font-weight: 700; color: #15803d; font-size: 14px;">-</span>
-                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> m³</span>
+                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> M3</span>
                         </div>
                     </div>
                 </div>
 
                 <!-- Harga per Kemasan -->
                 <div class="row">
-                    <label>Harga Kemasan</label>
+                    <label>Harga</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
                             <input type="hidden" name="package_price" id="package_price" value="{{ old('package_price') }}">
-                            <input type="text" 
-                                   id="package_price_display" 
-                                   value="{{ old('package_price') }}" 
-                                   inputmode="numeric" 
-                                   placeholder="0" 
+                            <input type="text"
+                                   id="package_price_display"
+                                   value="{{ old('package_price') }}"
+                                   inputmode="numeric"
+                                   placeholder="0"
                                    style="flex: 1; max-width: 240px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/kemasan</span>
+                            <div style="display: flex; gap: 4px; align-items: center; flex: 0 0 auto;">
+                                <span style="color: #cbd5e1; font-size: 14px;">/</span>
+                                <span id="price_unit_display" style="color: #94a3b8; font-size: 13px;">-</span>
+                            </div>
+                            <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit') }}">
                         </div>
                     </div>
                 </div>
 
                 <!-- Harga Komparasi per m³ -->
                 <div class="row">
-                    <label>Harga/m³</label>
+                    <label>Harga / M3</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -187,7 +190,7 @@
                                    inputmode="numeric" 
                                    placeholder="0" 
                                    style="flex: 1; max-width: 240px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/m³</span>
+                            <span style="color: #94a3b8; font-size: 13px;">/ M3</span>
                         </div>
                     </div>
                 </div>

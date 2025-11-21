@@ -148,7 +148,7 @@
 
                 <!-- Harga Kemasan -->
                 <div class="row">
-                    <label>Harga Kemasan</label>
+                    <label>Harga</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
@@ -170,7 +170,7 @@
 
                 <!-- Harga Komparasi per Kg -->
                 <div class="row">
-                    <label>Harga/Kg</label>
+                    <label>Harga / Kg</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
                             <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>

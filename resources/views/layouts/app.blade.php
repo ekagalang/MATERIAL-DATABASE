@@ -125,7 +125,7 @@
             background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
         }
         
-        /* Column widths */
+        /* Column widths 
         table th:nth-child(1), table td:nth-child(1) { width: 50px; text-align: center; }
         table th:nth-child(2), table td:nth-child(2) { width: 120px; }
         table th:nth-child(3), table td:nth-child(3) { width: 100px; }
@@ -139,6 +139,7 @@
         table th:nth-child(11), table td:nth-child(11) { width: 120px; }
         table th:nth-child(12), table td:nth-child(12) { width: 120px; }
         table th:nth-child(13), table td:nth-child(13) { width: 150px; text-align: center; }
+        */
         
         /* Forms - Minimal & Clean */
         .form-group {

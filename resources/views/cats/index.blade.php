@@ -49,11 +49,11 @@
                         <th>Kemasan</th>
                         <th>Volume</th>
                         <th style="text-align: left;">
-                            Berat </br>Bersih
+                            Berat Bersih
                         </th>
                         <th>Toko</th>
-                        <th style="text-align: left;">Alamat</br>Singkat</th>
-                        <th>Harga Beli</th>
+                        <th style="text-align: left;">Alamat Singkat</th>
+                        <th>Harga</th>
                         <th>Harga / Kg</th>
                         <th>Aksi</th>
                     </tr>
@@ -87,7 +87,7 @@
                         <td style="color: #475569; text-align:left;">{{ $cat->color_name ?? '-' }}</td>
                         <td style="color: #475569; font-size: 13px;">
                             @if($cat->package_unit)
-                                {{ $cat->package_unit }}</br> ({{ $cat->package_weight_gross }} Kg)
+                                {{ $cat->packageUnit->name ?? $cat->package_unit }}</br> ({{ $cat->package_weight_gross }} Kg)
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif

@@ -10,7 +10,7 @@ class SandController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Sand::query();
+        $query = Sand::query()->with('packageUnit');
 
         // Pencarian
         if ($request->has('search') && $request->search != '') {
@@ -107,6 +107,7 @@ class SandController extends Controller
 
     public function show(Sand $sand)
     {
+        $sand->load('packageUnit');
         return view('sands.show', compact('sand'));
     }
 

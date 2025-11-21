@@ -11,7 +11,7 @@ class CatController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Cat::query();
+        $query = Cat::query()->with('packageUnit');
         // Pencarian
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -111,6 +111,7 @@ class CatController extends Controller
 
     public function show(Cat $cat)
     {
+        $cat->load('packageUnit');
         return view('cats.show', compact('cat'));
     }
 
