@@ -9,13 +9,15 @@ use App\Http\Controllers\CementController;
 use App\Http\Controllers\SandController;
 
 Route::get('/', function () {
-    return redirect()->route('cats.index');
+    return redirect()->route('materials.index');
 });
 
 Route::resource('units', UnitController::class);
 Route::resource('cats', CatController::class);
 Route::resource('bricks', BrickController::class);
 Route::resource('materials', MaterialController::class);
+Route::get('/materials-settings', [MaterialController::class, 'settings'])->name('materials.settings');
+Route::post('/materials-settings', [MaterialController::class, 'updateSettings'])->name('materials.settings.update');
 Route::resource('cements', CementController::class);
 Route::resource('sands', SandController::class);
 
