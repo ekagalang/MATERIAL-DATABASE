@@ -13,18 +13,18 @@ class BrickSeeder extends Seeder
             // Bata Merah
             [
                 'material_name' => 'Bata',
-                'type' => 'Bata Merah',
-                'brand' => 'Lokal',
+                'type' => 'Merah',
+                'brand' => 'Kuo Shin',
                 'form' => 'Persegi',
-                'dimension_length' => 22.00,
-                'dimension_width' => 11.00,
-                'dimension_height' => 5.00,
-                'package_volume' => 0.001210, // 22 x 11 x 5 cm = 0.001210 m3
+                'dimension_length' => 18.00,
+                'dimension_width' => 8.00,
+                'dimension_height' => 4.00,
+                'package_volume' => 0.000576, // 22 x 11 x 5 cm = 0.001210 m3
                 'store' => 'Toko Bangunan Jaya',
                 'address' => 'Jl. Raya Bogor KM 15, Cibinong, Bogor',
                 'short_address' => 'Cibinong, Bogor',
-                'price_per_piece' => 850,
-                'comparison_price_per_m3' => 702479.34, // 850 / 0.001210
+                'price_per_piece' => 550,
+                'comparison_price_per_m3' => 954861, // 850 / 0.001210
             ],
             [
                 'material_name' => 'Bata',
@@ -115,6 +115,6 @@ class BrickSeeder extends Seeder
         }
 
         $this->command->info('✅ Bricks seeded successfully!');
-        $this->command->info('📊 Total bricks created: ' . DB::table('bricks')->count());
+        $this->command->info('📊 Total bricks created: '.DB::table('bricks')->count());
     }
 }

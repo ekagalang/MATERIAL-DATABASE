@@ -11,6 +11,8 @@ class BrickInstallationType extends Model
         'name',
         'code',
         'description',
+        'mortar_volume_per_m2',
+        'waste_factor',
         'visible_side_width',
         'visible_side_height',
         'orientation',
@@ -21,6 +23,8 @@ class BrickInstallationType extends Model
 
     protected $casts = [
         'bricks_per_sqm' => 'decimal:2',
+        'mortar_volume_per_m2' => 'decimal:6',
+        'waste_factor' => 'decimal:6',
         'is_active' => 'boolean',
         'display_order' => 'integer',
     ];
@@ -35,17 +39,16 @@ class BrickInstallationType extends Model
 
     /**
      * Hitung jumlah bata per m² berdasarkan dimensi bata tertentu
-     * 
-     * @param float $brickLength Panjang bata (cm)
-     * @param float $brickWidth Lebar bata (cm)
-     * @param float $brickHeight Tinggi bata (cm)
-     * @param float $mortarThickness Tebal adukan (cm)
-     * @return float
+     *
+     * @param  float  $brickLength  Panjang bata (cm)
+     * @param  float  $brickWidth  Lebar bata (cm)
+     * @param  float  $brickHeight  Tinggi bata (cm)
+     * @param  float  $mortarThickness  Tebal adukan (cm)
      */
     public function calculateBricksPerSqm(
-        float $brickLength, 
-        float $brickWidth, 
-        float $brickHeight, 
+        float $brickLength,
+        float $brickWidth,
+        float $brickHeight,
         float $mortarThickness
     ): float {
         // Konversi cm ke meter

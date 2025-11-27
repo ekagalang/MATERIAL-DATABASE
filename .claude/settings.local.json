@@ -8,7 +8,18 @@
       "Bash(nul)",
       "Bash(php -r:*)",
       "Bash(if not exist \"C:\\Users\\ekaga\\OneDrive\\Documents\\Code\\kanggo-database\\resources\\views\\materials\" mkdir \"C:\\Users\\ekaga\\OneDrive\\Documents\\Code\\kanggo-database\\resources\\views\\materials\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(composer show:*)",
+      "Bash(composer require:*)",
+      "Bash(php read_excel_formulas.php:*)",
+      "Bash(php extract_brick_formulas.php:*)",
+      "Bash(php scan_all_formulas.php:*)",
+      "Bash(php scan_adukan_sheet.php:*)",
+      "Bash(php extract_exact_formulas.php:*)",
+      "Bash(php extract_base_formulas.php:*)",
+      "Bash(php test_mortar_calculation.php:*)",
+      "Bash(php check_item_pekerjaan.php:*)",
+      "Bash(php:*)"
     ],
     "deny": [],
     "ask": []

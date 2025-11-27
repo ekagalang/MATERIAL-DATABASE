@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cement;
-use App\Models\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -35,16 +34,16 @@ class CementController extends Controller
         $allowedSorts = [
             'cement_name', 'type', 'brand', 'sub_brand', 'code', 'color',
             'package_unit', 'package_weight_gross', 'package_weight_net',
-            'store', 'short_address', 'package_price', 'comparison_price_per_kg', 'created_at'
+            'store', 'short_address', 'package_price', 'comparison_price_per_kg', 'created_at',
         ];
 
         // Default sorting jika tidak ada atau tidak valid
-        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
+        if (! $sortBy || ! in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
             $sortDirection = 'desc';
         } else {
             // Validasi direction
-            if (!in_array($sortDirection, ['asc', 'desc'])) {
+            if (! in_array($sortDirection, ['asc', 'desc'])) {
                 $sortDirection = 'asc';
             }
         }
@@ -57,6 +56,7 @@ class CementController extends Controller
     public function create()
     {
         $units = Cement::getAvailableUnits();
+
         return view('cements.create', compact('units'));
     }
 
@@ -72,6 +72,9 @@ class CementController extends Controller
             'package_unit' => 'nullable|string|max:20',
             'package_weight_gross' => 'nullable|numeric|min:0',
             'package_weight_net' => 'nullable|numeric|min:0',
+            'dimension_length' => 'nullable|numeric|min:0',
+            'dimension_width' => 'nullable|numeric|min:0',
+            'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'short_address' => 'nullable|string|max:255',
@@ -105,7 +108,7 @@ class CementController extends Controller
                 $data['brand'] ?? '',
                 $data['sub_brand'] ?? '',
                 $data['code'] ?? '',
-                $data['color'] ?? ''
+                $data['color'] ?? '',
             ]);
             $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
         }
@@ -113,12 +116,17 @@ class CementController extends Controller
         // Buat cement
         $cement = Cement::create($data);
 
+        // Kalkulasi volume dari dimensi
+        if ($cement->dimension_length && $cement->dimension_width && $cement->dimension_height) {
+            $cement->calculateVolume();
+        }
+
         // Kalkulasi berat bersih jika belum diisi
-        if ((!$cement->package_weight_net || $cement->package_weight_net <= 0)
+        if ((! $cement->package_weight_net || $cement->package_weight_net <= 0)
             && $cement->package_weight_gross && $cement->package_unit) {
             $cement->calculateNetWeight();
         }
-        
+
         // Kalkulasi harga komparasi per kg
         if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
             $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
@@ -133,12 +141,14 @@ class CementController extends Controller
     public function show(Cement $cement)
     {
         $cement->load('packageUnit');
+
         return view('cements.show', compact('cement'));
     }
 
     public function edit(Cement $cement)
     {
         $units = Cement::getAvailableUnits();
+
         return view('cements.edit', compact('cement', 'units'));
     }
 
@@ -154,6 +164,9 @@ class CementController extends Controller
             'package_unit' => 'nullable|string|max:20',
             'package_weight_gross' => 'nullable|numeric|min:0',
             'package_weight_net' => 'nullable|numeric|min:0',
+            'dimension_length' => 'nullable|numeric|min:0',
+            'dimension_width' => 'nullable|numeric|min:0',
+            'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'short_address' => 'nullable|string|max:255',
@@ -170,7 +183,7 @@ class CementController extends Controller
                 $data['brand'] ?? '',
                 $data['sub_brand'] ?? '',
                 $data['code'] ?? '',
-                $data['color'] ?? ''
+                $data['color'] ?? '',
             ]);
             $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
         }
@@ -200,12 +213,17 @@ class CementController extends Controller
         // Update cement
         $cement->update($data);
 
+        // Kalkulasi volume dari dimensi
+        if ($cement->dimension_length && $cement->dimension_width && $cement->dimension_height) {
+            $cement->calculateVolume();
+        }
+
         // Kalkulasi berat bersih jika belum diisi
-        if ((!$cement->package_weight_net || $cement->package_weight_net <= 0)
+        if ((! $cement->package_weight_net || $cement->package_weight_net <= 0)
             && $cement->package_weight_gross && $cement->package_unit) {
             $cement->calculateNetWeight();
         }
-        
+
         // Kalkulasi harga komparasi per kg
         if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
             $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
@@ -241,7 +259,7 @@ class CementController extends Controller
             'store', 'short_address', 'address', 'price_unit',
         ];
 
-        if (!in_array($field, $allowedFields)) {
+        if (! in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 

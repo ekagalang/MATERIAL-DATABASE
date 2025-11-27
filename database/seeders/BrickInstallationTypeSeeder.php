@@ -18,6 +18,8 @@ class BrickInstallationTypeSeeder extends Seeder
                 'visible_side_height' => 'height',
                 'orientation' => 'horizontal_lying',
                 'bricks_per_sqm' => null, // Akan dihitung dinamis
+                'mortar_volume_per_m2' => 0.032, // Dari Excel (Q8) - untuk bata KUO SHIN
+                'waste_factor' => 1.727273, // Faktor waste: shrinkage, spillage, waste, lapisan dasar
                 'is_active' => true,
                 'display_order' => 1,
                 'created_at' => now(),
@@ -31,6 +33,8 @@ class BrickInstallationTypeSeeder extends Seeder
                 'visible_side_height' => 'height',
                 'orientation' => 'horizontal_lying',
                 'bricks_per_sqm' => null,
+                'mortar_volume_per_m2' => null, // Belum ada data dari Excel untuk tipe ini
+                'waste_factor' => 1.727273, // Gunakan waste factor yang sama untuk konsistensi
                 'is_active' => true,
                 'display_order' => 2,
                 'created_at' => now(),
@@ -44,6 +48,8 @@ class BrickInstallationTypeSeeder extends Seeder
                 'visible_side_height' => 'width',
                 'orientation' => 'horizontal_standing',
                 'bricks_per_sqm' => null,
+                'mortar_volume_per_m2' => null, // Belum ada data dari Excel untuk tipe ini
+                'waste_factor' => 1.727273, // Gunakan waste factor yang sama untuk konsistensi
                 'is_active' => true,
                 'display_order' => 3,
                 'created_at' => now(),
@@ -57,6 +63,8 @@ class BrickInstallationTypeSeeder extends Seeder
                 'visible_side_height' => 'width',
                 'orientation' => 'horizontal_standing',
                 'bricks_per_sqm' => null,
+                'mortar_volume_per_m2' => null, // Belum ada data dari Excel untuk tipe ini
+                'waste_factor' => 1.727273, // Gunakan waste factor yang sama untuk konsistensi
                 'is_active' => true,
                 'display_order' => 4,
                 'created_at' => now(),

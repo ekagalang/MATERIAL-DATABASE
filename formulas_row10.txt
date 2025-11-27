@@ -1,0 +1,12 @@
+PHP Warning:  PHP Startup: Unable to load dynamic library 'dom' (tried: ext\dom (The specified module could not be found), ext\php_dom.dll (The specified module could not be found)) in Unknown on line 0
+PHP Warning:  PHP Startup: Unable to load dynamic library 'xml' (tried: ext\xml (The specified module could not be found), ext\php_xml.dll (The specified module could not be found)) in Unknown on line 0
+PHP Warning:  PHP Startup: Unable to load dynamic library 'xmlwriter' (tried: ext\xmlwriter (The specified module could not be found), ext\php_xmlwriter.dll (The specified module could not be found)) in Unknown on line 0
+📊 Scanning ALL Formulas: C:\Users\PC2\Videos\IT\Code\LMSCOK\ABC\Cok\MATERIAL-DATABASE/rumus.xlsx
+
+═══════════════════════════════════════════════════════════════
+📄 SCANNING ROW 10 (1/2 Bata) - ALL COLUMNS
+═══════════════════════════════════════════════════════════════
+
+
+
+✅ Selesai!

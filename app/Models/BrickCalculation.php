@@ -102,9 +102,6 @@ class BrickCalculation extends Model
 
     /**
      * Perform complete calculation
-     * 
-     * @param array $params
-     * @return self
      */
     /**
      * Perform complete calculation
@@ -138,17 +135,17 @@ class BrickCalculation extends Model
             $customFormula->cement_ratio = $customCementRatio;
             $customFormula->sand_ratio = $customSandRatio;
             $customFormula->water_ratio = $customWaterRatio ?? $mortarFormula->water_ratio;
-            
+
             // Recalculate material requirements based on custom ratio
             $customFormula->cement_kg_per_m3 = self::calculateCementKgPerM3(
-                $customCementRatio, 
+                $customCementRatio,
                 $customSandRatio
             );
             $customFormula->sand_m3_per_m3 = self::calculateSandM3PerM3(
                 $customCementRatio,
                 $customSandRatio
             );
-            
+
             $mortarFormula = $customFormula;
         }
 
@@ -157,8 +154,8 @@ class BrickCalculation extends Model
 
         // Ambil dimensi bata
         $brick = $brickId ? Brick::find($brickId) : Brick::first();
-        
-        if (!$brick) {
+
+        if (! $brick) {
             throw new \Exception('Tidak ada data bata di database. Silakan tambahkan data bata terlebih dahulu.');
         }
 
@@ -177,7 +174,10 @@ class BrickCalculation extends Model
         // Hitung total bata
         $brickQuantity = $wallArea * $bricksPerSqm;
 
-        // Hitung volume adukan per bata
+        // Hitung volume adukan - menggunakan rumus matematis + waste factor
+        // Rumus: (panjang × lebar × tebal) + (tinggi × lebar × tebal) × waste_factor
+
+        // Hitung volume adukan per bata menggunakan rumus matematis
         $mortarVolumePerBrick = self::calculateMortarVolumePerBrick(
             $brickLength,
             $brickWidth,
@@ -186,29 +186,49 @@ class BrickCalculation extends Model
             $installationType->code
         );
 
-        // Hitung total volume adukan
-        $mortarVolume = $mortarVolumePerBrick * $brickQuantity;
+        // Hitung total volume tanpa waste factor dulu
+        $mortarVolumeRaw = $mortarVolumePerBrick * $brickQuantity;
 
-        // Hitung material dari formula (pass custom ratio jika ada)
+        // Aplikasikan waste factor untuk mendapatkan volume final
+        // Waste factor mencakup: shrinkage, spillage, waste, dan lapisan dasar
+        $wasteFactor = $installationType->waste_factor ?? 1.0;
+        $mortarVolume = $mortarVolumeRaw * $wasteFactor;
+
+        // Update mortar volume per brick dengan waste factor
+        $mortarVolumePerBrick = $brickQuantity > 0 ? ($mortarVolume / $brickQuantity) : 0;
+
+        // Load cement dan sand objects untuk perhitungan
+        $cement = $cementId ? Cement::find($cementId) : Cement::first();
+        $sand = $sandId ? Sand::find($sandId) : Sand::first();
+
+        // Hitung material dari formula (pass custom ratio + cement/sand objects)
         if ($useCustomRatio && $customCementRatio && $customSandRatio) {
             $materials = $mortarFormula->calculateMaterials(
                 $mortarVolume,
                 $customCementRatio,
-                $customSandRatio
+                $customSandRatio,
+                $cement,
+                $sand
             );
         } else {
-            $materials = $mortarFormula->calculateMaterials($mortarVolume);
+            $materials = $mortarFormula->calculateMaterials(
+                $mortarVolume,
+                null,
+                null,
+                $cement,
+                $sand
+            );
         }
 
         // Hitung biaya
         $brickPrice = $brick->price_per_piece ?? 0;
         $brickTotalCost = $brickQuantity * $brickPrice;
 
-        $cement = $cementId ? Cement::find($cementId) : null;
+        // Hitung biaya cement (sudah di-load di atas)
         $cementPricePerSak = $cement ? $cement->package_price : 0;
         $cementTotalCost = $materials['cement_sak_50kg'] * $cementPricePerSak;
 
-        $sand = $sandId ? Sand::find($sandId) : null;
+        // Hitung biaya sand (sudah di-load di atas)
         // Gunakan comparison_price_per_m3 jika ada, kalau tidak hitung dari package_price dan volume
         $sandPricePerM3 = 0;
         if ($sand) {
@@ -223,7 +243,7 @@ class BrickCalculation extends Model
         $totalCost = $brickTotalCost + $cementTotalCost + $sandTotalCost;
 
         // Create calculation record
-        $calculation = new self();
+        $calculation = new self;
         $calculation->fill([
             'project_name' => $params['project_name'] ?? null,
             'notes' => $params['notes'] ?? null,
@@ -233,13 +253,13 @@ class BrickCalculation extends Model
             'installation_type_id' => $installationTypeId,
             'mortar_thickness' => $mortarThickness,
             'mortar_formula_id' => $mortarFormulaId,
-            
+
             // Custom ratio fields
             'use_custom_ratio' => $useCustomRatio,
             'custom_cement_ratio' => $useCustomRatio ? $customCementRatio : null,
             'custom_sand_ratio' => $useCustomRatio ? $customSandRatio : null,
             'custom_water_ratio' => $useCustomRatio ? $customWaterRatio : null,
-            
+
             'brick_quantity' => $brickQuantity,
             'brick_id' => $brickId,
             'brick_price_per_piece' => $brickPrice,
@@ -269,8 +289,8 @@ class BrickCalculation extends Model
                 'bricks_per_sqm' => $bricksPerSqm,
                 'mortar_formula_name' => $mortarFormula->name,
                 'installation_type_name' => $installationType->name,
-                'ratio_used' => $useCustomRatio ? 
-                    "{$customCementRatio}:{$customSandRatio}" : 
+                'ratio_used' => $useCustomRatio ?
+                    "{$customCementRatio}:{$customSandRatio}" :
                     "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
             ],
         ]);
@@ -285,16 +305,16 @@ class BrickCalculation extends Model
     {
         // Formula sederhana: untuk setiap m³ adukan
         // Semakin banyak semen (ratio tinggi), semakin banyak kg semen yang dibutuhkan
-        
-        // Rumus dasar: 
+
+        // Rumus dasar:
         // Untuk 1:4 = sekitar 325 kg/m³
         // Untuk 1:5 = sekitar 275 kg/m³
         // Untuk 1:6 = sekitar 235 kg/m³
-        
+
         // Formula interpolasi
         $totalRatio = $cementRatio + $sandRatio;
         $cementPercentage = $cementRatio / $totalRatio;
-        
+
         // Base calculation (bisa disesuaikan dengan data empiris)
         return round(1300 * $cementPercentage, 2);
     }
@@ -307,18 +327,18 @@ class BrickCalculation extends Model
         // Formula sederhana berdasarkan perbandingan volume
         $totalRatio = $cementRatio + $sandRatio;
         $sandPercentage = $sandRatio / $totalRatio;
-        
+
         return round($sandPercentage * 0.9, 4); // Sekitar 90% dari persentase (karena ada void space)
     }
 
     /**
      * Calculate mortar volume per brick
-     * 
-     * @param float $length Panjang bata (cm)
-     * @param float $width Lebar bata (cm)
-     * @param float $height Tinggi bata (cm)
-     * @param float $mortarThickness Tebal adukan (cm)
-     * @param string $installationCode Kode jenis pemasangan
+     *
+     * @param  float  $length  Panjang bata (cm)
+     * @param  float  $width  Lebar bata (cm)
+     * @param  float  $height  Tinggi bata (cm)
+     * @param  float  $mortarThickness  Tebal adukan (cm)
+     * @param  string  $installationCode  Kode jenis pemasangan
      * @return float Volume dalam m³
      */
     private static function calculateMortarVolumePerBrick(
@@ -336,7 +356,7 @@ class BrickCalculation extends Model
 
         // Adukan diterapkan di bagian ATAS dan KANAN bata
         // Tergantung jenis pemasangan
-        
+
         switch ($installationCode) {
             case 'half': // 1/2 Bata
                 // Terlihat: panjang × tinggi
@@ -384,38 +404,38 @@ class BrickCalculation extends Model
     {
         return [
             'wall_info' => [
-                'length' => $this->wall_length . ' m',
-                'height' => $this->wall_height . ' m',
-                'area' => $this->wall_area . ' m²',
+                'length' => $this->wall_length.' m',
+                'height' => $this->wall_height.' m',
+                'area' => $this->wall_area.' m²',
             ],
             'brick_info' => [
-                'quantity' => number_format($this->brick_quantity, 2) . ' buah',
+                'quantity' => number_format($this->brick_quantity, 2).' buah',
                 'type' => $this->installationType->name ?? '-',
-                'cost' => 'Rp ' . number_format($this->brick_total_cost, 0, ',', '.'),
+                'cost' => 'Rp '.number_format($this->brick_total_cost, 0, ',', '.'),
             ],
             'mortar_info' => [
-                'volume' => number_format($this->mortar_volume, 6) . ' m³',
+                'volume' => number_format($this->mortar_volume, 6).' m³',
                 'formula' => $this->mortarFormula->name ?? '-',
-                'thickness' => $this->mortar_thickness . ' cm',
+                'thickness' => $this->mortar_thickness.' cm',
             ],
             'materials' => [
                 'cement' => [
-                    '40kg' => number_format($this->cement_quantity_40kg, 2) . ' sak',
-                    '50kg' => number_format($this->cement_quantity_50kg, 2) . ' sak',
-                    'kg' => number_format($this->cement_kg, 2) . ' kg',
-                    'cost' => 'Rp ' . number_format($this->cement_total_cost, 0, ',', '.'),
+                    '40kg' => number_format($this->cement_quantity_40kg, 2).' sak',
+                    '50kg' => number_format($this->cement_quantity_50kg, 2).' sak',
+                    'kg' => number_format($this->cement_kg, 2).' kg',
+                    'cost' => 'Rp '.number_format($this->cement_total_cost, 0, ',', '.'),
                 ],
                 'sand' => [
-                    'sak' => number_format($this->sand_sak, 2) . ' karung',
-                    'kg' => number_format($this->sand_kg, 2) . ' kg',
-                    'm3' => number_format($this->sand_m3, 6) . ' m³',
-                    'cost' => 'Rp ' . number_format($this->sand_total_cost, 0, ',', '.'),
+                    'sak' => number_format($this->sand_sak, 2).' karung',
+                    'kg' => number_format($this->sand_kg, 2).' kg',
+                    'm3' => number_format($this->sand_m3, 6).' m³',
+                    'cost' => 'Rp '.number_format($this->sand_total_cost, 0, ',', '.'),
                 ],
                 'water' => [
-                    'liters' => number_format($this->water_liters, 2) . ' liter',
+                    'liters' => number_format($this->water_liters, 2).' liter',
                 ],
             ],
-            'total_cost' => 'Rp ' . number_format($this->total_material_cost, 0, ',', '.'),
+            'total_cost' => 'Rp '.number_format($this->total_material_cost, 0, ',', '.'),
         ];
     }
 }

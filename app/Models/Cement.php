@@ -2,12 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Helpers\MaterialTypeDetector;
 
 class Cement extends Model
 {
@@ -26,6 +25,10 @@ class Cement extends Model
         'package_unit',
         'package_weight_gross',
         'package_weight_net',
+        'dimension_length',
+        'dimension_width',
+        'dimension_height',
+        'package_volume',
         'store',
         'address',
         'short_address',
@@ -37,6 +40,10 @@ class Cement extends Model
     protected $casts = [
         'package_weight_gross' => 'float',
         'package_weight_net' => 'float',
+        'dimension_length' => 'float',
+        'dimension_width' => 'float',
+        'dimension_height' => 'float',
+        'package_volume' => 'float',
         'package_price' => 'float',
         'comparison_price_per_kg' => 'float',
     ];
@@ -79,14 +86,31 @@ class Cement extends Model
             $unit = Unit::where('code', $this->package_unit)
                 ->where('material_type', self::getMaterialType())
                 ->first();
-            
+
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
+
                 return $this->package_weight_net;
             }
         }
 
         return $this->package_weight_gross;
+    }
+
+    /**
+     * Kalkulasi volume dari dimensi (p x l x t) dalam m³
+     */
+    public function calculateVolume(): float
+    {
+        if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
+            // Dimensi langsung dalam m³
+            $volumeM3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
+            $this->package_volume = $volumeM3;
+
+            return $volumeM3;
+        }
+
+        return 0;
     }
 
     /**
@@ -96,6 +120,7 @@ class Cement extends Model
     {
         if ($this->package_weight_net && $this->package_weight_net > 0 && $this->package_price) {
             $this->comparison_price_per_kg = $this->package_price / $this->package_weight_net;
+
             return $this->comparison_price_per_kg;
         }
 
@@ -107,7 +132,7 @@ class Cement extends Model
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (!$this->photo) {
+        if (! $this->photo) {
             return null;
         }
 
