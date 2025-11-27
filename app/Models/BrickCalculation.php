@@ -145,6 +145,10 @@ class BrickCalculation extends Model
                 $customCementRatio,
                 $customSandRatio
             );
+            $customFormula->water_liter_per_m3 = self::calculateWaterLiterPerM3(
+                $customCementRatio,
+                $customSandRatio
+            );
 
             $mortarFormula = $customFormula;
         }
@@ -299,36 +303,99 @@ class BrickCalculation extends Model
     }
 
     /**
-     * Calculate cement kg per m3 based on ratio
+     * Calculate cement kg per m3 based on ratio using piecewise linear interpolation
+     * Data points dari Excel untuk akurasi maksimal
      */
     private static function calculateCementKgPerM3(float $cementRatio, float $sandRatio): float
     {
-        // Formula sederhana: untuk setiap m³ adukan
-        // Semakin banyak semen (ratio tinggi), semakin banyak kg semen yang dibutuhkan
+        // Data points dari Excel/Seeder (rasio pasir → kg semen per m³)
+        $dataPoints = [
+            3 => 325.0,
+            4 => 321.96875,
+            5 => 275.0,
+            6 => 235.0,
+        ];
 
-        // Rumus dasar:
-        // Untuk 1:4 = sekitar 325 kg/m³
-        // Untuk 1:5 = sekitar 275 kg/m³
-        // Untuk 1:6 = sekitar 235 kg/m³
-
-        // Formula interpolasi
-        $totalRatio = $cementRatio + $sandRatio;
-        $cementPercentage = $cementRatio / $totalRatio;
-
-        // Base calculation (bisa disesuaikan dengan data empiris)
-        return round(1300 * $cementPercentage, 2);
+        return self::interpolate($sandRatio, $dataPoints);
     }
 
     /**
-     * Calculate sand m3 per m3 based on ratio
+     * Calculate sand m3 per m3 based on ratio using piecewise linear interpolation
+     * Data points dari Excel untuk akurasi maksimal
      */
     private static function calculateSandM3PerM3(float $cementRatio, float $sandRatio): float
     {
-        // Formula sederhana berdasarkan perbandingan volume
-        $totalRatio = $cementRatio + $sandRatio;
-        $sandPercentage = $sandRatio / $totalRatio;
+        // Data points dari Excel/Seeder (rasio pasir → m³ pasir per m³ adukan)
+        $dataPoints = [
+            3 => 0.87,
+            4 => 0.86875,
+            5 => 0.89,
+            6 => 0.91,
+        ];
 
-        return round($sandPercentage * 0.9, 4); // Sekitar 90% dari persentase (karena ada void space)
+        return self::interpolate($sandRatio, $dataPoints);
+    }
+
+    /**
+     * Calculate water liters per m3 based on ratio using piecewise linear interpolation
+     * Data points dari Excel untuk akurasi maksimal
+     */
+    private static function calculateWaterLiterPerM3(float $cementRatio, float $sandRatio): float
+    {
+        // Data points dari Excel/Seeder (rasio pasir → liter air per m³ adukan)
+        $dataPoints = [
+            3 => 400.0,
+            4 => 347.725,
+            5 => 400.0,
+            6 => 400.0,
+        ];
+
+        return self::interpolate($sandRatio, $dataPoints);
+    }
+
+    /**
+     * Piecewise linear interpolation/extrapolation helper
+     *
+     * @param float $x Target value untuk interpolasi
+     * @param array $dataPoints Array dengan format [x => y]
+     * @return float Interpolated/extrapolated value
+     */
+    private static function interpolate(float $x, array $dataPoints): float
+    {
+        // Sort by key
+        ksort($dataPoints);
+
+        $xPoints = array_keys($dataPoints);
+        $yPoints = array_values($dataPoints);
+        $n = count($xPoints);
+
+        // Find bracketing points for interpolation
+        for ($i = 0; $i < $n - 1; $i++) {
+            if ($x >= $xPoints[$i] && $x <= $xPoints[$i + 1]) {
+                // Linear interpolation between two points
+                $x0 = $xPoints[$i];
+                $x1 = $xPoints[$i + 1];
+                $y0 = $yPoints[$i];
+                $y1 = $yPoints[$i + 1];
+
+                $result = $y0 + ($y1 - $y0) * ($x - $x0) / ($x1 - $x0);
+                return round($result, 6);
+            }
+        }
+
+        // Extrapolation for values outside range
+        if ($x < $xPoints[0]) {
+            // Extrapolate below minimum
+            $slope = ($yPoints[1] - $yPoints[0]) / ($xPoints[1] - $xPoints[0]);
+            $result = $yPoints[0] + $slope * ($x - $xPoints[0]);
+            return round($result, 6);
+        } else {
+            // Extrapolate above maximum
+            $i = $n - 2;
+            $slope = ($yPoints[$i + 1] - $yPoints[$i]) / ($xPoints[$i + 1] - $xPoints[$i]);
+            $result = $yPoints[$i + 1] + $slope * ($x - $xPoints[$i + 1]);
+            return round($result, 6);
+        }
     }
 
     /**
@@ -348,53 +415,9 @@ class BrickCalculation extends Model
         float $mortarThickness,
         string $installationCode
     ): float {
-        // Konversi cm ke meter
-        $l = $length / 100;
-        $w = $width / 100;
-        $h = $height / 100;
-        $t = $mortarThickness / 100;
-
-        // Adukan diterapkan di bagian ATAS dan KANAN bata
-        // Tergantung jenis pemasangan
-
-        switch ($installationCode) {
-            case 'half': // 1/2 Bata
-                // Terlihat: panjang × tinggi
-                // Adukan atas: panjang × lebar × tebal
-                // Adukan kanan: tinggi × lebar × tebal
-                $volumeTop = $l * $w * $t;
-                $volumeRight = $h * $w * $t;
-                break;
-
-            case 'one': // 1 Bata
-                // Terlihat: lebar × tinggi
-                // Adukan atas: lebar × panjang × tebal
-                // Adukan kanan: tinggi × panjang × tebal
-                $volumeTop = $w * $l * $t;
-                $volumeRight = $h * $l * $t;
-                break;
-
-            case 'quarter': // 1/4 Bata
-                // Terlihat: panjang × lebar
-                // Adukan atas: panjang × tinggi × tebal
-                // Adukan kanan: lebar × tinggi × tebal
-                $volumeTop = $l * $h * $t;
-                $volumeRight = $w * $h * $t;
-                break;
-
-            case 'rollag': // Rollag
-                // Terlihat: tinggi × lebar
-                // Adukan atas: tinggi × panjang × tebal
-                // Adukan kanan: lebar × panjang × tebal
-                $volumeTop = $h * $l * $t;
-                $volumeRight = $w * $l * $t;
-                break;
-
-            default:
-                return 0;
-        }
-
-        return $volumeTop + $volumeRight;
+        // Formula: (panjang + tinggi + tebal adukan) × lebar × tebal adukan / 1000000
+        // Semua dimensi dalam cm, hasil dalam m³
+        return (($length + $height + $mortarThickness) * $width * $mortarThickness) / 1000000;
     }
 
     /**

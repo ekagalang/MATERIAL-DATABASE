@@ -59,5 +59,13 @@ Route::get('/brick-calculator/dashboard', [BrickCalculationController::class, 'd
 Route::prefix('api/brick-calculator')->name('api.brick-calculator.')->group(function () {
     Route::post('/calculate', [BrickCalculationController::class, 'calculate'])->name('calculate');
     Route::post('/compare', [BrickCalculationController::class, 'compare'])->name('compare');
+    Route::post('/compare-modes', [BrickCalculationController::class, 'compareThreeModes'])->name('compare-modes');
+    Route::post('/trace', [BrickCalculationController::class, 'traceCalculation'])->name('trace');
     Route::get('/brick-dimensions/{brickId}', [BrickCalculationController::class, 'getBrickDimensions'])->name('brick-dimensions');
 });
+
+// Comparison View
+Route::get('/brick-calculator/comparison', [BrickCalculationController::class, 'comparisonView'])->name('brick-calculator.comparison');
+
+// Trace View - step by step
+Route::get('/brick-calculator/trace', [BrickCalculationController::class, 'traceView'])->name('brick-calculator.trace');

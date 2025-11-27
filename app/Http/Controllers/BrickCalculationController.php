@@ -8,6 +8,8 @@ use App\Models\MortarFormula;
 use App\Models\Brick;
 use App\Models\Cement;
 use App\Models\Sand;
+use App\Services\BrickCalculationModes;
+use App\Services\BrickCalculationTracer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -383,7 +385,7 @@ class BrickCalculationController extends Controller
     {
         $totalCalculations = BrickCalculation::count();
         $totalCost = BrickCalculation::sum('total_material_cost');
-        
+
         $recentCalculations = BrickCalculation::with(['installationType', 'mortarFormula'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
@@ -404,5 +406,121 @@ class BrickCalculationController extends Controller
             'recentCalculations',
             'calculationsByType'
         ));
+    }
+
+    /**
+     * API: Compare 3 calculation modes
+     * Mode 1: Professional (Volume Mortar)
+     * Mode 2: Field (Package Engineering from rumus 2.xlsx)
+     * Mode 3: Simple (Package Basic - Corrected)
+     */
+    public function compareThreeModes(Request $request)
+    {
+        $request->validate([
+            'wall_length' => 'required|numeric|min:0.01',
+            'wall_height' => 'required|numeric|min:0.01',
+            'installation_type_id' => 'required|exists:brick_installation_types,id',
+            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
+            'brick_id' => 'nullable|exists:bricks,id',
+            'custom_cement_ratio' => 'nullable|numeric|min:1',
+            'custom_sand_ratio' => 'nullable|numeric|min:1',
+        ]);
+
+        try {
+            $comparison = BrickCalculationModes::calculateAllModes($request->all());
+
+            return response()->json([
+                'success' => true,
+                'data' => $comparison,
+                'explanation' => [
+                    'mode_1' => 'Professional: Berbasis volume mortar dengan data empiris verified (sistem saat ini)',
+                    'mode_2' => 'Field: Berbasis kemasan dengan engineering factors dari rumus 2.xlsx (shrinkage 15%, water 30%)',
+                    'mode_3' => 'Simple: Berbasis kemasan sederhana dengan volume sak terkoreksi',
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    /**
+     * View: Comparison page for 3 modes
+     */
+    public function comparisonView()
+    {
+        $installationTypes = BrickInstallationType::getActive();
+        $mortarFormulas = MortarFormula::getActive();
+        $bricks = Brick::orderBy('brand')->get();
+
+        return view('brick_calculations.comparison', compact(
+            'installationTypes',
+            'mortarFormulas',
+            'bricks'
+        ));
+    }
+
+    /**
+     * View: Trace page - step by step calculation
+     */
+    public function traceView()
+    {
+        $installationTypes = BrickInstallationType::getActive();
+        $mortarFormulas = MortarFormula::getActive();
+        $bricks = Brick::orderBy('brand')->get();
+        $cements = Cement::orderBy('cement_name')->get();
+        $sands = Sand::orderBy('sand_name')->get();
+
+        return view('brick_calculations.trace', compact(
+            'installationTypes',
+            'mortarFormulas',
+            'bricks',
+            'cements',
+            'sands'
+        ));
+    }
+
+    /**
+     * API: Trace calculation - return step by step
+     */
+    public function traceCalculation(Request $request)
+    {
+        $request->validate([
+            'wall_length' => 'required|numeric|min:0.01',
+            'wall_height' => 'required|numeric|min:0.01',
+            'installation_type_id' => 'required|exists:brick_installation_types,id',
+            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
+            'brick_id' => 'nullable|exists:bricks,id',
+            'cement_id' => 'nullable|exists:cements,id',
+            'sand_id' => 'nullable|exists:sands,id',
+            'custom_cement_ratio' => 'nullable|numeric|min:1',
+            'custom_sand_ratio' => 'nullable|numeric|min:1',
+        ]);
+
+        try {
+            $trace1 = BrickCalculationTracer::traceProfessionalMode($request->all());
+            $trace2 = BrickCalculationTracer::traceFieldMode($request->all());
+            $trace3 = BrickCalculationTracer::traceSimpleMode($request->all());
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'mode_1_professional' => $trace1,
+                    'mode_2_field' => $trace2,
+                    'mode_3_simple' => $trace3,
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 }
