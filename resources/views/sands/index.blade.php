@@ -74,7 +74,7 @@
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sandSortColumns[$col]['label'] }}</span>
                                     @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
                                         <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                     @endif
@@ -90,7 +90,7 @@
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sandSortColumns[$col]['label'] }}</span>
                                     @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
                                         <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                     @endif

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Database Material')</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -591,6 +595,9 @@
 <body>
     <div class="container">
         <div class="nav">
+            <a href="{{ route('brick-calculator.dashboard') }}" class="{{ request()->routeIs('brick-calculator.dashboard') || request()->routeIs('brick-calculations.*') ? 'active' : '' }}">
+                <i class="bi bi-calculator"></i> Kalkulator Bata
+            </a>
             <a href="{{ route('materials.index') }}" class="{{ request()->routeIs('materials.*') ? 'active' : '' }}">
                 <i class="bi bi-box"></i> Database Material
             </a>
@@ -625,5 +632,11 @@
 
         @yield('content')
     </div>
+
+    <!-- Custom styles per halaman -->
+    @stack('styles')
+
+    <!-- Custom scripts per halaman -->
+    @stack('scripts')
 </body>
 </html>

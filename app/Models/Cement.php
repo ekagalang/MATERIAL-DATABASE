@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -126,5 +127,13 @@ class Cement extends Model
         }
 
         return asset('storage/'.ltrim($path, '/'));
+    }
+
+    /**
+     * Relationship: Cement bisa dipakai di banyak calculations
+     */
+    public function calculations(): HasMany
+    {
+        return $this->hasMany(BrickCalculation::class);
     }
 }

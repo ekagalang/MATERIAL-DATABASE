@@ -82,7 +82,7 @@
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sortableColumns[$column] }}</span>
                                     @if(request('sort_by') == $column)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
                                         <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                     @endif
@@ -98,7 +98,7 @@
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sortableColumns[$column] }}</span>
                                     @if(request('sort_by') == $column)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
                                         <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                     @endif
@@ -111,7 +111,7 @@
                                style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                 <span>Dimensi (cm)</span>
                                 @if(in_array(request('sort_by'), ['dimension_length', 'dimension_width', 'dimension_height']))
-                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                 @else
                                     <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                 @endif
@@ -124,7 +124,7 @@
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sortableColumns[$column] }}</span>
                                     @if(request('sort_by') == $column)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
                                         <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                     @endif
