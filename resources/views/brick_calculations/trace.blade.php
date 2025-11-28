@@ -109,37 +109,7 @@
 
     <!-- Results Container -->
     <div id="resultsContainer" style="display: none;">
-        <!-- Mode Tabs -->
-        <ul class="nav nav-tabs mb-3" id="modeTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="mode1-tab" data-bs-toggle="tab" data-bs-target="#mode1" type="button">
-                    Mode 1: Professional
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="mode2-tab" data-bs-toggle="tab" data-bs-target="#mode2" type="button">
-                    Mode 2: Field
-                </button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="mode3-tab" data-bs-toggle="tab" data-bs-target="#mode3" type="button">
-                    Mode 3: Simple
-                </button>
-            </li>
-        </ul>
-
-        <!-- Tab Content -->
-        <div class="tab-content" id="modeTabContent">
-            <div class="tab-pane fade show active" id="mode1" role="tabpanel">
-                <div id="mode1Content"></div>
-            </div>
-            <div class="tab-pane fade" id="mode2" role="tabpanel">
-                <div id="mode2Content"></div>
-            </div>
-            <div class="tab-pane fade" id="mode3" role="tabpanel">
-                <div id="mode3Content"></div>
-            </div>
-        </div>
+        <div id="traceContent"></div>
     </div>
 </div>
 
@@ -152,9 +122,7 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
 
     // Show loading
     document.getElementById('resultsContainer').style.display = 'block';
-    document.getElementById('mode1Content').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
-    document.getElementById('mode2Content').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
-    document.getElementById('mode3Content').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
+    document.getElementById('traceContent').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
 
     try {
         const response = await fetch('/api/brick-calculator/trace', {
@@ -169,9 +137,7 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
         const data = await response.json();
 
         if (data.success) {
-            renderTrace(data.data.mode_1_professional, 'mode1Content');
-            renderTrace(data.data.mode_2_field, 'mode2Content');
-            renderTrace(data.data.mode_3_simple, 'mode3Content');
+            renderTrace(data.data, 'traceContent');
         } else {
             alert('Error: ' + data.message);
         }
@@ -251,16 +217,20 @@ function renderTrace(trace, containerId) {
                             <td class="text-end"><strong>${formatNumber(trace.final_result.cement_kg)} kg</strong></td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">Semen (sak)</td>
+                            <td class="fw-bold">Semen (satuan kemasan)</td>
                             <td class="text-end"><strong>${formatNumber(trace.final_result.cement_sak)} sak</strong></td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold">Semen (m³)</td>
+                            <td class="text-end"><strong>${formatNumber(trace.final_result.cement_m3)} m³</strong></td>
                         </tr>
                         <tr>
                             <td class="fw-bold">Pasir (m³)</td>
                             <td class="text-end"><strong>${formatNumber(trace.final_result.sand_m3)} m³</strong></td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">Pasir (kg)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.sand_kg)} kg</strong></td>
+                            <td class="fw-bold">Pasir (satuan kemasan)</td>
+                            <td class="text-end"><strong>${formatNumber(trace.final_result.sand_sak)} sak</strong></td>
                         </tr>
                         <tr>
                             <td class="fw-bold">Air (liter)</td>

@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brick;
 use App\Models\BrickCalculation;
 use App\Models\BrickInstallationType;
-use App\Models\MortarFormula;
-use App\Models\Brick;
 use App\Models\Cement;
+use App\Models\MortarFormula;
 use App\Models\Sand;
 use App\Services\BrickCalculationModes;
 use App\Services\BrickCalculationTracer;
@@ -25,7 +25,7 @@ class BrickCalculationController extends Controller
             'mortarFormula',
             'brick',
             'cement',
-            'sand'
+            'sand',
         ]);
 
         // Search
@@ -33,7 +33,7 @@ class BrickCalculationController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('project_name', 'like', "%{$search}%")
-                  ->orWhere('notes', 'like', "%{$search}%");
+                    ->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
@@ -125,7 +125,7 @@ class BrickCalculationController extends Controller
 
             // Perform calculation
             $calculation = BrickCalculation::performCalculation($request->all());
-            
+
             // Save to database
             $calculation->save();
 
@@ -137,11 +137,11 @@ class BrickCalculationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage());
         }
     }
 
@@ -155,7 +155,7 @@ class BrickCalculationController extends Controller
             'mortarFormula',
             'brick',
             'cement',
-            'sand'
+            'sand',
         ]);
 
         $summary = $brickCalculation->getSummary();
@@ -207,7 +207,7 @@ class BrickCalculationController extends Controller
 
             // Perform new calculation with updated params
             $newCalculation = BrickCalculation::performCalculation($request->all());
-            
+
             // Update existing record
             $brickCalculation->fill($newCalculation->toArray());
             $brickCalculation->save();
@@ -220,11 +220,11 @@ class BrickCalculationController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage());
         }
     }
 
@@ -243,7 +243,7 @@ class BrickCalculationController extends Controller
         } catch (\Exception $e) {
             return redirect()
                 ->back()
-                ->with('error', 'Gagal menghapus perhitungan: ' . $e->getMessage());
+                ->with('error', 'Gagal menghapus perhitungan: '.$e->getMessage());
         }
     }
 
@@ -266,14 +266,14 @@ class BrickCalculationController extends Controller
         try {
             // Perform calculation without saving
             $calculation = BrickCalculation::performCalculation($request->all());
-            
+
             // Load relationships for response
             $calculation->load([
                 'installationType',
                 'mortarFormula',
                 'brick',
                 'cement',
-                'sand'
+                'sand',
             ]);
 
             $summary = $calculation->getSummary();
@@ -392,10 +392,10 @@ class BrickCalculationController extends Controller
             ->get();
 
         $calculationsByType = BrickCalculation::select(
-                'installation_type_id',
-                DB::raw('count(*) as count'),
-                DB::raw('sum(total_material_cost) as total_cost')
-            )
+            'installation_type_id',
+            DB::raw('count(*) as count'),
+            DB::raw('sum(total_material_cost) as total_cost')
+        )
             ->groupBy('installation_type_id')
             ->with('installationType')
             ->get();
@@ -486,6 +486,7 @@ class BrickCalculationController extends Controller
 
     /**
      * API: Trace calculation - return step by step
+     * Mode 1 Professional only (most accurate and complete)
      */
     public function traceCalculation(Request $request)
     {
@@ -503,17 +504,11 @@ class BrickCalculationController extends Controller
         ]);
 
         try {
-            $trace1 = BrickCalculationTracer::traceProfessionalMode($request->all());
-            $trace2 = BrickCalculationTracer::traceFieldMode($request->all());
-            $trace3 = BrickCalculationTracer::traceSimpleMode($request->all());
+            $trace = BrickCalculationTracer::traceProfessionalMode($request->all());
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'mode_1_professional' => $trace1,
-                    'mode_2_field' => $trace2,
-                    'mode_3_simple' => $trace3,
-                ],
+                'data' => $trace,
             ]);
 
         } catch (\Exception $e) {
