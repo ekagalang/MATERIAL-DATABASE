@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Formula;
 
 use App\Models\Brick;
 use App\Models\BrickInstallationType;
@@ -9,21 +9,51 @@ use App\Models\MortarFormula;
 use App\Models\Sand;
 
 /**
- * Trace setiap step perhitungan seperti di Excel
- * Untuk debugging dan verifikasi rumus
- *
- * Mode 1: Professional (Volume Mortar) - Base fitur utama
+ * Formula untuk perhitungan pemasangan bata 1/2
+ * dengan volume mortar dan strip tambahan di sisi kiri & bawah
  */
-class BrickCalculationTracer
+class BrickHalfInstallationFormula implements FormulaInterface
 {
-    /**
-     * Trace Mode 1: Professional (Volume Mortar)
-     * Base fitur utama untuk perhitungan material bata
-     */
-    public static function traceProfessionalMode(array $params): array
+    public static function getCode(): string
+    {
+        return 'brick_half_installation';
+    }
+
+    public static function getName(): string
+    {
+        return 'Pemasangan Bata 1/2';
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Perhitungan material untuk pemasangan bata 1/2 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
+    }
+
+    public function validate(array $params): bool
+    {
+        $required = ['wall_length', 'wall_height', 'installation_type_id', 'mortar_formula_id'];
+
+        foreach ($required as $field) {
+            if (! isset($params[$field]) || $params[$field] <= 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function calculate(array $params): array
+    {
+        // Untuk calculate yang cepat, kita panggil trace dan ambil final_result saja
+        $trace = $this->trace($params);
+
+        return $trace['final_result'];
+    }
+
+    public function trace(array $params): array
     {
         $trace = [];
-        $trace['mode'] = 'Mode 1: PROFESSIONAL (Volume Mortar)';
+        $trace['mode'] = self::getName();
         $trace['steps'] = [];
 
         // Step 1: Input Parameters

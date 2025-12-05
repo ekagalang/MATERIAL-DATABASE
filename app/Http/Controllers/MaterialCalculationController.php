@@ -8,17 +8,34 @@ use App\Models\BrickInstallationType;
 use App\Models\Cement;
 use App\Models\MortarFormula;
 use App\Models\Sand;
-use App\Services\BrickCalculationModes;
-use App\Services\BrickCalculationTracer;
+use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class BrickCalculationController extends Controller
+class MaterialCalculationController extends Controller
 {
     /**
      * Display a listing of calculations
      */
     public function index(Request $request)
+    {
+        $availableFormulas = FormulaRegistry::all();
+        $bricks = Brick::orderBy('brand')->get();
+        $cements = Cement::orderBy('brand')->get();
+        $sands = Sand::orderBy('brand')->get();
+
+        return view('material_calculations.index', compact(
+            'availableFormulas',
+            'bricks',
+            'cements',
+            'sands'
+        ));
+    }
+
+    /**
+     * Log riwayat perhitungan (sebelumnya index)
+     */
+    public function log(Request $request)
     {
         $query = BrickCalculation::with([
             'installationType',
@@ -28,7 +45,6 @@ class BrickCalculationController extends Controller
             'sand',
         ]);
 
-        // Search
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -37,12 +53,10 @@ class BrickCalculationController extends Controller
             });
         }
 
-        // Filter by installation type
         if ($request->has('installation_type') && $request->installation_type != '') {
             $query->where('installation_type_id', $request->installation_type);
         }
 
-        // Filter by date range
         if ($request->has('date_from') && $request->date_from != '') {
             $query->whereDate('created_at', '>=', $request->date_from);
         }
@@ -54,10 +68,9 @@ class BrickCalculationController extends Controller
             ->paginate(15)
             ->appends($request->query());
 
-        // Get filter options
         $installationTypes = BrickInstallationType::getActive();
 
-        return view('brick_calculations.index', compact('calculations', 'installationTypes'));
+        return view('material_calculations.log', compact('calculations', 'installationTypes'));
     }
 
     /**
@@ -65,6 +78,9 @@ class BrickCalculationController extends Controller
      */
     public function create()
     {
+        // Get available formulas from Formula Registry
+        $availableFormulas = FormulaRegistry::all();
+
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
@@ -75,7 +91,8 @@ class BrickCalculationController extends Controller
         $defaultInstallationType = BrickInstallationType::getDefault();
         $defaultMortarFormula = MortarFormula::getDefault();
 
-        return view('brick_calculations.create', compact(
+        return view('material_calculations.create', compact(
+            'availableFormulas',
             'installationTypes',
             'mortarFormulas',
             'bricks',
@@ -91,52 +108,154 @@ class BrickCalculationController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'wall_length' => 'required|numeric|min:0.01',
-            'wall_height' => 'required|numeric|min:0.01',
-            'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
-            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
-            'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
-            'sand_id' => 'nullable|exists:sands,id',
-            'project_name' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-            'use_custom_ratio' => 'nullable|boolean',
-            'custom_cement_ratio' => 'required_if:use_custom_ratio,1|nullable|numeric|min:0.1',
-            'custom_sand_ratio' => 'required_if:use_custom_ratio,1|nullable|numeric|min:0.1',
-            'custom_water_ratio' => 'nullable|numeric|min:0',
-        ], [
-            'wall_length.required' => 'Panjang dinding harus diisi',
-            'wall_length.min' => 'Panjang dinding minimal 0.01 meter',
-            'wall_height.required' => 'Tinggi dinding harus diisi',
-            'wall_height.min' => 'Tinggi dinding minimal 0.01 meter',
-            'installation_type_id.required' => 'Jenis pemasangan harus dipilih',
-            'mortar_thickness.required' => 'Tebal adukan harus diisi',
-            'mortar_thickness.min' => 'Tebal adukan minimal 0.1 cm',
-            'mortar_thickness.max' => 'Tebal adukan maksimal 10 cm',
-            'mortar_formula_id.required' => 'Formula adukan harus dipilih',
-            'custom_cement_ratio.required_if' => 'Rasio semen harus diisi jika menggunakan custom ratio',
-            'custom_sand_ratio.required_if' => 'Rasio pasir harus diisi jika menggunakan custom ratio',
-        ]);
-
         try {
             DB::beginTransaction();
+
+            // Set default mortar formula type when form tidak mengirim field ini
+            if (! $request->has('mortar_formula_type')) {
+                $request->merge(['mortar_formula_type' => 'default']);
+            }
+
+            $request->validate([
+                'work_type' => 'required|string',
+                'price_filter' => 'required|in:cheapest,expensive,custom',
+                'wall_length' => 'required|numeric|min:0.01',
+                'wall_height' => 'required|numeric|min:0.01',
+                'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+                'mortar_formula_type' => 'required|in:default,custom',
+                'brick_id' => 'required_if:price_filter,custom|nullable|exists:bricks,id',
+                'cement_id' => 'required_if:price_filter,custom|nullable|exists:cements,id',
+                'sand_id' => 'required_if:price_filter,custom|nullable|exists:sands,id',
+                'project_name' => 'nullable|string|max:255',
+                'notes' => 'nullable|string',
+                'custom_cement_ratio' => 'required_if:mortar_formula_type,custom|nullable|numeric|min:0.1',
+                'custom_sand_ratio' => 'required_if:mortar_formula_type,custom|nullable|numeric|min:0.1',
+                'custom_water_ratio' => 'nullable|numeric|min:0',
+            ], [
+                'work_type.required' => 'Jenis pekerjaan harus dipilih',
+                'price_filter.required' => 'Preferensi harga harus dipilih',
+                'wall_length.required' => 'Panjang dinding harus diisi',
+                'wall_length.min' => 'Panjang dinding minimal 0.01 meter',
+                'wall_height.required' => 'Tinggi dinding harus diisi',
+                'wall_height.min' => 'Tinggi dinding minimal 0.01 meter',
+                'mortar_thickness.required' => 'Tebal adukan harus diisi',
+                'mortar_thickness.min' => 'Tebal adukan minimal 0.1 cm',
+                'mortar_thickness.max' => 'Tebal adukan maksimal 10 cm',
+                'mortar_formula_type.required' => 'Tipe formula adukan harus dipilih',
+                'brick_id.required_if' => 'Bata harus dipilih jika menggunakan custom material',
+                'cement_id.required_if' => 'Semen harus dipilih jika menggunakan custom material',
+                'sand_id.required_if' => 'Pasir harus dipilih jika menggunakan custom material',
+                'custom_cement_ratio.required_if' => 'Rasio semen harus diisi jika menggunakan custom ratio',
+                'custom_sand_ratio.required_if' => 'Rasio pasir harus diisi jika menggunakan custom ratio',
+            ]);
+
+            // Set default installation type and mortar formula based on work_type
+            $workType = $request->input('work_type');
+
+            // Default installation type berdasarkan work_type
+            // Untuk brick work, gunakan default installation type pertama
+            $defaultInstallationType = BrickInstallationType::where('is_active', true)
+                ->orderBy('id')
+                ->first();
+
+            // Default mortar formula (1:3)
+            $mortarFormulaType = $request->input('mortar_formula_type');
+            if ($mortarFormulaType === 'custom') {
+                // Jika custom, set use_custom_ratio = true
+                $request->merge(['use_custom_ratio' => true]);
+
+                // Gunakan mortar formula pertama sebagai base (tapi ratio akan di-override oleh custom)
+                $defaultMortarFormula = MortarFormula::where('is_active', true)
+                    ->orderBy('id')
+                    ->first();
+            } else {
+                // Jika default (1:3), cari formula dengan ratio 1:3
+                $defaultMortarFormula = MortarFormula::where('is_active', true)
+                    ->where('cement_ratio', 1)
+                    ->where('sand_ratio', 3)
+                    ->first();
+
+                // Fallback ke formula pertama jika tidak ada 1:3
+                if (! $defaultMortarFormula) {
+                    $defaultMortarFormula = MortarFormula::where('is_active', true)
+                        ->orderBy('id')
+                        ->first();
+                }
+
+                $request->merge(['use_custom_ratio' => false]);
+            }
+
+            // Merge default values ke request
+            $request->merge([
+                'installation_type_id' => $defaultInstallationType?->id,
+                'mortar_formula_id' => $defaultMortarFormula?->id,
+            ]);
+
+            // Auto-select materials based on price filter
+            $priceFilter = $request->input('price_filter');
+              if ($priceFilter !== 'custom') {
+                  $materials = $this->selectMaterialsByPrice($priceFilter);
+                  $request->merge([
+                      'brick_id' => $materials['brick_id'],
+                      'cement_id' => $materials['cement_id'],
+                      'sand_id' => $materials['sand_id'],
+                  ]);
+              }
 
             // Perform calculation
             $calculation = BrickCalculation::performCalculation($request->all());
 
-            // Save to database
+            // Load relationships for potential preview / summary
+            $calculation->load([
+                'installationType',
+                'mortarFormula',
+                'brick',
+                'cement',
+                'sand',
+            ]);
+
+            // Jika belum ada konfirmasi simpan, tampilkan halaman preview (full page, bukan modal)
+            if (! $request->boolean('confirm_save')) {
+                DB::rollBack();
+
+                $summary = $calculation->getSummary();
+
+                return view('material_calculations.preview', [
+                    'calculation' => $calculation,
+                    'summary' => $summary,
+                    'formData' => $request->all(),
+                ]);
+            }
+
+            // Save to database setelah konfirmasi
             $calculation->save();
 
             DB::commit();
 
+            // Check if AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Perhitungan berhasil disimpan!',
+                    'redirect' => route('material-calculations.show', $calculation),
+                ]);
+            }
+
             return redirect()
-                ->route('brick-calculations.show', $calculation)
+                ->route('material-calculations.show', $calculation)
                 ->with('success', 'Perhitungan berhasil disimpan!');
 
         } catch (\Exception $e) {
             DB::rollBack();
+
+            // Check if AJAX request
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Terjadi kesalahan: '.$e->getMessage(),
+                    'errors' => ['general' => [$e->getMessage()]],
+                ], 422);
+            }
 
             return redirect()
                 ->back()
@@ -148,9 +267,9 @@ class BrickCalculationController extends Controller
     /**
      * Display the specified calculation
      */
-    public function show(BrickCalculation $brickCalculation)
+    public function show(BrickCalculation $materialCalculation)
     {
-        $brickCalculation->load([
+        $materialCalculation->load([
             'installationType',
             'mortarFormula',
             'brick',
@@ -158,24 +277,28 @@ class BrickCalculationController extends Controller
             'sand',
         ]);
 
-        $summary = $brickCalculation->getSummary();
+        $summary = $materialCalculation->getSummary();
 
-        return view('brick_calculations.show', compact('brickCalculation', 'summary'));
+        return view('material_calculations.show_log', compact('materialCalculation', 'summary'));
     }
 
     /**
      * Show the form for editing
      */
-    public function edit(BrickCalculation $brickCalculation)
+    public function edit(BrickCalculation $materialCalculation)
     {
+        // Get available formulas from Formula Registry
+        $availableFormulas = FormulaRegistry::all();
+
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
         $cements = Cement::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
 
-        return view('brick_calculations.edit', compact(
-            'brickCalculation',
+        return view('material_calculations.edit', compact(
+            'materialCalculation',
+            'availableFormulas',
             'installationTypes',
             'mortarFormulas',
             'bricks',
@@ -187,7 +310,7 @@ class BrickCalculationController extends Controller
     /**
      * Update the specified calculation
      */
-    public function update(Request $request, BrickCalculation $brickCalculation)
+    public function update(Request $request, BrickCalculation $materialCalculation)
     {
         $request->validate([
             'wall_length' => 'required|numeric|min:0.01',
@@ -209,13 +332,13 @@ class BrickCalculationController extends Controller
             $newCalculation = BrickCalculation::performCalculation($request->all());
 
             // Update existing record
-            $brickCalculation->fill($newCalculation->toArray());
-            $brickCalculation->save();
+            $materialCalculation->fill($newCalculation->toArray());
+            $materialCalculation->save();
 
             DB::commit();
 
             return redirect()
-                ->route('brick-calculations.show', $brickCalculation)
+                ->route('material-calculations.show', $materialCalculation)
                 ->with('success', 'Perhitungan berhasil diperbarui!');
 
         } catch (\Exception $e) {
@@ -231,13 +354,13 @@ class BrickCalculationController extends Controller
     /**
      * Remove the specified calculation
      */
-    public function destroy(BrickCalculation $brickCalculation)
+    public function destroy(BrickCalculation $materialCalculation)
     {
         try {
-            $brickCalculation->delete();
+            $materialCalculation->delete();
 
             return redirect()
-                ->route('brick-calculations.index')
+                ->route('material-calculations.log')
                 ->with('success', 'Perhitungan berhasil dihapus!');
 
         } catch (\Exception $e) {
@@ -372,7 +495,7 @@ class BrickCalculationController extends Controller
     /**
      * Export calculation to PDF (placeholder - implement di fase berikutnya)
      */
-    public function exportPdf(BrickCalculation $brickCalculation)
+    public function exportPdf(BrickCalculation $materialCalculation)
     {
         // TODO: Implement PDF export in Phase 6
         return redirect()->back()->with('info', 'Fitur export PDF akan ditambahkan di fase berikutnya');
@@ -383,84 +506,16 @@ class BrickCalculationController extends Controller
      */
     public function dashboard()
     {
-        $totalCalculations = BrickCalculation::count();
-        $totalCost = BrickCalculation::sum('total_material_cost');
-
-        $recentCalculations = BrickCalculation::with(['installationType', 'mortarFormula'])
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        $calculationsByType = BrickCalculation::select(
-            'installation_type_id',
-            DB::raw('count(*) as count'),
-            DB::raw('sum(total_material_cost) as total_cost')
-        )
-            ->groupBy('installation_type_id')
-            ->with('installationType')
-            ->get();
-
-        return view('brick_calculations.dashboard', compact(
-            'totalCalculations',
-            'totalCost',
-            'recentCalculations',
-            'calculationsByType'
-        ));
-    }
-
-    /**
-     * API: Compare 3 calculation modes
-     * Mode 1: Professional (Volume Mortar)
-     * Mode 2: Field (Package Engineering from rumus 2.xlsx)
-     * Mode 3: Simple (Package Basic - Corrected)
-     */
-    public function compareThreeModes(Request $request)
-    {
-        $request->validate([
-            'wall_length' => 'required|numeric|min:0.01',
-            'wall_height' => 'required|numeric|min:0.01',
-            'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
-            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
-            'brick_id' => 'nullable|exists:bricks,id',
-            'custom_cement_ratio' => 'nullable|numeric|min:1',
-            'custom_sand_ratio' => 'nullable|numeric|min:1',
-        ]);
-
-        try {
-            $comparison = BrickCalculationModes::calculateAllModes($request->all());
-
-            return response()->json([
-                'success' => true,
-                'data' => $comparison,
-                'explanation' => [
-                    'mode_1' => 'Professional: Berbasis volume mortar dengan data empiris verified (sistem saat ini)',
-                    'mode_2' => 'Field: Berbasis kemasan dengan engineering factors dari rumus 2.xlsx (shrinkage 15%, water 30%)',
-                    'mode_3' => 'Simple: Berbasis kemasan sederhana dengan volume sak terkoreksi',
-                ],
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
-        }
-    }
-
-    /**
-     * View: Comparison page for 3 modes
-     */
-    public function comparisonView()
-    {
-        $installationTypes = BrickInstallationType::getActive();
-        $mortarFormulas = MortarFormula::getActive();
+        $availableFormulas = FormulaRegistry::all();
         $bricks = Brick::orderBy('brand')->get();
+        $cements = Cement::orderBy('brand')->get();
+        $sands = Sand::orderBy('brand')->get();
 
-        return view('brick_calculations.comparison', compact(
-            'installationTypes',
-            'mortarFormulas',
-            'bricks'
+        return view('material_calculations.index', compact(
+            'availableFormulas',
+            'bricks',
+            'cements',
+            'sands'
         ));
     }
 
@@ -469,13 +524,17 @@ class BrickCalculationController extends Controller
      */
     public function traceView()
     {
+        // Get available formulas from Formula Registry
+        $availableFormulas = FormulaRegistry::all();
+
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
         $cements = Cement::orderBy('cement_name')->get();
         $sands = Sand::orderBy('sand_name')->get();
 
-        return view('brick_calculations.trace', compact(
+        return view('material_calculations.trace', compact(
+            'availableFormulas',
             'installationTypes',
             'mortarFormulas',
             'bricks',
@@ -491,6 +550,7 @@ class BrickCalculationController extends Controller
     public function traceCalculation(Request $request)
     {
         $request->validate([
+            'formula_code' => 'required|string',
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required|numeric|min:0.01',
             'installation_type_id' => 'required|exists:brick_installation_types,id',
@@ -501,10 +561,31 @@ class BrickCalculationController extends Controller
             'sand_id' => 'nullable|exists:sands,id',
             'custom_cement_ratio' => 'nullable|numeric|min:1',
             'custom_sand_ratio' => 'nullable|numeric|min:1',
+            'has_additional_layer' => 'nullable|boolean',
         ]);
 
         try {
-            $trace = BrickCalculationTracer::traceProfessionalMode($request->all());
+            // Get formula instance from registry
+            $formulaCode = $request->input('formula_code');
+            $formula = FormulaRegistry::instance($formulaCode);
+
+            if (! $formula) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Formula dengan code '{$formulaCode}' tidak ditemukan",
+                ], 404);
+            }
+
+            // Validate parameters using formula's validate method
+            if (! $formula->validate($request->all())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Parameter tidak valid untuk formula ini',
+                ], 422);
+            }
+
+            // Execute trace calculation
+            $trace = $formula->trace($request->all());
 
             return response()->json([
                 'success' => true,
@@ -517,5 +598,51 @@ class BrickCalculationController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Helper: Select materials based on price filter
+     *
+     * @param  string  $filter  'cheapest' or 'expensive'
+     * @return array ['brick_id', 'cement_id', 'sand_id']
+     */
+    protected function selectMaterialsByPrice(string $filter): array
+    {
+        $orderDirection = $filter === 'cheapest' ? 'asc' : 'desc';
+
+        // Get brick based on price_per_piece
+        $brick = Brick::whereNotNull('price_per_piece')
+            ->where('price_per_piece', '>', 0)
+            ->orderBy('price_per_piece', $orderDirection)
+            ->first();
+
+        // Get cement based on package_price
+        $cement = Cement::whereNotNull('package_price')
+            ->where('package_price', '>', 0)
+            ->orderBy('package_price', $orderDirection)
+            ->first();
+
+        // Get sand based on comparison_price_per_m3 or calculate from package_price/volume
+        $sand = Sand::whereNotNull('comparison_price_per_m3')
+            ->where('comparison_price_per_m3', '>', 0)
+            ->orderBy('comparison_price_per_m3', $orderDirection)
+            ->first();
+
+        // Fallback to first available if no price data
+        if (! $brick) {
+            $brick = Brick::first();
+        }
+        if (! $cement) {
+            $cement = Cement::first();
+        }
+        if (! $sand) {
+            $sand = Sand::first();
+        }
+
+        return [
+            'brick_id' => $brick?->id,
+            'cement_id' => $cement?->id,
+            'sand_id' => $sand?->id,
+        ];
     }
 }

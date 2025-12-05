@@ -1,16 +1,16 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UnitController;
-use App\Http\Controllers\CatController;
 use App\Http\Controllers\BrickController;
-use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\CatController;
 use App\Http\Controllers\CementController;
+use App\Http\Controllers\MaterialCalculationController;
+use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SandController;
-use App\Http\Controllers\BrickCalculationController;
+use App\Http\Controllers\UnitController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('materials.index');
+    return app(\App\Http\Controllers\MaterialCalculationController::class)->index(request());
 });
 
 Route::resource('units', UnitController::class);
@@ -38,34 +38,31 @@ Route::get('/api/cements/field-values/{field}', [CementController::class, 'getFi
 Route::get('/api/sands/field-values/{field}', [SandController::class, 'getFieldValues'])
     ->name('sands.field-values');
 
-// Brick Calculator Routes
-Route::prefix('brick-calculations')->name('brick-calculations.')->group(function () {
-    Route::get('/', [BrickCalculationController::class, 'index'])->name('index');
-    Route::get('/create', [BrickCalculationController::class, 'create'])->name('create');
-    Route::post('/', [BrickCalculationController::class, 'store'])->name('store');
-    Route::get('/{brickCalculation}', [BrickCalculationController::class, 'show'])->name('show');
-    Route::get('/{brickCalculation}/edit', [BrickCalculationController::class, 'edit'])->name('edit');
-    Route::put('/{brickCalculation}', [BrickCalculationController::class, 'update'])->name('update');
-    Route::delete('/{brickCalculation}', [BrickCalculationController::class, 'destroy'])->name('destroy');
-    
+// Material Calculator Routes
+Route::prefix('material-calculations')->name('material-calculations.')->group(function () {
+    Route::get('/', [MaterialCalculationController::class, 'index'])->name('index');
+    Route::get('/log', [MaterialCalculationController::class, 'log'])->name('log');
+    Route::get('/create', [MaterialCalculationController::class, 'create'])->name('create');
+    Route::post('/', [MaterialCalculationController::class, 'store'])->name('store');
+    Route::get('/{materialCalculation}', [MaterialCalculationController::class, 'show'])->name('show');
+    Route::get('/{materialCalculation}/edit', [MaterialCalculationController::class, 'edit'])->name('edit');
+    Route::put('/{materialCalculation}', [MaterialCalculationController::class, 'update'])->name('update');
+    Route::delete('/{materialCalculation}', [MaterialCalculationController::class, 'destroy'])->name('destroy');
+
     // Export
-    Route::get('/{brickCalculation}/export-pdf', [BrickCalculationController::class, 'exportPdf'])->name('export-pdf');
+    Route::get('/{materialCalculation}/export-pdf', [MaterialCalculationController::class, 'exportPdf'])->name('export-pdf');
 });
 
 // Dashboard kalkulator
-Route::get('/brick-calculator/dashboard', [BrickCalculationController::class, 'dashboard'])->name('brick-calculator.dashboard');
+Route::get('/material-calculator/dashboard', [MaterialCalculationController::class, 'dashboard'])->name('material-calculator.dashboard');
 
 // API Routes untuk real-time calculation
-Route::prefix('api/brick-calculator')->name('api.brick-calculator.')->group(function () {
-    Route::post('/calculate', [BrickCalculationController::class, 'calculate'])->name('calculate');
-    Route::post('/compare', [BrickCalculationController::class, 'compare'])->name('compare');
-    Route::post('/compare-modes', [BrickCalculationController::class, 'compareThreeModes'])->name('compare-modes');
-    Route::post('/trace', [BrickCalculationController::class, 'traceCalculation'])->name('trace');
-    Route::get('/brick-dimensions/{brickId}', [BrickCalculationController::class, 'getBrickDimensions'])->name('brick-dimensions');
+Route::prefix('api/material-calculator')->name('api.material-calculator.')->group(function () {
+    Route::post('/calculate', [MaterialCalculationController::class, 'calculate'])->name('calculate');
+    Route::post('/compare', [MaterialCalculationController::class, 'compare'])->name('compare');
+    Route::post('/trace', [MaterialCalculationController::class, 'traceCalculation'])->name('trace');
+    Route::get('/brick-dimensions/{brickId}', [MaterialCalculationController::class, 'getBrickDimensions'])->name('brick-dimensions');
 });
 
-// Comparison View
-Route::get('/brick-calculator/comparison', [BrickCalculationController::class, 'comparisonView'])->name('brick-calculator.comparison');
-
 // Trace View - step by step
-Route::get('/brick-calculator/trace', [BrickCalculationController::class, 'traceView'])->name('brick-calculator.trace');
+Route::get('/material-calculator/trace', [MaterialCalculationController::class, 'traceView'])->name('material-calculator.trace');

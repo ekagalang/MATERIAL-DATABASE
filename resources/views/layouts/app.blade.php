@@ -595,8 +595,8 @@
 <body>
     <div class="container">
         <div class="nav">
-            <a href="{{ route('brick-calculator.dashboard') }}" class="{{ request()->routeIs('brick-calculator.dashboard') || request()->routeIs('brick-calculations.*') ? 'active' : '' }}">
-                <i class="bi bi-calculator"></i> Kalkulator Bata
+            <a href="{{ url('/') }}" class="{{ request()->is('/') || request()->routeIs('material-calculator.dashboard') || request()->routeIs('material-calculations.*') ? 'active' : '' }}">
+                <i class="bi bi-calculator"></i> Dashboard
             </a>
             <a href="{{ route('materials.index') }}" class="{{ request()->routeIs('materials.*') ? 'active' : '' }}">
                 <i class="bi bi-box"></i> Database Material

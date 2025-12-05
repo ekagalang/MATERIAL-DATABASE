@@ -19,7 +19,10 @@
       "Bash(php extract_base_formulas.php:*)",
       "Bash(php test_mortar_calculation.php:*)",
       "Bash(php check_item_pekerjaan.php:*)",
-      "Bash(php:*)"
+      "Bash(php:*)",
+      "Bash(del \"C:\\Users\\ekaga\\OneDrive\\Documents\\Code\\MATERIAL-DATABASE\\database\\migrations\\2025_11_27_094659_add_mortar_volume_per_m2_to_brick_installation_types_table.php\")",
+      "Bash(del \"C:\\Users\\ekaga\\OneDrive\\Documents\\Code\\MATERIAL-DATABASE\\database\\migrations\\2025_11_27_102139_add_waste_factor_to_brick_installation_types_table.php\")",
+      "Bash(del \"test_cement_weight_flexibility.php\")"
     ],
     "deny": [],
     "ask": []

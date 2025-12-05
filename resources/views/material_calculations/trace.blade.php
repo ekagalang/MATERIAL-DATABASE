@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', 'Trace Perhitungan Bata')
+@section('title', 'Trace Perhitungan Material')
 
 @section('content')
 <div class="container-fluid py-4">
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="mb-0">Trace Perhitungan Bata Step-by-Step</h1>
+            <h1 class="mb-0">Trace Perhitungan Material Step-by-Step</h1>
             <p class="text-muted">Lihat setiap langkah perhitungan seperti di Excel</p>
         </div>
     </div>
@@ -18,6 +18,31 @@
         </div>
         <div class="card-body">
             <form id="traceForm">
+                <!-- Formula Selector -->
+                <div class="row g-3 mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Pilih Jenis Pekerjaan:</strong> Setiap jenis pekerjaan memiliki rumus perhitungan yang berbeda
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label fw-bold">Jenis Pekerjaan</label>
+                        <select class="form-select form-select-lg" id="formulaSelector" name="formula_code" required>
+                            <option value="">-- Pilih Jenis Pekerjaan --</option>
+                            @foreach($availableFormulas as $formula)
+                                <option value="{{ $formula['code'] }}" {{ $loop->first ? 'selected' : '' }}>
+                                    {{ $formula['name'] }}
+                                    <small class="text-muted">- {{ $formula['description'] }}</small>
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="form-text text-muted">Formula akan otomatis terbaca saat Anda menambahkan file formula baru</small>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label">Panjang Dinding (m)</label>
@@ -42,17 +67,29 @@
                 </div>
 
                 <div class="row g-3 mt-2">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <label class="form-label">Formula Mortar</label>
-                        <select class="form-select" name="mortar_formula_id" required>
+                        <select class="form-select" id="mortarFormulaSelect" name="mortar_formula_id" required>
                             @foreach($mortarFormulas as $formula)
-                                <option value="{{ $formula->id }}">
+                                <option value="{{ $formula->id }}" data-cement="{{ $formula->cement_ratio }}" data-sand="{{ $formula->sand_ratio }}">
                                     {{ $formula->cement_ratio }}:{{ $formula->sand_ratio }}
                                 </option>
                             @endforeach
+                            <option value="custom">Custom Ratio</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-4" id="customCementRatioDiv" style="display: none;">
+                        <label class="form-label">Custom Cement Ratio</label>
+                        <input type="number" class="form-control" id="customCementRatio" name="custom_cement_ratio" value="1" step="0.1" min="0.1">
+                    </div>
+                    <div class="col-md-4" id="customSandRatioDiv" style="display: none;">
+                        <label class="form-label">Custom Sand Ratio</label>
+                        <input type="number" class="form-control" id="customSandRatio" name="custom_sand_ratio" value="4" step="0.1" min="0.1">
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-md-12">
                         <label class="form-label">Bata</label>
                         <select class="form-select" name="brick_id">
                             <option value="">- Default -</option>
@@ -60,14 +97,6 @@
                                 <option value="{{ $brick->id }}">{{ $brick->brand }}</option>
                             @endforeach
                         </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Custom Cement Ratio</label>
-                        <input type="number" class="form-control" name="custom_cement_ratio" value="1" step="0.1">
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Custom Sand Ratio</label>
-                        <input type="number" class="form-control" name="custom_sand_ratio" value="4" step="0.1">
                     </div>
                 </div>
 
@@ -114,18 +143,39 @@
 </div>
 
 <script>
+// Toggle custom ratio inputs based on dropdown selection
+document.getElementById('mortarFormulaSelect').addEventListener('change', function() {
+    const customCementDiv = document.getElementById('customCementRatioDiv');
+    const customSandDiv = document.getElementById('customSandRatioDiv');
+
+    if (this.value === 'custom') {
+        customCementDiv.style.display = 'block';
+        customSandDiv.style.display = 'block';
+        document.getElementById('customCementRatio').required = true;
+        document.getElementById('customSandRatio').required = true;
+    } else {
+        customCementDiv.style.display = 'none';
+        customSandDiv.style.display = 'none';
+        document.getElementById('customCementRatio').required = false;
+        document.getElementById('customSandRatio').required = false;
+    }
+});
+
 document.getElementById('traceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
     const formData = new FormData(this);
     const params = Object.fromEntries(formData.entries());
 
+    // Selalu gunakan strip tambahan di sisi kiri & bawah
+    params.has_additional_layer = true;
+
     // Show loading
     document.getElementById('resultsContainer').style.display = 'block';
     document.getElementById('traceContent').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
 
     try {
-        const response = await fetch('/api/brick-calculator/trace', {
+        const response = await fetch('/api/material-calculator/trace', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
