@@ -1,0 +1,13 @@
+bata
+    dimensi (pxlxt) = 18 x 8 x 4 cm
+    harga perbuah Rp. 550
+
+semen
+    Sak 40kg
+    dimensi (pxlxt) = 30 x 20 x 60 cm
+    harga Rp. 42.000 per sak
+
+pasir
+    Sak
+    Volume 1.5 m3
+    harga Rp. 700.000 per sak

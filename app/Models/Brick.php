@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -119,5 +120,27 @@ class Brick extends Model
         }
 
         return asset('storage/'.ltrim($path, '/'));
+    }
+
+    /**
+     * Relationship: Brick bisa dipakai di banyak calculations
+     */
+    public function calculations(): HasMany
+    {
+        return $this->hasMany(BrickCalculation::class);
+    }
+
+    /**
+     * Get default brick dimensions (untuk kalkulator)
+     */
+    public static function getDefaultDimensions(): array
+    {
+        $brick = self::first();
+        
+        return [
+            'length' => $brick->dimension_length ?? 20,
+            'width' => $brick->dimension_width ?? 10,
+            'height' => $brick->dimension_height ?? 5,
+        ];
     }
 }

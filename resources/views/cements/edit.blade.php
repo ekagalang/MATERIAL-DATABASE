@@ -108,32 +108,73 @@
                     <label>Kemasan</label>
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <select name="package_unit" 
-                                    id="package_unit" 
+                            <select name="package_unit"
+                                    id="package_unit"
                                     style="flex: 0 0 120px;">
                                 <option value="">-- Satuan --</option>
                                 @foreach($units as $unit)
-                                    <option value="{{ $unit->code }}" 
-                                            data-weight="{{ $unit->package_weight }}" 
+                                    <option value="{{ $unit->code }}"
+                                            data-weight="{{ $unit->package_weight }}"
                                             {{ old('package_unit', $cement->package_unit) == $unit->code ? 'selected' : '' }}>
                                         {{ $unit->code }}
                                     </option>
                                 @endforeach
                             </select>
-                            <input type="number" 
-                                name="package_weight_gross" 
-                                id="package_weight_gross" 
-                                value="{{ old('package_weight_gross', $cement->package_weight_gross) }}" 
-                                step="0.01" 
-                                min="0" 
-                                placeholder="Berat" 
+                            <input type="number"
+                                name="package_weight_gross"
+                                id="package_weight_gross"
+                                value="{{ old('package_weight_gross', $cement->package_weight_gross) }}"
+                                step="0.01"
+                                min="0"
+                                placeholder="Berat"
                                 style="flex: 1;">
                             <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Berat Bersih (Kalkulasi) 
+                <!-- Dimensi Kemasan (untuk perhitungan kubik) -->
+                <div class="row">
+                    <label>Dimensi Kemasan</label>
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number"
+                                name="dimension_length"
+                                id="dimension_length"
+                                value="{{ old('dimension_length', $cement->dimension_length) }}"
+                                step="0.0001"
+                                min="0"
+                                placeholder="Panjang"
+                                style="flex: 1;">
+                            <span style="color: #94a3b8; font-size: 13px;">×</span>
+                            <input type="number"
+                                name="dimension_width"
+                                id="dimension_width"
+                                value="{{ old('dimension_width', $cement->dimension_width) }}"
+                                step="0.0001"
+                                min="0"
+                                placeholder="Lebar"
+                                style="flex: 1;">
+                            <span style="color: #94a3b8; font-size: 13px;">×</span>
+                            <input type="number"
+                                name="dimension_height"
+                                id="dimension_height"
+                                value="{{ old('dimension_height', $cement->dimension_height) }}"
+                                step="0.0001"
+                                min="0"
+                                placeholder="Tinggi"
+                                style="flex: 1;">
+                            <span style="color: #64748b; font-size: 13px; font-weight: 500;">meter</span>
+                        </div>
+                        <div style="margin-top: 6px;">
+                            <small style="color: #64748b; font-size: 11px;">
+                                Volume: <span id="volume_display" style="font-weight: 600; color: #15803d;">{{ $cement->package_volume ? number_format($cement->package_volume, 6) . ' m³' : '-' }}</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Berat Bersih (Kalkulasi)
                 <div class="row">
                     <label>Berat Bersih (Kalkulasi)</label>
                     <div style="flex: 1;">

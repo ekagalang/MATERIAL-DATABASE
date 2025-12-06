@@ -10,6 +10,29 @@ class CementSeeder extends Seeder
     public function run(): void
     {
         $cements = [
+            // Semen Gresik - Sesuai Excel (40kg, 30x20x60 cm = 0.036 m³)
+            [
+                'cement_name' => 'Semen Gresik (Excel Spec)',
+                'type' => 'PCC',
+                'brand' => 'Merah Putih',
+                'sub_brand' => '(PCC)',
+                'code' => 'PCC-40',
+                'color' => 'Hitam',
+                'package_unit' => 'Sak',
+                'package_weight_gross' => 40.00,
+                'package_weight_net' => 40.00,
+                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
+                'dimension_length' => 0.30, // meter
+                'dimension_width' => 0.20,  // meter
+                'dimension_height' => 0.60, // meter
+                'package_volume' => 0.036, // m³ (0.30 x 0.20 x 0.60)
+                'store' => 'Toko Bangunan Maju',
+                'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
+                'short_address' => 'Pasar Minggu, Jakarta Selatan',
+                'package_price' => 42000,
+                'price_unit' => 'Sak',
+                'comparison_price_per_kg' => 1050, // 56000 / 40
+            ],
             // Semen Gresik
             [
                 'cement_name' => 'Semen Gresik',
@@ -21,6 +44,11 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.50,
                 'package_weight_net' => 50.00,
+                // Dimensi kemasan sak semen standar: 50cm x 35cm x 10cm
+                'dimension_length' => 0.50, // meter
+                'dimension_width' => 0.35,  // meter
+                'dimension_height' => 0.10, // meter
+                'package_volume' => 0.0175, // m³ (0.50 x 0.35 x 0.10)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -38,6 +66,11 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 40.50,
                 'package_weight_net' => 40.00,
+                // Dimensi kemasan sak 40kg: 45cm x 30cm x 10cm
+                'dimension_length' => 0.45,
+                'dimension_width' => 0.30,
+                'dimension_height' => 0.10,
+                'package_volume' => 0.0135, // m³ (0.45 x 0.30 x 0.10)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -57,6 +90,10 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.50,
                 'package_weight_net' => 50.00,
+                'dimension_length' => 0.50,
+                'dimension_width' => 0.35,
+                'dimension_height' => 0.10,
+                'package_volume' => 0.0175,
                 'store' => 'Bangunan Jaya',
                 'address' => 'Jl. Raya Depok No. 123, Depok',
                 'short_address' => 'Depok',
@@ -74,6 +111,10 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 40.50,
                 'package_weight_net' => 40.00,
+                'dimension_length' => 0.45,
+                'dimension_width' => 0.30,
+                'dimension_height' => 0.10,
+                'package_volume' => 0.0135,
                 'store' => 'Bangunan Jaya',
                 'address' => 'Jl. Raya Depok No. 123, Depok',
                 'short_address' => 'Depok',
@@ -93,6 +134,10 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.50,
                 'package_weight_net' => 50.00,
+                'dimension_length' => 0.50,
+                'dimension_width' => 0.35,
+                'dimension_height' => 0.10,
+                'package_volume' => 0.0175,
                 'store' => 'Sumber Makmur',
                 'address' => 'Jl. Raya Condet No. 45, Jakarta Timur',
                 'short_address' => 'Condet, Jakarta Timur',
@@ -112,6 +157,10 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.50,
                 'package_weight_net' => 50.00,
+                'dimension_length' => 0.50,
+                'dimension_width' => 0.35,
+                'dimension_height' => 0.10,
+                'package_volume' => 0.0175,
                 'store' => 'Toko Material Sejahtera',
                 'address' => 'Jl. Raya Bekasi No. 88, Bekasi',
                 'short_address' => 'Bekasi',
@@ -129,6 +178,6 @@ class CementSeeder extends Seeder
         }
 
         $this->command->info('✅ Cements seeded successfully!');
-        $this->command->info('📊 Total cements created: ' . DB::table('cements')->count());
+        $this->command->info('📊 Total cements created: '.DB::table('cements')->count());
     }
 }

@@ -276,4 +276,36 @@ function initCementForm() {
     updateNetCalc();
     recalculatePrices();
     syncPriceUnit();
+
+    // ========================================================================
+    // Kalkulasi Volume dari Dimensi Kemasan (P × L × T)
+    // ========================================================================
+    const dimensionLength = document.getElementById('dimension_length');
+    const dimensionWidth = document.getElementById('dimension_width');
+    const dimensionHeight = document.getElementById('dimension_height');
+    const volumeDisplay = document.getElementById('volume_display');
+
+    function calculateVolume() {
+        if (!dimensionLength || !dimensionWidth || !dimensionHeight || !volumeDisplay) return;
+
+        const length = parseFloat(dimensionLength.value) || 0;
+        const width = parseFloat(dimensionWidth.value) || 0;
+        const height = parseFloat(dimensionHeight.value) || 0;
+
+        if (length > 0 && width > 0 && height > 0) {
+            const volume = length * width * height;
+            volumeDisplay.textContent = volume.toFixed(6) + ' m³';
+            volumeDisplay.style.color = '#15803d';
+        } else {
+            volumeDisplay.textContent = '-';
+            volumeDisplay.style.color = '#64748b';
+        }
+    }
+
+    if (dimensionLength) dimensionLength.addEventListener('input', calculateVolume);
+    if (dimensionWidth) dimensionWidth.addEventListener('input', calculateVolume);
+    if (dimensionHeight) dimensionHeight.addEventListener('input', calculateVolume);
+
+    // Initial calculation
+    calculateVolume();
 }

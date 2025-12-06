@@ -1,0 +1,589 @@
+================================================================================
+DOKUMENTASI RUMUS PERHITUNGAN MATERIAL BATA
+================================================================================
+Sistem: Material Database - Brick Calculation Tracer
+File: app/Services/BrickCalculationTracer.php
+Tanggal: 2025-11-28
+================================================================================
+
+
+================================================================================
+MODE 1: PROFESSIONAL (Volume Mortar Based)
+================================================================================
+Metode: Berbasis volume mortar aktual dengan data empiris
+Cocok untuk: Perencanaan profesional, RAB detail, proyek besar
+
+--------------------------------------------------------------------------------
+STEP 1: INPUT PARAMETERS
+--------------------------------------------------------------------------------
+Input yang diperlukan:
+- Panjang Dinding (m)
+- Tinggi Dinding (m)
+- Tebal Adukan (cm) [default: 1.0]
+
+--------------------------------------------------------------------------------
+STEP 2: LUAS DINDING
+--------------------------------------------------------------------------------
+Formula: Luas = Panjang × Tinggi
+
+Contoh:
+Panjang = 6.2 m
+Tinggi = 3.0 m
+Hasil = 6.2 × 3.0 = 18.6 m²
+
+--------------------------------------------------------------------------------
+STEP 3: DATA DARI DATABASE
+--------------------------------------------------------------------------------
+Data yang dimuat:
+- Jenis Pemasangan (Installation Type)
+- Dimensi Bata: Panjang × Lebar × Tinggi (cm)
+- Formula Mortar: Ratio Semen:Pasir (contoh: 1:4)
+- Berat Semen per Sak (kg) [default: 50 kg]
+
+--------------------------------------------------------------------------------
+STEP 4: BATA PER M²
+--------------------------------------------------------------------------------
+Formula: 1 / ((panjang + tebal) × (tinggi + tebal))
+
+Perhitungan:
+1. Lebar Visible = (Panjang Bata + Tebal Adukan) / 100 (dalam meter)
+2. Tinggi Visible = (Tinggi Bata + Tebal Adukan) / 100 (dalam meter)
+3. Luas per Bata = Lebar Visible × Tinggi Visible (m²)
+4. Bata per m² = 1 / Luas per Bata
+
+Contoh:
+Panjang Bata = 19.2 cm, Tinggi Bata = 8 cm, Tebal = 1.0 cm
+Lebar Visible = (19.2 + 1.0) / 100 = 0.202 m
+Tinggi Visible = (8 + 1.0) / 100 = 0.09 m
+Luas per Bata = 0.202 × 0.09 = 0.01818 m²
+Bata per m² = 1 / 0.01818 = 55.01 buah/m²
+
+--------------------------------------------------------------------------------
+STEP 5: TOTAL BATA
+--------------------------------------------------------------------------------
+Formula: Luas Dinding × Bata per m²
+
+Pembulatan:
+- Jika desimal >= 0.50 → bulatkan ke atas (ceil)
+- Jika desimal < 0.50 → bulatkan ke bawah (floor)
+
+Contoh:
+Luas = 18.6 m², Bata per m² = 55.01
+Total Raw = 18.6 × 55.01 = 1023.186 buah
+Desimal = 0.186 (< 0.50)
+Hasil = 1023 buah (dibulatkan ke bawah)
+
+--------------------------------------------------------------------------------
+STEP 6: VOLUME MORTAR PER BATA
+--------------------------------------------------------------------------------
+Formula: (panjang + tinggi + tebal adukan) × lebar × tebal adukan / 1000000
+
+Perhitungan dalam cm, hasil dalam m³
+
+Contoh:
+p = 19.2 cm, t = 8 cm, l = 9 cm, tebal = 1.0 cm
+Volume = (19.2 + 8 + 1.0) × 9 × 1.0 / 1000000
+Volume = 28.2 × 9 × 1.0 / 1000000
+Volume = 0.0002538 m³ per bata
+
+--------------------------------------------------------------------------------
+STEP 7: TOTAL VOLUME MORTAR
+--------------------------------------------------------------------------------
+Formula: Volume per Bata × Total Bata
+
+Contoh:
+Volume per Bata = 0.0002538 m³
+Total Bata = 1023 buah
+Total Volume = 0.0002538 × 1023 = 0.259637 m³
+
+--------------------------------------------------------------------------------
+STEP 8: VOLUME SATUAN KEMASAN SEMEN (m³)
+--------------------------------------------------------------------------------
+Formula: Panjang × Lebar × Tinggi / 1000000
+
+Data dari database cement:
+- Dimensi Kemasan Semen (cm): Panjang × Lebar × Tinggi
+- Default: 40 × 30 × 10 cm
+
+Contoh:
+Volume Sak = (40 × 30 × 10) / 1000000 = 0.012 m³
+
+--------------------------------------------------------------------------------
+STEP 8b: VOLUME ADUKAN PER PASANGAN BATA
+--------------------------------------------------------------------------------
+Info: Sudah dihitung di Step 6
+Nilai sama dengan: Volume Mortar per Bata
+
+--------------------------------------------------------------------------------
+STEP 8c: VOLUME ADUKAN DARI 1 SAK SEMEN
+--------------------------------------------------------------------------------
+Formula: (ratio semen + ratio pasir + (kontribusi air × ratio air)) × volume sak × (1 - penyusutan)
+
+Konstanta:
+- Ratio Semen = 1
+- Ratio Pasir = dari mortar formula (contoh: 4)
+- Kontribusi Air = 0.2 (20%)
+- Ratio Air = 0.3 × (semen + pasir) = 30% dari total
+- Penyusutan = 0.15 (15%)
+
+Perhitungan:
+1. Water Ratio = 0.3 × (1 + 4) = 1.5
+2. Total Ratio = 1 + 4 + (0.2 × 1.5) = 5.3
+3. Volume Adukan = 5.3 × 0.012 × (1 - 0.15)
+4. Volume Adukan = 5.3 × 0.012 × 0.85 = 0.054042 m³
+
+--------------------------------------------------------------------------------
+STEP 8d: JUMLAH PASANGAN BATA DARI 1 SAK SEMEN
+--------------------------------------------------------------------------------
+Formula: Volume Adukan / Volume Adukan per Pasangan
+
+Pembulatan:
+- Jika desimal > 0.50 → bulatkan ke atas (ceil)
+- Jika desimal <= 0.50 → bulatkan ke bawah (floor)
+
+Contoh:
+Volume Adukan = 0.054042 m³
+Volume per Pasangan = 0.0002538 m³
+Jumlah = 0.054042 / 0.0002538 = 212.94
+Desimal = 0.94 (> 0.50)
+Hasil = 213 pasangan bata
+
+--------------------------------------------------------------------------------
+STEP 8e: LUAS PASANGAN PER BATA
+--------------------------------------------------------------------------------
+Formula: (Panjang bata + tebal) × (Tinggi bata + tebal) / 10000
+
+Contoh:
+(19.2 + 1.0) × (8 + 1.0) / 10000 = 20.2 × 9 / 10000 = 0.01818 m²
+
+--------------------------------------------------------------------------------
+STEP 8f: LUAS PASANGAN DARI 1 SAK SEMEN
+--------------------------------------------------------------------------------
+Formula: Jumlah Pasangan Bata × Luas per Bata
+
+Contoh:
+Jumlah = 213 pasangan
+Luas per Bata = 0.01818 m²
+Luas dari 1 Sak = 213 × 0.01818 = 3.87 m²
+
+Arti: 1 sak semen bisa untuk 3.87 m² luas adukan
+
+--------------------------------------------------------------------------------
+STEP 8g: KEBUTUHAN SEMEN PER M²
+--------------------------------------------------------------------------------
+Formula: 1 sak / Luas Pasangan dari 1 Sak
+
+Contoh:
+Luas dari 1 Sak = 3.87 m²
+Kebutuhan per m² = 1 / 3.87 = 0.258398 sak/m²
+
+--------------------------------------------------------------------------------
+STEP 9: TOTAL KEBUTUHAN SEMEN (SAK)
+--------------------------------------------------------------------------------
+Formula: Kebutuhan Semen per m² × Luas Bangunan
+
+Pembulatan: round ke 2 desimal
+- Jika digit ke-3 >= 5 → bulatkan ke atas
+- Jika digit ke-3 < 5 → bulatkan ke bawah
+
+Contoh:
+Kebutuhan = 0.258398 sak/m²
+Luas = 18.6 m²
+Total Raw = 0.258398 × 18.6 = 4.806208 sak
+Total (pembulatan 2 desimal) = 4.81 sak
+
+Konversi ke kg:
+Total Semen (kg) = 4.81 × 50 = 240.5 kg
+
+--------------------------------------------------------------------------------
+STEP 9b: TOTAL KEBUTUHAN PASIR & AIR
+--------------------------------------------------------------------------------
+Pasir (sak):
+Formula: Cement Sak × Ratio Pasir
+Contoh: 4.81 × 4 = 19.24 sak
+
+Pasir (m³):
+Formula: Sand Sak × Volume Sak
+Contoh: 19.24 × 0.012 = 0.230880 m³
+
+Air (liter):
+Formula: (Cement Sak + Sand Sak) × Vol Sak × 30% × 1000
+
+Pembulatan Air:
+- Jika desimal > 0.50 → bulatkan ke bawah (floor)
+- Jika desimal <= 0.50 → bulatkan normal (round)
+
+Contoh:
+Total Sak = 4.81 + 19.24 = 24.05 sak
+Air Raw = 24.05 × 0.012 × 0.3 × 1000 = 86.58 liter
+Desimal = 0.58 (> 0.50)
+Air = 86 liter (bulatkan ke bawah)
+
+--------------------------------------------------------------------------------
+KONVERSI SEMEN KG
+--------------------------------------------------------------------------------
+Pembulatan Semen (kg):
+- Jika desimal >= 0.50 → bulatkan ke atas (ceil)
+- Jika desimal < 0.50 → bulatkan ke bawah (floor)
+
+Semen (m³):
+Formula: Cement kg / Density
+Density Semen = 1440 kg/m³
+Contoh: 241 / 1440 = 0.167361 m³
+
+Pasir (satuan kemasan):
+Formula: Sand m³ / Volume Sak
+Contoh: 0.230880 / 0.012 = 19.24 sak
+
+--------------------------------------------------------------------------------
+HASIL AKHIR MODE 1
+--------------------------------------------------------------------------------
+1. Total Bata = [pembulatan >= 0.5 ke atas, < 0.5 ke bawah]
+2. Semen (kg) = [pembulatan >= 0.5 ke atas, < 0.5 ke bawah]
+3. Semen (sak) = [pembulatan 2 desimal]
+4. Semen (m³) = kg / 1440
+5. Pasir (m³) = [TANPA pembulatan, nilai asli]
+6. Pasir (sak) = m³ / volume_sak
+7. Air (liter) = [pembulatan khusus: > 0.5 ke bawah, <= 0.5 normal]
+8. Perhitungan Harga:
+   - Harga Bata = Total Bata × Harga per Buah
+   - Harga Semen = Total Sak × Harga per Sak
+   - Harga Pasir = Total m³ × Harga per m³
+   - Total = Harga Bata + Harga Semen + Harga Pasir
+
+
+================================================================================
+MODE 2: FIELD (Package Engineering Based)
+================================================================================
+Metode: Berbasis kemasan dengan engineering factors (dari rumus 2.xlsx)
+Cocok untuk: Lapangan, praktisi, estimasi cepat
+
+--------------------------------------------------------------------------------
+STEP 1: INPUT PARAMETERS
+--------------------------------------------------------------------------------
+Input:
+- Panjang Dinding (m)
+- Tinggi Dinding (m)
+- Tebal Adukan (cm) [default: 1.0]
+- Ratio Semen:Pasir [default: 1:3]
+
+--------------------------------------------------------------------------------
+STEP 2: KONSTANTA ENGINEERING
+--------------------------------------------------------------------------------
+Konstanta tetap dari rumus 2.xlsx:
+- Volume Sak Semen = 0.036 m³
+- Shrinkage Factor = 0.15 (15%)
+- Water Percentage = 0.30 (30%)
+- Water Factor = 0.2
+
+--------------------------------------------------------------------------------
+STEP 3: LUAS DINDING
+--------------------------------------------------------------------------------
+Formula: Panjang × Tinggi
+
+--------------------------------------------------------------------------------
+STEP 4: DATA BATA & SEMEN
+--------------------------------------------------------------------------------
+Data dari database:
+- Dimensi Bata (cm)
+- Berat Semen per Sak (kg) [default: 40 kg]
+
+--------------------------------------------------------------------------------
+STEP 5: JUMLAH BATA
+--------------------------------------------------------------------------------
+Formula: 1 / ((panjang + tebal) × (tinggi + tebal))
+
+Pembulatan Total Bata:
+- Jika desimal >= 0.50 → bulatkan ke atas
+- Jika desimal < 0.50 → bulatkan ke bawah
+
+--------------------------------------------------------------------------------
+STEP 6: TOTAL SAK RATIO (dengan Water)
+--------------------------------------------------------------------------------
+Formula: Cement + Sand + (Water Factor × Water %)
+
+Contoh:
+Cement = 1, Sand = 3
+Total = 1 + 3 + (0.2 × 0.30) = 4.06
+
+--------------------------------------------------------------------------------
+STEP 7: VOLUME PER LUAS PASANGAN
+--------------------------------------------------------------------------------
+Formula: Total Sak Ratio × Vol Sak × (1 - Shrinkage)
+
+Contoh:
+Volume = 4.06 × 0.036 × (1 - 0.15)
+Volume = 4.06 × 0.036 × 0.85 = 0.124236 m³
+
+--------------------------------------------------------------------------------
+STEP 8: VOLUME PER M² DINDING
+--------------------------------------------------------------------------------
+Formula: Volume per Luas Pasangan / 3.882375 (normalisasi dari Excel)
+
+Contoh:
+Volume per m² = 0.124236 / 3.882375 = 0.032001 m³/m²
+
+--------------------------------------------------------------------------------
+STEP 9: TOTAL VOLUME MORTAR
+--------------------------------------------------------------------------------
+Formula: Volume per m² × Luas Dinding
+
+Contoh:
+Total = 0.032001 × 18.6 = 0.595219 m³
+
+--------------------------------------------------------------------------------
+STEP 10: TOTAL SAK (Cement + Sand)
+--------------------------------------------------------------------------------
+Formula: Total Volume / Vol Sak
+
+Contoh:
+Total Sak = 0.595219 / 0.036 = 16.53 sak
+
+--------------------------------------------------------------------------------
+STEP 11: DISTRIBUSI MATERIAL
+--------------------------------------------------------------------------------
+Semen (sak):
+Formula: Total Sak × (Cement Ratio / Total Ratio)
+Pembulatan: round ke 2 desimal
+
+Contoh:
+Cement Raw = 16.53 × (1 / 4.06) = 4.071 sak
+Cement = 4.07 sak (pembulatan 2 desimal)
+
+Pasir (sak):
+Formula: Total Sak × (Sand Ratio / Total Ratio)
+Contoh: 16.53 × (3 / 4.06) = 12.213 sak
+
+Air (liter):
+Formula: Total Sak × Vol Sak × Water % × 1000
+
+Pembulatan Air:
+- Jika desimal > 0.50 → bulatkan ke bawah
+- Jika desimal <= 0.50 → bulatkan normal
+
+Contoh:
+Air Raw = 16.53 × 0.036 × 0.30 × 1000 = 178.524 liter
+Desimal = 0.524 (> 0.50)
+Air = 178 liter (bulatkan ke bawah)
+
+--------------------------------------------------------------------------------
+STEP 12: KONVERSI KE KG/M³
+--------------------------------------------------------------------------------
+Semen (kg):
+Pembulatan: >= 0.50 ke atas, < 0.50 ke bawah
+Formula: Cement Sak × Berat per Sak
+Contoh: 4.07 × 40 = 162.8 kg → 163 kg
+
+Semen (m³):
+Formula: Cement kg / 1440
+Contoh: 163 / 1440 = 0.113194 m³
+
+Pasir (m³):
+Formula: Sand Sak × Vol Sak
+Contoh: 12.213 × 0.036 = 0.439668 m³
+
+--------------------------------------------------------------------------------
+HASIL AKHIR MODE 2
+--------------------------------------------------------------------------------
+1. Total Bata = [pembulatan >= 0.5 ke atas]
+2. Semen (kg) = [pembulatan >= 0.5 ke atas]
+3. Semen (sak) = [pembulatan 2 desimal]
+4. Semen (m³) = kg / 1440
+5. Pasir (m³) = [TANPA pembulatan]
+6. Pasir (sak) = dari distribusi
+7. Air (liter) = [> 0.5 ke bawah]
+8. Perhitungan Harga (sama dengan Mode 1)
+
+
+================================================================================
+MODE 3: SIMPLE (Package Basic - Corrected)
+================================================================================
+Metode: Rumus sederhana dengan volume sak dari berat dan density
+Cocok untuk: Estimasi cepat, perhitungan kasar
+
+--------------------------------------------------------------------------------
+STEP 1: INPUT PARAMETERS
+--------------------------------------------------------------------------------
+Input:
+- Panjang Dinding (m)
+- Tinggi Dinding (m)
+- Tebal Adukan (cm) [default: 1.0]
+- Ratio Semen:Pasir [default: 1:4]
+
+--------------------------------------------------------------------------------
+STEP 2: DATA SEMEN & VOLUME SAK
+--------------------------------------------------------------------------------
+Formula Volume Sak: Berat Semen / Density
+
+Konstanta:
+- Berat Semen per Sak = dari database [default: 50 kg]
+- Density Semen = 1440 kg/m³
+- Water % = 30%
+
+Contoh:
+Volume Sak = 50 / 1440 = 0.034722 m³
+
+--------------------------------------------------------------------------------
+STEP 3: LUAS DINDING
+--------------------------------------------------------------------------------
+Formula: Panjang × Tinggi
+
+--------------------------------------------------------------------------------
+STEP 4: DATA BATA
+--------------------------------------------------------------------------------
+Dimensi Bata dari database (cm)
+
+--------------------------------------------------------------------------------
+STEP 5: JUMLAH BATA
+--------------------------------------------------------------------------------
+Formula: sama dengan mode lain
+Pembulatan: >= 0.50 ke atas, < 0.50 ke bawah
+
+--------------------------------------------------------------------------------
+STEP 6: ASUMSI KEBUTUHAN SEMEN
+--------------------------------------------------------------------------------
+Asumsi tetap:
+Semen per m² = 0.35 sak/m² (asumsi realistis)
+
+--------------------------------------------------------------------------------
+STEP 7: TOTAL SEMEN
+--------------------------------------------------------------------------------
+Formula: Semen per m² × Luas Dinding
+
+Pembulatan: round ke 2 desimal
+
+Contoh:
+Total Raw = 0.35 × 18.6 = 6.51 sak
+Total = 6.51 sak (pembulatan 2 desimal)
+
+--------------------------------------------------------------------------------
+STEP 8: TOTAL PASIR
+--------------------------------------------------------------------------------
+Formula: Semen Sak × Sand Ratio
+
+Contoh:
+Pasir = 6.51 × 4 = 26.04 sak
+
+--------------------------------------------------------------------------------
+STEP 9: VOLUME PASIR
+--------------------------------------------------------------------------------
+Formula: Sand Sak × Volume Sak
+
+Contoh:
+Volume = 26.04 × 0.034722 = 0.904165 m³
+
+--------------------------------------------------------------------------------
+STEP 10: KEBUTUHAN AIR
+--------------------------------------------------------------------------------
+Formula: (Cement Sak + Sand Sak) × Vol Sak × Water % × 1000
+
+Pembulatan Air:
+- Jika desimal > 0.50 → bulatkan ke bawah
+- Jika desimal <= 0.50 → bulatkan normal
+
+Contoh:
+Total Sak = 6.51 + 26.04 = 32.55 sak
+Air Raw = 32.55 × 0.034722 × 0.30 × 1000 = 339.096 liter
+Desimal = 0.096 (<= 0.50)
+Air = 339 liter (bulatkan normal)
+
+--------------------------------------------------------------------------------
+STEP 11: KONVERSI KE KG
+--------------------------------------------------------------------------------
+Semen (kg):
+Pembulatan: >= 0.50 ke atas, < 0.50 ke bawah
+Formula: Cement Sak × Berat per Sak
+Contoh: 6.51 × 50 = 325.5 kg → 326 kg
+
+Semen (m³):
+Formula: Cement kg / 1440
+Contoh: 326 / 1440 = 0.226389 m³
+
+--------------------------------------------------------------------------------
+HASIL AKHIR MODE 3
+--------------------------------------------------------------------------------
+1. Total Bata = [pembulatan >= 0.5 ke atas]
+2. Semen (kg) = [pembulatan >= 0.5 ke atas]
+3. Semen (sak) = [pembulatan 2 desimal]
+4. Semen (m³) = kg / 1440
+5. Pasir (m³) = [TANPA pembulatan]
+6. Pasir (sak) = dari perhitungan
+7. Air (liter) = [> 0.5 ke bawah]
+8. Perhitungan Harga (sama dengan Mode 1)
+
+
+================================================================================
+RINGKASAN ATURAN PEMBULATAN
+================================================================================
+
+1. BATA (Total):
+   - >= 0.50 → bulatkan ke atas (ceil)
+   - < 0.50 → bulatkan ke bawah (floor)
+   Contoh: 1023.186 → 1023 | 1023.51 → 1024
+
+2. SEMEN (Satuan Kemasan/Sak):
+   - Pembulatan 2 desimal: round($value, 2)
+   - >= 0.005 → bulatkan ke atas
+   - < 0.005 → bulatkan ke bawah
+   Contoh: 0.1461 → 0.15 | 4.806 → 4.81 | 6.514 → 6.51
+
+3. SEMEN (kg):
+   - >= 0.50 → bulatkan ke atas (ceil)
+   - < 0.50 → bulatkan ke bawah (floor)
+   Contoh: 240.49 → 240 | 240.51 → 241
+
+4. PASIR (m³):
+   - TIDAK DIBULATKAN - tampilkan nilai asli
+   - Presisi 6 desimal
+   Contoh: 0.230880 (tetap)
+
+5. AIR (liter):
+   - Jika desimal > 0.50 → bulatkan ke BAWAH (floor)
+   - Jika desimal <= 0.50 → bulatkan NORMAL (round)
+   Contoh: 86.58 → 86 | 86.48 → 86 | 86.25 → 86
+
+6. SEMEN (m³):
+   - Hasil perhitungan kg / 1440
+   - TIDAK DIBULATKAN - tampilkan nilai asli
+
+
+================================================================================
+CATATAN PENTING
+================================================================================
+
+1. Semua perhitungan menggunakan data dari database:
+   - Brick: dimensi dan harga
+   - Cement: berat per sak, dimensi kemasan, harga
+   - Sand: harga per m³
+   - Installation Type: jenis pemasangan
+   - Mortar Formula: ratio semen:pasir
+
+2. Konstanta yang digunakan:
+   - Density Semen: 1440 kg/m³
+   - Density Pasir: 1600 kg/m³
+   - Water Percentage: 30%
+   - Shrinkage Factor (Mode 2): 15%
+
+3. Perbedaan antar Mode:
+   - Mode 1 (Professional): Paling akurat, menggunakan interpolasi data empiris
+   - Mode 2 (Field): Praktis, menggunakan engineering factors
+   - Mode 3 (Simple): Paling sederhana, menggunakan asumsi 0.35 sak/m²
+
+4. Urutan tampilan hasil akhir:
+   a. Total Bata (buah)
+   b. Semen (kg)
+   c. Semen (satuan kemasan/sak)
+   d. Semen (m³)
+   e. Pasir (m³)
+   f. Pasir (satuan kemasan/sak)
+   g. Air (liter)
+   h. Perhitungan Harga:
+      - Harga Bata Total
+      - Harga Semen Total
+      - Harga Pasir Total
+      - Grand Total
+
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

@@ -14,6 +14,13 @@ class DatabaseSeeder extends Seeder
             BrickSeeder::class,
             CementSeeder::class,
             SandSeeder::class,
+            BrickInstallationTypeSeeder::class,
+            MortarFormulaSeeder::class,
+
+            // Uncomment untuk create sample calculation (opsional)
+            // $this->call([
+            //     BrickCalculationDataSeeder::class,
+            // ]);
         ]);
     }
 }
