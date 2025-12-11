@@ -9,6 +9,7 @@ use App\Models\Cement;
 use App\Models\MortarFormula;
 use App\Models\Sand;
 use App\Services\FormulaRegistry;
+use App\Services\BrickCalculationTracer;    
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -76,30 +77,35 @@ class MaterialCalculationController extends Controller
     /**
      * Show the form for creating a new calculation
      */
-    public function create()
+    public function create(Request $request)
     {
-        // Get available formulas from Formula Registry
         $availableFormulas = FormulaRegistry::all();
-
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
         $cements = Cement::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
 
-        // Get default values
         $defaultInstallationType = BrickInstallationType::getDefault();
         $defaultMortarFormula = MortarFormula::getDefault();
 
+        // LOGIC BARU: Handle Multi-Select Bricks dari Price Analysis
+        // Kita kirim variable $selectedBricks ke View
+        $selectedBricks = collect();
+        if ($request->has('brick_ids')) {
+            $selectedBricks = Brick::whereIn('id', $request->brick_ids)->get();
+        }
+
         return view('material_calculations.create', compact(
-            'availableFormulas',
-            'installationTypes',
-            'mortarFormulas',
-            'bricks',
-            'cements',
-            'sands',
-            'defaultInstallationType',
-            'defaultMortarFormula'
+            'availableFormulas', 
+            'installationTypes', 
+            'mortarFormulas', 
+            'bricks', 
+            'cements', 
+            'sands', 
+            'defaultInstallationType', 
+            'defaultMortarFormula',
+            'selectedBricks' // Pastikan ini dikirim!
         ));
     }
 
@@ -111,157 +117,270 @@ class MaterialCalculationController extends Controller
         try {
             DB::beginTransaction();
 
-            // Set default mortar formula type when form tidak mengirim field ini
             if (! $request->has('mortar_formula_type')) {
                 $request->merge(['mortar_formula_type' => 'default']);
             }
 
-            $request->validate([
-                'work_type' => 'required|string',
+            // 1. VALIDASI
+            $rules = [
+                'work_type' => 'required',
                 'price_filter' => 'required|in:cheapest,expensive,custom',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required|numeric|min:0.01',
-                'mortar_thickness' => 'required|numeric|min:0.1|max:10',
-                'mortar_formula_type' => 'required|in:default,custom',
-                'brick_id' => 'required_if:price_filter,custom|nullable|exists:bricks,id',
-                'cement_id' => 'required_if:price_filter,custom|nullable|exists:cements,id',
-                'sand_id' => 'required_if:price_filter,custom|nullable|exists:sands,id',
-                'project_name' => 'nullable|string|max:255',
-                'notes' => 'nullable|string',
-                'custom_cement_ratio' => 'required_if:mortar_formula_type,custom|nullable|numeric|min:0.1',
-                'custom_sand_ratio' => 'required_if:mortar_formula_type,custom|nullable|numeric|min:0.1',
-                'custom_water_ratio' => 'nullable|numeric|min:0',
-            ], [
-                'work_type.required' => 'Jenis pekerjaan harus dipilih',
-                'price_filter.required' => 'Preferensi harga harus dipilih',
-                'wall_length.required' => 'Panjang dinding harus diisi',
-                'wall_length.min' => 'Panjang dinding minimal 0.01 meter',
-                'wall_height.required' => 'Tinggi dinding harus diisi',
-                'wall_height.min' => 'Tinggi dinding minimal 0.01 meter',
-                'mortar_thickness.required' => 'Tebal adukan harus diisi',
-                'mortar_thickness.min' => 'Tebal adukan minimal 0.1 cm',
-                'mortar_thickness.max' => 'Tebal adukan maksimal 10 cm',
-                'mortar_formula_type.required' => 'Tipe formula adukan harus dipilih',
-                'brick_id.required_if' => 'Bata harus dipilih jika menggunakan custom material',
-                'cement_id.required_if' => 'Semen harus dipilih jika menggunakan custom material',
-                'sand_id.required_if' => 'Pasir harus dipilih jika menggunakan custom material',
-                'custom_cement_ratio.required_if' => 'Rasio semen harus diisi jika menggunakan custom ratio',
-                'custom_sand_ratio.required_if' => 'Rasio pasir harus diisi jika menggunakan custom ratio',
-            ]);
+                'mortar_thickness' => 'required|numeric|min:0.1',
+            ];
 
-            // Set default installation type and mortar formula based on work_type
-            $workType = $request->input('work_type');
+            // Validasi Brick: Bisa single 'brick_id' atau array 'brick_ids'
+            if ($request->has('brick_ids')) {
+                $rules['brick_ids'] = 'required|array';
+                $rules['brick_ids.*'] = 'exists:bricks,id';
+            } else {
+                $rules['brick_id'] = 'required|exists:bricks,id';
+            }
 
-            // Default installation type berdasarkan work_type
-            // Untuk brick work, gunakan default installation type pertama
-            $defaultInstallationType = BrickInstallationType::where('is_active', true)
-                ->orderBy('id')
-                ->first();
+            // Validasi Semen/Pasir hanya wajib jika BUKAN custom
+            if ($request->price_filter !== 'custom') {
+                $rules['cement_id'] = 'required|exists:cements,id';
+                $rules['sand_id'] = 'required|exists:sands,id';
+            }
 
-            // Default mortar formula (1:3)
+            $request->validate($rules);
+
+            // 2. SETUP DEFAULT
+            $defaultInstallationType = BrickInstallationType::where('is_active', true)->orderBy('id')->first();
+            
             $mortarFormulaType = $request->input('mortar_formula_type');
             if ($mortarFormulaType === 'custom') {
-                // Jika custom, set use_custom_ratio = true
                 $request->merge(['use_custom_ratio' => true]);
-
-                // Gunakan mortar formula pertama sebagai base (tapi ratio akan di-override oleh custom)
-                $defaultMortarFormula = MortarFormula::where('is_active', true)
-                    ->orderBy('id')
-                    ->first();
+                $defaultMortarFormula = MortarFormula::where('is_active', true)->orderBy('id')->first();
             } else {
-                // Jika default (1:3), cari formula dengan ratio 1:3
-                $defaultMortarFormula = MortarFormula::where('is_active', true)
-                    ->where('cement_ratio', 1)
-                    ->where('sand_ratio', 3)
-                    ->first();
-
-                // Fallback ke formula pertama jika tidak ada 1:3
-                if (! $defaultMortarFormula) {
-                    $defaultMortarFormula = MortarFormula::where('is_active', true)
-                        ->orderBy('id')
-                        ->first();
-                }
-
+                $defaultMortarFormula = MortarFormula::where('is_active', true)->where('cement_ratio', 1)->where('sand_ratio', 3)->first();
+                if (! $defaultMortarFormula) $defaultMortarFormula = MortarFormula::first();
                 $request->merge(['use_custom_ratio' => false]);
             }
 
-            // Merge default values ke request
-            $request->merge([
-                'installation_type_id' => $defaultInstallationType?->id,
-                'mortar_formula_id' => $defaultMortarFormula?->id,
-            ]);
+            if (!$request->has('installation_type_id')) $request->merge(['installation_type_id' => $defaultInstallationType?->id]);
+            if (!$request->has('mortar_formula_id')) $request->merge(['mortar_formula_id' => $defaultMortarFormula?->id]);
 
-            // Auto-select materials based on price filter
-            $priceFilter = $request->input('price_filter');
-              if ($priceFilter !== 'custom') {
-                  $materials = $this->selectMaterialsByPrice($priceFilter);
-                  $request->merge([
-                      'brick_id' => $materials['brick_id'],
-                      'cement_id' => $materials['cement_id'],
-                      'sand_id' => $materials['sand_id'],
-                  ]);
-              }
+            // 3. AUTO SELECT MATERIAL (Cheapest/Expensive)
+            if ($request->price_filter !== 'custom') {
+                $materials = $this->selectMaterialsByPrice($request->price_filter);
+                $request->merge([
+                    'cement_id' => $materials['cement_id'],
+                    'sand_id' => $materials['sand_id'],
+                ]);
+            }
 
-            // Perform calculation
+            // 4. LOGIC PREVIEW KOMBINASI
+            // Masuk sini jika:
+            // a. User memilih banyak bata (Multi Brick)
+            // b. User memilih Custom TAPI mengosongkan Semen/Pasir
+            $isMultiBrick = $request->has('brick_ids') && count($request->brick_ids) > 0;
+            $isCustomEmpty = $request->price_filter === 'custom' && (empty($request->cement_id) || empty($request->sand_id));
+
+            if ($isMultiBrick || $isCustomEmpty) {
+                DB::rollBack(); // Tidak jadi simpan
+                return $this->generateCombinations($request);
+            }
+
+            // 5. SAVE NORMAL (Single Brick & Material Lengkap)
             $calculation = BrickCalculation::performCalculation($request->all());
-
-            // Load relationships for potential preview / summary
-            $calculation->load([
-                'installationType',
-                'mortarFormula',
-                'brick',
-                'cement',
-                'sand',
-            ]);
-
-            // Jika belum ada konfirmasi simpan, tampilkan halaman preview (full page, bukan modal)
+            
             if (! $request->boolean('confirm_save')) {
                 DB::rollBack();
-
-                $summary = $calculation->getSummary();
-
+                $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
                 return view('material_calculations.preview', [
                     'calculation' => $calculation,
-                    'summary' => $summary,
+                    'summary' => $calculation->getSummary(),
                     'formData' => $request->all(),
                 ]);
             }
 
-            // Save to database setelah konfirmasi
             $calculation->save();
-
             DB::commit();
 
-            // Check if AJAX request
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Perhitungan berhasil disimpan!',
-                    'redirect' => route('material-calculations.show', $calculation),
-                ]);
-            }
-
-            return redirect()
-                ->route('material-calculations.show', $calculation)
-                ->with('success', 'Perhitungan berhasil disimpan!');
+            return redirect()->route('material-calculations.show', $calculation)->with('success', 'Perhitungan berhasil disimpan!');
 
         } catch (\Exception $e) {
             DB::rollBack();
-
-            // Check if AJAX request
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Terjadi kesalahan: '.$e->getMessage(),
-                    'errors' => ['general' => [$e->getMessage()]],
-                ], 422);
-            }
-
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('error', 'Terjadi kesalahan: '.$e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Logic baru untuk generate kombinasi jika user mengosongkan Semen/Pasir di mode Custom
+     */
+    protected function generateCombinations(Request $request)
+    {
+        // Tentukan Bata mana saja yang akan dihitung
+        $targetBricks = collect();
+        
+        if ($request->has('brick_ids')) {
+            $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
+        } elseif ($request->has('brick_id')) {
+            $targetBricks = Brick::where('id', $request->brick_id)->get();
+        }
+
+        // Struktur Project untuk View (agar support Multi-Tab)
+        $projects = [];
+
+        foreach ($targetBricks as $brick) {
+            $projects[] = [
+                'brick' => $brick,
+                'combinations' => $this->calculateCombinationsForBrick($brick, $request)
+            ];
+        }
+
+        return view('material_calculations.preview_combinations', [
+            'projects' => $projects,
+            'requestData' => $request->except(['brick_ids', 'brick_id']), // Clean request data
+        ]);
+    }
+
+    public function compareBricks(Request $request)
+    {
+        $request->validate([
+            'brick_ids' => 'required|array|min:1',
+            'wall_length' => 'required|numeric',
+            'wall_height' => 'required|numeric',
+            'mortar_thickness' => 'required|numeric',
+            'installation_type_id' => 'required',
+        ]);
+
+        $wallArea = $request->wall_length * $request->wall_height;
+        $bricks = Brick::whereIn('id', $request->brick_ids)->get();
+        
+        // Auto-select cheapest mortar materials for fair comparison
+        $priceFilter = 'cheapest';
+        $materials = $this->selectMaterialsByPrice($priceFilter);
+        
+        // Use default mortar formula (1:3 or 1:4)
+        // Disini kita cari formula 1:3 atau yang tersedia
+        $defaultMortar = MortarFormula::where('cement_ratio', 1)->where('sand_ratio', 3)->first() 
+                         ?? MortarFormula::first();
+
+        $comparisons = [];
+
+        foreach ($bricks as $brick) {
+            $params = [
+                'wall_length' => $request->wall_length,
+                'wall_height' => $request->wall_height,
+                'mortar_thickness' => $request->mortar_thickness,
+                'installation_type_id' => $request->installation_type_id,
+                'mortar_formula_id' => $defaultMortar->id,
+                'brick_id' => $brick->id,
+                'cement_id' => $materials['cement_id'],
+                'sand_id' => $materials['sand_id'],
+            ];
+
+            try {
+                $trace = BrickCalculationTracer::traceProfessionalMode($params);
+                $result = $trace['final_result'];
+
+                $comparisons[] = [
+                    'brick' => $brick,
+                    'result' => $result,
+                    'total_cost' => $result['grand_total'],
+                    'cost_per_m2' => $result['grand_total'] / $wallArea,
+                ];
+            } catch (\Exception $e) {
+                continue;
+            }
+        }
+
+        // Sort by total cost ascending (Cheapest first)
+        usort($comparisons, function($a, $b) {
+            return $a['total_cost'] <=> $b['total_cost'];
+        });
+
+        // Load cement & sand objects for display
+        $cement = Cement::find($materials['cement_id']);
+        $sand = Sand::find($materials['sand_id']);
+
+        return view('material_calculations.compare_bricks', [
+            'comparisons' => $comparisons,
+            'wallArea' => $wallArea,
+            'wallLength' => $request->wall_length,
+            'wallHeight' => $request->wall_height,
+            'mortarThickness' => $request->mortar_thickness,
+            'refCement' => $cement,
+            'refSand' => $sand,
+            'requestData' => $request->all(),
+        ]);
+    }
+
+    /**
+     * Helper: Hitung Kombinasi untuk 1 Bata
+     */
+    protected function calculateCombinationsForBrick($brick, $request)
+    {
+        // Tentukan Kandidat Semen & Pasir
+        // Jika filter Cheapest/Expensive, hanya ambil 1 kandidat (pemenang)
+        // Jika Custom Empty, ambil semua
+        
+        $cements = collect();
+        $sands = collect();
+
+        if ($request->price_filter !== 'custom') {
+            // Auto Select 1 Pemenang
+            $materials = $this->selectMaterialsByPrice($request->price_filter);
+            $cements = Cement::where('id', $materials['cement_id'])->get();
+            $sands = Sand::where('id', $materials['sand_id'])->get();
+        } else {
+            // Custom Logic
+            $cements = $request->cement_id ? Cement::where('id', $request->cement_id)->get() : Cement::orderBy('package_price')->get();
+            $sands = $request->sand_id ? Sand::where('id', $request->sand_id)->get() : Sand::orderBy('package_price')->get();
+        }
+
+        // Setup Parameter
+        $paramsBase = [
+            'wall_length' => $request->wall_length,
+            'wall_height' => $request->wall_height,
+            'mortar_thickness' => $request->mortar_thickness,
+            'installation_type_id' => $request->installation_type_id,
+            'mortar_formula_id' => $request->mortar_formula_id,
+            'brick_id' => $brick->id,
+        ];
+
+        $combinations = [];
+
+        foreach ($cements as $cement) {
+            foreach ($sands as $sand) {
+                $params = array_merge($paramsBase, ['cement_id' => $cement->id, 'sand_id' => $sand->id]);
+
+                try {
+                    $trace = BrickCalculationTracer::traceProfessionalMode($params);
+                    $result = $trace['final_result'];
+
+                    // Grouping Logic
+                    $groupBy = 'Umum';
+                    if ($request->price_filter !== 'custom') {
+                        $groupBy = ($request->price_filter == 'cheapest') ? 'Termurah' : 'Termahal';
+                    } else {
+                        if (!$request->cement_id && $request->sand_id) $groupBy = $cement->brand ?? 'Semen';
+                        elseif ($request->cement_id && !$request->sand_id) $groupBy = $sand->brand ?? 'Pasir';
+                        else $groupBy = $cement->brand ?? 'Umum';
+                    }
+
+                    $combinations[$groupBy][] = [
+                        'cement' => $cement,
+                        'sand' => $sand,
+                        'result' => $result,
+                        'total_cost' => $result['grand_total']
+                    ];
+                } catch (\Exception $e) { continue; }
+            }
+        }
+
+        // Sorting Logic
+        foreach ($combinations as &$items) {
+            usort($items, function ($a, $b) { return $a['total_cost'] <=> $b['total_cost']; });
+        }
+        uasort($combinations, function ($groupA, $groupB) {
+            return ($groupA[0]['total_cost'] ?? 0) <=> ($groupB[0]['total_cost'] ?? 0);
+        });
+
+        return $combinations;
     }
 
     /**

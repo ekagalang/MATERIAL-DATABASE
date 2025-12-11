@@ -335,6 +335,18 @@
             color: #891313 !important;
             transform: translateX(2px);
         }
+        
+        /* Hilangkan spinner di Chrome, Safari, Edge, Opera */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Hilangkan spinner di Firefox */
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
 
         /* Buttons - Modern Minimal */
         .btn { 

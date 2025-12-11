@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Http\Controllers\Dev;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Brick;
 use App\Models\BrickInstallationType;
 use App\Models\Cement;
@@ -25,7 +24,8 @@ class PriceAnalysisController extends Controller
             'formula_code' => null,
         ];
 
-        return view('dev.price_analysis.index', compact('formulas', 'inputs'));
+        // VIEW DIPINDAHKAN KE FOLDER material_calculations
+        return view('material_calculations.price_analysis', compact('formulas', 'inputs'));
     }
 
     public function calculate(Request $request)
@@ -100,15 +100,16 @@ class PriceAnalysisController extends Controller
                 $luas_pasangan_cm2 = ($brick->dimension_length + $tebal_cm) * ($brick->dimension_height + $tebal_cm);
 
                 $brickAnalysis[] = [
+                    'id' => $brick->id, // ID dibutuhkan untuk link create
                     'material_name' => $brick->material_name,
                     'type' => $brick->type ?? '-',
                     'brand' => $brick->brand,
-                    'dimensions' => "P:{$brick->dimension_length} L:{$brick->dimension_width} T:{$brick->dimension_height}",
-                    'store' => Str::limit($brick->store ?? 'Tidak tersedia', 15),
-                    'address' => Str::limit($brick->address ?? '-', 15),
+                    'dimensions' => "{$brick->dimension_length} x {$brick->dimension_width} x {$brick->dimension_height}",
+                    'store' => Str::limit($brick->store ?? 'Tidak tersedia', 20),
+                    'address' => Str::limit($brick->address ?? '-', 20),
                     'price_per_piece' => $brick->price_per_piece,
                     'mortar_thickness' => $mortarThickness,
-                    'area_per_brick' => number_format($luas_pasangan_cm2, 0) . ' cm²',
+                    'area_per_brick' => number_format($luas_pasangan_cm2, 0) . ' cm2',
                     'total_qty_job' => $result['total_bricks'], 
                     'total_price_job' => $result['total_brick_price'],
                 ];
@@ -138,7 +139,7 @@ class PriceAnalysisController extends Controller
                     'material_name' => $cement->cement_name,
                     'type' => $cement->type ?? '-',
                     'brand' => $cement->brand,
-                    'packaging' => $cement->package_unit ?? '-', // Tambahan
+                    'packaging' => $cement->package_unit ?? '-',
                     'dimensions' => "{$cement->package_weight_net} Kg",
                     'store' => Str::limit($cement->store ?? 'Tidak tersedia', 15),
                     'address' => Str::limit($cement->address ?? '-', 15),
@@ -166,7 +167,6 @@ class PriceAnalysisController extends Controller
                 $totalSandM3 = $result['sand_m3'];
                 $yieldMortarPerUnit = $totalSandM3 > 0 ? ($totalMortarVol / $totalSandM3) : 0;
 
-                // Tentukan Label Dimensi
                 $dimensiPasir = '-';
                 if ($sand->package_weight_net > 0) {
                     $dimensiPasir = "{$sand->package_weight_net} Kg";
@@ -180,7 +180,7 @@ class PriceAnalysisController extends Controller
                     'material_name' => $sand->sand_name,
                     'type' => $sand->type ?? '-',
                     'brand' => $sand->brand ?? 'No Brand',
-                    'packaging' => $sand->package_unit ?? '-', // Tambahan
+                    'packaging' => $sand->package_unit ?? '-',
                     'dimensions' => $dimensiPasir,
                     'store' => Str::limit($sand->store ?? 'Tidak tersedia', 15),
                     'address' => Str::limit($sand->address ?? '-', 15),
@@ -217,8 +217,10 @@ class PriceAnalysisController extends Controller
         $inputs['mortar_thickness'] = $mortarThickness;
         $inputs['formula_name'] = $selectedFormula::getName();
         $inputs['mortar_name'] = "1 Semen : {$defaultMortar->sand_ratio} Pasir";
+        $inputs['installation_type_id'] = $installationType->id; // Penting untuk link ke create calculation
 
-        return view('dev.price_analysis.index', compact(
+        // VIEW DIPINDAHKAN KE FOLDER material_calculations
+        return view('material_calculations.price_analysis', compact(
             'brickAnalysis', 
             'cementAnalysis', 
             'sandAnalysis',
