@@ -2,9 +2,17 @@
 
 @php
     $formulaDescriptions = [];
-    foreach ($availableFormulas as $formula) {
+    $formulas = $availableFormulas ?? $formulas ?? [];
+    foreach ($formulas as $formula) {
         $formulaDescriptions[$formula['code']] = $formula['description'] ?? '';
     }
+    
+    // Cek Single Brick (Carry Over)
+    $isSingleCarryOver = request()->has('brick_id');
+    $singleBrick = $isSingleCarryOver ? $bricks->find(request('brick_id')) : null;
+
+    // FIX: Definisikan variable $isMultiBrick dengan benar
+    $isMultiBrick = isset($selectedBricks) && $selectedBricks->count() > 0;
 @endphp
 
 @section('content')
@@ -13,39 +21,47 @@
 
     @if ($errors->any())
         <div class="alert alert-danger">
-            <div>
-                <strong>Terdapat kesalahan pada input:</strong>
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
+            <strong>Perhatian:</strong>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
 
     <form action="{{ route('material-calculations.store') }}" method="POST" id="calculationForm">
         @csrf
 
+        {{-- WORK TYPE --}}
         <div class="form-group">
             <label>Item Pekerjaan</label>
             <div class="input-wrapper">
-                <select id="workTypeSelector" name="work_type" required>
+                <select id="workTypeSelector" name="work_type_select" required {{ request('formula_code') ? 'disabled' : '' }}>
                     <option value="">-- Pilih Item Pekerjaan --</option>
-                    @foreach($availableFormulas as $formula)
-                        <option value="{{ $formula['code'] }}">{{ $formula['name'] }}</option>
+                    @foreach($formulas as $formula)
+                        <option value="{{ $formula['code'] }}" {{ request('formula_code') == $formula['code'] ? 'selected' : '' }}>
+                            {{ $formula['name'] }}
+                        </option>
                     @endforeach
                 </select>
+                @if(request('formula_code'))
+                    <input type="hidden" name="work_type" value="{{ request('formula_code') }}">
+                @endif
             </div>
         </div>
 
-        <div id="inputFormContainer" style="display:none;">
-            <div id="brickForm" class="work-type-form" style="display:none;">
+        <div id="inputFormContainer" style="{{ request('formula_code') ? 'display:block;' : 'display:none;' }}">
+            <div id="brickForm" class="work-type-form">
+                
+                {{-- DIMENSI --}}
                 <div class="dimensions-container">
                     <div class="dimension-group">
                         <label>Panjang</label>
                         <div class="input-with-unit">
-                            <input type="number" id="wallLength" name="wall_length" step="0.01" min="0.01">
+                            <input type="number" name="wall_length" step="0.01" min="0.01" 
+                                value="{{ request('wall_length') }}" 
+                                {{ request('wall_length') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
                             <span class="unit">M</span>
                         </div>
                     </div>
@@ -53,64 +69,96 @@
                     <div class="dimension-group">
                         <label>Tinggi</label>
                         <div class="input-with-unit">
-                            <input type="number" id="wallHeight" name="wall_height" step="0.01" min="0.01">
+                            <input type="number" name="wall_height" step="0.01" min="0.01" 
+                                value="{{ request('wall_height') }}" 
+                                {{ request('wall_height') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
                             <span class="unit">M</span>
-                        </div>
-                    </div>
-                    <span class="operator">=</span>
-                    <div class="dimension-group">
-                        <label>Luas</label>
-                        <div class="input-with-unit">
-                            <input type="number" id="wallArea" name="wall_area" readonly>
-                            <span class="unit">M2</span>
                         </div>
                     </div>
                     <div class="dimension-group">
                         <label>Tebal</label>
                         <div class="input-with-unit">
-                            <input type="number" name="mortar_thickness" value="2" step="0.1" min="0.1" max="10">
+                            <input type="number" name="mortar_thickness" step="0.1" min="0.1"
+                                value="{{ request('mortar_thickness', 2) }}" 
+                                {{ request('mortar_thickness') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
                             <span class="unit">cm</span>
                         </div>
                     </div>
                 </div>
 
+                {{-- FILTER RADIO --}}
                 <div class="form-group">
                     <label>+ Filter by:</label>
                     <div class="input-wrapper">
-                        <select id="priceFilter" name="price_filter">
-                            <option value="cheapest">Termurah</option>
-                            <option value="expensive">Termahal</option>
-                            <option value="custom">Custom</option>
-                        </select>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="price_filter" id="filter_cheapest" value="cheapest" autocomplete="off">
+                            <label class="btn btn-outline-success btn-sm" for="filter_cheapest">Termurah</label>
+                        
+                            <input type="radio" class="btn-check" name="price_filter" id="filter_expensive" value="expensive" autocomplete="off">
+                            <label class="btn btn-outline-danger btn-sm" for="filter_expensive">Termahal</label>
+                        
+                            <input type="radio" class="btn-check" name="price_filter" id="filter_custom" value="custom" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="filter_custom">Custom</label>
+                        </div>
                     </div>
                 </div>
 
+                {{-- CUSTOM FORM --}}
                 <div id="customMaterialForm" style="display:none;">
+                    
+                    {{-- 1. BATA SECTION --}}
                     <div class="material-section">
                         <h4 class="section-header">Bata</h4>
-                        <div class="form-group">
-                            <label>Merek :</label>
-                            <div class="input-wrapper">
-                                <select id="customBrickBrand" name="custom_brick_brand" class="select-green">
-                                    <option value="">-- Pilih Merk --</option>
-                                    @foreach($bricks->groupBy('brand')->keys() as $brand)
-                                        <option value="{{ $brand }}">{{ $brand }}</option>
-                                    @endforeach
-                                </select>
+                        
+                        @if($isMultiBrick)
+                            {{-- TAMPILAN MULTI BATA --}}
+                            <div class="alert alert-info border-primary py-2">
+                                <strong><i class="bi bi-collection-fill me-2"></i>{{ $selectedBricks->count() }} Bata Terpilih</strong>
+                                <div class="text-muted small mt-1">Akan dibuat perbandingan untuk semua bata ini.</div>
+                                @foreach($selectedBricks as $b)
+                                    <input type="hidden" name="brick_ids[]" value="{{ $b->id }}">
+                                @endforeach
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Dimensi :</label>
-                            <div class="input-wrapper">
-                                <select id="customBrickDimension" name="brick_id" class="select-blue">
-                                    <option value="">-- Pilih Dimensi --</option>
-                                </select>
+                        @elseif($isSingleCarryOver && $singleBrick)
+                            {{-- TAMPILAN SINGLE BATA (READONLY) --}}
+                            <div class="form-group">
+                                <label>Bata :</label>
+                                <div class="input-wrapper">
+                                    <input type="text" value="{{ $singleBrick->brand }} - {{ $singleBrick->type }}" readonly style="background-color:#d1fae5; font-weight:bold;">
+                                    <input type="hidden" name="brick_id" value="{{ $singleBrick->id }}">
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            {{-- TAMPILAN NORMAL (DROPDOWN) --}}
+                            <div class="form-group">
+                                <label>Merek :</label>
+                                <div class="input-wrapper">
+                                    <select id="customBrickBrand" name="custom_brick_brand" class="select-green">
+                                        <option value="">-- Pilih Merk --</option>
+                                        @foreach($bricks->groupBy('brand')->keys() as $brand)
+                                            <option value="{{ $brand }}">{{ $brand }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Dimensi :</label>
+                                <div class="input-wrapper">
+                                    <select id="customBrickDimension" name="brick_id" class="select-blue">
+                                        <option value="">-- Pilih Dimensi --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
+                    {{-- 2. SEMEN SECTION (RESTORED DROPDOWNS) --}}
                     <div class="material-section">
                         <h4 class="section-header">Semen</h4>
+                        <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                            <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Semen
+                        </div>
+                        
                         <div class="form-group">
                             <label>Jenis :</label>
                             <div class="input-wrapper">
@@ -126,14 +174,19 @@
                             <label>Merek :</label>
                             <div class="input-wrapper">
                                 <select id="customCementBrand" name="cement_id" class="select-orange">
-                                    <option value="">-- Pilih Merk --</option>
+                                    <option value="">-- Pilih Merk (Opsional) --</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
+                    {{-- 3. PASIR SECTION (RESTORED DROPDOWNS) --}}
                     <div class="material-section">
                         <h4 class="section-header">Pasir</h4>
+                        <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                            <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Pasir
+                        </div>
+
                         <div class="form-group">
                             <label>Jenis :</label>
                             <div class="input-wrapper">
@@ -157,28 +210,21 @@
                             <label>Kemasan :</label>
                             <div class="input-wrapper">
                                 <select id="customSandPackage" name="sand_id" class="select-gray-light">
-                                    <option value="">-- Pilih Kemasan --</option>
+                                    <option value="">-- Pilih Kemasan (Opsional) --</option>
                                 </select>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div id="otherForm" class="work-type-form" style="display:none;">
-                <div class="alert alert-info" style="margin-top:12px;">
-                    <i class="bi bi-info-circle"></i> Form untuk jenis pekerjaan ini akan segera tersedia
-                </div>
-            </div>
         </div>
 
         <div class="button-actions">
-            <button type="button" class="btn btn-cancel"
-                    onclick="(function(){const closeBtn = window.parent && window.parent.document ? window.parent.document.getElementById('closeModal') : null; if (closeBtn) { closeBtn.click(); } else { window.history.back(); }})();">
-                <i class="bi bi-x-lg"></i> Batalkan
-            </button>
+            <a href="{{ route('price-analysis.index') }}" class="btn btn-cancel">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
             <button type="submit" class="btn btn-submit">
-                <i class="bi bi-check-lg"></i> Ajukan
+                <i class="bi bi-search"></i> Hitung / Cari Kombinasi
             </button>
         </div>
     </form>
@@ -481,6 +527,7 @@
 @endpush
 
 @push('scripts')
+{{-- Load JS Asli --}}
 <script type="application/json" id="materialCalculationFormData">
 {!! json_encode([
     'formulaDescriptions' => $formulaDescriptions,
@@ -497,6 +544,29 @@
         if (typeof initMaterialCalculationForm === 'function') {
             initMaterialCalculationForm(document, payload);
         }
+
+        const filterRadios = document.querySelectorAll('input[name="price_filter"]');
+        const customForm = document.getElementById('customMaterialForm');
+        
+        function toggleCustomForm() {
+            const selected = document.querySelector('input[name="price_filter"]:checked');
+            if (selected && selected.value === 'custom') {
+                customForm.style.display = 'block';
+            } else {
+                customForm.style.display = 'none';
+            }
+        }
+
+        toggleCustomForm();
+        filterRadios.forEach(radio => radio.addEventListener('change', toggleCustomForm));
+
+        @if(request('formula_code'))
+            const workTypeSelect = document.getElementById('workTypeSelector');
+            if(workTypeSelect) {
+                const event = new Event('change');
+                workTypeSelect.dispatchEvent(event);
+            }
+        @endif
     })();
 </script>
 @endpush

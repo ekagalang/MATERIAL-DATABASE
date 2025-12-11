@@ -14,7 +14,7 @@
             </p>
 
             <div class="d-grid gap-3 d-md-flex justify-content-md-center mb-5">
-                <a href="{{ route('material-calculations.create') }}" class="btn btn-primary btn-lg px-5">
+                <a href="{{ route('price-analysis.index') }}" class="btn btn-primary btn-lg px-5">
                     <i class="bi bi-plus-circle me-2"></i>
                     Buat Pekerjaan Baru
                 </a>
