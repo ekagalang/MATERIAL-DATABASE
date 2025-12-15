@@ -613,17 +613,17 @@
             <a href="{{ route('materials.index') }}" class="{{ request()->routeIs('materials.*') ? 'active' : '' }}">
                 <i class="bi bi-box"></i> Database Material
             </a>
-            <a href="{{ route('cats.index') }}" class="{{ request()->routeIs('cats.*') ? 'active' : '' }}">
-                <i class="bi bi-palette"></i> Database Cat
+            <a href="{{ route('stores.index') }}" class="{{ request()->routeIs('stores.*') ? 'active' : '' }}">
+                <i class="bi bi-shop"></i> Database Toko
             </a>
-            <a href="{{ route('bricks.index') }}" class="{{ request()->routeIs('bricks.*') ? 'active' : '' }}">
-                <i class="bi bi-bricks"></i> Database Bata
+            <a href="{{ route('work-items.index') }}" class="{{ request()->routeIs('work-items.*') ? 'active' : '' }}">
+                <i class="bi bi-building-gear"></i> Database Item Pekerjaan
             </a>
-            <a href="{{ route('cements.index') }}" class="{{ request()->routeIs('cements.*') ? 'active' : '' }}">
-                <i class="bi bi-bucket"></i> Database Semen
+            <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
+                <i class="bi bi-person-gear"></i> Database Tukang
             </a>
-            <a href="{{ route('sands.index') }}" class="{{ request()->routeIs('sands.*') ? 'active' : '' }}">
-                <i class="bi bi-droplet"></i> Database Pasir
+            <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
+                <i class="bi bi-tools"></i> Database Keterampilan
             </a>
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
                 <i class="bi bi-rulers"></i> Database Satuan

@@ -4,23 +4,24 @@
 
 @section('content')
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-        <h2 style="margin-bottom: 0;">Database Cat</h2>
-        <a href="{{ route('cats.create') }}" class="btn btn-success open-modal">
-            <i class="bi bi-plus-lg"></i> Tambah Cat
-        </a>
-    </div>
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
+        <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            style="display: inline-flex; align-items: center; gap: 6px;"
+            onclick="window.location.href='{{ route('materials.index') }}'">
+            <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
+        </button>
+        <h2 style="margin: 0; flex-shrink: 0;">Database Cat</h2>
 
-    <!-- Search Form -->
-    <form action="{{ route('cats.index') }}" method="GET" style="margin-bottom: 24px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
+        <form action="{{ route('cats.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1; position: relative;">
-                <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
                 <input type="text" 
                        name="search" 
                        value="{{ request('search') }}" 
                        placeholder="Cari cat, merek, warna, toko..." 
-                       style="width: 100%; padding: 11px 14px 11px 40px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
+                       style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search"></i> Cari
@@ -30,8 +31,12 @@
                     <i class="bi bi-x-lg"></i> Reset
                 </a>
             @endif
-        </div>
-    </form>
+        </form>
+
+        <a href="{{ route('cats.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
+            <i class="bi bi-plus-lg"></i> Tambah Cat
+        </a>
+    </div>
 
     @if($cats->count() > 0)
         <div class="table-container">
@@ -85,8 +90,6 @@
                             </th>
                         @endforeach
 
-                        <th>Foto</th>
-
                         @foreach(['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume', 'package_weight_net', 'store', 'short_address', 'purchase_price', 'comparison_price_per_kg'] as $col)
                             <th class="sortable" @if($sortColumns[$col]['align']) style="text-align: {{ $sortColumns[$col]['align'] }};" @endif>
                                 <a href="{{ getSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
@@ -114,17 +117,6 @@
                             <strong style="color: #0f172a; font-weight: 600;">Cat</strong>
                         </td>
                         <td style="color: #475569;">{{ $cat->type ?? '-' }}</td>
-                        <td style="text-align: center;">
-                            @if($cat->photo_url)
-                                <img src="{{ $cat->photo_url }}"
-                                     alt="Photo"
-                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
-                                     style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
-                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
-                            @else
-                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
-                            @endif
-                        </td>
                         <td style="color: #475569;">{{ $cat->brand ?? '-' }}</td>
                         <td style="color: #475569;">{{ $cat->sub_brand ?? '-' }}</td>
                         <td style="color: #475569; font-size: 12px; text-align:right;">

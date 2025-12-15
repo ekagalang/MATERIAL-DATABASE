@@ -8,6 +8,10 @@ use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SandController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\PriceAnalysisController;
+use App\Http\Controllers\StoreController;
+use App\Http\Controllers\WorkItemController;
+use App\Http\Controllers\WorkerController;
+use App\Http\Controllers\SkillController;
 // use App\Http\Controllers\Dev\PriceAnalysisController;
 use Illuminate\Support\Facades\Route;
 
@@ -81,3 +85,8 @@ Route::prefix('dev')->name('dev.')->group(function () {
 Route::get('/price-analysis', [PriceAnalysisController::class, 'index'])->name('price-analysis.index');
 Route::post('/price-analysis', [PriceAnalysisController::class, 'calculate'])->name('price-analysis.calculate');
 Route::post('/material-calculations/compare-bricks', [App\Http\Controllers\MaterialCalculationController::class, 'compareBricks'])->name('material-calculations.compare-bricks');
+
+Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
+Route::get('/work-items', [WorkItemController::class, 'index'])->name('work-items.index');
+Route::get('/workers', [WorkerController::class, 'index'])->name('workers.index');
+Route::get('/skills', [SkillController::class, 'index'])->name('skills.index');
