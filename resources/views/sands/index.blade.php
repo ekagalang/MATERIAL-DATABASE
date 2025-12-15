@@ -4,23 +4,24 @@
 
 @section('content')
 <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-        <h2 style="margin-bottom: 0;">Database Pasir</h2>
-        <a href="{{ route('sands.create') }}" class="btn btn-success open-modal">
-            <i class="bi bi-plus-lg"></i> Tambah Pasir
-        </a>
-    </div>
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
+        <button
+            type="button"
+            class="btn btn-primary btn-sm"
+            style="display: inline-flex; align-items: center; gap: 6px;"
+            onclick="window.location.href='{{ route('materials.index') }}'">
+            <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
+        </button>
+        <h2 style="margin: 0; flex-shrink: 0;">Database Pasir</h2>
 
-    <!-- Search Form -->
-    <form action="{{ route('sands.index') }}" method="GET" style="margin-bottom: 24px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
+        <form action="{{ route('sands.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1; position: relative;">
-                <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
                 <input type="text"
                        name="search"
                        value="{{ request('search') }}"
                        placeholder="Cari jenis, merek, toko..."
-                       style="width: 100%; padding: 11px 14px 11px 40px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
+                       style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search"></i> Cari
@@ -30,46 +31,51 @@
                     <i class="bi bi-x-lg"></i> Reset
                 </a>
             @endif
-        </div>
-    </form>
+        </form>
+
+        <a href="{{ route('sands.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
+            <i class="bi bi-plus-lg"></i> Tambah Pasir
+        </a>
+    </div>
 
     @if($sands->count() > 0)
         <div class="table-container">
             <table>
                 <thead>
-                    <tr>
-                        <th>No</th>
-                        @php
-                            function getSandSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
-                                $params = array_merge($requestQuery, []);
-                                unset($params['sort_by'], $params['sort_direction']);
-                                if ($currentSortBy === $column) {
-                                    if ($currentDirection === 'asc') {
-                                        $params['sort_by'] = $column;
-                                        $params['sort_direction'] = 'desc';
-                                    }
-                                } else {
+                    @php
+                        function getSandSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
+                            $params = array_merge($requestQuery, []);
+                            unset($params['sort_by'], $params['sort_direction']);
+                            if ($currentSortBy === $column) {
+                                if ($currentDirection === 'asc') {
                                     $params['sort_by'] = $column;
-                                    $params['sort_direction'] = 'asc';
+                                    $params['sort_direction'] = 'desc';
                                 }
-                                return route('sands.index', $params);
+                            } else {
+                                $params['sort_by'] = $column;
+                                $params['sort_direction'] = 'asc';
                             }
-                            $sandSortColumns = [
-                                'sand_name' => ['label' => 'Material', 'align' => ''],
-                                'type' => ['label' => 'Jenis', 'align' => ''],
-                                'brand' => ['label' => 'Merek', 'align' => ''],
-                                'package_unit' => ['label' => 'Kemasan', 'align' => ''],
-                                'dimension_length' => ['label' => 'Dimensi (M)', 'align' => ''],
-                                'package_volume' => ['label' => 'Volume (M3)', 'align' => ''],
-                                'store' => ['label' => 'Toko', 'align' => ''],
-                                'short_address' => ['label' => 'Alamat Singkat', 'align' => ''],
-                                'package_price' => ['label' => 'Harga', 'align' => ''],
-                                'comparison_price_per_m3' => ['label' => 'Harga / M3', 'align' => ''],
-                            ];
-                        @endphp
+                            return route('sands.index', $params);
+                        }
+                        $sandSortColumns = [
+                            'sand_name' => ['label' => 'Material', 'align' => ''],
+                            'type' => ['label' => 'Jenis', 'align' => ''],
+                            'brand' => ['label' => 'Merek', 'align' => ''],
+                            'package_unit' => ['label' => 'Kemasan', 'align' => ''],
+                            'dimension_length' => ['label' => 'Dimensi (M)', 'align' => ''],
+                            'package_volume' => ['label' => 'Volume', 'align' => ''],
+                            'store' => ['label' => 'Toko', 'align' => ''],
+                            'short_address' => ['label' => 'Alamat Singkat', 'align' => ''],
+                            'package_price' => ['label' => 'Harga', 'align' => ''],
+                            'comparison_price_per_m3' => ['label' => 'Harga / M3', 'align' => ''],
+                        ];
+                    @endphp
 
-                        @foreach(['sand_name', 'type'] as $col)
-                            <th class="sortable" @if($sandSortColumns[$col]['align']) style="text-align: {{ $sandSortColumns[$col]['align'] }};" @endif>
+                    <tr class="dim-group-row">
+                        <th rowspan="2">No</th>
+
+                        @foreach(['sand_name', 'type', 'brand', 'package_unit'] as $col)
+                            <th class="sortable" rowspan="2" @if($sandSortColumns[$col]['align']) style="text-align: {{ $sandSortColumns[$col]['align'] }};" @endif>
                                 <a href="{{ getSandSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sandSortColumns[$col]['label'] }}</span>
@@ -82,10 +88,20 @@
                             </th>
                         @endforeach
 
-                        <th>Foto</th>
+                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
+                            <a href="{{ getSandSortUrl('dimension_length', request('sort_by'), request('sort_direction'), request()->query()) }}"
+                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span>Dimensi (M)</span>
+                                @if(in_array(request('sort_by'), ['dimension_length', 'dimension_width', 'dimension_height']))
+                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="font-size: 12px;"></i>
+                                @else
+                                    <i class="bi bi-arrow-down-up" style="font-size: 12px; opacity: 0.3;"></i>
+                                @endif
+                            </a>
+                        </th>
 
-                        @foreach(['brand', 'package_unit', 'dimension_length', 'package_volume', 'store', 'short_address', 'package_price', 'comparison_price_per_m3'] as $col)
-                            <th class="sortable" @if($sandSortColumns[$col]['align']) style="text-align: {{ $sandSortColumns[$col]['align'] }};" @endif>
+                        @foreach(['package_volume', 'store', 'short_address', 'package_price', 'comparison_price_per_m3'] as $col)
+                            <th class="sortable" rowspan="2" @if($sandSortColumns[$col]['align']) style="text-align: {{ $sandSortColumns[$col]['align'] }};" @endif>
                                 <a href="{{ getSandSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $sandSortColumns[$col]['label'] }}</span>
@@ -98,7 +114,12 @@
                             </th>
                         @endforeach
 
-                        <th style="text-align: center">Aksi</th>
+                        <th rowspan="2" style="text-align: center">Aksi</th>
+                    </tr>
+                    <tr class="dim-sub-row">
+                        @foreach(['P', 'L', 'T'] as $label)
+                            <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
+                        @endforeach
                     </tr>
                 </thead>
                 <tbody>
@@ -111,35 +132,36 @@
                             <strong style="color: #0f172a; font-weight: 600;">Pasir</strong>
                         </td>
                         <td style="color: #475569;">{{ $sand->type ?? '-' }}</td>
-                        <td style="text-align: center;">
-                            @if($sand->photo_url)
-                                <img src="{{ $sand->photo_url }}"
-                                     alt="Photo"
-                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';"
-                                     style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
-                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
-                            @else
-                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
-                            @endif
-                        </td>
                         <td style="color: #475569;">{{ $sand->brand ?? '-' }}</td>
                         <td>
                             <span style="display: inline-block; border-radius: 6px; font-size: 12px; font-weight: 600;">
                                 {{ $sand->packageUnit->name ?? $sand->package_unit ?? '-' }}
                             </span>
                         </td>
-                        <td style="color: #475569; font-size: 12px;">
-                            @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
-                                {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} ×
-                                {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} ×
-                                {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }}
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                            @if(!is_null($sand->dimension_length))
+                                {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }}
                             @else
-                                <span style="color: #cbd5e1;">—</span>
+                                <span style="color: #cbd5e1;">-</span>
                             @endif
                         </td>
-                        <td style="text-align: right; color: #475569; font-size: 12px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                            @if(!is_null($sand->dimension_width))
+                                {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }}
+                            @else
+                                <span style="color: #cbd5e1;">-</span>
+                            @endif
+                        </td>
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                            @if(!is_null($sand->dimension_height))
+                                {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }}
+                            @else
+                                <span style="color: #cbd5e1;">-</span>
+                            @endif
+                        </td>
+                        <td class="volume-cell" style="text-align: right; color: #475569; font-size: 12px;">
                             @if($sand->package_volume)
-                                {{ number_format($sand->package_volume, 6, ',', '.') }}
+                                {{ number_format($sand->package_volume, 6, ',', '.') }} M3
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
@@ -389,6 +411,54 @@ th.sortable:hover i {
 
 th.sortable i {
     transition: opacity 0.2s ease;
+}
+
+.table-container table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.table-container thead th {
+    white-space: nowrap;
+}
+
+.table-container thead .dim-group-row th {
+    border-bottom: 0 !important;
+}
+
+.table-container thead .dim-sub-row th {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    padding: 1px 2px;
+    width: 40px;
+    position: relative;
+}
+
+.table-container tbody td.dim-cell {
+    padding: 1px 2px !important;
+    width: 40px;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    position: relative;
+}
+
+.table-container thead .dim-sub-row th + th::before,
+.table-container tbody td.dim-cell + td.dim-cell::before {
+    content: 'x';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 11px;
+    pointer-events: none;
+}
+
+.table-container tbody td.volume-cell {
+    padding: 6px 8px !important;
+    width: 90px;
 }
 </style>
 

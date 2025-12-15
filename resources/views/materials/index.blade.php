@@ -3,29 +3,45 @@
 @section('title', 'Semua Material')
 
 @section('content')
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-        <h2 style="margin-bottom: 0;">Semua Material</h2>
-        <div style="display: flex; gap: 12px;">
-            <button type="button" id="openMaterialChoiceModal" class="btn btn-success">
-                <i class="bi bi-plus-lg"></i> Tambah Data
+<div class="db-dropdown card" style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; color: #0f172a; font-weight: 700;">
+                <span>Sub Menu Database</span>
+            </div>
+            <button class="db-dropdown-toggle btn btn-primary btn-sm" data-target="#dbDropdownBody" aria-expanded="true" style="display: inline-flex; align-items: center; gap: 6px;">
+                <i class="bi bi-chevron-down" style="color: #ffffff; font-size: 1.2rem;"></i>
             </button>
-            <a href="{{ route('materials.settings') }}" class="btn btn-secondary">
-                <i class="bi bi-gear"></i> Pengaturan Tampilan
-            </a>
+        </div>
+        <div class="db-dropdown-body" id="dbDropdownBody" style="margin-top: 12px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <a href="{{ route('bricks.index') }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-bricks"></i> Bata
+                </a>
+                <a href="{{ route('sands.index') }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-droplet"></i> Pasir
+                </a>
+                <a href="{{ route('cements.index') }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-bucket"></i> Semen
+                </a>
+                <a href="{{ route('cats.index') }}" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <i class="bi bi-palette"></i> Cat
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Search Form -->
-    <form action="{{ route('materials.index') }}" method="GET" style="margin-bottom: 24px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
+<div class="card">
+    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap;">
+        <h2 style="margin: 0; flex-shrink: 0;">Database Material</h2>
+
+        <form action="{{ route('materials.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1; position: relative;">
-                <i class="bi bi-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
                 <input type="text"
                        name="search"
                        value="{{ request('search') }}"
                        placeholder="Cari semua material..."
-                       style="width: 100%; padding: 11px 14px 11px 40px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
+                       style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search"></i> Cari
@@ -35,46 +51,201 @@
                     <i class="bi bi-x-lg"></i> Reset
                 </a>
             @endif
+        </form>
+
+        <div style="display: flex; gap: 12px; flex-shrink: 0;">
+            <button type="button" id="openMaterialChoiceModal" class="btn btn-success">
+                <i class="bi bi-plus-lg"></i> Tambah Data
+            </button>
+            <a href="{{ route('materials.settings') }}" class="btn btn-secondary">
+                <i class="bi bi-gear"></i> Pengaturan Tampilan
+            </a>
         </div>
-    </form>
+    </div>
 
     @if(count($materials) > 0)
         @foreach($materials as $material)
-            <div class="material-section" style="margin-bottom: 40px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e2e8f0;">
-                    <h3 style="margin: 0; color: #891313; font-size: 18px; font-weight: 700;">
+            <div class="material-section" id="section-{{ $material['type'] }}" style="margin-bottom: 24px;">
+                <div class="material-section-header">
+                    <h3 style="margin: 0; color: #891313; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
                         {{ $material['label'] }}
-                        <span style="color: #94a3b8; font-size: 14px; font-weight: 400; margin-left: 8px;">
+                        <span style="color: #94a3b8; font-size: 14px; font-weight: 400;">
                             ({{ $material['count'] }} items)
                         </span>
-                    </h3>
-                    <a href="{{ route($material['type'] . 's.index') }}" class="btn btn-sm btn-primary">
+                        <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-sm btn-primary">
                         Lihat Semua <i class="bi bi-arrow-right"></i>
                     </a>
+                    </h3>
+                    
                 </div>
 
                 @if($material['data']->count() > 0)
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr>
-                                    <th>No</th>
-                                    @if($material['type'] == 'brick')
+                                @php
+                                    if (!function_exists('getMaterialSortUrl')) {
+                                        function getMaterialSortUrl($column, $currentSortBy, $currentDirection) {
+                                            $params = array_merge(request()->query(), []);
+                                            unset($params['sort_by'], $params['sort_direction']);
+                                            if ($currentSortBy === $column) {
+                                                if ($currentDirection === 'asc') {
+                                                    $params['sort_by'] = $column;
+                                                    $params['sort_direction'] = 'desc';
+                                                }
+                                            } else {
+                                                $params['sort_by'] = $column;
+                                                $params['sort_direction'] = 'asc';
+                                            }
+                                            return route('materials.index', $params);
+                                        }
+                                    }
+                                    $brickSortable = [
+                                        'type' => 'Jenis',
+                                        'brand' => 'Merek',
+                                        'form' => 'Bentuk',
+                                        'dimension_length' => 'Dimensi (cm)',
+                                        'package_volume' => 'Volume',
+                                        'store' => 'Toko',
+                                        'short_address' => 'Alamat Singkat',
+                                        'price_per_piece' => 'Harga / Buah',
+                                        'comparison_price_per_m3' => 'Harga / M3',
+                                    ];
+                                    $sandSortable = [
+                                        'type' => 'Jenis',
+                                        'brand' => 'Merek',
+                                        'package_unit' => 'Kemasan',
+                                        'dimension_length' => 'Dimensi (M)',
+                                        'package_volume' => 'Volume',
+                                        'store' => 'Toko',
+                                        'short_address' => 'Alamat Singkat',
+                                        'package_price' => 'Harga',
+                                        'comparison_price_per_m3' => 'Harga / M3',
+                                    ];
+                                @endphp
+                                @if($material['type'] == 'brick')
+                                    <tr class="dim-group-row">
+                                        <th rowspan="2">No</th>
+                                        <th rowspan="2">Material</th>
+                                        <th class="sortable" rowspan="2">
+                                            <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                                <span>{{ $brickSortable['type'] }}</span>
+                                                @if(request('sort_by') == 'type')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        @foreach(['brand','form'] as $col)
+                                            <th class="sortable" rowspan="2">
+                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                                    <span>{{ $brickSortable[$col] }}</span>
+                                                    @if(request('sort_by') == $col)
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                        @endforeach
+                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
+                                            <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                                <span>Dimensi (cm)</span>
+                                                @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up" style="font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        @foreach(['package_volume','store','short_address','price_per_piece','comparison_price_per_m3'] as $col)
+                                            <th class="sortable" rowspan="2">
+                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                                    <span>{{ $brickSortable[$col] }}</span>
+                                                    @if(request('sort_by') == $col)
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                        @endforeach
+                                        <th rowspan="2">Aksi</th>
+                                    </tr>
+                                    <tr class="dim-sub-row">
+                                        @foreach(['P', 'L', 'T'] as $label)
+                                            <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
+                                        @endforeach
+                                    </tr>
+                                @elseif($material['type'] == 'sand')
+                                    <tr class="dim-group-row">
+                                        <th rowspan="2">No</th>
+                                        <th rowspan="2">Material</th>
+                                        <th class="sortable" rowspan="2">
+                                            <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                                <span>{{ $sandSortable['type'] }}</span>
+                                                @if(request('sort_by') == 'type')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        @foreach(['brand','package_unit'] as $col)
+                                            <th class="sortable" rowspan="2">
+                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                                    <span>{{ $sandSortable[$col] }}</span>
+                                                    @if(request('sort_by') == $col)
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                        @endforeach
+                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
+                                            <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                                <span>Dimensi (M)</span>
+                                                @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up" style="font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        @foreach(['package_volume','store','short_address','package_price','comparison_price_per_m3'] as $col)
+                                            <th class="sortable" rowspan="2">
+                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                                    <span>{{ $sandSortable[$col] }}</span>
+                                                    @if(request('sort_by') == $col)
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                        @endforeach
+                                        <th rowspan="2">Aksi</th>
+                                    </tr>
+                                    <tr class="dim-sub-row">
+                                        @foreach(['P', 'L', 'T'] as $label)
+                                            <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
+                                        @endforeach
+                                    </tr>
+                                @elseif($material['type'] == 'cat')
+                                    <tr>
+                                        <th>No</th>
                                         <th>Material</th>
                                         <th>Jenis</th>
-                                        <th>Foto</th>
-                                        <th>Merek</th>
-                                        <th>Bentuk</th>
-                                        <th>Dimensi (cm)</th>
-                                        <th>Volume (M3)</th>
-                                        <th>Toko</th>
-                                        <th>Alamat Singkat</th>
-                                        <th>Harga / Buah</th>
-                                        <th>Harga / M3</th>
-                                    @elseif($material['type'] == 'cat')
-                                        <th>Material</th>
-                                        <th>Jenis</th>
-                                        <th>Foto</th>
                                         <th>Merek</th>
                                         <th>Sub Merek</th>
                                         <th style="text-align: right;">Code</th>
@@ -86,10 +257,13 @@
                                         <th style="text-align: left;">Alamat Singkat</th>
                                         <th>Harga</th>
                                         <th>Harga / Kg</th>
-                                    @elseif($material['type'] == 'cement')
+                                        <th>Aksi</th>
+                                    </tr>
+                                @elseif($material['type'] == 'cement')
+                                    <tr>
+                                        <th>No</th>
                                         <th>Material</th>
                                         <th>Jenis</th>
-                                        <th>Foto</th>
                                         <th>Merek</th>
                                         <th>Sub Merek</th>
                                         <th style="text-align: right">Code</th>
@@ -100,21 +274,9 @@
                                         <th>Alamat Singkat</th>
                                         <th>Harga</th>
                                         <th>Harga / Kg</th>
-                                    @elseif($material['type'] == 'sand')
-                                        <th>Material</th>
-                                        <th>Jenis</th>
-                                        <th>Foto</th>
-                                        <th>Merek</th>
-                                        <th>Kemasan</th>
-                                        <th>Dimensi (M)</th>
-                                        <th>Volume (M3)</th>
-                                        <th>Toko</th>
-                                        <th>Alamat Singkat</th>
-                                        <th>Harga</th>
-                                        <th>Harga / M3</th>
-                                    @endif
-                                    <th>Aksi</th>
-                                </tr>
+                                        <th>Aksi</th>
+                                    </tr>
+                                @endif
                             </thead>
                             <tbody>
                                 @foreach($material['data'] as $index => $item)
@@ -125,26 +287,32 @@
                                     @if($material['type'] == 'brick')
                                         <td><strong style="color: #0f172a; font-weight: 600;">Bata</strong></td>
                                         <td style="color: #475569;">{{ $item->type ?? '-' }}</td>
-                                        <td style="text-align: center;">
-                                            @if($item->photo_url)
-                                                <img src="{{ $item->photo_url }}" alt="Photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
-                                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
-                                            @else
-                                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
-                                            @endif
-                                        </td>
                                         <td style="color: #475569;">{{ $item->brand ?? '-' }}</td>
                                         <td style="color: #475569;">{{ $item->form ?? '-' }}</td>
-                                        <td style="color: #475569; font-size: 12px;">
-                                            @if($item->dimension_length && $item->dimension_width && $item->dimension_height)
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 1, ',', '.'), '0'), ',') }} × {{ rtrim(rtrim(number_format($item->dimension_width, 1, ',', '.'), '0'), ',') }} × {{ rtrim(rtrim(number_format($item->dimension_height, 1, ',', '.'), '0'), ',') }}
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                                            @if(!is_null($item->dimension_length))
+                                                {{ rtrim(rtrim(number_format($item->dimension_length, 1, ',', '.'), '0'), ',') }}
                                             @else
-                                                <span style="color: #cbd5e1;">—</span>
+                                                <span style="color: #cbd5e1;">-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; color: #475569; font-size: 12px;">
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                                            @if(!is_null($item->dimension_width))
+                                                {{ rtrim(rtrim(number_format($item->dimension_width, 1, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                                            @if(!is_null($item->dimension_height))
+                                                {{ rtrim(rtrim(number_format($item->dimension_height, 1, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="volume-cell" style="text-align: right; color: #475569; font-size: 12px;">
                                             @if($item->package_volume)
-                                                {{ number_format($item->package_volume, 6, ',', '.') }}
+                                                {{ number_format($item->package_volume, 6, ',', '.') }} M3
                                             @else
                                                 <span style="color: #cbd5e1;">—</span>
                                             @endif
@@ -168,14 +336,6 @@
                                     @elseif($material['type'] == 'cat')
                                         <td><strong style="color: #0f172a; font-weight: 600;">Cat</strong></td>
                                         <td style="color: #475569;">{{ $item->type ?? '-' }}</td>
-                                        <td style="text-align: center;">
-                                            @if($item->photo_url)
-                                                <img src="{{ $item->photo_url }}" alt="Photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
-                                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
-                                            @else
-                                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
-                                            @endif
-                                        </td>
                                         <td style="color: #475569;">{{ $item->brand ?? '-' }}</td>
                                         <td style="color: #475569;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="color: #475569; font-size: 12px; text-align:right;">{{ $item->color_code ?? '-' }}</td>
@@ -220,14 +380,6 @@
                                     @elseif($material['type'] == 'cement')
                                         <td><strong style="color: #0f172a; font-weight: 600;">Semen</strong></td>
                                         <td style="color: #475569;">{{ $item->type ?? '-' }}</td>
-                                        <td style="text-align: center;">
-                                            @if($item->photo_url)
-                                                <img src="{{ $item->photo_url }}" alt="Photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
-                                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
-                                            @else
-                                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
-                                            @endif
-                                        </td>
                                         <td style="color: #475569;">{{ $item->brand ?? '-' }}</td>
                                         <td style="color: #475569;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="color: #475569; font-size: 12px; text-align:right;">{{ $item->code ?? '-' }}</td>
@@ -265,14 +417,6 @@
                                     @elseif($material['type'] == 'sand')
                                         <td><strong style="color: #0f172a; font-weight: 600;">Pasir</strong></td>
                                         <td style="color: #475569;">{{ $item->type ?? '-' }}</td>
-                                        <td style="text-align: center;">
-                                            @if($item->photo_url)
-                                                <img src="{{ $item->photo_url }}" alt="Photo" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1.5px solid #e2e8f0;">
-                                                <span style="color: #cbd5e1; display: none; font-size: 24px;">📷</span>
-                                            @else
-                                                <span style="color: #cbd5e1; font-size: 20px;">—</span>
-                                            @endif
-                                        </td>
                                         <td style="color: #475569;">{{ $item->brand ?? '-' }}</td>
                                         <td style="color: #475569; font-size: 13px;">
                                             @if($item->package_unit)
@@ -281,16 +425,30 @@
                                                 <span style="color: #cbd5e1;">—</span>
                                             @endif
                                         </td>
-                                        <td style="color: #475569; font-size: 12px;">
-                                            @if($item->dimension_length && $item->dimension_width && $item->dimension_height)
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 2, ',', '.'), '0'), ',') }} × {{ rtrim(rtrim(number_format($item->dimension_width, 2, ',', '.'), '0'), ',') }} × {{ rtrim(rtrim(number_format($item->dimension_height, 2, ',', '.'), '0'), ',') }}
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                                            @if(!is_null($item->dimension_length))
+                                                {{ rtrim(rtrim(number_format($item->dimension_length, 2, ',', '.'), '0'), ',') }}
                                             @else
-                                                <span style="color: #cbd5e1;">—</span>
+                                                <span style="color: #cbd5e1;">-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; color: #475569; font-size: 12px;">
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                                            @if(!is_null($item->dimension_width))
+                                                {{ rtrim(rtrim(number_format($item->dimension_width, 2, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                                            @if(!is_null($item->dimension_height))
+                                                {{ rtrim(rtrim(number_format($item->dimension_height, 2, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="volume-cell" style="text-align: right; color: #475569; font-size: 12px;">
                                             @if($item->package_volume)
-                                                {{ number_format($item->package_volume, 6, ',', '.') }}
+                                                {{ number_format($item->package_volume, 6, ',', '.') }} M3
                                             @else
                                                 <span style="color: #cbd5e1;">—</span>
                                             @endif
@@ -523,6 +681,115 @@
     background: #94a3b8;
 }
 
+.table-container table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.table-container thead th {
+    white-space: nowrap;
+}
+
+.table-container thead .dim-group-row th {
+    border-bottom: 0 !important;
+}
+
+.table-container thead .dim-sub-row th {
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    padding: 1px 2px;
+    width: 40px;
+    position: relative;
+}
+
+.table-container tbody td.dim-cell {
+    padding: 1px 2px !important;
+    width: 40px;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    position: relative;
+}
+
+.table-container thead .dim-sub-row th + th::before,
+.table-container tbody td.dim-cell + td.dim-cell::before {
+    content: 'x';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 11px;
+    pointer-events: none;
+}
+
+.table-container tbody td.volume-cell {
+    padding: 6px 8px !important;
+    width: 90px;
+}
+
+.db-dropdown-body {
+    display: none;
+}
+
+.db-dropdown-body.open {
+    display: block;
+}
+
+.db-dropdown-toggle i {
+    transition: transform 0.2s ease;
+}
+
+.db-dropdown-toggle[aria-expanded="false"] i {
+    transform: rotate(-90deg);
+}
+
+.material-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.material-nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    text-decoration: none;
+    color: #0f172a;
+    font-weight: 600;
+    background: #f8fafc;
+    transition: all 0.2s ease;
+}
+
+.material-nav-link:hover {
+    border-color: #891313;
+    color: #891313;
+}
+
+.material-nav-count {
+    display: inline-block;
+    min-width: 26px;
+    padding: 4px 8px;
+    background: #eef2ff;
+    border-radius: 999px;
+    font-size: 12px;
+    color: #4338ca;
+    text-align: center;
+}
+
+.material-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1.5px solid #e2e8f0;
+}
 /* Input focus styles */
 input[type="text"]:focus {
     outline: none;
@@ -742,6 +1009,20 @@ document.addEventListener('DOMContentLoaded', function() {
             // The open-modal class will handle opening the form modal
         });
     });
+
+    // Dropdown card toggle
+    const dbToggle = document.querySelector('.db-dropdown-toggle');
+    const dbBody = document.querySelector(dbToggle?.getAttribute('data-target'));
+    if (dbToggle && dbBody) {
+        // default closed
+        dbToggle.setAttribute('aria-expanded', 'false');
+        dbBody.classList.remove('open');
+        dbToggle.addEventListener('click', () => {
+            const expanded = dbToggle.getAttribute('aria-expanded') === 'true';
+            dbToggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+            dbBody.classList.toggle('open', !expanded);
+        });
+    }
 });
 </script>
 @endsection
