@@ -15,22 +15,44 @@ use App\Http\Controllers\SkillController;
 // use App\Http\Controllers\Dev\PriceAnalysisController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return app(\App\Http\Controllers\MaterialCalculationController::class)->index(request());
-});
+Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
 Route::resource('units', UnitController::class);
 Route::resource('cats', CatController::class);
 Route::resource('bricks', BrickController::class);
 Route::resource('materials', MaterialController::class);
-Route::get('/materials-settings', [MaterialController::class, 'settings'])->name('materials.settings');
-Route::post('/materials-settings', [MaterialController::class, 'updateSettings'])->name('materials.settings.update');
 Route::resource('cements', CementController::class);
 Route::resource('sands', SandController::class);
 
 // API untuk mendapatkan unique values per field - cats
 Route::get('/api/cats/field-values/{field}', [CatController::class, 'getFieldValues'])
     ->name('cats.field-values');
+
+// API untuk mendapatkan semua stores dari semua material
+Route::get('/api/cats/all-stores', [CatController::class, 'getAllStores'])
+    ->name('cats.all-stores');
+
+Route::get('/api/sands/all-stores', [SandController::class, 'getAllStores'])
+    ->name('sands.all-stores');
+
+Route::get('/api/bricks/all-stores', [BrickController::class, 'getAllStores'])
+    ->name('bricks.all-stores');
+
+Route::get('/api/cements/all-stores', [CementController::class, 'getAllStores'])
+    ->name('cements.all-stores');
+
+// API untuk mendapatkan alamat berdasarkan toko dari semua material
+Route::get('/api/cats/addresses-by-store', [CatController::class, 'getAddressesByStore'])
+    ->name('cats.addresses-by-store');
+
+Route::get('/api/sands/addresses-by-store', [SandController::class, 'getAddressesByStore'])
+    ->name('sands.addresses-by-store');
+
+Route::get('/api/bricks/addresses-by-store', [BrickController::class, 'getAddressesByStore'])
+    ->name('bricks.addresses-by-store');
+
+Route::get('/api/cements/addresses-by-store', [CementController::class, 'getAddressesByStore'])
+    ->name('cements.addresses-by-store');
 
 // API untuk mendapatkan unique values per field - Bricks
 Route::get('/api/bricks/field-values/{field}', [BrickController::class, 'getFieldValues'])

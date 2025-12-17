@@ -50,7 +50,6 @@
             border-radius: 10px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             font-weight: 500;
-            font-size: 13.5px;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
@@ -60,7 +59,7 @@
         .nav a:hover { 
             background: #f8fafc;
             color: #334155;
-            transform: translateY(-1px);
+            transform: translateY(-5px);
         }
         
         .nav a.active {
@@ -104,10 +103,10 @@
         }
         
         table th { 
-            background: linear-gradient(to bottom, #fafbfc 0%, #f8fafc 100%);
-            color: #475569;
+            background: #891313;
+            color: #ffffff;
             padding: 14px 16px;
-            text-align: left;
+            text-align: center;
             font-weight: 900;
             font-size: 12px;
             letter-spacing: 0.3px;
@@ -145,7 +144,43 @@
         table th:nth-child(13), table td:nth-child(13) { width: 150px; text-align: center; }
         */
         
-        /* Forms - Minimal & Clean */
+        .btn-save {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            padding: 10px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-cancel {
+            border: 1px solid #FA6868;
+            background-color: transparent;
+            color: #FA6868;
+            padding: 10px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+
+        .btn-cancel:hover {
+            background-color: #f85a5a;
+            color: white;
+            transform: translateY(-5px);
+        }
+
+        .btn-save:hover {
+            background-color: transparent;
+            border: 1px solid #5cb85c;
+            color: #5cb85c;
+            transform: translateY(-5px)
+        }
+        
         .form-group {
             display: flex; 
             margin-bottom: 20px; 
@@ -608,25 +643,25 @@
     <div class="container">
         <div class="nav">
             <a href="{{ url('/') }}" class="{{ request()->is('/') || request()->routeIs('material-calculator.dashboard') || request()->routeIs('material-calculations.*') ? 'active' : '' }}">
-                <i class="bi bi-calculator"></i> Dashboard
+                Dashboard
             </a>
             <a href="{{ route('materials.index') }}" class="{{ request()->routeIs('materials.*') ? 'active' : '' }}">
-                <i class="bi bi-box"></i> Database Material
+                Material
             </a>
             <a href="{{ route('stores.index') }}" class="{{ request()->routeIs('stores.*') ? 'active' : '' }}">
-                <i class="bi bi-shop"></i> Database Toko
+                Toko
             </a>
             <a href="{{ route('work-items.index') }}" class="{{ request()->routeIs('work-items.*') ? 'active' : '' }}">
-                <i class="bi bi-building-gear"></i> Database Item Pekerjaan
+                Item Pekerjaan
             </a>
             <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
-                <i class="bi bi-person-gear"></i> Database Tukang
+                Tukang
             </a>
             <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
-                <i class="bi bi-tools"></i> Database Keterampilan
+                Keterampilan
             </a>
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
-                <i class="bi bi-rulers"></i> Database Satuan
+                Satuan
             </a>
         </div>
 

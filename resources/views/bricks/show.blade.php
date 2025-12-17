@@ -168,7 +168,7 @@
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
                                         {{ number_format($brick->comparison_price_per_m3, 0, ',', '.') }}
                                     </span>
-                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/m³</span>
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ M3</span>
                                 </div>
                             @else
                                 -

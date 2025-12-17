@@ -6,7 +6,12 @@ function initCementForm() {
     }
     form.__cementFormInited = true;
 
-    // Auto-suggest
+    // Track current selections for cascading autocomplete
+    let currentBrand = '';
+    let currentPackageUnit = '';
+    let currentStore = '';
+
+    // Auto-suggest with cascading logic
     const autosuggestInputs = document.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
@@ -23,6 +28,9 @@ function initCementForm() {
                     item.addEventListener('click', function() {
                         input.value = v;
                         suggestList.style.display = 'none';
+
+                        // Trigger change event for cascading updates
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
                     });
                     suggestList.appendChild(item);
                 });
@@ -31,7 +39,43 @@ function initCementForm() {
         }
 
         function loadSuggestions(term = '') {
-            const url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+            let url;
+
+            // Special case: store field menggunakan endpoint all-stores
+            if (field === 'store') {
+                // Jika tidak ada search term (user baru focus), tampilkan dari cement saja
+                // Jika ada search term (user mengetik), tampilkan dari semua material
+                const materialType = (term === '' || term.length === 0) ? 'cement' : 'all';
+                url = `/api/cements/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
+            }
+            // Special case: address field menggunakan endpoint addresses-by-store
+            else if (field === 'address' || field === 'short_address') {
+                if (currentStore) {
+                    url = `/api/cements/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(currentStore)}`;
+                } else {
+                    // Jika toko belum dipilih, gunakan field-values biasa
+                    url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+                }
+            }
+            else {
+                url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+
+                // Add filter parameters for cascading autocomplete
+                // Fields that depend on brand
+                if (['sub_brand', 'code', 'color', 'dimension_length', 'dimension_width', 'dimension_height', 'package_weight_gross'].includes(field)) {
+                    if (currentBrand) {
+                        url += `&brand=${encodeURIComponent(currentBrand)}`;
+                    }
+                }
+
+                // Fields that depend on package_unit
+                if (field === 'package_price') {
+                    if (currentPackageUnit) {
+                        url += `&package_unit=${encodeURIComponent(currentPackageUnit)}`;
+                    }
+                }
+            }
+
             fetch(url)
                 .then(resp => resp.json())
                 .then(populate)
@@ -51,6 +95,38 @@ function initCementForm() {
             }
         });
     });
+
+    // Listen for brand changes to update dependent fields
+    const brandInput = document.getElementById('brand');
+    if (brandInput) {
+        brandInput.addEventListener('change', function() {
+            currentBrand = this.value;
+
+            // Clear and refresh dependent fields
+            const dependentFields = ['sub_brand', 'code', 'color', 'dimension_length', 'dimension_width', 'dimension_height', 'package_weight_gross'];
+            dependentFields.forEach(fieldName => {
+                const fieldInput = document.getElementById(fieldName);
+                if (fieldInput && fieldInput !== document.activeElement) {
+                    // Don't clear if user is typing in that field
+                    // fieldInput.value = '';
+                }
+            });
+        });
+    }
+
+    // Listen for store changes to update address field
+    const storeInput = document.getElementById('store');
+    if (storeInput) {
+        storeInput.addEventListener('change', function() {
+            currentStore = this.value;
+
+            // Clear address field when store changes
+            const addressInput = document.getElementById('address');
+            if (addressInput && addressInput !== document.activeElement) {
+                // addressInput.value = '';
+            }
+        });
+    }
 
     // Photo upload functionality
     const photoInput = document.getElementById('photo');
@@ -79,6 +155,27 @@ function initCementForm() {
                     if (photoPreview) {
                         photoPreview.src = e.target.result;
                         photoPreview.style.display = 'block';
+
+                        // Adjust preview area height based on image aspect ratio
+                        const img = new Image();
+                        img.onload = function() {
+                            if (photoPreviewArea) {
+                                const containerWidth = photoPreviewArea.offsetWidth;
+                                const aspectRatio = img.height / img.width;
+
+                                // Calculate ideal height based on aspect ratio
+                                let idealHeight = containerWidth * aspectRatio;
+
+                                // Constrain to min/max bounds
+                                const minHeight = 200;
+                                const maxHeight = 400;
+                                idealHeight = Math.max(minHeight, Math.min(maxHeight, idealHeight));
+
+                                // Apply the calculated height with smooth transition
+                                photoPreviewArea.style.height = idealHeight + 'px';
+                            }
+                        };
+                        img.src = e.target.result;
                     }
                     if (photoPlaceholder) photoPlaceholder.style.display = 'none';
                     if (deletePhotoBtn) deletePhotoBtn.style.display = 'inline';
@@ -97,6 +194,8 @@ function initCementForm() {
                 photoPreview.style.display = 'none';
             }
             if (photoPlaceholder) photoPlaceholder.style.display = 'block';
+            // Reset height to default
+            if (photoPreviewArea) photoPreviewArea.style.height = '320px';
             deletePhotoBtn.style.display = 'none';
         });
     }
@@ -135,6 +234,15 @@ function initCementForm() {
     const priceUnitInput = document.getElementById('price_unit');
 
     let isUpdatingPrice = false; // Flag untuk prevent circular updates
+
+    // Listen for package_unit changes to update price field (for cascading autocomplete)
+    if (unitSelect) {
+        currentPackageUnit = unitSelect.value || '';
+        unitSelect.addEventListener('change', function() {
+            currentPackageUnit = this.value;
+            // Price field will automatically use this filter when focused
+        });
+    }
 
     function updateNetCalc() {
         if (!grossInput || !unitSelect || !netCalcDisplay) return 0;
@@ -181,20 +289,20 @@ function initCementForm() {
     if (grossInput) grossInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
 
     // Sinkronkan satuan harga mengikuti satuan kemasan
-    const priceUnitDisplay = document.getElementById('price_unit_display');
+    const priceUnitDisplayInline = document.getElementById('price_unit_display_inline');
 
     function syncPriceUnit() {
         if (!unitSelect || !priceUnitInput) return;
         const unit = unitSelect.value || '';
         if (unit) {
             priceUnitInput.value = unit;
-            if (priceUnitDisplay) {
-                priceUnitDisplay.textContent = unit;
+            if (priceUnitDisplayInline) {
+                priceUnitDisplayInline.textContent = '/ ' + unit;
             }
         } else {
             priceUnitInput.value = '';
-            if (priceUnitDisplay) {
-                priceUnitDisplay.textContent = '-';
+            if (priceUnitDisplayInline) {
+                priceUnitDisplayInline.textContent = '/ -';
             }
         }
     }
@@ -293,12 +401,11 @@ function initCementForm() {
         const height = parseFloat(dimensionHeight.value) || 0;
 
         if (length > 0 && width > 0 && height > 0) {
-            const volume = length * width * height;
-            volumeDisplay.textContent = volume.toFixed(6) + ' m³';
-            volumeDisplay.style.color = '#15803d';
+            // Convert from cm to meters: divide by 100 for each dimension, so total divide by 1,000,000
+            const volume = (length * width * height) / 1000000;
+            volumeDisplay.value = volume.toFixed(6);
         } else {
-            volumeDisplay.textContent = '-';
-            volumeDisplay.style.color = '#64748b';
+            volumeDisplay.value = '';
         }
     }
 

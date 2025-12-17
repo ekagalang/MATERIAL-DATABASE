@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('material_settings', function (Blueprint $table) {
             $table->id();
             $table->string('material_type'); // 'brick', 'cat', 'cement', 'sand'
-            $table->boolean('is_visible')->default(true);
+            $table->boolean('is_visible')->default(false);
             $table->integer('display_order')->default(0);
             $table->timestamps();
 
@@ -24,10 +24,10 @@ return new class extends Migration
 
         // Insert default settings
         DB::table('material_settings')->insert([
-            ['material_type' => 'brick', 'is_visible' => true, 'display_order' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['material_type' => 'cat', 'is_visible' => true, 'display_order' => 2, 'created_at' => now(), 'updated_at' => now()],
-            ['material_type' => 'cement', 'is_visible' => true, 'display_order' => 3, 'created_at' => now(), 'updated_at' => now()],
-            ['material_type' => 'sand', 'is_visible' => true, 'display_order' => 4, 'created_at' => now(), 'updated_at' => now()],
+            ['material_type' => 'brick', 'is_visible' => false, 'display_order' => 1, 'created_at' => now(), 'updated_at' => now()],
+            ['material_type' => 'cat', 'is_visible' => false, 'display_order' => 2, 'created_at' => now(), 'updated_at' => now()],
+            ['material_type' => 'cement', 'is_visible' => false, 'display_order' => 3, 'created_at' => now(), 'updated_at' => now()],
+            ['material_type' => 'sand', 'is_visible' => false, 'display_order' => 4, 'created_at' => now(), 'updated_at' => now()],
         ]);
     }
 

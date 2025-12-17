@@ -63,7 +63,7 @@ class CatController extends Controller
         $request->validate([
             'cat_name' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'brand' => 'nullable|string|max:255',
             'sub_brand' => 'nullable|string|max:255',
             'color_code' => 'nullable|string|max:100',
@@ -238,13 +238,14 @@ class CatController extends Controller
             ->with('success', 'Cat berhasil dihapus!');
     }
 
-    // API untuk mendapatkan unique values per field
+    // API untuk mendapatkan unique values per field dengan cascading filter
     public function getFieldValues(string $field, Request $request)
     {
         // Bidang yang diizinkan untuk auto-suggest
         $allowedFields = [
             'cat_name', 'type', 'brand', 'sub_brand', 'color_code', 'color_name',
-            'form', 'volume_unit', 'store', 'short_address', 'address', 'price_unit',
+            'form', 'volume', 'volume_unit', 'package_weight_gross', 'package_weight_net',
+            'package_unit', 'store', 'short_address', 'address', 'price_unit', 'purchase_price'
         ];
 
         if (! in_array($field, $allowedFields)) {
@@ -255,9 +256,30 @@ class CatController extends Controller
         $limit = (int) $request->query('limit', 20);
         $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
+        // Filter parameters untuk cascading
+        $brand = $request->query('brand');
+        $packageUnit = $request->query('package_unit');
+        $store = $request->query('store');
+
         $query = Cat::query()
             ->whereNotNull($field)
             ->where($field, '!=', '');
+
+        // Apply cascading filters
+        // Fields yang bergantung pada brand
+        if (in_array($field, ['sub_brand', 'color_name', 'color_code', 'volume', 'package_weight_gross', 'package_weight_net']) && $brand) {
+            $query->where('brand', $brand);
+        }
+
+        // purchase_price bergantung pada package_unit
+        if ($field === 'purchase_price' && $packageUnit) {
+            $query->where('package_unit', $packageUnit);
+        }
+
+        // short_address bergantung pada store
+        if ($field === 'short_address' && $store) {
+            $query->where('store', $store);
+        }
 
         if ($search !== '') {
             $query->where($field, 'like', "%{$search}%");
@@ -272,5 +294,135 @@ class CatController extends Controller
             ->pluck($field);
 
         return response()->json($values);
+    }
+
+    // API khusus untuk mendapatkan semua stores dari semua material (untuk validasi input baru)
+    public function getAllStores(Request $request)
+    {
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $materialType = $request->query('material_type', 'all'); // 'cat' atau 'all'
+
+        $stores = collect();
+
+        // Jika tidak ada search term, hanya tampilkan stores dari cat
+        // Jika ada search term, tampilkan dari semua material
+        if ($materialType === 'cat' || ($search === '' && $materialType === 'all')) {
+            // Tampilkan dari cat saja
+            $catStores = Cat::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $allStores = $stores
+                ->merge($catStores)
+                ->unique()
+                ->sort()
+                ->values()
+                ->take($limit);
+        } else {
+            // Tampilkan dari semua material (saat user mengetik)
+            $catStores = Cat::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $brickStores = \App\Models\Brick::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $cementStores = \App\Models\Cement::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $sandStores = \App\Models\Sand::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            // Gabungkan semua stores dan ambil unique values
+            $allStores = $stores
+                ->merge($catStores)
+                ->merge($brickStores)
+                ->merge($cementStores)
+                ->merge($sandStores)
+                ->unique()
+                ->sort()
+                ->values()
+                ->take($limit);
+        }
+
+        return response()->json($allStores);
+    }
+
+    /**
+     * API untuk mendapatkan alamat berdasarkan toko dari semua material
+     */
+    public function getAddressesByStore(Request $request)
+    {
+        $store = (string) $request->query('store', '');
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+        // Jika tidak ada toko yang dipilih, return empty
+        if ($store === '') {
+            return response()->json([]);
+        }
+
+        $addresses = collect();
+
+        // Ambil short_address dari cat yang sesuai dengan toko
+        $catAddresses = Cat::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari brick
+        $brickAddresses = \App\Models\Brick::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari cement
+        $cementAddresses = \App\Models\Cement::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari sand
+        $sandAddresses = \App\Models\Sand::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Gabungkan semua addresses dan ambil unique values
+        $allAddresses = $addresses
+            ->merge($catAddresses)
+            ->merge($brickAddresses)
+            ->merge($cementAddresses)
+            ->merge($sandAddresses)
+            ->unique()
+            ->sort()
+            ->values()
+            ->take($limit);
+
+        return response()->json($allAddresses);
     }
 }

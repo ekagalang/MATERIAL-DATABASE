@@ -239,6 +239,8 @@ class SandController extends Controller
         // Bidang yang diizinkan untuk auto-suggest
         $allowedFields = [
             'type', 'brand', 'store', 'short_address', 'address',
+            'package_weight_gross', 'dimension_length', 'dimension_width', 'dimension_height',
+            'package_price',
         ];
 
         if (! in_array($field, $allowedFields)) {
@@ -249,9 +251,88 @@ class SandController extends Controller
         $limit = (int) $request->query('limit', 20);
         $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
+        // Get filter parameters for cascading autocomplete
+        $brand = (string) $request->query('brand', '');
+        $packageUnit = (string) $request->query('package_unit', '');
+        $store = (string) $request->query('store', '');
+
         $query = Sand::query()
             ->whereNotNull($field)
             ->where($field, '!=', '');
+
+        // Apply cascading filters based on field
+        // Fields that depend on brand selection (berat dan dimensi kemasan)
+        if (in_array($field, ['package_weight_gross', 'dimension_length', 'dimension_width', 'dimension_height'])) {
+            if ($brand !== '') {
+                $query->where('brand', $brand);
+            }
+        }
+
+        // Fields that depend on package_unit selection (harga)
+        if ($field === 'package_price') {
+            if ($packageUnit !== '') {
+                $query->where('package_unit', $packageUnit);
+            }
+        }
+
+        // Fields that depend on store selection (alamat)
+        if ($field === 'address') {
+            if ($store !== '') {
+                $query->where('store', $store);
+            }
+        }
+
+        // Special case: store field - show all stores from ALL materials if requested
+        if ($field === 'store' && $request->query('all_materials') === 'true') {
+            // Get stores from all material types
+            $allStores = collect();
+
+            // Get from sands
+            $sandStores = Sand::whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->select('store')
+                ->groupBy('store')
+                ->pluck('store');
+
+            $allStores = $allStores->merge($sandStores);
+
+            // Get from other material tables if they exist
+            // Cement
+            if (class_exists(\App\Models\Cement::class)) {
+                $cementStores = \App\Models\Cement::whereNotNull('store')
+                    ->where('store', '!=', '')
+                    ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
+                    ->select('store')
+                    ->groupBy('store')
+                    ->pluck('store');
+                $allStores = $allStores->merge($cementStores);
+            }
+
+            // Brick
+            if (class_exists(\App\Models\Brick::class)) {
+                $brickStores = \App\Models\Brick::whereNotNull('store')
+                    ->where('store', '!=', '')
+                    ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
+                    ->select('store')
+                    ->groupBy('store')
+                    ->pluck('store');
+                $allStores = $allStores->merge($brickStores);
+            }
+
+            // Cat
+            if (class_exists(\App\Models\Cat::class)) {
+                $catStores = \App\Models\Cat::whereNotNull('store')
+                    ->where('store', '!=', '')
+                    ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
+                    ->select('store')
+                    ->groupBy('store')
+                    ->pluck('store');
+                $allStores = $allStores->merge($catStores);
+            }
+
+            return response()->json($allStores->unique()->sort()->values()->take($limit));
+        }
 
         if ($search !== '') {
             $query->where($field, 'like', "%{$search}%");
@@ -266,5 +347,136 @@ class SandController extends Controller
             ->pluck($field);
 
         return response()->json($values);
+    }
+
+    /**
+     * API untuk mendapatkan semua stores dari sand atau semua material
+     */
+    public function getAllStores(Request $request)
+    {
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $materialType = $request->query('material_type', 'all'); // 'sand' atau 'all'
+
+        $stores = collect();
+
+        // Jika tidak ada search term, hanya tampilkan stores dari sand
+        // Jika ada search term, tampilkan dari semua material
+        if ($materialType === 'sand' || ($search === '' && $materialType === 'all')) {
+            // Tampilkan dari sand saja
+            $sandStores = Sand::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $allStores = $stores
+                ->merge($sandStores)
+                ->unique()
+                ->sort()
+                ->values()
+                ->take($limit);
+        } else {
+            // Tampilkan dari semua material (saat user mengetik)
+            $catStores = \App\Models\Cat::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $brickStores = \App\Models\Brick::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $cementStores = \App\Models\Cement::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $sandStores = Sand::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $allStores = $stores
+                ->merge($catStores)
+                ->merge($brickStores)
+                ->merge($cementStores)
+                ->merge($sandStores)
+                ->unique()
+                ->sort()
+                ->values()
+                ->take($limit);
+        }
+
+        return response()->json($allStores);
+    }
+
+    /**
+     * API untuk mendapatkan alamat berdasarkan toko dari semua material
+     */
+    public function getAddressesByStore(Request $request)
+    {
+        $store = (string) $request->query('store', '');
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+        // Jika tidak ada toko yang dipilih, return empty
+        if ($store === '') {
+            return response()->json([]);
+        }
+
+        $addresses = collect();
+
+        // Ambil short_address dari sand yang sesuai dengan toko
+        $sandAddresses = Sand::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari cat
+        $catAddresses = \App\Models\Cat::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari brick
+        $brickAddresses = \App\Models\Brick::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari cement
+        $cementAddresses = \App\Models\Cement::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Gabungkan semua addresses dan ambil unique values
+        $allAddresses = $addresses
+            ->merge($sandAddresses)
+            ->merge($catAddresses)
+            ->merge($brickAddresses)
+            ->merge($cementAddresses)
+            ->unique()
+            ->sort()
+            ->values()
+            ->take($limit);
+
+        return response()->json($allAddresses);
     }
 }

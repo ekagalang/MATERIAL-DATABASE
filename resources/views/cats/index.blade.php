@@ -292,19 +292,38 @@
     justify-content: space-between;
     align-items: center;
     background: #f8fafc;
+    position: relative;
+    overflow: hidden;
 }
 
 .floating-modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
+    padding: 8px 0;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.floating-modal-header h2::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    right: -200px;
+    top: 0;
+    bottom: 0;
+    background: #891313;
+    z-index: -1;
 }
 
 .floating-modal-close {
     background: transparent;
     border: none;
     font-size: 28px;
+    position: relative;
+    z-index: 2;
     color: #94a3b8;
     cursor: pointer;
     width: 40px;
@@ -370,6 +389,18 @@ input[type="text"]:focus {
 }
 
 /* Table fixed column widths */
+.table-container thead th {
+    background-color: #891313 !important;
+    color: #ffffff !important;
+    vertical-align: top !important;
+    text-align: center !important;
+    white-space: nowrap;
+}
+
+.table-container table td {
+    vertical-align: top !important;
+}
+
 table th:nth-child(1), table td:nth-child(1) { width: 50px; text-align: center; }
 table th:nth-child(2), table td:nth-child(2) { width: 100px; }
 table th:nth-child(3), table td:nth-child(3) { width: 120px; }

@@ -13,12 +13,13 @@ class MaterialController extends Controller
 {
     public function index(Request $request)
     {
-        // Get visible materials based on settings
-        $visibleMaterials = MaterialSetting::getVisibleMaterials();
+        // Load ALL materials data (not filtered)
+        // JavaScript will handle showing/hiding tabs based on checkbox
+        $allSettings = MaterialSetting::orderBy('display_order')->get();
 
         $materials = [];
 
-        foreach ($visibleMaterials as $setting) {
+        foreach ($allSettings as $setting) {
             $type = $setting->material_type;
             $data = $this->getMaterialData($type, $request);
 
@@ -32,7 +33,7 @@ class MaterialController extends Controller
             }
         }
 
-        return view('materials.index', compact('materials'));
+        return view('materials.index', compact('materials', 'allSettings'));
     }
 
     private function getMaterialData($type, $request)
@@ -49,7 +50,7 @@ class MaterialController extends Controller
                           ->orWhere('store', 'like', "%{$search}%");
                     });
                 }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
+                return $query->orderBy('created_at', 'desc')->paginate(10, ['*'], 'brick_page');
 
             case 'cat':
                 $query = Cat::query()->with('packageUnit');
@@ -60,7 +61,7 @@ class MaterialController extends Controller
                           ->orWhere('store', 'like', "%{$search}%");
                     });
                 }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
+                return $query->orderBy('created_at', 'desc')->paginate(10, ['*'], 'cat_page');
 
             case 'cement':
                 $query = Cement::query()->with('packageUnit');
@@ -71,7 +72,7 @@ class MaterialController extends Controller
                           ->orWhere('store', 'like', "%{$search}%");
                     });
                 }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
+                return $query->orderBy('created_at', 'desc')->paginate(10, ['*'], 'cement_page');
 
             case 'sand':
                 $query = Sand::query()->with('packageUnit');
@@ -82,37 +83,11 @@ class MaterialController extends Controller
                           ->orWhere('store', 'like', "%{$search}%");
                     });
                 }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
+                return $query->orderBy('created_at', 'desc')->paginate(10, ['*'], 'sand_page');
 
             default:
                 return null;
         }
     }
 
-    public function settings()
-    {
-        $settings = MaterialSetting::orderBy('display_order')->get();
-        return view('materials.settings', compact('settings'));
-    }
-
-    public function updateSettings(Request $request)
-    {
-        $request->validate([
-            'settings' => 'required|array',
-            'settings.*.id' => 'required|exists:material_settings,id',
-            'settings.*.is_visible' => 'required|boolean',
-            'settings.*.display_order' => 'required|integer',
-        ]);
-
-        foreach ($request->settings as $settingData) {
-            MaterialSetting::where('id', $settingData['id'])
-                ->update([
-                    'is_visible' => $settingData['is_visible'],
-                    'display_order' => $settingData['display_order'],
-                ]);
-        }
-
-        return redirect()->route('materials.settings')
-            ->with('success', 'Pengaturan material berhasil diupdate!');
-    }
 }
