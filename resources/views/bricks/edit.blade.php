@@ -16,15 +16,16 @@
         @csrf
         @method('PUT')
 
-        <div style="display: flex; gap: 32px;">
+        <div class="form-container" style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px; max-width: 1100px; width: 100%;">
+
             <!-- Kolom Kiri - Form Fields -->
-            <div style="flex: 0 0 calc(65% - 16px); max-width: calc(65% - 16px);">
+            <div class="left-column">
 
                 <!-- Jenis -->
                 <div class="row">
                     <label>Jenis</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text" 
+                        <input type="text"
                                name="type" 
                                id="type" 
                                value="{{ old('type', $brick->type) }}" 
@@ -69,122 +70,148 @@
                 </div>
 
                 <!-- Dimensi (P × L × T) -->
-                <div class="row">
-                    <label>Dimensi</label>
+                <div class="row" style="align-items: flex-start; margin-top: 10px;">
+                    <label style="padding-top: 28px;">Dimensi</label>
                     <div style="flex: 1;">
-                        <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; align-items: center;">
+                        <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 8px;">
                             <!-- Panjang -->
-                            <input type="text" 
-                                id="dimension_length_input" 
-                                value="{{ old('dimension_length', $brick->dimension_length) }}" 
-                                placeholder="Panjang" 
-                                style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
-                            <select id="dimension_length_unit" 
-                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
-                                <option value="mm">mm</option>
-                                <option value="cm" selected>cm</option>
-                                <option value="m">M</option>
-                            </select>
-                            
-                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
-                            
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Panjang</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="number"
+                                           id="dimension_length_input"
+                                           value="{{ old('dimension_length', $brick->dimension_length) }}"
+                                           class="autocomplete-input"
+                                           data-field="dimension_length"
+                                           step="0.01"
+                                           placeholder="0"
+                                           autocomplete="off">
+                                    <select id="dimension_length_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
+                                </div>
+                                <div class="autocomplete-list" id="dimension_length-list"></div>
+                            </div>
+
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
+
                             <!-- Lebar -->
-                            <input type="text" 
-                                id="dimension_width_input" 
-                                value="{{ old('dimension_width', $brick->dimension_width) }}" 
-                                placeholder="Lebar" 
-                                style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
-                            <select id="dimension_width_unit" 
-                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
-                                <option value="mm">mm</option>
-                                <option value="cm" selected>cm</option>
-                                <option value="m">M</option>
-                            </select>
-                            
-                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px;">×</span>
-                            
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Lebar</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="number"
+                                           id="dimension_width_input"
+                                           value="{{ old('dimension_width', $brick->dimension_width) }}"
+                                           class="autocomplete-input"
+                                           data-field="dimension_width"
+                                           step="0.01"
+                                           placeholder="0"
+                                           autocomplete="off">
+                                    <select id="dimension_width_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
+                                </div>
+                                <div class="autocomplete-list" id="dimension_width-list"></div>
+                            </div>
+
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
+
                             <!-- Tinggi -->
-                            <input type="text" 
-                                id="dimension_height_input" 
-                                value="{{ old('dimension_height', $brick->dimension_height) }}" 
-                                placeholder="Tinggi" 
-                                style="padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 13.5px;">
-                            <select id="dimension_height_unit" 
-                                    style="padding: 10px 8px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 12.5px; cursor: pointer;">
-                                <option value="mm">mm</option>
-                                <option value="cm" selected>cm</option>
-                                <option value="m">M</option>
-                            </select>
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Tinggi</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="number"
+                                           id="dimension_height_input"
+                                           value="{{ old('dimension_height', $brick->dimension_height) }}"
+                                           class="autocomplete-input"
+                                           data-field="dimension_height"
+                                           step="0.01"
+                                           placeholder="0"
+                                           autocomplete="off">
+                                    <select id="dimension_height_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
+                                </div>
+                                <div class="autocomplete-list" id="dimension_height-list"></div>
+                            </div>
+
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">=</span>
+
+                            <!-- Volume -->
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="number"
+                                           id="volume_display_input"
+                                           readonly
+                                           placeholder="0"
+                                           style="text-align: right; padding-right: 38px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); font-weight: 600; color: #15803d;">
+                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #16a34a; font-weight: 600; pointer-events: none;">M3</span>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Hidden inputs -->
                         <input type="hidden" name="dimension_length" id="dimension_length" value="{{ old('dimension_length', $brick->dimension_length) }}">
                         <input type="hidden" name="dimension_width" id="dimension_width" value="{{ old('dimension_width', $brick->dimension_width) }}">
                         <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height', $brick->dimension_height) }}">
+                        <input type="hidden" name="package_volume" id="package_volume" value="{{ old('package_volume', $brick->package_volume) }}">
                         
-                        <!-- Display hasil konversi -->
-                        <div style="display: grid; grid-template-columns: 1fr 60px 12px 1fr 60px 12px 1fr 60px; gap: 8px; margin-top: 6px;">
-                            <small style="color: #15803d; font-size: 11px;">
-                                <span id="length_cm_display" style="font-weight: 600;">{{ $brick->dimension_length ? rtrim(rtrim(number_format($brick->dimension_length, 2, '.', ''), '0'), '.') : '-' }}</span> cm
-                            </small>
-                            <span></span>
-                            <span></span>
-                            <small style="color: #15803d; font-size: 11px;">
-                                <span id="width_cm_display" style="font-weight: 600;">{{ $brick->dimension_width ? rtrim(rtrim(number_format($brick->dimension_width, 2, '.', ''), '0'), '.') : '-' }}</span> cm
-                            </small>
-                            <span></span>
-                            <span></span>
-                            <small style="color: #15803d; font-size: 11px;">
-                                <span id="height_cm_display" style="font-weight: 600;">{{ $brick->dimension_height ? rtrim(rtrim(number_format($brick->dimension_height, 2, '.', ''), '0'), '.') : '-' }}</span> cm
-                            </small>
-                            <span></span>
-                        </div>
+
                     </div>
                 </div>
 
-                <!-- Volume Bentuk -->
-                <div class="row">
-                    <label>Volume</label>
-                    <div style="flex: 1;">
-                        <div style="padding: 10px 14px; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 1.5px solid #86efac; border-radius: 10px; display: inline-block; min-width: 120px;">
-                            <span id="volume_display" style="font-weight: 700; color: #15803d; font-size: 14px;">-</span>
-                            <span style="font-weight: 600; color: #16a34a; font-size: 13px;"> M3</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Harga per Buah -->
-                <div class="row">
-                    <label>Harga / Buah</label>
-                    <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                <!-- Harga (Harga per Buah + Harga Komparasi dalam satu baris) -->
+                <div class="row" style="align-items: stretch; margin-top: 15px;">
+                    <label style="padding-top: 10px;">Harga</label>
+                    <div style="flex: 1; display: flex; gap: 15px; align-items: stretch;">
+                        <!-- Harga per Buah -->
+                        <div class="flex-fill" style="flex: 1; display: flex; align-items: stretch; position: relative;">
                             <input type="hidden" name="price_per_piece" id="price_per_piece" value="{{ old('price_per_piece', $brick->price_per_piece) }}">
-                            <input type="text" 
-                                   id="price_per_piece_display" 
-                                   value="{{ old('price_per_piece', $brick->price_per_piece) }}" 
-                                   inputmode="numeric" 
-                                   placeholder="0" 
-                                   style="flex: 1; max-width: 240px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/ Buah</span>
+                            <div style="flex: 1; display: flex; align-items: center; position: relative;">
+                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                <input type="text"
+                                       id="price_per_piece_display"
+                                       value="{{ old('price_per_piece', $brick->price_per_piece) }}"
+                                       class="autocomplete-input"
+                                       data-field="price_per_piece"
+                                       inputmode="numeric"
+                                       placeholder="0"
+                                       autocomplete="off"
+                                       style="width: 100%; height: 100%; padding: 10px 60px 10px 38px; font-size: 14px;">
+                                <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Buah</span>
+                            </div>
+                            <div class="autocomplete-list" id="price_per_piece-list"></div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Harga Komparasi per m³ -->
-                <div class="row">
-                    <label>Harga / M3</label>
-                    <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
-                            <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3', $brick->comparison_price_per_m3) }}">
-                            <input type="text" 
-                                   id="comparison_price_display" 
-                                   value="{{ $brick->comparison_price_per_m3 ? number_format($brick->comparison_price_per_m3, 0, ',', '.') : '' }}" 
-                                   inputmode="numeric" 
-                                   placeholder="0" 
-                                   style="flex: 1; max-width: 240px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/ M3</span>
+                        <!-- Harga Komparasi -->
+                        <div class="mini-input-wrapper flex-fill" style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Harga Komparasi</span>
+                            <div style="display: flex; align-items: center; position: relative;">
+                                <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3', $brick->comparison_price_per_m3) }}">
+                                <div style="flex: 1; display: flex; align-items: center; position: relative;">
+                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                    <input type="text"
+                                           id="comparison_price_display"
+                                           class="autocomplete-input"
+                                           data-field="comparison_price_per_m3"
+                                           inputmode="numeric"
+                                           placeholder="0"
+                                           autocomplete="off"
+                                           style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
+                                    <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ M3</span>
+                                </div>
+                                <div class="autocomplete-list" id="comparison_price_per_m3-list"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -205,25 +232,10 @@
                     </div>
                 </div>
 
-                <!-- Alamat Singkat -->
-                <div class="row">
-                    <label>Alamat Singkat</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text" 
-                               name="short_address" 
-                               id="short_address" 
-                               value="{{ old('short_address', $brick->short_address) }}" 
-                               class="autocomplete-input" 
-                               data-field="short_address" 
-                               autocomplete="off" 
-                               placeholder="Contoh: Roxy, CitraLand, Taman Semanggi">
-                        <div class="autocomplete-list" id="short_address-list"></div>
-                    </div>
-                </div>
-
+                
                 <!-- Alamat Lengkap -->
                 <div class="row">
-                    <label>Alamat Lengkap</label>
+                    <label>Alamat</label>
                     <div style="flex: 1; position: relative;">
                         <input type="text" 
                                name="address" 
@@ -239,16 +251,20 @@
 
             </div>
 
-            <!-- Kolom Kanan - Upload Foto -->
-            <div style="flex: 0 0 calc(35% - 16px); max-width: calc(35% - 16px);">
-                <div id="photoPreviewArea"
-                     style="border: 2px dashed #e2e8f0;
-                            height: 420px;
-                            border-radius: 16px;
+            <!-- Kolom Kanan - Gambar -->
+            <div class="image-section" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                <div class="image-preview-box" id="photoPreviewArea"
+                     style="width: 100%;
+                            min-height: 200px;
+                            max-height: 400px;
+                            height: 320px;
+                            background-color: #ffffff;
+                            border: 2px dashed #e2e8f0;
                             display: flex;
                             align-items: center;
                             justify-content: center;
-                            background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%);
+                            color: #cbd5e1;
                             cursor: pointer;
                             position: relative;
                             overflow: hidden;
@@ -256,75 +272,40 @@
                     @if($brick->photo_url)
                         <div id="photoPlaceholder" style="display: none; text-align: center; color: #cbd5e1; position: relative; z-index: 1;">
                             <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Upload Foto Produk</div>
-                            <div style="font-size: 12px; color: #94a3b8;">JPG, PNG, GIF (Max 2MB)</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
                         </div>
                         <img id="photoPreview"
                              src="{{ $brick->photo_url }}"
                              alt="Preview"
-                             style="position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    object-fit: cover;
-                                    z-index: 2;">
+                             style="display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
                     @else
                         <div id="photoPlaceholder" style="text-align: center; color: #cbd5e1; position: relative; z-index: 1;">
                             <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Upload Foto Produk</div>
-                            <div style="font-size: 12px; color: #94a3b8;">JPG, PNG, GIF (Max 2MB)</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
                         </div>
                         <img id="photoPreview"
                              src=""
                              alt="Preview"
-                             style="display: none;
-                                    position: absolute;
-                                    top: 0;
-                                    left: 0;
-                                    width: 100%;
-                                    height: 100%;
-                                    object-fit: cover;
-                                    z-index: 2;">
+                             style="display: none; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
                     @endif
                 </div>
                 
                 <input type="file" name="photo" id="photo" accept="image/*" style="display: none;">
                 
-                <div class="uploadDel" style="margin-top: 14px; display: flex; gap: 20px; font-size: 13px;">
-                    <span style="cursor: pointer; 
-                                 color: #891313; 
-                                 font-weight: 600; 
-                                 display: flex; 
-                                 align-items: center; 
-                                 gap: 6px;" 
-                          id="uploadBtn">
-                        <i class="bi bi-upload"></i> Upload Foto
-                    </span>
-                    <span style="cursor: pointer; 
-                                 color: #ef4444; 
-                                 font-weight: 600; 
-                                 display: {{ $brick->photo_url ? 'flex' : 'none' }}; 
-                                 align-items: center; 
-                                 gap: 6px;" 
-                          id="deletePhotoBtn">
-                        <i class="bi bi-trash"></i> Hapus Foto
-                    </span>
+                <div class="image-actions" style="margin-top: 5px; display: flex; justify-content: center; font-weight: bold; font-size: 14px; padding: 0 10px; gap: 10px;">
+                    <span class="text-upload" id="uploadBtn" style="color: #5cb85c; cursor: pointer;"><i class="bi bi-upload"></i> Upload</span>
+                    <span class="text-delete" id="deletePhotoBtn" style="color: #d9534f; cursor: pointer; display: {{ $brick->photo_url ? 'inline' : 'none' }};"><i class="bi bi-trash"></i> Hapus</span>
+                </div>
+
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; justify-content: center; gap: 20px; padding-bottom: 15px;">
+                    <button type="button" class="btn-cancel"
+                          onclick="window.parent.document.getElementById('closeModal').click()">Batal</button>
+                    <button type="submit" class="btn-save">Update</button>
                 </div>
             </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
-            <button type="button" 
-                    class="btn btn-secondary" 
-                    onclick="window.parent.document.getElementById('closeModal').click()"
-                    style="background: transparent; color: #64748b; border: 1.5px solid #e2e8f0; box-shadow: none;">
-                <i class="bi bi-x-lg"></i> Batalkan
-            </button>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-check-lg"></i> Update Data
-            </button>
         </div>
 
     </form>
@@ -398,6 +379,64 @@
     /* Container untuk relative positioning */
     .row > div {
         position: relative;
+    }
+
+    /* Dimensi Styling */
+    .dimensi-wrapper {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+    }
+
+    .dimensi-item {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+
+    .dimensi-label {
+        font-style: italic;
+        font-size: 13px;
+        margin-bottom: 4px;
+        color: #64748b;
+    }
+
+    .dimensi-input-box {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .dimensi-input-box input {
+        padding: 10px 14px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 13.5px;
+        width: 100%;
+    }
+
+    .unit-text {
+        font-size: 13px;
+        color: #64748b;
+        white-space: nowrap;
+    }
+
+    .math-symbol {
+        color: #cbd5e1;
+        text-align: center;
+        font-weight: 300;
+        font-size: 16px;
+        padding-bottom: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-container {
+            grid-template-columns: 1fr !important;
+        }
+        .dimensi-wrapper {
+            flex-wrap: wrap !important;
+        }
     }
 </style>
 

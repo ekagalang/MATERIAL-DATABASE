@@ -6,12 +6,46 @@ function initCatForm() {
     }
     form.__catFormInited = true;
 
-    // Auto-suggest
+    // Auto-suggest dengan cascading logic
     const autosuggestInputs = document.querySelectorAll('.autocomplete-input');
+
+    // Helper function untuk mendapatkan filter values
+    function getFilterParams(field) {
+        const params = new URLSearchParams();
+
+        // Fields yang bergantung pada brand
+        const brandDependentFields = ['sub_brand', 'color_name', 'color_code', 'volume', 'package_weight_gross', 'package_weight_net'];
+        if (brandDependentFields.includes(field)) {
+            const brandInput = document.getElementById('brand');
+            if (brandInput && brandInput.value) {
+                params.append('brand', brandInput.value);
+            }
+        }
+
+        // purchase_price bergantung pada package_unit
+        if (field === 'purchase_price') {
+            const packageUnitInput = document.getElementById('package_unit');
+            if (packageUnitInput && packageUnitInput.value) {
+                params.append('package_unit', packageUnitInput.value);
+            }
+        }
+
+        // short_address bergantung pada store
+        if (field === 'short_address') {
+            const storeInput = document.getElementById('store');
+            if (storeInput && storeInput.value) {
+                params.append('store', storeInput.value);
+            }
+        }
+
+        return params;
+    }
+
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
         const suggestList = document.getElementById(`${field}-list`);
         let debounceTimer;
+        let isSelectingFromAutosuggest = false; // Flag to prevent reopening
 
         function populate(values) {
             if (suggestList) {
@@ -19,10 +53,69 @@ function initCatForm() {
                 values.forEach(v => {
                     const item = document.createElement('div');
                     item.className = 'autocomplete-item';
-                    item.textContent = v;
+
+                    // Format display untuk field tertentu
+                    let displayValue = v;
+                    if (field === 'purchase_price') {
+                        // Format angka sebagai Rupiah
+                        displayValue = 'Rp ' + Number(v).toLocaleString('id-ID');
+                    }
+
+                    item.textContent = displayValue;
                     item.addEventListener('click', function() {
+                        // Set flag to prevent autosuggest from reopening
+                        isSelectingFromAutosuggest = true;
+
+                        // Set value first
                         input.value = v;
+
+                        // Close list
                         suggestList.style.display = 'none';
+
+                        // Handle special fields
+                        if (field === 'purchase_price') {
+                            // Update both display and hidden field
+                            const purchasePriceInput = document.getElementById('purchase_price');
+                            const purchasePriceDisplay = document.getElementById('purchase_price_display');
+                            if (purchasePriceInput) purchasePriceInput.value = v;
+                            if (purchasePriceDisplay) purchasePriceDisplay.value = Number(v).toLocaleString('id-ID');
+
+                            // Trigger price calculation
+                            if (typeof syncPriceFromDisplay === 'function') {
+                                syncPriceFromDisplay();
+                            }
+                        } else if (field === 'package_weight_gross') {
+                            // Trigger net weight calculation
+                            if (typeof updateNetCalc === 'function') {
+                                updateNetCalc();
+                            }
+                            if (typeof recalculatePrices === 'function') {
+                                recalculatePrices();
+                            }
+                        } else if (field === 'package_weight_net') {
+                            // Trigger price recalculation when net weight changes
+                            if (typeof updateNetCalc === 'function') {
+                                updateNetCalc();
+                            }
+                            if (typeof recalculatePrices === 'function') {
+                                recalculatePrices();
+                            }
+                        } else if (field === 'comparison_price_per_kg') {
+                            // Handle comparison price field
+                            const comparisonPriceDisplay = document.getElementById('comparison_price_display');
+                            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncComparisonFromDisplay === 'function') {
+                                syncComparisonFromDisplay();
+                            }
+                        }
+
+                        // Trigger dependent fields reload
+                        triggerDependentFieldsReload(field);
+
+                        // Reset flag after a delay
+                        setTimeout(() => {
+                            isSelectingFromAutosuggest = false;
+                        }, 300);
                     });
                     suggestList.appendChild(item);
                 });
@@ -31,18 +124,61 @@ function initCatForm() {
         }
 
         function loadSuggestions(term = '') {
-            const url = `/api/cats/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+            let url;
+            const filterParams = getFilterParams(field);
+            filterParams.append('search', term);
+            filterParams.append('limit', '20');
+
+            // Untuk field store, gunakan endpoint getAllStores
+            if (field === 'store') {
+                // Jika tidak ada search term (user baru focus), tampilkan dari cat saja
+                // Jika ada search term (user mengetik), tampilkan dari semua material
+                if (term === '' || term.length === 0) {
+                    filterParams.append('material_type', 'cat');
+                } else {
+                    filterParams.append('material_type', 'all');
+                }
+                url = `/api/cats/all-stores?${filterParams.toString()}`;
+            }
+            // Untuk field short_address, gunakan endpoint getAddressesByStore
+            else if (field === 'short_address') {
+                const storeInput = document.getElementById('store');
+                if (storeInput && storeInput.value) {
+                    filterParams.append('store', storeInput.value);
+                    url = `/api/cats/addresses-by-store?${filterParams.toString()}`;
+                } else {
+                    // Jika toko belum dipilih, gunakan field-values biasa
+                    url = `/api/cats/field-values/${field}?${filterParams.toString()}`;
+                }
+            }
+            else {
+                url = `/api/cats/field-values/${field}?${filterParams.toString()}`;
+            }
+
             fetch(url)
                 .then(resp => resp.json())
                 .then(populate)
                 .catch(() => {});
         }
 
-        input.addEventListener('focus', () => loadSuggestions(''));
+        input.addEventListener('focus', () => {
+            if (!isSelectingFromAutosuggest) {
+                loadSuggestions('');
+            }
+        });
         input.addEventListener('input', function () {
+            // Don't reload suggestions if we're selecting from autosuggest
+            if (isSelectingFromAutosuggest) {
+                return;
+            }
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
+        });
+
+        // Reload suggestions saat field berubah (untuk mendukung cascading)
+        input.addEventListener('change', function() {
+            triggerDependentFieldsReload(field);
         });
 
         document.addEventListener('click', function(e) {
@@ -51,6 +187,37 @@ function initCatForm() {
             }
         });
     });
+
+    // Function untuk trigger reload dependent fields
+    function triggerDependentFieldsReload(changedField) {
+        // Jika brand berubah, clear dan reload dependent fields
+        if (changedField === 'brand') {
+            const dependentFields = ['sub_brand', 'color_name', 'color_code', 'volume', 'package_weight_gross', 'package_weight_net'];
+            dependentFields.forEach(fieldName => {
+                const input = document.getElementById(fieldName);
+                if (input && input.classList.contains('autocomplete-input')) {
+                    // Clear existing value jika tidak cocok dengan filter baru
+                    // Tapi kita biarkan user mempertahankan input mereka untuk flexibility
+                }
+            });
+        }
+
+        // Jika package_unit berubah, reload purchase_price suggestions
+        if (changedField === 'package_unit') {
+            const priceInput = document.getElementById('purchase_price_display');
+            if (priceInput) {
+                // Trigger reload jika ada autocomplete untuk price
+            }
+        }
+
+        // Jika store berubah, clear dan reload short_address
+        if (changedField === 'store') {
+            const addressInput = document.getElementById('short_address');
+            if (addressInput && addressInput.classList.contains('autocomplete-input')) {
+                // Clear existing value jika tidak cocok dengan filter baru
+            }
+        }
+    }
 
     // Photo upload functionality
     const photoInput = document.getElementById('photo');
@@ -79,6 +246,27 @@ function initCatForm() {
                     if (photoPreview) {
                         photoPreview.src = e.target.result;
                         photoPreview.style.display = 'block';
+
+                        // Adjust preview area height based on image aspect ratio
+                        const img = new Image();
+                        img.onload = function() {
+                            if (photoPreviewArea) {
+                                const containerWidth = photoPreviewArea.offsetWidth;
+                                const aspectRatio = img.height / img.width;
+
+                                // Calculate ideal height based on aspect ratio
+                                let idealHeight = containerWidth * aspectRatio;
+
+                                // Constrain to min/max bounds
+                                const minHeight = 200;
+                                const maxHeight = 400;
+                                idealHeight = Math.max(minHeight, Math.min(maxHeight, idealHeight));
+
+                                // Apply the calculated height with smooth transition
+                                photoPreviewArea.style.height = idealHeight + 'px';
+                            }
+                        };
+                        img.src = e.target.result;
                     }
                     if (photoPlaceholder) photoPlaceholder.style.display = 'none';
                     if (deletePhotoBtn) deletePhotoBtn.style.display = 'inline';
@@ -97,6 +285,8 @@ function initCatForm() {
                 photoPreview.style.display = 'none';
             }
             if (photoPlaceholder) photoPlaceholder.style.display = 'block';
+            // Reset height to default
+            if (photoPreviewArea) photoPreviewArea.style.height = '320px';
             deletePhotoBtn.style.display = 'none';
         });
     }
@@ -126,11 +316,16 @@ function initCatForm() {
     });
     composeName();
 
+    // Update volume_unit value (hardcoded to L)
+    if (fVolUnit) {
+        fVolUnit.value = 'L';
+    }
+
     // Kalkulasi: Berat Kemasan (kalkulasi) + Harga Komparasi per Kg
     const grossInput = document.getElementById('package_weight_gross');
     const netInput = document.getElementById('package_weight_net');
     const unitSelect = document.getElementById('package_unit');
-    const netCalcDisplay = document.getElementById('net_weight_display');
+    const netWeightLabel = document.getElementById('net_weight_label');
     const purchasePrice = document.getElementById('purchase_price');
     const purchasePriceDisplay = document.getElementById('purchase_price_display');
     const comparisonPrice = document.getElementById('comparison_price_per_kg');
@@ -140,38 +335,54 @@ function initCatForm() {
     let isUpdatingPrice = false; // Flag untuk prevent circular updates
 
     function updateNetCalc() {
-        if (!grossInput || !unitSelect || !netCalcDisplay) return 0;
-        
+        if (!grossInput || !unitSelect || !netInput) return 0;
+
         const gross = parseFloat(grossInput.value) || 0;
-        const netManual = parseFloat(netInput?.value) || 0;
-        
+        const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
+        const netCalc = Math.max(gross - tare, 0);
+
+        // Cek apakah user sedang mengetik di input berat bersih
+        const isUserTyping = document.activeElement === netInput;
+        const netManual = parseFloat(netInput.value) || 0;
+
+        // Update label berdasarkan kondisi
+        if (netWeightLabel) {
+            // Jika diisi manual oleh user
+            if (netManual > 0 && isUserTyping) {
+                netWeightLabel.textContent = 'Berat Bersih (Kg)';
+            }
+            // Jika hasil kalkulasi dari kemasan
+            else if (netCalc > 0 && gross > 0 && tare > 0) {
+                netWeightLabel.textContent = 'Berat Bersih Kalkulasi (Kg)';
+                // Auto-fill nilai kalkulasi jika user tidak sedang mengetik
+                if (!isUserTyping) {
+                    netInput.value = netCalc.toFixed(2);
+                }
+            }
+            // Default
+            else {
+                netWeightLabel.textContent = 'Berat Bersih (Kg)';
+            }
+        }
+
         // Validasi: Berat bersih tidak boleh melebihi berat kotor
         if (netManual > 0 && gross > 0 && netManual > gross) {
-            netCalcDisplay.textContent = 'Berat bersih melebihi berat kotor!';
-            netCalcDisplay.style.color = '#e74c3c';
             if (netInput) {
                 netInput.style.borderColor = '#e74c3c';
             }
             return 0;
         } else {
-            netCalcDisplay.style.color = '#15803d';
             if (netInput) {
-                netInput.style.borderColor = '#e2e8f0';
+                netInput.style.borderColor = '';
             }
         }
-        
+
         // Prioritas: Jika berat bersih diisi manual, gunakan itu
         if (netManual > 0) {
-            const formattedValue = parseFloat(netManual.toFixed(2)).toString() + ' Kg';
-            netCalcDisplay.textContent = formattedValue;
             return netManual;
         }
-        
-        // Jika tidak, kalkulasi dari berat kotor - berat kemasan
-        const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
-        const netCalc = Math.max(gross - tare, 0);
-        const formattedValue = netCalc > 0 ? parseFloat(netCalc.toFixed(2)).toString() + ' Kg' : '-';
-        netCalcDisplay.textContent = formattedValue;
+
+        // Jika tidak, gunakan kalkulasi
         return netCalc;
     }
 
@@ -221,7 +432,7 @@ function initCatForm() {
     if (netInput) netInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
 
     // Sinkronkan satuan harga mengikuti satuan kemasan
-    const priceUnitDisplay = document.getElementById('price_unit_display');
+    const priceUnitDisplay = document.getElementById('price_unit_display_inline');
 
     function syncPriceUnit() {
         if (!unitSelect || !priceUnitInput) return;
@@ -229,12 +440,12 @@ function initCatForm() {
         if (unit) {
             priceUnitInput.value = unit;
             if (priceUnitDisplay) {
-                priceUnitDisplay.textContent = unit;
+                priceUnitDisplay.textContent = '/ ' + unit;
             }
         } else {
             priceUnitInput.value = '';
             if (priceUnitDisplay) {
-                priceUnitDisplay.textContent = '-';
+                priceUnitDisplay.textContent = '/ -';
             }
         }
     }
@@ -244,6 +455,8 @@ function initCatForm() {
             updateNetCalc();
             recalculatePrices();
             syncPriceUnit();
+            // Trigger reload untuk purchase_price suggestions
+            triggerDependentFieldsReload('package_unit');
         });
     }
 

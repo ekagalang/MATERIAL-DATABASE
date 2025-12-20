@@ -30,10 +30,19 @@ class BrickController extends Controller
 
         // Validasi kolom yang boleh di-sort
         $allowedSorts = [
-            'material_name', 'type', 'brand', 'form',
-            'dimension_length', 'dimension_width', 'dimension_height',
-            'package_volume', 'store', 'short_address',
-            'price_per_piece', 'comparison_price_per_m3', 'created_at'
+            'material_name',
+            'type',
+            'brand',
+            'form',
+            'dimension_length',
+            'dimension_width',
+            'dimension_height',
+            'package_volume',
+            'store',
+            'short_address',
+            'price_per_piece',
+            'comparison_price_per_m3',
+            'created_at',
         ];
 
         // Default sorting jika tidak ada atau tidak valid
@@ -80,16 +89,16 @@ class BrickController extends Controller
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             if ($photo->isValid()) {
-                $filename = time().'_'.$photo->getClientOriginalName();
+                $filename = time() . '_' . $photo->getClientOriginalName();
                 $path = $photo->storeAs('bricks', $filename, 'public');
                 if ($path) {
                     $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: '.$path);
+                    \Log::info('Photo uploaded successfully: ' . $path);
                 } else {
                     \Log::error('Failed to store photo');
                 }
             } else {
-                \Log::error('Invalid photo file: '.$photo->getErrorMessage());
+                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
         }
 
@@ -108,8 +117,12 @@ class BrickController extends Controller
 
         $brick->save();
 
-        return redirect()->route('bricks.index')
-            ->with('success', 'Data Bata berhasil ditambahkan!');
+        // Check if redirect to materials.index is requested
+        if ($request->input('_redirect_to_materials')) {
+            return redirect()->route('materials.index')->with('success', 'Data Bata berhasil ditambahkan!');
+        }
+
+        return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil ditambahkan!');
     }
 
     public function show(Brick $brick)
@@ -150,16 +163,16 @@ class BrickController extends Controller
                     Storage::disk('public')->delete($brick->photo);
                 }
 
-                $filename = time().'_'.$photo->getClientOriginalName();
+                $filename = time() . '_' . $photo->getClientOriginalName();
                 $path = $photo->storeAs('bricks', $filename, 'public');
                 if ($path) {
                     $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: '.$path);
+                    \Log::info('Photo updated successfully: ' . $path);
                 } else {
                     \Log::error('Failed to update photo');
                 }
             } else {
-                \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
+                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
             }
         }
 
@@ -180,8 +193,12 @@ class BrickController extends Controller
 
         $brick->save();
 
-        return redirect()->route('bricks.index')
-            ->with('success', 'Data Bata berhasil diupdate!');
+        // Check if redirect to materials.index is requested
+        if ($request->input('_redirect_to_materials')) {
+            return redirect()->route('materials.index')->with('success', 'Data Bata berhasil diupdate!');
+        }
+
+        return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil diupdate!');
     }
 
     public function destroy(Brick $brick)
@@ -193,8 +210,7 @@ class BrickController extends Controller
 
         $brick->delete();
 
-        return redirect()->route('bricks.index')
-            ->with('success', 'Data Bata berhasil dihapus!');
+        return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil dihapus!');
     }
 
     /**
@@ -204,7 +220,16 @@ class BrickController extends Controller
     {
         // Bidang yang diizinkan untuk auto-suggest
         $allowedFields = [
-            'type', 'brand', 'form', 'store', 'short_address', 'address'
+            'type',
+            'brand',
+            'form',
+            'store',
+            'short_address',
+            'address',
+            'dimension_length',
+            'dimension_width',
+            'dimension_height',
+            'price_per_piece',
         ];
 
         if (!in_array($field, $allowedFields)) {
@@ -215,22 +240,174 @@ class BrickController extends Controller
         $limit = (int) $request->query('limit', 20);
         $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
-        $query = Brick::query()
-            ->whereNotNull($field)
-            ->where($field, '!=', '');
+        $query = Brick::query()->whereNotNull($field)->where($field, '!=', '');
+
+        // Filter berdasarkan parent selections
+        // Bentuk: filter by merek
+        if ($field === 'form' && $request->has('brand') && $request->brand !== '') {
+            $query->where('brand', $request->brand);
+        }
+
+        // Dimensi: filter by merek
+        if (
+            in_array($field, ['dimension_length', 'dimension_width', 'dimension_height']) &&
+            $request->has('brand') &&
+            $request->brand !== ''
+        ) {
+            $query->where('brand', $request->brand);
+        }
+
+        // Alamat: filter by toko
+        if (in_array($field, ['address', 'short_address']) && $request->has('store') && $request->store !== '') {
+            $query->where('store', $request->store);
+        }
+
+        // Harga: filter by dimensi (semua 3 dimensi harus cocok)
+        if ($field === 'price_per_piece') {
+            if ($request->has('dimension_length') && $request->dimension_length !== '') {
+                $query->where('dimension_length', $request->dimension_length);
+            }
+            if ($request->has('dimension_width') && $request->dimension_width !== '') {
+                $query->where('dimension_width', $request->dimension_width);
+            }
+            if ($request->has('dimension_height') && $request->dimension_height !== '') {
+                $query->where('dimension_height', $request->dimension_height);
+            }
+        }
 
         if ($search !== '') {
             $query->where($field, 'like', "%{$search}%");
         }
 
         // Ambil nilai unik, dibatasi
-        $values = $query
-            ->select($field)
-            ->groupBy($field)
-            ->orderBy($field)
-            ->limit($limit)
-            ->pluck($field);
+        $values = $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
 
         return response()->json($values);
+    }
+
+    /**
+     * API untuk mendapatkan semua stores dari brick atau semua material
+     */
+    public function getAllStores(Request $request)
+    {
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $materialType = $request->query('material_type', 'all'); // 'brick' atau 'all'
+
+        $stores = collect();
+
+        // Jika tidak ada search term, hanya tampilkan stores dari brick
+        // Jika ada search term, tampilkan dari semua material
+        if ($materialType === 'brick' || ($search === '' && $materialType === 'all')) {
+            // Tampilkan dari brick saja
+            $brickStores = Brick::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $allStores = $stores->merge($brickStores)->unique()->sort()->values()->take($limit);
+        } else {
+            // Tampilkan dari semua material (saat user mengetik)
+            $catStores = \App\Models\Cat::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $brickStores = Brick::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $cementStores = \App\Models\Cement::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $sandStores = \App\Models\Sand::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $allStores = $stores
+                ->merge($catStores)
+                ->merge($brickStores)
+                ->merge($cementStores)
+                ->merge($sandStores)
+                ->unique()
+                ->sort()
+                ->values()
+                ->take($limit);
+        }
+
+        return response()->json($allStores);
+    }
+
+    /**
+     * API untuk mendapatkan alamat berdasarkan toko dari semua material
+     */
+    public function getAddressesByStore(Request $request)
+    {
+        $store = (string) $request->query('store', '');
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+        // Jika tidak ada toko yang dipilih, return empty
+        if ($store === '') {
+            return response()->json([]);
+        }
+
+        $addresses = collect();
+
+        // Ambil short_address dari brick yang sesuai dengan toko
+        $brickAddresses = Brick::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari cat
+        $catAddresses = \App\Models\Cat::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari cement
+        $cementAddresses = \App\Models\Cement::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari sand
+        $sandAddresses = \App\Models\Sand::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Gabungkan semua addresses dan ambil unique values
+        $allAddresses = $addresses
+            ->merge($brickAddresses)
+            ->merge($catAddresses)
+            ->merge($cementAddresses)
+            ->merge($sandAddresses)
+            ->unique()
+            ->sort()
+            ->values()
+            ->take($limit);
+
+        return response()->json($allAddresses);
     }
 }

@@ -27,7 +27,7 @@ class Brick extends Model
         'address',
         'short_address',
         'price_per_piece',
-        'comparison_price_per_m3'
+        'comparison_price_per_m3',
     ];
 
     protected function casts(): array
@@ -38,13 +38,11 @@ class Brick extends Model
             'dimension_height' => 'float',
             'package_volume' => 'float',
             'price_per_piece' => 'float',
-            'comparison_price_per_m3' => 'float'
+            'comparison_price_per_m3' => 'float',
         ];
     }
 
-    protected $appends = [
-        'photo_url',
-    ];
+    protected $appends = ['photo_url'];
 
     /**
      * Get material type untuk model ini
@@ -71,14 +69,14 @@ class Brick extends Model
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
             // Volume dalam cm³
             $volumeCm3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
-            
+
             // Konversi ke m³ (1 m³ = 1,000,000 cm³)
             $volumeM3 = $volumeCm3 / 1000000;
-            
+
             $this->package_volume = $volumeM3;
             return $volumeM3;
         }
-        
+
         return 0;
     }
 
@@ -91,7 +89,7 @@ class Brick extends Model
             $this->comparison_price_per_m3 = $this->price_per_piece / $this->package_volume;
             return $this->comparison_price_per_m3;
         }
-        
+
         return 0;
     }
 
@@ -119,7 +117,7 @@ class Brick extends Model
             return asset($path);
         }
 
-        return asset('storage/'.ltrim($path, '/'));
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**
@@ -136,7 +134,7 @@ class Brick extends Model
     public static function getDefaultDimensions(): array
     {
         $brick = self::first();
-        
+
         return [
             'length' => $brick->dimension_length ?? 20,
             'width' => $brick->dimension_width ?? 10,

@@ -4,12 +4,18 @@ function initSandForm(root) {
     if (marker.__sandFormInited) { return; }
     marker.__sandFormInited = true;
 
-    // Auto-suggest
+    // Track current selections for cascading autocomplete
+    let currentBrand = '';
+    let currentPackageUnit = '';
+    let currentStore = '';
+
+    // Auto-suggest with cascading logic
     const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
         const suggestList = scope.querySelector(`#${field}-list`) || document.getElementById(`${field}-list`);
         let debounceTimer;
+        let isSelectingFromAutosuggest = false; // Flag to prevent reopening
 
         function populate(values) {
             if (suggestList) {
@@ -19,8 +25,55 @@ function initSandForm(root) {
                     item.className = 'autocomplete-item';
                     item.textContent = v;
                     item.addEventListener('click', function() {
-                        input.value = v;
+                        // Set flag to prevent autosuggest from reopening
+                        isSelectingFromAutosuggest = true;
+
+                        // Close list immediately
                         suggestList.style.display = 'none';
+
+                        // Handle dimension fields with unit conversion
+                        if (['dimension_length', 'dimension_width', 'dimension_height'].includes(field)) {
+                            // Update dimension input
+                            input.value = v;
+
+                            // Trigger input event to update hidden field via setupDimensionInput
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+                            // Auto-update unit selector to 'm' (data dari database dalam meter untuk sand)
+                            const unitSelectorId = field + '_unit';
+                            const unitSelector = scope.querySelector('#' + unitSelectorId) || document.getElementById(unitSelectorId);
+                            if (unitSelector && unitSelector.value !== 'm') {
+                                unitSelector.value = 'm';
+                                // Trigger change event untuk update perhitungan
+                                unitSelector.dispatchEvent(new Event('change'));
+                            }
+
+                            // Note: calculateVolume() will be triggered by the input event above
+                        } else if (field === 'package_price') {
+                            // Handle package price field - format and trigger sync
+                            input.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncPriceFromDisplay === 'function') {
+                                syncPriceFromDisplay();
+                            }
+                        } else if (field === 'comparison_price_per_m3') {
+                            // Handle comparison price field - format and trigger sync
+                            input.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncComparisonFromDisplay === 'function') {
+                                syncComparisonFromDisplay();
+                            }
+                        } else {
+                            input.value = v;
+                        }
+
+                        // Trigger change event for cascading updates (for non-dimension and non-price fields)
+                        if (!['dimension_length', 'dimension_width', 'dimension_height', 'package_price', 'comparison_price_per_m3'].includes(field)) {
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+
+                        // Reset flag after a delay
+                        setTimeout(() => {
+                            isSelectingFromAutosuggest = false;
+                        }, 300);
                     });
                     suggestList.appendChild(item);
                 });
@@ -29,15 +82,59 @@ function initSandForm(root) {
         }
 
         function loadSuggestions(term = '') {
-            const url = `/api/sands/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+            let url;
+
+            // Special case: store field menggunakan endpoint all-stores
+            if (field === 'store') {
+                // Jika tidak ada search term (user baru focus), tampilkan dari sand saja
+                // Jika ada search term (user mengetik), tampilkan dari semua material
+                const materialType = (term === '' || term.length === 0) ? 'sand' : 'all';
+                url = `/api/sands/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
+            }
+            // Special case: address field menggunakan endpoint addresses-by-store
+            else if (field === 'address' || field === 'short_address') {
+                if (currentStore) {
+                    url = `/api/sands/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(currentStore)}`;
+                } else {
+                    // Jika toko belum dipilih, gunakan field-values biasa
+                    url = `/api/sands/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+                }
+            }
+            else {
+                url = `/api/sands/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+
+                // Add filter parameters for cascading autocomplete
+                // Fields that depend on brand (berat dan dimensi kemasan)
+                if (['package_weight_gross', 'dimension_length', 'dimension_width', 'dimension_height'].includes(field)) {
+                    if (currentBrand) {
+                        url += `&brand=${encodeURIComponent(currentBrand)}`;
+                    }
+                }
+
+                // Fields that depend on package_unit (harga)
+                if (field === 'package_price') {
+                    if (currentPackageUnit) {
+                        url += `&package_unit=${encodeURIComponent(currentPackageUnit)}`;
+                    }
+                }
+            }
+
             fetch(url)
                 .then(resp => resp.json())
                 .then(populate)
                 .catch(() => {});
         }
 
-        input.addEventListener('focus', () => loadSuggestions(''));
+        input.addEventListener('focus', () => {
+            if (!isSelectingFromAutosuggest) {
+                loadSuggestions('');
+            }
+        });
         input.addEventListener('input', function () {
+            // Don't reload suggestions if we're selecting from autosuggest
+            if (isSelectingFromAutosuggest) {
+                return;
+            }
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
@@ -49,6 +146,48 @@ function initSandForm(root) {
             }
         });
     });
+
+    // Listen for brand changes to update dependent fields
+    const brandInput = scope.querySelector('#brand') || document.getElementById('brand');
+    if (brandInput) {
+        brandInput.addEventListener('change', function() {
+            currentBrand = this.value;
+
+            // Clear and refresh dependent fields (berat dan dimensi)
+            const dependentFields = ['package_weight_gross', 'dimension_length', 'dimension_width', 'dimension_height'];
+            dependentFields.forEach(fieldName => {
+                const fieldInput = scope.querySelector(`#${fieldName}`) || document.getElementById(fieldName);
+                if (fieldInput && fieldInput !== document.activeElement) {
+                    // Don't clear if user is typing in that field
+                    // fieldInput.value = '';
+                }
+            });
+        });
+    }
+
+    // Listen for package_unit changes to update harga field
+    const unitSelect = scope.querySelector('#package_unit') || document.getElementById('package_unit');
+    if (unitSelect) {
+        currentPackageUnit = unitSelect.value || '';
+        unitSelect.addEventListener('change', function() {
+            currentPackageUnit = this.value;
+            // Price field will automatically use this filter when focused
+        });
+    }
+
+    // Listen for store changes to update address field
+    const storeInput = scope.querySelector('#store') || document.getElementById('store');
+    if (storeInput) {
+        storeInput.addEventListener('change', function() {
+            currentStore = this.value;
+
+            // Clear address field when store changes
+            const addressInput = scope.querySelector('#address') || document.getElementById('address');
+            if (addressInput && addressInput !== document.activeElement) {
+                // addressInput.value = '';
+            }
+        });
+    }
 
     // Photo upload
     const photoInput = scope.querySelector('#photo') || document.getElementById('photo');
@@ -91,8 +230,7 @@ function initSandForm(root) {
 
     // ========== UPDATE PRICE UNIT DISPLAY ==========
 
-    const unitSelect = scope.querySelector('#package_unit') || document.getElementById('package_unit');
-    const priceUnitDisplay = scope.querySelector('#price_unit_display') || document.getElementById('price_unit_display');
+    const priceUnitDisplayInline = scope.querySelector('#price_unit_display_inline') || document.getElementById('price_unit_display_inline');
     const priceUnitInput = scope.querySelector('#price_unit') || document.getElementById('price_unit');
 
     function updatePriceUnitDisplay() {
@@ -100,12 +238,12 @@ function initSandForm(root) {
         const selectedOption = unitSelect.selectedOptions[0];
         const unitName = selectedOption?.dataset?.name || selectedOption?.text || '';
 
-        if (unitName && unitName !== '-- Satuan --') {
+        if (unitName && unitName !== 'Pick up, Meter Kubik, Karung') {
             if (priceUnitInput) priceUnitInput.value = unitName;
-            if (priceUnitDisplay) priceUnitDisplay.textContent = unitName;
+            if (priceUnitDisplayInline) priceUnitDisplayInline.textContent = '/ ' + unitName;
         } else {
             if (priceUnitInput) priceUnitInput.value = '';
-            if (priceUnitDisplay) priceUnitDisplay.textContent = '-';
+            if (priceUnitDisplayInline) priceUnitDisplayInline.textContent = '/ -';
         }
     }
 
@@ -116,59 +254,47 @@ function initSandForm(root) {
 
     // ========== VALIDASI DAN KONVERSI DIMENSI ==========
 
-    function convertToM(value, unit) {
+    function convertToMeters(value, unit) {
         const num = parseFloat(value);
-        if (isNaN(num) || num < 0) {
-            return null;
-        }
+        if (isNaN(num) || num < 0) return null;
 
         switch(unit) {
-            case 'mm':
-                return num / 1000;
-            case 'cm':
-                return num / 100;
-            case 'm':
-                return num;
-            default:
-                return num;
+            case 'mm': return num / 1000;
+            case 'cm': return num / 100;
+            case 'm': return num;
+            case 'inch': return num * 0.0254;
+            default: return num;
         }
     }
 
-    function setupDimensionInput(inputId, unitId, hiddenId, displayId) {
+    function setupDimensionInput(inputId, unitId, hiddenId) {
         const inputElement = scope.querySelector('#' + inputId) || document.getElementById(inputId);
         const unitElement = scope.querySelector('#' + unitId) || document.getElementById(unitId);
         const hiddenElement = scope.querySelector('#' + hiddenId) || document.getElementById(hiddenId);
-        const displayElement = scope.querySelector('#' + displayId) || document.getElementById(displayId);
-        
-        if (!inputElement || !unitElement || !hiddenElement || !displayElement) return;
+
+        if (!inputElement || !unitElement || !hiddenElement) return;
 
         function updateDimension() {
             const rawValue = inputElement.value.trim();
             const selectedUnit = unitElement.value;
-            
+
             if (rawValue === '') {
                 hiddenElement.value = '';
-                displayElement.textContent = '-';
-                displayElement.style.color = '#7f8c8d';
-                inputElement.style.borderColor = '#999';
+                inputElement.style.borderColor = '#e2e8f0';
                 calculateVolume();
                 return;
             }
 
-            const mValue = convertToM(rawValue, selectedUnit);
-            
-            if (mValue !== null) {
-                hiddenElement.value = mValue.toFixed(2);
-                displayElement.textContent = mValue.toFixed(2);
-                displayElement.style.color = '#27ae60';
-                inputElement.style.borderColor = '#999';
+            const metersValue = convertToMeters(rawValue, selectedUnit);
+
+            if (metersValue !== null) {
+                hiddenElement.value = metersValue.toFixed(4);
+                inputElement.style.borderColor = '#e2e8f0';
             } else {
                 hiddenElement.value = '';
-                displayElement.textContent = 'Angka tidak valid';
-                displayElement.style.color = '#e74c3c';
                 inputElement.style.borderColor = '#e74c3c';
             }
-            
+
             calculateVolume();
         }
 
@@ -184,17 +310,21 @@ function initSandForm(root) {
                 }
             }
         });
+
+        // Initial update
+        if (inputElement.value) updateDimension();
     }
 
-    setupDimensionInput('dimension_length_input', 'dimension_length_unit', 'dimension_length', 'length_m_display');
-    setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width', 'width_m_display');
-    setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height', 'height_m_display');
+    setupDimensionInput('dimension_length_input', 'dimension_length_unit', 'dimension_length');
+    setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width');
+    setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height');
 
     // ========== KALKULASI VOLUME DAN HARGA ==========
     
     const dimLength = scope.querySelector('#dimension_length') || document.getElementById('dimension_length');
     const dimWidth = scope.querySelector('#dimension_width') || document.getElementById('dimension_width');
     const dimHeight = scope.querySelector('#dimension_height') || document.getElementById('dimension_height');
+
     const volumeDisplay = scope.querySelector('#volume_display') || document.getElementById('volume_display');
     const packagePrice = scope.querySelector('#package_price') || document.getElementById('package_price');
     const packagePriceDisplay = scope.querySelector('#package_price_display') || document.getElementById('package_price_display');
@@ -205,22 +335,25 @@ function initSandForm(root) {
     let isUpdatingPrice = false;
 
     function calculateVolume() {
-        const length = parseFloat(dimLength?.value) || 0;
-        const width = parseFloat(dimWidth?.value) || 0;
-        const height = parseFloat(dimHeight?.value) || 0;
+        const lengthM = parseFloat(dimLength?.value) || 0;
+        const widthM = parseFloat(dimWidth?.value) || 0;
+        const heightM = parseFloat(dimHeight?.value) || 0;
 
-        if (length > 0 && width > 0 && height > 0) {
-            const volumeM3 = length * width * height;
+        if (lengthM > 0 && widthM > 0 && heightM > 0) {
+            // Already in meters, just multiply to get M3
+            const volumeM3 = lengthM * widthM * heightM;
             currentVolume = volumeM3;
-            volumeDisplay.innerHTML = volumeM3.toFixed(6);
-            volumeDisplay.style.color = '#27ae60';
+            if (volumeDisplay) {
+                volumeDisplay.value = volumeM3.toFixed(6);
+            }
             if (!isUpdatingPrice) {
                 recalculatePrices();
             }
         } else {
             currentVolume = 0;
-            volumeDisplay.textContent = '-';
-            volumeDisplay.style.color = '#7f8c8d';
+            if (volumeDisplay) {
+                volumeDisplay.value = '';
+            }
         }
     }
 

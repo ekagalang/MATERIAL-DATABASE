@@ -16,9 +16,9 @@ class BrickSeeder extends Seeder
                 'type' => 'Merah',
                 'brand' => 'Kuo Shin',
                 'form' => 'Persegi',
-                'dimension_length' => 18.00,
-                'dimension_width' => 8.00,
-                'dimension_height' => 4.00,
+                'dimension_length' => 18.0,
+                'dimension_width' => 8.0,
+                'dimension_height' => 4.0,
                 'package_volume' => 0.000576, // 22 x 11 x 5 cm = 0.001210 m3
                 'store' => 'Toko Bangunan Jaya',
                 'address' => 'Jl. Raya Bogor KM 15, Cibinong, Bogor',
@@ -31,9 +31,9 @@ class BrickSeeder extends Seeder
                 'type' => 'Bata Merah',
                 'brand' => 'Lokal',
                 'form' => 'Berlubang',
-                'dimension_length' => 23.00,
-                'dimension_width' => 11.00,
-                'dimension_height' => 5.50,
+                'dimension_length' => 23.0,
+                'dimension_width' => 11.0,
+                'dimension_height' => 5.5,
                 'package_volume' => 0.001392, // 23 x 11 x 5.5 cm
                 'store' => 'Toko Bangunan Jaya',
                 'address' => 'Jl. Raya Bogor KM 15, Cibinong, Bogor',
@@ -48,10 +48,10 @@ class BrickSeeder extends Seeder
                 'type' => 'Bata Press',
                 'brand' => 'Citicon',
                 'form' => 'Persegi',
-                'dimension_length' => 21.00,
-                'dimension_width' => 10.00,
-                'dimension_height' => 5.00,
-                'package_volume' => 0.001050, // 21 x 10 x 5 cm
+                'dimension_length' => 21.0,
+                'dimension_width' => 10.0,
+                'dimension_height' => 5.0,
+                'package_volume' => 0.00105, // 21 x 10 x 5 cm
                 'store' => 'Sumber Bangunan',
                 'address' => 'Jl. Raya Bekasi KM 20, Bekasi Timur',
                 'short_address' => 'Bekasi Timur',
@@ -63,10 +63,10 @@ class BrickSeeder extends Seeder
                 'type' => 'Bata Press',
                 'brand' => 'Citicon',
                 'form' => 'Berlubang',
-                'dimension_length' => 22.00,
-                'dimension_width' => 10.00,
-                'dimension_height' => 6.00,
-                'package_volume' => 0.001320, // 22 x 10 x 6 cm
+                'dimension_length' => 22.0,
+                'dimension_width' => 10.0,
+                'dimension_height' => 6.0,
+                'package_volume' => 0.00132, // 22 x 10 x 6 cm
                 'store' => 'Sumber Bangunan',
                 'address' => 'Jl. Raya Bekasi KM 20, Bekasi Timur',
                 'short_address' => 'Bekasi Timur',
@@ -80,25 +80,25 @@ class BrickSeeder extends Seeder
                 'type' => 'Bata Ringan',
                 'brand' => 'Hebel',
                 'form' => 'Persegi',
-                'dimension_length' => 60.00,
-                'dimension_width' => 20.00,
-                'dimension_height' => 10.00,
-                'package_volume' => 0.012000, // 60 x 20 x 10 cm
+                'dimension_length' => 60.0,
+                'dimension_width' => 20.0,
+                'dimension_height' => 10.0,
+                'package_volume' => 0.012, // 60 x 20 x 10 cm
                 'store' => 'Mega Bangunan',
                 'address' => 'Jl. Raya Serpong, Tangerang Selatan',
                 'short_address' => 'Serpong, Tangerang Selatan',
                 'price_per_piece' => 10500,
-                'comparison_price_per_m3' => 875000.00, // 10500 / 0.012000
+                'comparison_price_per_m3' => 875000.0, // 10500 / 0.012000
             ],
             [
                 'material_name' => 'Bata',
                 'type' => 'Bata Ringan',
                 'brand' => 'Bricon',
                 'form' => 'Persegi',
-                'dimension_length' => 60.00,
-                'dimension_width' => 20.00,
-                'dimension_height' => 7.50,
-                'package_volume' => 0.009000, // 60 x 20 x 7.5 cm
+                'dimension_length' => 60.0,
+                'dimension_width' => 20.0,
+                'dimension_height' => 7.5,
+                'package_volume' => 0.009, // 60 x 20 x 7.5 cm
                 'store' => 'Mega Bangunan',
                 'address' => 'Jl. Raya Serpong, Tangerang Selatan',
                 'short_address' => 'Serpong, Tangerang Selatan',
@@ -108,13 +108,15 @@ class BrickSeeder extends Seeder
         ];
 
         foreach ($bricks as $brick) {
-            DB::table('bricks')->insert(array_merge($brick, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
+            DB::table('bricks')->insert(
+                array_merge($brick, [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]),
+            );
         }
 
         $this->command->info('✅ Bricks seeded successfully!');
-        $this->command->info('📊 Total bricks created: '.DB::table('bricks')->count());
+        $this->command->info('📊 Total bricks created: ' . DB::table('bricks')->count());
     }
 }

@@ -62,12 +62,12 @@
                             'type' => ['label' => 'Jenis', 'align' => ''],
                             'brand' => ['label' => 'Merek', 'align' => ''],
                             'package_unit' => ['label' => 'Kemasan', 'align' => ''],
-                            'dimension_length' => ['label' => 'Dimensi (M)', 'align' => ''],
+                            'dimension_length' => ['label' => 'Dimensi Kemasan (M)', 'align' => ''],
                             'package_volume' => ['label' => 'Volume', 'align' => ''],
                             'store' => ['label' => 'Toko', 'align' => ''],
                             'short_address' => ['label' => 'Alamat Singkat', 'align' => ''],
-                            'package_price' => ['label' => 'Harga', 'align' => ''],
-                            'comparison_price_per_m3' => ['label' => 'Harga / M3', 'align' => ''],
+                            'package_price' => ['label' => 'Harga Beli', 'align' => ''],
+                            'comparison_price_per_m3' => ['label' => 'Harga Komparasi (/ M3)', 'align' => ''],
                         ];
                     @endphp
 
@@ -91,7 +91,7 @@
                         <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
                             <a href="{{ getSandSortUrl('dimension_length', request('sort_by'), request('sort_direction'), request()->query()) }}"
                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span>Dimensi (M)</span>
+                                <span>Dimensi Kemasan (M)</span>
                                 @if(in_array(request('sort_by'), ['dimension_length', 'dimension_width', 'dimension_height']))
                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="font-size: 12px;"></i>
                                 @else
@@ -118,7 +118,7 @@
                     </tr>
                     <tr class="dim-sub-row">
                         @foreach(['P', 'L', 'T'] as $label)
-                            <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
+                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
                         @endforeach
                     </tr>
                 </thead>
@@ -138,21 +138,21 @@
                                 {{ $sand->packageUnit->name ?? $sand->package_unit ?? '-' }}
                             </span>
                         </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
                             @if(!is_null($sand->dimension_length))
                                 {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }}
                             @else
                                 <span style="color: #cbd5e1;">-</span>
                             @endif
                         </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
                             @if(!is_null($sand->dimension_width))
                                 {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }}
                             @else
                                 <span style="color: #cbd5e1;">-</span>
                             @endif
                         </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
                             @if(!is_null($sand->dimension_height))
                                 {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }}
                             @else
@@ -314,13 +314,30 @@
     justify-content: space-between;
     align-items: center;
     background: #f8fafc;
+    position: relative;
+    overflow: hidden;
 }
 
 .floating-modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
+    padding: 8px 0;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.floating-modal-header h2::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    right: -200px;
+    top: 0;
+    bottom: 0;
+    background: #891313;
+    z-index: -1;
 }
 
 .floating-modal-close {
@@ -419,11 +436,21 @@ th.sortable i {
 }
 
 .table-container thead th {
+    background-color: #891313 !important;
+    color: #ffffff !important;
+    vertical-align: top !important;
+    text-align: center !important;
     white-space: nowrap;
+}
+
+.table-container table td {
+    vertical-align: top !important;
 }
 
 .table-container thead .dim-group-row th {
     border-bottom: 0 !important;
+    padding-bottom: 6px !important;
+    line-height: 1.2;
 }
 
 .table-container thead .dim-sub-row th {
@@ -431,25 +458,39 @@ th.sortable i {
     border-bottom: 0 !important;
     border-left: 0 !important;
     border-right: 0 !important;
-    padding: 1px 2px;
+    padding: 8px 2px 10px 2px !important;
     width: 40px;
     position: relative;
+    line-height: 1.1;
+    vertical-align: middle;
 }
 
 .table-container tbody td.dim-cell {
-    padding: 1px 2px !important;
+    padding: 14px 2px !important;
     width: 40px;
     border-left: 0 !important;
     border-right: 0 !important;
     position: relative;
 }
 
-.table-container thead .dim-sub-row th + th::before,
-.table-container tbody td.dim-cell + td.dim-cell::before {
+/* Header 'x' separator */
+.table-container thead .dim-sub-row th + th::before {
     content: 'x';
     position: absolute;
     left: -6px;
     top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+/* Body 'x' separator */
+.table-container tbody td.dim-cell + td.dim-cell::before {
+    content: 'x';
+    position: absolute;
+    left: -6px;
+    top: 24px;
     transform: translateY(-50%);
     color: #94a3b8;
     font-size: 11px;
@@ -457,7 +498,7 @@ th.sortable i {
 }
 
 .table-container tbody td.volume-cell {
-    padding: 6px 8px !important;
+    padding: 14px 8px !important;
     width: 90px;
 }
 </style>

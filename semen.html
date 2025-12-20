@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tambah Material SEMEN</title>
+    <style>
+        /* --- VARIABEL --- */
+        :root {
+            --bg-body: #f5f5f5;
+            --bg-white: #ffffff;
+            --border-color: #cccccc;
+            --input-border: #999999;
+            --text-main: #000000;
+            --header-red: #a80000; /* Warna Merah Header */
+            --primary-green: #5cb85c;
+            --danger-red: #d9534f;
+            --upload-blue: #2f80ed;
+            --label-width: 140px; /* Lebar label disesuaikan */
+            --input-height: 38px;
+        }
+
+        /* --- RESET & BASIC --- */
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* HEADER */
+        .header-box {
+            background-color: var(--header-red);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            font-size: 20px;
+            font-weight: bold;
+            border-bottom: 4px solid #800000;
+        }
+
+        /* --- LAYOUT UTAMA --- */
+        .form-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        /* --- BARIS FORM --- */
+        .form-row {
+            display: flex;
+            margin-bottom: 15px;
+            align-items: center; /* Default center */
+        }
+
+        .label {
+            width: var(--label-width);
+            font-weight: bold;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .input-group {
+            flex-grow: 1;
+            display: flex;
+            gap: 15px;
+            width: 100%;
+        }
+
+        /* --- INPUT STYLES --- */
+        input[type="text"], 
+        input[type="number"] {
+            width: 100%;
+            height: var(--input-height);
+            padding: 5px 10px;
+            border: 1px solid var(--text-main);
+            font-size: 14px;
+            border-radius: 0;
+        }
+        
+        input:focus { outline: 2px solid var(--upload-blue); }
+
+        /* --- HELPER CLASSES --- */
+        .flex-fill { flex: 1; min-width: 0; }
+        .flex-2 { flex: 2; min-width: 0; }
+
+        /* --- WRAPPER INPUT KECIL (Label di atas input) --- */
+        .mini-input-wrapper {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .mini-label {
+            font-size: 13px;
+            font-style: italic;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .input-with-suffix {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: 100%;
+        }
+        
+        .suffix { font-size: 14px; white-space: nowrap; }
+
+        /* --- KHUSUS BARIS DIMENSI --- */
+        .dimensi-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .dimensi-item {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .dimensi-label {
+            font-style: italic;
+            font-size: 13px;
+            margin-bottom: 2px;
+        }
+
+        .dimensi-input-box {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .dimensi-input-box input { text-align: right; }
+        .math-symbol { font-weight: bold; font-size: 16px; padding-bottom: 8px; }
+
+        /* --- HARGA BOX --- */
+        .price-box {
+            display: flex;
+            align-items: center;
+            border: 1px solid var(--text-main);
+            background: var(--bg-white);
+            padding-left: 5px;
+            width: 100%;
+        }
+
+        .price-box span { font-size: 14px; margin-right: 5px; font-weight: bold; }
+        .price-box input { border: none; height: 100%; width: 100%; padding: 0 5px; }
+        .price-box input:focus { outline: none; }
+
+        /* --- KOLOM KANAN (GAMBAR) --- */
+        .image-section { display: flex; flex-direction: column; }
+        
+        .image-preview-box {
+            width: 100%;
+            height: 320px;
+            background-color: var(--bg-white);
+            border: 1px solid var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+        }
+        
+        .image-actions {
+            margin-top: 5px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 0 10px;
+        }
+        .text-upload { color: var(--primary-green); cursor: pointer; }
+        .text-delete { color: var(--danger-red); cursor: pointer; }
+
+        /* --- FOOTER --- */
+        .footer-actions {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 30px;
+            gap: 20px;
+        }
+
+        .btn-cancel { color: var(--danger-red); font-weight: bold; cursor: pointer; margin-right: 15px; }
+        .btn-save {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 10px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .form-container { grid-template-columns: 1fr; }
+            .dimensi-wrapper { flex-wrap: wrap; }
+            .label { width: 100%; margin-bottom: 5px; }
+            .form-row { flex-direction: column; align-items: flex-start !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-box">
+        Tambah Material SEMEN
+    </div>
+
+    <form class="form-container">
+        
+        <div class="left-column">
+            
+            <div class="form-row">
+                <label class="label">Jenis</label>
+                <div class="input-group">
+                    <input type="text" value="PCC">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="label">Merek</label>
+                <div class="input-group">
+                    <input type="text" value="Tiga Roda">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="label">Sub Merek</label>
+                <div class="input-group">
+                    <input type="text" value="-">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="label">Warna</label>
+                <div class="input-group">
+                    <div class="flex-fill">
+                        <input type="text" placeholder="Kode Warna">
+                    </div>
+                    <div class="flex-fill">
+                        <input type="text" placeholder="Nama Warna">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row" style="align-items: stretch; margin-top: 15px;">
+                <label class="label" style="padding-top: 10px;">Kemasan</label>
+                
+                <div class="input-group">
+                    <div class="flex-2">
+                        <input type="text" value="Sak" style="height: 100%;">
+                    </div>
+                    
+                    <div class="mini-input-wrapper flex-fill">
+                        <span class="mini-label">Berat (Kg)</span>
+                        <div class="input-with-suffix">
+                            <input type="number">
+                            <span class="suffix">Kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row" style="align-items: flex-start; margin-top: 15px;">
+                <label class="label" style="padding-top: 18px;">Dimensi Kemasan</label> 
+                
+                <div class="dimensi-wrapper">
+                    <div class="dimensi-item">
+                        <span class="dimensi-label">Panjang</span>
+                        <div class="dimensi-input-box">
+                            <input type="number">
+                            <span>cm</span>
+                        </div>
+                    </div>
+                    <span class="math-symbol">x</span>
+                    <div class="dimensi-item">
+                        <span class="dimensi-label">Lebar</span>
+                        <div class="dimensi-input-box">
+                            <input type="number">
+                            <span>cm</span>
+                        </div>
+                    </div>
+                    <span class="math-symbol">x</span>
+                    <div class="dimensi-item">
+                        <span class="dimensi-label">Tinggi</span>
+                        <div class="dimensi-input-box">
+                            <input type="number">
+                            <span>cm</span>
+                        </div>
+                    </div>
+                    <span class="math-symbol">=</span>
+                    <div class="dimensi-item">
+                        <span class="dimensi-label" style="font-weight: bold;">Volume</span>
+                        <div class="dimensi-input-box">
+                            <input type="number">
+                            <span>M3</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row" style="align-items: stretch; margin-top: 15px;">
+                <label class="label" style="padding-top: 10px;">Harga</label>
+                
+                <div class="input-group">
+                    <div class="flex-fill" style="display: flex; align-items: flex-end; gap: 5px;">
+                        <div class="price-box" style="height: 100%;">
+                            <span>Rp</span>
+                            <input type="number">
+                        </div>
+                        <span class="suffix" style="padding-bottom: 10px;">/ Galon</span>
+                    </div>
+
+                    <div class="mini-input-wrapper flex-fill">
+                        <span class="mini-label">Harga Komparasi</span>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <div class="price-box" style="height: var(--input-height);">
+                                <span>Rp</span>
+                                <input type="number">
+                            </div>
+                            <span class="suffix">/ M3</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="label">Toko</label>
+                <div class="input-group">
+                    <input type="text" value="TB. Harapan Bersama">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <label class="label">Alamat</label>
+                <div class="input-group">
+                    <input type="text" value="Gading Serpong">
+                </div>
+            </div>
+
+        </div> 
+
+        <div class="image-section">
+            <div class="image-preview-box">
+                Foto
+            </div>
+            <div class="image-actions">
+                <span class="text-upload">^ Upload</span>
+                <span class="text-delete">X Hapus</span>
+            </div>
+        </div>
+
+        <div class="footer-actions">
+            <span class="btn-cancel">X Batalkan</span>
+            <button type="submit" class="btn-save">V Simpan</button>
+        </div>
+
+    </form>
+</body>
+</html>

@@ -15,7 +15,7 @@ class MortarFormulaSeeder extends Seeder
                 'description' => 'Campuran 1 semen : 3 pasir - untuk dinding struktural kuat',
                 'cement_ratio' => 1,
                 'sand_ratio' => 3,
-                'water_ratio' => 0.30, // 30% sesuai Excel
+                'water_ratio' => 0.3, // 30% sesuai Excel
                 'cement_kg_per_m3' => 325,
                 'sand_m3_per_m3' => 0.87,
                 'water_liter_per_m3' => 400,
@@ -31,7 +31,7 @@ class MortarFormulaSeeder extends Seeder
                 'description' => 'Campuran 1 semen : 4 pasir - untuk dinding struktural',
                 'cement_ratio' => 1,
                 'sand_ratio' => 4,
-                'water_ratio' => 0.30, // 30% sesuai Excel
+                'water_ratio' => 0.3, // 30% sesuai Excel
                 'cement_kg_per_m3' => 321.96875, // Dari Excel: 1030.30 kg / 3.2 m³ = 321.96875 kg/m³
                 'sand_m3_per_m3' => 0.86875, // Dari Excel: 2.78 m³ / 3.2 m³ = 0.86875 m³/m³
                 'water_liter_per_m3' => 347.725, // Dari Excel: 1112.72 liter / 3.2 m³ = 347.725 liter/m³
@@ -47,7 +47,7 @@ class MortarFormulaSeeder extends Seeder
                 'description' => 'Campuran 1 semen : 5 pasir - untuk dinding non-struktural',
                 'cement_ratio' => 1,
                 'sand_ratio' => 5,
-                'water_ratio' => 0.30,
+                'water_ratio' => 0.3,
                 'cement_kg_per_m3' => 275,
                 'sand_m3_per_m3' => 0.89,
                 'water_liter_per_m3' => 400,
@@ -63,7 +63,7 @@ class MortarFormulaSeeder extends Seeder
                 'description' => 'Campuran 1 semen : 6 pasir - untuk plesteran',
                 'cement_ratio' => 1,
                 'sand_ratio' => 6,
-                'water_ratio' => 0.30,
+                'water_ratio' => 0.3,
                 'cement_kg_per_m3' => 235,
                 'sand_m3_per_m3' => 0.91,
                 'water_liter_per_m3' => 400,

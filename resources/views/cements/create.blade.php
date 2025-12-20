@@ -15,9 +15,9 @@
     <form action="{{ route('cements.store') }}" method="POST" enctype="multipart/form-data" id="cementForm">
         @csrf
 
-        <div style="display: flex; gap: 32px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 30px;">
             <!-- Kolom Kiri - Form Fields -->
-            <div style="flex: 0 0 calc(65% - 16px); max-width: calc(65% - 16px);">
+            <div>
 
                 {{-- Nama semen disembunyikan, akan diisi otomatis --}}
                 <input type="hidden" name="cement_name" id="cement_name" value="{{ old('cement_name') }}">
@@ -70,47 +70,48 @@
                     </div>
                 </div>
 
-                <!-- Code -->
+                <!-- Code & Warna (dalam satu row) -->
                 <div class="row">
-                    <label>Code</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text" 
-                               name="code" 
-                               id="code" 
-                               value="{{ old('code') }}" 
-                               class="autocomplete-input" 
-                               data-field="code" 
-                               autocomplete="off" 
-                               placeholder="Pilih atau ketik kode...">
-                        <div class="autocomplete-list" id="code-list"></div>
-                    </div>
-                </div>
+                    <label>Kode & Warna</label>
+                    <div style="flex: 1; display: flex; gap: 15px;">
+                        <!-- Code -->
+                        <div style="flex: 1; position: relative;">
+                            <input type="text"
+                                   name="code"
+                                   id="code"
+                                   value="{{ old('code') }}"
+                                   class="autocomplete-input"
+                                   data-field="code"
+                                   autocomplete="off"
+                                   placeholder="Kode...">
+                            <div class="autocomplete-list" id="code-list"></div>
+                        </div>
 
-                <!-- Warna -->
-                <div class="row">
-                    <label>Warna</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text" 
-                               name="color" 
-                               id="color" 
-                               value="{{ old('color') }}" 
-                               class="autocomplete-input" 
-                               data-field="color" 
-                               autocomplete="off" 
-                               placeholder="Pilih atau ketik warna...">
-                        <div class="autocomplete-list" id="color-list"></div>
+                        <!-- Warna -->
+                        <div style="flex: 1; position: relative;">
+                            <input type="text"
+                                   name="color"
+                                   id="color"
+                                   value="{{ old('color') }}"
+                                   class="autocomplete-input"
+                                   data-field="color"
+                                   autocomplete="off"
+                                   placeholder="Warna...">
+                            <div class="autocomplete-list" id="color-list"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Kemasan -->
-                <div class="row">
-                    <label>Kemasan</label>
-                    <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="row" style="align-items: stretch; margin-top: 15px;">
+                    <label style="padding-top: 10px;">Kemasan</label>
+                    <div style="flex: 1; display: flex; gap: 15px;">
+                        <!-- Satuan Kemasan -->
+                        <div style="flex: 2;">
                             <select name="package_unit"
                                     id="package_unit"
-                                    style="flex: 0 0 120px;">
-                                <option value="">-- Satuan --</option>
+                                    style="width: 100%; height: 100%;">
+                                <option value="">Sak, Karung</option>
                                 @foreach($units as $unit)
                                     <option value="{{ $unit->code }}"
                                             data-weight="{{ $unit->package_weight }}"
@@ -119,57 +120,122 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <input type="number"
-                                name="package_weight_gross"
-                                id="package_weight_gross"
-                                value="{{ old('package_weight_gross') }}"
-                                step="0.01"
-                                min="0"
-                                placeholder="Berat"
-                                style="flex: 1;">
-                            <span style="color: #64748b; font-size: 13px; font-weight: 500;">Kg</span>
+                        </div>
+
+                        <!-- Berat (Kg) with mini-label -->
+                        <div class="mini-input-wrapper" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Berat (Kg)</span>
+                            <div style="position: relative;">
+                                <input type="text"
+                                    name="package_weight_gross"
+                                    id="package_weight_gross"
+                                    value="{{ old('package_weight_gross') }}"
+                                    class="autocomplete-input"
+                                    data-field="package_weight_gross"
+                                    inputmode="decimal"
+                                    placeholder="0"
+                                    autocomplete="off"
+                                    style="width: 100%; padding-right: 35px; text-align: right;">
+                                <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">Kg</span>
+                            </div>
+                            <div class="autocomplete-list" id="package_weight_gross-list"></div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Dimensi Kemasan (untuk perhitungan kubik) -->
-                <div class="row">
-                    <label>Dimensi Kemasan</label>
+                <!-- Dimensi Kemasan (P × L × T = Volume) -->
+                <div class="row" style="align-items: flex-start; margin-top: 10px;">
+                    <label style="padding-top: 28px;">Dimensi Kemasan</label>
                     <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="number"
-                                name="dimension_length"
-                                id="dimension_length"
-                                value="{{ old('dimension_length') }}"
-                                step="0.0001"
-                                min="0"
-                                placeholder="Panjang"
-                                style="flex: 1;">
-                            <span style="color: #94a3b8; font-size: 13px;">×</span>
-                            <input type="number"
-                                name="dimension_width"
-                                id="dimension_width"
-                                value="{{ old('dimension_width') }}"
-                                step="0.0001"
-                                min="0"
-                                placeholder="Lebar"
-                                style="flex: 1;">
-                            <span style="color: #94a3b8; font-size: 13px;">×</span>
-                            <input type="number"
-                                name="dimension_height"
-                                id="dimension_height"
-                                value="{{ old('dimension_height') }}"
-                                step="0.0001"
-                                min="0"
-                                placeholder="Tinggi"
-                                style="flex: 1;">
-                            <span style="color: #64748b; font-size: 13px; font-weight: 500;">meter</span>
+                        <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 8px;">
+                            <!-- Panjang -->
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Panjang</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="text"
+                                           id="dimension_length_input"
+                                           class="autocomplete-input"
+                                           data-field="dimension_length"
+                                           inputmode="decimal"
+                                           placeholder="0"
+                                           autocomplete="off">
+                                    <select id="dimension_length_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">m</option>
+                                        <option value="inch">"</option>
+                                    </select>
+                                </div>
+                                <div class="autocomplete-list" id="dimension_length-list"></div>
+                            </div>
+
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
+
+                            <!-- Lebar -->
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Lebar</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="text"
+                                           id="dimension_width_input"
+                                           class="autocomplete-input"
+                                           data-field="dimension_width"
+                                           inputmode="decimal"
+                                           placeholder="0"
+                                           autocomplete="off">
+                                    <select id="dimension_width_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">m</option>
+                                        <option value="inch">"</option>
+                                    </select>
+                                </div>
+                                <div class="autocomplete-list" id="dimension_width-list"></div>
+                            </div>
+
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
+
+                            <!-- Tinggi -->
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Tinggi</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="text"
+                                           id="dimension_height_input"
+                                           class="autocomplete-input"
+                                           data-field="dimension_height"
+                                           inputmode="decimal"
+                                           placeholder="0"
+                                           autocomplete="off">
+                                    <select id="dimension_height_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">m</option>
+                                        <option value="inch">"</option>
+                                    </select>
+                                </div>
+                                <div class="autocomplete-list" id="dimension_height-list"></div>
+                            </div>
+
+                            <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">=</span>
+
+                            <!-- Volume -->
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
+                                <div class="dimensi-input-with-unit">
+                                    <input type="number"
+                                           id="volume_display"
+                                           readonly
+                                           placeholder="0"
+                                           style="text-align: right; padding-right: 38px; width: 100%; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); font-weight: 600; color: #15803d; border: 1.5px solid #86efac;">
+                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #16a34a; font-weight: 600; pointer-events: none;">M3</span>
+                                </div>
+                            </div>
                         </div>
-                        <div style="margin-top: 6px;">
-                            <small style="color: #64748b; font-size: 11px;">
-                                Volume: <span id="volume_display" style="font-weight: 600; color: #15803d;">-</span> m³
-                            </small>
-                        </div>
+
+                        <!-- Hidden inputs -->
+                        <input type="hidden" name="dimension_length" id="dimension_length" value="{{ old('dimension_length') }}">
+                        <input type="hidden" name="dimension_width" id="dimension_width" value="{{ old('dimension_width') }}">
+                        <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height') }}">
+                        <input type="hidden" name="package_volume" id="package_volume" value="{{ old('package_volume') }}">
                     </div>
                 </div>
 
@@ -187,41 +253,49 @@
 
                 -->
 
-                <!-- Harga Kemasan -->
-                <div class="row">
-                    <label>Harga</label>
-                    <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
+                <!-- Harga (Harga Kemasan + Harga Komparasi dalam satu baris) -->
+                <div class="row" style="align-items: stretch; margin-top: 15px;">
+                    <label style="padding-top: 10px;">Harga</label>
+                    <div style="flex: 1; display: flex; gap: 15px; align-items: stretch;">
+                        <!-- Harga Kemasan -->
+                        <div class="flex-fill" style="flex: 1; display: flex; align-items: stretch; position: relative;">
                             <input type="hidden" name="package_price" id="package_price" value="{{ old('package_price') }}">
-                            <input type="text" 
-                                id="package_price_display" 
-                                value="{{ old('package_price') }}" 
-                                inputmode="numeric" 
-                                placeholder="0" 
-                                style="flex: 1; max-width: 200px;">
-                            <div style="display: flex; gap: 4px; align-items: center;">
-                                <span style="color: #cbd5e1; font-size: 14px;">/</span>
-                                <span id="price_unit_display" style="color: #94a3b8; font-size: 13px;">-</span>
-                            </div>
                             <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit') }}">
+                            <div style="flex: 1; display: flex; align-items: center; position: relative;">
+                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                <input type="text"
+                                       id="package_price_display"
+                                       value="{{ old('package_price') }}"
+                                       class="autocomplete-input"
+                                       data-field="package_price"
+                                       inputmode="numeric"
+                                       placeholder="0"
+                                       autocomplete="off"
+                                       style="width: 100%; height: 100%; padding: 10px 70px 10px 38px; font-size: 14px;">
+                                <span id="price_unit_display_inline" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ -</span>
+                            </div>
+                            <div class="autocomplete-list" id="package_price-list"></div>
                         </div>
-                    </div>
-                </div>
 
-                <!-- Harga Komparasi per Kg -->
-                <div class="row">
-                    <label>Harga / Kg</label>
-                    <div style="flex: 1;">
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <span style="font-weight: 600; color: #64748b; font-size: 14px;">Rp</span>
-                            <input type="hidden" name="comparison_price_per_kg" id="comparison_price_per_kg" value="{{ old('comparison_price_per_kg') }}">
-                            <input type="text" 
-                                   id="comparison_price_display" 
-                                   inputmode="numeric" 
-                                   placeholder="0" 
-                                   style="flex: 1; max-width: 200px;">
-                            <span style="color: #94a3b8; font-size: 13px;">/ Kg</span>
+                        <!-- Harga Komparasi per Kg -->
+                        <div class="mini-input-wrapper flex-fill" style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Harga Komparasi</span>
+                            <div style="display: flex; align-items: center; position: relative;">
+                                <input type="hidden" name="comparison_price_per_kg" id="comparison_price_per_kg" value="{{ old('comparison_price_per_kg') }}">
+                                <div style="flex: 1; display: flex; align-items: center; position: relative;">
+                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                    <input type="text"
+                                           id="comparison_price_display"
+                                           class="autocomplete-input"
+                                           data-field="comparison_price_per_kg"
+                                           inputmode="numeric"
+                                           placeholder="0"
+                                           autocomplete="off"
+                                           style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
+                                    <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Kg</span>
+                                </div>
+                                <div class="autocomplete-list" id="comparison_price_per_kg-list"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -242,25 +316,9 @@
                     </div>
                 </div>
 
-                <!-- Alamat Singkat -->
-                <div class="row">
-                    <label>Alamat Singkat</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text" 
-                               name="short_address" 
-                               id="short_address" 
-                               value="{{ old('short_address') }}" 
-                               class="autocomplete-input" 
-                               data-field="short_address" 
-                               autocomplete="off" 
-                               placeholder="Contoh: Roxy, CitraLand, Taman Semanggi">
-                        <div class="autocomplete-list" id="short_address-list"></div>
-                    </div>
-                </div>
-
                 <!-- Alamat Lengkap -->
                 <div class="row">
-                    <label>Alamat Lengkap</label>
+                    <label>Alamat</label>
                     <div style="flex: 1; position: relative;">
                         <input type="text" 
                                name="address" 
@@ -276,72 +334,50 @@
 
             </div>
 
-            <!-- Kolom Kanan - Upload Foto -->
-            <div style="flex: 0 0 calc(35% - 16px); max-width: calc(35% - 16px);">
-                <div id="photoPreviewArea" 
-                     style="border: 2px dashed #e2e8f0; 
-                            height: 420px; 
-                            border-radius: 16px; 
-                            display: flex; 
-                            align-items: center; 
-                            justify-content: center; 
-                            background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
-                            cursor: pointer; 
-                            position: relative; 
-                            overflow: hidden; 
-                            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
-                    <div id="photoPlaceholder" style="text-align: center; color: #cbd5e1;">
-                        <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                        <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Upload Foto Produk</div>
-                        <div style="font-size: 12px; color: #94a3b8;">JPG, PNG, GIF (Max 2MB)</div>
+            <!-- Kolom Kanan - Gambar -->
+            <div class="image-section" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div class="image-preview-box" id="photoPreviewArea"
+                         style="width: 100%;
+                                min-height: 200px;
+                                max-height: 400px;
+                                height: 320px;
+                                background-color: #ffffff;
+                                border: 2px dashed #e2e8f0;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                color: #cbd5e1;
+                                cursor: pointer;
+                                position: relative;
+                                overflow: hidden;
+                                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
+                        <div id="photoPlaceholder" style="text-align: center;">
+                            <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
+                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
+                        </div>
+                        <img id="photoPreview"
+                             src=""
+                             alt="Preview"
+                             style="display: none; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
                     </div>
-                    <img id="photoPreview" 
-                         src="" 
-                         alt="Preview" 
-                         style="display: none; 
-                                width: 100%; 
-                                height: 100%; 
-                                object-fit: cover;">
+
+                    <input type="file" name="photo" id="photo" accept="image/*" style="display: none;">
+
+                    <div class="image-actions" style="margin-top: 5px; display: flex; justify-content: center; font-weight: bold; font-size: 14px; padding: 0 10px; gap: 10px;">
+                        <span class="text-upload" id="uploadBtn" style="color: #5cb85c; cursor: pointer;"><i class="bi bi-upload"></i> Upload</span>
+                        <span class="text-delete" id="deletePhotoBtn" style="color: #d9534f; cursor: pointer; display: none;"><i class="bi bi-trash"></i> Hapus</span>
+                    </div>
                 </div>
-                
-                <input type="file" name="photo" id="photo" accept="image/*" style="display: none;">
-                
-                <div class="uploadDel" style="margin-top: 14px; display: flex; gap: 20px; font-size: 13px;">
-                    <span style="cursor: pointer; 
-                                 color: #891313; 
-                                 font-weight: 600; 
-                                 display: flex; 
-                                 align-items: center; 
-                                 gap: 6px;" 
-                          id="uploadBtn">
-                        <i class="bi bi-upload"></i> Upload Foto
-                    </span>
-                    <span style="cursor: pointer; 
-                                 color: #ef4444; 
-                                 font-weight: 600; 
-                                 display: none; 
-                                 align-items: center; 
-                                 gap: 6px;" 
-                          id="deletePhotoBtn">
-                        <i class="bi bi-trash"></i> Hapus Foto
-                    </span>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; justify-content: center; gap: 20px; padding-bottom: 15px;">
+                    <button type="button" class="btn-cancel"
+                          onclick="window.parent.document.getElementById('closeModal').click()">Batal</button>
+                    <button type="submit" class="btn-save">Simpan</button>
                 </div>
             </div>
         </div>
-
-        <!-- Action Buttons -->
-        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
-            <button type="button" 
-                    class="btn btn-secondary" 
-                    onclick="window.parent.document.getElementById('closeModal').click()"
-                    style="background: transparent; color: #64748b; border: 1.5px solid #e2e8f0; box-shadow: none;">
-                <i class="bi bi-x-lg"></i> Batalkan
-            </button>
-            <button type="submit" class="btn btn-success">
-                <i class="bi bi-check-lg"></i> Simpan Data
-            </button>
-        </div>
-
     </form>
 </div>
 
@@ -419,6 +455,9 @@
 <script src="/js/cement-form.js"></script>
 <script>
     if (typeof initCementForm === 'function') {
-        initCementForm();
+        // Pass the current form container to the init function if in a modal context
+        // Or just let it default to document
+        const currentForm = document.getElementById('cementForm');
+        initCementForm(currentForm ? currentForm.parentElement : document);
     }
 </script>

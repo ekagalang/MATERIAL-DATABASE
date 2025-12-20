@@ -19,12 +19,12 @@ class CementSeeder extends Seeder
                 'code' => 'PCC-40',
                 'color' => 'Hitam',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 40.00,
-                'package_weight_net' => 40.00,
+                'package_weight_gross' => 40.0,
+                'package_weight_net' => 40.0,
                 // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => 0.30, // meter
-                'dimension_width' => 0.20,  // meter
-                'dimension_height' => 0.60, // meter
+                'dimension_length' => 0.3, // meter
+                'dimension_width' => 0.2, // meter
+                'dimension_height' => 0.6, // meter
                 'package_volume' => 0.036, // m³ (0.30 x 0.20 x 0.60)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
@@ -42,12 +42,12 @@ class CementSeeder extends Seeder
                 'code' => 'SG-PCC',
                 'color' => 'Abu-abu',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 50.50,
-                'package_weight_net' => 50.00,
+                'package_weight_gross' => 50.5,
+                'package_weight_net' => 50.0,
                 // Dimensi kemasan sak semen standar: 50cm x 35cm x 10cm
-                'dimension_length' => 0.50, // meter
-                'dimension_width' => 0.35,  // meter
-                'dimension_height' => 0.10, // meter
+                'dimension_length' => 0.5, // meter
+                'dimension_width' => 0.35, // meter
+                'dimension_height' => 0.1, // meter
                 'package_volume' => 0.0175, // m³ (0.50 x 0.35 x 0.10)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
@@ -64,12 +64,12 @@ class CementSeeder extends Seeder
                 'code' => 'SG-SMC',
                 'color' => 'Merah',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 40.50,
-                'package_weight_net' => 40.00,
+                'package_weight_gross' => 40.5,
+                'package_weight_net' => 40.0,
                 // Dimensi kemasan sak 40kg: 45cm x 30cm x 10cm
                 'dimension_length' => 0.45,
-                'dimension_width' => 0.30,
-                'dimension_height' => 0.10,
+                'dimension_width' => 0.3,
+                'dimension_height' => 0.1,
                 'package_volume' => 0.0135, // m³ (0.45 x 0.30 x 0.10)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
@@ -88,11 +88,11 @@ class CementSeeder extends Seeder
                 'code' => 'SP-PCC',
                 'color' => 'Abu-abu',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 50.50,
-                'package_weight_net' => 50.00,
-                'dimension_length' => 0.50,
+                'package_weight_gross' => 50.5,
+                'package_weight_net' => 50.0,
+                'dimension_length' => 0.5,
                 'dimension_width' => 0.35,
-                'dimension_height' => 0.10,
+                'dimension_height' => 0.1,
                 'package_volume' => 0.0175,
                 'store' => 'Bangunan Jaya',
                 'address' => 'Jl. Raya Depok No. 123, Depok',
@@ -109,11 +109,11 @@ class CementSeeder extends Seeder
                 'code' => 'SP-AP',
                 'color' => 'Putih',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 40.50,
-                'package_weight_net' => 40.00,
+                'package_weight_gross' => 40.5,
+                'package_weight_net' => 40.0,
                 'dimension_length' => 0.45,
-                'dimension_width' => 0.30,
-                'dimension_height' => 0.10,
+                'dimension_width' => 0.3,
+                'dimension_height' => 0.1,
                 'package_volume' => 0.0135,
                 'store' => 'Bangunan Jaya',
                 'address' => 'Jl. Raya Depok No. 123, Depok',
@@ -132,11 +132,11 @@ class CementSeeder extends Seeder
                 'code' => 'HC-DYN',
                 'color' => 'Abu-abu',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 50.50,
-                'package_weight_net' => 50.00,
-                'dimension_length' => 0.50,
+                'package_weight_gross' => 50.5,
+                'package_weight_net' => 50.0,
+                'dimension_length' => 0.5,
                 'dimension_width' => 0.35,
-                'dimension_height' => 0.10,
+                'dimension_height' => 0.1,
                 'package_volume' => 0.0175,
                 'store' => 'Sumber Makmur',
                 'address' => 'Jl. Raya Condet No. 45, Jakarta Timur',
@@ -155,11 +155,11 @@ class CementSeeder extends Seeder
                 'code' => 'TR-PCC',
                 'color' => 'Abu-abu',
                 'package_unit' => 'Sak',
-                'package_weight_gross' => 50.50,
-                'package_weight_net' => 50.00,
-                'dimension_length' => 0.50,
+                'package_weight_gross' => 50.5,
+                'package_weight_net' => 50.0,
+                'dimension_length' => 0.5,
                 'dimension_width' => 0.35,
-                'dimension_height' => 0.10,
+                'dimension_height' => 0.1,
                 'package_volume' => 0.0175,
                 'store' => 'Toko Material Sejahtera',
                 'address' => 'Jl. Raya Bekasi No. 88, Bekasi',
@@ -171,13 +171,15 @@ class CementSeeder extends Seeder
         ];
 
         foreach ($cements as $cement) {
-            DB::table('cements')->insert(array_merge($cement, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
+            DB::table('cements')->insert(
+                array_merge($cement, [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]),
+            );
         }
 
         $this->command->info('✅ Cements seeded successfully!');
-        $this->command->info('📊 Total cements created: '.DB::table('cements')->count());
+        $this->command->info('📊 Total cements created: ' . DB::table('cements')->count());
     }
 }

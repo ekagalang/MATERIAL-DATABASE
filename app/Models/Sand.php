@@ -45,9 +45,7 @@ class Sand extends Model
         'comparison_price_per_m3' => 'float',
     ];
 
-    protected $appends = [
-        'photo_url',
-    ];
+    protected $appends = ['photo_url'];
 
     /**
      * Get material type untuk model ini
@@ -70,8 +68,7 @@ class Sand extends Model
      */
     public function packageUnit()
     {
-        return $this->belongsTo(Unit::class, 'package_unit', 'code')
-            ->where('material_type', self::getMaterialType());
+        return $this->belongsTo(Unit::class, 'package_unit', 'code')->where('material_type', self::getMaterialType());
     }
 
     /**
@@ -80,10 +77,8 @@ class Sand extends Model
     public function calculateNetWeight()
     {
         if ($this->package_weight_gross && $this->package_unit) {
-            $unit = Unit::where('code', $this->package_unit)
-                ->where('material_type', self::getMaterialType())
-                ->first();
-            
+            $unit = Unit::where('code', $this->package_unit)->where('material_type', self::getMaterialType())->first();
+
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
                 return $this->package_weight_net;
@@ -145,7 +140,7 @@ class Sand extends Model
             return asset($path);
         }
 
-        return asset('storage/'.ltrim($path, '/'));
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**

@@ -9,7 +9,7 @@ class NumberHelper
      * 50.00 → 50
      * 50.50 → 50.5
      * 50.25 → 50.25
-     * 
+     *
      * @param float|null $number
      * @param int $decimals
      * @param string $decimalSeparator
@@ -17,10 +17,10 @@ class NumberHelper
      * @return string
      */
     public static function format(
-        ?float $number, 
-        int $decimals = 2, 
-        string $decimalSeparator = ',', 
-        string $thousandsSeparator = '.'
+        ?float $number,
+        int $decimals = 2,
+        string $decimalSeparator = ',',
+        string $thousandsSeparator = '.',
     ): string {
         if ($number === null) {
             return '0';
@@ -28,19 +28,19 @@ class NumberHelper
 
         // Format dengan desimal
         $formatted = number_format($number, $decimals, $decimalSeparator, $thousandsSeparator);
-        
+
         // Hilangkan trailing zeros setelah koma
         if (str_contains($formatted, $decimalSeparator)) {
             $formatted = rtrim($formatted, '0');
             $formatted = rtrim($formatted, $decimalSeparator);
         }
-        
+
         return $formatted;
     }
 
     /**
      * Format untuk currency (Rupiah)
-     * 
+     *
      * @param float|null $number
      * @return string
      */
@@ -55,7 +55,7 @@ class NumberHelper
 
     /**
      * Format untuk weight (Kg)
-     * 
+     *
      * @param float|null $number
      * @return string
      */
@@ -70,7 +70,7 @@ class NumberHelper
 
     /**
      * Format untuk volume (m³)
-     * 
+     *
      * @param float|null $number
      * @return string
      */

@@ -20,7 +20,7 @@
                 <input type="text"
                        name="search"
                        value="{{ request('search') }}"
-                       placeholder="Cari jenis, merek, code, warna, toko..."
+                       placeholder="Cari jenis, merek, Kode, warna, toko..."
                        style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
@@ -43,7 +43,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th>No</th>
+                        <th rowspan="2">No</th>
                         @php
                             function getCementSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
                                 $params = array_merge($requestQuery, []);
@@ -64,19 +64,19 @@
                                 'type' => ['label' => 'Jenis', 'align' => ''],
                                 'brand' => ['label' => 'Merek', 'align' => ''],
                                 'sub_brand' => ['label' => 'Sub Merek', 'align' => ''],
-                                'code' => ['label' => 'Code', 'align' => 'right'],
+                                'code' => ['label' => 'Kode', 'align' => 'right'],
                                 'color' => ['label' => 'Warna', 'align' => 'left'],
                                 'package_unit' => ['label' => 'Kemasan', 'align' => ''],
-                                'package_weight_net' => ['label' => 'Berat', 'align' => ''],
+                                'package_weight_net' => ['label' => 'Berat Bersih', 'align' => ''],
                                 'store' => ['label' => 'Toko', 'align' => ''],
-                                'short_address' => ['label' => 'Alamat Singkat', 'align' => ''],
-                                'package_price' => ['label' => 'Harga', 'align' => ''],
-                                'comparison_price_per_kg' => ['label' => 'Harga / Kg', 'align' => ''],
+                                'address' => ['label' => 'Alamat', 'align' => ''],
+                                'package_price' => ['label' => 'Harga Beli', 'align' => ''],
+                                'comparison_price_per_kg' => ['label' => 'Harga Komparasi (/ Kg)', 'align' => ''],
                             ];
                         @endphp
 
                         @foreach(['cement_name', 'type'] as $col)
-                            <th class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
+                            <th rowspan="2" class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
                                 <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $cementSortColumns[$col]['label'] }}</span>
@@ -89,8 +89,8 @@
                             </th>
                         @endforeach
 
-                        @foreach(['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net', 'store', 'short_address', 'package_price', 'comparison_price_per_kg'] as $col)
-                            <th class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
+                        @foreach(['brand', 'sub_brand', 'code', 'color', 'package_unit'] as $col)
+                            <th rowspan="2" class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
                                 <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
                                     <span>{{ $cementSortColumns[$col]['label'] }}</span>
@@ -103,7 +103,30 @@
                             </th>
                         @endforeach
 
-                        <th style="text-align: center">Aksi</th>
+                        <!-- Dimensi Header Group -->
+                        <th colspan="3" style="text-align: center;">Dimensi Kemasan (cm)</th>
+
+                        @foreach(['package_weight_net', 'store', 'address', 'package_price', 'comparison_price_per_kg'] as $col)
+                            <th rowspan="2" class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
+                                <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
+                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                    <span>{{ $cementSortColumns[$col]['label'] }}</span>
+                                    @if(request('sort_by') == $col)
+                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                    @else
+                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                    @endif
+                                </a>
+                            </th>
+                        @endforeach
+
+                        <th rowspan="2" style="text-align: center">Aksi</th>
+                    </tr>
+                    <!-- Dimensi Sub-headers -->
+                    <tr class="dim-sub-row">
+                        @foreach(['P', 'L', 'T'] as $label)
+                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
+                        @endforeach
                     </tr>
                 </thead>
                 <tbody>
@@ -124,11 +147,35 @@
                         <td style="color: #475569; text-align: left;">{{ $cement->color ?? '-' }}</td>
                         <td style="color: #475569; font-size: 13px; text-align: right;">
                             @if($cement->package_unit)
-                                <!-- {{ $cement->package_weight_gross }} --> {{ $cement->packageUnit->name ?? $cement->package_unit }}
+                                {{ $cement->packageUnit->name ?? $cement->package_unit }}
                             @else
                                 <span style="color: #cbd5e1;">—</span>
                             @endif
                         </td>
+
+                        <!-- Dimensi Data -->
+                        <td style="text-align: center; color: #475569; font-size: 12px;">
+                            @if($cement->dimension_length)
+                                {{ rtrim(rtrim(number_format($cement->dimension_length * 100, 1, ',', '.'), '0'), ',') }}
+                            @else
+                                <span style="color: #cbd5e1;">-</span>
+                            @endif
+                        </td>
+                        <td style="text-align: center; color: #475569; font-size: 12px;">
+                            @if($cement->dimension_width)
+                                {{ rtrim(rtrim(number_format($cement->dimension_width * 100, 1, ',', '.'), '0'), ',') }}
+                            @else
+                                <span style="color: #cbd5e1;">-</span>
+                            @endif
+                        </td>
+                        <td style="text-align: center; color: #475569; font-size: 12px;">
+                            @if($cement->dimension_height)
+                                {{ rtrim(rtrim(number_format($cement->dimension_height * 100, 1, ',', '.'), '0'), ',') }}
+                            @else
+                                <span style="color: #cbd5e1;">-</span>
+                            @endif
+                        </td>
+
                         <td style="text-align: left; color: #475569; font-size: 12px;">
                             @if($cement->package_weight_net)
                                 {{ rtrim(rtrim(number_format($cement->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
@@ -142,7 +189,7 @@
                             </span>
                         </td>
                         <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                            {{ $cement->short_address ?? '-' }}
+                            {{ $cement->address ?? '-' }}
                         </td>
                         <td>
                             @if($cement->package_price)
@@ -284,13 +331,30 @@
     justify-content: space-between;
     align-items: center;
     background: #f8fafc;
+    position: relative;
+    overflow: hidden;
 }
 
 .floating-modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
+    padding: 8px 0;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.floating-modal-header h2::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    right: -200px;
+    top: 0;
+    bottom: 0;
+    background: #891313;
+    z-index: -1;
 }
 
 .floating-modal-close {
@@ -352,6 +416,19 @@
 
 .floating-modal-body::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+}
+
+/* Table fixed column widths */
+.table-container thead th {
+    background-color: #891313 !important;
+    color: #ffffff !important;
+    vertical-align: top !important;
+    text-align: center !important;
+    white-space: nowrap;
+}
+
+.table-container table td {
+    vertical-align: top !important;
 }
 
 /* Input focus styles */

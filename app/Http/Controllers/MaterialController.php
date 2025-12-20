@@ -13,14 +13,29 @@ class MaterialController extends Controller
 {
     public function index(Request $request)
     {
-        // Get visible materials based on settings
-        $visibleMaterials = MaterialSetting::getVisibleMaterials();
+        // Load ALL materials data (not filtered)
+        // JavaScript will handle showing/hiding tabs based on checkbox
+        $allSettings = MaterialSetting::orderBy('display_order')->get();
 
         $materials = [];
 
-        foreach ($visibleMaterials as $setting) {
+        foreach ($allSettings as $setting) {
             $type = $setting->material_type;
-            $data = $this->getMaterialData($type, $request);
+
+            // Get active letters for this material type
+            $activeLetters = $this->getActiveLetters($type);
+
+            // Determine active letter independently for each tab
+            // Use query param like 'brick_letter', 'cat_letter'
+            $letterParam = $type . '_letter';
+
+            if ($request->has($letterParam)) {
+                $currentLetter = $request->get($letterParam);
+            } else {
+                $currentLetter = !empty($activeLetters) ? $activeLetters[0] : 'A';
+            }
+
+            $data = $this->getMaterialData($type, $request, $currentLetter);
 
             if ($data) {
                 $materials[] = [
@@ -28,91 +43,97 @@ class MaterialController extends Controller
                     'label' => MaterialSetting::getMaterialLabel($type),
                     'data' => $data,
                     'count' => $data->total(),
+                    'active_letters' => $activeLetters,
+                    'current_letter' => $currentLetter,
                 ];
             }
         }
 
-        return view('materials.index', compact('materials'));
+        return view('materials.index', compact('materials', 'allSettings'));
     }
 
-    private function getMaterialData($type, $request)
+    private function getActiveLetters($type)
+    {
+        $model = null;
+        switch ($type) {
+            case 'brick':
+                $model = Brick::class;
+                break;
+            case 'cat':
+                $model = Cat::class;
+                break;
+            case 'cement':
+                $model = Cement::class;
+                break;
+            case 'sand':
+                $model = Sand::class;
+                break;
+        }
+
+        if (!$model) {
+            return [];
+        }
+
+        // Get distinct first letters of brand, uppercase
+        return $model
+            ::selectRaw('DISTINCT UPPER(SUBSTRING(brand, 1, 1)) as letter')
+            ->whereNotNull('brand')
+            ->where('brand', '!=', '')
+            ->orderBy('letter')
+            ->pluck('letter')
+            ->toArray();
+    }
+
+    private function getMaterialData($type, $request, $letter = 'A')
     {
         $search = $request->get('search');
+
+        $query = null;
 
         switch ($type) {
             case 'brick':
                 $query = Brick::query();
-                if ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('type', 'like', "%{$search}%")
-                          ->orWhere('brand', 'like', "%{$search}%")
-                          ->orWhere('store', 'like', "%{$search}%");
-                    });
-                }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
-
+                break;
             case 'cat':
                 $query = Cat::query()->with('packageUnit');
-                if ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('cat_name', 'like', "%{$search}%")
-                          ->orWhere('brand', 'like', "%{$search}%")
-                          ->orWhere('store', 'like', "%{$search}%");
-                    });
-                }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
-
+                break;
             case 'cement':
                 $query = Cement::query()->with('packageUnit');
-                if ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('cement_name', 'like', "%{$search}%")
-                          ->orWhere('brand', 'like', "%{$search}%")
-                          ->orWhere('store', 'like', "%{$search}%");
-                    });
-                }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
-
+                break;
             case 'sand':
                 $query = Sand::query()->with('packageUnit');
-                if ($search) {
-                    $query->where(function ($q) use ($search) {
-                        $q->where('sand_name', 'like', "%{$search}%")
-                          ->orWhere('brand', 'like', "%{$search}%")
-                          ->orWhere('store', 'like', "%{$search}%");
-                    });
+                break;
+        }
+
+        if (!$query) {
+            return null;
+        }
+
+        // Apply Search (Overrides Letter filter usually, or combines? Standard is Search OR Letter.
+        // If Search is present, ignore letter. If no search, use Letter.)
+        if ($search) {
+            $query->where(function ($q) use ($search, $type) {
+                $q->where('brand', 'like', "%{$search}%")->orWhere('store', 'like', "%{$search}%");
+
+                // Add specific fields based on type
+                if ($type == 'brick') {
+                    $q->orWhere('type', 'like', "%{$search}%");
                 }
-                return $query->orderBy('created_at', 'desc')->paginate(10);
-
-            default:
-                return null;
-        }
-    }
-
-    public function settings()
-    {
-        $settings = MaterialSetting::orderBy('display_order')->get();
-        return view('materials.settings', compact('settings'));
-    }
-
-    public function updateSettings(Request $request)
-    {
-        $request->validate([
-            'settings' => 'required|array',
-            'settings.*.id' => 'required|exists:material_settings,id',
-            'settings.*.is_visible' => 'required|boolean',
-            'settings.*.display_order' => 'required|integer',
-        ]);
-
-        foreach ($request->settings as $settingData) {
-            MaterialSetting::where('id', $settingData['id'])
-                ->update([
-                    'is_visible' => $settingData['is_visible'],
-                    'display_order' => $settingData['display_order'],
-                ]);
+                if ($type == 'cat') {
+                    $q->orWhere('cat_name', 'like', "%{$search}%");
+                }
+                if ($type == 'cement') {
+                    $q->orWhere('cement_name', 'like', "%{$search}%");
+                }
+                if ($type == 'sand') {
+                    $q->orWhere('sand_name', 'like', "%{$search}%");
+                }
+            });
+        } else {
+            // Apply Letter Filter (Default 'A')
+            $query->where('brand', 'like', $letter . '%');
         }
 
-        return redirect()->route('materials.settings')
-            ->with('success', 'Pengaturan material berhasil diupdate!');
+        return $query->orderBy('created_at', 'desc')->paginate(10, ['*'], $type . '_page');
     }
 }

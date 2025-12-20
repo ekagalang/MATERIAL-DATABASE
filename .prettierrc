@@ -1,0 +1,35 @@
+{
+    "tabWidth": 4,
+    "useTabs": false,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "printWidth": 120,
+    "plugins": [
+        "@prettier/plugin-php",
+        "@shufo/prettier-plugin-blade",
+        "prettier-plugin-tailwindcss"
+    ],
+    "overrides": [
+        {
+            "files": [
+                "*.blade.php"
+            ],
+            "options": {
+                "parser": "blade",
+                "tabWidth": 4
+            }
+        },
+        {
+            "files": [
+                "*.php"
+            ],
+            "options": {
+                "parser": "php",
+                "tabWidth": 4,
+                "singleQuote": true,
+                "phpVersion": "8.2"
+            }
+        }
+    ]
+}

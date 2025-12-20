@@ -13,24 +13,24 @@ class UnitSeeder extends Seeder
         // Mapping satuan untuk tiap material type
         $unitsByMaterial = [
             'cat' => [
-                ['code' => 'Galon', 'name' => 'Galon', 'package_weight' => 0.20],
-                ['code' => 'Pail', 'name' => 'Pail', 'package_weight' => 1.00],
-                ['code' => 'Klg', 'name' => 'Kaleng', 'package_weight' => 0.10],
+                ['code' => 'Galon', 'name' => 'Galon', 'package_weight' => 0.2],
+                ['code' => 'Pail', 'name' => 'Pail', 'package_weight' => 1.0],
+                ['code' => 'Klg', 'name' => 'Kaleng', 'package_weight' => 0.1],
                 ['code' => 'L', 'name' => 'Liter', 'package_weight' => 0],
                 ['code' => 'Kg', 'name' => 'Kilogram', 'package_weight' => 0],
             ],
-            
+
             'cement' => [
                 ['code' => 'Sak', 'name' => 'Sak', 'package_weight' => 0],
                 ['code' => 'Kg', 'name' => 'Kilogram', 'package_weight' => 0],
             ],
-            
+
             'sand' => [
                 ['code' => 'Krg', 'name' => 'Karung', 'package_weight' => 0],
                 ['code' => 'M3', 'name' => 'Meter Kubik', 'package_weight' => 0],
                 ['code' => 'Kg', 'name' => 'Kilogram', 'package_weight' => 0],
             ],
-            
+
             'brick' => [
                 ['code' => 'Buah', 'name' => 'Buah', 'package_weight' => 0],
                 ['code' => 'Unit', 'name' => 'Unit', 'package_weight' => 0],
@@ -47,7 +47,7 @@ class UnitSeeder extends Seeder
                     'material_type' => $materialType,
                     'name' => $unit['name'],
                     'package_weight' => $unit['package_weight'],
-                    'description' => "Satuan untuk " . ucfirst($materialType),
+                    'description' => 'Satuan untuk ' . ucfirst($materialType),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);

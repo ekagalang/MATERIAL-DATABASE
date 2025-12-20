@@ -16,12 +16,12 @@ class SandSeeder extends Seeder
                 'type' => 'Plester',
                 'brand' => 'Bangka',
                 'package_unit' => 'Krg',
-                'package_weight_gross' => 40.00,
-                'package_weight_net' => 40.00,
-                'dimension_length' => 1.00,
-                'dimension_width' => 1.00,
-                'dimension_height' => 1.50,
-                'package_volume' => 1.500000, // sekitar 25 liter per karung
+                'package_weight_gross' => 40.0,
+                'package_weight_net' => 40.0,
+                'dimension_length' => 1.0,
+                'dimension_width' => 1.0,
+                'dimension_height' => 1.5,
+                'package_volume' => 1.5, // sekitar 25 liter per karung
                 'store' => 'Pasir Merapi',
                 'address' => 'Jl. Raya Merapi No. 45, Bogor',
                 'short_address' => 'Bogor',
@@ -35,8 +35,8 @@ class SandSeeder extends Seeder
                 'type' => 'Pasir Pasang',
                 'brand' => 'Lokal',
                 'package_unit' => 'Krg',
-                'package_weight_gross' => 40.50,
-                'package_weight_net' => 40.00,
+                'package_weight_gross' => 40.5,
+                'package_weight_net' => 40.0,
                 'dimension_length' => null,
                 'dimension_width' => null,
                 'dimension_height' => null,
@@ -54,10 +54,10 @@ class SandSeeder extends Seeder
                 'package_unit' => 'M3',
                 'package_weight_gross' => null,
                 'package_weight_net' => null,
-                'dimension_length' => 1.00,
-                'dimension_width' => 1.00,
-                'dimension_height' => 1.00,
-                'package_volume' => 1.000000,
+                'dimension_length' => 1.0,
+                'dimension_width' => 1.0,
+                'dimension_height' => 1.0,
+                'package_volume' => 1.0,
                 'store' => 'Bangunan Sentosa',
                 'address' => 'Jl. Raya Cilebut No. 22, Bogor',
                 'short_address' => 'Cilebut, Bogor',
@@ -73,10 +73,10 @@ class SandSeeder extends Seeder
                 'package_unit' => 'M3',
                 'package_weight_gross' => null,
                 'package_weight_net' => null,
-                'dimension_length' => 1.00,
-                'dimension_width' => 1.00,
-                'dimension_height' => 1.00,
-                'package_volume' => 1.000000,
+                'dimension_length' => 1.0,
+                'dimension_width' => 1.0,
+                'dimension_height' => 1.0,
+                'package_volume' => 1.0,
                 'store' => 'Pasir Sentosa',
                 'address' => 'Jl. Raya Cibinong KM 10, Bogor',
                 'short_address' => 'Cibinong, Bogor',
@@ -90,8 +90,8 @@ class SandSeeder extends Seeder
                 'type' => 'Pasir Halus',
                 'brand' => 'Premium Sand',
                 'package_unit' => 'Krg',
-                'package_weight_gross' => 40.50,
-                'package_weight_net' => 40.00,
+                'package_weight_gross' => 40.5,
+                'package_weight_net' => 40.0,
                 'dimension_length' => null,
                 'dimension_width' => null,
                 'dimension_height' => null,
@@ -105,13 +105,15 @@ class SandSeeder extends Seeder
         ];
 
         foreach ($sands as $sand) {
-            DB::table('sands')->insert(array_merge($sand, [
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
+            DB::table('sands')->insert(
+                array_merge($sand, [
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]),
+            );
         }
 
         $this->command->info('✅ Sands seeded successfully!');
-        $this->command->info('📊 Total sands created: '.DB::table('sands')->count());
+        $this->command->info('📊 Total sands created: ' . DB::table('sands')->count());
     }
 }

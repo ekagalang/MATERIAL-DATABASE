@@ -54,9 +54,9 @@
                             'dimension_height' => 'Tinggi (cm)',
                             'package_volume' => 'Volume',
                             'store' => 'Toko',
-                            'short_address' => 'Alamat Singkat',
-                            'price_per_piece' => 'Harga / Buah',
-                            'comparison_price_per_m3' => 'Harga / M3',
+                            'address' => 'Alamat',
+                            'price_per_piece' => 'Harga Beli',
+                            'comparison_price_per_m3' => 'Harga Komparasi (/ M3)',
                         ];
 
                         // Function to get next sort state
@@ -122,7 +122,7 @@
                             </a>
                         </th>
 
-                        @foreach(['package_volume', 'store', 'short_address', 'price_per_piece', 'comparison_price_per_m3'] as $column)
+                        @foreach(['package_volume', 'store', 'address', 'price_per_piece', 'comparison_price_per_m3'] as $column)
                             <th class="sortable" rowspan="2">
                                 <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
@@ -140,7 +140,7 @@
                     </tr>
                     <tr class="dim-sub-row">
                         @foreach(['P', 'L', 'T'] as $label)
-                            <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
+                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
                         @endforeach
                     </tr>
                 </thead>
@@ -156,21 +156,21 @@
                         <td style="color: #475569;">{{ $brick->type ?? '-' }}</td>
                         <td style="color: #475569;">{{ $brick->brand ?? '-' }}</td>
                         <td style="color: #475569;">{{ $brick->form ?? '-' }}</td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
                             @if(!is_null($brick->dimension_length))
                                 {{ rtrim(rtrim(number_format($brick->dimension_length, 1, ',', '.'), '0'), ',') }}
                             @else
                                 <span style="color: #cbd5e1;">-</span>
                             @endif
                         </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
                             @if(!is_null($brick->dimension_width))
                                 {{ rtrim(rtrim(number_format($brick->dimension_width, 1, ',', '.'), '0'), ',') }}
                             @else
                                 <span style="color: #cbd5e1;">-</span>
                             @endif
                         </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 1px 2px;">
+                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
                             @if(!is_null($brick->dimension_height))
                                 {{ rtrim(rtrim(number_format($brick->dimension_height, 1, ',', '.'), '0'), ',') }}
                             @else
@@ -190,7 +190,7 @@
                             </span>
                         </td>
                         <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                            {{ $brick->short_address ?? '-' }}
+                            {{ $brick->address ?? '-' }}
                         </td>
                         <td>
                             @if($brick->price_per_piece)
@@ -332,20 +332,37 @@
     justify-content: space-between;
     align-items: center;
     background: #f8fafc;
+    position: relative; /* Added for ::before positioning */
+    overflow: hidden; /* Added to contain the extended ::before */
 }
 
 .floating-modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff; /* Changed text color to white */
+    padding: 8px 0; /* Added padding */
+    position: relative; /* Added for z-index and ::before relative positioning */
+    z-index: 1; /* Ensures text is above the ::before background */
+    flex: 1; /* Allows h2 to take available space */
+}
+
+.floating-modal-header h2::before {
+    content: '';
+    position: absolute;
+    left: -32px; /* Compensates for parent padding-left */
+    right: -200px; /* Extends far enough to cover the button and right edge */
+    top: 0;
+    bottom: 0;
+    background: #891313;
+    z-index: -1; /* Places the background behind the h2 text */
 }
 
 .floating-modal-close {
     background: transparent;
     border: none;
     font-size: 28px;
-    color: #94a3b8;
+    color: #ffffff; /* Changed to white to be visible on red */
     cursor: pointer;
     width: 40px;
     height: 40px;
@@ -354,11 +371,13 @@
     justify-content: center;
     border-radius: 8px;
     transition: all 0.2s ease;
+    position: relative; /* Added position */
+    z-index: 10; /* Added z-index to sit above h2 */
 }
 
 .floating-modal-close:hover {
-    background: #fee2e2;
-    color: #ef4444;
+    background: rgba(255, 255, 255, 0.1); /* Changed hover to semi-transparent white */
+    color: #ffffff;
 }
 
 .floating-modal-body {
@@ -408,11 +427,21 @@
 }
 
 .table-container thead th {
+    background-color: #891313 !important;
+    color: #ffffff !important;
+    vertical-align: top !important;
+    text-align: center !important;
     white-space: nowrap;
+}
+
+.table-container table td {
+    vertical-align: top !important;
 }
 
 .table-container thead .dim-group-row th {
     border-bottom: 0 !important;
+    padding-bottom: 6px !important;
+    line-height: 1.2;
 }
 
 .table-container thead .dim-sub-row th {
@@ -420,25 +449,39 @@
     border-bottom: 0 !important;
     border-left: 0 !important;
     border-right: 0 !important;
-    padding: 1px 2px;
+    padding: 8px 2px 10px 2px !important;
     width: 40px;
     position: relative;
+    line-height: 1.1;
+    vertical-align: middle;
 }
 
 .table-container tbody td.dim-cell {
-    padding: 1px 2px !important;
+    padding: 14px 2px !important;
     width: 40px;
     border-left: 0 !important;
     border-right: 0 !important;
     position: relative;
 }
 
-.table-container thead .dim-sub-row th + th::before,
-.table-container tbody td.dim-cell + td.dim-cell::before {
+/* Header 'x' separator */
+.table-container thead .dim-sub-row th + th::before {
     content: 'x';
     position: absolute;
     left: -6px;
     top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+/* Body 'x' separator */
+.table-container tbody td.dim-cell + td.dim-cell::before {
+    content: 'x';
+    position: absolute;
+    left: -6px;
+    top: 24px;
     transform: translateY(-50%);
     color: #94a3b8;
     font-size: 11px;
@@ -446,7 +489,7 @@
 }
 
 .table-container tbody td.volume-cell {
-    padding: 6px 8px !important;
+    padding: 14px 8px !important;
     width: 90px;
 }
 
@@ -519,13 +562,16 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
             
-            // Update title
+            // Update title and close button visibility
             if (url.includes('/create')) {
                 modalTitle.textContent = 'Tambah Data Bata Baru';
+                closeBtn.style.display = 'none'; // Hide close button
             } else if (url.includes('/edit')) {
                 modalTitle.textContent = 'Edit Data Bata';
+                closeBtn.style.display = 'none'; // Hide close button
             } else {
                 modalTitle.textContent = 'Detail Data Bata';
+                closeBtn.style.display = 'flex'; // Show close button
             }
             
             // Load content via AJAX

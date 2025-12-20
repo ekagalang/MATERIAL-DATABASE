@@ -266,8 +266,8 @@
     }
 }
 
-/* Floating Modal Styles */
-.floating-modal {
+/* Floating Modal Styles - Scoped to this specific modal */
+#floatingModal.floating-modal {
     display: none;
     position: fixed;
     top: 0;
@@ -279,12 +279,12 @@
     transition: opacity 0.3s ease;
 }
 
-.floating-modal.active {
+#floatingModal.floating-modal.active {
     display: block;
     opacity: 1;
 }
 
-.floating-modal-backdrop {
+#floatingModal .floating-modal-backdrop {
     position: absolute;
     top: 0;
     left: 0;
@@ -294,7 +294,7 @@
     backdrop-filter: blur(4px);
 }
 
-.floating-modal-content {
+#floatingModal .floating-modal-content {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -309,7 +309,7 @@
     flex-direction: column;
 }
 
-.floating-modal-header {
+#floatingModal .floating-modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -317,14 +317,14 @@
     border-bottom: 1.5px solid #f1f5f9;
 }
 
-.floating-modal-header h3 {
+#floatingModal .floating-modal-header h3 {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
     color: #0f172a;
 }
 
-.floating-modal-close {
+#floatingModal .floating-modal-close {
     background: none;
     border: none;
     font-size: 20px;
@@ -336,23 +336,23 @@
     border-radius: 6px;
 }
 
-.floating-modal-close:hover {
+#floatingModal .floating-modal-close:hover {
     background: #f1f5f9;
     color: #0f172a;
 }
 
-.floating-modal-body {
+#floatingModal .floating-modal-body {
     padding: 28px;
     overflow-y: auto;
     flex: 1;
 }
 
 /* Form inside modal */
-.floating-modal-body .form-group {
+#floatingModal .floating-modal-body .form-group {
     margin-bottom: 20px;
 }
 
-.floating-modal-body label {
+#floatingModal .floating-modal-body label {
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
@@ -360,7 +360,7 @@
     font-size: 14px;
 }
 
-.floating-modal-body .form-control {
+#floatingModal .floating-modal-body .form-control {
     width: 100%;
     padding: 11px 14px;
     border: 1.5px solid #e2e8f0;
@@ -370,20 +370,20 @@
     transition: all 0.2s ease;
 }
 
-.floating-modal-body .form-control:focus {
+#floatingModal .floating-modal-body .form-control:focus {
     outline: none;
     border-color: #891313;
     box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1);
 }
 
-.floating-modal-body .form-text {
+#floatingModal .floating-modal-body .form-text {
     display: block;
     margin-top: 6px;
     font-size: 12px;
     color: #94a3b8;
 }
 
-.floating-modal-body .text-danger {
+#floatingModal .floating-modal-body .text-danger {
     color: #dc2626;
     font-size: 12px;
     margin-top: 4px;

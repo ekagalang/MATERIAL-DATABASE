@@ -30,10 +30,23 @@ class CatController extends Controller
 
         // Validasi kolom yang boleh di-sort
         $allowedSorts = [
-            'cat_name', 'type', 'brand', 'sub_brand', 'color_name', 'color_code',
-            'form', 'package_unit', 'package_weight_gross', 'package_weight_net',
-            'volume', 'volume_unit', 'store', 'short_address',
-            'purchase_price', 'comparison_price_per_kg', 'created_at'
+            'cat_name',
+            'type',
+            'brand',
+            'sub_brand',
+            'color_name',
+            'color_code',
+            'form',
+            'package_unit',
+            'package_weight_gross',
+            'package_weight_net',
+            'volume',
+            'volume_unit',
+            'store',
+            'short_address',
+            'purchase_price',
+            'comparison_price_per_kg',
+            'created_at',
         ];
 
         // Default sorting jika tidak ada atau tidak valid
@@ -63,7 +76,7 @@ class CatController extends Controller
         $request->validate([
             'cat_name' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'brand' => 'nullable|string|max:255',
             'sub_brand' => 'nullable|string|max:255',
             'color_code' => 'nullable|string|max:100',
@@ -87,17 +100,17 @@ class CatController extends Controller
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             if ($photo->isValid()) {
-                $filename = time().'_'.$photo->getClientOriginalName();
+                $filename = time() . '_' . $photo->getClientOriginalName();
                 // Simpan ke disk 'public' agar dapat diakses via /storage
                 $path = $photo->storeAs('cats', $filename, 'public');
                 if ($path) {
                     $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: '.$path);
+                    \Log::info('Photo uploaded successfully: ' . $path);
                 } else {
                     \Log::error('Failed to store photo');
                 }
             } else {
-                \Log::error('Invalid photo file: '.$photo->getErrorMessage());
+                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
         }
 
@@ -108,7 +121,7 @@ class CatController extends Controller
                 $data['brand'] ?? '',
                 $data['sub_brand'] ?? '',
                 $data['color_name'] ?? '',
-                ($data['volume'] ?? '') . ($data['volume_unit'] ?? '')
+                ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
             ]);
             $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
         }
@@ -117,8 +130,11 @@ class CatController extends Controller
         $cat = Cat::create($data);
 
         // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-        if ((! $cat->package_weight_net || $cat->package_weight_net <= 0)
-            && $cat->package_weight_gross && $cat->package_unit) {
+        if (
+            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+            $cat->package_weight_gross &&
+            $cat->package_unit
+        ) {
             $cat->calculateNetWeight();
         }
         // Kalkulasi harga komparasi per kg
@@ -128,8 +144,12 @@ class CatController extends Controller
 
         $cat->save();
 
-        return redirect()->route('cats.index')
-            ->with('success', 'cat berhasil ditambahkan!');
+        // Check if redirect to materials.index is requested
+        if ($request->input('_redirect_to_materials')) {
+            return redirect()->route('materials.index')->with('success', 'Cat berhasil ditambahkan!');
+        }
+
+        return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');
     }
 
     public function show(Cat $cat)
@@ -176,7 +196,7 @@ class CatController extends Controller
                 $data['brand'] ?? '',
                 $data['sub_brand'] ?? '',
                 $data['color_name'] ?? '',
-                ($data['volume'] ?? '') . ($data['volume_unit'] ?? '')
+                ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
             ]);
             $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
         }
@@ -190,17 +210,17 @@ class CatController extends Controller
                     Storage::disk('public')->delete($cat->photo);
                 }
 
-                $filename = time().'_'.$photo->getClientOriginalName();
+                $filename = time() . '_' . $photo->getClientOriginalName();
                 // Simpan ke disk 'public' agar dapat diakses via /storage
                 $path = $photo->storeAs('cats', $filename, 'public');
                 if ($path) {
                     $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: '.$path);
+                    \Log::info('Photo updated successfully: ' . $path);
                 } else {
                     \Log::error('Failed to update photo');
                 }
             } else {
-                \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
+                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
             }
         }
 
@@ -208,8 +228,11 @@ class CatController extends Controller
         $cat->update($data);
 
         // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-        if ((! $cat->package_weight_net || $cat->package_weight_net <= 0)
-            && $cat->package_weight_gross && $cat->package_unit) {
+        if (
+            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+            $cat->package_weight_gross &&
+            $cat->package_unit
+        ) {
             $cat->calculateNetWeight();
         }
         // Kalkulasi harga komparasi per kg
@@ -221,8 +244,12 @@ class CatController extends Controller
 
         $cat->save();
 
-        return redirect()->route('cats.index')
-            ->with('success', 'cat berhasil diupdate!');
+        // Check if redirect to materials.index is requested
+        if ($request->input('_redirect_to_materials')) {
+            return redirect()->route('materials.index')->with('success', 'Cat berhasil diupdate!');
+        }
+
+        return redirect()->route('cats.index')->with('success', 'cat berhasil diupdate!');
     }
 
     public function destroy(Cat $cat)
@@ -234,20 +261,34 @@ class CatController extends Controller
 
         $cat->delete();
 
-        return redirect()->route('cats.index')
-            ->with('success', 'Cat berhasil dihapus!');
+        return redirect()->route('cats.index')->with('success', 'Cat berhasil dihapus!');
     }
 
-    // API untuk mendapatkan unique values per field
+    // API untuk mendapatkan unique values per field dengan cascading filter
     public function getFieldValues(string $field, Request $request)
     {
         // Bidang yang diizinkan untuk auto-suggest
         $allowedFields = [
-            'cat_name', 'type', 'brand', 'sub_brand', 'color_code', 'color_name',
-            'form', 'volume_unit', 'store', 'short_address', 'address', 'price_unit',
+            'cat_name',
+            'type',
+            'brand',
+            'sub_brand',
+            'color_code',
+            'color_name',
+            'form',
+            'volume',
+            'volume_unit',
+            'package_weight_gross',
+            'package_weight_net',
+            'package_unit',
+            'store',
+            'short_address',
+            'address',
+            'price_unit',
+            'purchase_price',
         ];
 
-        if (! in_array($field, $allowedFields)) {
+        if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
@@ -255,22 +296,171 @@ class CatController extends Controller
         $limit = (int) $request->query('limit', 20);
         $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
-        $query = Cat::query()
-            ->whereNotNull($field)
-            ->where($field, '!=', '');
+        // Filter parameters untuk cascading
+        $brand = $request->query('brand');
+        $packageUnit = $request->query('package_unit');
+        $store = $request->query('store');
+
+        $query = Cat::query()->whereNotNull($field)->where($field, '!=', '');
+
+        // Apply cascading filters
+        // Fields yang bergantung pada brand
+        if (
+            in_array($field, [
+                'sub_brand',
+                'color_name',
+                'color_code',
+                'volume',
+                'package_weight_gross',
+                'package_weight_net',
+            ]) &&
+            $brand
+        ) {
+            $query->where('brand', $brand);
+        }
+
+        // purchase_price bergantung pada package_unit
+        if ($field === 'purchase_price' && $packageUnit) {
+            $query->where('package_unit', $packageUnit);
+        }
+
+        // short_address bergantung pada store
+        if ($field === 'short_address' && $store) {
+            $query->where('store', $store);
+        }
 
         if ($search !== '') {
             $query->where($field, 'like', "%{$search}%");
         }
 
         // Ambil nilai unik, dibatasi
-        $values = $query
-            ->select($field)
-            ->groupBy($field)
-            ->orderBy($field)
-            ->limit($limit)
-            ->pluck($field);
+        $values = $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
 
         return response()->json($values);
+    }
+
+    // API khusus untuk mendapatkan semua stores dari semua material (untuk validasi input baru)
+    public function getAllStores(Request $request)
+    {
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $materialType = $request->query('material_type', 'all'); // 'cat' atau 'all'
+
+        $stores = collect();
+
+        // Jika tidak ada search term, hanya tampilkan stores dari cat
+        // Jika ada search term, tampilkan dari semua material
+        if ($materialType === 'cat' || ($search === '' && $materialType === 'all')) {
+            // Tampilkan dari cat saja
+            $catStores = Cat::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $allStores = $stores->merge($catStores)->unique()->sort()->values()->take($limit);
+        } else {
+            // Tampilkan dari semua material (saat user mengetik)
+            $catStores = Cat::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $brickStores = \App\Models\Brick::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $cementStores = \App\Models\Cement::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            $sandStores = \App\Models\Sand::query()
+                ->whereNotNull('store')
+                ->where('store', '!=', '')
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->pluck('store');
+
+            // Gabungkan semua stores dan ambil unique values
+            $allStores = $stores
+                ->merge($catStores)
+                ->merge($brickStores)
+                ->merge($cementStores)
+                ->merge($sandStores)
+                ->unique()
+                ->sort()
+                ->values()
+                ->take($limit);
+        }
+
+        return response()->json($allStores);
+    }
+
+    /**
+     * API untuk mendapatkan alamat berdasarkan toko dari semua material
+     */
+    public function getAddressesByStore(Request $request)
+    {
+        $store = (string) $request->query('store', '');
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+        // Jika tidak ada toko yang dipilih, return empty
+        if ($store === '') {
+            return response()->json([]);
+        }
+
+        $addresses = collect();
+
+        // Ambil short_address dari cat yang sesuai dengan toko
+        $catAddresses = Cat::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari brick
+        $brickAddresses = \App\Models\Brick::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari cement
+        $cementAddresses = \App\Models\Cement::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Ambil short_address dari sand
+        $sandAddresses = \App\Models\Sand::query()
+            ->where('store', $store)
+            ->whereNotNull('short_address')
+            ->where('short_address', '!=', '')
+            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
+            ->pluck('short_address');
+
+        // Gabungkan semua addresses dan ambil unique values
+        $allAddresses = $addresses
+            ->merge($catAddresses)
+            ->merge($brickAddresses)
+            ->merge($cementAddresses)
+            ->merge($sandAddresses)
+            ->unique()
+            ->sort()
+            ->values()
+            ->take($limit);
+
+        return response()->json($allAddresses);
     }
 }

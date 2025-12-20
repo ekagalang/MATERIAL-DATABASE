@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('units', function (Blueprint $table) {
@@ -16,11 +15,11 @@ return new class extends Migration
             $table->decimal('package_weight', 10, 2)->default(0); // Berat kemasan dalam Kg
             $table->text('description')->nullable();
             $table->timestamps();
-            
+
             // Unique constraint: code + material_type
             // Jadi bisa ada "Kg" untuk cat, cement, sand (masing-masing terpisah)
             $table->unique(['code', 'material_type'], 'units_code_material_type_unique');
-            
+
             // Index untuk performa query
             $table->index('material_type');
         });

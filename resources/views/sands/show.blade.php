@@ -93,11 +93,11 @@
                                    color: #1e293b;">
                             @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
                                 <span style="font-weight: 600;">
-                                    {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} m 
+                                    {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} M
                                     <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                    {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} m 
+                                    {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} M
                                     <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                    {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }} m
+                                    {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }} M
                                 </span>
                             @else
                                 -
