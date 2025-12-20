@@ -121,7 +121,7 @@ class BrickCalculation extends Model
         // Get formula instance from Formula Bank
         $formula = \App\Services\FormulaRegistry::instance($formulaCode);
 
-        if (! $formula) {
+        if (!$formula) {
             throw new \Exception("Formula '{$formulaCode}' tidak ditemukan di Formula Bank");
         }
 
@@ -151,11 +151,11 @@ class BrickCalculation extends Model
         $cementQuantity50kg = $result['cement_kg'] / 50;
 
         // Mortar volume per brick
-        $mortarVolumePerBrick = $result['total_bricks'] > 0 ?
-            ($result['cement_m3'] + $result['sand_m3']) / $result['total_bricks'] : 0;
+        $mortarVolumePerBrick =
+            $result['total_bricks'] > 0 ? ($result['cement_m3'] + $result['sand_m3']) / $result['total_bricks'] : 0;
 
         // Create calculation record
-        $calculation = new self;
+        $calculation = new self();
         $calculation->fill([
             'project_name' => $params['project_name'] ?? null,
             'notes' => $params['notes'] ?? null,
@@ -168,9 +168,9 @@ class BrickCalculation extends Model
 
             // Custom ratio fields
             'use_custom_ratio' => $useCustomRatio,
-            'custom_cement_ratio' => $useCustomRatio ? ($params['custom_cement_ratio'] ?? null) : null,
-            'custom_sand_ratio' => $useCustomRatio ? ($params['custom_sand_ratio'] ?? null) : null,
-            'custom_water_ratio' => $useCustomRatio ? ($params['custom_water_ratio'] ?? null) : null,
+            'custom_cement_ratio' => $useCustomRatio ? $params['custom_cement_ratio'] ?? null : null,
+            'custom_sand_ratio' => $useCustomRatio ? $params['custom_sand_ratio'] ?? null : null,
+            'custom_water_ratio' => $useCustomRatio ? $params['custom_water_ratio'] ?? null : null,
 
             // Brick results
             'brick_quantity' => $result['total_bricks'],
@@ -217,9 +217,9 @@ class BrickCalculation extends Model
                 ],
                 'installation_type_name' => $installationType->name,
                 'mortar_formula_name' => $mortarFormula->name,
-                'ratio_used' => $useCustomRatio ?
-                    "{$params['custom_cement_ratio']}:{$params['custom_sand_ratio']}" :
-                    "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
+                'ratio_used' => $useCustomRatio
+                    ? "{$params['custom_cement_ratio']}:{$params['custom_sand_ratio']}"
+                    : "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
             ],
         ]);
 
@@ -302,7 +302,7 @@ class BrickCalculation extends Model
                 $y0 = $yPoints[$i];
                 $y1 = $yPoints[$i + 1];
 
-                $result = $y0 + ($y1 - $y0) * ($x - $x0) / ($x1 - $x0);
+                $result = $y0 + (($y1 - $y0) * ($x - $x0)) / ($x1 - $x0);
 
                 return round($result, 6);
             }
@@ -340,7 +340,7 @@ class BrickCalculation extends Model
         float $width,
         float $height,
         float $mortarThickness,
-        string $installationCode
+        string $installationCode,
     ): float {
         // Formula: (panjang + tinggi + tebal adukan) × lebar × tebal adukan / 1000000
         // Semua dimensi dalam cm, hasil dalam m³
@@ -354,40 +354,41 @@ class BrickCalculation extends Model
     {
         return [
             'wall_info' => [
-                'length' => $this->wall_length.' m',
-                'height' => $this->wall_height.' m',
-                'area' => $this->wall_area.' m²',
+                'length' => $this->wall_length . ' m',
+                'height' => $this->wall_height . ' m',
+                'area' => $this->wall_area . ' m²',
             ],
             'brick_info' => [
-                'quantity' => number_format($this->brick_quantity, 2).' buah',
+                'quantity' => number_format($this->brick_quantity, 2) . ' buah',
                 'type' => $this->installationType->name ?? '-',
-                'cost' => 'Rp '.number_format($this->brick_total_cost, 0, ',', '.'),
+                'cost' => 'Rp ' . number_format($this->brick_total_cost, 0, ',', '.'),
             ],
             'mortar_info' => [
-                'volume' => number_format($this->mortar_volume, 6).' m³',
+                'volume' => number_format($this->mortar_volume, 6) . ' m³',
                 'formula' => $this->mortarFormula->name ?? '-',
-                'thickness' => $this->mortar_thickness.' cm',
+                'thickness' => $this->mortar_thickness . ' cm',
             ],
             'materials' => [
                 'cement' => [
                     'package_weight' => $this->cement_package_weight ?? 50,
-                    'quantity_sak' => number_format($this->cement_quantity_sak ?? $this->cement_quantity_50kg, 2).' sak',
-                    '40kg' => number_format($this->cement_quantity_40kg, 2).' sak',
-                    '50kg' => number_format($this->cement_quantity_50kg, 2).' sak',
-                    'kg' => number_format($this->cement_kg, 2).' kg',
-                    'cost' => 'Rp '.number_format($this->cement_total_cost, 0, ',', '.'),
+                    'quantity_sak' =>
+                        number_format($this->cement_quantity_sak ?? $this->cement_quantity_50kg, 2) . ' sak',
+                    '40kg' => number_format($this->cement_quantity_40kg, 2) . ' sak',
+                    '50kg' => number_format($this->cement_quantity_50kg, 2) . ' sak',
+                    'kg' => number_format($this->cement_kg, 2) . ' kg',
+                    'cost' => 'Rp ' . number_format($this->cement_total_cost, 0, ',', '.'),
                 ],
                 'sand' => [
-                    'sak' => number_format($this->sand_sak, 2).' karung',
-                    'kg' => number_format($this->sand_kg, 2).' kg',
-                    'm3' => number_format($this->sand_m3, 6).' m³',
-                    'cost' => 'Rp '.number_format($this->sand_total_cost, 0, ',', '.'),
+                    'sak' => number_format($this->sand_sak, 2) . ' karung',
+                    'kg' => number_format($this->sand_kg, 2) . ' kg',
+                    'm3' => number_format($this->sand_m3, 6) . ' m³',
+                    'cost' => 'Rp ' . number_format($this->sand_total_cost, 0, ',', '.'),
                 ],
                 'water' => [
-                    'liters' => number_format($this->water_liters, 2).' liter',
+                    'liters' => number_format($this->water_liters, 2) . ' liter',
                 ],
             ],
-            'total_cost' => 'Rp '.number_format($this->total_material_cost, 0, ',', '.'),
+            'total_cost' => 'Rp ' . number_format($this->total_material_cost, 0, ',', '.'),
         ];
     }
 }

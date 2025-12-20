@@ -10,21 +10,15 @@ class Unit extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'code',
-        'material_type',
-        'name',
-        'package_weight',
-        'description'
-    ];
+    protected $fillable = ['code', 'material_type', 'name', 'package_weight', 'description'];
 
     protected $casts = [
-        'package_weight' => 'float'
+        'package_weight' => 'float',
     ];
 
     /**
      * Scope untuk filter units berdasarkan material type
-     * 
+     *
      * Usage: Unit::forMaterial('cat')->get()
      */
     public function scopeForMaterial($query, string $materialType)

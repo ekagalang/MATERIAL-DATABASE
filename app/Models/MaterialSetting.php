@@ -6,11 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaterialSetting extends Model
 {
-    protected $fillable = [
-        'material_type',
-        'is_visible',
-        'display_order',
-    ];
+    protected $fillable = ['material_type', 'is_visible', 'display_order'];
 
     protected $casts = [
         'is_visible' => 'boolean',
@@ -19,9 +15,7 @@ class MaterialSetting extends Model
 
     public static function getVisibleMaterials()
     {
-        return self::where('is_visible', true)
-            ->orderBy('display_order')
-            ->get();
+        return self::where('is_visible', true)->orderBy('display_order')->get();
     }
 
     public static function getMaterialLabel($type)

@@ -11,11 +11,11 @@ class BrickFactory extends Factory
         $length = $this->faker->numberBetween(20, 30);
         $width = $this->faker->numberBetween(10, 15);
         $height = $this->faker->numberBetween(5, 10);
-        
+
         // Kalkulasi volume
         $volumeCm3 = $length * $width * $height;
         $volumeM3 = $volumeCm3 / 1000000;
-        
+
         $pricePerPiece = $this->faker->numberBetween(500, 2000);
         $comparisonPrice = $volumeM3 > 0 ? $pricePerPiece / $volumeM3 : 0;
 

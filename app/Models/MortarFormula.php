@@ -57,7 +57,7 @@ class MortarFormula extends Model
         ?float $cementRatio = null,
         ?float $sandRatio = null,
         $cement = null,
-        $sand = null
+        $sand = null,
     ): array {
         // === GUNAKAN FIXED VALUES DARI EXCEL ===
         // Formula Excel sudah menghitung berapa kg semen per m³, m³ pasir per m³, dan liter air per m³
@@ -120,10 +120,7 @@ class MortarFormula extends Model
      */
     public static function getActive()
     {
-        return self::where('is_active', true)
-            ->orderBy('is_default', 'desc')
-            ->orderBy('name')
-            ->get();
+        return self::where('is_active', true)->orderBy('is_default', 'desc')->orderBy('name')->get();
     }
 
     /**
@@ -131,7 +128,6 @@ class MortarFormula extends Model
      */
     public static function getDefault()
     {
-        return self::where('is_default', true)->first()
-            ?? self::where('is_active', true)->first();
+        return self::where('is_default', true)->first() ?? self::where('is_active', true)->first();
     }
 }

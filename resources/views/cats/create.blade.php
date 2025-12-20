@@ -76,7 +76,7 @@
 
                 <!-- Warna -->
                 <div class="row" style="display: flex; margin-bottom: 15px; align-items: center;">
-                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0;">Warna</label>
+                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0;">Kode & Warna</label>
                     <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%;">
                         <div style="flex: 1; min-width: 0; position: relative;">
                             <input type="text"
@@ -156,7 +156,7 @@
                             <select name="package_unit"
                                     id="package_unit"
                                     style="height: 100%; width: 100%;">
-                                <option value="">-- Satuan --</option>
+                                <option value="">Galon, Pail, Kaleng</option>
                                 @foreach($units as $unit)
                                     <option value="{{ $unit->code }}"
                                             data-weight="{{ $unit->package_weight }}"
@@ -218,11 +218,15 @@
                                     <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
+                                           class="autocomplete-input"
+                                           data-field="comparison_price_per_kg"
                                            inputmode="numeric"
                                            placeholder="0"
+                                           autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
                                     <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Kg</span>
                                 </div>
+                                <div class="autocomplete-list" id="comparison_price_per_kg-list"></div>
                             </div>
                         </div>
                     </div>

@@ -30,10 +30,23 @@ class CatController extends Controller
 
         // Validasi kolom yang boleh di-sort
         $allowedSorts = [
-            'cat_name', 'type', 'brand', 'sub_brand', 'color_name', 'color_code',
-            'form', 'package_unit', 'package_weight_gross', 'package_weight_net',
-            'volume', 'volume_unit', 'store', 'short_address',
-            'purchase_price', 'comparison_price_per_kg', 'created_at'
+            'cat_name',
+            'type',
+            'brand',
+            'sub_brand',
+            'color_name',
+            'color_code',
+            'form',
+            'package_unit',
+            'package_weight_gross',
+            'package_weight_net',
+            'volume',
+            'volume_unit',
+            'store',
+            'short_address',
+            'purchase_price',
+            'comparison_price_per_kg',
+            'created_at',
         ];
 
         // Default sorting jika tidak ada atau tidak valid
@@ -87,17 +100,17 @@ class CatController extends Controller
         if ($request->hasFile('photo')) {
             $photo = $request->file('photo');
             if ($photo->isValid()) {
-                $filename = time().'_'.$photo->getClientOriginalName();
+                $filename = time() . '_' . $photo->getClientOriginalName();
                 // Simpan ke disk 'public' agar dapat diakses via /storage
                 $path = $photo->storeAs('cats', $filename, 'public');
                 if ($path) {
                     $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: '.$path);
+                    \Log::info('Photo uploaded successfully: ' . $path);
                 } else {
                     \Log::error('Failed to store photo');
                 }
             } else {
-                \Log::error('Invalid photo file: '.$photo->getErrorMessage());
+                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
         }
 
@@ -108,7 +121,7 @@ class CatController extends Controller
                 $data['brand'] ?? '',
                 $data['sub_brand'] ?? '',
                 $data['color_name'] ?? '',
-                ($data['volume'] ?? '') . ($data['volume_unit'] ?? '')
+                ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
             ]);
             $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
         }
@@ -117,8 +130,11 @@ class CatController extends Controller
         $cat = Cat::create($data);
 
         // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-        if ((! $cat->package_weight_net || $cat->package_weight_net <= 0)
-            && $cat->package_weight_gross && $cat->package_unit) {
+        if (
+            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+            $cat->package_weight_gross &&
+            $cat->package_unit
+        ) {
             $cat->calculateNetWeight();
         }
         // Kalkulasi harga komparasi per kg
@@ -128,8 +144,12 @@ class CatController extends Controller
 
         $cat->save();
 
-        return redirect()->route('cats.index')
-            ->with('success', 'cat berhasil ditambahkan!');
+        // Check if redirect to materials.index is requested
+        if ($request->input('_redirect_to_materials')) {
+            return redirect()->route('materials.index')->with('success', 'Cat berhasil ditambahkan!');
+        }
+
+        return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');
     }
 
     public function show(Cat $cat)
@@ -176,7 +196,7 @@ class CatController extends Controller
                 $data['brand'] ?? '',
                 $data['sub_brand'] ?? '',
                 $data['color_name'] ?? '',
-                ($data['volume'] ?? '') . ($data['volume_unit'] ?? '')
+                ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
             ]);
             $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
         }
@@ -190,17 +210,17 @@ class CatController extends Controller
                     Storage::disk('public')->delete($cat->photo);
                 }
 
-                $filename = time().'_'.$photo->getClientOriginalName();
+                $filename = time() . '_' . $photo->getClientOriginalName();
                 // Simpan ke disk 'public' agar dapat diakses via /storage
                 $path = $photo->storeAs('cats', $filename, 'public');
                 if ($path) {
                     $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: '.$path);
+                    \Log::info('Photo updated successfully: ' . $path);
                 } else {
                     \Log::error('Failed to update photo');
                 }
             } else {
-                \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
+                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
             }
         }
 
@@ -208,8 +228,11 @@ class CatController extends Controller
         $cat->update($data);
 
         // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-        if ((! $cat->package_weight_net || $cat->package_weight_net <= 0)
-            && $cat->package_weight_gross && $cat->package_unit) {
+        if (
+            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+            $cat->package_weight_gross &&
+            $cat->package_unit
+        ) {
             $cat->calculateNetWeight();
         }
         // Kalkulasi harga komparasi per kg
@@ -221,8 +244,12 @@ class CatController extends Controller
 
         $cat->save();
 
-        return redirect()->route('cats.index')
-            ->with('success', 'cat berhasil diupdate!');
+        // Check if redirect to materials.index is requested
+        if ($request->input('_redirect_to_materials')) {
+            return redirect()->route('materials.index')->with('success', 'Cat berhasil diupdate!');
+        }
+
+        return redirect()->route('cats.index')->with('success', 'cat berhasil diupdate!');
     }
 
     public function destroy(Cat $cat)
@@ -234,8 +261,7 @@ class CatController extends Controller
 
         $cat->delete();
 
-        return redirect()->route('cats.index')
-            ->with('success', 'Cat berhasil dihapus!');
+        return redirect()->route('cats.index')->with('success', 'Cat berhasil dihapus!');
     }
 
     // API untuk mendapatkan unique values per field dengan cascading filter
@@ -243,12 +269,26 @@ class CatController extends Controller
     {
         // Bidang yang diizinkan untuk auto-suggest
         $allowedFields = [
-            'cat_name', 'type', 'brand', 'sub_brand', 'color_code', 'color_name',
-            'form', 'volume', 'volume_unit', 'package_weight_gross', 'package_weight_net',
-            'package_unit', 'store', 'short_address', 'address', 'price_unit', 'purchase_price'
+            'cat_name',
+            'type',
+            'brand',
+            'sub_brand',
+            'color_code',
+            'color_name',
+            'form',
+            'volume',
+            'volume_unit',
+            'package_weight_gross',
+            'package_weight_net',
+            'package_unit',
+            'store',
+            'short_address',
+            'address',
+            'price_unit',
+            'purchase_price',
         ];
 
-        if (! in_array($field, $allowedFields)) {
+        if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
@@ -261,13 +301,21 @@ class CatController extends Controller
         $packageUnit = $request->query('package_unit');
         $store = $request->query('store');
 
-        $query = Cat::query()
-            ->whereNotNull($field)
-            ->where($field, '!=', '');
+        $query = Cat::query()->whereNotNull($field)->where($field, '!=', '');
 
         // Apply cascading filters
         // Fields yang bergantung pada brand
-        if (in_array($field, ['sub_brand', 'color_name', 'color_code', 'volume', 'package_weight_gross', 'package_weight_net']) && $brand) {
+        if (
+            in_array($field, [
+                'sub_brand',
+                'color_name',
+                'color_code',
+                'volume',
+                'package_weight_gross',
+                'package_weight_net',
+            ]) &&
+            $brand
+        ) {
             $query->where('brand', $brand);
         }
 
@@ -286,12 +334,7 @@ class CatController extends Controller
         }
 
         // Ambil nilai unik, dibatasi
-        $values = $query
-            ->select($field)
-            ->groupBy($field)
-            ->orderBy($field)
-            ->limit($limit)
-            ->pluck($field);
+        $values = $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
 
         return response()->json($values);
     }
@@ -316,12 +359,7 @@ class CatController extends Controller
                 ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
-            $allStores = $stores
-                ->merge($catStores)
-                ->unique()
-                ->sort()
-                ->values()
-                ->take($limit);
+            $allStores = $stores->merge($catStores)->unique()->sort()->values()->take($limit);
         } else {
             // Tampilkan dari semua material (saat user mengetik)
             $catStores = Cat::query()

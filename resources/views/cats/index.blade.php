@@ -71,8 +71,8 @@
                                 'package_weight_net' => ['label' => 'Berat Bersih', 'align' => 'left'],
                                 'store' => ['label' => 'Toko', 'align' => ''],
                                 'short_address' => ['label' => 'Alamat Singkat', 'align' => 'left'],
-                                'purchase_price' => ['label' => 'Harga', 'align' => ''],
-                                'comparison_price_per_kg' => ['label' => 'Harga / Kg', 'align' => ''],
+                                'purchase_price' => ['label' => 'Harga Beli', 'align' => ''],
+                                'comparison_price_per_kg' => ['label' => 'Harga Komparasi (/ Kg)', 'align' => ''],
                             ];
                         @endphp
 

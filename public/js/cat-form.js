@@ -45,6 +45,7 @@ function initCatForm() {
         const field = input.dataset.field;
         const suggestList = document.getElementById(`${field}-list`);
         let debounceTimer;
+        let isSelectingFromAutosuggest = false; // Flag to prevent reopening
 
         function populate(values) {
             if (suggestList) {
@@ -62,6 +63,15 @@ function initCatForm() {
 
                     item.textContent = displayValue;
                     item.addEventListener('click', function() {
+                        // Set flag to prevent autosuggest from reopening
+                        isSelectingFromAutosuggest = true;
+
+                        // Set value first
+                        input.value = v;
+
+                        // Close list
+                        suggestList.style.display = 'none';
+
                         // Handle special fields
                         if (field === 'purchase_price') {
                             // Update both display and hidden field
@@ -74,13 +84,38 @@ function initCatForm() {
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
                             }
-                        } else {
-                            input.value = v;
+                        } else if (field === 'package_weight_gross') {
+                            // Trigger net weight calculation
+                            if (typeof updateNetCalc === 'function') {
+                                updateNetCalc();
+                            }
+                            if (typeof recalculatePrices === 'function') {
+                                recalculatePrices();
+                            }
+                        } else if (field === 'package_weight_net') {
+                            // Trigger price recalculation when net weight changes
+                            if (typeof updateNetCalc === 'function') {
+                                updateNetCalc();
+                            }
+                            if (typeof recalculatePrices === 'function') {
+                                recalculatePrices();
+                            }
+                        } else if (field === 'comparison_price_per_kg') {
+                            // Handle comparison price field
+                            const comparisonPriceDisplay = document.getElementById('comparison_price_display');
+                            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncComparisonFromDisplay === 'function') {
+                                syncComparisonFromDisplay();
+                            }
                         }
-                        suggestList.style.display = 'none';
 
                         // Trigger dependent fields reload
                         triggerDependentFieldsReload(field);
+
+                        // Reset flag after a delay
+                        setTimeout(() => {
+                            isSelectingFromAutosuggest = false;
+                        }, 300);
                     });
                     suggestList.appendChild(item);
                 });
@@ -126,8 +161,16 @@ function initCatForm() {
                 .catch(() => {});
         }
 
-        input.addEventListener('focus', () => loadSuggestions(''));
+        input.addEventListener('focus', () => {
+            if (!isSelectingFromAutosuggest) {
+                loadSuggestions('');
+            }
+        });
         input.addEventListener('input', function () {
+            // Don't reload suggestions if we're selecting from autosuggest
+            if (isSelectingFromAutosuggest) {
+                return;
+            }
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
@@ -389,7 +432,7 @@ function initCatForm() {
     if (netInput) netInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
 
     // Sinkronkan satuan harga mengikuti satuan kemasan
-    const priceUnitDisplay = document.getElementById('price_unit_display');
+    const priceUnitDisplay = document.getElementById('price_unit_display_inline');
 
     function syncPriceUnit() {
         if (!unitSelect || !priceUnitInput) return;
@@ -397,12 +440,12 @@ function initCatForm() {
         if (unit) {
             priceUnitInput.value = unit;
             if (priceUnitDisplay) {
-                priceUnitDisplay.textContent = unit;
+                priceUnitDisplay.textContent = '/ ' + unit;
             }
         } else {
             priceUnitInput.value = '';
             if (priceUnitDisplay) {
-                priceUnitDisplay.textContent = '-';
+                priceUnitDisplay.textContent = '/ -';
             }
         }
     }

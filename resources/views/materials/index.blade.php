@@ -3,10 +3,26 @@
 @section('title', 'Semua Material')
 
 @section('content')
+<!-- Inline script to restore tab ASAP before page render -->
+<script>
+(function() {
+    const savedTab = localStorage.getItem('materialActiveTab');
+    if (savedTab) {
+        // Set a flag that will be checked by main script
+        window.__materialSavedTab = savedTab;
+    }
+})();
+</script>
+
 <div class="card">
     @php
         $availableTypes = collect($materials)->pluck('type')->toArray();
+        // Check if there's a saved tab from localStorage (set by inline script)
         $activeTab = request('tab');
+        if (!$activeTab && !empty($availableTypes)) {
+            // Will be overridden by JavaScript if localStorage has value
+            $activeTab = $materials[0]['type'] ?? null;
+        }
         if (!in_array($activeTab, $availableTypes)) {
             $activeTab = $materials[0]['type'] ?? null;
         }
@@ -91,108 +107,109 @@
 
                     @if($material['data']->count() > 0)
                     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;">
-        <form action="{{ route('materials.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
-            <div style="flex: 1; position: relative;">
-                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
-                <input type="text"
-                       name="search"
-                       value="{{ request('search') }}"
-                       placeholder="Cari semua material..."
-                       style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
-            </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="bi bi-search"></i> Cari
-            </button>
-            @if(request('search'))
-                <a href="{{ route('materials.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-x-lg"></i> Reset
-                </a>
-            @endif
-        </form>
+                        <form action="{{ route('materials.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
+                            <div style="flex: 1; position: relative;">
+                                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
+                                <input type="text"
+                                    name="search"
+                                    value="{{ request('search') }}"
+                                    placeholder="Cari semua material..."
+                                    style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                            @if(request('search'))
+                                <a href="{{ route('materials.index') }}" class="btn btn-secondary">
+                                    <i class="bi bi-x-lg"></i> Reset
+                                </a>
+                            @endif
+                        </form>
 
-        {{-- Tombol Lama (Commented Out) --}}
-        {{-- <div style="display: flex; gap: 12px; flex-shrink: 0;">
-            <button type="button" id="openMaterialChoiceModal" class="btn btn-success">
-                <i class="bi bi-plus-lg"></i> Tambah Data
-            </button>
-        </div> --}}
+                        {{-- Tombol Lama (Commented Out) --}}
+                        {{-- <div style="display: flex; gap: 12px; flex-shrink: 0;">
+                            <button type="button" id="openMaterialChoiceModal" class="btn btn-success">
+                                <i class="bi bi-plus-lg"></i> Tambah Data
+                            </button>
+                        </div> --}}
 
-        {{-- Tombol Baru (Spesifik per Material) --}}
-        <div style="display: flex; gap: 12px; flex-shrink: 0;">
-            <a href="{{ route($material['type'] . 's.create') }}" class="btn btn-success open-modal">
-                <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
-            </a>
-        </div>
-    </div>
-                        <div class="table-container">
-                                                    <table>
-                                                        <thead style="background-color: #891313; color: white;">
-                                                            @php                                    if (!function_exists('getMaterialSortUrl')) {
-                                        function getMaterialSortUrl($column, $currentSortBy, $currentDirection) {
-                                            $params = array_merge(request()->query(), []);
-                                            unset($params['sort_by'], $params['sort_direction']);
-                                            if ($currentSortBy === $column) {
-                                                if ($currentDirection === 'asc') {
-                                                    $params['sort_by'] = $column;
-                                                    $params['sort_direction'] = 'desc';
-                                                }
-                                            } else {
+                        {{-- Tombol Baru (Spesifik per Material) --}}
+                        <div style="display: flex; gap: 12px; flex-shrink: 0;">
+                            <a href="{{ route($material['type'] . 's.create') }}" class="btn btn-success open-modal">
+                                <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
+                            </a>
+                        </div>
+                    </div>
+                <div class="table-container">
+                    <table>
+                        <thead style="background-color: #891313; color: white;">
+                            @php                                   
+                              if (!function_exists('getMaterialSortUrl')) {
+                                    function getMaterialSortUrl($column, $currentSortBy, $currentDirection) {
+                                        $params = array_merge(request()->query(), []);
+                                        unset($params['sort_by'], $params['sort_direction']);
+                                        if ($currentSortBy === $column) {
+                                            if ($currentDirection === 'asc') {
                                                 $params['sort_by'] = $column;
-                                                $params['sort_direction'] = 'asc';
+                                                $params['sort_direction'] = 'desc';
                                             }
-                                            return route('materials.index', $params);
+                                        } else {
+                                            $params['sort_by'] = $column;
+                                            $params['sort_direction'] = 'asc';
                                         }
+                                        return route('materials.index', $params);
                                     }
-                                    $brickSortable = [
-                                        'type' => 'Jenis',
-                                        'brand' => 'Merek',
-                                        'form' => 'Bentuk',
-                                        'dimension_length' => 'Dimensi (cm)',
-                                        'package_volume' => 'Volume',
-                                        'store' => 'Toko',
-                                        'short_address' => 'Alamat Singkat',
-                                        'price_per_piece' => 'Harga / Buah',
-                                        'comparison_price_per_m3' => 'Harga / M3',
-                                    ];
-                                    $sandSortable = [
-                                        'type' => 'Jenis',
-                                        'brand' => 'Merek',
-                                        'package_unit' => 'Kemasan',
-                                        'dimension_length' => 'Dimensi (M)',
-                                        'package_volume' => 'Volume',
-                                        'store' => 'Toko',
-                                        'short_address' => 'Alamat Singkat',
-                                        'package_price' => 'Harga',
-                                        'comparison_price_per_m3' => 'Harga / M3',
-                                    ];
-                                @endphp
-                                @if($material['type'] == 'brick')
-                                    <tr class="dim-group-row">
-                                        <th rowspan="2">No</th>
-                                        <th rowspan="2">Material</th>
+                                }
+                                $brickSortable = [
+                                    'type' => 'Jenis',
+                                    'brand' => 'Merek',
+                                    'form' => 'Bentuk',
+                                    'dimension_length' => 'Dimensi (cm)',
+                                    'package_volume' => 'Volume',
+                                    'store' => 'Toko',
+                                    'address' => 'Alamat',
+                                    'price_per_piece' => 'Harga Beli',
+                                    'comparison_price_per_m3' => 'Harga Komparasi (/ M3)',
+                                ];
+                                $sandSortable = [
+                                    'type' => 'Jenis',
+                                    'brand' => 'Merek',
+                                    'package_unit' => 'Kemasan',
+                                    'dimension_length' => 'Dimensi Kemasan (M)',
+                                    'package_volume' => 'Volume',
+                                    'store' => 'Toko',
+                                    'address' => 'Alamat',
+                                    'package_price' => 'Harga Beli',
+                                    'comparison_price_per_m3' => 'Harga Komparasi (/ M3)',
+                            ];
+                            @endphp
+                            @if($material['type'] == 'brick')
+                                <tr class="dim-group-row">
+                                    <th rowspan="2">No</th>
+                                    <th rowspan="2">Material</th>
+                                    <th class="sortable" rowspan="2">
+                                        <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                           style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                                            <span>{{ $brickSortable['type'] }}</span>
+                                            @if(request('sort_by') == 'type')
+                                                <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                            @else
+                                                <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            @endif
+                                        </a>
+                                    </th>
+                                    @foreach(['brand','form'] as $col)
                                         <th class="sortable" rowspan="2">
-                                            <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                            <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                                <span>{{ $brickSortable['type'] }}</span>
-                                                @if(request('sort_by') == 'type')
+                                                <span>{{ $brickSortable[$col] }}</span>
+                                                @if(request('sort_by') == $col)
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
                                             </a>
                                         </th>
-                                        @foreach(['brand','form'] as $col)
-                                            <th class="sortable" rowspan="2">
-                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                                    <span>{{ $brickSortable[$col] }}</span>
-                                                    @if(request('sort_by') == $col)
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                    @else
-                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                    @endif
-                                                </a>
-                                            </th>
                                         @endforeach
                                         <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
@@ -205,7 +222,7 @@
                                                 @endif
                                             </a>
                                         </th>
-                                        @foreach(['package_volume','store','short_address','price_per_piece','comparison_price_per_m3'] as $col)
+                                        @foreach(['package_volume','store','address','price_per_piece','comparison_price_per_m3'] as $col)
                                             <th class="sortable" rowspan="2">
                                                 <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
@@ -256,7 +273,7 @@
                                         <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                                <span>Dimensi (M)</span>
+                                                <span>Dimensi Kemasan (M)</span>
                                                 @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
@@ -264,7 +281,7 @@
                                                 @endif
                                             </a>
                                         </th>
-                                        @foreach(['package_volume','store','short_address','package_price','comparison_price_per_m3'] as $col)
+                                        @foreach(['package_volume','store','address','package_price','comparison_price_per_m3'] as $col)
                                             <th class="sortable" rowspan="2">
                                                 <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
@@ -291,33 +308,39 @@
                                         <th>Jenis</th>
                                         <th>Merek</th>
                                         <th>Sub Merek</th>
-                                        <th style="text-align: right;">Code</th>
+                                        <th style="text-align: right;">Kode</th>
                                         <th style="text-align: left;">Warna</th>
                                         <th>Kemasan</th>
                                         <th>Volume</th>
                                         <th style="text-align: left;">Berat Bersih</th>
                                         <th>Toko</th>
-                                        <th style="text-align: left;">Alamat Singkat</th>
-                                        <th>Harga</th>
-                                        <th>Harga / Kg</th>
+                                        <th style="text-align: left;">Alamat</th>
+                                        <th>Harga Beli</th>
+                                        <th>Harga Komparasi (/ Kg)</th>
                                         <th>Aksi</th>
                                     </tr>
                                 @elseif($material['type'] == 'cement')
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Material</th>
-                                        <th>Jenis</th>
-                                        <th>Merek</th>
-                                        <th>Sub Merek</th>
-                                        <th style="text-align: right">Code</th>
-                                        <th style="text-align: left">Warna</th>
-                                        <th>Kemasan</th>
-                                        <th>Berat</th>
-                                        <th>Toko</th>
-                                        <th>Alamat Singkat</th>
-                                        <th>Harga</th>
-                                        <th>Harga / Kg</th>
-                                        <th>Aksi</th>
+                                    <tr class="dim-group-row">
+                                        <th rowspan="2">No</th>
+                                        <th rowspan="2">Material</th>
+                                        <th rowspan="2">Jenis</th>
+                                        <th rowspan="2">Merek</th>
+                                        <th rowspan="2">Sub Merek</th>
+                                        <th rowspan="2" style="text-align: right">Kode</th>
+                                        <th rowspan="2" style="text-align: left">Warna</th>
+                                        <th rowspan="2">Kemasan</th>
+                                        <th colspan="3" style="text-align: center;">Dimensi (cm)</th>
+                                        <th rowspan="2">Berat Bersih</th>
+                                        <th rowspan="2">Toko</th>
+                                        <th rowspan="2">Alamat</th>
+                                        <th rowspan="2">Harga Beli</th>
+                                        <th rowspan="2">Harga Komparasi (/ Kg)</th>
+                                        <th rowspan="2">Aksi</th>
+                                    </tr>
+                                    <tr class="dim-sub-row">
+                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">P</th>
+                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">L</th>
+                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">T</th>
                                     </tr>
                                 @endif
                             </thead>
@@ -361,7 +384,7 @@
                                             @endif
                                         </td>
                                         <td><span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->short_address ?? '-' }}</td>
+                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->price_per_piece)
                                                 <div style="display: flex; width: 100%; font-size: 13px;"><span style="color: #64748b; font-weight: 500;">Rp</span><span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->price_per_piece, 0, ',', '.') }}</span></div>
@@ -405,7 +428,7 @@
                                             @endif
                                         </td>
                                         <td><span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->short_address ?? '-' }}</td>
+                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->purchase_price)
                                                 <div style="display: flex; width: 100%; font-size: 13px;"><span style="color: #64748b; font-weight: 500;">Rp</span><span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->purchase_price, 0, ',', '.') }}</span></div>
@@ -429,9 +452,31 @@
                                         <td style="color: #475569; text-align:left;">{{ $item->color ?? '-' }}</td>
                                         <td style="color: #475569; font-size: 13px;">
                                             @if($item->package_unit)
-                                                {{ $item->packageUnit?->name ?? $item->package_unit }}<br> ({{ $item->package_weight_gross }} Kg)
+                                                {{ $item->packageUnit?->name ?? $item->package_unit }}
                                             @else
                                                 <span style="color: #cbd5e1;">—</span>
+                                            @endif
+                                        </td>
+                                        <!-- Dimensi Data -->
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
+                                            @if(!is_null($item->dimension_length))
+                                                {{ rtrim(rtrim(number_format($item->dimension_length * 100, 1, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
+                                            @if(!is_null($item->dimension_width))
+                                                {{ rtrim(rtrim(number_format($item->dimension_width * 100, 1, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
+                                            @endif
+                                        </td>
+                                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
+                                            @if(!is_null($item->dimension_height))
+                                                {{ rtrim(rtrim(number_format($item->dimension_height * 100, 1, ',', '.'), '0'), ',') }}
+                                            @else
+                                                <span style="color: #cbd5e1;">-</span>
                                             @endif
                                         </td>
                                         <td style="text-align: right; color: #475569; font-size: 13px;">
@@ -442,7 +487,7 @@
                                             @endif
                                         </td>
                                         <td><span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->short_address ?? '-' }}</td>
+                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->package_price)
                                                 <div style="display: flex; width: 100%; font-size: 13px;"><span style="color: #64748b; font-weight: 500;">Rp</span><span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->package_price, 0, ',', '.') }}</span></div>
@@ -497,7 +542,7 @@
                                             @endif
                                         </td>
                                         <td><span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->short_address ?? '-' }}</td>
+                                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->package_price)
                                                 <div style="display: flex; width: 100%; font-size: 13px;"><span style="color: #64748b; font-weight: 500;">Rp</span><span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->package_price, 0, ',', '.') }}</span></div>
@@ -528,29 +573,106 @@
                             </tbody>
                         </table>
                     </div>
-                    <div>
-                        <hr>
-                    </div>
-                    <div class="material-section-header">
-                        <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-sm btn-primary">
-                            Lihat Semua <i class="bi bi-arrow-right"></i>
-                        </a>
-                    </div>
+                    <div style="position: relative;">
+                        
+                        <!-- Center Area: Pagination & Kanggo Logo -->
+                        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                            
+                            <!-- Numeric Pagination (Tetap ada tapi rapi di atas) -->
+                            <div class="pagination" style="margin: 0 0 15px 0; opacity: 0.8; transform: scale(0.9);">
+                                {{ $material['data']->appends(request()->query())->links('pagination::simple-default') }}
+                            </div>
 
-                    <div class="pagination" style="margin-top: 16px;">
-                        {{ $material['data']->appends(request()->query())->links('pagination::simple-default') }}
+                            <!-- Kanggo A-Z Pagination (Logo & Letters) -->
+                            @if(!request('search'))
+                            <div class="kanggo-container">
+                                <div class="kanggo-logo">
+                                    <img src="/Pagination/kangg.png" alt="Kanggo" style="height: 110px; width: auto; padding-top: 10px;">
+                                </div>
+                                <div class="kanggo-letters">
+                                    @php
+                                        // Get active letters and find current position
+                                        $activeLetters = $material['active_letters'];
+                                        $currentLetter = $material['current_letter'];
+                                        $currentPosition = array_search($currentLetter, $activeLetters);
+                                        if ($currentPosition === false) $currentPosition = -1;
+                                    @endphp
+
+                                    @foreach(range('A', 'Z') as $index => $char)
+                                        @php
+                                            $isActive = in_array($char, $activeLetters);
+                                            $isCurrent = $char === $currentLetter;
+                                            $imgIndex = $index + 1; // 0-based index to 1-based (1.png for A, etc)
+
+                                            // Calculate gradient for buttons before current
+                                            $gradientClass = '';
+                                            $gradientStyle = '';
+
+                                            if ($isActive && !$isCurrent) {
+                                                $letterPosition = array_search($char, $activeLetters);
+
+                                                if ($letterPosition !== false && $currentPosition !== false && $letterPosition < $currentPosition) {
+                                                    // This button is before current - apply gradient
+                                                    $gradientClass = 'gradient-active';
+                                                    $totalSteps = $currentPosition; // Total buttons before current
+                                                    $positionIndex = $letterPosition; // 0-based position
+
+                                                    // Calculate intensity: 0 (first/sangat terang) to 1 (last/gelap #e10009)
+                                                    $intensity = $totalSteps > 0 ? ($positionIndex / $totalSteps) : 0;
+
+                                                    // Approach baru: Sepia full + saturate tinggi + brightness untuk gradasi
+
+                                                    // Sepia: FULL untuk semua agar base color merah/orange
+                                                    $sepia = 1.0;
+
+                                                    // Saturate: SANGAT TINGGI untuk warna merah vivid
+                                                    $saturate = 3.5 + ($intensity * 1.0); // 3.5 to 4.5
+
+                                                    // Hue rotate: Fixed untuk shift ke merah #e10009
+                                                    $hueRotate = -35;
+
+                                                    // Brightness: Gradasi dari SANGAT TERANG ke gelap
+                                                    $brightness = 2.5 - ($intensity * 1.2); // 2.5 to 1.3
+
+                                                    // Contrast: Tinggi untuk ketajaman
+                                                    $contrast = 1.3;
+
+                                                    $gradientStyle = "filter: grayscale(0%) sepia({$sepia}) saturate({$saturate}) hue-rotate({$hueRotate}deg) brightness({$brightness}) contrast({$contrast});";
+                                                }
+                                            }
+                                        @endphp
+
+                                        @if($isActive)
+                                            <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
+                                               class="kanggo-img-link {{ $isCurrent ? 'current' : '' }} {{ $gradientClass }}"
+                                               style="{{ $gradientStyle }}">
+                                                <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+
+                        <!-- Right Area: Button (Absolute Positioned) -->
+                        <div style="position: absolute; right: 0; top: 50px;">
+                            <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary" style="background: #891313; border-color: #891313; box-shadow: 0 4px 6px rgba(137, 19, 19, 0.2); padding: 10px 24px; border-radius: 12px;">
+                                Lihat Semua <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
+                            </a>
+                        </div>
                     </div>
                 @else
                     <div style="padding: 40px; text-align: center; color: #94a3b8;">
                         @if(request('search'))
                             Tidak ada data {{ strtolower($material['label']) }} yang cocok dengan pencarian "{{ request('search') }}"
                         @else
-                            Tidak ada data {{ strtolower($material['label']) }}
+                            Tidak ada data {{ strtolower($material['label']) }} untuk huruf <strong>{{ $material['current_letter'] }}</strong>
                         @endif
                     </div>
                 @endif
-            </div>
-        </div>
+                    </div>
+                </div>
         @endforeach
     @else
         <div class="empty-state">
@@ -1224,6 +1346,94 @@ input[type="text"]:focus {
     color: #0f172a;
 }
 
+/* Kanggo Pagination Styles */
+.kanggo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+}
+
+.kanggo-logo {
+    display: flex;
+    align-items: center;
+    margin-right: 2px;
+}
+
+.kanggo-letters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px;
+}
+
+.kanggo-img {
+    height: 25px; /* Ukuran lebih kecil untuk logo page */
+    width: auto;
+    display: block;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Link Wrapper */
+.kanggo-img-link {
+    display: inline-block;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+/* Default state: Grey (untuk button yang tidak di gradasi) */
+.kanggo-img-link .kanggo-img {
+    filter: grayscale(100%);
+    opacity: 0.6;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Gradient Active: Warna selalu aktif untuk button sebelum current */
+.kanggo-img-link.gradient-active .kanggo-img {
+    opacity: 1 !important;
+    /* Filter akan di-override oleh inline style untuk gradasi */
+}
+
+/* Hover state: Color & Animation */
+.kanggo-img-link:hover .kanggo-img {
+    transform: translateY(-4px) scale(1.1);
+}
+
+/* Hover untuk gradient active: tidak ubah warna, hanya animasi */
+.kanggo-img-link.gradient-active:hover .kanggo-img {
+    transform: translateY(-4px) scale(1.1);
+    /* Warna tetap sesuai gradasi */
+}
+
+/* Hover untuk default (grey): baru muncul warna */
+.kanggo-img-link:not(.gradient-active):not(.current):hover .kanggo-img {
+    filter: grayscale(0%);
+    opacity: 1;
+}
+
+/* Current state: Color, Big, Shadow */
+.kanggo-img-link.current .kanggo-img {
+    transform: scale(1.25);
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)) grayscale(0%);
+    opacity: 1;
+    z-index: 10;
+    position: relative;
+}
+
+/* Disabled State */
+.kanggo-img-wrapper {
+    display: inline-block;
+    padding: 2px;
+    pointer-events: none;
+}
+
+.kanggo-img-wrapper.disabled .kanggo-img {
+    opacity: 0.3;
+    filter: grayscale(100%);
+    transform: scale(0.9);
+}
 </style>
 
 <script>
@@ -1298,6 +1508,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 panel.setAttribute('aria-hidden', 'true');
             }
         });
+
+        // Save active tab to localStorage
+        localStorage.setItem('materialActiveTab', tab);
     };
 
     // Function to save filter preferences to localStorage
@@ -1347,7 +1560,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to update tab visibility based on checkboxes
-    function updateTabVisibility() {
+    function updateTabVisibility(preferredTab = null) {
         console.log('[updateTabVisibility] Started');
         const checkedMaterials = [];
         const emptyState = document.getElementById('emptyMaterialState');
@@ -1409,10 +1622,16 @@ document.addEventListener('DOMContentLoaded', function() {
             tabContainer.style.display = checkedMaterials.length > 0 ? 'flex' : 'none';
         }
 
-        // Auto-activate first visible tab (based on order)
+        // Auto-activate tab (prefer saved tab, fallback to first visible)
         if (materialOrder.length > 0) {
-            const firstVisibleType = materialOrder[0];
-            setActiveTab(firstVisibleType);
+            let tabToActivate = materialOrder[0];
+
+            // If there's a preferred tab and it exists in checked materials, use it
+            if (preferredTab && checkedMaterials.includes(preferredTab)) {
+                tabToActivate = preferredTab;
+            }
+
+            setActiveTab(tabToActivate);
         }
 
         // Save to localStorage
@@ -1448,7 +1667,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page state: restore from localStorage or show empty state
     console.log('[Restore] Calling updateTabVisibility');
-    updateTabVisibility();
+    const savedTab = window.__materialSavedTab || localStorage.getItem('materialActiveTab');
+    updateTabVisibility(savedTab);
 
     // Reset Material Filter Button
     const resetFilterBtn = document.getElementById('resetMaterialFilter');
@@ -1484,8 +1704,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!modalBody) return;
         const form = modalBody.querySelector('form');
         if (form) {
-            form.addEventListener('submit', function() {
-                // Let form submit normally
+            // Add hidden input to tell controller to redirect to materials.index
+            const redirectInput = document.createElement('input');
+            redirectInput.type = 'hidden';
+            redirectInput.name = '_redirect_to_materials';
+            redirectInput.value = '1';
+            form.appendChild(redirectInput);
+
+            form.addEventListener('submit', function(e) {
+                // Show loading state before submit
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    const originalHtml = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
+                }
+                // Let form submit normally, controller will redirect to materials.index
             });
         }
     }
@@ -1662,6 +1896,30 @@ document.addEventListener('DOMContentLoaded', function() {
             btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
         });
     }
+
+    // Add click handlers to "Lihat Semua" buttons to save current tab
+    document.querySelectorAll('a[href*="bricks.index"], a[href*="cats.index"], a[href*="cements.index"], a[href*="sands.index"]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            // Save current active tab before navigation
+            const activeTab = document.querySelector('.material-tab-btn.active');
+            if (activeTab) {
+                const currentTab = activeTab.dataset.tab;
+                localStorage.setItem('materialActiveTab', currentTab);
+            }
+        });
+    });
+
+    // Add click handlers to pagination links to preserve current tab
+    document.querySelectorAll('.kanggo-img-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            // Save current active tab before navigation
+            const activeTab = document.querySelector('.material-tab-btn.active');
+            if (activeTab) {
+                const currentTab = activeTab.dataset.tab;
+                localStorage.setItem('materialActiveTab', currentTab);
+            }
+        });
+    });
 
 });
 </script>

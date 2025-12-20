@@ -4,11 +4,92 @@ function initBrickForm(root) {
     if (marker.__brickFormInited) { return; }
     marker.__brickFormInited = true;
 
+    // ========== PRICE SYNC FUNCTIONS (must be defined before autocomplete) ==========
+
+    let currentVolume = 0;
+    let isUpdatingPrice = false;
+    let lastEditedPriceField = null; // Track which field was edited last: 'price' or 'comparison'
+
+    // Helper function for element selection
+    function getElement(id) {
+        return (scope && scope.querySelector) ? scope.querySelector('#' + id) : document.getElementById(id);
+    }
+
+    const pricePerPiece = getElement('price_per_piece');
+    const pricePerPieceDisplay = getElement('price_per_piece_display');
+    const comparisonPrice = getElement('comparison_price_per_m3');
+    const comparisonPriceDisplay = getElement('comparison_price_display');
+
+    function unformatRupiah(str) {
+        return (str || '').toString().replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
+    }
+
+    function formatRupiah(num) {
+        const n = Number(num||0);
+        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+    }
+
+    // Handle price per piece input
+    function syncPriceFromDisplay() {
+        if (isUpdatingPrice) return;
+        isUpdatingPrice = true;
+
+        const raw = unformatRupiah(pricePerPieceDisplay?.value || '');
+        if (pricePerPiece) pricePerPiece.value = raw || '';
+        if (pricePerPieceDisplay) pricePerPieceDisplay.value = raw ? formatRupiah(raw) : '';
+
+        // Mark that price was edited last
+        if (raw) {
+            lastEditedPriceField = 'price';
+        }
+
+        // Calculate comparison price from price per piece
+        if (raw && currentVolume > 0) {
+            const calcComparison = parseFloat(raw) / currentVolume;
+            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+        } else if (!raw) {
+            // Clear comparison if price is cleared
+            if (comparisonPrice) comparisonPrice.value = '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
+        }
+
+        isUpdatingPrice = false;
+    }
+
+    // Handle comparison price input
+    function syncComparisonFromDisplay() {
+        if (isUpdatingPrice) return;
+        isUpdatingPrice = true;
+
+        const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
+        if (comparisonPrice) comparisonPrice.value = raw || '';
+        if (comparisonPriceDisplay) comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
+
+        // Mark that comparison was edited last
+        if (raw) {
+            lastEditedPriceField = 'comparison';
+        }
+
+        // Calculate price per piece from comparison price
+        if (raw && currentVolume > 0) {
+            const calcPrice = parseFloat(raw) * currentVolume;
+            if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+        } else if (!raw) {
+            // Clear price if comparison is cleared
+            if (pricePerPiece) pricePerPiece.value = '';
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = '';
+        }
+
+        isUpdatingPrice = false;
+    }
+
     // Auto-suggest
-    const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
+    const autosuggestInputs = (scope && scope.querySelectorAll) ? scope.querySelectorAll('.autocomplete-input') : document.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
-        const suggestList = scope.querySelector(`#${field}-list`) || document.getElementById(`${field}-list`);
+        const suggestList = getElement(`${field}-list`);
         let debounceTimer;
 
         function populate(values) {
@@ -37,10 +118,20 @@ function initBrickForm(root) {
                         } else if (['dimension_length', 'dimension_width', 'dimension_height'].includes(field)) {
                             // Update dimension input
                             input.value = v;
-                            // Trigger volume calculation
-                            if (typeof calculateVolume === 'function') {
-                                calculateVolume();
+
+                            // Trigger input event to update hidden field via setupDimensionInput
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+                            // Auto-update unit selector to 'cm' (data dari database dalam cm)
+                            const unitSelectorId = field + '_unit';
+                            const unitSelector = getElement(unitSelectorId);
+                            if (unitSelector && unitSelector.value !== 'cm') {
+                                unitSelector.value = 'cm';
+                                // Trigger change event untuk update perhitungan
+                                unitSelector.dispatchEvent(new Event('change'));
                             }
+
+                            // Note: calculateVolume() will be triggered by the input event above
                         } else {
                             input.value = v;
                         }
@@ -64,7 +155,7 @@ function initBrickForm(root) {
             }
             // Special case: address field menggunakan endpoint addresses-by-store
             else if (['address', 'short_address'].includes(field)) {
-                const storeInput = scope.querySelector('#store') || document.getElementById('store');
+                const storeInput = getElement('store');
                 if (storeInput && storeInput.value) {
                     url = `/api/bricks/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeInput.value)}`;
                 } else {
@@ -78,7 +169,7 @@ function initBrickForm(root) {
 
                 // Filter bentuk by merek
                 if (field === 'form') {
-                    const brandInput = scope.querySelector('#brand') || document.getElementById('brand');
+                    const brandInput = getElement('brand');
                     if (brandInput && brandInput.value) {
                         url += `&brand=${encodeURIComponent(brandInput.value)}`;
                     }
@@ -86,7 +177,7 @@ function initBrickForm(root) {
 
                 // Filter dimensi by merek
                 if (['dimension_length', 'dimension_width', 'dimension_height'].includes(field)) {
-                    const brandInput = scope.querySelector('#brand') || document.getElementById('brand');
+                    const brandInput = getElement('brand');
                     if (brandInput && brandInput.value) {
                         url += `&brand=${encodeURIComponent(brandInput.value)}`;
                     }
@@ -94,9 +185,9 @@ function initBrickForm(root) {
 
                 // Filter harga by dimensi
                 if (field === 'price_per_piece') {
-                    const dimLength = scope.querySelector('#dimension_length') || document.getElementById('dimension_length');
-                    const dimWidth = scope.querySelector('#dimension_width') || document.getElementById('dimension_width');
-                    const dimHeight = scope.querySelector('#dimension_height') || document.getElementById('dimension_height');
+                    const dimLength = getElement('dimension_length');
+                    const dimWidth = getElement('dimension_width');
+                    const dimHeight = getElement('dimension_height');
 
                     if (dimLength && dimLength.value) {
                         url += `&dimension_length=${encodeURIComponent(dimLength.value)}`;
@@ -202,144 +293,22 @@ function initBrickForm(root) {
         });
     }
 
-    // ========== VALIDASI DAN KONVERSI DIMENSI ==========
-    
-    function convertToCm(value, unit) {
-        const num = parseFloat(value);
-        if (isNaN(num) || num < 0) {
-            return null;
-        }
+    // ========== KALKULASI VOLUME DAN HARGA (must be defined before dimension setup) ==========
 
-        switch(unit) {
-            case 'mm':
-                return num / 10;
-            case 'cm':
-                return num;
-            case 'm':
-                return num * 100;
-            default:
-                return num;
-        }
-    }
+    const dimLength = getElement('dimension_length');
+    const dimWidth = getElement('dimension_width');
+    const dimHeight = getElement('dimension_height');
+    const dimLengthInput = getElement('dimension_length_input');
+    const dimWidthInput = getElement('dimension_width_input');
+    const dimHeightInput = getElement('dimension_height_input');
+    const dimLengthUnit = getElement('dimension_length_unit');
+    const dimWidthUnit = getElement('dimension_width_unit');
+    const dimHeightUnit = getElement('dimension_height_unit');
 
-    function setupDimensionInput(inputId, unitId, hiddenId, displayId) {
-        const inputElement = scope.querySelector('#' + inputId) || document.getElementById(inputId);
-        const unitElement = scope.querySelector('#' + unitId) || document.getElementById(unitId);
-        const hiddenElement = scope.querySelector('#' + hiddenId) || document.getElementById(hiddenId);
-        const displayElement = scope.querySelector('#' + displayId) || document.getElementById(displayId);
-        
-        if (!inputElement || !unitElement || !hiddenElement || !displayElement) return;
-
-        function updateDimension() {
-            const rawValue = inputElement.value.trim();
-            const selectedUnit = unitElement.value;
-            
-            if (rawValue === '') {
-                hiddenElement.value = '';
-                displayElement.textContent = '-';
-                displayElement.style.color = '#15803d';
-                inputElement.style.borderColor = '#e2e8f0';
-                calculateVolume();
-                return;
-            }
-
-            const cmValue = convertToCm(rawValue, selectedUnit);
-            
-            if (cmValue !== null) {
-                hiddenElement.value = cmValue.toFixed(2);
-                // Format angka tanpa trailing zeros
-                const formattedValue = parseFloat(cmValue.toFixed(2)).toString();
-                displayElement.textContent = formattedValue;
-                displayElement.style.color = '#15803d';
-                inputElement.style.borderColor = '#e2e8f0';
-            } else {
-                hiddenElement.value = '';
-                displayElement.textContent = 'Angka tidak valid';
-                displayElement.style.color = '#e74c3c';
-                inputElement.style.borderColor = '#e74c3c';
-            }
-            
-            calculateVolume();
-        }
-
-        inputElement.addEventListener('input', updateDimension);
-        unitElement.addEventListener('change', updateDimension);
-
-        inputElement.addEventListener('blur', function() {
-            const rawValue = this.value.trim();
-            if (rawValue !== '') {
-                const num = parseFloat(rawValue);
-                if (!isNaN(num) && num >= 0) {
-                    this.value = num.toString();
-                }
-            }
-        });
-    }
-
-    setupDimensionInput('dimension_length_input', 'dimension_length_unit', 'dimension_length', 'length_cm_display');
-    setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width', 'width_cm_display');
-    setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height', 'height_cm_display');
-
-    // Fallback untuk form create (tanpa dropdown unit & display konversi)
-    function setupPlainDimensionInput(inputId, hiddenId) {
-        const inputElement = scope.querySelector('#' + inputId) || document.getElementById(inputId);
-        const hiddenElement = scope.querySelector('#' + hiddenId) || document.getElementById(hiddenId);
-        const unitId = inputId.replace('_input', '_unit');
-        const unitElement = scope.querySelector('#' + unitId) || document.getElementById(unitId);
-
-        if (!inputElement || !hiddenElement || unitElement) return;
-
-        // Saat reload karena error validasi, hidden punya value tetapi input visual kosong
-        if ((inputElement.value || '').trim() === '' && (hiddenElement.value || '').trim() !== '') {
-            const num = parseFloat(hiddenElement.value);
-            if (!isNaN(num)) {
-                inputElement.value = num.toString();
-            }
-        }
-
-        inputElement.addEventListener('input', function() {
-            calculateVolume();
-        });
-
-        inputElement.addEventListener('blur', function() {
-            const rawValue = (this.value || '').trim();
-            if (rawValue !== '') {
-                const num = parseFloat(rawValue);
-                if (!isNaN(num) && num >= 0) {
-                    this.value = num.toString();
-                }
-            }
-            calculateVolume();
-        });
-    }
-
-    setupPlainDimensionInput('dimension_length_input', 'dimension_length');
-    setupPlainDimensionInput('dimension_width_input', 'dimension_width');
-    setupPlainDimensionInput('dimension_height_input', 'dimension_height');
-
-    // ========== KALKULASI VOLUME DAN HARGA ==========
-    
-    const dimLength = scope.querySelector('#dimension_length') || document.getElementById('dimension_length');
-    const dimWidth = scope.querySelector('#dimension_width') || document.getElementById('dimension_width');
-    const dimHeight = scope.querySelector('#dimension_height') || document.getElementById('dimension_height');
-    const dimLengthInput = scope.querySelector('#dimension_length_input') || document.getElementById('dimension_length_input');
-    const dimWidthInput = scope.querySelector('#dimension_width_input') || document.getElementById('dimension_width_input');
-    const dimHeightInput = scope.querySelector('#dimension_height_input') || document.getElementById('dimension_height_input');
-    const dimLengthUnit = scope.querySelector('#dimension_length_unit') || document.getElementById('dimension_length_unit');
-    const dimWidthUnit = scope.querySelector('#dimension_width_unit') || document.getElementById('dimension_width_unit');
-    const dimHeightUnit = scope.querySelector('#dimension_height_unit') || document.getElementById('dimension_height_unit');
-
-    const volumeDisplay = scope.querySelector('#volume_display') || document.getElementById('volume_display');
-    const volumeDisplayInput = scope.querySelector('#volume_display_input') || document.getElementById('volume_display_input');
-    const volumeCalculationDisplay = scope.querySelector('#volume_calculation_display') || document.getElementById('volume_calculation_display');
-    const packageVolume = scope.querySelector('#package_volume') || document.getElementById('package_volume');
-    const pricePerPiece = scope.querySelector('#price_per_piece') || document.getElementById('price_per_piece');
-    const pricePerPieceDisplay = scope.querySelector('#price_per_piece_display') || document.getElementById('price_per_piece_display');
-    const comparisonPrice = scope.querySelector('#comparison_price_per_m3') || document.getElementById('comparison_price_per_m3');
-    const comparisonPriceDisplay = scope.querySelector('#comparison_price_display') || document.getElementById('comparison_price_display');
-
-    let currentVolume = 0;
-    let isUpdatingPrice = false; // Flag untuk prevent circular updates
+    const volumeDisplay = getElement('volume_display');
+    const volumeDisplayInput = getElement('volume_display_input');
+    const volumeCalculationDisplay = getElement('volume_calculation_display');
+    const packageVolume = getElement('package_volume');
 
     function formatNumberTrim(value, decimals = 2) {
         const num = Number(value);
@@ -411,17 +380,29 @@ function initBrickForm(root) {
     }
 
     function recalculatePrices() {
-        // Jika ada harga per buah, kalkulasi comparison price
+        if (currentVolume <= 0) return; // Need volume to calculate
+
         const priceValue = parseFloat(pricePerPiece?.value) || 0;
-        if (priceValue > 0 && currentVolume > 0) {
+        const compValue = parseFloat(comparisonPrice?.value) || 0;
+
+        // Recalculate based on which field was edited last
+        if (lastEditedPriceField === 'price' && priceValue > 0) {
+            // User edited price, recalculate comparison
             const calcComparison = priceValue / currentVolume;
             if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
-        }
-        // Jika ada comparison price, kalkulasi harga per buah
-        else {
-            const compValue = parseFloat(comparisonPrice?.value) || 0;
-            if (compValue > 0 && currentVolume > 0) {
+        } else if (lastEditedPriceField === 'comparison' && compValue > 0) {
+            // User edited comparison, recalculate price
+            const calcPrice = compValue * currentVolume;
+            if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+        } else {
+            // No field edited yet, or both are empty - try to calculate based on what exists
+            if (priceValue > 0) {
+                const calcComparison = priceValue / currentVolume;
+                if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
+                if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+            } else if (compValue > 0) {
                 const calcPrice = compValue * currentVolume;
                 if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
                 if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
@@ -429,52 +410,93 @@ function initBrickForm(root) {
         }
     }
 
-    function unformatRupiah(str) {
-        return (str || '').toString().replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
-    }
+    // ========== VALIDASI DAN KONVERSI DIMENSI ==========
 
-    function formatRupiah(num) {
-        const n = Number(num||0);
-        return isNaN(n) ? '' : n.toLocaleString('id-ID');
-    }
-
-    // Handle price per piece input
-    function syncPriceFromDisplay() {
-        if (isUpdatingPrice) return;
-        isUpdatingPrice = true;
-
-        const raw = unformatRupiah(pricePerPieceDisplay?.value || '');
-        if (pricePerPiece) pricePerPiece.value = raw || '';
-        if (pricePerPieceDisplay) pricePerPieceDisplay.value = raw ? formatRupiah(raw) : '';
-
-        // Calculate comparison price from price per piece
-        if (raw && currentVolume > 0) {
-            const calcComparison = parseFloat(raw) / currentVolume;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+    function convertToCm(value, unit) {
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) {
+            return null;
         }
 
-        isUpdatingPrice = false;
+        switch(unit) {
+            case 'mm':
+                return num / 10;
+            case 'cm':
+                return num;
+            case 'm':
+                return num * 100;
+            case 'inch':
+                return num * 2.54;
+            default:
+                return num;
+        }
     }
 
-    // Handle comparison price input
-    function syncComparisonFromDisplay() {
-        if (isUpdatingPrice) return;
-        isUpdatingPrice = true;
+    function setupDimensionInput(inputId, unitId, hiddenId, displayId) {
+        const inputElement = getElement(inputId);
+        const unitElement = getElement(unitId);
+        const hiddenElement = getElement(hiddenId);
+        const displayElement = displayId ? getElement(displayId) : null;
 
-        const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
-        if (comparisonPrice) comparisonPrice.value = raw || '';
-        if (comparisonPriceDisplay) comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
+        if (!inputElement || !unitElement || !hiddenElement) return;
 
-        // Calculate price per piece from comparison price
-        if (raw && currentVolume > 0) {
-            const calcPrice = parseFloat(raw) * currentVolume;
-            if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
-            if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+        function updateDimension() {
+            const rawValue = inputElement.value.trim();
+            const selectedUnit = unitElement.value;
+            
+            if (rawValue === '') {
+                hiddenElement.value = '';
+                if (displayElement) {
+                    displayElement.textContent = '-';
+                    displayElement.style.color = '#15803d';
+                }
+                inputElement.style.borderColor = '#e2e8f0';
+                calculateVolume();
+                return;
+            }
+
+            const cmValue = convertToCm(rawValue, selectedUnit);
+            
+            if (cmValue !== null) {
+                hiddenElement.value = cmValue.toFixed(2);
+                if (displayElement) {
+                    const formattedValue = parseFloat(cmValue.toFixed(2)).toString();
+                    displayElement.textContent = formattedValue;
+                    displayElement.style.color = '#15803d';
+                }
+                inputElement.style.borderColor = '#e2e8f0';
+            } else {
+                hiddenElement.value = '';
+                if (displayElement) {
+                    displayElement.textContent = 'Angka tidak valid';
+                    displayElement.style.color = '#e74c3c';
+                }
+                inputElement.style.borderColor = '#e74c3c';
+            }
+            
+            calculateVolume();
         }
 
-        isUpdatingPrice = false;
+        inputElement.addEventListener('input', updateDimension);
+        unitElement.addEventListener('change', updateDimension);
+
+        inputElement.addEventListener('blur', function() {
+            const rawValue = this.value.trim();
+            if (rawValue !== '') {
+                const num = parseFloat(rawValue);
+                if (!isNaN(num) && num >= 0) {
+                    this.value = num.toString();
+                }
+            }
+        });
+        
+        // Initial update
+        if (inputElement.value) updateDimension();
     }
+
+    setupDimensionInput('dimension_length_input', 'dimension_length_unit', 'dimension_length', 'length_cm_display');
+    setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width', 'width_cm_display');
+    setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height', 'height_cm_display');
 
     pricePerPieceDisplay?.addEventListener('input', syncPriceFromDisplay);
     comparisonPriceDisplay?.addEventListener('input', syncComparisonFromDisplay);

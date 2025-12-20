@@ -49,7 +49,7 @@ class FormulaRegistry
         $formula = self::find($code);
 
         if ($formula) {
-            return new $formula['class'];
+            return new ($formula['class'])();
         }
 
         return null;
@@ -64,7 +64,7 @@ class FormulaRegistry
 
         $formulaPath = app_path('Services/Formula');
 
-        if (! File::exists($formulaPath)) {
+        if (!File::exists($formulaPath)) {
             return;
         }
 
@@ -76,14 +76,19 @@ class FormulaRegistry
                 continue;
             }
 
+            // Skip copy files
+            if (str_contains($file->getFilename(), ' copy')) {
+                continue;
+            }
+
             // Get class name from filename
-            $className = 'App\\Services\\Formula\\'.str_replace('.php', '', $file->getFilename());
+            $className = 'App\\Services\\Formula\\' . str_replace('.php', '', $file->getFilename());
 
             // Check if class exists and implements FormulaInterface
             if (class_exists($className)) {
                 $reflection = new \ReflectionClass($className);
 
-                if ($reflection->implementsInterface(FormulaInterface::class) && ! $reflection->isAbstract()) {
+                if ($reflection->implementsInterface(FormulaInterface::class) && !$reflection->isAbstract()) {
                     self::$formulas[] = [
                         'code' => $className::getCode(),
                         'name' => $className::getName(),

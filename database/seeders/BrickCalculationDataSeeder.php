@@ -23,7 +23,9 @@ class BrickCalculationDataSeeder extends Seeder
         $sand = Sand::first();
 
         if (!$brick || !$cement || !$sand) {
-            $this->command->warn('⚠️  Tidak ada data Brick/Cement/Sand. Silakan tambahkan data material terlebih dahulu.');
+            $this->command->warn(
+                '⚠️  Tidak ada data Brick/Cement/Sand. Silakan tambahkan data material terlebih dahulu.',
+            );
             return;
         }
 

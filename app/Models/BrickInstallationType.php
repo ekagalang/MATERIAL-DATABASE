@@ -49,7 +49,7 @@ class BrickInstallationType extends Model
         float $brickLength,
         float $brickWidth,
         float $brickHeight,
-        float $mortarThickness
+        float $mortarThickness,
     ): float {
         // Konversi cm ke meter
         $length = $brickLength / 100;
@@ -91,7 +91,7 @@ class BrickInstallationType extends Model
         $areaBrickWithMortar = $visibleWidth * $visibleHeight;
 
         // Jumlah bata per m²
-        return $areaBrickWithMortar > 0 ? (1 / $areaBrickWithMortar) : 0;
+        return $areaBrickWithMortar > 0 ? 1 / $areaBrickWithMortar : 0;
     }
 
     /**
@@ -99,9 +99,7 @@ class BrickInstallationType extends Model
      */
     public static function getActive()
     {
-        return self::where('is_active', true)
-            ->orderBy('display_order')
-            ->get();
+        return self::where('is_active', true)->orderBy('display_order')->get();
     }
 
     /**

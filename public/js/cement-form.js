@@ -1,10 +1,15 @@
-function initCementForm() {
+function initCementForm(root) {
+    const scope = root || document;
+    const form = scope.querySelector('#cementForm');
+    
     // Idempotent guard
-    const form = document.getElementById('cementForm');
     if (!form || form.__cementFormInited) {
         return;
     }
     form.__cementFormInited = true;
+
+    // Helper untuk selector aman
+    const getEl = (id) => scope.querySelector(`#${id}`) || document.getElementById(id);
 
     // Track current selections for cascading autocomplete
     let currentBrand = '';
@@ -12,11 +17,12 @@ function initCementForm() {
     let currentStore = '';
 
     // Auto-suggest with cascading logic
-    const autosuggestInputs = document.querySelectorAll('.autocomplete-input');
+    const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
-        const suggestList = document.getElementById(`${field}-list`);
+        const suggestList = getEl(`${field}-list`);
         let debounceTimer;
+        let isSelectingFromAutosuggest = false; // Flag to prevent reopening
 
         function populate(values) {
             if (suggestList) {
@@ -26,11 +32,55 @@ function initCementForm() {
                     item.className = 'autocomplete-item';
                     item.textContent = v;
                     item.addEventListener('click', function() {
-                        input.value = v;
+                        // Set flag to prevent autosuggest from reopening
+                        isSelectingFromAutosuggest = true;
+
+                        // Close list immediately
                         suggestList.style.display = 'none';
 
-                        // Trigger change event for cascading updates
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        // Handle dimension fields with unit conversion
+                        if (['dimension_length', 'dimension_width', 'dimension_height'].includes(field)) {
+                            // Update dimension input
+                            input.value = v;
+
+                            // Trigger input event to update hidden field via setupDimensionInput
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+                            // Auto-update unit selector to 'cm' (data dari autosuggest sudah dalam cm)
+                            const unitSelectorId = field + '_unit';
+                            const unitSelector = getEl(unitSelectorId);
+                            if (unitSelector && unitSelector.value !== 'cm') {
+                                unitSelector.value = 'cm';
+                                // Trigger change event untuk update perhitungan
+                                unitSelector.dispatchEvent(new Event('change'));
+                            }
+
+                            // Note: calculateVolume() will be triggered by the input event above
+                        } else if (field === 'package_price') {
+                            // Handle package price field - format and trigger sync
+                            input.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncPriceFromDisplay === 'function') {
+                                syncPriceFromDisplay();
+                            }
+                        } else if (field === 'comparison_price_per_kg') {
+                            // Handle comparison price field - format and trigger sync
+                            input.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncComparisonFromDisplay === 'function') {
+                                syncComparisonFromDisplay();
+                            }
+                        } else {
+                            input.value = v;
+                        }
+
+                        // Trigger change event for cascading updates (for non-dimension and non-price fields)
+                        if (!['dimension_length', 'dimension_width', 'dimension_height', 'package_price', 'comparison_price_per_kg'].includes(field)) {
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+
+                        // Reset flag after a delay
+                        setTimeout(() => {
+                            isSelectingFromAutosuggest = false;
+                        }, 300);
                     });
                     suggestList.appendChild(item);
                 });
@@ -41,37 +91,33 @@ function initCementForm() {
         function loadSuggestions(term = '') {
             let url;
 
-            // Special case: store field menggunakan endpoint all-stores
             if (field === 'store') {
-                // Jika tidak ada search term (user baru focus), tampilkan dari cement saja
-                // Jika ada search term (user mengetik), tampilkan dari semua material
                 const materialType = (term === '' || term.length === 0) ? 'cement' : 'all';
                 url = `/api/cements/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
             }
-            // Special case: address field menggunakan endpoint addresses-by-store
             else if (field === 'address' || field === 'short_address') {
-                if (currentStore) {
-                    url = `/api/cements/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(currentStore)}`;
+                const storeInput = getEl('store');
+                const storeVal = storeInput ? storeInput.value : '';
+                if (storeVal) {
+                    url = `/api/cements/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeVal)}`;
                 } else {
-                    // Jika toko belum dipilih, gunakan field-values biasa
                     url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
                 }
             }
             else {
                 url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
 
-                // Add filter parameters for cascading autocomplete
-                // Fields that depend on brand
                 if (['sub_brand', 'code', 'color', 'dimension_length', 'dimension_width', 'dimension_height', 'package_weight_gross'].includes(field)) {
-                    if (currentBrand) {
-                        url += `&brand=${encodeURIComponent(currentBrand)}`;
+                    const brandInput = getEl('brand');
+                    if (brandInput && brandInput.value) {
+                        url += `&brand=${encodeURIComponent(brandInput.value)}`;
                     }
                 }
 
-                // Fields that depend on package_unit
                 if (field === 'package_price') {
-                    if (currentPackageUnit) {
-                        url += `&package_unit=${encodeURIComponent(currentPackageUnit)}`;
+                    const unitSelect = getEl('package_unit');
+                    if (unitSelect && unitSelect.value) {
+                        url += `&package_unit=${encodeURIComponent(unitSelect.value)}`;
                     }
                 }
             }
@@ -82,8 +128,16 @@ function initCementForm() {
                 .catch(() => {});
         }
 
-        input.addEventListener('focus', () => loadSuggestions(''));
+        input.addEventListener('focus', () => {
+            if (!isSelectingFromAutosuggest) {
+                loadSuggestions('');
+            }
+        });
         input.addEventListener('input', function () {
+            // Don't reload suggestions if we're selecting from autosuggest
+            if (isSelectingFromAutosuggest) {
+                return;
+            }
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
@@ -96,45 +150,21 @@ function initCementForm() {
         });
     });
 
-    // Listen for brand changes to update dependent fields
-    const brandInput = document.getElementById('brand');
+    // Listen for brand changes
+    const brandInput = getEl('brand');
     if (brandInput) {
         brandInput.addEventListener('change', function() {
-            currentBrand = this.value;
-
-            // Clear and refresh dependent fields
-            const dependentFields = ['sub_brand', 'code', 'color', 'dimension_length', 'dimension_width', 'dimension_height', 'package_weight_gross'];
-            dependentFields.forEach(fieldName => {
-                const fieldInput = document.getElementById(fieldName);
-                if (fieldInput && fieldInput !== document.activeElement) {
-                    // Don't clear if user is typing in that field
-                    // fieldInput.value = '';
-                }
-            });
-        });
-    }
-
-    // Listen for store changes to update address field
-    const storeInput = document.getElementById('store');
-    if (storeInput) {
-        storeInput.addEventListener('change', function() {
-            currentStore = this.value;
-
-            // Clear address field when store changes
-            const addressInput = document.getElementById('address');
-            if (addressInput && addressInput !== document.activeElement) {
-                // addressInput.value = '';
-            }
+            // Optional: Clear dependents
         });
     }
 
     // Photo upload functionality
-    const photoInput = document.getElementById('photo');
-    const photoPreview = document.getElementById('photoPreview');
-    const photoPlaceholder = document.getElementById('photoPlaceholder');
-    const photoPreviewArea = document.getElementById('photoPreviewArea');
-    const uploadBtn = document.getElementById('uploadBtn');
-    const deletePhotoBtn = document.getElementById('deletePhotoBtn');
+    const photoInput = getEl('photo');
+    const photoPreview = getEl('photoPreview');
+    const photoPlaceholder = getEl('photoPlaceholder');
+    const photoPreviewArea = getEl('photoPreviewArea');
+    const uploadBtn = getEl('uploadBtn');
+    const deletePhotoBtn = getEl('deletePhotoBtn');
 
     if (photoPreviewArea) {
         photoPreviewArea.addEventListener('click', function() {
@@ -155,27 +185,8 @@ function initCementForm() {
                     if (photoPreview) {
                         photoPreview.src = e.target.result;
                         photoPreview.style.display = 'block';
-
-                        // Adjust preview area height based on image aspect ratio
-                        const img = new Image();
-                        img.onload = function() {
-                            if (photoPreviewArea) {
-                                const containerWidth = photoPreviewArea.offsetWidth;
-                                const aspectRatio = img.height / img.width;
-
-                                // Calculate ideal height based on aspect ratio
-                                let idealHeight = containerWidth * aspectRatio;
-
-                                // Constrain to min/max bounds
-                                const minHeight = 200;
-                                const maxHeight = 400;
-                                idealHeight = Math.max(minHeight, Math.min(maxHeight, idealHeight));
-
-                                // Apply the calculated height with smooth transition
-                                photoPreviewArea.style.height = idealHeight + 'px';
-                            }
-                        };
-                        img.src = e.target.result;
+                        
+                        // Auto resize preview logic here if needed
                     }
                     if (photoPlaceholder) photoPlaceholder.style.display = 'none';
                     if (deletePhotoBtn) deletePhotoBtn.style.display = 'inline';
@@ -194,19 +205,17 @@ function initCementForm() {
                 photoPreview.style.display = 'none';
             }
             if (photoPlaceholder) photoPlaceholder.style.display = 'block';
-            // Reset height to default
-            if (photoPreviewArea) photoPreviewArea.style.height = '320px';
             deletePhotoBtn.style.display = 'none';
         });
     }
 
-    // Susun otomatis cement_name (hidden) dari field utama
-    const fType = document.getElementById('type');
-    const fBrand = document.getElementById('brand');
-    const fSubBrand = document.getElementById('sub_brand');
-    const fCode = document.getElementById('code');
-    const fColor = document.getElementById('color');
-    const fCementName = document.getElementById('cement_name');
+    // Susun otomatis cement_name
+    const fType = getEl('type');
+    const fBrand = getEl('brand');
+    const fSubBrand = getEl('sub_brand');
+    const fCode = getEl('code');
+    const fColor = getEl('color');
+    const fCementName = getEl('cement_name');
 
     function composeName() {
         const parts = [];
@@ -223,62 +232,60 @@ function initCementForm() {
     });
     composeName();
 
-    // Kalkulasi: Berat Kemasan (kalkulasi) + Harga Komparasi per Kg
-    const grossInput = document.getElementById('package_weight_gross');
-    const unitSelect = document.getElementById('package_unit');
-    const netCalcDisplay = document.getElementById('net_weight_display');
-    const packagePrice = document.getElementById('package_price');
-    const packagePriceDisplay = document.getElementById('package_price_display');
-    const comparisonPrice = document.getElementById('comparison_price_per_kg');
-    const comparisonPriceDisplay = document.getElementById('comparison_price_display');
-    const priceUnitInput = document.getElementById('price_unit');
+    // Kalkulasi Harga
+    const grossInput = getEl('package_weight_gross');
+    const unitSelect = getEl('package_unit');
+    const netCalcDisplay = getEl('net_weight_display');
+    const packagePrice = getEl('package_price');
+    const packagePriceDisplay = getEl('package_price_display');
+    const comparisonPrice = getEl('comparison_price_per_kg');
+    const comparisonPriceDisplay = getEl('comparison_price_display');
+    const priceUnitInput = getEl('price_unit');
+    const priceUnitDisplayInline = getEl('price_unit_display_inline');
 
-    let isUpdatingPrice = false; // Flag untuk prevent circular updates
-
-    // Listen for package_unit changes to update price field (for cascading autocomplete)
-    if (unitSelect) {
-        currentPackageUnit = unitSelect.value || '';
-        unitSelect.addEventListener('change', function() {
-            currentPackageUnit = this.value;
-            // Price field will automatically use this filter when focused
-        });
-    }
-
-    function updateNetCalc() {
-        if (!grossInput || !unitSelect || !netCalcDisplay) return 0;
-        
-        // Kalkulasi dari berat kotor - berat kemasan
-        const gross = parseFloat(grossInput.value) || 0;
-        const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
-        const netCalc = Math.max(gross - tare, 0);
-        const formattedValue = netCalc > 0 ? parseFloat(netCalc.toFixed(2)).toString() + ' Kg' : '-';
-        netCalcDisplay.textContent = formattedValue;
-        return netCalc;
-    }
+    let isUpdatingPrice = false;
 
     function getCurrentWeight() {
-        // Kalkulasi dari berat kotor - berat kemasan
         const gross = parseFloat(grossInput?.value) || 0;
         const tare = parseFloat(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
         return Math.max(gross - tare, 0);
     }
 
+    function updateNetCalc() {
+        // Hanya update display jika elemennya ada
+        if (!grossInput || !unitSelect) return;
+        
+        const netCalc = getCurrentWeight();
+        
+        if (netCalcDisplay) {
+            const formattedValue = netCalc > 0 ? parseFloat(netCalc.toFixed(2)).toString() + ' Kg' : '-';
+            netCalcDisplay.textContent = formattedValue;
+        }
+    }
+
     function recalculatePrices() {
         if (isUpdatingPrice) return;
         const net = getCurrentWeight();
+        
+        // Tidak bisa hitung jika berat 0
         if (net <= 0) return;
 
-        // Jika ada harga kemasan, kalkulasi comparison price
-        const priceValue = parseFloat(packagePrice?.value) || 0;
-        if (priceValue > 0) {
+        // Priority 1: Harga Kemasan -> Hitung Komparasi
+        // Kita anggap jika user mengisi harga kemasan, dia mau itu yang jadi acuan
+        const priceRaw = unformatRupiah(packagePriceDisplay?.value || '');
+        const priceValue = parseFloat(priceRaw);
+
+        if (!isNaN(priceValue) && priceValue > 0) {
             const calcComparison = priceValue / net;
             if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
-        }
-        // Jika ada comparison price, kalkulasi harga kemasan
+        } 
+        // Priority 2: Jika harga kemasan kosong, tapi ada harga komparasi -> Hitung Harga Kemasan
         else {
-            const compValue = parseFloat(comparisonPrice?.value) || 0;
-            if (compValue > 0) {
+            const compRaw = unformatRupiah(comparisonPriceDisplay?.value || '');
+            const compValue = parseFloat(compRaw);
+            
+            if (!isNaN(compValue) && compValue > 0) {
                 const calcPrice = compValue * net;
                 if (packagePrice) packagePrice.value = Math.round(calcPrice);
                 if (packagePriceDisplay) packagePriceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
@@ -286,24 +293,12 @@ function initCementForm() {
         }
     }
 
-    if (grossInput) grossInput.addEventListener('input', () => { updateNetCalc(); recalculatePrices(); });
-
-    // Sinkronkan satuan harga mengikuti satuan kemasan
-    const priceUnitDisplayInline = document.getElementById('price_unit_display_inline');
-
     function syncPriceUnit() {
         if (!unitSelect || !priceUnitInput) return;
         const unit = unitSelect.value || '';
-        if (unit) {
-            priceUnitInput.value = unit;
-            if (priceUnitDisplayInline) {
-                priceUnitDisplayInline.textContent = '/ ' + unit;
-            }
-        } else {
-            priceUnitInput.value = '';
-            if (priceUnitDisplayInline) {
-                priceUnitDisplayInline.textContent = '/ -';
-            }
+        priceUnitInput.value = unit;
+        if (priceUnitDisplayInline) {
+            priceUnitDisplayInline.textContent = unit ? ('/ ' + unit) : '/ -';
         }
     }
 
@@ -315,7 +310,13 @@ function initCementForm() {
         });
     }
 
-    // Format Rupiah saat input harga (tampilan) + sinkron ke hidden
+    if (grossInput) {
+        grossInput.addEventListener('input', () => {
+            updateNetCalc();
+            recalculatePrices();
+        });
+    }
+
     function unformatRupiah(str) {
         return (str || '').toString().replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
     }
@@ -325,38 +326,38 @@ function initCementForm() {
         return isNaN(n) ? '' : n.toLocaleString('id-ID');
     }
 
-    // Handle package price input
+    // Sync Handlers
     function syncPriceFromDisplay() {
-        if (!packagePriceDisplay || !packagePrice) return;
         if (isUpdatingPrice) return;
         isUpdatingPrice = true;
 
-        const raw = unformatRupiah(packagePriceDisplay.value || '');
-        packagePrice.value = raw || '';
-        packagePriceDisplay.value = raw ? formatRupiah(raw) : '';
+        const raw = unformatRupiah(packagePriceDisplay?.value || '');
+        if (packagePrice) packagePrice.value = raw;
+        if (packagePriceDisplay) packagePriceDisplay.value = raw ? formatRupiah(raw) : '';
 
-        // Calculate comparison price from package price
+        // Trigger recalc partial (hanya update lawan)
         const net = getCurrentWeight();
         if (raw && net > 0) {
             const calcComparison = parseFloat(raw) / net;
             if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+        } else if (!raw) {
+             // Jika dikosongkan, kosongkan juga lawannya? Opsional.
+             // if (comparisonPrice) comparisonPrice.value = '';
+             // if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
         }
 
         isUpdatingPrice = false;
     }
 
-    // Handle comparison price input
     function syncComparisonFromDisplay() {
-        if (!comparisonPriceDisplay || !comparisonPrice) return;
         if (isUpdatingPrice) return;
         isUpdatingPrice = true;
 
-        const raw = unformatRupiah(comparisonPriceDisplay.value || '');
-        comparisonPrice.value = raw || '';
-        comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
+        const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
+        if (comparisonPrice) comparisonPrice.value = raw;
+        if (comparisonPriceDisplay) comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
 
-        // Calculate package price from comparison price
         const net = getCurrentWeight();
         if (raw && net > 0) {
             const calcPrice = parseFloat(raw) * net;
@@ -369,6 +370,7 @@ function initCementForm() {
 
     if (packagePriceDisplay) {
         packagePriceDisplay.addEventListener('input', syncPriceFromDisplay);
+        // Format initial
         if (packagePrice && packagePrice.value) {
             packagePriceDisplay.value = formatRupiah(packagePrice.value);
         }
@@ -381,38 +383,85 @@ function initCementForm() {
         }
     }
 
+    // Initialize
     updateNetCalc();
     recalculatePrices();
     syncPriceUnit();
 
-    // ========================================================================
-    // Kalkulasi Volume dari Dimensi Kemasan (P × L × T)
-    // ========================================================================
-    const dimensionLength = document.getElementById('dimension_length');
-    const dimensionWidth = document.getElementById('dimension_width');
-    const dimensionHeight = document.getElementById('dimension_height');
-    const volumeDisplay = document.getElementById('volume_display');
+
+    // ========== VALIDASI DAN KONVERSI DIMENSI ==========
+    function convertToMeters(value, unit) {
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) return null;
+        switch(unit) {
+            case 'mm': return num / 1000;
+            case 'cm': return num / 100;
+            case 'm': return num;
+            case 'inch': return num * 0.0254;
+            default: return num;
+        }
+    }
+
+    function setupDimensionInput(inputId, unitId, hiddenId) {
+        const inputElement = getEl(inputId);
+        const unitElement = getEl(unitId);
+        const hiddenElement = getEl(hiddenId);
+
+        if (!inputElement || !unitElement || !hiddenElement) return;
+
+        function updateDimension() {
+            const rawValue = inputElement.value.trim();
+            const selectedUnit = unitElement.value;
+
+            if (rawValue === '') {
+                hiddenElement.value = '';
+                inputElement.style.borderColor = '#e2e8f0';
+                calculateVolume();
+                return;
+            }
+
+            const metersValue = convertToMeters(rawValue, selectedUnit);
+            if (metersValue !== null) {
+                hiddenElement.value = metersValue.toFixed(4);
+                inputElement.style.borderColor = '#e2e8f0';
+            } else {
+                hiddenElement.value = '';
+                inputElement.style.borderColor = '#e74c3c';
+            }
+            calculateVolume();
+        }
+
+        inputElement.addEventListener('input', updateDimension);
+        unitElement.addEventListener('change', updateDimension);
+
+        // Initial update
+        if (inputElement.value) updateDimension();
+    }
+
+    setupDimensionInput('dimension_length_input', 'dimension_length_unit', 'dimension_length');
+    setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width');
+    setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height');
+
+    // Volume Calc
+    const dimensionLength = getEl('dimension_length');
+    const dimensionWidth = getEl('dimension_width');
+    const dimensionHeight = getEl('dimension_height');
+    const volumeDisplay = getEl('volume_display');
 
     function calculateVolume() {
         if (!dimensionLength || !dimensionWidth || !dimensionHeight || !volumeDisplay) return;
 
-        const length = parseFloat(dimensionLength.value) || 0;
-        const width = parseFloat(dimensionWidth.value) || 0;
-        const height = parseFloat(dimensionHeight.value) || 0;
+        const lengthM = parseFloat(dimensionLength.value) || 0;
+        const widthM = parseFloat(dimensionWidth.value) || 0;
+        const heightM = parseFloat(dimensionHeight.value) || 0;
 
-        if (length > 0 && width > 0 && height > 0) {
-            // Convert from cm to meters: divide by 100 for each dimension, so total divide by 1,000,000
-            const volume = (length * width * height) / 1000000;
+        if (lengthM > 0 && widthM > 0 && heightM > 0) {
+            const volume = lengthM * widthM * heightM;
             volumeDisplay.value = volume.toFixed(6);
         } else {
             volumeDisplay.value = '';
         }
     }
-
-    if (dimensionLength) dimensionLength.addEventListener('input', calculateVolume);
-    if (dimensionWidth) dimensionWidth.addEventListener('input', calculateVolume);
-    if (dimensionHeight) dimensionHeight.addEventListener('input', calculateVolume);
-
-    // Initial calculation
+    
     calculateVolume();
 }

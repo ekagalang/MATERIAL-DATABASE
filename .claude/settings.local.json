@@ -23,7 +23,9 @@
       "Bash(del \"C:\\Users\\ekaga\\OneDrive\\Documents\\Code\\MATERIAL-DATABASE\\database\\migrations\\2025_11_27_094659_add_mortar_volume_per_m2_to_brick_installation_types_table.php\")",
       "Bash(del \"C:\\Users\\ekaga\\OneDrive\\Documents\\Code\\MATERIAL-DATABASE\\database\\migrations\\2025_11_27_102139_add_waste_factor_to_brick_installation_types_table.php\")",
       "Bash(del \"test_cement_weight_flexibility.php\")",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(cat:*)",
+      "Bash(node -c:*)"
     ],
     "deny": [],
     "ask": []

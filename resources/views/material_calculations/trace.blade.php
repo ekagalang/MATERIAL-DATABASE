@@ -11,128 +11,157 @@
         </div>
     </div>
 
-    <!-- Input Form -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">Parameter Input</h5>
-        </div>
-        <div class="card-body">
-            <form id="traceForm">
-                <!-- Formula Selector -->
-                <div class="row g-3 mb-4">
-                    <div class="col-12">
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle"></i>
-                            <strong>Pilih Jenis Pekerjaan:</strong> Setiap jenis pekerjaan memiliki rumus perhitungan yang berbeda
+    <div class="container my-5">
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">          
+            <div class="card-body p-5">
+                <form id="traceForm">
+                    <!-- Section 1: Jenis Pekerjaan -->
+                    <div class="mb-5">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px; min-width: 40px; border: 3px solid #0d6efd;">
+                                <strong class="fs-5">1</strong>
+                            </div>
+                            <h5 class="mb-0 ms-3 fw-bold">Jenis Pekerjaan</h5>
+                        </div>
+                        
+                        <div class="ps-5">
+                            <select class="form-select form-select-lg rounded-3 shadow-sm" id="formulaSelector" name="formula_code" required>
+                                <option value="">-- Pilih Jenis Pekerjaan --</option>
+                                @foreach($availableFormulas as $formula)
+                                    <option value="{{ $formula['code'] }}" {{ $loop->first ? 'selected' : '' }}>
+                                        {{ $formula['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="form-text text-muted mt-2">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Setiap jenis pekerjaan memiliki rumus perhitungan yang berbeda.
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-12">
-                        <label class="form-label fw-bold">Jenis Pekerjaan</label>
-                        <select class="form-select form-select-lg" id="formulaSelector" name="formula_code" required>
-                            <option value="">-- Pilih Jenis Pekerjaan --</option>
-                            @foreach($availableFormulas as $formula)
-                                <option value="{{ $formula['code'] }}" {{ $loop->first ? 'selected' : '' }}>
-                                    {{ $formula['name'] }}
-                                    <small class="text-muted">- {{ $formula['description'] }}</small>
-                                </option>
-                            @endforeach
-                        </select>
-                        <small class="form-text text-muted">Formula akan otomatis terbaca saat Anda menambahkan file formula baru</small>
-                    </div>
-                </div>
 
-                <hr class="my-4">
+                    <hr class="border-secondary opacity-25">
 
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Panjang Dinding (m)</label>
-                        <input type="number" class="form-control" name="wall_length" value="6.2" step="0.01" required>
+                    <!-- Section 2: Dimensi Pekerjaan (Dengan suffix di dalam input) -->
+                    <div class="mb-5">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px; min-width: 40px; border: 3px solid #0d6efd;">
+                                <strong class="fs-5">2</strong>
+                            </div>
+                            <h5 class="mb-0 ms-3 fw-bold">Dimensi Pekerjaan</h5>
+                        </div>
+                        
+                        <div class="ps-5">
+                            <div class="row g-4">
+                                <div class="col-lg-4 col-md-6">
+                                    <label class="form-label fw-semibold">Panjang Dinding</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                            name="wall_length" value="6.2" step="0.01" required>
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            meter
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-4 col-md-6">
+                                    <label class="form-label fw-semibold">Tinggi Dinding</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                            name="wall_height" value="3.0" step="0.01" required>
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            meter
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-4 col-md-6">
+                                    <label class="form-label fw-semibold">Tebal Adukan</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                            name="mortar_thickness" value="1.0" step="0.1" required>
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            cm
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tinggi Dinding (m)</label>
-                        <input type="number" class="form-control" name="wall_height" value="3.0" step="0.01" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Tebal Adukan (cm)</label>
-                        <input type="number" class="form-control" name="mortar_thickness" value="1.0" step="0.1" required>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Jenis Pemasangan</label>
-                        <select class="form-select" name="installation_type_id" required>
-                            @foreach($installationTypes as $type)
-                                <option value="{{ $type->id }}">{{ $type->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
 
-                <div class="row g-3 mt-2">
-                    <div class="col-md-4">
-                        <label class="form-label">Formula Mortar</label>
-                        <select class="form-select" id="mortarFormulaSelect" name="mortar_formula_id" required>
-                            @foreach($mortarFormulas as $formula)
-                                <option value="{{ $formula->id }}" data-cement="{{ $formula->cement_ratio }}" data-sand="{{ $formula->sand_ratio }}">
-                                    {{ $formula->cement_ratio }}:{{ $formula->sand_ratio }}
-                                </option>
-                            @endforeach
-                            <option value="custom">Custom Ratio</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4" id="customCementRatioDiv" style="display: none;">
-                        <label class="form-label">Custom Cement Ratio</label>
-                        <input type="number" class="form-control" id="customCementRatio" name="custom_cement_ratio" value="1" step="0.1" min="0.1">
-                    </div>
-                    <div class="col-md-4" id="customSandRatioDiv" style="display: none;">
-                        <label class="form-label">Custom Sand Ratio</label>
-                        <input type="number" class="form-control" id="customSandRatio" name="custom_sand_ratio" value="4" step="0.1" min="0.1">
-                    </div>
-                </div>
+                    <hr class="border-secondary opacity-25">
 
-                <div class="row g-3 mt-2">
-                    <div class="col-md-12">
-                        <label class="form-label">Bata</label>
-                        <select class="form-select" name="brick_id">
-                            <option value="">- Default -</option>
-                            @foreach($bricks as $brick)
-                                <option value="{{ $brick->id }}">{{ $brick->brand }}</option>
-                            @endforeach
-                        </select>
+                    <!-- Section 3: Material yang Digunakan -->
+                    <div class="mb-5">
+                        <div class="d-flex align-items-center mb-4">
+                            <div class="bg-white text-primary rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 40px; height: 40px; min-width: 40px; border: 3px solid #0d6efd;">
+                                <strong class="fs-5">3</strong>
+                            </div>
+                            <h5 class="mb-0 ms-3 fw-bold">Material yang Digunakan</h5>
+                        </div>
+                        
+                        <div class="ps-5">
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">Bata</label>
+                                    <select class="form-select form-select-lg rounded-3 shadow-sm" name="brick_id">
+                                        <option value="">-- Gunakan Default --</option>
+                                        @foreach($bricks as $brick)
+                                            <option value="{{ $brick->id }}">
+                                                {{ $brick->brand }} ({{ $brick->dimension_length }}×{{ $brick->dimension_width }}×{{ $brick->dimension_height }} cm)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Semen</label>
+                                    <select class="form-select form-select-lg rounded-3 shadow-sm" name="cement_id">
+                                        <option value="">-- Gunakan Default --</option>
+                                        @foreach($cements as $cement)
+                                            <option value="{{ $cement->id }}">
+                                                {{ $cement->cement_name }} - {{ $cement->brand }} ({{ $cement->package_weight_net }} kg)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Pasir</label>
+                                    <select class="form-select form-select-lg rounded-3 shadow-sm" name="sand_id">
+                                        <option value="">-- Gunakan Default --</option>
+                                        @foreach($sands as $sand)
+                                            <option value="{{ $sand->id }}">
+                                                {{ $sand->sand_name }} - {{ $sand->brand }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-text text-muted mt-3">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Kosongkan pilihan untuk menggunakan material default dari database.
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div class="row g-3 mt-2">
-                    <div class="col-md-6">
-                        <label class="form-label">Semen</label>
-                        <select class="form-select" name="cement_id">
-                            <option value="">- Default -</option>
-                            @foreach($cements as $cement)
-                                <option value="{{ $cement->id }}">
-                                    {{ $cement->cement_name }} - {{ $cement->brand }} ({{ $cement->package_weight_net }}kg)
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Pasir</label>
-                        <select class="form-select" name="sand_id">
-                            <option value="">- Default -</option>
-                            @foreach($sands as $sand)
-                                <option value="{{ $sand->id }}">
-                                    {{ $sand->sand_name }} - {{ $sand->brand }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                </div>
+                    <!-- Hidden inputs -->
+                    <input type="hidden" name="installation_type_id" value="{{ $installationTypes->first()->id ?? 1 }}">
+                    @php
+                        $defaultMortarFormula = $mortarFormulas->where('cement_ratio', 1)->where('sand_ratio', 3)->first() ?? $mortarFormulas->first();
+                    @endphp
+                    <input type="hidden" name="mortar_formula_id" value="{{ $defaultMortarFormula->id ?? 1 }}">
 
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-calculator"></i> Trace Perhitungan
+                    <!-- Submit Button -->
+                    <div class="text-center pt-4 mt-5 border-top border-secondary">
+                        <button type="submit" class="custom-red-button">
+                            <i class="bi bi-calculator me-2"></i>
+                            Mulai Trace Perhitungan
                         </button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -143,24 +172,6 @@
 </div>
 
 <script>
-// Toggle custom ratio inputs based on dropdown selection
-document.getElementById('mortarFormulaSelect').addEventListener('change', function() {
-    const customCementDiv = document.getElementById('customCementRatioDiv');
-    const customSandDiv = document.getElementById('customSandRatioDiv');
-
-    if (this.value === 'custom') {
-        customCementDiv.style.display = 'block';
-        customSandDiv.style.display = 'block';
-        document.getElementById('customCementRatio').required = true;
-        document.getElementById('customSandRatio').required = true;
-    } else {
-        customCementDiv.style.display = 'none';
-        customSandDiv.style.display = 'none';
-        document.getElementById('customCementRatio').required = false;
-        document.getElementById('customSandRatio').required = false;
-    }
-});
-
 document.getElementById('traceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -344,6 +355,10 @@ function formatCurrency(num) {
 </script>
 
 <style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #0d6efd, #0a58ca) !important;
+    }
+
 .card {
     transition: all 0.3s ease;
 }
@@ -362,5 +377,34 @@ code {
 .table-bordered td {
     vertical-align: middle;
 }
+    .custom-red-button {
+        background: linear-gradient(135deg, #e74c3c, #c0392b);
+        color: white;
+        font-size: 1.125rem;            /* setara dengan btn-lg */
+        font-weight: 600;
+        padding: 0.75rem 2.5rem;        /* setara dengan px-5 py-3 */
+        border: none;
+        border-radius: 50px;            /* setara dengan rounded-pill */
+        box-shadow: 0 10px 20px rgba(231, 76, 60, 0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        min-width: 260px;
+    }
+
+    .custom-red-button:hover {
+        background: linear-gradient(135deg, #c0392b, #a93226);
+        transform: translateY(-3px);
+        box-shadow: 0 15px 25px rgba(231, 76, 60, 0.4);
+    }
+
+    .custom-red-button:active {
+        transform: translateY(0);
+        box-shadow: 0 5px 10px rgba(231, 76, 60, 0.3);
+    }
+
+    .custom-red-button i {
+        font-size: 1.3em;
+        vertical-align: middle;
+    }
 </style>
 @endsection

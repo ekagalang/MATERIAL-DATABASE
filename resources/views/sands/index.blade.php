@@ -62,12 +62,12 @@
                             'type' => ['label' => 'Jenis', 'align' => ''],
                             'brand' => ['label' => 'Merek', 'align' => ''],
                             'package_unit' => ['label' => 'Kemasan', 'align' => ''],
-                            'dimension_length' => ['label' => 'Dimensi (M)', 'align' => ''],
+                            'dimension_length' => ['label' => 'Dimensi Kemasan (M)', 'align' => ''],
                             'package_volume' => ['label' => 'Volume', 'align' => ''],
                             'store' => ['label' => 'Toko', 'align' => ''],
                             'short_address' => ['label' => 'Alamat Singkat', 'align' => ''],
-                            'package_price' => ['label' => 'Harga', 'align' => ''],
-                            'comparison_price_per_m3' => ['label' => 'Harga / M3', 'align' => ''],
+                            'package_price' => ['label' => 'Harga Beli', 'align' => ''],
+                            'comparison_price_per_m3' => ['label' => 'Harga Komparasi (/ M3)', 'align' => ''],
                         ];
                     @endphp
 
@@ -91,7 +91,7 @@
                         <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
                             <a href="{{ getSandSortUrl('dimension_length', request('sort_by'), request('sort_direction'), request()->query()) }}"
                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span>Dimensi (M)</span>
+                                <span>Dimensi Kemasan (M)</span>
                                 @if(in_array(request('sort_by'), ['dimension_length', 'dimension_width', 'dimension_height']))
                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="font-size: 12px;"></i>
                                 @else

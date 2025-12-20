@@ -9,7 +9,7 @@ use App\Models\Cement;
 use App\Models\MortarFormula;
 use App\Models\Sand;
 use App\Services\FormulaRegistry;
-use App\Services\BrickCalculationTracer;    
+use App\Services\BrickCalculationTracer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -25,12 +25,7 @@ class MaterialCalculationController extends Controller
         $cements = Cement::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
 
-        return view('material_calculations.index', compact(
-            'availableFormulas',
-            'bricks',
-            'cements',
-            'sands'
-        ));
+        return view('material_calculations.index', compact('availableFormulas', 'bricks', 'cements', 'sands'));
     }
 
     /**
@@ -38,19 +33,12 @@ class MaterialCalculationController extends Controller
      */
     public function log(Request $request)
     {
-        $query = BrickCalculation::with([
-            'installationType',
-            'mortarFormula',
-            'brick',
-            'cement',
-            'sand',
-        ]);
+        $query = BrickCalculation::with(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('project_name', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%");
+                $q->where('project_name', 'like', "%{$search}%")->orWhere('notes', 'like', "%{$search}%");
             });
         }
 
@@ -65,9 +53,7 @@ class MaterialCalculationController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $calculations = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
-            ->appends($request->query());
+        $calculations = $query->orderBy('created_at', 'desc')->paginate(15)->appends($request->query());
 
         $installationTypes = BrickInstallationType::getActive();
 
@@ -96,17 +82,20 @@ class MaterialCalculationController extends Controller
             $selectedBricks = Brick::whereIn('id', $request->brick_ids)->get();
         }
 
-        return view('material_calculations.create', compact(
-            'availableFormulas', 
-            'installationTypes', 
-            'mortarFormulas', 
-            'bricks', 
-            'cements', 
-            'sands', 
-            'defaultInstallationType', 
-            'defaultMortarFormula',
-            'selectedBricks' // Pastikan ini dikirim!
-        ));
+        return view(
+            'material_calculations.create',
+            compact(
+                'availableFormulas',
+                'installationTypes',
+                'mortarFormulas',
+                'bricks',
+                'cements',
+                'sands',
+                'defaultInstallationType',
+                'defaultMortarFormula',
+                'selectedBricks', // Pastikan ini dikirim!
+            ),
+        );
     }
 
     /**
@@ -117,7 +106,7 @@ class MaterialCalculationController extends Controller
         try {
             DB::beginTransaction();
 
-            if (! $request->has('mortar_formula_type')) {
+            if (!$request->has('mortar_formula_type')) {
                 $request->merge(['mortar_formula_type' => 'default']);
             }
 
@@ -148,19 +137,28 @@ class MaterialCalculationController extends Controller
 
             // 2. SETUP DEFAULT
             $defaultInstallationType = BrickInstallationType::where('is_active', true)->orderBy('id')->first();
-            
+
             $mortarFormulaType = $request->input('mortar_formula_type');
             if ($mortarFormulaType === 'custom') {
                 $request->merge(['use_custom_ratio' => true]);
                 $defaultMortarFormula = MortarFormula::where('is_active', true)->orderBy('id')->first();
             } else {
-                $defaultMortarFormula = MortarFormula::where('is_active', true)->where('cement_ratio', 1)->where('sand_ratio', 3)->first();
-                if (! $defaultMortarFormula) $defaultMortarFormula = MortarFormula::first();
+                $defaultMortarFormula = MortarFormula::where('is_active', true)
+                    ->where('cement_ratio', 1)
+                    ->where('sand_ratio', 3)
+                    ->first();
+                if (!$defaultMortarFormula) {
+                    $defaultMortarFormula = MortarFormula::first();
+                }
                 $request->merge(['use_custom_ratio' => false]);
             }
 
-            if (!$request->has('installation_type_id')) $request->merge(['installation_type_id' => $defaultInstallationType?->id]);
-            if (!$request->has('mortar_formula_id')) $request->merge(['mortar_formula_id' => $defaultMortarFormula?->id]);
+            if (!$request->has('installation_type_id')) {
+                $request->merge(['installation_type_id' => $defaultInstallationType?->id]);
+            }
+            if (!$request->has('mortar_formula_id')) {
+                $request->merge(['mortar_formula_id' => $defaultMortarFormula?->id]);
+            }
 
             // 3. AUTO SELECT MATERIAL (Cheapest/Expensive)
             if ($request->price_filter !== 'custom') {
@@ -176,7 +174,8 @@ class MaterialCalculationController extends Controller
             // a. User memilih banyak bata (Multi Brick)
             // b. User memilih Custom TAPI mengosongkan Semen/Pasir
             $isMultiBrick = $request->has('brick_ids') && count($request->brick_ids) > 0;
-            $isCustomEmpty = $request->price_filter === 'custom' && (empty($request->cement_id) || empty($request->sand_id));
+            $isCustomEmpty =
+                $request->price_filter === 'custom' && (empty($request->cement_id) || empty($request->sand_id));
 
             if ($isMultiBrick || $isCustomEmpty) {
                 DB::rollBack(); // Tidak jadi simpan
@@ -185,8 +184,8 @@ class MaterialCalculationController extends Controller
 
             // 5. SAVE NORMAL (Single Brick & Material Lengkap)
             $calculation = BrickCalculation::performCalculation($request->all());
-            
-            if (! $request->boolean('confirm_save')) {
+
+            if (!$request->boolean('confirm_save')) {
                 DB::rollBack();
                 $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
                 return view('material_calculations.preview', [
@@ -199,11 +198,15 @@ class MaterialCalculationController extends Controller
             $calculation->save();
             DB::commit();
 
-            return redirect()->route('material-calculations.show', $calculation)->with('success', 'Perhitungan berhasil disimpan!');
-
+            return redirect()
+                ->route('material-calculations.show', $calculation)
+                ->with('success', 'Perhitungan berhasil disimpan!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan: '.$e->getMessage());
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -214,7 +217,7 @@ class MaterialCalculationController extends Controller
     {
         // Tentukan Bata mana saja yang akan dihitung
         $targetBricks = collect();
-        
+
         if ($request->has('brick_ids')) {
             $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
         } elseif ($request->has('brick_id')) {
@@ -227,7 +230,7 @@ class MaterialCalculationController extends Controller
         foreach ($targetBricks as $brick) {
             $projects[] = [
                 'brick' => $brick,
-                'combinations' => $this->calculateCombinationsForBrick($brick, $request)
+                'combinations' => $this->calculateCombinationsForBrick($brick, $request),
             ];
         }
 
@@ -249,15 +252,15 @@ class MaterialCalculationController extends Controller
 
         $wallArea = $request->wall_length * $request->wall_height;
         $bricks = Brick::whereIn('id', $request->brick_ids)->get();
-        
+
         // Auto-select cheapest mortar materials for fair comparison
         $priceFilter = 'cheapest';
         $materials = $this->selectMaterialsByPrice($priceFilter);
-        
+
         // Use default mortar formula (1:3 or 1:4)
         // Disini kita cari formula 1:3 atau yang tersedia
-        $defaultMortar = MortarFormula::where('cement_ratio', 1)->where('sand_ratio', 3)->first() 
-                         ?? MortarFormula::first();
+        $defaultMortar =
+            MortarFormula::where('cement_ratio', 1)->where('sand_ratio', 3)->first() ?? MortarFormula::first();
 
         $comparisons = [];
 
@@ -289,7 +292,7 @@ class MaterialCalculationController extends Controller
         }
 
         // Sort by total cost ascending (Cheapest first)
-        usort($comparisons, function($a, $b) {
+        usort($comparisons, function ($a, $b) {
             return $a['total_cost'] <=> $b['total_cost'];
         });
 
@@ -317,7 +320,7 @@ class MaterialCalculationController extends Controller
         // Tentukan Kandidat Semen & Pasir
         // Jika filter Cheapest/Expensive, hanya ambil 1 kandidat (pemenang)
         // Jika Custom Empty, ambil semua
-        
+
         $cements = collect();
         $sands = collect();
 
@@ -328,8 +331,12 @@ class MaterialCalculationController extends Controller
             $sands = Sand::where('id', $materials['sand_id'])->get();
         } else {
             // Custom Logic
-            $cements = $request->cement_id ? Cement::where('id', $request->cement_id)->get() : Cement::orderBy('package_price')->get();
-            $sands = $request->sand_id ? Sand::where('id', $request->sand_id)->get() : Sand::orderBy('package_price')->get();
+            $cements = $request->cement_id
+                ? Cement::where('id', $request->cement_id)->get()
+                : Cement::orderBy('package_price')->get();
+            $sands = $request->sand_id
+                ? Sand::where('id', $request->sand_id)->get()
+                : Sand::orderBy('package_price')->get();
         }
 
         // Setup Parameter
@@ -355,26 +362,34 @@ class MaterialCalculationController extends Controller
                     // Grouping Logic
                     $groupBy = 'Umum';
                     if ($request->price_filter !== 'custom') {
-                        $groupBy = ($request->price_filter == 'cheapest') ? 'Termurah' : 'Termahal';
+                        $groupBy = $request->price_filter == 'cheapest' ? 'Termurah' : 'Termahal';
                     } else {
-                        if (!$request->cement_id && $request->sand_id) $groupBy = $cement->brand ?? 'Semen';
-                        elseif ($request->cement_id && !$request->sand_id) $groupBy = $sand->brand ?? 'Pasir';
-                        else $groupBy = $cement->brand ?? 'Umum';
+                        if (!$request->cement_id && $request->sand_id) {
+                            $groupBy = $cement->brand ?? 'Semen';
+                        } elseif ($request->cement_id && !$request->sand_id) {
+                            $groupBy = $sand->brand ?? 'Pasir';
+                        } else {
+                            $groupBy = $cement->brand ?? 'Umum';
+                        }
                     }
 
                     $combinations[$groupBy][] = [
                         'cement' => $cement,
                         'sand' => $sand,
                         'result' => $result,
-                        'total_cost' => $result['grand_total']
+                        'total_cost' => $result['grand_total'],
                     ];
-                } catch (\Exception $e) { continue; }
+                } catch (\Exception $e) {
+                    continue;
+                }
             }
         }
 
         // Sorting Logic
         foreach ($combinations as &$items) {
-            usort($items, function ($a, $b) { return $a['total_cost'] <=> $b['total_cost']; });
+            usort($items, function ($a, $b) {
+                return $a['total_cost'] <=> $b['total_cost'];
+            });
         }
         uasort($combinations, function ($groupA, $groupB) {
             return ($groupA[0]['total_cost'] ?? 0) <=> ($groupB[0]['total_cost'] ?? 0);
@@ -388,13 +403,7 @@ class MaterialCalculationController extends Controller
      */
     public function show(BrickCalculation $materialCalculation)
     {
-        $materialCalculation->load([
-            'installationType',
-            'mortarFormula',
-            'brick',
-            'cement',
-            'sand',
-        ]);
+        $materialCalculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
 
         $summary = $materialCalculation->getSummary();
 
@@ -415,15 +424,18 @@ class MaterialCalculationController extends Controller
         $cements = Cement::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
 
-        return view('material_calculations.edit', compact(
-            'materialCalculation',
-            'availableFormulas',
-            'installationTypes',
-            'mortarFormulas',
-            'bricks',
-            'cements',
-            'sands'
-        ));
+        return view(
+            'material_calculations.edit',
+            compact(
+                'materialCalculation',
+                'availableFormulas',
+                'installationTypes',
+                'mortarFormulas',
+                'bricks',
+                'cements',
+                'sands',
+            ),
+        );
     }
 
     /**
@@ -459,14 +471,13 @@ class MaterialCalculationController extends Controller
             return redirect()
                 ->route('material-calculations.show', $materialCalculation)
                 ->with('success', 'Perhitungan berhasil diperbarui!');
-
         } catch (\Exception $e) {
             DB::rollBack();
 
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan: '.$e->getMessage());
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -478,14 +489,11 @@ class MaterialCalculationController extends Controller
         try {
             $materialCalculation->delete();
 
-            return redirect()
-                ->route('material-calculations.log')
-                ->with('success', 'Perhitungan berhasil dihapus!');
-
+            return redirect()->route('material-calculations.log')->with('success', 'Perhitungan berhasil dihapus!');
         } catch (\Exception $e) {
             return redirect()
                 ->back()
-                ->with('error', 'Gagal menghapus perhitungan: '.$e->getMessage());
+                ->with('error', 'Gagal menghapus perhitungan: ' . $e->getMessage());
         }
     }
 
@@ -510,13 +518,7 @@ class MaterialCalculationController extends Controller
             $calculation = BrickCalculation::performCalculation($request->all());
 
             // Load relationships for response
-            $calculation->load([
-                'installationType',
-                'mortarFormula',
-                'brick',
-                'cement',
-                'sand',
-            ]);
+            $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
 
             $summary = $calculation->getSummary();
 
@@ -525,12 +527,14 @@ class MaterialCalculationController extends Controller
                 'data' => $calculation,
                 'summary' => $summary,
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -576,12 +580,14 @@ class MaterialCalculationController extends Controller
                 'success' => true,
                 'data' => $comparisons,
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -602,12 +608,14 @@ class MaterialCalculationController extends Controller
                     'price_per_piece' => $brick->price_per_piece,
                 ],
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bata tidak ditemukan',
-            ], 404);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Bata tidak ditemukan',
+                ],
+                404,
+            );
         }
     }
 
@@ -630,12 +638,7 @@ class MaterialCalculationController extends Controller
         $cements = Cement::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
 
-        return view('material_calculations.index', compact(
-            'availableFormulas',
-            'bricks',
-            'cements',
-            'sands'
-        ));
+        return view('material_calculations.index', compact('availableFormulas', 'bricks', 'cements', 'sands'));
     }
 
     /**
@@ -652,14 +655,10 @@ class MaterialCalculationController extends Controller
         $cements = Cement::orderBy('cement_name')->get();
         $sands = Sand::orderBy('sand_name')->get();
 
-        return view('material_calculations.trace', compact(
-            'availableFormulas',
-            'installationTypes',
-            'mortarFormulas',
-            'bricks',
-            'cements',
-            'sands'
-        ));
+        return view(
+            'material_calculations.trace',
+            compact('availableFormulas', 'installationTypes', 'mortarFormulas', 'bricks', 'cements', 'sands'),
+        );
     }
 
     /**
@@ -688,19 +687,25 @@ class MaterialCalculationController extends Controller
             $formulaCode = $request->input('formula_code');
             $formula = FormulaRegistry::instance($formulaCode);
 
-            if (! $formula) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Formula dengan code '{$formulaCode}' tidak ditemukan",
-                ], 404);
+            if (!$formula) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => "Formula dengan code '{$formulaCode}' tidak ditemukan",
+                    ],
+                    404,
+                );
             }
 
             // Validate parameters using formula's validate method
-            if (! $formula->validate($request->all())) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Parameter tidak valid untuk formula ini',
-                ], 422);
+            if (!$formula->validate($request->all())) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Parameter tidak valid untuk formula ini',
+                    ],
+                    422,
+                );
             }
 
             // Execute trace calculation
@@ -710,12 +715,14 @@ class MaterialCalculationController extends Controller
                 'success' => true,
                 'data' => $trace,
             ]);
-
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -748,13 +755,13 @@ class MaterialCalculationController extends Controller
             ->first();
 
         // Fallback to first available if no price data
-        if (! $brick) {
+        if (!$brick) {
             $brick = Brick::first();
         }
-        if (! $cement) {
+        if (!$cement) {
             $cement = Cement::first();
         }
-        if (! $sand) {
+        if (!$sand) {
             $sand = Sand::first();
         }
 

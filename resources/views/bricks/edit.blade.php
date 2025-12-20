@@ -77,16 +77,21 @@
                             <!-- Panjang -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Panjang</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
+                                <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="dimension_length_input"
+                                           value="{{ old('dimension_length', $brick->dimension_length) }}"
                                            class="autocomplete-input"
                                            data-field="dimension_length"
                                            step="0.01"
                                            placeholder="0"
-                                           autocomplete="off"
-                                           style="text-align: right; padding-right: 32px;">
-                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">cm</span>
+                                           autocomplete="off">
+                                    <select id="dimension_length_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
                                 </div>
                                 <div class="autocomplete-list" id="dimension_length-list"></div>
                             </div>
@@ -96,16 +101,21 @@
                             <!-- Lebar -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Lebar</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
+                                <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="dimension_width_input"
+                                           value="{{ old('dimension_width', $brick->dimension_width) }}"
                                            class="autocomplete-input"
                                            data-field="dimension_width"
                                            step="0.01"
                                            placeholder="0"
-                                           autocomplete="off"
-                                           style="text-align: right; padding-right: 32px;">
-                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">cm</span>
+                                           autocomplete="off">
+                                    <select id="dimension_width_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
                                 </div>
                                 <div class="autocomplete-list" id="dimension_width-list"></div>
                             </div>
@@ -115,16 +125,21 @@
                             <!-- Tinggi -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Tinggi</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
+                                <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="dimension_height_input"
+                                           value="{{ old('dimension_height', $brick->dimension_height) }}"
                                            class="autocomplete-input"
                                            data-field="dimension_height"
                                            step="0.01"
                                            placeholder="0"
-                                           autocomplete="off"
-                                           style="text-align: right; padding-right: 32px;">
-                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">cm</span>
+                                           autocomplete="off">
+                                    <select id="dimension_height_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
                                 </div>
                                 <div class="autocomplete-list" id="dimension_height-list"></div>
                             </div>
@@ -134,7 +149,7 @@
                             <!-- Volume -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
+                                <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="volume_display_input"
                                            readonly
@@ -188,12 +203,14 @@
                                     <input type="text"
                                            id="comparison_price_display"
                                            class="autocomplete-input"
+                                           data-field="comparison_price_per_m3"
                                            inputmode="numeric"
                                            placeholder="0"
                                            autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
                                     <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ M3</span>
                                 </div>
+                                <div class="autocomplete-list" id="comparison_price_per_m3-list"></div>
                             </div>
                         </div>
                     </div>

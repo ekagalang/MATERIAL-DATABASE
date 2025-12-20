@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('brick_installation_types', function (Blueprint $table) {
@@ -15,12 +14,18 @@ return new class extends Migration
             $table->text('description')->nullable(); // Deskripsi posisi bata
 
             // Volume adukan per m² (dari Excel) - sesuai dengan ukuran bata KUO SHIN
-            $table->decimal('mortar_volume_per_m2', 8, 6)->nullable()->comment('Volume adukan per m² (m³/m²) - sesuai Excel');
+            $table
+                ->decimal('mortar_volume_per_m2', 8, 6)
+                ->nullable()
+                ->comment('Volume adukan per m² (m³/m²) - sesuai Excel');
 
             // Waste factor untuk perhitungan volume adukan
             // Mencakup: shrinkage, spillage, waste, dan lapisan dasar
             // Untuk 1/2 Bata dengan tebal 1cm: waste_factor = 1.727273
-            $table->decimal('waste_factor', 8, 6)->default(1.727273)->comment('Faktor waste untuk volume adukan (shrinkage, spillage, dll)');
+            $table
+                ->decimal('waste_factor', 8, 6)
+                ->default(1.727273)
+                ->comment('Faktor waste untuk volume adukan (shrinkage, spillage, dll)');
 
             // Dimensi yang terlihat (dari POV kita)
             $table->enum('visible_side_width', ['length', 'width', 'height']); // Sisi alas yang terlihat

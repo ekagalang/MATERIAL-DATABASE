@@ -57,24 +57,28 @@ class UnitController extends Controller
             'material_type' => 'required|string|max:50',
             'name' => 'required|string|max:100',
             'package_weight' => 'required|numeric|min:0',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
         // Validasi unique: code + material_type
-        $exists = Unit::where('code', $request->code)
-            ->where('material_type', $request->material_type)
-            ->exists();
-        
+        $exists = Unit::where('code', $request->code)->where('material_type', $request->material_type)->exists();
+
         if ($exists) {
-            return back()->withErrors([
-                'code' => 'Satuan dengan code "'.$request->code.'" untuk material "'.$request->material_type.'" sudah ada!'
-            ])->withInput();
+            return back()
+                ->withErrors([
+                    'code' =>
+                        'Satuan dengan code "' .
+                        $request->code .
+                        '" untuk material "' .
+                        $request->material_type .
+                        '" sudah ada!',
+                ])
+                ->withInput();
         }
 
         Unit::create($request->all());
 
-        return redirect()->route('units.index')
-            ->with('success', 'Satuan berhasil ditambahkan!');
+        return redirect()->route('units.index')->with('success', 'Satuan berhasil ditambahkan!');
     }
 
     public function edit(Unit $unit)
@@ -91,7 +95,7 @@ class UnitController extends Controller
             'material_type' => 'required|string|max:50',
             'name' => 'required|string|max:100',
             'package_weight' => 'required|numeric|min:0',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
         ]);
 
         // Validasi unique: code + material_type (kecuali record ini)
@@ -99,24 +103,29 @@ class UnitController extends Controller
             ->where('material_type', $request->material_type)
             ->where('id', '!=', $unit->id)
             ->exists();
-        
+
         if ($exists) {
-            return back()->withErrors([
-                'code' => 'Satuan dengan code "'.$request->code.'" untuk material "'.$request->material_type.'" sudah ada!'
-            ])->withInput();
+            return back()
+                ->withErrors([
+                    'code' =>
+                        'Satuan dengan code "' .
+                        $request->code .
+                        '" untuk material "' .
+                        $request->material_type .
+                        '" sudah ada!',
+                ])
+                ->withInput();
         }
 
         $unit->update($request->all());
 
-        return redirect()->route('units.index')
-            ->with('success', 'Satuan berhasil diupdate!');
+        return redirect()->route('units.index')->with('success', 'Satuan berhasil diupdate!');
     }
 
     public function destroy(Unit $unit)
     {
         $unit->delete();
 
-        return redirect()->route('units.index')
-            ->with('success', 'Satuan berhasil dihapus!');
+        return redirect()->route('units.index')->with('success', 'Satuan berhasil dihapus!');
     }
 }

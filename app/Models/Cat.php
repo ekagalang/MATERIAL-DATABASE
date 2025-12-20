@@ -31,7 +31,7 @@ class Cat extends Model
         'short_address',
         'purchase_price',
         'price_unit',
-        'comparison_price_per_kg'
+        'comparison_price_per_kg',
     ];
 
     protected $casts = [
@@ -39,12 +39,10 @@ class Cat extends Model
         'package_weight_net' => 'float',
         'volume' => 'float',
         'purchase_price' => 'float',
-        'comparison_price_per_kg' => 'float'
+        'comparison_price_per_kg' => 'float',
     ];
 
-    protected $appends = [
-        'photo_url',
-    ];
+    protected $appends = ['photo_url'];
 
     /**
      * Get material type untuk model ini
@@ -67,8 +65,7 @@ class Cat extends Model
      */
     public function packageUnit()
     {
-        return $this->belongsTo(Unit::class, 'package_unit', 'code')
-            ->where('material_type', self::getMaterialType());
+        return $this->belongsTo(Unit::class, 'package_unit', 'code')->where('material_type', self::getMaterialType());
     }
 
     /**
@@ -77,16 +74,14 @@ class Cat extends Model
     public function calculateNetWeight()
     {
         if ($this->package_weight_gross && $this->package_unit) {
-            $unit = Unit::where('code', $this->package_unit)
-                ->where('material_type', self::getMaterialType())
-                ->first();
-            
+            $unit = Unit::where('code', $this->package_unit)->where('material_type', self::getMaterialType())->first();
+
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
                 return $this->package_weight_net;
             }
         }
-        
+
         return $this->package_weight_gross;
     }
 
@@ -99,7 +94,7 @@ class Cat extends Model
             $this->comparison_price_per_kg = $this->purchase_price / $this->package_weight_net;
             return $this->comparison_price_per_kg;
         }
-        
+
         return 0;
     }
 
@@ -127,6 +122,6 @@ class Cat extends Model
             return asset($path);
         }
 
-        return asset('storage/'.ltrim($path, '/'));
+        return asset('storage/' . ltrim($path, '/'));
     }
 }

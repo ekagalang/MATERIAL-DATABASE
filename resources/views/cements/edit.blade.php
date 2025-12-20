@@ -73,7 +73,7 @@
 
                 <!-- Code & Warna (dalam satu row) -->
                 <div class="row">
-                    <label>Code & Warna</label>
+                    <label>Kode & Warna</label>
                     <div style="flex: 1; display: flex; gap: 15px;">
                         <!-- Code -->
                         <div style="flex: 1; position: relative;">
@@ -112,7 +112,7 @@
                             <select name="package_unit"
                                     id="package_unit"
                                     style="width: 100%; height: 100%;">
-                                <option value="">-- Satuan --</option>
+                                <option value="">Sak, Karung</option>
                                 @foreach($units as $unit)
                                     <option value="{{ $unit->code }}"
                                             data-weight="{{ $unit->package_weight }}"
@@ -124,19 +124,22 @@
                         </div>
 
                         <!-- Berat (Kg) with mini-label -->
-                        <div class="mini-input-wrapper" style="display: flex; flex-direction: column; flex: 1;">
+                        <div class="mini-input-wrapper" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                             <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Berat (Kg)</span>
                             <div style="position: relative;">
-                                <input type="number"
+                                <input type="text"
                                     name="package_weight_gross"
                                     id="package_weight_gross"
                                     value="{{ old('package_weight_gross', $cement->package_weight_gross) }}"
-                                    step="0.01"
-                                    min="0"
+                                    class="autocomplete-input"
+                                    data-field="package_weight_gross"
+                                    inputmode="decimal"
                                     placeholder="0"
+                                    autocomplete="off"
                                     style="width: 100%; padding-right: 35px; text-align: right;">
                                 <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">Kg</span>
                             </div>
+                            <div class="autocomplete-list" id="package_weight_gross-list"></div>
                         </div>
                     </div>
                 </div>
@@ -147,55 +150,73 @@
                     <div style="flex: 1;">
                         <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 8px;">
                             <!-- Panjang -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Panjang</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
-                                    <input type="number"
-                                           name="dimension_length"
-                                           id="dimension_length"
-                                           value="{{ old('dimension_length', $cement->dimension_length) }}"
-                                           step="0.0001"
-                                           min="0"
+                                <div class="dimensi-input-with-unit">
+                                    <input type="text"
+                                           id="dimension_length_input"
+                                           value="{{ old('dimension_length', $cement->dimension_length ? $cement->dimension_length * 100 : '') }}"
+                                           class="autocomplete-input"
+                                           data-field="dimension_length"
+                                           inputmode="decimal"
                                            placeholder="0"
-                                           style="text-align: right; padding-right: 38px; width: 100%;">
-                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">cm</span>
+                                           autocomplete="off">
+                                    <select id="dimension_length_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
                                 </div>
+                                <div class="autocomplete-list" id="dimension_length-list"></div>
                             </div>
 
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
 
                             <!-- Lebar -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Lebar</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
-                                    <input type="number"
-                                           name="dimension_width"
-                                           id="dimension_width"
-                                           value="{{ old('dimension_width', $cement->dimension_width) }}"
-                                           step="0.0001"
-                                           min="0"
+                                <div class="dimensi-input-with-unit">
+                                    <input type="text"
+                                           id="dimension_width_input"
+                                           value="{{ old('dimension_width', $cement->dimension_width ? $cement->dimension_width * 100 : '') }}"
+                                           class="autocomplete-input"
+                                           data-field="dimension_width"
+                                           inputmode="decimal"
                                            placeholder="0"
-                                           style="text-align: right; padding-right: 38px; width: 100%;">
-                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">cm</span>
+                                           autocomplete="off">
+                                    <select id="dimension_width_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
                                 </div>
+                                <div class="autocomplete-list" id="dimension_width-list"></div>
                             </div>
 
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
 
                             <!-- Tinggi -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Tinggi</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
-                                    <input type="number"
-                                           name="dimension_height"
-                                           id="dimension_height"
-                                           value="{{ old('dimension_height', $cement->dimension_height) }}"
-                                           step="0.0001"
-                                           min="0"
+                                <div class="dimensi-input-with-unit">
+                                    <input type="text"
+                                           id="dimension_height_input"
+                                           value="{{ old('dimension_height', $cement->dimension_height ? $cement->dimension_height * 100 : '') }}"
+                                           class="autocomplete-input"
+                                           data-field="dimension_height"
+                                           inputmode="decimal"
                                            placeholder="0"
-                                           style="text-align: right; padding-right: 38px; width: 100%;">
-                                    <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">cm</span>
+                                           autocomplete="off">
+                                    <select id="dimension_height_unit" class="unit-selector">
+                                        <option value="mm">mm</option>
+                                        <option value="cm" selected>cm</option>
+                                        <option value="m">M</option>
+                                        <option value="inch">"</option>
+                                    </select>
                                 </div>
+                                <div class="autocomplete-list" id="dimension_height-list"></div>
                             </div>
 
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">=</span>
@@ -203,16 +224,23 @@
                             <!-- Volume -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
-                                <div class="dimensi-input-with-unit" style="position: relative;">
+                                <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="volume_display"
                                            readonly
                                            placeholder="0"
+                                           value="{{ $cement->package_volume }}"
                                            style="text-align: right; padding-right: 38px; width: 100%; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); font-weight: 600; color: #15803d; border: 1.5px solid #86efac;">
                                     <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #16a34a; font-weight: 600; pointer-events: none;">M3</span>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Hidden inputs -->
+                        <input type="hidden" name="dimension_length" id="dimension_length" value="{{ old('dimension_length', $cement->dimension_length) }}">
+                        <input type="hidden" name="dimension_width" id="dimension_width" value="{{ old('dimension_width', $cement->dimension_width) }}">
+                        <input type="hidden" name="dimension_height" id="dimension_height" value="{{ old('dimension_height', $cement->dimension_height) }}">
+                        <input type="hidden" name="package_volume" id="package_volume" value="{{ old('package_volume', $cement->package_volume) }}">
                     </div>
                 </div>
 
@@ -243,12 +271,14 @@
                                        id="package_price_display"
                                        value="{{ old('package_price', $cement->package_price) }}"
                                        class="autocomplete-input"
+                                       data-field="package_price"
                                        inputmode="numeric"
                                        placeholder="0"
                                        autocomplete="off"
                                        style="width: 100%; height: 100%; padding: 10px 70px 10px 38px; font-size: 14px;">
                                 <span id="price_unit_display_inline" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ -</span>
                             </div>
+                            <div class="autocomplete-list" id="package_price-list"></div>
                         </div>
 
                         <!-- Harga Komparasi per Kg -->
@@ -261,12 +291,14 @@
                                     <input type="text"
                                            id="comparison_price_display"
                                            class="autocomplete-input"
+                                           data-field="comparison_price_per_kg"
                                            inputmode="numeric"
                                            placeholder="0"
                                            autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
                                     <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Kg</span>
                                 </div>
+                                <div class="autocomplete-list" id="comparison_price_per_kg-list"></div>
                             </div>
                         </div>
                     </div>
@@ -438,6 +470,7 @@
 <script src="/js/cement-form.js"></script>
 <script>
     if (typeof initCementForm === 'function') {
-        initCementForm();
+        const currentForm = document.getElementById('cementForm');
+        initCementForm(currentForm ? currentForm.parentElement : document);
     }
 </script>

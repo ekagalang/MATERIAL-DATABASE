@@ -157,7 +157,7 @@
                             <select name="package_unit"
                                     id="package_unit"
                                     style="height: 100%; width: 100%;">
-                                <option value="">-- Satuan --</option>
+                                <option value="">Galon, Pail, Kaleng</option>
                                 @foreach($units as $unit)
                                     <option value="{{ $unit->code }}"
                                             data-weight="{{ $unit->package_weight }}"
@@ -220,11 +220,15 @@
                                     <input type="text"
                                            id="comparison_price_display"
                                            value="{{ $cat->comparison_price_per_kg ? number_format($cat->comparison_price_per_kg, 0, ',', '.') : '' }}"
+                                           class="autocomplete-input"
+                                           data-field="comparison_price_per_kg"
                                            inputmode="numeric"
                                            placeholder="0"
+                                           autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
                                     <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Kg</span>
                                 </div>
+                                <div class="autocomplete-list" id="comparison_price_per_kg-list"></div>
                             </div>
                         </div>
                     </div>

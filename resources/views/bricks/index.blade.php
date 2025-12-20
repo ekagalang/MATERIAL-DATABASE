@@ -54,9 +54,9 @@
                             'dimension_height' => 'Tinggi (cm)',
                             'package_volume' => 'Volume',
                             'store' => 'Toko',
-                            'short_address' => 'Alamat Singkat',
-                            'price_per_piece' => 'Harga / Buah',
-                            'comparison_price_per_m3' => 'Harga / M3',
+                            'address' => 'Alamat',
+                            'price_per_piece' => 'Harga Beli',
+                            'comparison_price_per_m3' => 'Harga Komparasi (/ M3)',
                         ];
 
                         // Function to get next sort state
@@ -122,7 +122,7 @@
                             </a>
                         </th>
 
-                        @foreach(['package_volume', 'store', 'short_address', 'price_per_piece', 'comparison_price_per_m3'] as $column)
+                        @foreach(['package_volume', 'store', 'address', 'price_per_piece', 'comparison_price_per_m3'] as $column)
                             <th class="sortable" rowspan="2">
                                 <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                    style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
@@ -190,7 +190,7 @@
                             </span>
                         </td>
                         <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                            {{ $brick->short_address ?? '-' }}
+                            {{ $brick->address ?? '-' }}
                         </td>
                         <td>
                             @if($brick->price_per_piece)

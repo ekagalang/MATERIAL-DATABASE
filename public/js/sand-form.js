@@ -15,6 +15,7 @@ function initSandForm(root) {
         const field = input.dataset.field;
         const suggestList = scope.querySelector(`#${field}-list`) || document.getElementById(`${field}-list`);
         let debounceTimer;
+        let isSelectingFromAutosuggest = false; // Flag to prevent reopening
 
         function populate(values) {
             if (suggestList) {
@@ -24,11 +25,55 @@ function initSandForm(root) {
                     item.className = 'autocomplete-item';
                     item.textContent = v;
                     item.addEventListener('click', function() {
-                        input.value = v;
+                        // Set flag to prevent autosuggest from reopening
+                        isSelectingFromAutosuggest = true;
+
+                        // Close list immediately
                         suggestList.style.display = 'none';
 
-                        // Trigger change event for cascading updates
-                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        // Handle dimension fields with unit conversion
+                        if (['dimension_length', 'dimension_width', 'dimension_height'].includes(field)) {
+                            // Update dimension input
+                            input.value = v;
+
+                            // Trigger input event to update hidden field via setupDimensionInput
+                            input.dispatchEvent(new Event('input', { bubbles: true }));
+
+                            // Auto-update unit selector to 'm' (data dari database dalam meter untuk sand)
+                            const unitSelectorId = field + '_unit';
+                            const unitSelector = scope.querySelector('#' + unitSelectorId) || document.getElementById(unitSelectorId);
+                            if (unitSelector && unitSelector.value !== 'm') {
+                                unitSelector.value = 'm';
+                                // Trigger change event untuk update perhitungan
+                                unitSelector.dispatchEvent(new Event('change'));
+                            }
+
+                            // Note: calculateVolume() will be triggered by the input event above
+                        } else if (field === 'package_price') {
+                            // Handle package price field - format and trigger sync
+                            input.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncPriceFromDisplay === 'function') {
+                                syncPriceFromDisplay();
+                            }
+                        } else if (field === 'comparison_price_per_m3') {
+                            // Handle comparison price field - format and trigger sync
+                            input.value = Number(v).toLocaleString('id-ID');
+                            if (typeof syncComparisonFromDisplay === 'function') {
+                                syncComparisonFromDisplay();
+                            }
+                        } else {
+                            input.value = v;
+                        }
+
+                        // Trigger change event for cascading updates (for non-dimension and non-price fields)
+                        if (!['dimension_length', 'dimension_width', 'dimension_height', 'package_price', 'comparison_price_per_m3'].includes(field)) {
+                            input.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+
+                        // Reset flag after a delay
+                        setTimeout(() => {
+                            isSelectingFromAutosuggest = false;
+                        }, 300);
                     });
                     suggestList.appendChild(item);
                 });
@@ -80,8 +125,16 @@ function initSandForm(root) {
                 .catch(() => {});
         }
 
-        input.addEventListener('focus', () => loadSuggestions(''));
+        input.addEventListener('focus', () => {
+            if (!isSelectingFromAutosuggest) {
+                loadSuggestions('');
+            }
+        });
         input.addEventListener('input', function () {
+            // Don't reload suggestions if we're selecting from autosuggest
+            if (isSelectingFromAutosuggest) {
+                return;
+            }
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
@@ -185,7 +238,7 @@ function initSandForm(root) {
         const selectedOption = unitSelect.selectedOptions[0];
         const unitName = selectedOption?.dataset?.name || selectedOption?.text || '';
 
-        if (unitName && unitName !== '-- Satuan --') {
+        if (unitName && unitName !== 'Pick up, Meter Kubik, Karung') {
             if (priceUnitInput) priceUnitInput.value = unitName;
             if (priceUnitDisplayInline) priceUnitDisplayInline.textContent = '/ ' + unitName;
         } else {
@@ -199,14 +252,79 @@ function initSandForm(root) {
         updatePriceUnitDisplay();
     }
 
-    // ========== SETUP DIMENSI KEMASAN LISTENERS ==========
-    // Dimensi sekarang langsung dalam cm, tidak ada unit selector lagi
+    // ========== VALIDASI DAN KONVERSI DIMENSI ==========
+
+    function convertToMeters(value, unit) {
+        const num = parseFloat(value);
+        if (isNaN(num) || num < 0) return null;
+
+        switch(unit) {
+            case 'mm': return num / 1000;
+            case 'cm': return num / 100;
+            case 'm': return num;
+            case 'inch': return num * 0.0254;
+            default: return num;
+        }
+    }
+
+    function setupDimensionInput(inputId, unitId, hiddenId) {
+        const inputElement = scope.querySelector('#' + inputId) || document.getElementById(inputId);
+        const unitElement = scope.querySelector('#' + unitId) || document.getElementById(unitId);
+        const hiddenElement = scope.querySelector('#' + hiddenId) || document.getElementById(hiddenId);
+
+        if (!inputElement || !unitElement || !hiddenElement) return;
+
+        function updateDimension() {
+            const rawValue = inputElement.value.trim();
+            const selectedUnit = unitElement.value;
+
+            if (rawValue === '') {
+                hiddenElement.value = '';
+                inputElement.style.borderColor = '#e2e8f0';
+                calculateVolume();
+                return;
+            }
+
+            const metersValue = convertToMeters(rawValue, selectedUnit);
+
+            if (metersValue !== null) {
+                hiddenElement.value = metersValue.toFixed(4);
+                inputElement.style.borderColor = '#e2e8f0';
+            } else {
+                hiddenElement.value = '';
+                inputElement.style.borderColor = '#e74c3c';
+            }
+
+            calculateVolume();
+        }
+
+        inputElement.addEventListener('input', updateDimension);
+        unitElement.addEventListener('change', updateDimension);
+
+        inputElement.addEventListener('blur', function() {
+            const rawValue = this.value.trim();
+            if (rawValue !== '') {
+                const num = parseFloat(rawValue);
+                if (!isNaN(num) && num >= 0) {
+                    this.value = num.toString();
+                }
+            }
+        });
+
+        // Initial update
+        if (inputElement.value) updateDimension();
+    }
+
+    setupDimensionInput('dimension_length_input', 'dimension_length_unit', 'dimension_length');
+    setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width');
+    setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height');
 
     // ========== KALKULASI VOLUME DAN HARGA ==========
     
     const dimLength = scope.querySelector('#dimension_length') || document.getElementById('dimension_length');
     const dimWidth = scope.querySelector('#dimension_width') || document.getElementById('dimension_width');
     const dimHeight = scope.querySelector('#dimension_height') || document.getElementById('dimension_height');
+
     const volumeDisplay = scope.querySelector('#volume_display') || document.getElementById('volume_display');
     const packagePrice = scope.querySelector('#package_price') || document.getElementById('package_price');
     const packagePriceDisplay = scope.querySelector('#package_price_display') || document.getElementById('package_price_display');
@@ -217,13 +335,13 @@ function initSandForm(root) {
     let isUpdatingPrice = false;
 
     function calculateVolume() {
-        const length = parseFloat(dimLength?.value) || 0;
-        const width = parseFloat(dimWidth?.value) || 0;
-        const height = parseFloat(dimHeight?.value) || 0;
+        const lengthM = parseFloat(dimLength?.value) || 0;
+        const widthM = parseFloat(dimWidth?.value) || 0;
+        const heightM = parseFloat(dimHeight?.value) || 0;
 
-        if (length > 0 && width > 0 && height > 0) {
-            // Convert from cm to M3: divide by 100 for each dimension = divide by 1,000,000 total
-            const volumeM3 = (length * width * height) / 1000000;
+        if (lengthM > 0 && widthM > 0 && heightM > 0) {
+            // Already in meters, just multiply to get M3
+            const volumeM3 = lengthM * widthM * heightM;
             currentVolume = volumeM3;
             if (volumeDisplay) {
                 volumeDisplay.value = volumeM3.toFixed(6);
@@ -238,11 +356,6 @@ function initSandForm(root) {
             }
         }
     }
-
-    // Add event listeners for dimension inputs
-    if (dimLength) dimLength.addEventListener('input', calculateVolume);
-    if (dimWidth) dimWidth.addEventListener('input', calculateVolume);
-    if (dimHeight) dimHeight.addEventListener('input', calculateVolume);
 
     function recalculatePrices() {
         const priceValue = parseFloat(packagePrice?.value) || 0;

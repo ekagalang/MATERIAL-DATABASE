@@ -16,7 +16,7 @@ class PriceAnalysisController extends Controller
     public function index()
     {
         $formulas = FormulaRegistry::all();
-        
+
         $inputs = [
             'wall_length' => 1,
             'wall_height' => 1,
@@ -45,16 +45,20 @@ class PriceAnalysisController extends Controller
 
         // 2. LOAD DEPENDENSI
         $selectedFormula = FormulaRegistry::instance($request->formula_code);
-        
+
         // Auto-Matching Installation Type
         $formulaName = $selectedFormula::getName();
         $installationType = BrickInstallationType::where('name', 'LIKE', "%{$formulaName}%")->first();
 
         if (!$installationType) {
             if (str_contains(strtolower($formulaName), '1/2') || str_contains(strtolower($formulaName), 'half')) {
-                $installationType = BrickInstallationType::where('name', 'like', '%1/2%')->orWhere('name', 'like', '%half%')->first();
+                $installationType = BrickInstallationType::where('name', 'like', '%1/2%')
+                    ->orWhere('name', 'like', '%half%')
+                    ->first();
             } else {
-                $installationType = BrickInstallationType::where('name', 'like', '%1%')->where('name', 'not like', '%1/2%')->first();
+                $installationType = BrickInstallationType::where('name', 'like', '%1%')
+                    ->where('name', 'not like', '%1/2%')
+                    ->first();
             }
         }
         if (!$installationType) {
@@ -62,8 +66,8 @@ class PriceAnalysisController extends Controller
         }
 
         // Default Mortar (1:3)
-        $defaultMortar = MortarFormula::where('cement_ratio', 1)->where('sand_ratio', 3)->first() 
-                         ?? MortarFormula::first();
+        $defaultMortar =
+            MortarFormula::where('cement_ratio', 1)->where('sand_ratio', 3)->first() ?? MortarFormula::first();
 
         // 3. PARAMETER BASE
         $paramsBase = [
@@ -89,11 +93,11 @@ class PriceAnalysisController extends Controller
             $params = array_merge($paramsBase, [
                 'brick_id' => $brick->id,
                 'cement_id' => $refCement->id,
-                'sand_id' => $refSand->id
+                'sand_id' => $refSand->id,
             ]);
 
             $traceResult = $this->runFormulaTraceFull($selectedFormula, $params);
-            
+
             if ($traceResult) {
                 $result = $traceResult['final_result'];
                 $tebal_cm = $mortarThickness;
@@ -110,13 +114,12 @@ class PriceAnalysisController extends Controller
                     'price_per_piece' => $brick->price_per_piece,
                     'mortar_thickness' => $mortarThickness,
                     'area_per_brick' => number_format($luas_pasangan_cm2, 0) . ' cm2',
-                    'total_qty_job' => $result['total_bricks'], 
+                    'total_qty_job' => $result['total_bricks'],
                     'total_price_job' => $result['total_brick_price'],
                 ];
             }
         }
         $brickAnalysis = collect($brickAnalysis)->sortBy('total_price_job')->values();
-
 
         // --- 2. ANALISA SEMEN ---
         $cementAnalysis = [];
@@ -124,16 +127,16 @@ class PriceAnalysisController extends Controller
             $params = array_merge($paramsBase, [
                 'brick_id' => $refBrick->id,
                 'cement_id' => $cement->id,
-                'sand_id' => $refSand->id
+                'sand_id' => $refSand->id,
             ]);
 
             $traceResult = $this->runFormulaTraceFull($selectedFormula, $params);
-            
+
             if ($traceResult) {
                 $result = $traceResult['final_result'];
                 $totalMortarVol = $this->extractTotalMortarVolume($traceResult['steps']);
                 $totalSacks = $result['cement_sak'];
-                $yieldMortarPerSack = $totalSacks > 0 ? ($totalMortarVol / $totalSacks) : 0;
+                $yieldMortarPerSack = $totalSacks > 0 ? $totalMortarVol / $totalSacks : 0;
 
                 $cementAnalysis[] = [
                     'material_name' => $cement->cement_name,
@@ -143,12 +146,11 @@ class PriceAnalysisController extends Controller
                     'dimensions' => "{$cement->package_weight_net} Kg",
                     'store' => Str::limit($cement->store ?? 'Tidak tersedia', 15),
                     'address' => Str::limit($cement->address ?? '-', 15),
-                    'yield_mortar_per_unit' => $yieldMortarPerSack, 
+                    'yield_mortar_per_unit' => $yieldMortarPerSack,
                 ];
             }
         }
         $cementAnalysis = collect($cementAnalysis)->sortByDesc('yield_mortar_per_unit')->values();
-
 
         // --- 3. ANALISA PASIR ---
         $sandAnalysis = [];
@@ -156,16 +158,16 @@ class PriceAnalysisController extends Controller
             $params = array_merge($paramsBase, [
                 'brick_id' => $refBrick->id,
                 'cement_id' => $refCement->id,
-                'sand_id' => $sand->id
+                'sand_id' => $sand->id,
             ]);
 
             $traceResult = $this->runFormulaTraceFull($selectedFormula, $params);
-            
+
             if ($traceResult) {
                 $result = $traceResult['final_result'];
                 $totalMortarVol = $this->extractTotalMortarVolume($traceResult['steps']);
                 $totalSandM3 = $result['sand_m3'];
-                $yieldMortarPerUnit = $totalSandM3 > 0 ? ($totalMortarVol / $totalSandM3) : 0;
+                $yieldMortarPerUnit = $totalSandM3 > 0 ? $totalMortarVol / $totalSandM3 : 0;
 
                 $dimensiPasir = '-';
                 if ($sand->package_weight_net > 0) {
@@ -184,12 +186,11 @@ class PriceAnalysisController extends Controller
                     'dimensions' => $dimensiPasir,
                     'store' => Str::limit($sand->store ?? 'Tidak tersedia', 15),
                     'address' => Str::limit($sand->address ?? '-', 15),
-                    'yield_mortar_per_unit' => $yieldMortarPerUnit, 
+                    'yield_mortar_per_unit' => $yieldMortarPerUnit,
                 ];
             }
         }
         $sandAnalysis = collect($sandAnalysis)->sortByDesc('yield_mortar_per_unit')->values();
-
 
         // --- 4. ANALISA AIR ---
         $waterAnalysis = [];
@@ -197,7 +198,7 @@ class PriceAnalysisController extends Controller
             $params = array_merge($paramsBase, [
                 'brick_id' => $brick->id,
                 'cement_id' => $refCement->id,
-                'sand_id' => $refSand->id
+                'sand_id' => $refSand->id,
             ]);
             $traceResult = $this->runFormulaTraceFull($selectedFormula, $params);
             if ($traceResult) {
@@ -220,14 +221,10 @@ class PriceAnalysisController extends Controller
         $inputs['installation_type_id'] = $installationType->id; // Penting untuk link ke create calculation
 
         // VIEW DIPINDAHKAN KE FOLDER material_calculations
-        return view('material_calculations.price_analysis', compact(
-            'brickAnalysis', 
-            'cementAnalysis', 
-            'sandAnalysis',
-            'waterAnalysis',
-            'formulas',
-            'inputs'
-        ));
+        return view(
+            'material_calculations.price_analysis',
+            compact('brickAnalysis', 'cementAnalysis', 'sandAnalysis', 'waterAnalysis', 'formulas', 'inputs'),
+        );
     }
 
     private function runFormulaTraceFull($formulaInstance, $params)
@@ -242,7 +239,12 @@ class PriceAnalysisController extends Controller
     private function extractTotalMortarVolume($steps)
     {
         foreach ($steps as $step) {
-            if (isset($step['title']) && $step['title'] === 'Total Volume Mortar' && isset($step['step']) && $step['step'] === '7c') {
+            if (
+                isset($step['title']) &&
+                $step['title'] === 'Total Volume Mortar' &&
+                isset($step['step']) &&
+                $step['step'] === '7c'
+            ) {
                 if (isset($step['calculations']['Total Volume Mortar'])) {
                     $val = $step['calculations']['Total Volume Mortar'];
                     return (float) filter_var($val, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
