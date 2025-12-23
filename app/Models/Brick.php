@@ -129,6 +129,14 @@ class Brick extends Model
     }
 
     /**
+     * Relationship: Recommended combinations for this brick
+     */
+    public function recommendedCombinations(): HasMany
+    {
+        return $this->hasMany(RecommendedCombination::class);
+    }
+
+    /**
      * Get default brick dimensions (untuk kalkulator)
      */
     public static function getDefaultDimensions(): array

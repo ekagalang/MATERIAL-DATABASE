@@ -20,25 +20,25 @@
             <div class="row">
                 <label>Material Type <span style="color: #ef4444;">*</span></label>
                 <div style="flex: 1;">
-                    <select name="material_type" 
-                            id="material_type" 
-                            required 
-                            style="width: 100%; 
-                                   padding: 10px 14px; 
-                                   border: 1.5px solid #e2e8f0; 
-                                   border-radius: 10px; 
-                                   font-size: 13.5px; 
-                                   cursor: pointer;
-                                   background: #ffffff;
-                                   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-                        <option value="">-- Pilih Material Type --</option>
+                    <div style="display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; background: #fff;">
                         @foreach($materialTypes as $type => $label)
-                            <option value="{{ $type }}" {{ old('material_type') == $type ? 'selected' : '' }}>
-                                {{ $label }}
-                            </option>
+                            <div class="form-check" style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" 
+                                       name="material_types[]" 
+                                       id="mt_{{ $type }}" 
+                                       value="{{ $type }}" 
+                                       style="width: 16px; height: 16px; cursor: pointer; accent-color: #059669;"
+                                       {{ is_array(old('material_types')) && in_array($type, old('material_types')) ? 'checked' : '' }}>
+                                <label for="mt_{{ $type }}" style="width: auto; padding: 0; margin: 0; font-weight: 500; cursor: pointer; color: #475569; font-size: 13.5px;">
+                                    {{ $label }}
+                                </label>
+                            </div>
                         @endforeach
-                    </select>
-                    @error('material_type')
+                    </div>
+                    <small style="color: #64748b; font-size: 11.5px; display: block; margin-top: 6px;">
+                        Pilih satu atau lebih material yang menggunakan satuan ini.
+                    </small>
+                    @error('material_types')
                         <small style="color: #ef4444; font-size: 12px; display: block; margin-top: 6px; font-weight: 500;">
                             <i class="bi bi-exclamation-circle"></i> {{ $message }}
                         </small>
@@ -157,7 +157,7 @@
                     border-top: 1px solid #f1f5f9;">
             <button type="button" 
                     class="btn btn-secondary" 
-                    onclick="window.parent.document.getElementById('closeModal').click()"
+                    onclick="if(document.getElementById('closeModal')){ document.getElementById('closeModal').click(); } else { window.history.back(); }"
                     style="background: transparent; 
                            color: #64748b; 
                            border: 1.5px solid #e2e8f0; 

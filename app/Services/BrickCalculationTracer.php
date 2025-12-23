@@ -104,7 +104,7 @@ class BrickCalculationTracer
         $brickLength = $brick->dimension_length ?? 19.2;
         $brickWidth = $brick->dimension_width ?? 9;
         $brickHeight = $brick->dimension_height ?? 8;
-        $cementWeightPerSak = $cement ? $cement->package_weight_net : 50;
+        $cementWeightPerSak = $cement && $cement->package_weight_net > 0 ? $cement->package_weight_net : 50;
 
         $trace['steps'][] = [
             'step' => 3,
@@ -421,6 +421,11 @@ class BrickCalculationTracer
                     '1 sak semen bisa untuk ' . number_format($luasPasanganDari1Sak, 2) . ' m² luas bidang dinding',
             ],
         ];
+
+        // Guard clause: Pastikan luas pasangan tidak 0 untuk mencegah division by zero
+        if ($luasPasanganDari1Sak <= 0) {
+            throw new \Exception('Luas pasangan dari 1 sak semen tidak valid (bernilai 0 atau negatif). Periksa data bata (dimensi), tebal adukan, dan formula mortar.');
+        }
 
         // Step 8g: Kebutuhan Semen per m²
         $cementSakPerM2 = 1 / $luasPasanganDari1Sak;

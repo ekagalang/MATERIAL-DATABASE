@@ -515,20 +515,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function closeModal() {
+    // Close modal function - Global
+    window.closeFloatingModal = function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
-            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+            modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
         }, 300);
     }
 
-    closeBtn.addEventListener('click', closeModal);
-    backdrop.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', window.closeFloatingModal);
+    backdrop.addEventListener('click', window.closeFloatingModal);
 
+    // Close on ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
-            closeModal();
+            window.closeFloatingModal();
         }
     });
 });

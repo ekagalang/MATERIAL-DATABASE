@@ -12,21 +12,21 @@ use App\Models\Sand;
  * Formula Trial - Perhitungan Material Bata
  * Dibuat sesuai ketentuan perhitungan volume adukan pekerjaan
  */
-class BrickTrialFormula implements FormulaInterface
+class BrickFullFormula implements FormulaInterface
 {
     public static function getCode(): string
     {
-        return 'brick_trial';
+        return 'brick_full';
     }
 
     public static function getName(): string
     {
-        return 'Trial Formula - Perhitungan Bata';
+        return 'Pasang Dinding Bata Merah (1 Bata)';
     }
 
     public static function getDescription(): string
     {
-        return 'Formula trial dengan perhitungan volume adukan pekerjaan dari awal.';
+        return 'Menghitung pemasangan Bata 1 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
     }
 
     public function validate(array $params): bool
@@ -79,7 +79,7 @@ class BrickTrialFormula implements FormulaInterface
         $panjangBata = $brick->dimension_length ?? 19.2;
         $lebarBata = $brick->dimension_width ?? 9;
         $tinggiBata = $brick->dimension_height ?? 8;
-        $beratSemenPerSak = $cement ? $cement->package_weight_net : 50;
+        $beratSemenPerSak = $cement && $cement->package_weight_net > 0 ? $cement->package_weight_net : 50;
 
         $trace['steps'][] = [
             'step' => 2,
@@ -326,6 +326,11 @@ class BrickTrialFormula implements FormulaInterface
             ],
         ];
 
+        // Guard clause: Pastikan volume adukan tidak 0 untuk mencegah division by zero
+        if ($volumeAdukan <= 0) {
+            throw new \Exception('Volume adukan tidak valid (bernilai 0 atau negatif). Periksa data material (semen, pasir) dan formula mortar.');
+        }
+
         // ============ STEP 16: Kebutuhan untuk 1 M³ ============
         $sakSemen1M3 = 1 / $volumeAdukan;
         $kgSemen1M3 = $beratSemenPerSak / $volumeAdukan;
@@ -472,7 +477,7 @@ class BrickTrialFormula implements FormulaInterface
         $brickPrice = $brick->price_per_piece ?? 0;
         $cementPrice = $cement->package_price ?? 0;
         $sandPricePerM3 = $sand->comparison_price_per_m3 ?? 0;
-        if ($sandPricePerM3 == 0 && $sand->package_price && $sand->package_volume) {
+        if ($sandPricePerM3 == 0 && $sand->package_price && $sand->package_volume > 0) {
             $sandPricePerM3 = $sand->package_price / $sand->package_volume;
         }
 

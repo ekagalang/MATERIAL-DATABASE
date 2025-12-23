@@ -27,23 +27,24 @@ class MaterialTypeDetector
         foreach ($files as $file) {
             $filename = $file->getFilenameWithoutExtension();
 
-            // Skip models yang bukan material
-            if (in_array($filename, ['User', 'Unit', 'Material'])) {
+            // Skip models dasar/sistem
+            if (in_array($filename, ['User', 'Unit', 'Material', 'UnitMaterialType'])) {
                 continue;
             }
 
             $className = "App\\Models\\{$filename}";
 
-            // Cek apakah class exists dan punya field package_unit
+            // Cek apakah class exists
             if (class_exists($className)) {
                 try {
-                    $instance = new $className();
-
-                    // Cek apakah model punya fillable 'package_unit'
-                    if (in_array('package_unit', $instance->getFillable())) {
-                        // Convert nama model ke lowercase untuk material_type
-                        // Cement → cement, Cat → cat, Sand → sand
-                        $models[] = strtolower($filename);
+                    // Cek apakah model memiliki method static getMaterialType
+                    // Ini cara paling akurat karena semua model material memilikinya
+                    if (method_exists($className, 'getMaterialType')) {
+                        // Panggil methodnya untuk dapatkan tipe yang valid
+                        $type = $className::getMaterialType();
+                        if ($type) {
+                            $models[] = $type;
+                        }
                     }
                 } catch (\Exception $e) {
                     // Skip jika ada error
@@ -54,7 +55,7 @@ class MaterialTypeDetector
 
         sort($models); // Sort alphabetically
 
-        return $models;
+        return array_unique($models);
     }
 
     /**
@@ -65,8 +66,18 @@ class MaterialTypeDetector
      */
     public static function getLabel(string $type): string
     {
-        // Capitalize first letter
-        // cat → Cat, cement → Cement
+        $labels = [
+            'brick' => 'Bata',
+            'cement' => 'Semen',
+            'sand' => 'Pasir',
+            'cat' => 'Cat',
+        ];
+
+        if (array_key_exists($type, $labels)) {
+            return $labels[$type];
+        }
+
+        // Fallback: Capitalize first letter
         return ucfirst($type);
     }
 

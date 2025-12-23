@@ -7,6 +7,7 @@ use App\Models\BrickCalculation;
 use App\Models\BrickInstallationType;
 use App\Models\Cement;
 use App\Models\MortarFormula;
+use App\Models\RecommendedCombination;
 use App\Models\Sand;
 use App\Services\FormulaRegistry;
 use App\Services\BrickCalculationTracer;
@@ -106,6 +107,11 @@ class MaterialCalculationController extends Controller
         try {
             DB::beginTransaction();
 
+            // Handle work_type_select from form and convert to work_type
+            if ($request->has('work_type_select') && !$request->has('work_type')) {
+                $request->merge(['work_type' => $request->work_type_select]);
+            }
+
             if (!$request->has('mortar_formula_type')) {
                 $request->merge(['mortar_formula_type' => 'default']);
             }
@@ -113,11 +119,17 @@ class MaterialCalculationController extends Controller
             // 1. VALIDASI
             $rules = [
                 'work_type' => 'required',
-                'price_filter' => 'required|in:cheapest,expensive,custom',
+                'price_filters' => 'nullable|array',
+                'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.1',
             ];
+
+            // Default to 'best' if no filters selected
+            if (!$request->has('price_filters') || empty($request->price_filters)) {
+                $request->merge(['price_filters' => ['best']]);
+            }
 
             // Validasi Brick: Bisa single 'brick_id' atau array 'brick_ids'
             if ($request->has('brick_ids')) {
@@ -127,10 +139,12 @@ class MaterialCalculationController extends Controller
                 $rules['brick_id'] = 'required|exists:bricks,id';
             }
 
-            // Validasi Semen/Pasir hanya wajib jika BUKAN custom
-            if ($request->price_filter !== 'custom') {
-                $rules['cement_id'] = 'required|exists:cements,id';
-                $rules['sand_id'] = 'required|exists:sands,id';
+            // Validasi Semen/Pasir hanya wajib jika 'custom' ada di price_filters
+            $priceFilters = $request->price_filters ?? [];
+            if (in_array('custom', $priceFilters)) {
+                // Custom filter selected, cement and sand are optional (can be selected by user)
+            } else {
+                // No custom filter, cement and sand not required (will be auto-selected)
             }
 
             $request->validate($rules);
@@ -160,30 +174,49 @@ class MaterialCalculationController extends Controller
                 $request->merge(['mortar_formula_id' => $defaultMortarFormula?->id]);
             }
 
-            // 3. AUTO SELECT MATERIAL (Cheapest/Expensive)
-            if ($request->price_filter !== 'custom') {
-                $materials = $this->selectMaterialsByPrice($request->price_filter);
-                $request->merge([
-                    'cement_id' => $materials['cement_id'],
-                    'sand_id' => $materials['sand_id'],
-                ]);
-            }
+            // 3. AUTO SELECT MATERIAL OR GENERATE COMBINATIONS
+            $priceFilters = $request->price_filters ?? [];
+            $hasCustom = in_array('custom', $priceFilters);
+            $hasOtherFilters = count(array_diff($priceFilters, ['custom'])) > 0;
 
-            // 4. LOGIC PREVIEW KOMBINASI
-            // Masuk sini jika:
-            // a. User memilih banyak bata (Multi Brick)
-            // b. User memilih Custom TAPI mengosongkan Semen/Pasir
+            // Check if we need to generate combinations
             $isMultiBrick = $request->has('brick_ids') && count($request->brick_ids) > 0;
-            $isCustomEmpty =
-                $request->price_filter === 'custom' && (empty($request->cement_id) || empty($request->sand_id));
+            $isCustomEmpty = $hasCustom && (empty($request->cement_id) || empty($request->sand_id));
+            $needCombinations = $hasOtherFilters || $isMultiBrick || $isCustomEmpty;
 
-            if ($isMultiBrick || $isCustomEmpty) {
+            if ($needCombinations) {
+                // Generate combinations for selected filters
                 DB::rollBack(); // Tidak jadi simpan
                 return $this->generateCombinations($request);
             }
 
+            // If only custom is selected and materials are provided, auto-select them
+            if ($hasCustom && !empty($request->cement_id) && !empty($request->sand_id)) {
+                // Keep custom selected materials
+            }
+
             // 5. SAVE NORMAL (Single Brick & Material Lengkap)
+            // Debug logging
+            \Log::info('Store Calculation - Request Data:', [
+                'work_type' => $request->work_type,
+                'brick_id' => $request->brick_id,
+                'cement_id' => $request->cement_id,
+                'sand_id' => $request->sand_id,
+                'wall_length' => $request->wall_length,
+                'wall_height' => $request->wall_height,
+                'mortar_thickness' => $request->mortar_thickness,
+                'installation_type_id' => $request->installation_type_id,
+                'mortar_formula_id' => $request->mortar_formula_id,
+            ]);
+
             $calculation = BrickCalculation::performCalculation($request->all());
+
+            \Log::info('Store Calculation - Result:', [
+                'total_cost' => $calculation->total_material_cost,
+                'brick_quantity' => $calculation->brick_quantity,
+                'cement_quantity' => $calculation->cement_quantity_sak,
+                'sand_quantity' => $calculation->sand_m3,
+            ]);
 
             if (!$request->boolean('confirm_save')) {
                 DB::rollBack();
@@ -218,10 +251,31 @@ class MaterialCalculationController extends Controller
         // Tentukan Bata mana saja yang akan dihitung
         $targetBricks = collect();
 
-        if ($request->has('brick_ids')) {
-            $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
-        } elseif ($request->has('brick_id')) {
-            $targetBricks = Brick::where('id', $request->brick_id)->get();
+        // CHECK: If 'best' filter is selected, we want to include ALL recommended bricks?
+        // Logic: "filter TerBAIK ini... mandiri seperti di setting rekomendasi"
+        // This implies: If 'best' is chosen, show ALL configured recommendations.
+        $priceFilters = $request->price_filters ?? [];
+        if (in_array('best', $priceFilters) && count($priceFilters) === 1) {
+            // Fetch ALL bricks that have a recommendation
+            $recommendedBrickIds = RecommendedCombination::where('type', 'best')->pluck('brick_id')->unique();
+            
+            if ($recommendedBrickIds->isNotEmpty()) {
+                $targetBricks = Brick::whereIn('id', $recommendedBrickIds)->get();
+            } else {
+                // Fallback to normal selection if no recommendations exist
+                if ($request->has('brick_ids')) {
+                    $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
+                } elseif ($request->has('brick_id')) {
+                    $targetBricks = Brick::where('id', $request->brick_id)->get();
+                }
+            }
+        } else {
+            // Normal behavior for other filters
+            if ($request->has('brick_ids')) {
+                $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
+            } elseif ($request->has('brick_id')) {
+                $targetBricks = Brick::where('id', $request->brick_id)->get();
+            }
         }
 
         // Struktur Project untuk View (agar support Multi-Tab)
@@ -234,9 +288,15 @@ class MaterialCalculationController extends Controller
             ];
         }
 
+        // Get Formula Name
+        $workType = $request->work_type ?? 'brick_half';
+        $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
+        $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
+
         return view('material_calculations.preview_combinations', [
             'projects' => $projects,
             'requestData' => $request->except(['brick_ids', 'brick_id']), // Clean request data
+            'formulaName' => $formulaName,
         ]);
     }
 
@@ -317,85 +377,464 @@ class MaterialCalculationController extends Controller
      */
     protected function calculateCombinationsForBrick($brick, $request)
     {
-        // Tentukan Kandidat Semen & Pasir
-        // Jika filter Cheapest/Expensive, hanya ambil 1 kandidat (pemenang)
-        // Jika Custom Empty, ambil semua
-
-        $cements = collect();
-        $sands = collect();
-
-        if ($request->price_filter !== 'custom') {
-            // Auto Select 1 Pemenang
-            $materials = $this->selectMaterialsByPrice($request->price_filter);
-            $cements = Cement::where('id', $materials['cement_id'])->get();
-            $sands = Sand::where('id', $materials['sand_id'])->get();
-        } else {
-            // Custom Logic
-            $cements = $request->cement_id
-                ? Cement::where('id', $request->cement_id)->get()
-                : Cement::orderBy('package_price')->get();
-            $sands = $request->sand_id
-                ? Sand::where('id', $request->sand_id)->get()
-                : Sand::orderBy('package_price')->get();
+        $requestedFilters = $request->price_filters ?? ['best'];
+        
+        // Special, independent handling for 'best' filter when it's the only one selected
+        if (count($requestedFilters) === 1 && $requestedFilters[0] === 'best') {
+            $bestCombinations = $this->getBestCombinations($brick, $request);
+            $finalResults = [];
+            foreach ($bestCombinations as $index => $combo) {
+                $label = "TerBAIK " . ($index + 1);
+                $finalResults[$label] = [array_merge($combo, ['filter_label' => $label])];
+            }
+            return $finalResults;
         }
 
-        // Setup Parameter
+        $hasAll = in_array('all', $requestedFilters);
+
+        if ($hasAll) {
+            $standardFilters = ['best', 'common', 'cheapest', 'medium', 'expensive'];
+            $requestedFilters = array_unique(array_merge($requestedFilters, $standardFilters));
+        }
+
+        // Always calculate ALL standard filters to generate cross-reference labels
+        $filtersToCalculate = ['best', 'common', 'cheapest', 'medium', 'expensive'];
+        
+        // Add custom only if requested (because custom depends on specific user input)
+        if (in_array('custom', $requestedFilters)) {
+            $filtersToCalculate[] = 'custom';
+        }
+
+        $allCombinations = [];
+
+        foreach ($filtersToCalculate as $filter) {
+            $combinations = $this->getCombinationsByFilter($brick, $request, $filter);
+
+            foreach ($combinations as $index => $combo) {
+                $number = $index + 1;
+                $filterLabel = $this->getFilterLabel($filter);
+                
+                // Special handling for custom label to match previous behavior
+                if ($filter === 'custom') {
+                    $filterLabel = 'Custom'; 
+                }
+
+                $allCombinations[] = array_merge($combo, [
+                    'filter_label' => "{$filterLabel} {$number}",
+                    'filter_type' => $filter,
+                    'filter_number' => $number,
+                ]);
+            }
+        }
+
+        // Merge duplicates (and collect source_filters)
+        $uniqueCombos = $this->detectAndMergeDuplicates($allCombinations);
+
+        // Pre-calculate mapped labels for requested filters to fast check priority
+        // We use the original $request->price_filters to prioritize the USER's direct selection
+        // (even if 'all' was selected, we prioritize standard ordering, but if specific was selected, priority matters)
+        $priorityLabels = [];
+        $userOriginalFilters = $request->price_filters ?? [];
+        foreach ($userOriginalFilters as $rf) {
+            if ($rf !== 'all') {
+                $priorityLabels[] = ($rf === 'custom') ? 'Custom' : $this->getFilterLabel($rf);
+            }
+        }
+
+        // Filter output based on User's Request & Re-order Labels
+        $finalResults = [];
+        foreach ($uniqueCombos as $combo) {
+            // Check intersection between combo's sources and requested filters
+            $sources = $combo['source_filters'] ?? [$combo['filter_type']];
+            
+            // If any source is in requested filters, show the item
+            if (count(array_intersect($sources, $requestedFilters)) > 0) {
+                
+                // Re-order label based on priority
+                $labels = $combo['all_labels'] ?? [$combo['filter_label']];
+                
+                if (!empty($priorityLabels)) {
+                    usort($labels, function($a, $b) use ($priorityLabels) {
+                        // Check priority score
+                        $aScore = 0;
+                        foreach ($priorityLabels as $pl) {
+                            if (str_starts_with($a, $pl)) {
+                                $aScore = 1; break; 
+                            }
+                        }
+                        
+                        $bScore = 0;
+                        foreach ($priorityLabels as $pl) {
+                             if (str_starts_with($b, $pl)) {
+                                $bScore = 1; break; 
+                            }
+                        }
+                        
+                        // Higher score first (descending)
+                        return $bScore <=> $aScore;
+                    });
+                }
+
+                // Update label string
+                $combo['filter_label'] = implode(' = ', $labels);
+                
+                // Use the new label as key
+                $label = $combo['filter_label'];
+                $finalResults[$label] = [$combo];
+            }
+        }
+
+        return $finalResults;
+    }
+
+    /**
+     * Get all combinations (no limit) - for filter "Semua"
+     */
+    protected function getAllCombinations($brick, $request)
+    {
+        // Get all valid cements and sands (exclude null/invalid data)
+        $cements = Cement::whereNotNull('brand')
+            ->whereNotNull('package_price')
+            ->where('package_price', '>', 0)
+            ->orderBy('package_price')
+            ->get();
+
+        $sands = Sand::whereNotNull('brand')
+            ->whereNotNull('package_price')
+            ->where('package_price', '>', 0)
+            ->orderBy('package_price')
+            ->get();
+
+        $results = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'Semua');
+
+        // Group as "Semua" (not by individual labels)
+        return ['Semua' => $results];
+    }
+
+    /**
+     * Get 3 combinations based on filter type
+     */
+    protected function getCombinationsByFilter($brick, $request, $filter)
+    {
+        switch ($filter) {
+            case 'best':
+                return $this->getBestCombinations($brick, $request);
+            case 'common':
+                return $this->getCommonCombinations($brick, $request);
+            case 'cheapest':
+                return $this->getCheapestCombinations($brick, $request);
+            case 'medium':
+                return $this->getMediumCombinations($brick, $request);
+            case 'expensive':
+                return $this->getExpensiveCombinations($brick, $request);
+            case 'custom':
+                return $this->getCustomCombinations($brick, $request);
+            default:
+                return [];
+        }
+    }
+
+    /**
+     * Get filter label in Indonesian
+     */
+    protected function getFilterLabel($filter)
+    {
+        return match($filter) {
+            'best' => 'TerBAIK',
+            'common' => 'TerUMUM',
+            'cheapest' => 'TerMURAH',
+            'medium' => 'TerSEDANG',
+            'expensive' => 'TerMAHAL',
+            'custom' => 'Custom',
+            'all' => 'Semua',
+            default => ucfirst($filter),
+        };
+    }
+
+    /**
+     * Detect and merge duplicate combinations
+     */
+    protected function detectAndMergeDuplicates($combinations)
+    {
+        $uniqueCombos = [];
+        $duplicateMap = [];
+
+        foreach ($combinations as $combo) {
+            $key = $combo['cement']->id . '-' . $combo['sand']->id;
+
+            // Ensure source_filters is initialized
+            if (!isset($combo['source_filters'])) {
+                $combo['source_filters'] = [$combo['filter_type']];
+            }
+
+            $currentLabel = $combo['filter_label'];
+
+            if (isset($duplicateMap[$key])) {
+                // Duplicate found, merge labels
+                $existingIndex = $duplicateMap[$key];
+                
+                // Add to all_labels collection
+                $uniqueCombos[$existingIndex]['all_labels'][] = $currentLabel;
+                
+                // Keep default string merging (will be overwritten by display logic later)
+                $uniqueCombos[$existingIndex]['filter_label'] .= ' = ' . $currentLabel;
+
+                // Merge Source Filters
+                if (!in_array($combo['filter_type'], $uniqueCombos[$existingIndex]['source_filters'])) {
+                    $uniqueCombos[$existingIndex]['source_filters'][] = $combo['filter_type'];
+                }
+
+                \Log::info('Duplicate Detected:', [
+                    'key' => $key,
+                    'merged_label' => $uniqueCombos[$existingIndex]['filter_label'],
+                ]);
+            } else {
+                // New combination
+                $duplicateMap[$key] = count($uniqueCombos);
+                
+                // Initialize all_labels
+                $combo['all_labels'] = [$currentLabel];
+                
+                $uniqueCombos[] = $combo;
+
+                \Log::info('New Combination:', [
+                    'key' => $key,
+                    'label' => $combo['filter_label'],
+                ]);
+            }
+        }
+
+        \Log::info('Duplicate Detection Summary:', [
+            'total_input' => count($combinations),
+            'total_unique' => count($uniqueCombos),
+            'duplicates_merged' => count($combinations) - count($uniqueCombos),
+        ]);
+
+        return $uniqueCombos;
+    }
+
+    /**
+     * Calculate combinations from given materials
+     */
+    protected function calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $groupLabel = 'Kombinasi', $limit = null)
+    {
         $paramsBase = [
             'wall_length' => $request->wall_length,
             'wall_height' => $request->wall_height,
             'mortar_thickness' => $request->mortar_thickness,
             'installation_type_id' => $request->installation_type_id,
             'mortar_formula_id' => $request->mortar_formula_id,
+            'work_type' => $request->work_type ?? 'brick_half',
             'brick_id' => $brick->id,
         ];
 
-        $combinations = [];
+        $results = [];
 
         foreach ($cements as $cement) {
             foreach ($sands as $sand) {
-                $params = array_merge($paramsBase, ['cement_id' => $cement->id, 'sand_id' => $sand->id]);
+                $params = array_merge($paramsBase, [
+                    'cement_id' => $cement->id,
+                    'sand_id' => $sand->id
+                ]);
 
                 try {
-                    $trace = BrickCalculationTracer::traceProfessionalMode($params);
-                    $result = $trace['final_result'];
+                    // Use the same calculation method as save for consistency
+                    $formulaCode = $params['work_type'] ?? 'brick_half';
+                    $formula = \App\Services\FormulaRegistry::instance($formulaCode);
 
-                    // Grouping Logic
-                    $groupBy = 'Umum';
-                    if ($request->price_filter !== 'custom') {
-                        $groupBy = $request->price_filter == 'cheapest' ? 'Termurah' : 'Termahal';
-                    } else {
-                        if (!$request->cement_id && $request->sand_id) {
-                            $groupBy = $cement->brand ?? 'Semen';
-                        } elseif ($request->cement_id && !$request->sand_id) {
-                            $groupBy = $sand->brand ?? 'Pasir';
-                        } else {
-                            $groupBy = $cement->brand ?? 'Umum';
-                        }
+                    if (!$formula) {
+                        throw new \Exception("Formula '{$formulaCode}' tidak ditemukan");
                     }
 
-                    $combinations[$groupBy][] = [
+                    $result = $formula->calculate($params);
+
+                    // Debug logging untuk preview
+                    \Log::info('Preview Calculation:', [
+                        'formula_code' => $formulaCode,
+                        'cement_id' => $cement->id,
+                        'cement_brand' => $cement->brand,
+                        'cement_price' => $cement->package_price,
+                        'sand_id' => $sand->id,
+                        'sand_brand' => $sand->brand,
+                        'total_cost' => $result['grand_total'],
+                        'params' => $params,
+                    ]);
+
+                    $results[] = [
                         'cement' => $cement,
                         'sand' => $sand,
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
                     ];
                 } catch (\Exception $e) {
+                    \Log::error('Preview Calculation Error:', [
+                        'cement_id' => $cement->id,
+                        'sand_id' => $sand->id,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
                     continue;
                 }
             }
         }
 
-        // Sorting Logic
-        foreach ($combinations as &$items) {
-            usort($items, function ($a, $b) {
-                return $a['total_cost'] <=> $b['total_cost'];
-            });
-        }
-        uasort($combinations, function ($groupA, $groupB) {
-            return ($groupA[0]['total_cost'] ?? 0) <=> ($groupB[0]['total_cost'] ?? 0);
+        // Sort by total cost
+        usort($results, function($a, $b) {
+            return $a['total_cost'] <=> $b['total_cost'];
         });
 
-        return $combinations;
+        // Apply limit if specified
+        if ($limit) {
+            $results = array_slice($results, 0, $limit);
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get 3 best (recommended) combinations
+     */
+    protected function getBestCombinations($brick, $request)
+    {
+        // 1. Check for Admin Recommendations
+        $recommendations = RecommendedCombination::where('brick_id', $brick->id)
+            ->where('type', 'best')
+            ->get();
+
+        \Log::info("GetBestCombinations: Found " . $recommendations->count() . " recommendations for brick ID: " . $brick->id);
+
+        $allRecommendedResults = [];
+
+        foreach ($recommendations as $rec) {
+            $cements = Cement::where('id', $rec->cement_id)->get();
+            $sands = Sand::where('id', $rec->sand_id)->get();
+
+            \Log::info("Processing recommendation: Cement ID {$rec->cement_id}, Sand ID {$rec->sand_id}");
+
+            // Calculate for this specific pair
+            $results = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerBAIK', 1);
+            
+            \Log::info("Calculation result count: " . count($results));
+
+            // Mark as 'best' source and add to collection
+            foreach ($results as &$res) {
+                $res['source_filter'] = 'best';
+                $allRecommendedResults[] = $res;
+            }
+        }
+
+        // If there are admin recommendations, return them
+        if (!empty($allRecommendedResults)) {
+            \Log::info("Returning " . count($allRecommendedResults) . " admin-defined 'best' combinations.");
+            return $allRecommendedResults;
+        }
+
+        // 2. No recommendations found
+        \Log::info("No admin recommendations found.");
+        return [];
+    }
+
+    /**
+     * Get 3 most commonly used combinations
+     */
+    protected function getCommonCombinations($brick, $request)
+    {
+        // Query most frequent combinations from material_calculations table
+        $commonCombos = \DB::table('brick_calculations')
+            ->select('cement_id', 'sand_id', \DB::raw('count(*) as frequency'))
+            ->where('brick_id', $brick->id)
+            ->groupBy('cement_id', 'sand_id')
+            ->orderByDesc('frequency')
+            ->limit(3)
+            ->get();
+
+        if ($commonCombos->isEmpty()) {
+            // Fallback to cheapest if no history
+            // Mark these combinations as coming from 'cheapest' filter
+            $cheapest = $this->getCheapestCombinations($brick, $request);
+            return array_map(function($combo) {
+                $combo['source_filter'] = 'cheapest';
+                return $combo;
+            }, $cheapest);
+        }
+
+        $results = [];
+        foreach ($commonCombos as $combo) {
+            $cement = Cement::find($combo->cement_id);
+            $sand = Sand::find($combo->sand_id);
+
+            if (!$cement || !$sand) continue;
+
+            $cements = collect([$cement]);
+            $sands = collect([$sand]);
+            $calculated = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerUMUM', 1);
+
+            if (!empty($calculated)) {
+                $results[] = $calculated[0];
+            }
+        }
+
+        // Return whatever results we have (1, 2, or 3 combinations)
+        return $results;
+    }
+
+    /**
+     * Get 3 cheapest combinations
+     */
+    protected function getCheapestCombinations($brick, $request)
+    {
+        $cements = Cement::orderBy('package_price')->get();
+        $sands = Sand::orderBy('package_price')->get();
+
+        return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerMURAH', 3);
+    }
+
+    /**
+     * Get 3 medium-priced combinations
+     */
+    protected function getMediumCombinations($brick, $request)
+    {
+        $cements = Cement::orderBy('package_price')->get();
+        $sands = Sand::orderBy('package_price')->get();
+
+        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerSEDANG');
+
+        // Get middle 3 combinations
+        $total = count($allResults);
+        if ($total < 3) return $allResults;
+
+        $startIndex = max(0, floor(($total - 3) / 2));
+        return array_slice($allResults, $startIndex, 3);
+    }
+
+    /**
+     * Get 3 most expensive combinations
+     */
+    protected function getExpensiveCombinations($brick, $request)
+    {
+        $cements = Cement::orderByDesc('package_price')->get();
+        $sands = Sand::orderByDesc('package_price')->get();
+
+        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerMAHAL');
+
+        // Get top 3 most expensive
+        return array_slice(array_reverse($allResults), 0, 3);
+    }
+
+    /**
+     * Get custom combinations
+     */
+    protected function getCustomCombinations($brick, $request)
+    {
+        if ($request->cement_id && $request->sand_id) {
+            // Specific materials selected
+            $cements = Cement::where('id', $request->cement_id)->get();
+            $sands = Sand::where('id', $request->sand_id)->get();
+            return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'Custom', 1);
+        } else {
+            // Show all combinations
+            return $this->getAllCombinations($brick, $request);
+        }
     }
 
     /**

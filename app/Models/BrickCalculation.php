@@ -109,20 +109,23 @@ class BrickCalculation extends Model
      */
     public static function performCalculation(array $params): self
     {
-        // Get work_type and map to formula code
-        $workType = $params['work_type'] ?? 'brick_half_installation';
+        // Get work_type from params (should match formula code)
+        $formulaCode = $params['work_type'] ?? null;
 
-        // Map work_type to formula code (for now only one formula available)
-        $formulaCode = match ($workType) {
-            'BrickHalfInstallation', 'brick_half_installation' => 'brick_half_installation',
-            default => 'brick_half_installation', // Default to brick half installation
-        };
+        // Fallback: if work_type not provided or invalid, use first available formula
+        if (!$formulaCode || !\App\Services\FormulaRegistry::has($formulaCode)) {
+            $availableFormulas = \App\Services\FormulaRegistry::all();
+            if (empty($availableFormulas)) {
+                throw new \Exception("Tidak ada formula yang tersedia di sistem");
+            }
+            $formulaCode = $availableFormulas[0]['code'];
+        }
 
         // Get formula instance from Formula Bank
         $formula = \App\Services\FormulaRegistry::instance($formulaCode);
 
         if (!$formula) {
-            throw new \Exception("Formula '{$formulaCode}' tidak ditemukan di Formula Bank");
+            throw new \Exception("Formula '{$formulaCode}' tidak ditemukan di Formula Bank. Formula yang tersedia: " . implode(', ', \App\Services\FormulaRegistry::codes()));
         }
 
         // Execute formula calculation
@@ -209,7 +212,7 @@ class BrickCalculation extends Model
             // Store calculation params for reference
             'calculation_params' => [
                 'formula_used' => $formulaCode,
-                'work_type' => $workType,
+                'work_type' => $params['work_type'] ?? $formulaCode,
                 'brick_dimensions' => [
                     'length' => $brick->dimension_length ?? 20,
                     'width' => $brick->dimension_width ?? 10,
