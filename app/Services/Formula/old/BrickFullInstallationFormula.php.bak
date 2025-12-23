@@ -9,25 +9,27 @@ use App\Models\MortarFormula;
 use App\Models\Sand;
 
 /**
- * Formula untuk perhitungan pemasangan bata 1/2
+ * Formula untuk perhitungan pemasangan bata 1
  * dengan volume mortar dan strip tambahan di sisi kiri & bawah
  */
-class BrickHalfInstallationFormula implements FormulaInterface
+class BrickFullInstallationFormula implements FormulaInterface
 {
+    /*
     public static function getCode(): string
     {
-        return 'brick_half_installation';
+        return 'brick_full_installation';
     }
 
     public static function getName(): string
     {
-        return 'Pemasangan Bata 1/2';
+        return 'Pemasangan Bata 1';
     }
 
     public static function getDescription(): string
     {
-        return 'Perhitungan material untuk pemasangan bata 1/2 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
+        return 'Perhitungan material untuk pemasangan bata 1 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
     }
+    */
 
     public function validate(array $params): bool
     {

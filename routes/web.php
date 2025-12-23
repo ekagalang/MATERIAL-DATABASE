@@ -122,6 +122,13 @@ Route::post('/material-calculations/compare-bricks', [
 ])->name('material-calculations.compare-bricks');
 
 Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
-Route::get('/work-items', [WorkItemController::class, 'index'])->name('work-items.index');
+Route::get('/work-items/analytics/{code}', [WorkItemController::class, 'analytics'])->name('work-items.analytics');
+Route::resource('work-items', WorkItemController::class);
 Route::get('/workers', [WorkerController::class, 'index'])->name('workers.index');
 Route::get('/skills', [SkillController::class, 'index'])->name('skills.index');
+
+// Setting Rekomendasi Material (TerBAIK)
+Route::prefix('settings/recommendations')->name('settings.recommendations.')->group(function () {
+    Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
+    Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
+});

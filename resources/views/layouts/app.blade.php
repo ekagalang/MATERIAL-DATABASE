@@ -1225,15 +1225,56 @@
             <a href="{{ route('stores.index') }}" class="{{ request()->routeIs('stores.*') ? 'active' : '' }}">
                 Toko
             </a>
-            <a href="{{ route('work-items.index') }}" class="{{ request()->routeIs('work-items.*') ? 'active' : '' }}">
-                Item Pekerjaan
-            </a>
+
+            <!-- Item Pekerjaan Dropdown -->
+            <div class="nav-dropdown-wrapper">
+                <button type="button" class="nav-link-btn {{ request()->routeIs('work-items.*') ? 'active' : '' }}" id="workItemDropdownToggle">
+                    Item Pekerjaan <i class="bi bi-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
+                </button>
+
+                <div class="nav-dropdown-menu" id="workItemDropdownMenu">
+                    <div class="nav-dropdown-content">
+                        <!-- Menu Item 1 -->
+                        <div class="dropdown-item-parent">
+                            <a href="{{ route('work-items.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Lihat Item Pekerjaan
+                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                            </a>
+                        </div>
+
+                        <!-- Menu Item 2 -->
+                        <div class="dropdown-item-parent">
+                            <a href="{{ route('price-analysis.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Hitung Item Pekerjaan
+                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                            </a>
+                        </div>
+
+                        <!-- Menu Item 3 -->
+                        <div class="dropdown-item-parent">
+                            <a href="https://docs.google.com/spreadsheets/d/1tsEQ3a4duHw2AROxsbHaz41n3EiwoFQEpqmWc5XdMP4/edit?usp=sharing" target="_blank"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Tambah Item Pekerjaan
+                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
                 Tukang
             </a>
+
             <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
                 Keterampilan
             </a>
+
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
                 Satuan
             </a>
@@ -1282,24 +1323,46 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // --- Navbar Dropdown Logic ---
-            const dropdownToggle = document.getElementById('materialDropdownToggle');
-            const dropdownMenu = document.getElementById('materialDropdownMenu');
-            const dropdownWrapper = document.querySelector('.nav-dropdown-wrapper');
+            // --- Navbar Dropdown Logic (Reusable Function) ---
+            // Track all active dropdowns globally
+            const activeDropdowns = new Set();
+
+            // Function to close all dropdowns except the specified one
+            function closeAllDropdownsExcept(exceptToggleId = null) {
+                activeDropdowns.forEach(dropdownInfo => {
+                    if (dropdownInfo.toggleId !== exceptToggleId) {
+                        dropdownInfo.closeDropdown();
+                    }
+                });
+            }
+
+            function initializeDropdown(toggleId, menuId) {
+                const dropdownToggle = document.getElementById(toggleId);
+                const dropdownMenu = document.getElementById(menuId);
+                const dropdownWrapper = dropdownToggle ? dropdownToggle.closest('.nav-dropdown-wrapper') : null;
 
             if (dropdownToggle && dropdownMenu) {
                 // Helper functions
                 const openDropdown = () => {
+                    // Close all other dropdowns first
+                    closeAllDropdownsExcept(toggleId);
+
                     dropdownMenu.classList.add('show');
                     dropdownToggle.classList.add('dropdown-open');
                     dropdownToggle.setAttribute('aria-expanded', 'true');
                 };
-                
+
                 const closeDropdown = () => {
                     dropdownMenu.classList.remove('show');
                     dropdownToggle.classList.remove('dropdown-open');
                     dropdownToggle.setAttribute('aria-expanded', 'false');
                 };
+
+                // Register this dropdown in the global set
+                activeDropdowns.add({
+                    toggleId: toggleId,
+                    closeDropdown: closeDropdown
+                });
 
                 // Mouse/Click Events
                 dropdownToggle.addEventListener('click', function(e) {
@@ -1392,6 +1455,11 @@
                     });
                 });
             }
+            }
+
+            // Initialize both dropdowns
+            initializeDropdown('materialDropdownToggle', 'materialDropdownMenu');
+            initializeDropdown('workItemDropdownToggle', 'workItemDropdownMenu');
 
             // --- Navbar Material Filter Logic (Tick & Go) ---
             const navToggles = document.querySelectorAll('.nav-material-toggle');
@@ -1479,6 +1547,7 @@
                 else if (url.includes('/cats/')) { materialType = 'cat'; materialLabel = 'Cat'; } 
                 else if (url.includes('/cements/')) { materialType = 'cement'; materialLabel = 'Semen'; } 
                 else if (url.includes('/sands/')) { materialType = 'sand'; materialLabel = 'Pasir'; }
+                else if (url.includes('/settings/recommendations')) { materialType = 'recommendations'; materialLabel = 'Setting Rekomendasi'; }
 
                 if (url.includes('/create')) action = 'create';
                 else if (url.includes('/edit')) action = 'edit';
@@ -1488,30 +1557,68 @@
             }
 
             function loadGlobalMaterialFormScript(materialType, modalBodyEl) {
-                const scriptProperty = `global${materialType}FormScriptLoaded`; 
+                const scriptProperty = `global${materialType}FormScriptLoaded`;
                 const initFunctionName = `init${materialType.charAt(0).toUpperCase() + materialType.slice(1)}Form`;
+
+                console.log('[Script] Loading script for:', materialType);
+                console.log('[Script] Init function name:', initFunctionName);
+                console.log('[Script] Script already loaded?', window[scriptProperty]);
 
                 if (!window[scriptProperty]) {
                     const script = document.createElement('script');
-                    script.src = `/js/${materialType}-form.js`;
+                    script.src = `{{ asset('js') }}/${materialType}-form.js`;
+                    console.log('[Script] Creating script element for:', script.src);
+
                     script.onload = () => {
+                        console.log('[Script] Script loaded successfully:', script.src);
                         window[scriptProperty] = true;
-                        setTimeout(() => {
-                            if (typeof window[initFunctionName] === 'function') {
-                                window[initFunctionName](modalBodyEl);
-                            }
-                            interceptGlobalFormSubmit();
-                        }, 100);
+                        initializeForm(initFunctionName, modalBodyEl);
+                    };
+                    script.onerror = () => {
+                        console.error('[Script] Failed to load script:', script.src);
+                        globalModalBody.innerHTML = `<div class="p-4 text-center text-danger">Gagal memuat script form: ${script.src}</div>`;
                     };
                     document.head.appendChild(script);
                 } else {
-                    setTimeout(() => {
-                        if (typeof window[initFunctionName] === 'function') {
+                    console.log('[Script] Script already loaded, calling init directly');
+                    initializeForm(initFunctionName, modalBodyEl);
+                }
+            }
+
+            function initializeForm(initFunctionName, modalBodyEl) {
+                console.log('[Init] Initializing form with function:', initFunctionName);
+
+                setTimeout(() => {
+                    console.log('[Init] Checking if function exists:', typeof window[initFunctionName]);
+
+                    if (typeof window[initFunctionName] === 'function') {
+                        console.log('[Init] Function exists, calling it...');
+                        // Special handling for recommendations: pass raw data from hidden script
+                        if (initFunctionName === 'initRecommendationsForm') {
+                            const dataEl = modalBodyEl.querySelector('#recommendationRawData');
+                            console.log('[Init] Looking for #recommendationRawData:', dataEl ? 'Found' : 'Not found');
+
+                            if (dataEl) {
+                                try {
+                                    const rawData = JSON.parse(dataEl.textContent);
+                                    console.log('[Init] Raw data parsed successfully:', rawData);
+                                    window[initFunctionName](modalBodyEl, rawData);
+                                } catch (e) {
+                                    console.error('[Init] Error parsing raw data:', e);
+                                    globalModalBody.innerHTML = `<div class="p-4 text-center text-danger">Error parsing data: ${e.message}</div>`;
+                                }
+                            } else {
+                                console.error('[Init] #recommendationRawData not found in modal body');
+                                window[initFunctionName](modalBodyEl, {});
+                            }
+                        } else {
                             window[initFunctionName](modalBodyEl);
                         }
-                        interceptGlobalFormSubmit();
-                    }, 100);
-                }
+                    } else {
+                        console.error('[Init] Function not found:', initFunctionName);
+                    }
+                    interceptGlobalFormSubmit();
+                }, 100);
             }
 
             function closeGlobalModal() {
@@ -1533,8 +1640,10 @@
                         const { materialType, action, materialLabel } = getGlobalMaterialInfo(url);
 
                         globalModal.classList.add('active');
-                        document.body.style.overflow = 'hidden'; 
+                        document.body.style.overflow = 'hidden';
 
+                        // Close dropdown menu if exists
+                        const dropdownMenu = document.querySelector('.dropdown-menu.show');
                         if(dropdownMenu) dropdownMenu.classList.remove('show');
 
                         if (action === 'create') {
@@ -1548,51 +1657,76 @@
                             globalCloseBtn.style.display = 'flex';
                         }
 
+                        console.log('[Modal] Opening URL:', url);
+                        console.log('[Modal] Material Info:', { materialType, action, materialLabel });
+
                         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                         .then(response => {
+                            console.log('[Modal] Response status:', response.status);
                             if (!response.ok) throw new Error('Network response was not ok');
                             return response.text();
                         })
                         .then(html => {
+                            console.log('[Modal] Response received, parsing HTML...');
                             const parser = new DOMParser();
                             const doc = parser.parseFromString(html, 'text/html');
-                            
+
                             // Strategy: Find the main content container first
                             // In layouts.app, content is usually in .container
                             // We look for the main .card (which usually wraps forms) or the specific form
-                            
+
                             let contentElement = null;
-                            
+
+                            // Priority 0: Special wrapper for recommendations
+                            contentElement = doc.querySelector('#recommendations-content-wrapper');
+                            if (contentElement) console.log('[Modal] Found content via #recommendations-content-wrapper');
+
                             // Priority 1: A form inside a card (standard create/edit view)
-                            contentElement = doc.querySelector('.container .card form');
-                            
+                            if (!contentElement) {
+                                contentElement = doc.querySelector('.container .card form');
+                                if (contentElement) console.log('[Modal] Found content via .container .card form');
+                            }
+
                             // Priority 2: Just the card itself
                             if (!contentElement) {
                                 contentElement = doc.querySelector('.container .card');
+                                if (contentElement) console.log('[Modal] Found content via .container .card');
                             }
-                            
+
                             // Priority 3: A form directly in container
                             if (!contentElement) {
                                 contentElement = doc.querySelector('.container form');
+                                if (contentElement) console.log('[Modal] Found content via .container form');
                             }
 
                             // Priority 4: Fallback to any form (risky, but better than nothing)
                             if (!contentElement) {
-                                contentElement = doc.querySelector('form'); 
+                                contentElement = doc.querySelector('form');
+                                if (contentElement) console.log('[Modal] Found content via form');
                             }
 
                             if (contentElement) {
-                                // If we found a form inside a card, we might want the whole card for styling
-                                const wrapperCard = contentElement.closest('.card');
-                                if (wrapperCard) {
-                                    globalModalBody.innerHTML = wrapperCard.outerHTML;
+                                console.log('[Modal] Content element found, inserting into modal...');
+                                // If we found a form inside a card (and not using special wrapper), we might want the whole card for styling
+                                if (contentElement.id !== 'recommendations-content-wrapper') {
+                                    const wrapperCard = contentElement.closest('.card');
+                                    if (wrapperCard) {
+                                        globalModalBody.innerHTML = wrapperCard.outerHTML;
+                                    } else {
+                                        globalModalBody.innerHTML = contentElement.outerHTML;
+                                    }
                                 } else {
+                                    // For special wrapper, take innerHTML to avoid double wrapping or issues?
+                                    // Actually outerHTML is fine, or innerHTML. Let's use outerHTML to keep the ID wrapper.
                                     globalModalBody.innerHTML = contentElement.outerHTML;
                                 }
 
-                                if (materialType && (action === 'create' || action === 'edit')) {
+                                console.log('[Modal] Content inserted, loading scripts...');
+                                if (materialType && (action === 'create' || action === 'edit' || materialType === 'recommendations')) {
+                                    console.log('[Modal] Loading material form script for:', materialType);
                                     loadGlobalMaterialFormScript(materialType, globalModalBody);
                                 } else {
+                                    console.log('[Modal] Intercepting form submit (no specific material type)');
                                     interceptGlobalFormSubmit();
                                 }
                             } else {
@@ -1606,7 +1740,7 @@
                                     <div style="font-weight: 600;">Gagal memuat form</div>
                                     <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">${err.message}</div>
                                 </div>`;
-                            console.error('Global Modal Error:', err);
+                            console.error('[Modal] Error:', err);
                         });
                     }
                 });

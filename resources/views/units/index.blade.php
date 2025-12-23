@@ -78,7 +78,7 @@
                                 ];
                             @endphp
 
-                            @foreach(['name', 'code', 'package_weight', 'material_type'] as $col)
+                            @foreach(['name', 'code', 'package_weight'] as $col)
                                 <th class="sortable" style="width: {{ $col == 'name' ? 'auto' : ($col == 'code' ? '80px' : '90px') }};">
                                     <a href="{{ getUnitSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                        style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
@@ -91,6 +91,7 @@
                                     </a>
                                 </th>
                             @endforeach
+                            <th style="width: 150px;">Material</th>
                             <th style="width: 100px; text-align: center;">Aksi</th>
                         </tr>
                     </thead>
@@ -114,9 +115,13 @@
                                 @endif
                             </td>
                             <td style="text-align: center;">
-                                <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;">
-                                    {{ ucfirst($unit->material_type) }}
-                                </span>
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: center;">
+                                    @foreach($unit->materialTypes as $mt)
+                                        <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;">
+                                            {{ $materialTypes[$mt->material_type] ?? ucfirst($mt->material_type) }}
+                                        </span>
+                                    @endforeach
+                                </div>
                             </td>
                             <td style="text-align: center">
                                 <div class="btn-group" style="display: flex; justify-content: center;">
@@ -154,7 +159,7 @@
                     <thead>
                         <tr>
                             <th style="width: 50px;">No</th>
-                            @foreach(['name', 'code', 'package_weight', 'material_type'] as $col)
+                            @foreach(['name', 'code', 'package_weight'] as $col)
                                 <th class="sortable" style="width: {{ $col == 'name' ? 'auto' : ($col == 'code' ? '80px' : '90px') }};">
                                     <a href="{{ getUnitSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
                                        style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
@@ -167,6 +172,7 @@
                                     </a>
                                 </th>
                             @endforeach
+                            <th style="width: 150px;">Material</th>
                             <th style="width: 100px; text-align: center;">Aksi</th>
                         </tr>
                     </thead>
@@ -190,9 +196,13 @@
                                 @endif
                             </td>
                             <td style="text-align: center;">
-                                <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;">
-                                    {{ ucfirst($unit->material_type) }}
-                                </span>
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap; justify-content: center;">
+                                    @foreach($unit->materialTypes as $mt)
+                                        <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 11px; font-weight: 600; color: #475569;">
+                                            {{ $materialTypes[$mt->material_type] ?? ucfirst($mt->material_type) }}
+                                        </span>
+                                    @endforeach
+                                </div>
                             </td>
                             <td style="text-align: center">
                                 <div class="btn-group" style="display: flex; justify-content: center;">
@@ -471,8 +481,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Close modal
-    function closeModal() {
+    // Close modal function - Global
+    window.closeFloatingModal = function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
@@ -480,13 +490,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
 
-    closeBtn.addEventListener('click', closeModal);
-    backdrop.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', window.closeFloatingModal);
+    backdrop.addEventListener('click', window.closeFloatingModal);
 
     // Close on ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
-            closeModal();
+            window.closeFloatingModal();
         }
     });
 });

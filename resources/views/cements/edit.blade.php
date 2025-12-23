@@ -386,12 +386,11 @@
             </div>
 
             <!-- Action Buttons -->
-            <div style="display: flex; justify-content: center; gap: 20px; padding-bottom: 15px;">
-                <button type="button" class="btn-cancel"
-                      onclick="window.parent.document.getElementById('closeModal').click()">Batal</button>
-                <button type="submit" class="btn-save">Update</button>
-            </div>
-        </div>
+                                                                            <div style="display: flex; justify-content: center; gap: 20px; padding-bottom: 15px;">
+                                                                                <button type="button" class="btn-cancel"
+                                                                                      onclick="if(document.getElementById('closeModal')){ document.getElementById('closeModal').click(); } else { window.history.back(); }">Batal</button>
+                                                                                <button type="submit" class="btn-save">Simpan</button>
+                                                                            </div>        </div>
 
     </form>
 </div>

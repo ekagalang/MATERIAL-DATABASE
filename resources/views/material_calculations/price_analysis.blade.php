@@ -11,8 +11,8 @@
             @csrf
             
             {{-- ROW FLEX CUSTOM --}}
-            <div class="d-md-flex align-items-end mb-3">
-                <div style="flex: 0 0 60%; max-width: 60%;" class="pe-2">
+            <div class="d-md-flex align-items-end mb-3 gap-2">
+                <div style="flex: 0 0 55%; max-width: 50%;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary" style="font-size: 0.75rem;">
                         <i class="bi bi-briefcase me-1"></i>Jenis Item Pekerjaan
                     </label>
@@ -24,7 +24,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div style="flex: 0 0 10%; max-width: 10%;" class="pe-2">
+                <div style="flex: 0 0 8%; max-width: 8%;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
                         <span class="badge bg-light text-dark border">TEBAL</span>
                     </label>
@@ -33,7 +33,7 @@
                         <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">cm</span>
                     </div>
                 </div>
-                <div style="flex: 0 0 10%; max-width: 10%;" class="pe-2">
+                <div style="flex: 0 0 8%; max-width: 8%;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
                         <span class="badge bg-light text-dark border">PANJANG</span>
                     </label>
@@ -42,7 +42,7 @@
                         <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">M</span>
                     </div>
                 </div>
-                <div style="flex: 0 0 10%; max-width: 10%;" class="pe-2">
+                <div style="flex: 0 0 8%; max-width: 8%;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
                         <span class="badge bg-light text-dark border">TINGGI</span>
                     </label>
@@ -51,20 +51,17 @@
                         <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">M</span>
                     </div>
                 </div>
-                <div style="flex: 0 0 10%; max-width: 10%;">
+                <div style="flex: 0 0 8%; max-width: 8%;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                        <span class="badge bg-primary text-white border border-primary">LUAS</span>
+                        <span class="badge bg-danger text-white border border-danger">LUAS</span>
                     </label>
                     <div class="input-group">
                         <input type="text" id="output_area" class="form-control fw-bold text-center bg-light text-primary px-1" readonly value="{{ isset($inputs['wall_area']) ? number_format($inputs['wall_area'], 2) : '1.00' }}">
-                        <span class="input-group-text bg-primary text-white small px-1" style="font-size: 0.7rem;">M2</span>
+                        <span class="input-group-text bg-danger text-white small px-1" style="font-size: 0.7rem;">M2</span>
                     </div>
                 </div>
-            </div>
-
-            <div class="row mt-4 align-items-center">                
-                <div class="col-md-4">
-                    <button type="submit" class="btn btn-primary w-30 fw-bold shadow-sm">
+                <div style="flex: 1;">
+                    <button type="submit" class="btn btn-primary w-70 fw-bold shadow-sm" style="height: 38px;">
                         <i class="bi bi-calculator-fill me-2"></i>HITUNG ANALISA
                     </button>
                 </div>

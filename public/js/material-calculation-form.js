@@ -107,29 +107,6 @@ function initMaterialCalculationForm(root, formData) {
         });
     }
 
-    // Brick brand change handler
-    const customBrickBrand = scope.querySelector('#customBrickBrand') || document.getElementById('customBrickBrand');
-    if (customBrickBrand) {
-        customBrickBrand.addEventListener('change', function() {
-            const brand = this.value;
-            const dimensionSelect = scope.querySelector('#customBrickDimension') || document.getElementById('customBrickDimension');
-
-            if (dimensionSelect) {
-                dimensionSelect.innerHTML = '<option value="">-- Pilih Dimensi --</option>';
-
-                if (brand) {
-                    const filteredBricks = bricksData.filter(b => b.brand === brand);
-                    filteredBricks.forEach(brick => {
-                        const option = document.createElement('option');
-                        option.value = brick.id;
-                        option.textContent = `${brick.dimension_length} × ${brick.dimension_width} × ${brick.dimension_height} cm - Rp ${Number(brick.price_per_piece).toLocaleString('id-ID')}`;
-                        dimensionSelect.appendChild(option);
-                    });
-                }
-            }
-        });
-    }
-
     // Cement type change handler
     const customCementType = scope.querySelector('#customCementType') || document.getElementById('customCementType');
     if (customCementType) {

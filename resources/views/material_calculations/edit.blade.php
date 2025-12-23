@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @php
     $formulaDescriptions = [];
@@ -8,242 +8,56 @@
 
     $calculationParams = $materialCalculation->calculation_params ?? [];
     $currentWorkType = $calculationParams['work_type'] ?? ($availableFormulas[0]['code'] ?? '');
+    
+    // Existing filters
+    $existingFilters = $calculationParams['price_filters'] ?? [$calculationParams['price_filter'] ?? 'best'];
 @endphp
 
 @section('content')
 <div class="card">
-    <h3 class="form-title"><i class="fas fa-edit text-warning"></i> Edit Perhitungan</h3>
-    <p class="text-muted" style="margin-top:-6px;">{{ $materialCalculation->project_name ?: 'Perhitungan Tanpa Nama' }}</p>
+    <h3 class="form-title"><i class="bi bi-pencil-square text-warning"></i> Edit Perhitungan</h3>
 
     @if ($errors->any())
         <div class="alert alert-danger">
-            <div>
-                <strong>Terdapat kesalahan pada input:</strong>
-                <ul>
-                    @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
+            <strong>Perhatian:</strong>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
         </div>
     @endif
-
-    {{--
-    <form action="{{ route('material-calculations.update', $materialCalculation) }}" method="POST" id="calculatorForm">
-        @csrf
-        @method('PUT')
-
-        <div class="section-title">Dimensi Dinding</div>
-        <div class="dimensions-container">
-            <div class="dimension-group">
-                <label>Panjang</label>
-                <div class="input-with-unit">
-                    <input
-                        type="number"
-                        name="wall_length"
-                        id="wall_length"
-                        value="{{ old('wall_length', $materialCalculation->wall_length) }}"
-                        step="0.01"
-                        min="0.01"
-                    >
-                    <span class="unit">M</span>
-                </div>
-            </div>
-            <span class="operator">x</span>
-            <div class="dimension-group">
-                <label>Tinggi</label>
-                <div class="input-with-unit">
-                    <input
-                        type="number"
-                        name="wall_height"
-                        id="wall_height"
-                        value="{{ old('wall_height', $materialCalculation->wall_height) }}"
-                        step="0.01"
-                        min="0.01"
-                    >
-                    <span class="unit">M</span>
-                </div>
-            </div>
-            <span class="operator">=</span>
-            <div class="dimension-group">
-                <label>Luas</label>
-                <div class="input-with-unit">
-                    <input
-                        type="text"
-                        id="wall_area_display"
-                        readonly
-                        style="background:#f8fafc;"
-                    >
-                    <span class="unit">M2</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="section-title">Jenis Pemasangan</div>
-        <div class="row">
-            <label>Jenis</label>
-            <div style="flex:1;">
-                <select name="installation_type_id" id="installation_type_id" required>
-                    @foreach($installationTypes as $type)
-                        <option value="{{ $type->id }}" {{ old('installation_type_id', $materialCalculation->installation_type_id) == $type->id ? 'selected' : '' }}>
-                            {{ $type->name }}
-                        </option>
-                    @endforeach
-                </select>
-                <small class="text-muted" id="installation_description" style="display:block;margin-top:6px;"></small>
-            </div>
-        </div>
-
-        <div class="section-title">Adukan</div>
-        <div class="row">
-            <label>Tebal Adukan (cm)</label>
-            <div style="flex:1;"><input type="number" name="mortar_thickness" id="mortar_thickness" value="{{ old('mortar_thickness', 1.0) }}" step="0.1" min="0.1" max="10"></div>
-        </div>
-        <div class="row">
-            <label>Metode Formula</label>
-            <div style="flex:1; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
-                <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="ratio_method" id="ratio_preset" value="preset" {{ old('use_custom_ratio', $materialCalculation->use_custom_ratio) != '1' ? 'checked' : '' }}> <span>Gunakan Formula Preset</span></label>
-                <label style="display:flex; align-items:center; gap:6px;"><input type="radio" name="ratio_method" id="ratio_custom" value="custom" {{ old('use_custom_ratio', $materialCalculation->use_custom_ratio) == '1' ? 'checked' : '' }}> <span>Input Rasio Manual</span></label>
-                <input type="hidden" name="use_custom_ratio" id="use_custom_ratio" value="{{ old('use_custom_ratio', $materialCalculation->use_custom_ratio ? '1' : '0') }}">
-            </div>
-        </div>
-
-        <div id="preset_section" style="margin-bottom:18px;">
-            <div class="row">
-                <label>Formula Preset</label>
-                <div style="flex:1;">
-                    <select name="mortar_formula_id" id="mortar_formula_id">
-                        @foreach($mortarFormulas as $formula)
-                            <option value="{{ $formula->id }}" data-cement="{{ $formula->cement_ratio }}" data-sand="{{ $formula->sand_ratio }}" data-water="{{ $formula->water_ratio }}" {{ old('mortar_formula_id', $defaultMortarFormula->id ?? '') == $formula->id ? 'selected' : '' }}>
-                                {{ $formula->name }} ({{ $formula->cement_ratio }}:{{ $formula->sand_ratio }})
-                            </option>
-                        @endforeach
-                    </select>
-                    <small class="text-muted" style="display:block;margin-top:6px;">Pilih formula campuran yang sudah tersedia</small>
-                </div>
-            </div>
-        </div>
-
-        <div id="custom_section" style="display:none; margin-bottom:18px;">
-            <div class="row">
-                <label>Rasio Custom</label>
-                <div style="flex:1; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
-                    <input type="number" name="custom_cement_ratio" id="custom_cement_ratio" value="{{ old('custom_cement_ratio', $materialCalculation->custom_cement_ratio ?? 1) }}" step="0.1" min="0.1" placeholder="Semen">
-                    <span style="color:#94a3b8;">:</span>
-                    <input type="number" name="custom_sand_ratio" id="custom_sand_ratio" value="{{ old('custom_sand_ratio', $materialCalculation->custom_sand_ratio ?? 4) }}" step="0.1" min="0.1" placeholder="Pasir">
-                    <span style="color:#94a3b8;">Air</span>
-                    <input type="number" name="custom_water_ratio" id="custom_water_ratio" value="{{ old('custom_water_ratio', $materialCalculation->custom_water_ratio ?? 0.5) }}" step="0.1" min="0" placeholder="Air">
-                </div>
-            </div>
-        </div>
-
-        <div class="alert alert-info" style="margin-bottom:18px;">
-            <small><i class="fas fa-blender"></i> Rasio yang digunakan: <strong id="ratio_display">1:4</strong></small>
-        </div>
-
-        <div class="section-title">Material (opsional)</div>
-        <div class="row">
-            <label>Bata</label>
-            <div style="flex:1;">
-                <select name="brick_id" id="brick_id">
-                    @foreach($bricks as $brick)
-                        <option value="{{ $brick->id }}" data-price="{{ $brick->price_per_piece }}" {{ old('brick_id', $materialCalculation->brick_id ?? $bricks->first()->id) == $brick->id ? 'selected' : '' }}>
-                            {{ $brick->brand }} {{ $brick->type }} - Rp {{ number_format($brick->price_per_piece, 0, ',', '.') }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            <label>Semen</label>
-            <div style="flex:1;">
-                <select name="cement_id" id="cement_id">
-                    @foreach($cements as $cement)
-                        <option value="{{ $cement->id }}" data-price="{{ $cement->package_price }}" {{ old('cement_id', $materialCalculation->cement_id ?? $cements->first()->id) == $cement->id ? 'selected' : '' }}>
-                            {{ $cement->brand }} {{ $cement->sub_brand }} - Rp {{ number_format($cement->package_price, 0, ',', '.') }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="row">
-            <label>Pasir</label>
-            <div style="flex:1;">
-                <select name="sand_id" id="sand_id">
-                    @foreach($sands as $sand)
-                        <option value="{{ $sand->id }}" data-price="{{ $sand->package_price }}" {{ old('sand_id', $materialCalculation->sand_id ?? $sands->first()->id) == $sand->id ? 'selected' : '' }}>
-                            {{ $sand->brand }} {{ $sand->type }} - Rp {{ number_format($sand->package_price, 0, ',', '.') }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-
-        <div class="section-title">Aksi</div>
-        <div class="button-actions" style="gap:10px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-info" id="btnPreview"><i class="fas fa-eye"></i> Preview Hasil</button>
-            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Update Perhitungan</button>
-            <button type="button" class="btn btn-secondary"
-                onclick="(function(){const closeBtn = window.parent && window.parent.document ? window.parent.document.getElementById('closeModal') : null; if (closeBtn) { closeBtn.click(); } else { window.location.href='{{ route('material-calculations.log') }}'; }})();">
-                <i class="fas fa-times"></i> Batal
-            </button>
-        </div>
-
-        <div class="card" style="margin-top:24px; padding:16px; background:#f8fafc;">
-            <h5 style="margin-top:0; margin-bottom:12px;">Hasil Perhitungan Saat Ini</h5>
-            <p style="margin:0; font-size:14px; color:#475569;">Panjang: <strong>{{ $materialCalculation->wall_length }} m</strong> &nbsp; | &nbsp; Tinggi: <strong>{{ $materialCalculation->wall_height }} m</strong> &nbsp; | &nbsp; Luas: <strong>{{ number_format($materialCalculation->wall_area, 2) }} m2</strong></p>
-            <p style="margin:6px 0; font-size:14px; color:#475569;">Bata: <strong>{{ number_format($materialCalculation->brick_quantity, 0) }} buah</strong> &nbsp; | &nbsp; Semen {{ $materialCalculation->cement_package_weight ?? 50 }}kg: <strong>{{ number_format($materialCalculation->cement_quantity_sak ?? $materialCalculation->cement_quantity_50kg, 2) }} sak</strong> &nbsp; | &nbsp; Pasir: <strong>{{ number_format($materialCalculation->sand_m3, 4) }} m³</strong></p>
-            <div class="alert alert-secondary" style="margin:10px 0 0;">Total Biaya Saat Ini: <strong>Rp {{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</strong></div>
-        </div>
-
-        <div id="resultPanel" class="card" style="display:none; margin-top:16px; padding:16px;">
-            <h5 style="margin-top:0;" class="text-success"><i class="fas fa-chart-line"></i> Preview Hasil Baru</h5>
-            <div id="resultContent"></div>
-        </div>
-    </form>
-    --}}
 
     <form action="{{ route('material-calculations.update', $materialCalculation) }}" method="POST" id="calculationForm">
         @csrf
         @method('PUT')
 
-        <input type="hidden" name="installation_type_id" value="{{ $materialCalculation->installation_type_id }}">
-        <input type="hidden" name="mortar_formula_id" value="{{ $materialCalculation->mortar_formula_id }}">
-        <input type="hidden" name="use_custom_ratio" value="{{ $materialCalculation->use_custom_ratio ? 1 : 0 }}">
-        <input type="hidden" name="custom_cement_ratio" value="{{ $materialCalculation->custom_cement_ratio }}">
-        <input type="hidden" name="custom_sand_ratio" value="{{ $materialCalculation->custom_sand_ratio }}">
-        <input type="hidden" name="custom_water_ratio" value="{{ $materialCalculation->custom_water_ratio }}">
-
+        {{-- WORK TYPE --}}
         <div class="form-group">
             <label>Item Pekerjaan</label>
             <div class="input-wrapper">
-                <select id="workTypeSelector" name="work_type" required>
+                <select id="workTypeSelector" name="work_type_select" required>
                     <option value="">-- Pilih Item Pekerjaan --</option>
                     @foreach($availableFormulas as $formula)
-                        <option value="{{ $formula['code'] }}"
-                            {{ old('work_type', $currentWorkType) == $formula['code'] ? 'selected' : '' }}>
+                        <option value="{{ $formula['code'] }}" {{ old('work_type', $currentWorkType) == $formula['code'] ? 'selected' : '' }}>
                             {{ $formula['name'] }}
                         </option>
                     @endforeach
                 </select>
-                <small id="workTypeDescription" class="text-muted"></small>
+                <input type="hidden" name="work_type" value="{{ old('work_type', $currentWorkType) }}">
             </div>
         </div>
 
-        <div id="inputFormContainer" style="display:none;">
-            <div id="brickForm" class="work-type-form" style="display:none;">
+        <div id="inputFormContainer" style="display:block;">
+            <div id="brickForm" class="work-type-form">
+                
+                {{-- DIMENSI --}}
                 <div class="dimensions-container">
                     <div class="dimension-group">
                         <label>Panjang</label>
                         <div class="input-with-unit">
-                            <input
-                                type="number"
-                                id="wallLength"
-                                name="wall_length"
-                                step="0.01"
-                                min="0.01"
-                                value="{{ old('wall_length', $materialCalculation->wall_length) }}"
-                            >
+                            <input type="number" name="wall_length" step="0.01" min="0.01" 
+                                value="{{ old('wall_length', $materialCalculation->wall_length) }}">
                             <span class="unit">M</span>
                         </div>
                     </div>
@@ -251,63 +65,103 @@
                     <div class="dimension-group">
                         <label>Tinggi</label>
                         <div class="input-with-unit">
-                            <input
-                                type="number"
-                                id="wallHeight"
-                                name="wall_height"
-                                step="0.01"
-                                min="0.01"
-                                value="{{ old('wall_height', $materialCalculation->wall_height) }}"
-                            >
+                            <input type="number" name="wall_height" step="0.01" min="0.01" 
+                                value="{{ old('wall_height', $materialCalculation->wall_height) }}">
                             <span class="unit">M</span>
-                        </div>
-                    </div>
-                    <span class="operator">=</span>
-                    <div class="dimension-group">
-                        <label>Luas</label>
-                        <div class="input-with-unit">
-                            <input
-                                type="number"
-                                id="wallArea"
-                                name="wall_area"
-                                readonly
-                                value="{{ old('wall_area', $materialCalculation->wall_area) }}"
-                            >
-                            <span class="unit">M2</span>
                         </div>
                     </div>
                     <div class="dimension-group">
                         <label>Tebal</label>
                         <div class="input-with-unit">
-                            <input
-                                type="number"
-                                name="mortar_thickness"
-                                value="{{ old('mortar_thickness', $materialCalculation->mortar_thickness) }}"
-                                step="0.1"
-                                min="0.1"
-                                max="10"
-                            >
+                            <input type="number" name="mortar_thickness" step="0.1" min="0.1"
+                                value="{{ old('mortar_thickness', $materialCalculation->mortar_thickness) }}">
                             <span class="unit">cm</span>
                         </div>
                     </div>
                 </div>
 
-                @php
-                    $currentPriceFilter = old('price_filter', $calculationParams['price_filter'] ?? 'cheapest');
-                @endphp
-
+                {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
                 <div class="form-group">
                     <label>+ Filter by:</label>
                     <div class="input-wrapper">
-                        <select id="priceFilter" name="price_filter">
-                            <option value="cheapest" {{ $currentPriceFilter === 'cheapest' ? 'selected' : '' }}>Termurah</option>
-                            <option value="expensive" {{ $currentPriceFilter === 'expensive' ? 'selected' : '' }}>Termahal</option>
-                            <option value="custom" {{ $currentPriceFilter === 'custom' ? 'selected' : '' }}>Custom</option>
-                        </select>
+                        <div class="filter-tickbox-list">
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
+                                <label for="filter_all">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-collection me-2 text-secondary"></i>Semua
+                                    </span>
+                                    <span class="tickbox-desc">Menampilkan semua kombinasi material</span>
+                                </label>
+                            </div>
+
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_best" value="best" {{ in_array('best', $existingFilters) ? 'checked' : '' }}>
+                                <label for="filter_best">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-star-fill me-2 text-primary"></i>TerBAIK
+                                    </span>
+                                    <span class="tickbox-desc">3 kombinasi Most Recommended (Custom Setting)</span>
+                                </label>
+                            </div>
+
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_common" value="common" {{ in_array('common', $existingFilters) ? 'checked' : '' }}>
+                                <label for="filter_common">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-people-fill me-2 text-info"></i>TerUMUM
+                                    </span>
+                                    <span class="tickbox-desc">3 kombinasi yang paling sering dihitung user</span>
+                                </label>
+                            </div>
+
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest" {{ in_array('cheapest', $existingFilters) ? 'checked' : '' }}>
+                                <label for="filter_cheapest">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-cash-coin me-2 text-success"></i>TerMURAH
+                                    </span>
+                                    <span class="tickbox-desc">3 kombinasi dengan total harga termurah</span>
+                                </label>
+                            </div>
+
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium" {{ in_array('medium', $existingFilters) ? 'checked' : '' }}>
+                                <label for="filter_medium">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-graph-up me-2 text-warning"></i>TerSEDANG
+                                    </span>
+                                    <span class="tickbox-desc">3 kombinasi dengan harga menengah</span>
+                                </label>
+                            </div>
+
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive" {{ in_array('expensive', $existingFilters) ? 'checked' : '' }}>
+                                <label for="filter_expensive">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-gem me-2 text-danger"></i>TerMAHAL
+                                    </span>
+                                    <span class="tickbox-desc">3 kombinasi dengan total harga termahal</span>
+                                </label>
+                            </div>
+
+                            <div class="tickbox-item">
+                                <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom" {{ in_array('custom', $existingFilters) ? 'checked' : '' }}>
+                                <label for="filter_custom">
+                                    <span class="tickbox-title">
+                                        <i class="bi bi-sliders me-2 text-dark"></i>Custom
+                                    </span>
+                                    <span class="tickbox-desc">Pilih material sendiri secara manual</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
+                {{-- CUSTOM FORM --}}
                 <div id="customMaterialForm" style="display:none;">
+                    
+                    {{-- 1. BATA SECTION --}}
                     <div class="material-section">
                         <h4 class="section-header">Bata</h4>
                         <div class="form-group">
@@ -316,7 +170,7 @@
                                 <select id="customBrickBrand" name="custom_brick_brand" class="select-green">
                                     <option value="">-- Pilih Merk --</option>
                                     @foreach($bricks->groupBy('brand')->keys() as $brand)
-                                        <option value="{{ $brand }}">{{ $brand }}</option>
+                                        <option value="{{ $brand }}" {{ (isset($materialCalculation->brick) && $materialCalculation->brick->brand == $brand) ? 'selected' : '' }}>{{ $brand }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -326,11 +180,17 @@
                             <div class="input-wrapper">
                                 <select id="customBrickDimension" name="brick_id" class="select-blue">
                                     <option value="">-- Pilih Dimensi --</option>
+                                    @if(isset($materialCalculation->brick))
+                                        <option value="{{ $materialCalculation->brick_id }}" selected>
+                                            {{ $materialCalculation->brick->dimension_length }} × {{ $materialCalculation->brick->dimension_width }} × {{ $materialCalculation->brick->dimension_height }} cm
+                                        </option>
+                                    @endif
                                 </select>
                             </div>
                         </div>
                     </div>
 
+                    {{-- 2. SEMEN SECTION --}}
                     <div class="material-section">
                         <h4 class="section-header">Semen</h4>
                         <div class="form-group">
@@ -339,7 +199,7 @@
                                 <select id="customCementType" name="custom_cement_type" class="select-pink">
                                     <option value="">-- Pilih Jenis --</option>
                                     @foreach($cements->groupBy('cement_name')->keys() as $type)
-                                        <option value="{{ $type }}">{{ $type }}</option>
+                                        <option value="{{ $type }}" {{ (isset($materialCalculation->cement) && $materialCalculation->cement->cement_name == $type) ? 'selected' : '' }}>{{ $type }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -349,11 +209,17 @@
                             <div class="input-wrapper">
                                 <select id="customCementBrand" name="cement_id" class="select-orange">
                                     <option value="">-- Pilih Merk --</option>
+                                    @if(isset($materialCalculation->cement))
+                                        <option value="{{ $materialCalculation->cement_id }}" selected>
+                                            {{ $materialCalculation->cement->brand }} ({{ $materialCalculation->cement->package_weight_net }}kg)
+                                        </option>
+                                    @endif
                                 </select>
                             </div>
                         </div>
                     </div>
 
+                    {{-- 3. PASIR SECTION --}}
                     <div class="material-section">
                         <h4 class="section-header">Pasir</h4>
                         <div class="form-group">
@@ -362,7 +228,7 @@
                                 <select id="customSandType" name="custom_sand_type" class="select-gray">
                                     <option value="">-- Pilih Jenis --</option>
                                     @foreach($sands->groupBy('sand_name')->keys() as $type)
-                                        <option value="{{ $type }}">{{ $type }}</option>
+                                        <option value="{{ $type }}" {{ (isset($materialCalculation->sand) && $materialCalculation->sand->sand_name == $type) ? 'selected' : '' }}>{{ $type }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -372,6 +238,9 @@
                             <div class="input-wrapper">
                                 <select id="customSandBrand" name="custom_sand_brand" class="select-gray">
                                     <option value="">-- Pilih Merk --</option>
+                                    @if(isset($materialCalculation->sand))
+                                        <option value="{{ $materialCalculation->sand->brand }}" selected>{{ $materialCalculation->sand->brand }}</option>
+                                    @endif
                                 </select>
                             </div>
                         </div>
@@ -380,38 +249,33 @@
                             <div class="input-wrapper">
                                 <select id="customSandPackage" name="sand_id" class="select-gray-light">
                                     <option value="">-- Pilih Kemasan --</option>
+                                    @if(isset($materialCalculation->sand))
+                                        <option value="{{ $materialCalculation->sand_id }}" selected>{{ $materialCalculation->sand->package_volume }} m³</option>
+                                    @endif
                                 </select>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <div id="otherForm" class="work-type-form" style="display:none;">
-                <div class="alert alert-info" style="margin-top:12px;">
-                    <i class="bi bi-info-circle"></i> Form untuk jenis pekerjaan ini akan segera tersedia
-                </div>
-            </div>
         </div>
 
         <div class="button-actions">
-            <button type="button" class="btn btn-cancel"
-                    onclick="(function(){const closeBtn = window.parent && window.parent.document ? window.parent.document.getElementById('closeModal') : null; if (closeBtn) { closeBtn.click(); } else { window.location.href='{{ route('material-calculations.show', $materialCalculation) }}'; }})();">
-                <i class="bi bi-x-lg"></i> Batalkan
-            </button>
+            <a href="{{ route('material-calculations.show', $materialCalculation) }}" class="btn btn-cancel">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
             <button type="submit" class="btn btn-submit">
-                <i class="bi bi-check-lg"></i> Simpan Perubahan
+                <i class="bi bi-save"></i> Perbarui Perhitungan
             </button>
         </div>
     </form>
 </div>
-
 @endsection
-  
+
 @push('styles')
 <style data-modal-style="material-calculation">
     * { box-sizing: border-box; }
-
+    
     .card { 
         max-width: 700px !important; 
         width: 100% !important;
@@ -421,25 +285,84 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
         margin: 10px auto; 
     }
-
-    .form-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
-    .section-title { font-weight: 700; font-size: 16px; color: #1e293b; margin: 24px 0 12px; padding-bottom: 8px; border-bottom: 2px solid #f8fafc; }
-    .row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
-    .row label { flex: 0 0 180px; font-weight: 600; color: #475569; font-size: 14px; }
-    input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #334155; background: #ffffff; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-family: inherit; }
-    textarea { resize: vertical; min-height: 90px; }
-    input[type=\"text\"]:focus, input[type=\"number\"]:focus, select:focus, textarea:focus { outline: none; border-color: #891313; box-shadow: 0 0 0 4px rgba(137,19,19,0.08); background: #fffbfb; }
-    select { cursor: pointer; appearance: none; background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
-    .btn { padding: 11px 20px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: inline-flex; align-items: center; gap: 8px; font-family: inherit; }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .btn-secondary { background: transparent; color: #64748b; border: 1.5px solid #e2e8f0; }
-    .btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
-    .btn-success { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); color: #fff; border: none; box-shadow: 0 2px 8px rgba(22,163,74,0.3); }
-    .btn-success:hover { background: linear-gradient(135deg, #15803d 0%, #166534 100%); box-shadow: 0 4px 12px rgba(22,163,74,0.4); }
-    .btn-info { background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: #fff; }
-    .btn-info:hover { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
-
-    /* Dimensions layout like create view */
+    
+    .form-title { 
+        font-size: 18px; 
+        font-weight: 700; 
+        color: #1e293b; 
+        margin-bottom: 20px; 
+        padding-bottom: 12px; 
+        border-bottom: 1px solid #e2e8f0; 
+    }
+    
+    .form-group { 
+        display: flex; 
+        align-items: flex-start; 
+        gap: 12px; 
+        margin-bottom: 12px; 
+    }
+    
+    .form-group label { 
+        flex: 0 0 120px; 
+        font-weight: 400; 
+        color: #1e293b; 
+        font-size: 14px; 
+        padding-top: 10px;
+        text-align: left;
+    }
+    
+    .input-wrapper { 
+        flex: 1; 
+    }
+    
+    input[type="text"], 
+    input[type="number"], 
+    select { 
+        width: 100%; 
+        padding: 8px 12px; 
+        border: 1px solid #cbd5e1; 
+        border-radius: 4px; 
+        font-size: 14px; 
+        color: #1e293b; 
+        background: #fff; 
+        font-family: inherit; 
+    }
+    
+    /* Hide number input arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+    
+    input[type="text"]:focus, 
+    input[type="number"]:focus, 
+    select:focus { 
+        outline: none; 
+        border-color: #64748b; 
+    }
+    
+    select { 
+        cursor: pointer; 
+        appearance: none; 
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 9L1 4h10z'/%3E%3C/svg%3E"); 
+        background-repeat: no-repeat; 
+        background-position: right 12px center; 
+        padding-right: 32px; 
+    }
+    
+    /* Colored select backgrounds */
+    .select-green { background-color: #d1fae5 !important; }
+    .select-blue { background-color: #bfdbfe !important; }
+    .select-pink { background-color: #fbcfe8 !important; }
+    .select-orange { background-color: #fed7aa !important; }
+    .select-gray { background-color: #e2e8f0 !important; }
+    .select-gray-light { background-color: #f1f5f9 !important; }
+    
+    /* Dimensions container */
     .dimensions-container { 
         display: flex; 
         align-items: flex-end; 
@@ -496,7 +419,7 @@
         font-weight: 600;
         border-left: 1px solid #cbd5e1;
     }
-
+    
     .operator { 
         font-weight: 700; 
         color: #94a3b8; 
@@ -504,11 +427,198 @@
         margin-bottom: 8px;
         flex: 0 0 auto;
     }
-    .alert { padding: 16px 20px; border-radius: 10px; margin-bottom: 16px; font-size: 14px; }
-    .alert-danger { background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border: 1.5px solid #fca5a5; color: #991b1b; }
-    .alert-secondary { background: #e2e8f0; color: #111827; border: 1px solid #cbd5e1; }
-    .button-actions { display: flex; justify-content: flex-start; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-    @media (max-width: 768px) { .row { flex-direction: column; align-items: flex-start; gap: 8px; } .row label { flex: unset; } .button-actions { flex-direction: column-reverse; } .btn { width: 100%; justify-content: center; } }
+    
+    /* Material sections */
+    .material-section { 
+        margin-top: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .section-header { 
+        font-weight: 700; 
+        font-size: 15px; 
+        color: #1e293b; 
+        margin-bottom: 12px;
+    }
+    
+    /* Buttons */
+    .button-actions { 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 12px; 
+        margin-top: 24px; 
+        padding-top: 16px; 
+        border-top: 1px solid #e2e8f0; 
+    }
+    
+    .btn { 
+        padding: 10px 24px; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        font-size: 14px; 
+        font-weight: 600; 
+        transition: all 0.2s; 
+        display: inline-flex; 
+        align-items: center; 
+        gap: 6px; 
+        font-family: inherit; 
+    }
+    
+    .btn:hover { 
+        transform: translateY(-1px); 
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15); 
+    }
+    
+    .btn-cancel { 
+        background: #fff; 
+        color: #dc2626; 
+        border: 1px solid #dc2626; 
+    }
+    
+    .btn-cancel:hover { 
+        background: #fef2f2; 
+    }
+    
+    .btn-submit { 
+        background: #16a34a; 
+        color: #fff; 
+        border: none; 
+    }
+    
+    .btn-submit:hover { 
+        background: #15803d; 
+    }
+    
+    /* Alert */
+    .alert { 
+        padding: 12px 16px; 
+        border-radius: 4px; 
+        margin-bottom: 16px; 
+        font-size: 14px; 
+    }
+    
+    .alert-danger { 
+        background: #fee2e2; 
+        border: 1px solid #fca5a5; 
+        color: #991b1b; 
+    }
+    
+    .alert-info {
+        background: #dbeafe;
+        border: 1px solid #93c5fd;
+        color: #1e40af;
+    }
+
+    /* Filter tickbox list */
+    .filter-tickbox-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .tickbox-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 8px;
+        background: #fff;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .tickbox-item:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+
+    .tickbox-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        margin-top: 2px;
+        cursor: pointer;
+        flex-shrink: 0;
+        accent-color: #891313;
+    }
+
+    .tickbox-item label {
+        flex: 1;
+        cursor: pointer;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .tickbox-item .tickbox-title {
+        font-weight: 600;
+        font-size: 14px;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+    }
+
+    .tickbox-item .tickbox-desc {
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.4;
+    }
+
+    .tickbox-item input[type="checkbox"]:checked ~ label {
+        color: #0f172a;
+    }
+
+    .tickbox-item input[type="checkbox"]:checked ~ label .tickbox-title {
+        font-weight: 700;
+        color: #891313;
+    }
+
+    .tickbox-item:has(input[type="checkbox"]:checked) {
+        background: #fff1f2;
+        border-color: #891313;
+        box-shadow: 0 2px 8px rgba(137, 19, 19, 0.15);
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .form-group {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .form-group label {
+            flex: unset;
+            padding-top: 0;
+        }
+
+        .dimensions-container {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .dimension-group {
+            width: 100%;
+        }
+
+        .input-with-unit input {
+            width: 100%;
+        }
+
+        .button-actions {
+            flex-direction: column-reverse;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
 </style>
 @endpush
 
@@ -528,6 +638,89 @@
         const payload = dataScript ? JSON.parse(dataScript.textContent) : null;
         if (typeof initMaterialCalculationForm === 'function') {
             initMaterialCalculationForm(document, payload);
+        }
+
+        // Handle filter checkboxes (multiple selection)
+        const filterCheckboxes = document.querySelectorAll('input[name="price_filters[]"]');
+        const customForm = document.getElementById('customMaterialForm');
+        const filterAll = document.getElementById('filter_all');
+        const filterCustom = document.getElementById('filter_custom');
+
+        // Function to toggle custom form visibility
+        function toggleCustomForm() {
+            if (filterCustom && filterCustom.checked) {
+                customForm.style.display = 'block';
+            } else {
+                customForm.style.display = 'none';
+            }
+        }
+
+        // Function to handle "Semua" checkbox
+        function handleAllCheckbox() {
+            if (filterAll && filterAll.checked) {
+                // Check all other checkboxes except custom
+                filterCheckboxes.forEach(checkbox => {
+                    if (checkbox === filterAll) return;
+
+                    if (checkbox.value === 'custom') {
+                        checkbox.checked = false;
+                    } else {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+        }
+
+        // Function to uncheck "Semua" if any other checkbox is unchecked
+        function handleOtherCheckboxes() {
+            const allOthersChecked = Array.from(filterCheckboxes).every(checkbox => {
+                return checkbox === filterAll || (checkbox.value !== 'custom' && checkbox.checked);
+            });
+
+            if (filterAll && !allOthersChecked) {
+                filterAll.checked = false;
+            }
+        }
+
+        // Initialize form visibility on page load
+        toggleCustomForm();
+
+        // Trigger change on load for custom selects to populate them if editing custom
+        @if(in_array('custom', $existingFilters))
+            const brickBrand = document.getElementById('customBrickBrand');
+            if(brickBrand) brickBrand.dispatchEvent(new Event('change'));
+            
+            const cementType = document.getElementById('customCementType');
+            if(cementType) cementType.dispatchEvent(new Event('change'));
+            
+            const sandType = document.getElementById('customSandType');
+            if(sandType) sandType.dispatchEvent(new Event('change'));
+        @endif
+
+        // Add event listeners
+        if (filterAll) {
+            filterAll.addEventListener('change', function() {
+                handleAllCheckbox();
+                toggleCustomForm();
+            });
+        }
+
+        filterCheckboxes.forEach(checkbox => {
+            if (checkbox !== filterAll) {
+                checkbox.addEventListener('change', function() {
+                    handleOtherCheckboxes();
+                    toggleCustomForm();
+                });
+            }
+        });
+
+        // Sync workTypeSelector with hidden work_type input
+        const workTypeSelect = document.getElementById('workTypeSelector');
+        const workTypeHidden = document.querySelector('input[name="work_type"]');
+        if(workTypeSelect && workTypeHidden) {
+            workTypeSelect.addEventListener('change', function() {
+                workTypeHidden.value = this.value;
+            });
         }
     })();
 </script>
