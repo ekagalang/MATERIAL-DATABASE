@@ -1,0 +1,349 @@
+<?php
+
+namespace App\Services\Formula;
+
+use App\Models\Brick;
+use App\Models\BrickInstallationType;
+use App\Models\Cement;
+use App\Models\MortarFormula;
+use App\Models\Sand;
+
+/**
+ * Formula - Perhitungan Material Bata Rollag (1/4 Bata)
+ * Dibuat sesuai ketentuan perhitungan volume adukan pekerjaan
+ */
+class BrickRollagFormula implements FormulaInterface
+{
+    public static function getCode(): string
+    {
+        return 'brick_rollag';
+    }
+
+    public static function getName(): string
+    {
+        return 'Pasang Dinding Bata Merah (Rollag)';
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Menghitung pemasangan Bata Rollag dengan input tingkat adukan dan tingkat bata.';
+    }
+
+    public function validate(array $params): bool
+    {
+        // Validasi input standar + input baru
+        $required = [
+            'wall_length',
+            'wall_height',
+            'installation_type_id',
+            'mortar_formula_id',
+            'layer_count'   // Input tunggal untuk tingkat
+        ];
+
+        foreach ($required as $field) {
+            if (!isset($params[$field]) || $params[$field] < 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function calculate(array $params): array
+    {
+        $trace = $this->trace($params);
+        return $trace['final_result'];
+    }
+
+    public function trace(array $params): array
+    {
+        $trace = [];
+        $trace['mode'] = self::getName();
+        $trace['steps'] = [];
+
+        // ============ STEP 1: Load Input Parameters ============
+        $panjangRollag = $params['wall_length']; 
+        $tebalAdukan = $params['mortar_thickness'] ?? 1.0; // cm
+        $jumlahTingkat = $params['layer_count'] ?? 1;
+
+        $trace['steps'][] = [
+            'step' => 1,
+            'title' => 'Input Parameters',
+            'calculations' => [
+                'Panjang Rollag' => $panjangRollag . ' m',
+                'Tebal Adukan' => $tebalAdukan . ' cm',
+                'Jumlah Tingkat' => $jumlahTingkat,
+            ],
+        ];
+
+        // ============ STEP 2: Load Data dari Database ============
+        // Note: installation_type_id dan mortar_formula_id digunakan untuk mengambil data tapi tidak langsung di rumus baru ini
+        // kecuali ratio pasir (mortar formula)
+        $mortarFormula = MortarFormula::findOrFail($params['mortar_formula_id']);
+        $brick = Brick::find($params['brick_id'] ?? null) ?? Brick::first();
+        $cement = isset($params['cement_id']) ? Cement::find($params['cement_id']) : Cement::first();
+        $sand = isset($params['sand_id']) ? Sand::find($params['sand_id']) : Sand::first();
+
+        // Dimensi dalam cm
+        $panjangBata = $brick->dimension_length ?? 19.2;
+        $lebarBata = $brick->dimension_width ?? 9;
+        $tinggiBata = $brick->dimension_height ?? 8;
+        
+        // Lebar Rollag diasumsikan sama dengan Lebar Bata
+        $lebarRollag = $panjangBata; // cm
+
+        $beratSemenPerSak = $cement && $cement->package_weight_net > 0 ? $cement->package_weight_net : 50;
+
+        $trace['steps'][] = [
+            'step' => 2,
+            'title' => 'Data dari Database',
+            'calculations' => [
+                'Dimensi Bata (P x L x T)' => "$panjangBata x $lebarBata x $tinggiBata cm",
+                'Lebar Rollag' => $lebarRollag . ' cm',
+                'Berat Semen per Sak' => $beratSemenPerSak . ' kg',
+                'Rasio Mortar' => $mortarFormula->cement_ratio . ':' . $mortarFormula->sand_ratio,
+            ],
+        ];
+
+        // ============ STEP 3: Hitung baris horizontal adukan ============
+        // Rumus: (Panjang Rollag - (Tinggi bata / 100)) / ((Tinggi Bata + Tebal adukan) / 100) (jika desimal bulatkan keatas)
+        
+        $pembilang = $panjangRollag - ($tinggiBata / 100);
+        $penyebut = ($tinggiBata + $tebalAdukan) / 100;
+        
+        $barisHorizontalAdukanRaw = 0;
+        if ($penyebut > 0) {
+            $barisHorizontalAdukanRaw = $pembilang / $penyebut;
+        }
+        
+        $barisHorizontalAdukan = ceil($barisHorizontalAdukanRaw); 
+
+        $trace['steps'][] = [
+            'step' => 3,
+            'title' => 'Baris Horizontal Adukan',
+            'formula' => '(Panjang Rollag - (Tinggi bata / 100)) / ((Tinggi Bata + Tebal adukan) / 100)',
+            'info' => 'Dibulatkan keatas',
+            'calculations' => [
+                'Perhitungan' => "($panjangRollag - ($tinggiBata / 100)) / (($tinggiBata + $tebalAdukan) / 100)",
+                'Raw' => number_format($barisHorizontalAdukanRaw, 4),
+                'Hasil' => $barisHorizontalAdukan,
+            ],
+        ];
+
+        // ============ STEP 4: Hitung kolom vertikal bata ============
+        // Rumus: ((Panjang Rollag - (Tinggi bata / 100)) / ((Tinggi bata + Tebal adukan) / 100)) + 1 (jika desimal bulatkan keatas)
+        
+        $kolomVertikalBataRaw = 0;
+        if ($penyebut > 0) {
+            $kolomVertikalBataRaw = ($pembilang / $penyebut) + 1;
+        }
+        
+        $kolomVertikalBata = ceil($kolomVertikalBataRaw);
+
+        $trace['steps'][] = [
+            'step' => 4,
+            'title' => 'Kolom Vertikal Bata',
+            'formula' => '((Panjang Rollag - (Tinggi bata / 100)) / ((Tinggi bata + Tebal adukan) / 100)) + 1',
+            'info' => 'Dibulatkan keatas',
+            'calculations' => [
+                'Perhitungan' => "(($panjangRollag - ($tinggiBata / 100)) / (($tinggiBata + $tebalAdukan) / 100)) + 1",
+                'Raw' => number_format($kolomVertikalBataRaw, 4),
+                'Hasil' => $kolomVertikalBata,
+            ],
+        ];
+
+        // ============ STEP 5: Hitung Jumlah Bata ============
+        // Rumus: Jumlah tingkat bata * Kolom vertikal bata
+        $jumlahBata = $jumlahTingkat * $kolomVertikalBata;
+
+        $trace['steps'][] = [
+            'step' => 5,
+            'title' => 'Jumlah Bata',
+            'formula' => 'Jumlah tingkat * Kolom vertikal bata',
+            'calculations' => [
+                'Perhitungan' => "$jumlahTingkat * $kolomVertikalBata",
+                'Hasil' => number_format($jumlahBata),
+            ],
+        ];
+
+        // ============ STEP 6: Hitung Panjang Adukan ============
+        // Rumus: Panjang bata * (baris horizontal adukan / 100) * jumlah tingkat adukan
+        // Interpretasi: (Panjang bata * baris * tingkat) / 100 -> Meter
+        
+        $panjangAdukan = $panjangBata * ($barisHorizontalAdukan / 100) * $jumlahTingkat;
+
+        $trace['steps'][] = [
+            'step' => 6,
+            'title' => 'Panjang Adukan',
+            'formula' => 'Panjang bata * (baris horizontal adukan / 100) * jumlah tingkat',
+            'calculations' => [
+                'Perhitungan' => "$panjangBata * ($barisHorizontalAdukan / 100) * $jumlahTingkat",
+                'Hasil' => number_format($panjangAdukan, 4) . ' m',
+            ],
+        ];
+
+        // ============ STEP 7: Hitung Luas Adukan ============
+        // Rumus: Panjang adukan * tebal adukan / 100
+        $luasAdukan = $panjangAdukan * ($tebalAdukan / 100);
+
+        $trace['steps'][] = [
+            'step' => 7,
+            'title' => 'Luas Adukan',
+            'formula' => 'Panjang adukan * tebal adukan / 100',
+            'calculations' => [
+                'Perhitungan' => "$panjangAdukan * $tebalAdukan / 100",
+                'Hasil' => number_format($luasAdukan, 6) . ' m²',
+            ],
+        ];
+
+        // ============ STEP 8: Hitung Luas Rollag ============
+        // Rumus: Panjang Rollag * lebar rollag
+        $luasRollag = $panjangRollag * ($lebarRollag / 100);
+
+        $trace['steps'][] = [
+            'step' => 8,
+            'title' => 'Luas Rollag',
+            'formula' => 'Panjang Rollag * lebar rollag',
+            'info' => 'Lebar rollag dikonversi ke meter',
+            'calculations' => [
+                'Perhitungan' => "$panjangRollag * ($lebarRollag / 100)",
+                'Hasil' => number_format($luasRollag, 6) . ' m²',
+            ],
+        ];
+
+        // ============ STEP 9: Hitung Volume Adukan Pekerjaan ============
+        // Rumus: (Luas Adukan * (lebar bata / 100)) + ((Luas Rollag * (tebal adukan / 100)) * Jumlah tingkat bata)
+        
+        $part1 = $luasAdukan * ($lebarBata / 100);
+        $part2 = ($luasRollag * ($tebalAdukan / 100)) * $jumlahTingkat;
+        
+        $volumeAdukanPekerjaan = $part1 + $part2;
+
+        $trace['steps'][] = [
+            'step' => 9,
+            'title' => 'Volume Adukan Pekerjaan',
+            'formula' => '(Luas Adukan * (lebar bata / 100)) + ((Luas Rollag * (tebal adukan / 100)) * Jumlah tingkat bata)',
+            'calculations' => [
+                'Part 1' => "$luasAdukan * ($lebarBata / 100) = " . number_format($part1, 6),
+                'Part 2' => "($luasRollag * ($tebalAdukan / 100)) * $jumlahTingkat = " . number_format($part2, 6),
+                'Hasil' => number_format($volumeAdukanPekerjaan, 6) . ' m³',
+            ],
+        ];
+
+        // ============ STEP 10: Komposisi Volume Adukan (1 M3) ============
+        $densitySemen = 1440;
+        
+        // kubik semen
+        $kubikSemenPerSak = $beratSemenPerSak * (1 / $densitySemen);
+        
+        // kubik pasir
+        $ratioPasir = $mortarFormula->sand_ratio;
+        $kubikPasirPerSakSemen = $kubikSemenPerSak * $ratioPasir;
+        
+        // kubik air (asumsi 30% dari volume padat)
+        $kubikAirPerSakSemen = 0.30 * ($kubikSemenPerSak + $kubikPasirPerSakSemen);
+        
+        // kebutuhan air
+        $kebutuhanAirLiterPerSakSemen = $kubikAirPerSakSemen * 1000;
+        
+        // Volume adukan yield per sak
+        $volumeAdukanPerSakSemen = $kubikSemenPerSak + $kubikPasirPerSakSemen + $kubikAirPerSakSemen;
+
+        $trace['steps'][] = [
+            'step' => 10,
+            'title' => 'Analisa Campuran per 1 Sak Semen',
+            'calculations' => [
+                'Kubik Semen' => number_format($kubikSemenPerSak, 6) . ' m³',
+                'Kubik Pasir' => number_format($kubikPasirPerSakSemen, 6) . ' m³',
+                'Kubik Air' => number_format($kubikAirPerSakSemen, 6) . ' m³',
+                'Total Volume Adukan (Yield)' => number_format($volumeAdukanPerSakSemen, 6) . ' m³',
+            ],
+        ];
+
+        // ============ STEP 11: Menghitung kebutuhan volume adukan untuk 1 M3 ============
+        if ($volumeAdukanPerSakSemen > 0) {
+            $sakSemen1M3 = 1 / $volumeAdukanPerSakSemen;
+        } else {
+            $sakSemen1M3 = 0;
+        }
+        
+        $kgSemen1M3 = $beratSemenPerSak / $volumeAdukanPerSakSemen;
+        $kubikSemen1M3 = $kubikSemenPerSak / $volumeAdukanPerSakSemen;
+        $sakPasir1M3 = $ratioPasir / $volumeAdukanPerSakSemen; // Asumsi sak pasir mengikuti rasio semen
+        $kubikPasir1M3 = $kubikPasirPerSakSemen / $volumeAdukanPerSakSemen;
+        $literAir1M3 = $kebutuhanAirLiterPerSakSemen / $volumeAdukanPerSakSemen;
+        $kubikAir1M3 = $kubikAirPerSakSemen / $volumeAdukanPerSakSemen;
+
+        $trace['steps'][] = [
+            'step' => 11,
+            'title' => 'Koefisien Material per 1 M³ Adukan',
+            'calculations' => [
+                'Sak Semen 1 M³' => number_format($sakSemen1M3, 4) . ' sak',
+                'Kg Semen 1 M³' => number_format($kgSemen1M3, 4) . ' kg',
+                'Kubik Pasir 1 M³' => number_format($kubikPasir1M3, 4) . ' m³',
+                'Liter Air 1 M³' => number_format($literAir1M3, 2) . ' liter',
+            ],
+        ];
+
+        // ============ STEP 12: Menghitung kebutuhan volume adukan pekerjaan ============
+        $sakSemenPekerjaan = $sakSemen1M3 * $volumeAdukanPekerjaan;
+        $kgSemenPekerjaan = $kgSemen1M3 * $volumeAdukanPekerjaan;
+        $kubikSemenPekerjaan = $kubikSemen1M3 * $volumeAdukanPekerjaan;
+        
+        $sakPasirPekerjaan = $sakPasir1M3 * $volumeAdukanPekerjaan;
+        $kubikPasirPekerjaan = $kubikPasir1M3 * $volumeAdukanPekerjaan;
+        
+        $literAirPekerjaan = $literAir1M3 * $volumeAdukanPekerjaan;
+        $kubikAirPekerjaan = $kubikAir1M3 * $volumeAdukanPekerjaan;
+
+        $trace['steps'][] = [
+            'step' => 12,
+            'title' => 'Kebutuhan Material Pekerjaan',
+            'info' => "Volume Pekerjaan: " . number_format($volumeAdukanPekerjaan, 6) . " m³",
+            'calculations' => [
+                'Semen (Sak)' => number_format($sakSemenPekerjaan, 4),
+                'Semen (Kg)' => number_format($kgSemenPekerjaan, 4),
+                'Pasir (m³)' => number_format($kubikPasirPekerjaan, 4),
+                'Air (Liter)' => number_format($literAirPekerjaan, 2),
+            ],
+        ];
+
+        // ============ Final Result Calculation ============
+        
+        // Harga
+        $brickPrice = $brick->price_per_piece ?? 0;
+        $cementPrice = $cement->package_price ?? 0; // Harga per sak
+        
+        $sandPricePerM3 = $sand->comparison_price_per_m3 ?? 0;
+        if ($sandPricePerM3 == 0 && $sand->package_price && $sand->package_volume > 0) {
+            $sandPricePerM3 = $sand->package_price / $sand->package_volume;
+        }
+
+        $totalBrickPrice = $jumlahBata * $brickPrice;
+        $totalCementPrice = $sakSemenPekerjaan * $cementPrice;
+        $totalSandPrice = $kubikPasirPekerjaan * $sandPricePerM3;
+        
+        $grandTotal = $totalBrickPrice + $totalCementPrice + $totalSandPrice;
+
+        $trace['final_result'] = [
+            'total_bricks' => $jumlahBata,
+            'cement_sak' => $sakSemenPekerjaan,
+            'cement_kg' => $kgSemenPekerjaan,
+            'cement_m3' => $kubikSemenPekerjaan,
+            'sand_m3' => $kubikPasirPekerjaan,
+            'sand_sak' => $sakPasirPekerjaan,
+            'water_liters' => $literAirPekerjaan,
+            
+            // Prices
+            'brick_price_per_piece' => $brickPrice,
+            'total_brick_price' => $totalBrickPrice,
+            'cement_price_per_sak' => $cementPrice,
+            'total_cement_price' => $totalCementPrice,
+            'sand_price_per_m3' => $sandPricePerM3,
+            'total_sand_price' => $totalSandPrice,
+            'grand_total' => $grandTotal,
+        ];
+
+        return $trace;
+    }
+}

@@ -53,7 +53,7 @@
                         
                         <div class="ps-5">
                             <div class="row g-4">
-                                <div class="col-lg-4 col-md-6">
+                                <div class="col-lg-3 col-md-6">
                                     <label class="form-label fw-semibold">Panjang Dinding</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
@@ -64,7 +64,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-lg-4 col-md-6">
+                                <div class="col-lg-3 col-md-6">
                                     <label class="form-label fw-semibold">Tinggi Dinding</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
@@ -75,13 +75,25 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-lg-4 col-md-6">
+                                <div class="col-lg-3 col-md-6">
                                     <label class="form-label fw-semibold">Tebal Adukan</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
                                             name="mortar_thickness" value="1.0" step="0.1" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             cm
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {{-- Input Tingkat untuk Rollag --}}
+                                <div class="col-lg-3 col-md-6" id="layerCountGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Tingkat</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                            name="layer_count" value="1" step="1" required>
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            lapis
                                         </span>
                                     </div>
                                 </div>
@@ -207,6 +219,18 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
         alert('Terjadi kesalahan saat melakukan perhitungan');
     }
 });
+
+document.getElementById('formulaSelector').addEventListener('change', function() {
+    const layerCountGroup = document.getElementById('layerCountGroup');
+    if (this.value === 'brick_rollag') {
+        layerCountGroup.style.display = 'block';
+    } else {
+        layerCountGroup.style.display = 'none';
+    }
+});
+
+// Initial check in case the default selection is brick_rollag
+document.getElementById('formulaSelector').dispatchEvent(new Event('change'));
 
 function renderTrace(trace, containerId) {
     let html = `

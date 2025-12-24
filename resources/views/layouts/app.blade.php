@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Database Material')</title>
+    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -266,7 +267,7 @@
             padding: 10px 14px;
             border: 1.5px solid #e2e8f0;
             border-radius: 10px;
-            font-size: 13.5px;
+            font-size: 16px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             font-family: inherit;
             background: #ffffff;
@@ -718,6 +719,7 @@
         /* Nested Dropdown Styling */
         .dropdown-item-parent {
             position: relative;
+            z-index: 100001;
         }
 
         .dropdown-item-trigger {
@@ -747,7 +749,7 @@
         .dropdown-sub-menu {
             position: absolute;
             top: -8px; /* Slight offset to align nicely */
-            left: 100%;
+            left: 95%; /* Overlap with parent - shifted left */
             background: #ffffff;
             border-radius: 16px;
             box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);
@@ -758,8 +760,8 @@
             visibility: hidden;
             transform: translateX(10px);
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 1000;
-            margin-left: 8px; /* Spacing from parent */
+            z-index: 1001; /* Higher than parent */
+            margin-left: -10px; /* Negative margin to shift left and overlap */
         }
 
         .dropdown-item-parent:hover .dropdown-sub-menu,
@@ -782,8 +784,19 @@
             padding: 6px 10px; /* Compact padding */
             border: none;
             white-space: nowrap; /* Prevent wrapping text */
+            border-radius: 8px;
+            transition: all 0.2s ease;
         }
-        
+
+        .dropdown-sub-menu .dropdown-item:hover,
+        .dropdown-sub-menu .dropdown-item:focus {
+            background: #fff1f2 !important;
+            color: #891313 !important;
+            font-weight: 600;
+            transform: translateX(4px);
+            box-shadow: 0 2px 8px rgba(137, 19, 19, 0.15);
+        }
+
         .dropdown-sub-menu .dropdown-header {
             padding: 0 16px;
             margin-bottom: 8px;
@@ -893,8 +906,24 @@
             cursor: pointer;
             user-select: none;
             position: relative;
+            padding-left: 36px !important; /* Space for checkbox */
         }
-        
+
+        /* Custom Checkbox Box - Always Visible */
+        .checkbox-item::before {
+            content: '';
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid #cbd5e1;
+            border-radius: 4px;
+            background: #ffffff;
+            transition: all 0.2s ease;
+        }
+
         .nav-material-toggle {
             position: absolute;
             opacity: 0;
@@ -902,28 +931,37 @@
             height: 0;
             width: 0;
         }
-        
+
         .checkbox-item.checked {
             background: #fff1f2;
             color: #891313;
             border-color: #fecaca;
             font-weight: 600;
         }
-        
-        .checkbox-item.checked .icon-box {
-            background: #ffe4e6;
-            color: #891313;
+
+        /* Checkbox checked state */
+        .checkbox-item.checked::before {
+            background: #891313;
+            border-color: #891313;
         }
-        
+
+        /* Checkmark inside checkbox */
         .checkbox-item.checked::after {
             content: '\F26B'; /* Bootstrap check icon */
             font-family: 'bootstrap-icons';
             position: absolute;
-            right: 10px;
-            font-size: 14px;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #ffffff;
+        }
+
+        .checkbox-item.checked .icon-box {
+            background: #ffe4e6;
             color: #891313;
         }
-        
+
         /* --- GLOBAL MODAL CSS --- */
         .floating-modal {
             display: none;
@@ -1278,6 +1316,27 @@
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
                 Satuan
             </a>
+
+            <!-- Settings Dropdown -->
+            <div class="nav-dropdown-wrapper" style="margin-left: auto;">
+                <button type="button" class="nav-link-btn {{ request()->routeIs('settings.*') ? 'active' : '' }}" id="settingsDropdownToggle">
+                    <i class="bi bi-gear"></i> <i class="bi bi-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
+                </button>
+
+                <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
+                    <div class="nav-dropdown-content">
+                        <!-- Menu Item: Rekomendasi TerBAIK -->
+                        <div class="dropdown-item-parent">
+                            <a href="{{ route('settings.recommendations.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Rekomendasi TerBAIK
+                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         @if(session('success'))
@@ -1457,9 +1516,10 @@
             }
             }
 
-            // Initialize both dropdowns
+            // Initialize all dropdowns
             initializeDropdown('materialDropdownToggle', 'materialDropdownMenu');
             initializeDropdown('workItemDropdownToggle', 'workItemDropdownMenu');
+            initializeDropdown('settingsDropdownToggle', 'settingsDropdownMenu');
 
             // --- Navbar Material Filter Logic (Tick & Go) ---
             const navToggles = document.querySelectorAll('.nav-material-toggle');

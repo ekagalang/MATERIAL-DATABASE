@@ -27,7 +27,7 @@ class DashboardController extends Controller
 
         // Other features (Under Dev)
         $storeCount = null;
-        $workItemCount = null;
+        $workItemCount = count(\App\Services\FormulaRegistry::all());
         $workerCount = null;
         $skillCount = null;
 

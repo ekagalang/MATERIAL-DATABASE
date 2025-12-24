@@ -9,24 +9,23 @@ use App\Models\MortarFormula;
 use App\Models\Sand;
 
 /**
- * Formula Trial - Perhitungan Material Bata
- * Dibuat sesuai ketentuan perhitungan volume adukan pekerjaan
+ * Formula Perhitungan Material Bata (1/4 Bata)
  */
-class BrickFullFormula implements FormulaInterface
+class BrickQuarterFormula implements FormulaInterface
 {
     public static function getCode(): string
     {
-        return 'brick_full';
+        return 'brick_quarter';
     }
 
     public static function getName(): string
     {
-        return 'Pasang Dinding Bata Merah (1 Bata)';
+        return 'Pasang Dinding Bata Merah (1/4 Bata)';
     }
 
     public static function getDescription(): string
     {
-        return 'Menghitung pemasangan Bata 1 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
+        return 'Menghitung pemasangan Bata 1/4 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
     }
 
     public function validate(array $params): bool
@@ -92,8 +91,8 @@ class BrickFullFormula implements FormulaInterface
         ];
 
         // ============ STEP 3: Hitung kolom vertikal bata ============
-        // kolom vertikal bata = (tinggi dinding - (tebal adukan/100)) / ((tinggi bata + tebal adukan)/100). (jika hasilnya desimal maka dibulatkan keatas)
-        $kolomVertikalBataRaw = ($tinggiDinding - ($tebalAdukan / 100)) / (($tinggiBata + $tebalAdukan) / 100);
+        // kolom vertikal bata = (tinggi dinding - (tebal adukan/100)) / ((lebar bata + tebal adukan)/100). (jika hasilnya desimal maka dibulatkan keatas)
+        $kolomVertikalBataRaw = ($tinggiDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100);
         $decimal = $kolomVertikalBataRaw - floor($kolomVertikalBataRaw);
         $kolomVertikalBata = floor($kolomVertikalBataRaw);
         if ($decimal > 0) {
@@ -103,10 +102,10 @@ class BrickFullFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 3,
             'title' => 'Kolom Vertikal Bata',
-            'formula' => 'tinggi dinding / ((tinggi bata + tebal adukan)/100)',
+            'formula' => '(tinggi dinding - (tebal adukan / 100)) / ((lebar bata + tebal adukan)/100)',
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
-                'Perhitungan' => "$tinggiDinding / (($tinggiBata + $tebalAdukan) / 100)",
+                'Perhitungan' => "($tinggiDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100)",
                 'Raw' => number_format($kolomVertikalBataRaw, 4),
                 'Desimal' => number_format($decimal, 4),
                 'Hasil' => $kolomVertikalBata . ' baris',
@@ -115,7 +114,7 @@ class BrickFullFormula implements FormulaInterface
 
         // ============ STEP 4: Hitung baris horizontal bata ============
         // baris horizontal bata = Panjang dinding / ((Panjang bata + tebal adukan)/100). (jika hasilnya desimal maka dibulatkan keatas)
-        $barisHorizontalBataRaw = ($panjangDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100);
+        $barisHorizontalBataRaw = ($panjangDinding - $tebalAdukan / 100) / (($panjangBata + $tebalAdukan) / 100);
         $decimal = $barisHorizontalBataRaw - floor($barisHorizontalBataRaw);
         $barisHorizontalBata = floor($barisHorizontalBataRaw);
         if ($decimal > 0) {
@@ -125,10 +124,10 @@ class BrickFullFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 4,
             'title' => 'Baris Horizontal Bata',
-            'formula' => '(Panjang dinding - (tebal adukan / 100))/ ((Panjang bata + tebal adukan)/100)',
+            'formula' => '(Panjang dinding - (tebal adukan / 100)) / ((Panjang bata + tebal adukan)/100)',
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
-                'Perhitungan' => "($panjangDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100)",
+                'Perhitungan' => "($panjangDinding - ($tebalAdukan / 100)) / (($panjangBata + $tebalAdukan) / 100)",
                 'Raw' => number_format($barisHorizontalBataRaw, 4),
                 'Desimal' => number_format($decimal, 4),
                 'Hasil' => $barisHorizontalBata . ' kolom',
@@ -151,7 +150,7 @@ class BrickFullFormula implements FormulaInterface
 
         // ============ STEP 6: Hitung baris horizontal adukan ============
         // baris horizontal adukan = (tinggi dinding / ((tinggi bata + tebal adukan) / 100)) + 1. (jika hasilnya desimal maka dibulatkan keatas)
-        $barisHorizontalAdukanRaw = ($tinggiDinding - ($tebalAdukan / 100)) / (($tinggiBata + $tebalAdukan) / 100) + 1;
+        $barisHorizontalAdukanRaw = ($tinggiDinding - $tebalAdukan / 100) / (($lebarBata + $tebalAdukan) / 100) + 1;
         $decimal = $barisHorizontalAdukanRaw - floor($barisHorizontalAdukanRaw);
         $barisHorizontalAdukan = floor($barisHorizontalAdukanRaw);
         if ($decimal > 0) {
@@ -161,10 +160,10 @@ class BrickFullFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 6,
             'title' => 'Baris Horizontal Adukan',
-            'formula' => '(tinggi dinding - (tebal adukan / 100)) / ((tinggi bata + tebal adukan) / 100) + 1',
+            'formula' => '(tinggi dinding - (tebal adukan / ((lebar bata + tebal adukan) / 100)) + 1',
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
-                'Perhitungan' => "($tinggiDinding - ($tebalAdukan / 100)) / (($tinggiBata + $tebalAdukan) / 100) + 1",
+                'Perhitungan' => "($tinggiDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100) + 1",
                 'Raw' => number_format($barisHorizontalAdukanRaw, 4),
                 'Desimal' => number_format($decimal, 4),
                 'Hasil' => $barisHorizontalAdukan . ' baris',
@@ -173,7 +172,7 @@ class BrickFullFormula implements FormulaInterface
 
         // ============ STEP 7: Hitung kolom vertikal adukan ============
         // kolom vertikal adukan = (Panjang dinding / ((Panjang bata + tebal adukan) / 100)) + 1. (jika hasilnya desimal maka dibulatkan keatas)
-        $kolomVertikalAdukanRaw = ($panjangDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100) + 1;
+        $kolomVertikalAdukanRaw = ($panjangDinding - $tebalAdukan / 100) / (($panjangBata + $tebalAdukan) / 100) + 1;
         $decimal = $kolomVertikalAdukanRaw - floor($kolomVertikalAdukanRaw);
         $kolomVertikalAdukan = floor($kolomVertikalAdukanRaw);
         if ($decimal > 0) {
@@ -183,10 +182,10 @@ class BrickFullFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 7,
             'title' => 'Kolom Vertikal Adukan',
-            'formula' => '(Panjang dinding - (tebal adukan / 100)) / ((Lebar bata + tebal adukan) / 100) + 1',
+            'formula' => '(Panjang dinding - (tebal adukan / 100)) / ((Panjang bata + tebal adukan) / 100)) + 1',
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
-                'Perhitungan' => "($panjangDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100) + 1",
+                'Perhitungan' => "(($panjangDinding - ($tebalAdukan / 100)) / (($panjangBata + $tebalAdukan) / 100)) + 1",
                 'Raw' => number_format($kolomVertikalAdukanRaw, 4),
                 'Desimal' => number_format($decimal, 4),
                 'Hasil' => $kolomVertikalAdukan . ' kolom',
@@ -233,15 +232,15 @@ class BrickFullFormula implements FormulaInterface
         ];
 
         // ============ STEP 10: Hitung Volume Adukan Pekerjaan ============
-        // Volume adukan pekerjaan = Luas Adukan * lebar bata / 100
-        $volumeAdukanPekerjaan = $luasAdukan * ($panjangBata / 100);
+        // Volume adukan pekerjaan = Luas Adukan * tinggi bata / 100
+        $volumeAdukanPekerjaan = $luasAdukan * ($tinggiBata / 100);
 
         $trace['steps'][] = [
             'step' => 10,
             'title' => 'Volume Adukan Pekerjaan',
-            'formula' => 'Luas Adukan × panjang bata / 100',
+            'formula' => 'Luas Adukan × (tinggi bata / 100)',
             'calculations' => [
-                'Perhitungan' => number_format($luasAdukan, 6) . " × $panjangBata / 100",
+                'Perhitungan' => number_format($luasAdukan, 6) . " × $tinggiBata / 100",
                 'Hasil Volume Adukan Pekerjaan' => number_format($volumeAdukanPekerjaan, 6) . ' m³',
             ],
         ];
