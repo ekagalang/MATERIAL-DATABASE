@@ -207,6 +207,7 @@ class MaterialCalculationController extends Controller
                 'mortar_thickness' => $request->mortar_thickness,
                 'installation_type_id' => $request->installation_type_id,
                 'mortar_formula_id' => $request->mortar_formula_id,
+                'layer_count' => $request->layer_count ?? 1, // For Rollag formula
             ]);
 
             $calculation = BrickCalculation::performCalculation($request->all());
@@ -308,6 +309,7 @@ class MaterialCalculationController extends Controller
             'wall_height' => 'required|numeric',
             'mortar_thickness' => 'required|numeric',
             'installation_type_id' => 'required',
+            'layer_count' => 'nullable|integer|min:1', // For Rollag formula
         ]);
 
         $wallArea = $request->wall_length * $request->wall_height;
@@ -334,6 +336,7 @@ class MaterialCalculationController extends Controller
                 'brick_id' => $brick->id,
                 'cement_id' => $materials['cement_id'],
                 'sand_id' => $materials['sand_id'],
+                'layer_count' => $request->layer_count ?? 1, // For Rollag formula
             ];
 
             try {
@@ -626,6 +629,7 @@ class MaterialCalculationController extends Controller
             'mortar_formula_id' => $request->mortar_formula_id,
             'work_type' => $request->work_type ?? 'brick_half',
             'brick_id' => $brick->id,
+            'layer_count' => $request->layer_count ?? 1, // For Rollag formula
         ];
 
         $results = [];
@@ -893,6 +897,7 @@ class MaterialCalculationController extends Controller
             'sand_id' => 'nullable|exists:sands,id',
             'project_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'layer_count' => 'nullable|integer|min:1', // For Rollag formula
         ]);
 
         try {
@@ -950,6 +955,7 @@ class MaterialCalculationController extends Controller
             'brick_id' => 'nullable|exists:bricks,id',
             'cement_id' => 'nullable|exists:cements,id',
             'sand_id' => 'nullable|exists:sands,id',
+            'layer_count' => 'nullable|integer|min:1', // For Rollag formula
         ]);
 
         try {
@@ -990,6 +996,7 @@ class MaterialCalculationController extends Controller
             'brick_id' => 'nullable|exists:bricks,id',
             'cement_id' => 'nullable|exists:cements,id',
             'sand_id' => 'nullable|exists:sands,id',
+            'layer_count' => 'nullable|integer|min:1', // For Rollag formula
         ]);
 
         try {
@@ -1119,6 +1126,7 @@ class MaterialCalculationController extends Controller
             'custom_cement_ratio' => 'nullable|numeric|min:1',
             'custom_sand_ratio' => 'nullable|numeric|min:1',
             'has_additional_layer' => 'nullable|boolean',
+            'layer_count' => 'nullable|integer|min:1', // For Rollag formula
         ]);
 
         try {

@@ -18,9 +18,22 @@ class MaterialController extends Controller
         $allSettings = MaterialSetting::orderBy('display_order')->get();
 
         $materials = [];
+        $grandTotal = 0;
 
         foreach ($allSettings as $setting) {
             $type = $setting->material_type;
+            
+            // Get model for count
+            $model = null;
+            switch ($type) {
+                case 'brick': $model = Brick::class; break;
+                case 'cat': $model = Cat::class; break;
+                case 'cement': $model = Cement::class; break;
+                case 'sand': $model = Sand::class; break;
+            }
+            
+            $dbCount = $model ? $model::count() : 0;
+            $grandTotal += $dbCount;
 
             // Get active letters for this material type
             $activeLetters = $this->getActiveLetters($type);
@@ -42,14 +55,15 @@ class MaterialController extends Controller
                     'type' => $type,
                     'label' => MaterialSetting::getMaterialLabel($type),
                     'data' => $data,
-                    'count' => $data->total(),
+                    'count' => $data->total(), // Filtered count
+                    'db_count' => $dbCount,   // Absolute total for this type
                     'active_letters' => $activeLetters,
                     'current_letter' => $currentLetter,
                 ];
             }
         }
 
-        return view('materials.index', compact('materials', 'allSettings'));
+        return view('materials.index', compact('materials', 'allSettings', 'grandTotal'));
     }
 
     private function getActiveLetters($type)

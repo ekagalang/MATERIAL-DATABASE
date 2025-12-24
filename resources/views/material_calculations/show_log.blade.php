@@ -9,12 +9,6 @@
                 <h2 class="fw-bold mb-1" style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
                     <i class="fas fa-file-alt text-primary me-2"></i>Detail Perhitungan
                 </h2>
-                <p class="text-muted mb-0" style="font-size: 14px;">
-                    {{ $materialCalculation->project_name ?: 'Perhitungan Tanpa Nama' }}
-                    <span class="badge ms-2" style="background: linear-gradient(135deg, #891313 0%, #a61515 100%); color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 600; font-size: 12px;">
-                        Luas: {{ number_format($materialCalculation->wall_area, 2) }} m²
-                    </span>
-                </p>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ route('material-calculations.log') }}" class="btn-cancel" style="border: 1px solid #64748b; background-color: transparent; color: #64748b; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
@@ -27,6 +21,25 @@
                     <i class="fas fa-print"></i> Print
                 </button>
             </div>
+        </div>
+    </div>
+
+    @php
+        $costPerM2 = $materialCalculation->wall_area > 0 ? $materialCalculation->total_material_cost / $materialCalculation->wall_area : 0;
+
+        // Retrieve dynamic Formula Name
+        $params = $materialCalculation->calculation_params ?? [];
+        $workType = $params['work_type'] ?? 'brick_half';
+        $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
+        $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
+
+        $brickType = $materialCalculation->brick ? $materialCalculation->brick->type : 'Merah';
+    @endphp
+
+    {{-- Header Info: Item Pekerjaan Details --}}
+    <div class="container mb-3">
+        <div style="color: #891313; font-weight: 700; font-size: 18px; letter-spacing: 0.3px;">
+            {{ $formulaName }} - Panjang {{ number_format($materialCalculation->wall_length, 2) }} M - Tinggi {{ number_format($materialCalculation->wall_height, 2) }} M = Luas {{ number_format($materialCalculation->wall_area, 2) }} M²
         </div>
     </div>
 
@@ -82,16 +95,65 @@
                     background-color: #f1f5f9 !important;
                     color: #334155 !important;
                 }
+                .sticky-col {
+                    position: sticky;
+                    left: 0;
+                    background-color: white;
+                    z-index: 1;
+                }
+                .sticky-col-1 {
+                    position: sticky;
+                    left: 0;
+                    background-color: white;
+                    z-index: 2;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+                    min-width: 140px;
+                }
+                .sticky-col-2 {
+                    position: sticky;
+                    left: 140px;
+                    background-color: white;
+                    z-index: 2;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+                    min-width: 80px;
+                }
+                .sticky-col-3 {
+                    position: sticky;
+                    left: 220px;
+                    background-color: white;
+                    z-index: 2;
+                    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+                    min-width: 100px;
+                }
+                .table-preview thead th.sticky-col-1,
+                .table-preview thead th.sticky-col-2,
+                .table-preview thead th.sticky-col-3 {
+                    background-color: #891313;
+                    z-index: 3;
+                }
+                .table-preview tbody tr:hover td.sticky-col-1,
+                .table-preview tbody tr:hover td.sticky-col-2,
+                .table-preview tbody tr:hover td.sticky-col-3 {
+                    background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
+                }
+                .group-end {
+                    border-bottom: 3px solid #891313 !important;
+                }
+                .group-end td {
+                    border-bottom: 3px solid #891313 !important;
+                }
+                .rowspan-cell {
+                    border-bottom: 3px solid #891313 !important;
+                }
             </style>
 
             <table class="table-preview">
                 <thead class="align-top">
                     <tr>
-                        <th colspan="3">Item Pekerjaan</th>
-                        <th>Qty / Pekerjaan</th>
-                        <th>Satuan</th>
-                        <th>Material</th>
-                        <th colspan="7">Detail</th>
+                        <th class="sticky-col-1">Qty / Pekerjaan</th>
+                        <th class="sticky-col-2">Satuan</th>
+                        <th class="sticky-col-3">Material</th>
+                        <th colspan="4">Detail</th>
                         <th>Toko</th>
                         <th>Alamat</th>
                         <th colspan="2">Harga / Kemasan</th>
@@ -102,164 +164,127 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $costPerM2 = $materialCalculation->wall_area > 0 ? $materialCalculation->total_material_cost / $materialCalculation->wall_area : 0;
-                        
-                        // Retrieve dynamic Formula Name
-                        $params = $materialCalculation->calculation_params ?? [];
-                        $workType = $params['work_type'] ?? 'brick_half';
-                        $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
-                        $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
-                        
-                        $brickType = $materialCalculation->brick ? $materialCalculation->brick->type : 'Merah';
-                    @endphp
 
                     {{-- ROW 1: BATA --}}
                     <tr class="text-nowrap">
-                        {{-- Merged Project Info --}}
-                        <td colspan="3" class="text-start align-middle fw-bold" style="font-size: 13px; color: #0f172a;">
-                            {{ $formulaName }}
-                        </td>
-
-                        {{-- Bata Data --}}
-                        <td class="text-end fw-bold">{{ number_format($materialCalculation->brick_quantity, 0, ',', '.') }}</td>
-                        <td class="text-start">Bh</td>
-                        <td class="fw-bold">Bata</td>
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->brick_quantity, 0, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">Bh</td>
+                        <td class="fw-bold sticky-col-3">Bata</td>
                         <td class="text-muted">{{ $brickType }}</td>
                         <td class="fw-bold">{{ $materialCalculation->brick->brand ?? '-' }}</td>
-                        <td class="text-end px-1">{{ ($materialCalculation->brick->dimension_length ?? 0) + 0 }} cm</td>
-                        <td class="text-center text-muted px-1">x</td>
-                        <td class="px-1">{{ ($materialCalculation->brick->dimension_width ?? 0) + 0 }} cm</td>
-                        <td class="text-center text-muted px-1">x</td>
-                        <td class="px-1">{{ ($materialCalculation->brick->dimension_height ?? 0) + 0 }} cm</td>
-                        <td class="">{{ $materialCalculation->brick->store ?? '-' }}</td>
-                        <td class=" text-truncate" style="max-width: 200px">{{ $materialCalculation->brick->address ?? '-' }}</td>
-                        <td class="text-end fw-bold pe-1">
+                        <td class="text-center text-nowrap">{{ ($materialCalculation->brick->dimension_length ?? 0) + 0 }} x {{ ($materialCalculation->brick->dimension_width ?? 0) + 0 }} x {{ ($materialCalculation->brick->dimension_height ?? 0) + 0 }} cm</td>
+                        <td></td>
+                        <td>{{ $materialCalculation->brick->store ?? '-' }}</td>
+                        <td class="small text-muted">{{ $materialCalculation->brick->address ?? '-' }}</td>
+                        <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->brick_price_per_piece, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-muted px-1">/ Bh</td>
-                        <td class="text-end]">
+                        <td class="text-muted text-nowrap ps-1">/ bh</td>
+                        <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->brick_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        
-                        {{-- Totals Merged --}}
-                        <td rowspan="4" class="text-end bg-highlight align-middle">
-                            <span class="text-success-dark" style="font-size: 15px;">
-                                <div class="d-flex justify-content-between w-100">
-                                    <span>Rp</span>
-                                    <span>{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
-                                </div>
-                            </span>
+                        <td rowspan="4" class="text-end bg-highlight align-top rowspan-cell">
+                            <div class="d-flex justify-content-between w-100">
+                                <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                            </div>
                         </td>
+                        <td rowspan="4" class="text-end bg-highlight align-top rowspan-cell">
+                            <div class="d-flex justify-content-between w-100">
+                                <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                            </div>
                         </td>
-                        <td rowspan="4" class="text-end bg-highlight align-middle">
-                            <span class="text-primary-dark" style="font-size: 14px;">
-                                <div class="d-flex justify-content-between w-100">
-                                    <span>Rp</span>
-                                    <span>{{ number_format($costPerM2, 0, ',', '.') }}</span>
-                                </div>
-                            </span>
-                        </td>
-                        <td rowspan="4" class="bg-highlight align-middle text-muted fw-bold text-start ps-0" style="max-width: 40px">/ M2</td>
-
-                        <td class="text-end pe-1">
+                        <td rowspan="4" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                        <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->brick_price_per_piece, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-muted px-1">/ Bh</td>
+                        <td class="text-muted ps-1">/ bh</td>
                     </tr>
 
                     {{-- ROW 2: SEMEN --}}
-                    <tr class="text-nowrap">
-                        <td class="text-muted ps-3" style="font-weight: 500;">Panjang</td>
-                        <td colspan="2" class="text-start fw-bold">{{ number_format($materialCalculation->wall_length, 2) }} M</td>
-
-                        <td class="text-end fw-bold">{{ number_format($materialCalculation->cement_quantity_sak, 2, ',', '.') }}</td>
-                        <td class="text-start">Sak</td>
-                        <td class="fw-bold">Semen</td>
+                    <tr>
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->cement_quantity_sak, 2, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">Sak</td>
+                        <td class="fw-bold sticky-col-3">Semen</td>
                         <td class="text-muted">{{ $materialCalculation->cement->type ?? '-' }}</td>
                         <td class="fw-bold">{{ $materialCalculation->cement->brand ?? '-' }}</td>
-                        <td colspan="3" class="px-1">{{ $materialCalculation->cement->color ?? '-' }}</td>
-                        <td colspan="2" class="fw-bold px-1">{{ ($materialCalculation->cement->package_weight_net ?? 0) + 0 }} Kg</td>
+                        <td>{{ $materialCalculation->cement->color ?? '-' }}</td>
+                        <td class="text-start text-nowrap fw-bold">{{ ($materialCalculation->cement->package_weight_net ?? 0) + 0 }} Kg</td>
                         <td>{{ $materialCalculation->cement->store ?? '-' }}</td>
                         <td class="small text-muted">{{ $materialCalculation->cement->address ?? '-' }}</td>
-                        <td class="text-end fw-bold pe-1">
+                        <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-muted px-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
-                        <td class="text-end">
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
+                        <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->cement_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-end pe-1">
+                        <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-muted px-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
                     </tr>
 
                     {{-- ROW 3: PASIR --}}
-                    <tr class="text-nowrap">
-                        <td class="text-muted ps-3" style="font-weight: 500;">Tinggi</td>
-                        <td colspan="2" class="text-start fw-bold">{{ number_format($materialCalculation->wall_height, 2) }} M</td>
-
-                        <td class="text-end fw-bold">{{ number_format($materialCalculation->sand_m3, 3, ',', '.') }}</td>
-                        <td class="text-start">M3</td>
-                        <td class="fw-bold">Pasir</td>
+                    <tr>
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->sand_m3, 3, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">M3</td>
+                        <td class="fw-bold sticky-col-3">Pasir</td>
                         <td class="text-muted">{{ $materialCalculation->sand->type ?? '-' }}</td>
                         <td class="fw-bold">{{ $materialCalculation->sand->brand ?? '-' }}</td>
-                        <td colspan="3" class="px-1">{{ $materialCalculation->sand->sand_name ?? '-' }}</td>
-                        <td colspan="2" class="px-1 fw-bold">{{ $materialCalculation->sand->package_volume ? ($materialCalculation->sand->package_volume + 0) . ' M3' : '-' }}</td>
+                        <td>{{ $materialCalculation->sand->sand_name ?? '-' }}</td>
+                        <td class="text-start text-nowrap fw-bold">{{ $materialCalculation->sand->package_volume ? ($materialCalculation->sand->package_volume + 0) . ' M3' : '-' }}</td>
                         <td>{{ $materialCalculation->sand->store ?? '-' }}</td>
                         <td class="small text-muted">{{ $materialCalculation->sand->address ?? '-' }}</td>
-                        <td class="fw-bold pe-1">
+                        <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->sand_price_per_m3, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-muted px-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
-                        <td class="text-end">
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
+                        <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->sand_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-end pe-1">
+                        <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
                                 <span>{{ number_format($materialCalculation->sand_price_per_m3, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-muted px-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
                     </tr>
 
                     {{-- ROW 4: AIR --}}
-                    <tr class="text-nowrap">
-                        <td class="text-muted ps-3" style="font-weight: 500;">Luas</td>
-                        <td colspan="2" class="text-start fw-bold" style="color: #891313;">{{ number_format($materialCalculation->wall_area, 2) }} M2</td>
-
-                        <td class="text-end fw-bold">{{ number_format($materialCalculation->water_liters, 2, ',', '.') }}</td>
-                        <td class="text-start">L</td>
-                        <td class="fw-bold">Air</td>
+                    <tr class="group-end">
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->water_liters, 2, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">L</td>
+                        <td class="fw-bold sticky-col-3">Air</td>
                         <td class="text-muted">Bersih</td>
                         <td>PDAM</td>
-                        <td colspan="5"></td>
+                        <td colspan="2"></td>
                         <td>Customer</td>
                         <td>-</td>
                         <td class="text-center text-muted">-</td>

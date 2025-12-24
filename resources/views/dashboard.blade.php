@@ -10,17 +10,9 @@
             <div class="position-relative z-1">
                 <h1 class="fw-bold display-5 mb-2">Selamat Datang di Material Database</h1>
                 <p class="lead opacity-75 mb-4">Kelola data material, sumber daya, dan analisis harga proyek Anda dalam satu tempat.</p>
-                <div class="d-flex gap-3 flex-wrap">
-                    <a href="{{ route('materials.index') }}" class="btn btn-light fw-bold px-4 py-2 rounded-3 text-danger shadow-sm">
-                        <i class="bi bi-box-seam me-2"></i> Kelola Material
-                    </a>
-                    <a href="{{ route('price-analysis.index') }}" class="btn btn-outline-light fw-bold px-4 py-2 rounded-3">
-                        <i class="bi bi-calculator me-2"></i> Kalkulator Baru
-                    </a>
-                </div>
             </div>
             <!-- Decorative Background Elements -->
-            <i class="bi bi-grid-3x3-gap-fill position-absolute text-white opacity-10" style="font-size: 15rem; right: -3rem; top: -3rem; transform: rotate(-15deg);"></i>
+            <img src="{{ asset('Logo.png') }}" alt="Logo" class="position-absolute opacity-10" style="height: 100%; width: auto; right: 0; bottom: 0; transform: rotate(0deg);">
         </div>
     </div>
 </div>
@@ -94,9 +86,9 @@
         </div>
         <div class="card-content">
             <p class="card-label">Item Pekerjaan</p>
-            <h2 class="card-value">--</h2>
+            <h2 class="card-value">{{ number_format($workItemCount) }}</h2>
             <div class="card-meta">
-                <span class="status-badge blue">COMING SOON</span>
+                <span class="status-badge blue">Total Rumus</span>
             </div>
         </div>
         <div class="card-overlay blue"></div>

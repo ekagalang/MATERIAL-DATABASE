@@ -123,27 +123,28 @@
                                     <strong>Rp {{ number_format($calc->total_material_cost, 0, ',', '.') }}</strong>
                                 </td>
                                 <td class="text-end text-nowrap">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ route('material-calculations.show', $calc) }}" 
-                                           class="btn btn-outline-primary"
-                                           title="Lihat Detail">
-                                            <i class="fas fa-eye"></i>
+                                    <div class="btn-group">
+                                        <a href="{{ route('material-calculations.show', $calc) }}"
+                                        class="btn btn-primary btn-sm"
+                                        title="Detail">
+                                            <i class="bi bi-eye"></i>
                                         </a>
-                                        <a href="{{ route('material-calculations.edit', $calc) }}" 
-                                           class="btn btn-outline-warning"
-                                           title="Edit">
-                                            <i class="fas fa-edit"></i>
+
+                                        <a href="{{ route('material-calculations.edit', $calc) }}"
+                                        class="btn btn-warning btn-sm"
+                                        title="Edit">
+                                            <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <form action="{{ route('material-calculations.destroy', $calc) }}" 
-                                              method="POST" 
-                                              class="d-inline"
-                                              onsubmit="return confirm('Yakin ingin menghapus perhitungan ini?')">
+
+                                        <form action="{{ route('material-calculations.destroy', $calc) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('Yakin ingin menghapus data perhitungan ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" 
-                                                    class="btn btn-outline-danger"
+                                            <button type="submit"
+                                                    class="btn btn-danger btn-sm"
                                                     title="Hapus">
-                                                <i class="fas fa-trash"></i>
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
                                     </div>

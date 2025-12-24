@@ -430,36 +430,21 @@
                             <span class="badge bg-light text-dark border">PANJANG</span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format((float)$requestData['wall_length'], 2, '.', '') }}</div>
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $requestData['wall_length'] }}</div>
                             <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">M</span>
                         </div>
                     </div>
 
-                    {{-- Tinggi / Lebar (untuk Rollag) --}}
+                    {{-- Tinggi --}}
                     <div style="flex: 0 0 auto; width: 100px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light text-dark border">
-                                {{ isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
-                            </span>
+                            <span class="badge bg-light text-dark border">TINGGI</span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format((float)$requestData['wall_height'], 2, '.', '') }}</div>
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $requestData['wall_height'] }}</div>
                             <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">M</span>
                         </div>
                     </div>
-
-                    {{-- Tingkat (hanya untuk Rollag) --}}
-                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag')
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-warning text-dark border">TINGKAT</span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #fffbeb; border-color: #fcd34d;">{{ $requestData['layer_count'] ?? 1 }}</div>
-                            <span class="input-group-text bg-warning text-dark small px-1" style="font-size: 0.7rem;">Lapis</span>
-                        </div>
-                    </div>
-                    @endif
 
                     {{-- Luas --}}
                     <div style="flex: 0 0 auto; width: 120px;">
@@ -510,9 +495,7 @@
                                     <tr>
                                         {{-- Column 1: Filter Label --}}
                                         <td style="font-weight: 700; position: sticky; left: 0; z-index: 2; background: {{ $labelColor['bg'] }}; color: {{ $labelColor['text'] }}; padding: 4px 8px; vertical-align: middle; width: 100px; min-width: 100px;">
-                                            <a href="#detail-{{ strtolower(str_replace(' ', '-', $key)) }}" style="color: inherit; text-decoration: none; display: block; cursor: pointer;">
-                                                {{ $key }}
-                                            </a>
+                                            {{ $key }}
                                         </td>
 
                                         {{-- Column 2: Grand Total --}}
@@ -592,11 +575,68 @@
         </div>
         @endif
 
-        {{-- SINGLE TABLE FOR ALL COMBINATIONS --}}
-        <div class="container">
-            <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden; position: relative; z-index: 1;">
-                <div class="table-responsive">
+        {{-- TABS NAVIGATION --}}
+        @if(count($projects) > 1)
+            <div class="container mb-4" style="position: relative; z-index: 1;">
+                <ul class="nav nav-pills p-2 rounded" id="brickTabs" role="tablist" style="background: #ffffff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border-radius: 12px; gap: 4px;">
+                    @foreach($projects as $index => $project)
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link {{ $index === 0 ? 'active' : '' }}"
+                                    id="brick-tab-{{ $index }}"
+                                    data-bs-toggle="tab"
+                                    data-bs-target="#brick-content-{{ $index }}"
+                                    type="button"
+                                    role="tab">
+                                {{ $project['brick']->brand }}
+                            </button>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        {{-- TAB CONTENTS --}}
+        <div class="tab-content" id="brickTabsContent">
+            @foreach($projects as $index => $project)
+                <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}" 
+                     id="brick-content-{{ $index }}" role="tabpanel">
+                    
+                    @if(empty($project['combinations']))
+                        <div class="container">
+                            <div class="alert" style="background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 12px; padding: 16px 20px; color: #0c5460;">
+                                <i class="bi bi-info-circle me-2"></i> 
+                                @if(in_array('best', $requestData['price_filters'] ?? []) && count($requestData['price_filters'] ?? []) == 1)
+                                    Belum ada rekomendasi material untuk bata ini. Silakan atur di menu <a href="{{ route('settings.recommendations.index') }}" class="alert-link global-open-modal">Setting Rekomendasi</a>.
+                                @else
+                                    Tidak ada kombinasi material yang cocok untuk bata ini.
+                                @endif
+                            </div>
+                        </div>
+                    @else
+                        <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden; position: relative; z-index: 1;">
+                            <div class="table-responsive">
                                 <style>
+                                    /* Tab Navigation Styling */
+                                    .nav-pills .nav-link {
+                                        padding: 10px 20px;
+                                        border-radius: 10px;
+                                        font-weight: 600;
+                                        font-size: 14px;
+                                        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                                        border: none;
+                                        background: transparent;
+                                        color: #64748b;
+                                    }
+                                    .nav-pills .nav-link:hover {
+                                        background: #f8fafc;
+                                        color: #334155;
+                                    }
+                                    .nav-pills .nav-link.active {
+                                        background: linear-gradient(135deg, #891313 0%, #a61515 100%) !important;
+                                        color: #ffffff !important;
+                                        box-shadow: 0 2px 8px rgba(137, 19, 19, 0.25);
+                                    }
+
                                     /* Table Styling */
                                     .table-preview {
                                         width: 100%;
@@ -737,59 +777,18 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @php
-                                            $globalIndex = 0;
-                                            // Collect ALL filtered combinations from ALL projects
-                                            // Display them in the order of the recap table
-                                            $allFilteredCombinations = [];
-
-                                            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                                                for ($i = 1; $i <= 3; $i++) {
-                                                    $key = $filterType . ' ' . $i;
-
-                                                    // Check if this filter exists in global recap
-                                                    if (isset($globalRekapData[$key])) {
-                                                        $rekapData = $globalRekapData[$key];
-
-                                                        // Search through ALL projects to find the matching combination
-                                                        foreach ($projects as $project) {
-                                                            // Check if this project uses the brick from recap
-                                                            if ($rekapData['brick_id'] === $project['brick']->id) {
-                                                                // Find the matching combination in this project
-                                                                foreach ($project['combinations'] as $label => $items) {
-                                                                    foreach ($items as $item) {
-                                                                        // Check if this combination matches the recap data
-                                                                        if ($item['cement']->id === $rekapData['cement_id'] &&
-                                                                            $item['sand']->id === $rekapData['sand_id']) {
-                                                                            $allFilteredCombinations[] = [
-                                                                                'label' => $key, // Use recap label
-                                                                                'item' => $item,
-                                                                                'brick' => $project['brick']
-                                                                            ];
-                                                                            break 3; // Found it, move to next filter
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        @endphp
-
-                                        @foreach($allFilteredCombinations as $combo)
-                                            @php
-                                                $globalIndex++;
-                                                $label = $combo['label'];
-                                                $item = $combo['item'];
-                                                $brick = $combo['brick'];
-                                                $res = $item['result'];
-                                                $isFirstOption = ($globalIndex === 1);
-                                                $costPerM2 = $area > 0 ? $res['grand_total'] / $area : 0;
-                                            @endphp
+                                        @php $globalIndex = 0; @endphp
+                                        @foreach($project['combinations'] as $label => $items)
+                                            @foreach($items as $item)
+                                                @php
+                                                    $globalIndex++;
+                                                    $res = $item['result'];
+                                                    $isFirstOption = ($globalIndex === 1);
+                                                    $costPerM2 = $area > 0 ? $res['grand_total'] / $area : 0;
+                                                @endphp
 
                                                 {{-- ROW 0: GROUP NAME / LABEL --}}
-                                                <tr class="{{ $isFirstOption ? '' : 'group-divider' }}" id="detail-{{ strtolower(str_replace(' ', '-', $label)) }}">
+                                                <tr class="{{ $isFirstOption ? '' : 'group-divider' }}">
                                                     <td colspan="3" class="text-start align-middle sticky-label-row sticky-col-label" style="background: #f8fafc; padding: 10px 16px; font-weight: 600;">
                                                         @php
                                                             // Definisi warna dengan 3 level gradasi (1=gelap, 2=sedang, 3=cerah)
@@ -876,16 +875,16 @@
                                                     <td class="text-end fw-bold sticky-col-1">{{ number_format($res['total_bricks'], 0, ',', '.') }}</td>
                                                     <td class="text-center sticky-col-2">Bh</td>
                                                     <td class="fw-bold sticky-col-3">Bata</td>
-                                                    <td class="text-muted">{{ $brick->type ?? '-' }}</td>
-                                                    <td class="fw-bold">{{ $brick->brand }}</td>
-                                                    <td class="text-center text-nowrap">{{ $brick->dimension_length + 0 }} x {{ $brick->dimension_width + 0 }} x {{ $brick->dimension_height + 0 }} cm</td>
+                                                    <td class="text-muted">{{ $project['brick']->type ?? '-' }}</td>
+                                                    <td class="fw-bold">{{ $project['brick']->brand }}</td>
+                                                    <td class="text-center text-nowrap">{{ $project['brick']->dimension_length + 0 }} x {{ $project['brick']->dimension_width + 0 }} x {{ $project['brick']->dimension_height + 0 }} cm</td>
                                                     <td></td>
-                                                    <td>{{ $brick->store ?? '-' }}</td>
-                                                    <td class="small text-muted">{{ $brick->address ?? '-' }}</td>
+                                                    <td>{{ $project['brick']->store ?? '-' }}</td>
+                                                    <td class="small text-muted">{{ $project['brick']->address ?? '-' }}</td>
                                                     <td class="text-nowrap fw-bold">
                                                         <div class="d-flex justify-content-between w-100">
                                                             <span>Rp</span>
-                                                            <span>{{ number_format($brick->price_per_piece, 0, ',', '.') }}</span>
+                                                            <span>{{ number_format($project['brick']->price_per_piece, 0, ',', '.') }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="text-muted text-nowrap ps-1">/ bh</td>
@@ -911,7 +910,7 @@
                                                     <td class="text-nowrap">
                                                         <div class="d-flex justify-content-between w-100">
                                                             <span>Rp</span>
-                                                            <span>{{ number_format($brick->price_per_piece, 0, ',', '.') }}</span>
+                                                            <span>{{ number_format($project['brick']->price_per_piece, 0, ',', '.') }}</span>
                                                         </div>
                                                     </td>
                                                     <td class="text-muted ps-1">/ bh</td>
@@ -929,7 +928,7 @@
                                                                     @endif
                                                                 @endif
                                                             @endforeach
-                                                            <input type="hidden" name="brick_id" value="{{ $brick->id }}">
+                                                            <input type="hidden" name="brick_id" value="{{ $project['brick']->id }}">
                                                             <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
                                                             <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
                                                             <input type="hidden" name="price_filters[]" value="custom">
@@ -1023,6 +1022,7 @@
                                                     <td class="text-center text-muted">-</td>
                                                     <td></td>
                                                 </tr>
+                                            @endforeach
                                         @endforeach
                                     </tbody>
                                 </table>
@@ -1033,17 +1033,14 @@
                                 <i class="bi bi-info-circle me-1"></i> Gunakan tombol <strong>Pilih</strong> pada kolom Aksi untuk menyimpan perhitungan ini ke proyek Anda.
                             </p>
                         </div>
-            </div>
+                    @endif
+                </div>
+            @endforeach
         </div>
     @endif
 </div>
 
 <style>
-    /* Smooth scroll untuk seluruh halaman */
-    html {
-        scroll-behavior: smooth;
-    }
-
     /* Hover effect untuk button cancel */
     .btn-cancel:hover {
         background: linear-gradient(135deg, #891313 0%, #a61515 100%) !important;
@@ -1052,63 +1049,10 @@
         box-shadow: 0 4px 8px rgba(137, 19, 19, 0.3);
     }
 
-    /* Hover effect untuk link rekap - tambahkan underline saat hover */
-    .table-preview tbody td a:hover {
-        text-decoration: underline !important;
-        opacity: 0.8;
-    }
-
-    /* Highlight effect dengan blinking border untuk target row */
-    /* Exclude sticky columns to preserve sticky behavior */
-    tr:target td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3):not(.sticky-col-label) {
-        animation: border-blink 1.5s ease-in-out 3;
-    }
-
-    /* Apply animation to sticky columns without changing position */
-    tr:target td.sticky-col-1,
-    tr:target td.sticky-col-2,
-    tr:target td.sticky-col-3,
-    tr:target td.sticky-col-label {
-        animation: border-blink-sticky 1.5s ease-in-out 3;
-    }
-
-    @keyframes border-blink {
-        0%, 100% {
-            box-shadow: inset 0 0 0 0px transparent;
-            background-color: transparent;
-        }
-        25% {
-            box-shadow: inset 0 0 0 3px #891313;
-            background-color: rgba(137, 19, 19, 0.05);
-        }
-        50% {
-            box-shadow: inset 0 0 0 3px transparent;
-            background-color: transparent;
-        }
-        75% {
-            box-shadow: inset 0 0 0 3px #891313;
-            background-color: rgba(137, 19, 19, 0.05);
-        }
-    }
-
-    /* Animation khusus untuk sticky columns - tanpa mengubah position */
-    @keyframes border-blink-sticky {
-        0%, 100% {
-            box-shadow: inset 0 0 0 0px transparent;
-            background-color: transparent;
-        }
-        25% {
-            box-shadow: inset 0 0 0 3px #891313;
-            background-color: rgba(137, 19, 19, 0.05);
-        }
-        50% {
-            box-shadow: inset 0 0 0 3px transparent;
-            background-color: transparent;
-        }
-        75% {
-            box-shadow: inset 0 0 0 3px #891313;
-            background-color: rgba(137, 19, 19, 0.05);
-        }
+    /* Tab navigation hover */
+    .nav-link:not(.active):hover {
+        background: #f8fafc !important;
+        color: #334155 !important;
     }
 </style>
 @endsection

@@ -7,9 +7,11 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
         <h2 style="margin-bottom: 0;">Daftar Item Pekerjaan</h2>
 
-        <div style="font-size: 14px; color: #64748b; font-weight: 500;">
-            Total: {{ count($formulas) }} Item Pekerjaan yang ada
-        </div>
+        <a href="{{ route('material-calculations.log') }}"
+            class="btn btn-primary btn-sm">
+            <i class="bi bi-clock-history"></i>
+            Riwayat
+        </a>
     </div>
 
     @if(count($formulas) > 0)

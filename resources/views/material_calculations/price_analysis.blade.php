@@ -44,7 +44,7 @@
                 </div>
                 <div style="flex: 0 0 8%; max-width: 8%;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                        <span class="badge bg-light text-dark border">TINGGI</span>
+                        <span id="wallHeightLabel" class="badge bg-light text-dark border">TINGGI</span>
                     </label>
                     <div class="input-group">
                         <input type="number" step="0.01" id="input_t" name="wall_height" class="form-control fw-bold text-center px-1" placeholder="0" value="{{ $inputs['wall_height'] ?? 1 }}">
@@ -58,6 +58,16 @@
                     <div class="input-group">
                         <input type="text" id="output_area" class="form-control fw-bold text-center bg-light text-primary px-1" readonly value="{{ isset($inputs['wall_area']) ? number_format($inputs['wall_area'], 2) : '1.00' }}">
                         <span class="input-group-text bg-danger text-white small px-1" style="font-size: 0.7rem;">M2</span>
+                    </div>
+                </div>
+                {{-- INPUT TINGKAT UNTUK ROLLAG --}}
+                <div id="layerCountGroup" style="flex: 0 0 8%; max-width: 8%; display: none;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light text-dark border">TINGKAT</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" step="1" name="layer_count" class="form-control fw-bold text-center px-1" value="{{ $inputs['layer_count'] ?? 1 }}">
+                        <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">Lapis</span>
                     </div>
                 </div>
                 <div style="flex: 1;">
@@ -115,6 +125,9 @@
                         <input type="hidden" name="mortar_thickness" value="{{ $inputs['mortar_thickness'] }}">
                         <input type="hidden" name="formula_code" value="{{ $inputs['formula_code'] }}">
                         <input type="hidden" name="installation_type_id" value="{{ $inputs['installation_type_id'] }}">
+                        @if(($inputs['formula_code'] ?? '') === 'brick_rollag')
+                            <input type="hidden" name="layer_count" value="{{ $inputs['layer_count'] ?? 1 }}">
+                        @endif
 
                         <div class="table-responsive">
                             <table class="table table-hover table-striped align-middle mb-0 text-nowrap" style="font-size: 0.85rem;">
@@ -153,14 +166,14 @@
                                         <td class="text-center fw-bold">{{ number_format($item['total_qty_job'], 0) }} pcs</td>
                                         <td class="text-end fw-bold text-success pe-4">Rp {{ number_format($item['total_price_job'], 0, ',', '.') }}</td>
                                         <td class="ps-2">
-                                            <a href="{{ route('material-calculations.create', [
+                                            <a href="{{ route('material-calculations.create', array_merge([
                                                 'brick_id' => $item['id'],
                                                 'wall_length' => $inputs['wall_length'],
                                                 'wall_height' => $inputs['wall_height'],
                                                 'mortar_thickness' => $inputs['mortar_thickness'],
                                                 'installation_type_id' => $inputs['installation_type_id'],
                                                 'formula_code' => $inputs['formula_code']
-                                            ]) }}" class="btn btn-primary rounded shadow" title="Hitung Detail">
+                                            ], ($inputs['formula_code'] ?? '') === 'brick_rollag' ? ['layer_count' => $inputs['layer_count'] ?? 1] : [])) }}" class="btn btn-primary rounded shadow" title="Hitung Detail">
                                                 <i class="bi bi-arrow-right"></i>
                                             </a>
                                         </td>
@@ -346,6 +359,35 @@
         brickCheckboxes.forEach(cb => {
             cb.addEventListener('change', updateFloatingBar);
         });
+
+        // 4. TOGGLE LAYER COUNT FOR ROLLAG
+        const formulaSelector = document.querySelector('select[name="formula_code"]');
+        const layerCountGroup = document.getElementById('layerCountGroup');
+        const wallHeightLabel = document.getElementById('wallHeightLabel');
+
+        function toggleLayerCountInput() {
+            if (formulaSelector && layerCountGroup) {
+                if (formulaSelector.value === 'brick_rollag') {
+                    layerCountGroup.style.display = 'block';
+                    // Change label from "TINGGI" to "LEBAR" for Rollag
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'LEBAR';
+                    }
+                } else {
+                    layerCountGroup.style.display = 'none';
+                    // Restore label to "TINGGI" for other formulas
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'TINGGI';
+                    }
+                }
+            }
+        }
+
+        if (formulaSelector) {
+            formulaSelector.addEventListener('change', toggleLayerCountInput);
+            // Initial check on page load
+            toggleLayerCountInput();
+        }
     });
 </script>
 @endpush

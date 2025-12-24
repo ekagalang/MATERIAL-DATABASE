@@ -575,27 +575,49 @@
                     </div>
                     <div style="position: relative;">
                         
-                        <!-- Center Area: Pagination & Kanggo Logo -->
-                        <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-                            
-                            <!-- Numeric Pagination (Tetap ada tapi rapi di atas) -->
-                            <div class="pagination" style="margin: 0 0 15px 0; opacity: 0.8; transform: scale(0.9);">
-                                {{ $material['data']->appends(request()->query())->links('pagination::simple-default') }}
+                        <!-- Left Area: Stats Info (Absolute Positioned) -->
+                        <div style="position: absolute; left: 0; top: 15px; display: flex; flex-direction: column; gap: 6px; text-align: left;">
+                            <div style="font-size: 13px; color: #64748b; background: #f8fafc; padding: 6px 12px; border: 1px solid #e2e8f0; border-radius: 8px;">
+                                <div style="margin-bottom: 2px;">
+                                    Total {{ $material['label'] }}: <strong style="color: #0f172a;">{{ number_format($material['db_count'], 0, ',', '.') }}</strong>
+                                </div>
+                                <div style="border-top: 1px dashed #cbd5e1; margin: 4px 0; padding-top: 4px;">
+                                    Total Semua Material: <strong style="color: #0f172a;">{{ number_format($grandTotal, 0, ',', '.') }}</strong>
+                                </div>
                             </div>
+                        </div>
+
+                        <!-- Right Area: Pagination & Kanggo Logo -->
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%; padding-right: 160px;">
+                            
+
 
                             <!-- Kanggo A-Z Pagination (Logo & Letters) -->
                             @if(!request('search'))
-                            <div class="kanggo-container">
+                            <div class="kanggo-container" style="justify-content: flex-end;">
                                 <div class="kanggo-logo">
-                                    <img src="/Pagination/kangg.png" alt="Kanggo" style="height: 110px; width: auto; padding-top: 10px;">
+                                    <img src="/Pagination/kangg.png" alt="Kanggo" style="height: 70px; width: auto; padding-bottom: 6px;">
                                 </div>
-                                <div class="kanggo-letters">
+                                <div class="kanggo-letters" style="justify-content: flex-end;">
                                     @php
                                         // Get active letters and find current position
                                         $activeLetters = $material['active_letters'];
                                         $currentLetter = $material['current_letter'];
                                         $currentPosition = array_search($currentLetter, $activeLetters);
                                         if ($currentPosition === false) $currentPosition = -1;
+                                        
+                                        // Pagination Logic variables
+                                        $paginator = $material['data'];
+                                        $pageName = $material['type'] . '_page';
+                                        $currentPage = $paginator->currentPage();
+                                        $lastPage = $paginator->lastPage();
+                                        
+                                        // Helper to build page URL
+                                        $getPageUrl = function($page) use ($pageName) {
+                                            $params = request()->query();
+                                            $params[$pageName] = $page;
+                                            return route('materials.index', $params);
+                                        };
                                     @endphp
 
                                     @foreach(range('A', 'Z') as $index => $char)
@@ -617,24 +639,14 @@
                                                     $totalSteps = $currentPosition; // Total buttons before current
                                                     $positionIndex = $letterPosition; // 0-based position
 
-                                                    // Calculate intensity: 0 (first/sangat terang) to 1 (last/gelap #e10009)
+                                                    // Calculate intensity
                                                     $intensity = $totalSteps > 0 ? ($positionIndex / $totalSteps) : 0;
 
                                                     // Approach baru: Sepia full + saturate tinggi + brightness untuk gradasi
-
-                                                    // Sepia: FULL untuk semua agar base color merah/orange
                                                     $sepia = 1.0;
-
-                                                    // Saturate: SANGAT TINGGI untuk warna merah vivid
-                                                    $saturate = 3.5 + ($intensity * 1.0); // 3.5 to 4.5
-
-                                                    // Hue rotate: Fixed untuk shift ke merah #e10009
+                                                    $saturate = 3.5 + ($intensity * 1.0); 
                                                     $hueRotate = -35;
-
-                                                    // Brightness: Gradasi dari SANGAT TERANG ke gelap
-                                                    $brightness = 2.5 - ($intensity * 1.2); // 2.5 to 1.3
-
-                                                    // Contrast: Tinggi untuk ketajaman
+                                                    $brightness = 2.5 - ($intensity * 1.2); 
                                                     $contrast = 1.3;
 
                                                     $gradientStyle = "filter: grayscale(0%) sepia({$sepia}) saturate({$saturate}) hue-rotate({$hueRotate}deg) brightness({$brightness}) contrast({$contrast});";
@@ -643,11 +655,36 @@
                                         @endphp
 
                                         @if($isActive)
-                                            <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
-                                               class="kanggo-img-link {{ $isCurrent ? 'current' : '' }} {{ $gradientClass }}"
-                                               style="{{ $gradientStyle }}">
-                                                <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
-                                            </a>
+                                            @if($isCurrent)
+                                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 2px;">
+                                                    <!-- Up Arrow (Prev Page) -->
+                                                    <a href="{{ $currentPage > 1 ? $getPageUrl($currentPage - 1) : '#' }}" 
+                                                       class="page-arrow-btn {{ $currentPage <= 1 ? 'disabled' : '' }}"
+                                                       title="{{ $currentPage > 1 ? 'Halaman Sebelumnya' : '' }}">
+                                                        <i class="bi bi-caret-up-fill"></i>
+                                                    </a>
+
+                                                    <!-- Active Letter Image -->
+                                                    <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
+                                                       class="kanggo-img-link current"
+                                                       style="margin: 2px 0;">
+                                                        <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
+                                                    </a>
+
+                                                    <!-- Down Arrow (Next Page) -->
+                                                    <a href="{{ $currentPage < $lastPage ? $getPageUrl($currentPage + 1) : '#' }}" 
+                                                       class="page-arrow-btn {{ $currentPage >= $lastPage ? 'disabled' : '' }}"
+                                                       title="{{ $currentPage < $lastPage ? 'Halaman Selanjutnya' : '' }}">
+                                                        <i class="bi bi-caret-down-fill"></i>
+                                                    </a>
+                                                </div>
+                                            @else
+                                                <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
+                                                   class="kanggo-img-link {{ $gradientClass }}"
+                                                   style="{{ $gradientStyle }}">
+                                                    <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
+                                                </a>
+                                            @endif
                                         @endif
                                     @endforeach
                                 </div>
@@ -656,7 +693,7 @@
                         </div>
 
                         <!-- Right Area: Button (Absolute Positioned) -->
-                        <div style="position: absolute; right: 0; top: 50px;">
+                        <div style="position: absolute; right: 0; top: 25px;">
                             <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary" style="background: #891313; border-color: #891313; box-shadow: 0 4px 6px rgba(137, 19, 19, 0.2); padding: 10px 24px; border-radius: 12px;">
                                 Lihat Semua <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
                             </a>
@@ -729,7 +766,7 @@
     <div class="floating-modal-content">
         <div class="floating-modal-header">
             <h2 id="modalTitle">Detail Material</h2>
-            <button class="floating-modal-close" id="closeModal">&times;</button>
+            <button class="floating-modal-close" id="globalCloseModal">&times;</button>
         </div>
         <div class="floating-modal-body" id="modalBody">
             <div style="text-align: center; padding: 60px; color: #94a3b8;">
@@ -741,6 +778,32 @@
 </div>
 
 <style>
+/* Page Arrow Buttons */
+.page-arrow-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 14px;
+    color: #891313;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.page-arrow-btn:hover {
+    color: #e10009;
+    transform: scale(1.2);
+}
+
+.page-arrow-btn.disabled {
+    color: #cbd5e1;
+    pointer-events: none;
+    cursor: default;
+}
+
 /* Modal Styles - Modern & Minimalist */
 .floating-modal {
     display: none;
@@ -1348,9 +1411,10 @@ input[type="text"]:focus {
 
 /* Kanggo Pagination Styles */
 .kanggo-container {
+    padding-top: 10px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     user-select: none;
 }
 
@@ -1364,6 +1428,7 @@ input[type="text"]:focus {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: 2px;
 }
 
@@ -1415,7 +1480,6 @@ input[type="text"]:focus {
 
 /* Current state: Color, Big, Shadow */
 .kanggo-img-link.current .kanggo-img {
-    transform: scale(1.25);
     filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)) grayscale(0%);
     opacity: 1;
     z-index: 10;
@@ -1697,7 +1761,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('floatingModal');
     const modalBody = document.getElementById('modalBody');
     const modalTitle = document.getElementById('modalTitle');
-    const closeBtn = document.getElementById('closeModal');
+    const closeBtn = document.getElementById('globalCloseModal');
     const backdrop = modal ? modal.querySelector('.floating-modal-backdrop') : null;
 
     function interceptFormSubmit() {

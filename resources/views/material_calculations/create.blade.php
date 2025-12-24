@@ -59,7 +59,7 @@
                     <div class="dimension-group">
                         <label>Panjang</label>
                         <div class="input-with-unit">
-                            <input type="number" name="wall_length" step="0.01" min="0.01" 
+                            <input type="number" name="wall_length" id="wallLength" step="0.01" min="0.01" 
                                 value="{{ request('wall_length') }}" 
                                 {{ request('wall_length') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
                             <span class="unit">M</span>
@@ -67,10 +67,10 @@
                     </div>
                     <span class="operator">x</span>
                     <div class="dimension-group">
-                        <label>Tinggi</label>
+                        <label id="wallHeightLabel">Tinggi</label>
                         <div class="input-with-unit">
-                            <input type="number" name="wall_height" step="0.01" min="0.01" 
-                                value="{{ request('wall_height') }}" 
+                            <input type="number" name="wall_height" id="wallHeight" step="0.01" min="0.01"
+                                value="{{ request('wall_height') }}"
                                 {{ request('wall_height') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
                             <span class="unit">M</span>
                         </div>
@@ -82,6 +82,14 @@
                                 value="{{ request('mortar_thickness', 2) }}" 
                                 {{ request('mortar_thickness') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
                             <span class="unit">cm</span>
+                        </div>
+                    </div>
+                    {{-- INPUT TINGKAT UNTUK ROLLAG --}}
+                    <div class="dimension-group" id="layerCountGroup" style="display: none;">
+                        <label>Tingkat</label>
+                        <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
+                            <input type="number" name="layer_count" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
+                            <span class="unit" style="background-color: #fef3c7;">Lapis</span>
                         </div>
                     </div>
                 </div>
@@ -422,6 +430,7 @@
         flex: 1;
         width: 100%;
         text-align: center;
+        cursor: not-allowed;
     }
     
     .input-with-unit input:focus { 
@@ -754,7 +763,10 @@
 {{-- Load JS Asli --}}
 <script type="application/json" id="materialCalculationFormData">
 {!! json_encode([
-    'formulaDescriptions' => $formulaDescriptions,
+    'formulaDescriptions' => [
+        'brick_quarter' => 'Menghitung pemasangan Bata 1/4 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.',
+        'brick_rollag' => 'Menghitung pemasangan Bata Rollag dengan input tingkat adukan dan tingkat bata.'
+    ],
     'bricks' => $bricks,
     'cements' => $cements,
     'sands' => $sands,
@@ -813,6 +825,35 @@
 
         // Initialize form visibility on page load
         toggleCustomForm();
+
+        // Handle Work Type Change for Layer Inputs (Rollag)
+        const workTypeSelector = document.getElementById('workTypeSelector');
+        const layerCountGroup = document.getElementById('layerCountGroup');
+        const wallHeightLabel = document.getElementById('wallHeightLabel');
+
+        function toggleLayerInputs() {
+            if (workTypeSelector && layerCountGroup) {
+                if (workTypeSelector.value === 'brick_rollag') {
+                    layerCountGroup.style.display = 'block';
+                    // Change label from "Tinggi" to "Lebar" for Rollag
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Lebar';
+                    }
+                } else {
+                    layerCountGroup.style.display = 'none';
+                    // Restore label to "Tinggi" for other formulas
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
+                }
+            }
+        }
+
+        if (workTypeSelector) {
+            workTypeSelector.addEventListener('change', toggleLayerInputs);
+            // Run on init
+            toggleLayerInputs();
+        }
 
         // Add event listeners
         if (filterAll) {

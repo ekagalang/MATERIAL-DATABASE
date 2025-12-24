@@ -76,6 +76,7 @@ class PriceAnalysisController extends Controller
             'mortar_thickness' => $mortarThickness,
             'mortar_formula_id' => $defaultMortar->id,
             'installation_type_id' => $installationType->id,
+            'layer_count' => $request->layer_count ?? 1, // Tambahkan layer_count
         ];
 
         // LOAD MATERIAL
