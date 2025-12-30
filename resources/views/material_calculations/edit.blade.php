@@ -80,6 +80,36 @@
                     </div>
                 </div>
 
+                {{-- INPUT TAMBAHAN (ROLLAG/PLESTER/ACI) --}}
+                <div class="dimensions-container" style="margin-top: 12px;">
+                    {{-- INPUT TINGKAT UNTUK ROLLAG --}}
+                    <div class="dimension-group" id="layerCountGroup" style="display: none;">
+                        <label>Tingkat</label>
+                        <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
+                            <input type="number" name="layer_count" step="1" min="1" value="{{ old('layer_count', $calculationParams['layer_count'] ?? 1) }}">
+                            <span class="unit" style="background-color: #fef3c7;">Lapis</span>
+                        </div>
+                    </div>
+
+                    {{-- INPUT SISI PLESTERAN --}}
+                    <div class="dimension-group" id="plasterSidesGroup" style="display: none;">
+                        <label>Sisi Plesteran</label>
+                        <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
+                            <input type="number" name="plaster_sides" step="1" min="1" value="{{ old('plaster_sides', $calculationParams['plaster_sides'] ?? 1) }}">
+                            <span class="unit" style="background-color: #bae6fd;">Sisi</span>
+                        </div>
+                    </div>
+
+                    {{-- INPUT SISI ACI --}}
+                    <div class="dimension-group" id="skimSidesGroup" style="display: none;">
+                        <label>Sisi Aci</label>
+                        <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
+                            <input type="number" name="skim_sides" step="1" min="1" value="{{ old('skim_sides', $calculationParams['skim_sides'] ?? 1) }}">
+                            <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
                 <div class="form-group">
                     <label>+ Filter by:</label>
@@ -250,7 +280,7 @@
                                 <select id="customSandPackage" name="sand_id" class="select-gray-light">
                                     <option value="">-- Pilih Kemasan --</option>
                                     @if(isset($materialCalculation->sand))
-                                        <option value="{{ $materialCalculation->sand_id }}" selected>{{ $materialCalculation->sand->package_volume }} m³</option>
+                                        <option value="{{ $materialCalculation->sand_id }}" selected>{{ $materialCalculation->sand->package_volume }} M3</option>
                                     @endif
                                 </select>
                             </div>
@@ -289,7 +319,7 @@
     .form-title { 
         font-size: 18px; 
         font-weight: 700; 
-        color: #1e293b; 
+        color: inherit; 
         margin-bottom: 20px; 
         padding-bottom: 12px; 
         border-bottom: 1px solid #e2e8f0; 
@@ -305,7 +335,7 @@
     .form-group label { 
         flex: 0 0 120px; 
         font-weight: 400; 
-        color: #1e293b; 
+        color: inherit; 
         font-size: 14px; 
         padding-top: 10px;
         text-align: left;
@@ -323,7 +353,9 @@
         border: 1px solid #cbd5e1; 
         border-radius: 4px; 
         font-size: 14px; 
-        color: #1e293b; 
+        color: var(--text-color) !important; 
+        -webkit-text-stroke: var(--text-stroke) !important;
+        text-shadow: var(--text-shadow) !important;
         background: #fff; 
         font-family: inherit; 
     }
@@ -437,7 +469,7 @@
     .section-header { 
         font-weight: 700; 
         font-size: 15px; 
-        color: #1e293b; 
+        color: inherit; 
         margin-bottom: 12px;
     }
     
@@ -558,7 +590,7 @@
     .tickbox-item .tickbox-title {
         font-weight: 600;
         font-size: 14px;
-        color: #1e293b;
+        color: inherit;
         display: flex;
         align-items: center;
     }
@@ -717,10 +749,36 @@
         // Sync workTypeSelector with hidden work_type input
         const workTypeSelect = document.getElementById('workTypeSelector');
         const workTypeHidden = document.querySelector('input[name="work_type"]');
-        if(workTypeSelect && workTypeHidden) {
-            workTypeSelect.addEventListener('change', function() {
-                workTypeHidden.value = this.value;
-            });
+        const layerCountGroup = document.getElementById('layerCountGroup');
+        const plasterSidesGroup = document.getElementById('plasterSidesGroup');
+        const skimSidesGroup = document.getElementById('skimSidesGroup');
+        // Note: Label element might need an ID in HTML first, but we can try to find it relative to input if not.
+        // Assuming label is generic for now or finding by text content logic is complex without IDs.
+        
+        function handleWorkTypeChange() {
+            if (!workTypeSelect) return;
+            
+            const val = workTypeSelect.value;
+            if (workTypeHidden) workTypeHidden.value = val;
+
+            // Hide all first
+            if(layerCountGroup) layerCountGroup.style.display = 'none';
+            if(plasterSidesGroup) plasterSidesGroup.style.display = 'none';
+            if(skimSidesGroup) skimSidesGroup.style.display = 'none';
+
+            if (val === 'brick_rollag') {
+                if(layerCountGroup) layerCountGroup.style.display = 'flex'; // dimension-group is flex column or flex
+            } else if (val === 'wall_plastering') {
+                if(plasterSidesGroup) plasterSidesGroup.style.display = 'flex';
+            } else if (val === 'skim_coating') {
+                if(skimSidesGroup) skimSidesGroup.style.display = 'flex';
+            }
+        }
+
+        if(workTypeSelect) {
+            workTypeSelect.addEventListener('change', handleWorkTypeChange);
+            // Run on init
+            handleWorkTypeChange();
         }
     })();
 </script>

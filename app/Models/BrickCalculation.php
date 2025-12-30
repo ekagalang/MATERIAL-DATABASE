@@ -116,7 +116,7 @@ class BrickCalculation extends Model
         if (!$formulaCode || !\App\Services\FormulaRegistry::has($formulaCode)) {
             $availableFormulas = \App\Services\FormulaRegistry::all();
             if (empty($availableFormulas)) {
-                throw new \Exception("Tidak ada formula yang tersedia di sistem");
+                throw new \Exception('Tidak ada formula yang tersedia di sistem');
             }
             $formulaCode = $availableFormulas[0]['code'];
         }
@@ -125,7 +125,10 @@ class BrickCalculation extends Model
         $formula = \App\Services\FormulaRegistry::instance($formulaCode);
 
         if (!$formula) {
-            throw new \Exception("Formula '{$formulaCode}' tidak ditemukan di Formula Bank. Formula yang tersedia: " . implode(', ', \App\Services\FormulaRegistry::codes()));
+            throw new \Exception(
+                "Formula '{$formulaCode}' tidak ditemukan di Formula Bank. Formula yang tersedia: " .
+                    implode(', ', \App\Services\FormulaRegistry::codes()),
+            );
         }
 
         // Execute formula calculation
@@ -198,7 +201,7 @@ class BrickCalculation extends Model
             // Sand results
             'sand_sak' => $result['sand_sak'],
             'sand_m3' => $result['sand_m3'],
-            'sand_kg' => $result['sand_m3'] * 1600, // Sand density kg/m³
+            'sand_kg' => $result['sand_m3'] * 1600, // Sand density kg/M3
             'sand_id' => $params['sand_id'] ?? null,
             'sand_price_per_m3' => $result['sand_price_per_m3'],
             'sand_total_cost' => $result['total_sand_price'],
@@ -235,7 +238,7 @@ class BrickCalculation extends Model
      */
     private static function calculateCementKgPerM3(float $cementRatio, float $sandRatio): float
     {
-        // Data points dari Excel/Seeder (rasio pasir → kg semen per m³)
+        // Data points dari Excel/Seeder (rasio pasir → kg semen per M3)
         $dataPoints = [
             3 => 325.0,
             4 => 321.96875,
@@ -252,7 +255,7 @@ class BrickCalculation extends Model
      */
     private static function calculateSandM3PerM3(float $cementRatio, float $sandRatio): float
     {
-        // Data points dari Excel/Seeder (rasio pasir → m³ pasir per m³ adukan)
+        // Data points dari Excel/Seeder (rasio pasir → M3 pasir per M3 adukan)
         $dataPoints = [
             3 => 0.87,
             4 => 0.86875,
@@ -269,7 +272,7 @@ class BrickCalculation extends Model
      */
     private static function calculateWaterLiterPerM3(float $cementRatio, float $sandRatio): float
     {
-        // Data points dari Excel/Seeder (rasio pasir → liter air per m³ adukan)
+        // Data points dari Excel/Seeder (rasio pasir → liter air per M3 adukan)
         $dataPoints = [
             3 => 400.0,
             4 => 347.725,
@@ -336,7 +339,7 @@ class BrickCalculation extends Model
      * @param  float  $height  Tinggi bata (cm)
      * @param  float  $mortarThickness  Tebal adukan (cm)
      * @param  string  $installationCode  Kode jenis pemasangan
-     * @return float Volume dalam m³
+     * @return float Volume dalam M3
      */
     private static function calculateMortarVolumePerBrick(
         float $length,
@@ -346,7 +349,7 @@ class BrickCalculation extends Model
         string $installationCode,
     ): float {
         // Formula: (panjang + tinggi + tebal adukan) × lebar × tebal adukan / 1000000
-        // Semua dimensi dalam cm, hasil dalam m³
+        // Semua dimensi dalam cm, hasil dalam M3
         return (($length + $height + $mortarThickness) * $width * $mortarThickness) / 1000000;
     }
 
@@ -359,7 +362,7 @@ class BrickCalculation extends Model
             'wall_info' => [
                 'length' => $this->wall_length . ' m',
                 'height' => $this->wall_height . ' m',
-                'area' => $this->wall_area . ' m²',
+                'area' => $this->wall_area . ' M2',
             ],
             'brick_info' => [
                 'quantity' => number_format($this->brick_quantity, 2) . ' buah',
@@ -367,7 +370,7 @@ class BrickCalculation extends Model
                 'cost' => 'Rp ' . number_format($this->brick_total_cost, 0, ',', '.'),
             ],
             'mortar_info' => [
-                'volume' => number_format($this->mortar_volume, 6) . ' m³',
+                'volume' => number_format($this->mortar_volume, 6) . ' M3',
                 'formula' => $this->mortarFormula->name ?? '-',
                 'thickness' => $this->mortar_thickness . ' cm',
             ],
@@ -384,7 +387,7 @@ class BrickCalculation extends Model
                 'sand' => [
                     'sak' => number_format($this->sand_sak, 2) . ' karung',
                     'kg' => number_format($this->sand_kg, 2) . ' kg',
-                    'm3' => number_format($this->sand_m3, 6) . ' m³',
+                    'm3' => number_format($this->sand_m3, 6) . ' M3',
                     'cost' => 'Rp ' . number_format($this->sand_total_cost, 0, ',', '.'),
                 ],
                 'water' => [

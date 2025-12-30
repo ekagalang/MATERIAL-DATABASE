@@ -8,8 +8,8 @@
     <div class="col-12">
         <div class="welcome-card text-white p-5 rounded-4 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #891313 0%, #4a0404 100%);">
             <div class="position-relative z-1">
-                <h1 class="fw-bold display-5 mb-2">Selamat Datang di Material Database</h1>
-                <p class="lead opacity-75 mb-4">Kelola data material, sumber daya, dan analisis harga proyek Anda dalam satu tempat.</p>
+                <h1 class="fw-bold display-5 mb-2 text-shadow-bottom">Selamat Datang di Material Database</h1>
+                <p class="lead mb-4 text-shadow-bottom">Kelola data material, sumber daya, dan analisis harga proyek Anda dalam satu tempat.</p>
             </div>
             <!-- Decorative Background Elements -->
             <img src="{{ asset('Logo.png') }}" alt="Logo" class="position-absolute opacity-10" style="height: 100%; width: auto; right: 0; bottom: 0; transform: rotate(0deg);">
@@ -25,10 +25,10 @@
             <i class="bi bi-box-seam"></i>
         </div>
         <div class="card-content">
-            <p class="card-label">Total Material</p>
-            <h2 class="card-value">{{ number_format($materialCount) }}</h2>
+            <p class="card-label text-shadow-bottom">Total Material</p>
+            <h2 class="card-value text-shadow-bottom">{{ number_format($materialCount) }}</h2>
             <div class="card-meta">
-                <span class="trend up"><i class="bi bi-graph-up-arrow"></i> +4 Kategori</span>
+                <span class="status-badge red text-shadow-bottom"><i class="bi bi-graph-up-arrow"></i> +4 Kategori</span>
             </div>
         </div>
         <div class="card-overlay red"></div>
@@ -40,10 +40,10 @@
             <i class="bi bi-rulers"></i>
         </div>
         <div class="card-content">
-            <p class="card-label">Satuan Unit</p>
-            <h2 class="card-value">{{ number_format($unitCount) }}</h2>
+            <p class="card-label text-shadow-bottom">Satuan Unit</p>
+            <h2 class="card-value text-shadow-bottom">{{ number_format($unitCount) }}</h2>
             <div class="card-meta">
-                <span class="trend neutral"><i class="bi bi-check2-circle"></i> Terstandarisasi</span>
+                <span class="status-badge cyan text-shadow-bottom"><i class="bi bi-check2-circle"></i> Terstandarisasi</span>
             </div>
         </div>
         <div class="card-overlay cyan"></div>
@@ -55,10 +55,10 @@
             <i class="bi bi-shop"></i>
         </div>
         <div class="card-content">
-            <p class="card-label">Mitra Toko</p>
-            <h2 class="card-value">--</h2>
+            <p class="card-label text-shadow-bottom">Mitra Toko</p>
+            <h2 class="card-value text-shadow-bottom">--</h2>
             <div class="card-meta">
-                <span class="status-badge orange">COMING SOON</span>
+                <span class="status-badge orange text-shadow-bottom">COMING SOON</span>
             </div>
         </div>
         <div class="card-overlay orange"></div>
@@ -70,10 +70,10 @@
             <i class="bi bi-people"></i>
         </div>
         <div class="card-content">
-            <p class="card-label">Tenaga Kerja</p>
-            <h2 class="card-value">--</h2>
+            <p class="card-label text-shadow-bottom">Tenaga Kerja</p>
+            <h2 class="card-value text-shadow-bottom">--</h2>
             <div class="card-meta">
-                <span class="status-badge green">Coming Soon</span>
+                <span class="status-badge green text-shadow-bottom">Coming Soon</span>
             </div>
         </div>
         <div class="card-overlay green"></div>
@@ -85,10 +85,10 @@
             <i class="bi bi-building-gear"></i>
         </div>
         <div class="card-content">
-            <p class="card-label">Item Pekerjaan</p>
-            <h2 class="card-value">{{ number_format($workItemCount) }}</h2>
+            <p class="card-label text-shadow-bottom">Item Pekerjaan</p>
+            <h2 class="card-value text-shadow-bottom">{{ number_format($workItemCount) }}</h2>
             <div class="card-meta">
-                <span class="status-badge blue">Total Rumus</span>
+                <span class="status-badge blue text-shadow-bottom">Total Rumus</span>
             </div>
         </div>
         <div class="card-overlay blue"></div>
@@ -100,10 +100,10 @@
             <i class="bi bi-tools"></i>
         </div>
         <div class="card-content">
-            <p class="card-label">Keterampilan</p>
-            <h2 class="card-value">--</h2>
+            <p class="card-label text-shadow-bottom">Keterampilan</p>
+            <h2 class="card-value text-shadow-bottom">--</h2>
             <div class="card-meta">
-                <span class="status-badge purple">COMING SOON</span>
+                <span class="status-badge purple text-shadow-bottom">COMING SOON</span>
             </div>
         </div>
         <div class="card-overlay purple"></div>
@@ -179,18 +179,20 @@
     .card-label {
         font-size: 14px;
         font-weight: 600;
-        color: #64748b;
+        color: #ffffff;
         margin-bottom: 4px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        -webkit-text-stroke: 0.5px black;
     }
 
     .card-value {
         font-size: 32px;
         font-weight: 800;
-        color: #0f172a;
+        color: #ffffff;
         margin-bottom: 12px;
         line-height: 1;
+        -webkit-text-stroke: 0.5px black;
     }
 
     .card-meta {
@@ -200,7 +202,11 @@
         font-weight: 500;
     }
 
-    .trend.up { color: #10b981; }
+    .trend.up { 
+        color: #ffffff;
+        -webkit-text-stroke: 0.2px black;
+    }
+
     .trend.neutral { color: #64748b; }
 
     .status-badge {
@@ -209,7 +215,11 @@
         font-size: 11px;
         font-weight: 700;
         text-transform: uppercase;
+        color: #ffffff;
+        -webkit-text-stroke: 0.2px black;
     }
+    .status-badge.red { background: #fee2e2; color: #b91c1c; }
+    .status-badge.cyan { background: #cffafe; color: #0e7490; }
     .status-badge.orange { background: #fff7ed; color: #c2410c; }
     .status-badge.green { background: #f0fdf4; color: #15803d; }
     .status-badge.blue { background: #eff6ff; color: #1d4ed8; }
@@ -269,15 +279,15 @@
                             </div>
                             <div class="flex-grow-1 min-width-0">
                                 <h6 class="mb-0 text-truncate fw-semibold font-sans">{{ $activity->name }}</h6>
-                                <small class="text-muted d-block">
-                                    Ditambahkan ke <span class="badge bg-light text-dark border">{{ $activity->category }}</span>
+                                <small class="d-block text-shadow-bottom">
+                                    Ditambahkan ke <span class="badge bg-light border">{{ $activity->category }}</span>
                                 </small>
                             </div>
-                            <small class="text-muted ms-2 whitespace-nowrap">{{ $activity->created_at->diffForHumans() }}</small>
+                            <small class="ms-2 whitespace-nowrap">{{ $activity->created_at->diffForHumans() }}</small>
                         </div>
                     @empty
-                        <div class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 mb-2 d-block opacity-25"></i>
+                        <div class="text-center py-5 text-shadow-bottom">
+                            <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
                             Belum ada aktivitas
                         </div>
                     @endforelse
@@ -285,7 +295,7 @@
             </div>
             @if($recentActivities->count() > 0)
             <div class="card-footer bg-white border-0 px-4 pb-4 pt-0">
-                <a href="{{ route('materials.index') }}" class="btn btn-light w-100 fw-medium text-muted rounded-3">Lihat Semua History</a>
+                <a href="{{ route('materials.index') }}" class="btn btn-light w-100 fw-medium text-shadow-bottom rounded-3">Lihat Semua History</a>
             </div>
             @endif
         </div>
@@ -367,6 +377,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
     /* Custom Utilities */
+    .text-shadow-bottom {
+        text-shadow: 0 1.1px 0 rgba(0, 0, 0, 1);
+    }
     .font-sans { font-family: 'Inter', sans-serif; }
     .transition-base { transition: all 0.2s ease; }
     .hover-bg-light:hover { background-color: #f8fafc !important; }

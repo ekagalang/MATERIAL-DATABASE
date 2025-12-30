@@ -43,8 +43,9 @@ class MaterialCalculationController extends Controller
             });
         }
 
-        if ($request->has('installation_type') && $request->installation_type != '') {
-            $query->where('installation_type_id', $request->installation_type);
+        // Filter by work_type (from calculation_params JSON field)
+        if ($request->has('work_type') && $request->work_type != '') {
+            $query->whereRaw("JSON_EXTRACT(calculation_params, '$.work_type') = ?", [$request->work_type]);
         }
 
         if ($request->has('date_from') && $request->date_from != '') {
@@ -56,9 +57,10 @@ class MaterialCalculationController extends Controller
 
         $calculations = $query->orderBy('created_at', 'desc')->paginate(15)->appends($request->query());
 
-        $installationTypes = BrickInstallationType::getActive();
+        // Get available formulas from Formula Registry
+        $availableFormulas = FormulaRegistry::all();
 
-        return view('material_calculations.log', compact('calculations', 'installationTypes'));
+        return view('material_calculations.log', compact('calculations', 'availableFormulas'));
     }
 
     /**
@@ -123,7 +125,7 @@ class MaterialCalculationController extends Controller
                 'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required|numeric|min:0.01',
-                'mortar_thickness' => 'required|numeric|min:0.1',
+                'mortar_thickness' => 'required|numeric|min:0.01',
             ];
 
             // Default to 'best' if no filters selected
@@ -131,20 +133,44 @@ class MaterialCalculationController extends Controller
                 $request->merge(['price_filters' => ['best']]);
             }
 
-            // Validasi Brick: Bisa single 'brick_id' atau array 'brick_ids'
-            if ($request->has('brick_ids')) {
-                $rules['brick_ids'] = 'required|array';
-                $rules['brick_ids.*'] = 'exists:bricks,id';
+            // NEW LOGIC: Dynamic Material Validation based on Work Type
+            $workType = $request->work_type;
+            $needsBrick = !in_array($workType, ['wall_plastering', 'skim_coating']);
+            $needsSand = !in_array($workType, ['skim_coating']);
+
+            // Brick Validation
+            if (!$needsBrick) {
+                // If work type doesn't need brick, it's optional
+                $rules['brick_id'] = 'nullable';
+                $rules['brick_ids'] = 'nullable|array';
             } else {
-                $rules['brick_id'] = 'required|exists:bricks,id';
+                // Normal logic for brick-based works
+                $priceFilters = $request->price_filters ?? [];
+                $hasCustom = in_array('custom', $priceFilters);
+                $hasOtherFilters = count(array_diff($priceFilters, ['custom'])) > 0;
+
+                if ($hasCustom && !$hasOtherFilters) {
+                    // Only custom filter selected - brick required
+                    if ($request->has('brick_ids')) {
+                        $rules['brick_ids'] = 'required|array';
+                        $rules['brick_ids.*'] = 'exists:bricks,id';
+                    } else {
+                        $rules['brick_id'] = 'required|exists:bricks,id';
+                    }
+                } else {
+                    // Other filters selected - brick optional (auto-selected)
+                    if ($request->has('brick_ids')) {
+                        $rules['brick_ids'] = 'nullable|array';
+                        $rules['brick_ids.*'] = 'exists:bricks,id';
+                    } else {
+                        $rules['brick_id'] = 'nullable|exists:bricks,id';
+                    }
+                }
             }
 
-            // Validasi Semen/Pasir hanya wajib jika 'custom' ada di price_filters
-            $priceFilters = $request->price_filters ?? [];
-            if (in_array('custom', $priceFilters)) {
-                // Custom filter selected, cement and sand are optional (can be selected by user)
-            } else {
-                // No custom filter, cement and sand not required (will be auto-selected)
+            // Sand Validation (Optional override if work type doesn't need it)
+            if (!$needsSand) {
+                $rules['sand_id'] = 'nullable';
             }
 
             $request->validate($rules);
@@ -251,31 +277,67 @@ class MaterialCalculationController extends Controller
     {
         // Tentukan Bata mana saja yang akan dihitung
         $targetBricks = collect();
-
-        // CHECK: If 'best' filter is selected, we want to include ALL recommended bricks?
-        // Logic: "filter TerBAIK ini... mandiri seperti di setting rekomendasi"
-        // This implies: If 'best' is chosen, show ALL configured recommendations.
         $priceFilters = $request->price_filters ?? [];
-        if (in_array('best', $priceFilters) && count($priceFilters) === 1) {
-            // Fetch ALL bricks that have a recommendation
-            $recommendedBrickIds = RecommendedCombination::where('type', 'best')->pluck('brick_id')->unique();
-            
-            if ($recommendedBrickIds->isNotEmpty()) {
-                $targetBricks = Brick::whereIn('id', $recommendedBrickIds)->get();
-            } else {
-                // Fallback to normal selection if no recommendations exist
-                if ($request->has('brick_ids')) {
-                    $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
-                } elseif ($request->has('brick_id')) {
-                    $targetBricks = Brick::where('id', $request->brick_id)->get();
-                }
-            }
+
+        // NEW LOGIC: If no brick specified, auto-select based on filter
+        $hasBrickIds = $request->has('brick_ids') && !empty($request->brick_ids);
+        $hasBrickId = $request->has('brick_id') && !empty($request->brick_id);
+
+        // Get work_type from request
+        $workType = $request->work_type ?? 'brick_half';
+
+        // Check if formula is brickless (Plastering / Skim Coating)
+        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating']);
+
+        if ($isBrickless) {
+            // Use dummy brick placeholder to maintain data structure
+            // The formula will return 0 bricks anyway
+            $targetBricks = Brick::limit(1)->get();
         } else {
-            // Normal behavior for other filters
-            if ($request->has('brick_ids')) {
-                $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
-            } elseif ($request->has('brick_id')) {
-                $targetBricks = Brick::where('id', $request->brick_id)->get();
+            if (!$hasBrickIds && !$hasBrickId) {
+                // No brick specified - auto-select based on filter type
+                if (in_array('best', $priceFilters)) {
+                    // Get ALL bricks that have recommendations for this work_type
+                    $recommendedBrickIds = RecommendedCombination::where('type', 'best')
+                        ->where('work_type', $workType)
+                        ->pluck('brick_id')
+                        ->unique();
+                    if ($recommendedBrickIds->isNotEmpty()) {
+                        $targetBricks = Brick::whereIn('id', $recommendedBrickIds)->get();
+                    }
+                }
+
+                // If still empty, get top 5 bricks (cheapest or most common)
+                if ($targetBricks->isEmpty()) {
+                    $targetBricks = Brick::orderBy('price_per_piece', 'asc')->limit(5)->get();
+                }
+            } else {
+                // Brick(s) specified - use existing logic
+                if (in_array('best', $priceFilters) && count($priceFilters) === 1) {
+                    // Fetch ALL bricks that have a recommendation for this work_type
+                    $recommendedBrickIds = RecommendedCombination::where('type', 'best')
+                        ->where('work_type', $workType)
+                        ->pluck('brick_id')
+                        ->unique();
+
+                    if ($recommendedBrickIds->isNotEmpty()) {
+                        $targetBricks = Brick::whereIn('id', $recommendedBrickIds)->get();
+                    } else {
+                        // Fallback to normal selection if no recommendations exist
+                        if ($hasBrickIds) {
+                            $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
+                        } elseif ($hasBrickId) {
+                            $targetBricks = Brick::where('id', $request->brick_id)->get();
+                        }
+                    }
+                } else {
+                    // Normal behavior for other filters
+                    if ($hasBrickIds) {
+                        $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
+                    } elseif ($hasBrickId) {
+                        $targetBricks = Brick::where('id', $request->brick_id)->get();
+                    }
+                }
             }
         }
 
@@ -381,13 +443,13 @@ class MaterialCalculationController extends Controller
     protected function calculateCombinationsForBrick($brick, $request)
     {
         $requestedFilters = $request->price_filters ?? ['best'];
-        
+
         // Special, independent handling for 'best' filter when it's the only one selected
         if (count($requestedFilters) === 1 && $requestedFilters[0] === 'best') {
             $bestCombinations = $this->getBestCombinations($brick, $request);
             $finalResults = [];
             foreach ($bestCombinations as $index => $combo) {
-                $label = "TerBAIK " . ($index + 1);
+                $label = 'TerBAIK ' . ($index + 1);
                 $finalResults[$label] = [array_merge($combo, ['filter_label' => $label])];
             }
             return $finalResults;
@@ -402,7 +464,7 @@ class MaterialCalculationController extends Controller
 
         // Always calculate ALL standard filters to generate cross-reference labels
         $filtersToCalculate = ['best', 'common', 'cheapest', 'medium', 'expensive'];
-        
+
         // Add custom only if requested (because custom depends on specific user input)
         if (in_array('custom', $requestedFilters)) {
             $filtersToCalculate[] = 'custom';
@@ -416,10 +478,10 @@ class MaterialCalculationController extends Controller
             foreach ($combinations as $index => $combo) {
                 $number = $index + 1;
                 $filterLabel = $this->getFilterLabel($filter);
-                
+
                 // Special handling for custom label to match previous behavior
                 if ($filter === 'custom') {
-                    $filterLabel = 'Custom'; 
+                    $filterLabel = 'Custom';
                 }
 
                 $allCombinations[] = array_merge($combo, [
@@ -440,7 +502,7 @@ class MaterialCalculationController extends Controller
         $userOriginalFilters = $request->price_filters ?? [];
         foreach ($userOriginalFilters as $rf) {
             if ($rf !== 'all') {
-                $priorityLabels[] = ($rf === 'custom') ? 'Custom' : $this->getFilterLabel($rf);
+                $priorityLabels[] = $rf === 'custom' ? 'Custom' : $this->getFilterLabel($rf);
             }
         }
 
@@ -449,30 +511,31 @@ class MaterialCalculationController extends Controller
         foreach ($uniqueCombos as $combo) {
             // Check intersection between combo's sources and requested filters
             $sources = $combo['source_filters'] ?? [$combo['filter_type']];
-            
+
             // If any source is in requested filters, show the item
             if (count(array_intersect($sources, $requestedFilters)) > 0) {
-                
                 // Re-order label based on priority
                 $labels = $combo['all_labels'] ?? [$combo['filter_label']];
-                
+
                 if (!empty($priorityLabels)) {
-                    usort($labels, function($a, $b) use ($priorityLabels) {
+                    usort($labels, function ($a, $b) use ($priorityLabels) {
                         // Check priority score
                         $aScore = 0;
                         foreach ($priorityLabels as $pl) {
                             if (str_starts_with($a, $pl)) {
-                                $aScore = 1; break; 
+                                $aScore = 1;
+                                break;
                             }
                         }
-                        
+
                         $bScore = 0;
                         foreach ($priorityLabels as $pl) {
-                             if (str_starts_with($b, $pl)) {
-                                $bScore = 1; break; 
+                            if (str_starts_with($b, $pl)) {
+                                $bScore = 1;
+                                break;
                             }
                         }
-                        
+
                         // Higher score first (descending)
                         return $bScore <=> $aScore;
                     });
@@ -480,7 +543,7 @@ class MaterialCalculationController extends Controller
 
                 // Update label string
                 $combo['filter_label'] = implode(' = ', $labels);
-                
+
                 // Use the new label as key
                 $label = $combo['filter_label'];
                 $finalResults[$label] = [$combo];
@@ -542,7 +605,7 @@ class MaterialCalculationController extends Controller
      */
     protected function getFilterLabel($filter)
     {
-        return match($filter) {
+        return match ($filter) {
             'best' => 'TerBAIK',
             'common' => 'TerUMUM',
             'cheapest' => 'TerMURAH',
@@ -575,10 +638,10 @@ class MaterialCalculationController extends Controller
             if (isset($duplicateMap[$key])) {
                 // Duplicate found, merge labels
                 $existingIndex = $duplicateMap[$key];
-                
+
                 // Add to all_labels collection
                 $uniqueCombos[$existingIndex]['all_labels'][] = $currentLabel;
-                
+
                 // Keep default string merging (will be overwritten by display logic later)
                 $uniqueCombos[$existingIndex]['filter_label'] .= ' = ' . $currentLabel;
 
@@ -594,10 +657,10 @@ class MaterialCalculationController extends Controller
             } else {
                 // New combination
                 $duplicateMap[$key] = count($uniqueCombos);
-                
+
                 // Initialize all_labels
                 $combo['all_labels'] = [$currentLabel];
-                
+
                 $uniqueCombos[] = $combo;
 
                 \Log::info('New Combination:', [
@@ -619,8 +682,14 @@ class MaterialCalculationController extends Controller
     /**
      * Calculate combinations from given materials
      */
-    protected function calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $groupLabel = 'Kombinasi', $limit = null)
-    {
+    protected function calculateCombinationsFromMaterials(
+        $brick,
+        $request,
+        $cements,
+        $sands,
+        $groupLabel = 'Kombinasi',
+        $limit = null,
+    ) {
         $paramsBase = [
             'wall_length' => $request->wall_length,
             'wall_height' => $request->wall_height,
@@ -630,15 +699,33 @@ class MaterialCalculationController extends Controller
             'work_type' => $request->work_type ?? 'brick_half',
             'brick_id' => $brick->id,
             'layer_count' => $request->layer_count ?? 1, // For Rollag formula
+            'plaster_sides' => $request->plaster_sides ?? 1, // For Wall Plastering
+            'skim_sides' => $request->skim_sides ?? 1, // For Skim Coating
         ];
 
         $results = [];
 
         foreach ($cements as $cement) {
+            // VALIDASI DATA SEMEN
+            // Skip jika berat bersih 0 atau kosong (menyebabkan division by zero di formula)
+            if ($cement->package_weight_net <= 0) {
+                continue;
+            }
+
             foreach ($sands as $sand) {
+                // VALIDASI DATA PASIR
+                // Skip jika tidak ada harga per m3 DAN (volume 0 atau harga 0)
+                // Ini untuk mencegah error kalkulasi harga pasir
+                $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
+                $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
+                
+                if (!$hasPricePerM3 && !$hasPackageData) {
+                    continue;
+                }
+
                 $params = array_merge($paramsBase, [
                     'cement_id' => $cement->id,
-                    'sand_id' => $sand->id
+                    'sand_id' => $sand->id,
                 ]);
 
                 try {
@@ -675,7 +762,7 @@ class MaterialCalculationController extends Controller
                         'cement_id' => $cement->id,
                         'sand_id' => $sand->id,
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
+                        'trace' => $e->getTraceAsString(),
                     ]);
                     continue;
                 }
@@ -683,7 +770,7 @@ class MaterialCalculationController extends Controller
         }
 
         // Sort by total cost
-        usort($results, function($a, $b) {
+        usort($results, function ($a, $b) {
             return $a['total_cost'] <=> $b['total_cost'];
         });
 
@@ -700,12 +787,29 @@ class MaterialCalculationController extends Controller
      */
     protected function getBestCombinations($brick, $request)
     {
-        // 1. Check for Admin Recommendations
-        $recommendations = RecommendedCombination::where('brick_id', $brick->id)
-            ->where('type', 'best')
-            ->get();
+        // Get work_type from request
+        $workType = $request->work_type ?? 'brick_half';
+        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating']);
 
-        \Log::info("GetBestCombinations: Found " . $recommendations->count() . " recommendations for brick ID: " . $brick->id);
+        // 1. Check for Admin Recommendations - filtered by work_type
+        $query = RecommendedCombination::where('work_type', $workType)
+            ->where('type', 'best');
+
+        // Untuk brickless, kita tetap gunakan brick_id dari placeholder yang dikirim
+        // karena struktur tabel mewajibkan brick_id.
+        // Asumsinya: Admin menyimpan rekomendasi plesteran di bawah salah satu bata (misal ID 1).
+        $query->where('brick_id', $brick->id);
+            
+        $recommendations = $query->get();
+
+        \Log::info(
+            'GetBestCombinations: Found ' .
+                $recommendations->count() .
+                ' recommendations for brick ID: ' .
+                $brick->id .
+                ' and work_type: ' .
+                $workType,
+        );
 
         $allRecommendedResults = [];
 
@@ -717,8 +821,8 @@ class MaterialCalculationController extends Controller
 
             // Calculate for this specific pair
             $results = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerBAIK', 1);
-            
-            \Log::info("Calculation result count: " . count($results));
+
+            \Log::info('Calculation result count: ' . count($results));
 
             // Mark as 'best' source and add to collection
             foreach ($results as &$res) {
@@ -729,12 +833,24 @@ class MaterialCalculationController extends Controller
 
         // If there are admin recommendations, return them
         if (!empty($allRecommendedResults)) {
-            \Log::info("Returning " . count($allRecommendedResults) . " admin-defined 'best' combinations.");
+            \Log::info('Returning ' . count($allRecommendedResults) . " admin-defined 'best' combinations.");
             return $allRecommendedResults;
         }
 
+        // FALLBACK FOR BRICKLESS: If no recommendations, use Cheapest
+        if ($isBrickless) {
+             \Log::info('No admin recommendations for brickless work. Falling back to cheapest.');
+             $cheapest = $this->getCheapestCombinations($brick, $request);
+             // Limit to 3 and mark as best
+             $cheapest = array_slice($cheapest, 0, 3);
+             return array_map(function ($combo) {
+                $combo['source_filter'] = 'best';
+                return $combo;
+            }, $cheapest);
+        }
+
         // 2. No recommendations found
-        \Log::info("No admin recommendations found.");
+        \Log::info('No admin recommendations found.');
         return [];
     }
 
@@ -743,6 +859,18 @@ class MaterialCalculationController extends Controller
      */
     protected function getCommonCombinations($brick, $request)
     {
+        $workType = $request->work_type ?? 'brick_half';
+        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating']);
+
+        if ($isBrickless) {
+             // Fallback to cheapest for brickless work (since history tracking is complex without brick_id)
+             $cheapest = $this->getCheapestCombinations($brick, $request);
+             return array_map(function ($combo) {
+                $combo['source_filter'] = 'common';
+                return $combo;
+            }, array_slice($cheapest, 0, 3));
+        }
+
         // Query most frequent combinations from material_calculations table
         $commonCombos = \DB::table('brick_calculations')
             ->select('cement_id', 'sand_id', \DB::raw('count(*) as frequency'))
@@ -756,7 +884,7 @@ class MaterialCalculationController extends Controller
             // Fallback to cheapest if no history
             // Mark these combinations as coming from 'cheapest' filter
             $cheapest = $this->getCheapestCombinations($brick, $request);
-            return array_map(function($combo) {
+            return array_map(function ($combo) {
                 $combo['source_filter'] = 'cheapest';
                 return $combo;
             }, $cheapest);
@@ -767,7 +895,9 @@ class MaterialCalculationController extends Controller
             $cement = Cement::find($combo->cement_id);
             $sand = Sand::find($combo->sand_id);
 
-            if (!$cement || !$sand) continue;
+            if (!$cement || !$sand) {
+                continue;
+            }
 
             $cements = collect([$cement]);
             $sands = collect([$sand]);
@@ -805,7 +935,9 @@ class MaterialCalculationController extends Controller
 
         // Get middle 3 combinations
         $total = count($allResults);
-        if ($total < 3) return $allResults;
+        if ($total < 3) {
+            return $allResults;
+        }
 
         $startIndex = max(0, floor(($total - 3) / 2));
         return array_slice($allResults, $startIndex, 3);
@@ -890,7 +1022,7 @@ class MaterialCalculationController extends Controller
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required|numeric|min:0.01',
             'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
             'cement_id' => 'nullable|exists:cements,id',
@@ -950,7 +1082,7 @@ class MaterialCalculationController extends Controller
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required|numeric|min:0.01',
             'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
             'cement_id' => 'nullable|exists:cements,id',
@@ -991,7 +1123,7 @@ class MaterialCalculationController extends Controller
         $request->validate([
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required|numeric|min:0.01',
-            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
             'cement_id' => 'nullable|exists:cements,id',
@@ -1118,7 +1250,7 @@ class MaterialCalculationController extends Controller
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required|numeric|min:0.01',
             'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.1|max:10',
+            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
             'cement_id' => 'nullable|exists:cements,id',

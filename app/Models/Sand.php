@@ -79,9 +79,11 @@ class Sand extends Model
     public function calculateNetWeight()
     {
         if ($this->package_weight_gross && $this->package_unit) {
-            $unit = Unit::where('code', $this->package_unit)->whereHas('materialTypes', function ($q) {
-                $q->where('material_type', self::getMaterialType());
-            })->first();
+            $unit = Unit::where('code', $this->package_unit)
+                ->whereHas('materialTypes', function ($q) {
+                    $q->where('material_type', self::getMaterialType());
+                })
+                ->first();
 
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
@@ -93,12 +95,12 @@ class Sand extends Model
     }
 
     /**
-     * Kalkulasi volume dari dimensi (p x l x t) dalam m³
+     * Kalkulasi volume dari dimensi (p x l x t) dalam M3
      */
     public function calculateVolume(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
-            // Langsung dalam m³
+            // Langsung dalam M3
             $volumeM3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
             $this->package_volume = $volumeM3;
             return $volumeM3;
@@ -108,7 +110,7 @@ class Sand extends Model
     }
 
     /**
-     * Kalkulasi harga komparasi per m³
+     * Kalkulasi harga komparasi per M3
      */
     public function calculateComparisonPrice(): float
     {

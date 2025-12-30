@@ -48,7 +48,7 @@ function initMaterialCalculationForm(root, formData) {
                 const brickForm = scope.querySelector('#brickForm') || document.getElementById('brickForm');
                 const otherForm = scope.querySelector('#otherForm') || document.getElementById('otherForm');
 
-                if (workType.includes('brick')) {
+                if (workType.includes('brick') || workType.includes('plaster') || workType.includes('skim')) {
                     if (brickForm) brickForm.style.display = 'block';
                 } else if (otherForm) {
                     otherForm.style.display = 'block';
@@ -173,7 +173,7 @@ function initMaterialCalculationForm(root, formData) {
                         const option = document.createElement('option');
                         option.value = sand.id;
                         const pricePerM3 = sand.comparison_price_per_m3 || (sand.package_price / sand.package_volume);
-                        option.textContent = `${sand.package_volume} m³ - Rp ${Number(pricePerM3).toLocaleString('id-ID')}/m³`;
+                        option.textContent = `${sand.package_volume} M3 - Rp ${Number(pricePerM3).toLocaleString('id-ID')}/M3`;
                         packageSelect.appendChild(option);
                     });
                 }

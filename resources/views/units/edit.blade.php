@@ -209,7 +209,7 @@
         padding-top: 10px; 
         font-size: 13.5px; 
         font-weight: 600;
-        color: #334155;
+        color: inherit;
         flex-shrink: 0;
     }
     

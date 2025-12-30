@@ -125,7 +125,7 @@
 
                         <!-- Berat (Kg) with mini-label -->
                         <div class="mini-input-wrapper" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Berat (Kg)</span>
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: inherit;">Berat (Kg)</span>
                             <div style="position: relative;">
                                 <input type="text"
                                     name="package_weight_gross"
@@ -137,7 +137,7 @@
                                     placeholder="0"
                                     autocomplete="off"
                                     style="width: 100%; padding-right: 35px; text-align: right;">
-                                <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #64748b; pointer-events: none;">Kg</span>
+                                <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: inherit; pointer-events: none;">Kg</span>
                             </div>
                             <div class="autocomplete-list" id="package_weight_gross-list"></div>
                         </div>
@@ -151,7 +151,7 @@
                         <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 8px;">
                             <!-- Panjang -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Panjang</span>
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Panjang</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="text"
                                            id="dimension_length_input"
@@ -175,7 +175,7 @@
 
                             <!-- Lebar -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Lebar</span>
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Lebar</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="text"
                                            id="dimension_width_input"
@@ -199,7 +199,7 @@
 
                             <!-- Tinggi -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Tinggi</span>
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Tinggi</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="text"
                                            id="dimension_height_input"
@@ -266,7 +266,7 @@
                             <input type="hidden" name="package_price" id="package_price" value="{{ old('package_price', $cement->package_price) }}">
                             <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit', $cement->price_unit) }}">
                             <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: inherit; pointer-events: none; z-index: 1;">Rp</span>
                                 <input type="text"
                                        id="package_price_display"
                                        value="{{ old('package_price', $cement->package_price) }}"
@@ -283,11 +283,11 @@
 
                         <!-- Harga Komparasi per Kg -->
                         <div class="mini-input-wrapper flex-fill" style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
-                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Harga Komparasi</span>
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: inherit;">Harga Komparasi</span>
                             <div style="display: flex; align-items: center; position: relative;">
                                 <input type="hidden" name="comparison_price_per_kg" id="comparison_price_per_kg" value="{{ old('comparison_price_per_kg', $cement->comparison_price_per_kg) }}">
                                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: inherit; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
                                            class="autocomplete-input"
@@ -359,7 +359,7 @@
                     @if($cement->photo_url)
                         <div id="photoPlaceholder" style="display: none; text-align: center;">
                             <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
+                            <div style="font-size: 14px; font-weight: 600; color: inherit; margin-bottom: 6px;">Foto</div>
                         </div>
                         <img id="photoPreview" 
                              src="{{ $cement->photo_url }}" 
@@ -368,7 +368,7 @@
                     @else
                         <div id="photoPlaceholder" style="text-align: center;">
                             <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
+                            <div style="font-size: 14px; font-weight: 600; color: inherit; margin-bottom: 6px;">Foto</div>
                         </div>
                         <img id="photoPreview" 
                              src="" 

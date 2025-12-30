@@ -174,7 +174,7 @@ class PriceAnalysisController extends Controller
                 if ($sand->package_weight_net > 0) {
                     $dimensiPasir = "{$sand->package_weight_net} Kg";
                 } elseif ($sand->package_volume > 0) {
-                    $dimensiPasir = "{$sand->package_volume} m³";
+                    $dimensiPasir = "{$sand->package_volume} M3";
                 } elseif ($sand->dimension_length > 0) {
                     $dimensiPasir = "P:{$sand->dimension_length} L:{$sand->dimension_width} T:{$sand->dimension_height}";
                 }

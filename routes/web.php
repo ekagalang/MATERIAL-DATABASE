@@ -128,7 +128,9 @@ Route::get('/workers', [WorkerController::class, 'index'])->name('workers.index'
 Route::get('/skills', [SkillController::class, 'index'])->name('skills.index');
 
 // Setting Rekomendasi Material (TerBAIK)
-Route::prefix('settings/recommendations')->name('settings.recommendations.')->group(function () {
-    Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
-    Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
-});
+Route::prefix('settings/recommendations')
+    ->name('settings.recommendations.')
+    ->group(function () {
+        Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
+    });

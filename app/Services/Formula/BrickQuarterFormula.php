@@ -92,7 +92,7 @@ class BrickQuarterFormula implements FormulaInterface
 
         // ============ STEP 3: Hitung kolom vertikal bata ============
         // kolom vertikal bata = (tinggi dinding - (tebal adukan/100)) / ((lebar bata + tebal adukan)/100). (jika hasilnya desimal maka dibulatkan keatas)
-        $kolomVertikalBataRaw = ($tinggiDinding - ($tebalAdukan / 100)) / (($lebarBata + $tebalAdukan) / 100);
+        $kolomVertikalBataRaw = ($tinggiDinding - $tebalAdukan / 100) / (($lebarBata + $tebalAdukan) / 100);
         $decimal = $kolomVertikalBataRaw - floor($kolomVertikalBataRaw);
         $kolomVertikalBata = floor($kolomVertikalBataRaw);
         if ($decimal > 0) {
@@ -227,7 +227,7 @@ class BrickQuarterFormula implements FormulaInterface
             'formula' => 'Panjang adukan × tebal adukan / 100',
             'calculations' => [
                 'Perhitungan' => number_format($panjangAdukan, 6) . " × $tebalAdukan / 100",
-                'Hasil Luas Adukan' => number_format($luasAdukan, 6) . ' m²',
+                'Hasil Luas Adukan' => number_format($luasAdukan, 6) . ' M2',
             ],
         ];
 
@@ -241,7 +241,7 @@ class BrickQuarterFormula implements FormulaInterface
             'formula' => 'Luas Adukan × (tinggi bata / 100)',
             'calculations' => [
                 'Perhitungan' => number_format($luasAdukan, 6) . " × $tinggiBata / 100",
-                'Hasil Volume Adukan Pekerjaan' => number_format($volumeAdukanPekerjaan, 6) . ' m³',
+                'Hasil Volume Adukan Pekerjaan' => number_format($volumeAdukanPekerjaan, 6) . ' M3',
             ],
         ];
 
@@ -255,9 +255,9 @@ class BrickQuarterFormula implements FormulaInterface
             'title' => 'Kubik Semen',
             'formula' => 'berat 1 sak semen × (1 / density semen)',
             'calculations' => [
-                'Density Semen' => $densitySemen . ' kg/m³',
+                'Density Semen' => $densitySemen . ' kg/M3',
                 'Perhitungan' => "$beratSemenPerSak × (1 / $densitySemen)",
-                'Hasil Kubik Semen' => number_format($kubikSemen, 6) . ' m³',
+                'Hasil Kubik Semen' => number_format($kubikSemen, 6) . ' M3',
             ],
         ];
 
@@ -273,7 +273,7 @@ class BrickQuarterFormula implements FormulaInterface
             'calculations' => [
                 'Ratio Pasir' => $ratioPasir,
                 'Perhitungan' => number_format($kubikSemen, 6) . " × $ratioPasir",
-                'Hasil Kubik Pasir' => number_format($kubikPasir, 6) . ' m³',
+                'Hasil Kubik Pasir' => number_format($kubikPasir, 6) . ' M3',
             ],
         ];
 
@@ -288,7 +288,7 @@ class BrickQuarterFormula implements FormulaInterface
             'calculations' => [
                 'Perhitungan' =>
                     '0.3 × (' . number_format($kubikSemen, 6) . ' + ' . number_format($kubikPasir, 6) . ')',
-                'Hasil Kubik Air' => number_format($kubikAir, 6) . ' m³',
+                'Hasil Kubik Air' => number_format($kubikAir, 6) . ' M3',
             ],
         ];
 
@@ -321,16 +321,18 @@ class BrickQuarterFormula implements FormulaInterface
                     number_format($kubikPasir, 6) .
                     ' + ' .
                     number_format($kubikAir, 6),
-                'Hasil Volume Adukan' => number_format($volumeAdukan, 6) . ' m³',
+                'Hasil Volume Adukan' => number_format($volumeAdukan, 6) . ' M3',
             ],
         ];
 
         // Guard clause: Pastikan volume adukan tidak 0 untuk mencegah division by zero
         if ($volumeAdukan <= 0) {
-            throw new \Exception('Volume adukan tidak valid (bernilai 0 atau negatif). Periksa data material (semen, pasir) dan formula mortar.');
+            throw new \Exception(
+                'Volume adukan tidak valid (bernilai 0 atau negatif). Periksa data material (semen, pasir) dan formula mortar.',
+            );
         }
 
-        // ============ STEP 16: Kebutuhan untuk 1 M³ ============
+        // ============ STEP 16: Kebutuhan untuk 1 M3 ============
         $sakSemen1M3 = 1 / $volumeAdukan;
         $kgSemen1M3 = $beratSemenPerSak / $volumeAdukan;
         $kubikSemen1M3 = $kubikSemen / $volumeAdukan;
@@ -341,46 +343,46 @@ class BrickQuarterFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 16,
-            'title' => 'Kebutuhan Volume Adukan untuk 1 M³',
+            'title' => 'Kebutuhan Volume Adukan untuk 1 M3',
             'calculations' => [
-                'Sak Semen 1 M³' =>
+                'Sak Semen 1 M3' =>
                     '1 / ' . number_format($volumeAdukan, 6) . ' = ' . number_format($sakSemen1M3, 4) . ' sak',
-                'Kg Semen 1 M³' =>
+                'Kg Semen 1 M3' =>
                     "$beratSemenPerSak / " .
                     number_format($volumeAdukan, 6) .
                     ' = ' .
                     number_format($kgSemen1M3, 4) .
                     ' kg',
-                'Kubik Semen 1 M³' =>
+                'Kubik Semen 1 M3' =>
                     number_format($kubikSemen, 6) .
                     ' / ' .
                     number_format($volumeAdukan, 6) .
                     ' = ' .
                     number_format($kubikSemen1M3, 6) .
-                    ' m³',
-                'Sak Pasir 1 M³' =>
+                    ' M3',
+                'Sak Pasir 1 M3' =>
                     '3 / ' . number_format($volumeAdukan, 6) . ' = ' . number_format($sakPasir1M3, 4) . ' sak',
-                'Kubik Pasir 1 M³' =>
+                'Kubik Pasir 1 M3' =>
                     number_format($kubikPasir, 6) .
                     ' / ' .
                     number_format($volumeAdukan, 6) .
                     ' = ' .
                     number_format($kubikPasir1M3, 6) .
-                    ' m³',
-                'Liter Air 1 M³' =>
+                    ' M3',
+                'Liter Air 1 M3' =>
                     number_format($kebutuhanAir, 2) .
                     ' / ' .
                     number_format($volumeAdukan, 6) .
                     ' = ' .
                     number_format($literAir1M3, 2) .
                     ' liter',
-                'Kubik Air 1 M³' =>
+                'Kubik Air 1 M3' =>
                     number_format($kubikAir, 6) .
                     ' / ' .
                     number_format($volumeAdukan, 6) .
                     ' = ' .
                     number_format($kubikAir1M3, 6) .
-                    ' m³',
+                    ' M3',
             ],
         ];
 
@@ -396,7 +398,7 @@ class BrickQuarterFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 17,
             'title' => 'Kebutuhan Volume Adukan Pekerjaan',
-            'info' => 'Volume Adukan Pekerjaan = ' . number_format($volumeAdukanPekerjaan, 6) . ' m³',
+            'info' => 'Volume Adukan Pekerjaan = ' . number_format($volumeAdukanPekerjaan, 6) . ' M3',
             'calculations' => [
                 'Sak Semen Pekerjaan' =>
                     number_format($sakSemen1M3, 4) .
@@ -418,7 +420,7 @@ class BrickQuarterFormula implements FormulaInterface
                     number_format($volumeAdukanPekerjaan, 6) .
                     ' = ' .
                     number_format($kubikSemenPekerjaan, 6) .
-                    ' m³',
+                    ' M3',
                 'Sak Pasir Pekerjaan' =>
                     number_format($sakPasir1M3, 4) .
                     ' × ' .
@@ -432,7 +434,7 @@ class BrickQuarterFormula implements FormulaInterface
                     number_format($volumeAdukanPekerjaan, 6) .
                     ' = ' .
                     number_format($kubikPasirPekerjaan, 6) .
-                    ' m³',
+                    ' M3',
                 'Liter Air Pekerjaan' =>
                     number_format($literAir1M3, 2) .
                     ' × ' .
@@ -446,7 +448,7 @@ class BrickQuarterFormula implements FormulaInterface
                     number_format($volumeAdukanPekerjaan, 6) .
                     ' = ' .
                     number_format($kubikAirPekerjaan, 6) .
-                    ' m³',
+                    ' M3',
             ],
         ];
 

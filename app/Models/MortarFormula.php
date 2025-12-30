@@ -46,7 +46,7 @@ class MortarFormula extends Model
      * Hitung kebutuhan material berdasarkan volume adukan
      * MENGGUNAKAN FIXED VALUES dari Excel (cement_kg_per_m3, sand_m3_per_m3, water_liter_per_m3)
      *
-     * @param  float  $mortarVolume  Volume adukan dalam m³
+     * @param  float  $mortarVolume  Volume adukan dalam M3
      * @param  float|null  $cementRatio  Rasio semen (opsional, untuk custom ratio - TIDAK DIGUNAKAN di metode ini)
      * @param  float|null  $sandRatio  Rasio pasir (opsional, untuk custom ratio - TIDAK DIGUNAKAN di metode ini)
      * @param  Cement|null  $cement  Objek cement (tidak digunakan di metode ini)
@@ -60,12 +60,12 @@ class MortarFormula extends Model
         $sand = null,
     ): array {
         // === GUNAKAN FIXED VALUES DARI EXCEL ===
-        // Formula Excel sudah menghitung berapa kg semen per m³, m³ pasir per m³, dan liter air per m³
+        // Formula Excel sudah menghitung berapa kg semen per M3, M3 pasir per M3, dan liter air per M3
         // Kita tinggal kalikan dengan volume adukan yang dibutuhkan
 
-        $cementKgPerM3 = $this->cement_kg_per_m3 ?? 325; // default 325 kg/m³
-        $sandM3PerM3 = $this->sand_m3_per_m3 ?? 0.87; // default 0.87 m³/m³
-        $waterLiterPerM3 = $this->water_liter_per_m3 ?? 400; // default 400 liter/m³
+        $cementKgPerM3 = $this->cement_kg_per_m3 ?? 325; // default 325 kg/M3
+        $sandM3PerM3 = $this->sand_m3_per_m3 ?? 0.87; // default 0.87 M3/M3
+        $waterLiterPerM3 = $this->water_liter_per_m3 ?? 400; // default 400 liter/M3
 
         // Hitung total kebutuhan material
         $cementKg = $cementKgPerM3 * $mortarVolume;
@@ -77,14 +77,14 @@ class MortarFormula extends Model
         $cementSak50kg = $cementKg / 50;
 
         // Hitung volume semen (untuk referensi, jika diperlukan)
-        $cementDensity = 1440; // kg/m³ untuk semen Portland
+        $cementDensity = 1440; // kg/M3 untuk semen Portland
         $cementVolumeM3 = $cementKg / $cementDensity;
 
         // Berat pasir
-        $sandDensity = 1600; // kg/m³
+        $sandDensity = 1600; // kg/M3
         $sandKg = $sandM3 * $sandDensity;
 
-        // Sand sak (anggap 1 sak = 1.5 m³ seperti di example.txt)
+        // Sand sak (anggap 1 sak = 1.5 M3 seperti di example.txt)
         $sandSak = $sandM3 / 1.5;
 
         // Water m3
@@ -100,7 +100,7 @@ class MortarFormula extends Model
             'sand_m3' => round($sandM3, 6),
             'sand_kg' => round($sandKg, 2),
             'sand_sak' => round($sandSak, 4),
-            'sand_volume_per_bag' => 1.5, // Fixed 1.5 m³ per sak
+            'sand_volume_per_bag' => 1.5, // Fixed 1.5 M3 per sak
             'water_liters' => round($waterLiters, 2),
             'water_m3' => round($waterM3, 6),
             'mortar_volume_per_set' => 0, // tidak digunakan di metode ini

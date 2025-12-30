@@ -110,7 +110,7 @@ class BrickController extends Controller
             $brick->calculateVolume();
         }
 
-        // Kalkulasi harga komparasi per m³
+        // Kalkulasi harga komparasi per M3
         if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
             $brick->calculateComparisonPrice();
         }
@@ -184,7 +184,7 @@ class BrickController extends Controller
             $brick->calculateVolume();
         }
 
-        // Kalkulasi harga komparasi per m³
+        // Kalkulasi harga komparasi per M3
         if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
             $brick->calculateComparisonPrice();
         } else {

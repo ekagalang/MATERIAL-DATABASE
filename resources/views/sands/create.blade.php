@@ -115,7 +115,7 @@
                                     <select id="dimension_length_unit" class="unit-selector">
                                         <option value="mm">mm</option>
                                         <option value="cm">cm</option>
-                                        <option value="m" selected>m</option>
+                                        <option value="m" selected>M</option>
                                         <option value="inch">"</option>
                                     </select>
                                 </div>
@@ -138,7 +138,7 @@
                                     <select id="dimension_width_unit" class="unit-selector">
                                         <option value="mm">mm</option>
                                         <option value="cm">cm</option>
-                                        <option value="m" selected>m</option>
+                                        <option value="m" selected>M</option>
                                         <option value="inch">"</option>
                                     </select>
                                 </div>
@@ -161,7 +161,7 @@
                                     <select id="dimension_height_unit" class="unit-selector">
                                         <option value="mm">mm</option>
                                         <option value="cm">cm</option>
-                                        <option value="m" selected>m</option>
+                                        <option value="m" selected>M</option>
                                         <option value="inch">"</option>
                                     </select>
                                 </div>

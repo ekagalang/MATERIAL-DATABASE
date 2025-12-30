@@ -10,7 +10,7 @@
             <h2 class="fw-bold text-primary"><i class="bi bi-bar-chart-steps me-2"></i>Perbandingan Biaya Bata</h2>
             <p class="text-muted mb-0">
                 Membandingkan <strong>{{ count($comparisons) }}</strong> jenis bata untuk dinding seluas 
-                <strong>{{ number_format($wallArea, 2) }} m²</strong> ({{ $wallLength }}m x {{ $wallHeight }}m).
+                <strong>{{ number_format($wallArea, 2) }} M2</strong> ({{ $wallLength }}m x {{ $wallHeight }}m).
             </p>
         </div>
         <a href="javascript:history.back()" class="btn btn-outline-secondary">
@@ -73,7 +73,7 @@
                             </td>
                             <td class="bg-light">
                                 <div class="fw-bold text-success fs-5">Rp {{ number_format($item['total_cost'], 0, ',', '.') }}</div>
-                                <small class="text-muted fw-bold">Rp {{ number_format($item['cost_per_m2'], 0, ',', '.') }} / m²</small>
+                                <small class="text-muted fw-bold">Rp {{ number_format($item['cost_per_m2'], 0, ',', '.') }} / M2</small>
                             </td>
                             <td>
                                 <a href="{{ route('material-calculations.create', [

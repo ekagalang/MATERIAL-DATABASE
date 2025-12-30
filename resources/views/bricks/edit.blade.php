@@ -76,7 +76,7 @@
                         <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 8px;">
                             <!-- Panjang -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Panjang</span>
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Panjang</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="dimension_length_input"
@@ -100,7 +100,7 @@
 
                             <!-- Lebar -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Lebar</span>
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Lebar</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="dimension_width_input"
@@ -124,7 +124,7 @@
 
                             <!-- Tinggi -->
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
-                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: #64748b;">Tinggi</span>
+                                <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Tinggi</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="number"
                                            id="dimension_height_input"
@@ -178,7 +178,7 @@
                         <div class="flex-fill" style="flex: 1; display: flex; align-items: stretch; position: relative;">
                             <input type="hidden" name="price_per_piece" id="price_per_piece" value="{{ old('price_per_piece', $brick->price_per_piece) }}">
                             <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: inherit; pointer-events: none; z-index: 1;">Rp</span>
                                 <input type="text"
                                        id="price_per_piece_display"
                                        value="{{ old('price_per_piece', $brick->price_per_piece) }}"
@@ -195,11 +195,11 @@
 
                         <!-- Harga Komparasi -->
                         <div class="mini-input-wrapper flex-fill" style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
-                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: #64748b;">Harga Komparasi</span>
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; color: inherit;">Harga Komparasi</span>
                             <div style="display: flex; align-items: center; position: relative;">
                                 <input type="hidden" name="comparison_price_per_m3" id="comparison_price_per_m3" value="{{ old('comparison_price_per_m3', $brick->comparison_price_per_m3) }}">
                                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: inherit; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
                                            class="autocomplete-input"
@@ -272,7 +272,7 @@
                     @if($brick->photo_url)
                         <div id="photoPlaceholder" style="display: none; text-align: center; color: #cbd5e1; position: relative; z-index: 1;">
                             <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
+                            <div style="font-size: 14px; font-weight: 600; color: inherit; margin-bottom: 6px;">Foto</div>
                         </div>
                         <img id="photoPreview"
                              src="{{ $brick->photo_url }}"
@@ -281,7 +281,7 @@
                     @else
                         <div id="photoPlaceholder" style="text-align: center; color: #cbd5e1; position: relative; z-index: 1;">
                             <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.6;">📷</div>
-                            <div style="font-size: 14px; font-weight: 600; color: #64748b; margin-bottom: 6px;">Foto</div>
+                            <div style="font-size: 14px; font-weight: 600; color: inherit; margin-bottom: 6px;">Foto</div>
                         </div>
                         <img id="photoPreview"
                              src=""

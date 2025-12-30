@@ -125,7 +125,7 @@ class SandController extends Controller
             $sand->calculateVolume();
         }
 
-        // Kalkulasi harga komparasi per m³
+        // Kalkulasi harga komparasi per M3
         if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
             $sand->calculateComparisonPrice();
         }
@@ -213,7 +213,7 @@ class SandController extends Controller
             $sand->calculateVolume();
         }
 
-        // Kalkulasi harga komparasi per m³
+        // Kalkulasi harga komparasi per M3
         if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
             $sand->calculateComparisonPrice();
         } else {

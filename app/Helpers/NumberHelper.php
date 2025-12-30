@@ -69,7 +69,7 @@ class NumberHelper
     }
 
     /**
-     * Format untuk volume (m³)
+     * Format untuk volume (M3)
      *
      * @param float|null $number
      * @return string
@@ -77,9 +77,9 @@ class NumberHelper
     public static function volume(?float $number): string
     {
         if ($number === null) {
-            return '0 m³';
+            return '0 M3';
         }
 
-        return self::format($number, 2, ',', '.') . ' m³';
+        return self::format($number, 2, ',', '.') . ' M3';
     }
 }

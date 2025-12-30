@@ -6,6 +6,7 @@ use App\Models\Brick;
 use App\Models\Cement;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
+use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -13,15 +14,24 @@ class RecommendedCombinationController extends Controller
 {
     public function index()
     {
-        // Get existing recommendations
-        $recommendations = RecommendedCombination::where('type', 'best')->get();
+        // Get existing recommendations grouped by work_type
+        $recommendations = RecommendedCombination::where('type', 'best')->orderBy('work_type')->get();
+
+        // Group recommendations by work_type
+        $groupedRecommendations = $recommendations->groupBy('work_type');
 
         // Get options for dropdowns
         $bricks = Brick::orderBy('brand')->get();
         $cements = Cement::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
 
-        return view('settings.recommendations.index', compact('recommendations', 'bricks', 'cements', 'sands'));
+        // Get available formulas (work types)
+        $formulas = FormulaRegistry::all();
+
+        return view(
+            'settings.recommendations.index',
+            compact('groupedRecommendations', 'bricks', 'cements', 'sands', 'formulas'),
+        );
     }
 
     public function store(Request $request)
@@ -30,6 +40,7 @@ class RecommendedCombinationController extends Controller
 
         $request->validate([
             'recommendations' => 'nullable|array',
+            'recommendations.*.work_type' => 'required|string',
             'recommendations.*.brick_id' => 'nullable|exists:bricks,id',
             'recommendations.*.cement_id' => 'nullable|exists:cements,id',
             'recommendations.*.sand_id' => 'nullable|exists:sands,id',
@@ -44,16 +55,22 @@ class RecommendedCombinationController extends Controller
 
             // 2. Insert new ones
             $dataToInsert = [];
-            
+
             $submittedRecommendations = $request->recommendations ?? [];
 
             foreach ($submittedRecommendations as $rec) {
-                // Skip if brick_id, cement_id, or sand_id are empty (due to validation or incomplete row)
-                if (empty($rec['brick_id']) || empty($rec['cement_id']) || empty($rec['sand_id'])) {
+                // Skip if work_type, brick_id, cement_id, or sand_id are empty
+                if (
+                    empty($rec['work_type']) ||
+                    empty($rec['brick_id']) ||
+                    empty($rec['cement_id']) ||
+                    empty($rec['sand_id'])
+                ) {
                     continue;
                 }
 
                 $dataToInsert[] = [
+                    'work_type' => $rec['work_type'],
                     'brick_id' => $rec['brick_id'],
                     'cement_id' => $rec['cement_id'],
                     'sand_id' => $rec['sand_id'],
@@ -70,10 +87,11 @@ class RecommendedCombinationController extends Controller
             DB::commit();
 
             return redirect()->back()->with('success', 'Daftar rekomendasi berhasil diperbarui.');
-
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()
+                ->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 }

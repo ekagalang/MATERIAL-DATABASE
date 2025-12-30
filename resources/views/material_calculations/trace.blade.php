@@ -78,8 +78,8 @@
                                 <div class="col-lg-3 col-md-6">
                                     <label class="form-label fw-semibold">Tebal Adukan</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
-                                            name="mortar_thickness" value="1.0" step="0.1" required>
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="mortar_thickness" value="1.0" step="0.01" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             cm
                                         </span>
@@ -90,10 +90,34 @@
                                 <div class="col-lg-3 col-md-6" id="layerCountGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Tingkat</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="layer_count" value="1" step="1" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             lapis
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {{-- Input Sisi Plesteran untuk Wall Plastering --}}
+                                <div class="col-lg-3 col-md-6" id="plasterSidesGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Sisi Plesteran</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="plaster_sides" value="1" step="1" required>
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            sisi
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {{-- Input Sisi Aci untuk Skim Coating --}}
+                                <div class="col-lg-3 col-md-6" id="skimSidesGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Sisi Aci</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="skim_sides" value="1" step="1" required>
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            sisi
                                         </span>
                                     </div>
                                 </div>
@@ -222,10 +246,25 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
 
 document.getElementById('formulaSelector').addEventListener('change', function() {
     const layerCountGroup = document.getElementById('layerCountGroup');
+    const plasterSidesGroup = document.getElementById('plasterSidesGroup');
+    const skimSidesGroup = document.getElementById('skimSidesGroup');
+
     if (this.value === 'brick_rollag') {
         layerCountGroup.style.display = 'block';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+    } else if (this.value === 'wall_plastering') {
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'block';
+        skimSidesGroup.style.display = 'none';
+    } else if (this.value === 'skim_coating') {
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'block';
     } else {
         layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
     }
 });
 
@@ -306,12 +345,12 @@ function renderTrace(trace, containerId) {
                             <td class="text-end"><strong>${formatNumber(trace.final_result.cement_sak)} sak</strong></td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">Semen (m³)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.cement_m3)} m³</strong></td>
+                            <td class="fw-bold">Semen (M3)</td>
+                            <td class="text-end"><strong>${formatNumber(trace.final_result.cement_m3)} M3</strong></td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">Pasir (m³)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.sand_m3)} m³</strong></td>
+                            <td class="fw-bold">Pasir (M3)</td>
+                            <td class="text-end"><strong>${formatNumber(trace.final_result.sand_m3)} M3</strong></td>
                         </tr>
                         <tr>
                             <td class="fw-bold">Pasir (satuan kemasan)</td>
@@ -340,7 +379,7 @@ function renderTrace(trace, containerId) {
                             <td class="text-end">${formatCurrency(trace.final_result.total_cement_price)}</td>
                         </tr>
                         <tr>
-                            <td class="fw-bold">Harga Pasir (@${formatCurrency(trace.final_result.sand_price_per_m3)}/m³)</td>
+                            <td class="fw-bold">Harga Pasir (@${formatCurrency(trace.final_result.sand_price_per_m3)}/M3)</td>
                             <td class="text-end">${formatCurrency(trace.final_result.total_sand_price)}</td>
                         </tr>
                         <tr class="table-success">

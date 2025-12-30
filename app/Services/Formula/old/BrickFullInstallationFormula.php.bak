@@ -85,7 +85,7 @@ class BrickFullInstallationFormula implements FormulaInterface
             'formula' => 'Luas = Panjang × Tinggi',
             'calculations' => [
                 'Perhitungan' => "$wallLength × $wallHeight",
-                'Luas Total Bidang' => number_format($wallArea, 2) . ' m²',
+                'Luas Total Bidang' => number_format($wallArea, 2) . ' M2',
             ],
         ];
 
@@ -118,8 +118,8 @@ class BrickFullInstallationFormula implements FormulaInterface
                     number_format($effectiveHeight, 4) .
                     ' = ' .
                     number_format($effectiveArea, 4) .
-                    ' m²',
-                'Pengurangan Luas' => number_format($wallArea - $effectiveArea, 4) . ' m² (area strip adukan)',
+                    ' M2',
+                'Pengurangan Luas' => number_format($wallArea - $effectiveArea, 4) . ' M2 (area strip adukan)',
             ],
         ];
 
@@ -149,7 +149,7 @@ class BrickFullInstallationFormula implements FormulaInterface
             ],
         ];
 
-        // Step 4: Hitung Bricks per m²
+        // Step 4: Hitung Bricks per M2
         $bricksPerSqm = $installationType->calculateBricksPerSqm(
             $brickLength,
             $brickWidth,
@@ -163,7 +163,7 @@ class BrickFullInstallationFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 4,
-            'title' => 'Bata per m²',
+            'title' => 'Bata per M2',
             'formula' => '1 / ((panjang + tebal) × (tinggi + tebal))',
             'calculations' => [
                 'Lebar Visible' =>
@@ -176,8 +176,8 @@ class BrickFullInstallationFormula implements FormulaInterface
                     number_format($visibleHeight, 4) .
                     ' = ' .
                     number_format($areaPerBrick, 6) .
-                    ' m²',
-                'Bata per m²' =>
+                    ' M2',
+                'Bata per M2' =>
                     '1 / ' . number_format($areaPerBrick, 6) . ' = ' . number_format($bricksPerSqm, 2) . ' buah',
             ],
         ];
@@ -202,9 +202,9 @@ class BrickFullInstallationFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 5,
             'title' => 'Total Bata',
-            'formula' => 'Luas Efektif × Bata per m²',
+            'formula' => 'Luas Efektif × Bata per M2',
             'calculations' => [
-                'Luas yang Digunakan' => number_format($wallAreaForBricks, 4) . ' m² (luas efektif)',
+                'Luas yang Digunakan' => number_format($wallAreaForBricks, 4) . ' M2 (luas efektif)',
                 'Perhitungan' => number_format($wallAreaForBricks, 4) . ' × ' . number_format($bricksPerSqm, 2),
                 'Hasil (sebelum pembulatan)' => number_format($totalBricksRaw, 2) . ' buah',
                 'Desimal' => number_format($decimal, 4),
@@ -231,7 +231,7 @@ class BrickFullInstallationFormula implements FormulaInterface
                     ' × ' .
                     number_format($mortarThickness, 2) .
                     ' / 1000000',
-                'Total per Bata' => number_format($mortarVolumePerBrick, 6) . ' m³',
+                'Total per Bata' => number_format($mortarVolumePerBrick, 6) . ' M3',
             ],
         ];
 
@@ -243,7 +243,7 @@ class BrickFullInstallationFormula implements FormulaInterface
             'formula' => 'Volume per Bata × Total Bata',
             'calculations' => [
                 'Perhitungan' => number_format($mortarVolumePerBrick, 6) . ' × ' . number_format($totalBricks, 2),
-                'Hasil' => number_format($totalMortarVolume, 6) . ' m³',
+                'Hasil' => number_format($totalMortarVolume, 6) . ' M3',
             ],
         ];
 
@@ -256,15 +256,15 @@ class BrickFullInstallationFormula implements FormulaInterface
                 'Volume Sisi Kiri' =>
                     "tinggi × lebar_bata × tebal / 10000 = $wallHeight × $brickWidth × $mortarThickness / 10000 = " .
                     number_format($volumeSisiKiri, 6) .
-                    ' m³',
+                    ' M3',
                 'Volume Sisi Bawah' =>
                     "panjang × lebar_bata × tebal / 10000 = $wallLength × $brickWidth × $mortarThickness / 10000 = " .
                     number_format($volumeSisiBawah, 6) .
-                    ' m³',
+                    ' M3',
                 'Volume Overlap (sudut)' =>
                     "tebal × tebal × lebar_bata / 1000000 = $mortarThickness × $mortarThickness × $brickWidth / 1000000 = " .
                     number_format($volumeOverlap, 8) .
-                    ' m³',
+                    ' M3',
                 'Total Volume Strip' =>
                     number_format($volumeSisiKiri, 6) .
                     ' + ' .
@@ -273,7 +273,7 @@ class BrickFullInstallationFormula implements FormulaInterface
                     number_format($volumeOverlap, 8) .
                     ' = ' .
                     number_format($volumeTambahanTotal, 6) .
-                    ' m³',
+                    ' M3',
             ],
         ];
 
@@ -285,9 +285,9 @@ class BrickFullInstallationFormula implements FormulaInterface
             'title' => 'Total Volume Mortar',
             'formula' => 'Volume Mortar Bata + Volume Strip',
             'calculations' => [
-                'Volume Mortar Bata' => number_format($totalMortarVolume, 6) . ' m³',
-                'Volume Strip' => number_format($volumeTambahanTotal, 6) . ' m³',
-                'Total Volume Mortar' => number_format($totalMortarVolumeWithAddition, 6) . ' m³',
+                'Volume Mortar Bata' => number_format($totalMortarVolume, 6) . ' M3',
+                'Volume Strip' => number_format($volumeTambahanTotal, 6) . ' M3',
+                'Total Volume Mortar' => number_format($totalMortarVolumeWithAddition, 6) . ' M3',
             ],
         ];
 
@@ -301,13 +301,13 @@ class BrickFullInstallationFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 8,
-            'title' => 'Volume Satuan Kemasan Semen (dalam m³)',
+            'title' => 'Volume Satuan Kemasan Semen (dalam M3)',
             'formula' => 'Panjang × Lebar × Tinggi / 1000000',
             'calculations' => [
                 'Semen Dipilih' => $cement ? $cement->cement_name . ' - ' . $cement->brand : 'Default',
                 'Dimensi Kemasan' => "{$cementPackageLength}cm × {$cementPackageWidth}cm × {$cementPackageHeight}cm",
                 'Perhitungan' => "($cementPackageLength × $cementPackageWidth × $cementPackageHeight) / 1000000",
-                'Volume Sak' => number_format($volumeSakM3, 6) . ' m³',
+                'Volume Sak' => number_format($volumeSakM3, 6) . ' M3',
             ],
         ];
 
@@ -317,7 +317,7 @@ class BrickFullInstallationFormula implements FormulaInterface
             'title' => 'Volume Adukan per Pasangan Bata',
             'info' => 'Sudah dihitung di Step 6',
             'calculations' => [
-                'Volume per Pasangan' => number_format($mortarVolumePerBrick, 6) . ' m³',
+                'Volume per Pasangan' => number_format($mortarVolumePerBrick, 6) . ' M3',
             ],
         ];
 
@@ -364,12 +364,12 @@ class BrickFullInstallationFormula implements FormulaInterface
                     number_format($volumeSakM3, 6) .
                     ' × ' .
                     number_format(1 - $shrinkage, 2),
-                'Volume Adukan dari 1 Sak' => number_format($volumeAdukanM3, 6) . ' m³',
+                'Volume Adukan dari 1 Sak' => number_format($volumeAdukanM3, 6) . ' M3',
             ],
         ];
 
         // Step 8d: Jumlah Pasangan Bata dari 1 Sak Semen
-        // Volume strip per m² bidang
+        // Volume strip per M2 bidang
         $volumeStripPerM2 = $volumeTambahanTotal / $wallArea;
 
         // Hitung luas yang bisa dikerjakan 1 sak (estimasi tanpa strip)
@@ -400,22 +400,22 @@ class BrickFullInstallationFormula implements FormulaInterface
             'title' => 'Jumlah Pasangan Bata dari 1 Sak Semen',
             'formula' => '(Volume Adukan - Volume Strip) / Volume Adukan per Pasangan',
             'calculations' => [
-                'Volume Adukan dari 1 Sak' => number_format($volumeAdukanM3, 6) . ' m³',
-                'Estimasi Luas dari 1 Sak' => number_format($estimatedAreaFromOneSak, 4) . ' m²',
+                'Volume Adukan dari 1 Sak' => number_format($volumeAdukanM3, 6) . ' M3',
+                'Estimasi Luas dari 1 Sak' => number_format($estimatedAreaFromOneSak, 4) . ' M2',
                 'Volume Strip untuk Luas Tersebut' =>
                     number_format($estimatedAreaFromOneSak, 4) .
                     ' × ' .
                     number_format($volumeStripPerM2, 8) .
                     ' = ' .
                     number_format($volumeStripForEstimatedArea, 6) .
-                    ' m³',
+                    ' M3',
                 'Volume Tersisa untuk Bata' =>
                     number_format($volumeAdukanM3, 6) .
                     ' - ' .
                     number_format($volumeStripForEstimatedArea, 6) .
                     ' = ' .
                     number_format($volumeForBricks, 6) .
-                    ' m³',
+                    ' M3',
                 'Perhitungan' => number_format($volumeForBricks, 6) . ' / ' . number_format($mortarVolumePerBrick, 6),
                 'Jumlah Pasangan' => number_format($jumlahPasanganBata) . ' pasangan bata',
             ],
@@ -435,7 +435,7 @@ class BrickFullInstallationFormula implements FormulaInterface
                     ' × ' .
                     number_format($brickHeight + $mortarThickness, 2) .
                     ' / 10000',
-                'Luas per Bata' => number_format($luasPasanganPerBata, 6) . ' m²',
+                'Luas per Bata' => number_format($luasPasanganPerBata, 6) . ' M2',
             ],
         ];
 
@@ -448,22 +448,22 @@ class BrickFullInstallationFormula implements FormulaInterface
             'formula' => 'Jumlah Pasangan Bata × Luas per Bata',
             'calculations' => [
                 'Perhitungan' => number_format($jumlahPasanganBata, 2) . ' × ' . number_format($luasPasanganPerBata, 6),
-                'Luas dari 1 Sak' => number_format($luasPasanganDari1Sak, 4) . ' m²',
+                'Luas dari 1 Sak' => number_format($luasPasanganDari1Sak, 4) . ' M2',
                 'Arti' =>
-                    '1 sak semen bisa untuk ' . number_format($luasPasanganDari1Sak, 2) . ' m² luas bidang dinding',
+                    '1 sak semen bisa untuk ' . number_format($luasPasanganDari1Sak, 2) . ' M2 luas bidang dinding',
             ],
         ];
 
-        // Step 8g: Kebutuhan Semen per m²
+        // Step 8g: Kebutuhan Semen per M2
         $cementSakPerM2 = 1 / $luasPasanganDari1Sak;
 
         $trace['steps'][] = [
             'step' => '8g',
-            'title' => 'Kebutuhan Semen per m² Dinding',
+            'title' => 'Kebutuhan Semen per M2 Dinding',
             'formula' => '1 sak / Luas Pasangan dari 1 Sak',
             'calculations' => [
                 'Perhitungan' => '1 / ' . number_format($luasPasanganDari1Sak, 4),
-                'Kebutuhan per m²' => number_format($cementSakPerM2, 6) . ' sak/m²',
+                'Kebutuhan per M2' => number_format($cementSakPerM2, 6) . ' sak/M2',
             ],
         ];
 
@@ -476,9 +476,9 @@ class BrickFullInstallationFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 9,
             'title' => 'Total Kebutuhan Semen',
-            'formula' => 'Kebutuhan Semen per m² × Luas Bangunan',
+            'formula' => 'Kebutuhan Semen per M2 × Luas Bangunan',
             'calculations' => [
-                'Perhitungan' => number_format($cementSakPerM2, 6) . ' sak/m² × ' . number_format($wallArea, 2) . ' m²',
+                'Perhitungan' => number_format($cementSakPerM2, 6) . ' sak/M2 × ' . number_format($wallArea, 2) . ' M2',
                 'Total Semen (sak sebelum pembulatan)' => number_format($totalCementSakRaw, 4) . ' sak',
                 'Total Semen (sak setelah pembulatan)' => number_format($totalCementSak, 2) . ' sak',
                 'Total Semen (kg)' =>
@@ -519,13 +519,13 @@ class BrickFullInstallationFormula implements FormulaInterface
                     ' = ' .
                     number_format($totalSandSak, 4) .
                     ' sak',
-                'Pasir (m³)' =>
+                'Pasir (M3)' =>
                     number_format($totalSandSak, 4) .
                     ' × ' .
                     number_format($volumeSakM3, 6) .
                     ' = ' .
                     number_format($sandM3, 6) .
-                    ' m³',
+                    ' M3',
                 'Air (liter sebelum pembulatan)' =>
                     '(' .
                     number_format($totalCementSak) .
@@ -552,7 +552,7 @@ class BrickFullInstallationFormula implements FormulaInterface
         $sandKg = $sandM3 * 1600;
 
         // Calculate cement m3 from kg
-        $cementDensity = 1440; // kg/m³
+        $cementDensity = 1440; // kg/M3
         $cementM3 = $cementKg / $cementDensity;
 
         // Calculate sand packaging units (assuming same volume as cement sak)

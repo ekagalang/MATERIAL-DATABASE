@@ -8,6 +8,11 @@
         </button>
     </div>
 
+    {{-- WORK TYPE HIDDEN INPUT (fixed per accordion) --}}
+    <input type="hidden"
+           name="recommendations[{{ $index }}][work_type]"
+           value="{{ $workTypeCode ?? ($rec ? $rec->work_type : 'brick_half') }}">
+
     <div class="material-grid">
         {{-- 1. BATA SECTION --}}
         <div class="material-section">
