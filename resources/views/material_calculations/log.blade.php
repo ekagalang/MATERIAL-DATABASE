@@ -1,5 +1,51 @@
 @extends('layouts.app')
 
+@push('styles')
+<!-- Flatpickr CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
+<style>
+    /* Global Text Styling */
+    h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td, i, strong,
+    .text-muted, .text-dark, .text-secondary, .small, .fw-bold, .badge {
+        font-family: 'League Spartan', sans-serif !important;
+        color: #ffffff !important;
+        -webkit-text-stroke: 0.2px black !important;
+        text-shadow: 0 1.1px 0 #000000 !important;
+        font-weight: 700 !important;
+    }
+
+    /* Override for form controls to keep them readable */
+    .form-control, .form-select, .input-group-text {
+        color: #1e293b !important;
+        -webkit-text-stroke: 0 !important;
+        text-shadow: none !important;
+    }
+
+    /* Exception for Total Biaya - keep green */
+    .text-success, .text-success strong {
+        color: #059669 !important;
+        -webkit-text-stroke: 0.2px black !important;
+        text-shadow: 0 1.1px 0 #000000 !important;
+    }
+
+    .flatpickr-calendar {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
+        background: #3b82f6;
+        border-color: #3b82f6;
+    }
+    .flatpickr-day.inRange {
+        background: #dbeafe;
+        border-color: #dbeafe;
+        box-shadow: none;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="card">
     <!-- Header -->
@@ -13,7 +59,10 @@
                     </h2>
                     <p class="text-muted mb-0">Daftar semua perhitungan yang pernah dibuat</p>
                 </div>
-                <div>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('work-items.index') }}" class="btn-cancel" style="border: 1px solid #64748b; background-color: transparent; color: #64748b; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
                     <a href="{{ route('material-calculations.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Perhitungan Baru
                     </a>
@@ -23,49 +72,41 @@
     </div>
 
     <!-- Search & Filter -->
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body">
-            <form action="{{ route('material-calculations.log') }}" method="GET">
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <input type="text" 
-                               class="form-control" 
-                               name="search" 
-                               value="{{ request('search') }}"
-                               placeholder="Cari project...">
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-select" name="installation_type">
-                            <option value="">-- Semua Jenis --</option>
-                            @foreach($installationTypes as $type)
-                                <option value="{{ $type->id }}" 
-                                        {{ request('installation_type') == $type->id ? 'selected' : '' }}>
-                                    {{ $type->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <input type="date" 
-                               class="form-control" 
-                               name="date_from" 
-                               value="{{ request('date_from') }}"
-                               placeholder="Dari">
-                    </div>
-                    <div class="col-md-2">
-                        <input type="date" 
-                               class="form-control" 
-                               name="date_to" 
-                               value="{{ request('date_to') }}"
-                               placeholder="Sampai">
-                    </div>
-                    <div class="col-md-1">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-            </form>
+    <div class="row g-3">
+        <div class="col" style="flex:0 0 55%;max-width:51%;">
+            <input type="text"
+                class="form-control"
+                name="search"
+                value="{{ request('search') }}"
+                placeholder="Cari project...">
+        </div>
+
+        <div class="col" style="flex:0 0 20%;max-width:20%;">
+            <select class="form-select" name="work_type">
+                <option value="">-- Semua Jenis Pekerjaan --</option>
+                @foreach($availableFormulas as $formula)
+                    <option value="{{ $formula['code'] }}"
+                        {{ request('work_type') == $formula['code'] ? 'selected' : '' }}>
+                        {{ $formula['name'] }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col" style="flex:0 0 20%;max-width:20%;">
+            <input type="text"
+                class="form-control"
+                id="dateRangePicker"
+                placeholder="Pilih Rentang Tanggal"
+                readonly>
+            <input type="hidden" name="date_from" id="dateFrom" value="{{ request('date_from') }}">
+            <input type="hidden" name="date_to" id="dateTo" value="{{ request('date_to') }}">
+        </div>
+
+        <div class="col" style="flex:0 0 5%;max-width:5%;">
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-search"></i>
+            </button>
         </div>
     </div>
 
@@ -78,14 +119,11 @@
                         <thead class="table-light">
                             <tr>
                                 <th>Tanggal</th>
-                                <th>Project</th>
-                                <th>Dimensi</th>
+                            <!-- <th>Project</th> -->
+                                <th>Luas Bidang</th>
                                 <th>Jenis</th>
-                                <th>Bata</th>
-                                <th>Semen</th>
-                                <th>Pasir (m³)</th>
                                 <th>Total Biaya</th>
-                                <th></th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,30 +132,37 @@
                                 <td class="text-nowrap">
                                     {{ $calc->created_at->format('d/m/Y H:i') }}
                                 </td>
+                                <!--
                                 <td>
                                     <strong>{{ $calc->project_name ?: '-' }}</strong>
                                     @if($calc->notes)
                                         <br><small class="text-muted">{{ Str::limit($calc->notes, 30) }}</small>
                                     @endif
                                 </td>
+                                -->
                                 <td class="text-nowrap">
-                                    {{ $calc->wall_length }}m × {{ $calc->wall_height }}m
-                                    <br><small class="text-muted">({{ number_format($calc->wall_area, 2) }} m²)</small>
+                                    <span class="text-muted">{{ rtrim(rtrim(number_format($calc->wall_area, 2), '0'), '.') }} M2</span>
                                 </td>
                                 <td>
                                     <span class="badge bg-primary">
-                                        {{ $calc->installationType->name ?? '-' }}
+                                        @php
+                                            // Get work_type from calculation_params
+                                            $workType = $calc->calculation_params['work_type'] ?? null;
+
+                                            // Map work_type to display name
+                                            $workTypeNames = [
+                                                'brick_full' => 'Pasangan 1 Bata',
+                                                'brick_half' => 'Pasangan 1/2 Bata',
+                                                'brick_quarter' => 'Pasangan 1/4 Bata',
+                                                'brick_rollag' => 'Pasangan Rollag',
+                                                'wall_plastering' => 'Plesteran Dinding',
+                                                'skim_coating' => 'Aci Dinding',
+                                            ];
+
+                                            $displayName = $workTypeNames[$workType] ?? ($calc->installationType->name ?? '-');
+                                        @endphp
+                                        {{ $displayName }}
                                     </span>
-                                </td>
-                                <td class="text-end">
-                                    {{ number_format($calc->brick_quantity, 0) }} buah
-                                </td>
-                                <td class="text-end">
-                                    {{ number_format($calc->cement_quantity_sak ?? $calc->cement_quantity_50kg, 2) }} sak
-                                    <br><small class="text-muted">({{ $calc->cement_package_weight ?? 50 }}kg)</small>
-                                </td>
-                                <td class="text-end">
-                                    {{ number_format($calc->sand_m3, 4) }} m³
                                 </td>
                                 <td class="text-end text-success">
                                     <strong>Rp {{ number_format($calc->total_material_cost, 0, ',', '.') }}</strong>
@@ -439,6 +484,78 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             closeModal();
         }
+    });
+});
+</script>
+
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get current date_from and date_to values from hidden inputs
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+
+    // Initialize Flatpickr
+    const fp = flatpickr("#dateRangePicker", {
+        mode: "range",
+        dateFormat: "d/m/Y",
+        locale: "id",
+        allowInput: false,
+        showMonths: 2,
+        defaultDate: (dateFrom && dateTo) ? [dateFrom, dateTo] : null,
+        onChange: function(selectedDates, dateStr, instance) {
+            if (selectedDates.length === 2) {
+                // Format dates as YYYY-MM-DD for backend
+                const formatDate = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                document.getElementById('dateFrom').value = formatDate(selectedDates[0]);
+                document.getElementById('dateTo').value = formatDate(selectedDates[1]);
+            } else if (selectedDates.length === 0) {
+                // Clear the hidden inputs when date range is cleared
+                document.getElementById('dateFrom').value = '';
+                document.getElementById('dateTo').value = '';
+            }
+        },
+        onClose: function(selectedDates, dateStr, instance) {
+            // Clear if only one date selected (incomplete range)
+            if (selectedDates.length === 1) {
+                instance.clear();
+                document.getElementById('dateFrom').value = '';
+                document.getElementById('dateTo').value = '';
+            }
+        }
+    });
+
+    // Add clear button
+    const dateRangeInput = document.getElementById('dateRangePicker');
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'btn btn-sm btn-link position-absolute';
+    clearBtn.style.cssText = 'right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; padding: 0; color: #94a3b8;';
+    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
+    clearBtn.style.display = (dateFrom && dateTo) ? 'block' : 'none';
+
+    dateRangeInput.parentElement.style.position = 'relative';
+    dateRangeInput.parentElement.appendChild(clearBtn);
+
+    clearBtn.addEventListener('click', function() {
+        fp.clear();
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        clearBtn.style.display = 'none';
+    });
+
+    // Show/hide clear button based on input value
+    dateRangeInput.addEventListener('change', function() {
+        clearBtn.style.display = this.value ? 'block' : 'none';
     });
 });
 </script>

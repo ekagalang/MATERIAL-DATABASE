@@ -13,11 +13,11 @@ return new class extends Migration {
             $table->string('code', 20)->unique(); // 'half', 'one', 'quarter', 'rollag'
             $table->text('description')->nullable(); // Deskripsi posisi bata
 
-            // Volume adukan per m² (dari Excel) - sesuai dengan ukuran bata KUO SHIN
+            // Volume adukan per M2 (dari Excel) - sesuai dengan ukuran bata KUO SHIN
             $table
                 ->decimal('mortar_volume_per_m2', 8, 6)
                 ->nullable()
-                ->comment('Volume adukan per m² (m³/m²) - sesuai Excel');
+                ->comment('Volume adukan per M2 (m³/M2) - sesuai Excel');
 
             // Waste factor untuk perhitungan volume adukan
             // Mencakup: shrinkage, spillage, waste, dan lapisan dasar
@@ -36,7 +36,7 @@ return new class extends Migration {
             // horizontal_lying = tidur horizontal
             // horizontal_standing = berdiri horizontal
 
-            // Jumlah bata per m² (akan dihitung dari dimensi)
+            // Jumlah bata per M2 (akan dihitung dari dimensi)
             $table->decimal('bricks_per_sqm', 10, 2)->nullable();
 
             $table->boolean('is_active')->default(true);

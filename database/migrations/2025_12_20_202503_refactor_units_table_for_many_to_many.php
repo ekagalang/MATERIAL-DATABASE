@@ -26,7 +26,7 @@ return new class extends Migration {
         foreach ($groupedUnits as $code => $units) {
             // Ambil unit pertama sebagai master
             $masterUnit = $units->first();
-            
+
             // Collect semua material types dari grup ini
             $materialTypes = $units->pluck('material_type')->unique()->filter();
 
@@ -51,7 +51,7 @@ return new class extends Migration {
         Schema::table('units', function (Blueprint $table) {
             // Drop unique constraint lama
             $table->dropUnique('units_code_material_type_unique');
-            
+
             // Drop kolom material_type
             $table->dropColumn('material_type');
 
@@ -64,7 +64,7 @@ return new class extends Migration {
     {
         // Revert changes (agak tricky karena data loss potensi di material_type kalau cuma 1 kolom)
         // Kita coba balikin sebisa mungkin
-        
+
         Schema::table('units', function (Blueprint $table) {
             $table->string('material_type', 50)->nullable(); // nullable dulu
             $table->dropUnique(['code']);
@@ -73,13 +73,13 @@ return new class extends Migration {
         // Kembalikan data dari pivot ke tabel utama
         // Ini akan create duplicate units lagi seperti sebelumnya
         $pivotData = DB::table('unit_material_types')->get();
-        
+
         foreach ($pivotData as $pivot) {
             $unit = DB::table('units')->find($pivot->unit_id);
             if ($unit) {
                 // Cek apakah unit ini sudah punya material_type diisi
                 // Kalau sudah, kita harus clone unit ini untuk material_type yang baru
-                
+
                 // Cari apakah unit dengan kode ini dan material_type ini sudah ada (untuk mencegah duplikat saat loop)
                 $exists = DB::table('units')
                     ->where('code', $unit->code)
@@ -90,11 +90,13 @@ return new class extends Migration {
                     // Cek apakah record asli (master) material_typenya masih kosong?
                     // Karena kita buat nullable, record master material_typenya NULL.
                     // Kita update record master untuk penggunaan pertama, lalu clone untuk berikutnya.
-                    
+
                     $masterIsEmpty = DB::table('units')->where('id', $unit->id)->whereNull('material_type')->exists();
 
                     if ($masterIsEmpty) {
-                        DB::table('units')->where('id', $unit->id)->update(['material_type' => $pivot->material_type]);
+                        DB::table('units')
+                            ->where('id', $unit->id)
+                            ->update(['material_type' => $pivot->material_type]);
                     } else {
                         // Clone unit
                         $newUnit = (array) $unit;
@@ -102,7 +104,7 @@ return new class extends Migration {
                         $newUnit['material_type'] = $pivot->material_type;
                         $newUnit['created_at'] = now();
                         $newUnit['updated_at'] = now();
-                        
+
                         DB::table('units')->insert($newUnit);
                     }
                 }

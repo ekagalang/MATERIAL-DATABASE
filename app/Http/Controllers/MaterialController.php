@@ -22,16 +22,24 @@ class MaterialController extends Controller
 
         foreach ($allSettings as $setting) {
             $type = $setting->material_type;
-            
+
             // Get model for count
             $model = null;
             switch ($type) {
-                case 'brick': $model = Brick::class; break;
-                case 'cat': $model = Cat::class; break;
-                case 'cement': $model = Cement::class; break;
-                case 'sand': $model = Sand::class; break;
+                case 'brick':
+                    $model = Brick::class;
+                    break;
+                case 'cat':
+                    $model = Cat::class;
+                    break;
+                case 'cement':
+                    $model = Cement::class;
+                    break;
+                case 'sand':
+                    $model = Sand::class;
+                    break;
             }
-            
+
             $dbCount = $model ? $model::count() : 0;
             $grandTotal += $dbCount;
 
@@ -56,7 +64,7 @@ class MaterialController extends Controller
                     'label' => MaterialSetting::getMaterialLabel($type),
                     'data' => $data,
                     'count' => $data->total(), // Filtered count
-                    'db_count' => $dbCount,   // Absolute total for this type
+                    'db_count' => $dbCount, // Absolute total for this type
                     'active_letters' => $activeLetters,
                     'current_letter' => $currentLetter,
                 ];

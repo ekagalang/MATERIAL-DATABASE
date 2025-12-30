@@ -34,41 +34,168 @@
         $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
 
         $brickType = $materialCalculation->brick ? $materialCalculation->brick->type : 'Merah';
+
+        // Deteksi kebutuhan material untuk tampilan dinamis
+        $hasBrick = $materialCalculation->brick_quantity > 0;
+        $hasSand = $materialCalculation->sand_m3 > 0;
+        // Base rows: Cement + Water = 2
+        $rowSpan = 2 + ($hasBrick ? 1 : 0) + ($hasSand ? 1 : 0);
     @endphp
 
-    {{-- Header Info: Item Pekerjaan Details --}}
+    {{-- Header Info: Item Pekerjaan Details Card --}}
     <div class="container mb-3">
-        <div style="color: #891313; font-weight: 700; font-size: 18px; letter-spacing: 0.3px;">
-            {{ $formulaName }} - Panjang {{ number_format($materialCalculation->wall_length, 2) }} M - Tinggi {{ number_format($materialCalculation->wall_height, 2) }} M = Luas {{ number_format($materialCalculation->wall_area, 2) }} M²
+        <div class="card p-3 shadow-sm border-0" style="background-color: #fdfdfd; border-radius: 12px;">
+            <div class="d-flex flex-wrap align-items-end gap-3 justify-content-between">
+                {{-- Jenis Item Pekerjaan --}}
+                <div style="flex: 1; min-width: 250px;">
+                    <label class="fw-bold mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <i class="bi bi-briefcase me-1"></i>Jenis Item Pekerjaan
+                    </label>
+                    <div class="form-control fw-bold border-secondary text-dark" style="background-color: #e9ecef; opacity: 1;">
+                        {{ $formulaName }}
+                    </div>
+                </div>
+
+                {{-- Tebal Spesi --}}
+                <div style="flex: 0 0 auto; width: 100px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light border">TEBAL</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $materialCalculation->mortar_thickness ?? 2.0 }}</div>
+                        <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">cm</span>
+                    </div>
+                </div>
+
+                {{-- Panjang --}}
+                <div style="flex: 0 0 auto; width: 100px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light border">PANJANG</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format($materialCalculation->wall_length, 2, '.', '') }}</div>
+                        <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                    </div>
+                </div>
+
+                {{-- Tinggi / Lebar (untuk Rollag) --}}
+                <div style="flex: 0 0 auto; width: 100px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light border">
+                            {{ $workType === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
+                        </span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format($materialCalculation->wall_height, 2, '.', '') }}</div>
+                        <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                    </div>
+                </div>
+
+                {{-- Tingkat (hanya untuk Rollag) --}}
+                @if($workType === 'brick_rollag')
+                <div style="flex: 0 0 auto; width: 100px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-warning text-dark border">TINGKAT</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #fffbeb; border-color: #fcd34d;">{{ $params['layer_count'] ?? 1 }}</div>
+                        <span class="input-group-text bg-warning text-dark small px-1" style="font-size: 0.7rem;">Lapis</span>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Sisi Aci (hanya untuk Aci Dinding) --}}
+                @if($workType === 'skim_coating')
+                <div style="flex: 0 0 auto; width: 100px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-info text-white border">SISI ACI</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e0f2fe; border-color: #38bdf8;">{{ $params['skim_sides'] ?? 1 }}</div>
+                        <span class="input-group-text bg-info text-white small px-1" style="font-size: 0.7rem;">Sisi</span>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Sisi Plester (hanya untuk Plester Dinding) --}}
+                @if($workType === 'wall_plastering')
+                <div style="flex: 0 0 auto; width: 100px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-success text-white border">SISI PLESTER</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #d1fae5; border-color: #34d399;">{{ $params['plaster_sides'] ?? 1 }}</div>
+                        <span class="input-group-text bg-success text-white small px-1" style="font-size: 0.7rem;">Sisi</span>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Luas --}}
+                <div style="flex: 0 0 auto; width: 120px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-primary text-white border">LUAS</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #dbeafe; border-color: #3b82f6;">{{ number_format($materialCalculation->wall_area, 2, '.', '') }}</div>
+                        <span class="input-group-text bg-primary text-white small px-1" style="font-size: 0.7rem;">M2</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <div class="container">
     <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden;">
         <div class="table-responsive">
             <style>
-                .table-preview { 
-                    width: 100%; 
+                /* Global Text Styling for All Elements */
+                h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td, i, strong,
+                .text-muted, .text-dark, .text-secondary, .small, .fw-bold, .badge {
+                    font-family: 'League Spartan', sans-serif !important;
+                    color: #ffffff !important;
+                    -webkit-text-stroke: 0.2px black !important;
+                    text-shadow: 0 1.1px 0 #000000 !important;
+                    font-weight: 700 !important;
+                }
+
+                /* Override for input/form controls */
+                .form-control, .input-group-text {
+                    color: #1e293b !important;
+                    -webkit-text-stroke: 0 !important;
+                    text-shadow: none !important;
+                }
+
+                .table-preview {
+                    width: 100%;
                     border-collapse: separate;
                     border-spacing: 0;
-                    font-size: 13px; 
-                    color: #1e293b; 
+                    font-size: 13px;
                     margin: 0;
                 }
-                .table-preview th { 
+                .table-preview th {
                     background: #891313;
-                    color: #ffffff; 
-                    text-align: center; 
-                    font-weight: 900; 
-                    padding: 14px 16px; 
+                    color: #ffffff;
+                    text-align: center;
+                    font-weight: 900;
+                    padding: 14px 16px;
                     border: none;
                     font-size: 12px;
                     letter-spacing: 0.3px;
                     white-space: nowrap;
                 }
-                .table-preview td { 
+                .table-preview td {
                     padding: 14px 16px;
                     border-bottom: 1px solid #f1f5f9;
-                    vertical-align: middle; 
+                    vertical-align: top;
+                    white-space: nowrap;
+                }
+                .table-preview td.store-cell,
+                .table-preview td.address-cell {
+                    white-space: normal;
+                    word-wrap: break-word;
+                    word-break: break-word;
+                    max-width: 200px;
+                    min-width: 150px;
                 }
                 .table-preview tbody tr:last-child td {
                     border-bottom: none;
@@ -166,6 +293,7 @@
                 <tbody>
 
                     {{-- ROW 1: BATA --}}
+                    @if($hasBrick)
                     <tr class="text-nowrap">
                         <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->brick_quantity, 0, ',', '.') }}</td>
                         <td class="text-center sticky-col-2">Bh</td>
@@ -174,8 +302,8 @@
                         <td class="fw-bold">{{ $materialCalculation->brick->brand ?? '-' }}</td>
                         <td class="text-center text-nowrap">{{ ($materialCalculation->brick->dimension_length ?? 0) + 0 }} x {{ ($materialCalculation->brick->dimension_width ?? 0) + 0 }} x {{ ($materialCalculation->brick->dimension_height ?? 0) + 0 }} cm</td>
                         <td></td>
-                        <td>{{ $materialCalculation->brick->store ?? '-' }}</td>
-                        <td class="small text-muted">{{ $materialCalculation->brick->address ?? '-' }}</td>
+                        <td class="store-cell">{{ $materialCalculation->brick->store ?? '-' }}</td>
+                        <td class="small text-muted address-cell">{{ $materialCalculation->brick->address ?? '-' }}</td>
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
@@ -189,19 +317,19 @@
                                 <span>{{ number_format($materialCalculation->brick_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td rowspan="4" class="text-end bg-highlight align-top rowspan-cell">
+                        <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                             <div class="d-flex justify-content-between w-100">
                                 <span class="text-success-dark" style="font-size: 15px;">Rp</span>
                                 <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td rowspan="4" class="text-end bg-highlight align-top rowspan-cell">
+                        <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                             <div class="d-flex justify-content-between w-100">
                                 <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
                                 <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td rowspan="4" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                        <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
@@ -210,6 +338,7 @@
                         </td>
                         <td class="text-muted ps-1">/ bh</td>
                     </tr>
+                    @endif
 
                     {{-- ROW 2: SEMEN --}}
                     <tr>
@@ -220,8 +349,8 @@
                         <td class="fw-bold">{{ $materialCalculation->cement->brand ?? '-' }}</td>
                         <td>{{ $materialCalculation->cement->color ?? '-' }}</td>
                         <td class="text-start text-nowrap fw-bold">{{ ($materialCalculation->cement->package_weight_net ?? 0) + 0 }} Kg</td>
-                        <td>{{ $materialCalculation->cement->store ?? '-' }}</td>
-                        <td class="small text-muted">{{ $materialCalculation->cement->address ?? '-' }}</td>
+                        <td class="store-cell">{{ $materialCalculation->cement->store ?? '-' }}</td>
+                        <td class="small text-muted address-cell">{{ $materialCalculation->cement->address ?? '-' }}</td>
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
@@ -235,16 +364,44 @@
                                 <span>{{ number_format($materialCalculation->cement_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td class="text-nowrap">
-                            <div class="d-flex justify-content-between w-100">
-                                <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
-                            </div>
-                        </td>
-                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
+                        
+                        @if(!$hasBrick)
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                            
+                            {{-- Harga Beli Semen (Jika Bata tidak ada, rowspan muncul disini) --}}
+                            <td class="text-nowrap">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span>Rp</span>
+                                    <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
+                        @else
+                            {{-- Normal Cement Cells if Brick exists --}}
+                            <td class="text-nowrap">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span>Rp</span>
+                                    <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
+                        @endif
                     </tr>
 
                     {{-- ROW 3: PASIR --}}
+                    @if($hasSand)
                     <tr>
                         <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->sand_m3, 3, ',', '.') }}</td>
                         <td class="text-center sticky-col-2">M3</td>
@@ -253,8 +410,8 @@
                         <td class="fw-bold">{{ $materialCalculation->sand->brand ?? '-' }}</td>
                         <td>{{ $materialCalculation->sand->sand_name ?? '-' }}</td>
                         <td class="text-start text-nowrap fw-bold">{{ $materialCalculation->sand->package_volume ? ($materialCalculation->sand->package_volume + 0) . ' M3' : '-' }}</td>
-                        <td>{{ $materialCalculation->sand->store ?? '-' }}</td>
-                        <td class="small text-muted">{{ $materialCalculation->sand->address ?? '-' }}</td>
+                        <td class="store-cell">{{ $materialCalculation->sand->store ?? '-' }}</td>
+                        <td class="small text-muted address-cell">{{ $materialCalculation->sand->address ?? '-' }}</td>
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
@@ -276,6 +433,7 @@
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
                     </tr>
+                    @endif
 
                     {{-- ROW 4: AIR --}}
                     <tr class="group-end">
@@ -296,6 +454,7 @@
                 </tbody>
             </table>
         </div>
+    </div>
     </div>
 </div>
 

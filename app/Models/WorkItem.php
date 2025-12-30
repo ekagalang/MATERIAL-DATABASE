@@ -9,13 +9,7 @@ class WorkItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = [
-        'name',
-        'unit',
-        'price',
-        'category',
-        'description',
-    ];
+    protected $fillable = ['name', 'unit', 'price', 'category', 'description'];
 
     protected $casts = [
         'price' => 'float',

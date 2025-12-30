@@ -62,15 +62,15 @@ class Brick extends Model
 
     /**
      * Kalkulasi volume dari dimensi (p x l x t)
-     * Konversi dari cm³ ke m³
+     * Konversi dari cM3 ke M3
      */
     public function calculateVolume(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
-            // Volume dalam cm³
+            // Volume dalam cM3
             $volumeCm3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
 
-            // Konversi ke m³ (1 m³ = 1,000,000 cm³)
+            // Konversi ke M3 (1 M3 = 1,000,000 cM3)
             $volumeM3 = $volumeCm3 / 1000000;
 
             $this->package_volume = $volumeM3;
@@ -81,7 +81,7 @@ class Brick extends Model
     }
 
     /**
-     * Kalkulasi harga komparasi per m³
+     * Kalkulasi harga komparasi per M3
      */
     public function calculateComparisonPrice(): float
     {

@@ -36,7 +36,7 @@
                     <div class="card" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; padding: 20px; border-radius: 12px;">
                         <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Total Luas</div>
                         <div style="font-size: 32px; font-weight: 700;">{{ number_format($analytics['total_area'], 2) }}</div>
-                        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">m²</div>
+                        <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">M2</div>
                     </div>
                 </div>
                 <div class="col-md-3">
@@ -48,7 +48,7 @@
                 </div>
                 <div class="col-md-3">
                     <div class="card" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 20px; border-radius: 12px;">
-                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Rata-rata / m²</div>
+                        <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Rata-rata / M2</div>
                         <div style="font-size: 28px; font-weight: 700;">Rp {{ number_format($analytics['avg_cost_per_m2'], 0, ',', '.') }}</div>
                         <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">Per meter persegi</div>
                     </div>
@@ -166,11 +166,4 @@
         </div>
     @endif
 </div>
-
-<style>
-    .btn-cancel:hover {
-        background-color: #f1f5f9 !important;
-        color: #334155 !important;
-    }
-</style>
 @endsection

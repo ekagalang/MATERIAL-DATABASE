@@ -405,7 +405,7 @@
                 <div class="d-flex flex-wrap align-items-end gap-3 justify-content-between">
                     {{-- Jenis Item Pekerjaan --}}
                     <div style="flex: 1; min-width: 250px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                        <label class="fw-bold mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
                             <i class="bi bi-briefcase me-1"></i>Jenis Item Pekerjaan
                         </label>
                         <div class="form-control fw-bold border-secondary text-dark" style="background-color: #e9ecef; opacity: 1;">
@@ -416,35 +416,35 @@
                     {{-- Tebal Spesi --}}
                     <div style="flex: 0 0 auto; width: 100px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light text-dark border">TEBAL</span>
+                            <span class="badge bg-light border">TEBAL</span>
                         </label>
                         <div class="input-group">
                             <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $requestData['mortar_thickness'] ?? 2.0 }}</div>
-                            <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">cm</span>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">cm</span>
                         </div>
                     </div>
 
                     {{-- Panjang --}}
                     <div style="flex: 0 0 auto; width: 100px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light text-dark border">PANJANG</span>
+                            <span class="badge bg-light border">PANJANG</span>
                         </label>
                         <div class="input-group">
                             <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format((float)$requestData['wall_length'], 2, '.', '') }}</div>
-                            <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">M</span>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
                         </div>
                     </div>
 
                     {{-- Tinggi / Lebar (untuk Rollag) --}}
                     <div style="flex: 0 0 auto; width: 100px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light text-dark border">
+                            <span class="badge bg-ligh border">
                                 {{ isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
                             </span>
                         </label>
                         <div class="input-group">
                             <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format((float)$requestData['wall_height'], 2, '.', '') }}</div>
-                            <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">M</span>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
                         </div>
                     </div>
 
@@ -452,11 +452,37 @@
                     @if(isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag')
                     <div style="flex: 0 0 auto; width: 100px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-warning text-dark border">TINGKAT</span>
+                            <span class="badge bg-warning border">TINGKAT</span>
                         </label>
                         <div class="input-group">
                             <div class="form-control fw-bold text-center px-1" style="background-color: #fffbeb; border-color: #fcd34d;">{{ $requestData['layer_count'] ?? 1 }}</div>
-                            <span class="input-group-text bg-warning text-dark small px-1" style="font-size: 0.7rem;">Lapis</span>
+                            <span class="input-group-text bg-warning small px-1" style="font-size: 0.7rem;">Lapis</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Sisi Aci (hanya untuk Aci Dinding) --}}
+                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'skim_coating')
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-info text-white border">SISI ACI</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e0f2fe; border-color: #38bdf8;">{{ $requestData['skim_sides'] ?? 1 }}</div>
+                            <span class="input-group-text bg-info text-white small px-1" style="font-size: 0.7rem;">Sisi</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Sisi Plester (hanya untuk Plester Dinding) --}}
+                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'wall_plastering')
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-success text-white border">SISI PLESTER</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #d1fae5; border-color: #34d399;">{{ $requestData['plaster_sides'] ?? 1 }}</div>
+                            <span class="input-group-text bg-success text-white small px-1" style="font-size: 0.7rem;">Sisi</span>
                         </div>
                     </div>
                     @endif
@@ -597,13 +623,27 @@
             <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden; position: relative; z-index: 1;">
                 <div class="table-responsive">
                                 <style>
+                                    /* Global Text Styling */
+                                    .table-preview th,
+                                    .table-preview td,
+                                    .table-preview span,
+                                    .table-preview div,
+                                    .table-preview a,
+                                    .table-preview label,
+                                    .table-preview button {
+                                        font-family: 'League Spartan', sans-serif !important;
+                                        color: #ffffff !important;
+                                        -webkit-text-stroke: 0.2px black !important;
+                                        text-shadow: 0 1.1px 0 #000000 !important;
+                                        font-weight: 700 !important;
+                                    }
+
                                     /* Table Styling */
                                     .table-preview {
                                         width: 100%;
                                         border-collapse: separate;
                                         border-spacing: 0;
                                         font-size: 13px;
-                                        color: #1e293b;
                                         margin: 0;
                                     }
                                     .table-preview th {
@@ -620,7 +660,16 @@
                                     .table-preview td {
                                         padding: 14px 16px;
                                         border-bottom: 1px solid #f1f5f9;
-                                        vertical-align: middle;
+                                        vertical-align: top;
+                                        white-space: nowrap;
+                                    }
+                                    .table-preview td.store-cell,
+                                    .table-preview td.address-cell {
+                                        white-space: normal;
+                                        word-wrap: break-word;
+                                        word-break: break-word;
+                                        max-width: 200px;
+                                        min-width: 150px;
                                     }
                                     .table-preview tbody tr:last-child td {
                                         border-bottom: none;
@@ -651,11 +700,13 @@
                                         background-color: white;
                                         z-index: 2;
                                         box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                                        min-width: 140px;
+                                        min-width: 90px;
+                                        max-width: 105px;
+                                        width: 90px;
                                     }
                                     .sticky-col-2 {
                                         position: sticky;
-                                        left: 140px;
+                                        left: 105px;
                                         background-color: white;
                                         z-index: 2;
                                         box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
@@ -663,7 +714,7 @@
                                     }
                                     .sticky-col-3 {
                                         position: sticky;
-                                        left: 220px;
+                                        left: 200px;
                                         background-color: white;
                                         z-index: 2;
                                         box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
@@ -722,7 +773,7 @@
                                 <table class="table-preview">
                                     <thead class="align-top">
                                         <tr>
-                                            <th class="sticky-col-1">Qty / Pekerjaan</th>
+                                            <th class="sticky-col-1">Qty<br>/ Pekerjaan</th>
                                             <th class="sticky-col-2">Satuan</th>
                                             <th class="sticky-col-3">Material</th>
                                             <th colspan="4">Detail</th>
@@ -786,6 +837,97 @@
                                                 $res = $item['result'];
                                                 $isFirstOption = ($globalIndex === 1);
                                                 $costPerM2 = $area > 0 ? $res['grand_total'] / $area : 0;
+
+                                                // ========================================
+                                                // DYNAMIC MATERIAL CONFIGURATION
+                                                // To add new material, just add to this array!
+                                                // ========================================
+                                                $materialConfig = [
+                                                    'brick' => [
+                                                        'name' => 'Bata',
+                                                        'check_field' => 'total_bricks',
+                                                        'qty' => $res['total_bricks'] ?? 0,
+                                                        'unit' => 'Bh',
+                                                        'object' => $brick,
+                                                        'type_field' => 'type',
+                                                        'brand_field' => 'brand',
+                                                        'detail_display' => ($brick->dimension_length + 0) . ' x ' . ($brick->dimension_width + 0) . ' x ' . ($brick->dimension_height + 0) . ' cm',
+                                                        'store_field' => 'store',
+                                                        'address_field' => 'address',
+                                                        'package_price' => $brick->price_per_piece ?? 0,
+                                                        'package_unit' => 'bh',
+                                                        'total_price' => $res['total_brick_price'] ?? 0,
+                                                        'unit_price' => $brick->price_per_piece ?? 0,
+                                                        'unit_price_label' => 'bh',
+                                                    ],
+                                                    'cement' => [
+                                                        'name' => 'Semen',
+                                                        'check_field' => 'cement_sak',
+                                                        'qty' => $res['cement_sak'] ?? 0,
+                                                        'unit' => 'Sak',
+                                                        'object' => $item['cement'],
+                                                        'type_field' => 'type',
+                                                        'brand_field' => 'brand',
+                                                        'detail_display' => $item['cement']->color ?? '-',
+                                                        'detail_extra' => ($item['cement']->package_weight_net + 0) . ' Kg',
+                                                        'store_field' => 'store',
+                                                        'address_field' => 'address',
+                                                        'package_price' => $item['cement']->package_price ?? 0,
+                                                        'package_unit' => $item['cement']->package_unit ?? 'Sak',
+                                                        'total_price' => $res['total_cement_price'] ?? 0,
+                                                        'unit_price' => $res['total_cement_price'] ?? 0,
+                                                        'unit_price_label' => $item['cement']->package_unit ?? 'Sak',
+                                                    ],
+                                                    'sand' => [
+                                                        'name' => 'Pasir',
+                                                        'check_field' => 'sand_m3',
+                                                        'qty' => $res['sand_m3'] ?? 0,
+                                                        'unit' => 'M3',
+                                                        'object' => $item['sand'],
+                                                        'type_field' => 'type',
+                                                        'brand_field' => 'brand',
+                                                        'detail_display' => $item['sand']->package_unit ?? '-',
+                                                        'detail_extra' => ($item['sand']->package_volume ? (($item['sand']->package_volume + 0) . ' M3') : '-'),
+                                                        'store_field' => 'store',
+                                                        'address_field' => 'address',
+                                                        'package_price' => $item['sand']->package_price ?? 0,
+                                                        'package_unit' => $item['sand']->package_unit ?? 'Karung',
+                                                        'total_price' => $res['total_sand_price'] ?? 0,
+                                                        'unit_price' => $res['total_sand_price'] ?? 0,
+                                                        'unit_price_label' => $item['sand']->package_unit ?? 'Karung',
+                                                    ],
+                                                    'water' => [
+                                                        'name' => 'Air',
+                                                        'check_field' => 'water_liters',
+                                                        'qty' => $res['water_liters'] ?? 0,
+                                                        'unit' => 'L',
+                                                        'object' => null,
+                                                        'type_field' => null,
+                                                        'type_display' => 'Bersih',
+                                                        'brand_field' => null,
+                                                        'brand_display' => 'PDAM',
+                                                        'detail_display' => '',
+                                                        'detail_extra' => '',
+                                                        'store_field' => null,
+                                                        'store_display' => 'Customer',
+                                                        'address_field' => null,
+                                                        'address_display' => '-',
+                                                        'package_price' => 0,
+                                                        'package_unit' => '',
+                                                        'total_price' => 0,
+                                                        'unit_price' => 0,
+                                                        'unit_price_label' => '',
+                                                        'is_special' => true, // Special handling for water
+                                                    ],
+                                                ];
+
+                                                // Filter materials: only show if qty > 0
+                                                $visibleMaterials = array_filter($materialConfig, function($mat) {
+                                                    return isset($mat['qty']) && $mat['qty'] > 0;
+                                                });
+
+                                                // Calculate rowspan based on visible materials
+                                                $rowCount = count($visibleMaterials);
                                             @endphp
 
                                                 {{-- ROW 0: GROUP NAME / LABEL --}}
@@ -871,166 +1013,122 @@
                                                     <td colspan="18" style="background: #f8fafc;"></td>
                                                 </tr>
 
-                                                {{-- ROW 1: BATA --}}
-                                                <tr class="text-nowrap">
-                                                    <td class="text-end fw-bold sticky-col-1">{{ number_format($res['total_bricks'], 0, ',', '.') }}</td>
-                                                    <td class="text-center sticky-col-2">Bh</td>
-                                                    <td class="fw-bold sticky-col-3">Bata</td>
-                                                    <td class="text-muted">{{ $brick->type ?? '-' }}</td>
-                                                    <td class="fw-bold">{{ $brick->brand }}</td>
-                                                    <td class="text-center text-nowrap">{{ $brick->dimension_length + 0 }} x {{ $brick->dimension_width + 0 }} x {{ $brick->dimension_height + 0 }} cm</td>
-                                                    <td></td>
-                                                    <td>{{ $brick->store ?? '-' }}</td>
-                                                    <td class="small text-muted">{{ $brick->address ?? '-' }}</td>
-                                                    <td class="text-nowrap fw-bold">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($brick->price_per_piece, 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-muted text-nowrap ps-1">/ bh</td>
-                                                    <td class="text-nowrap">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($res['total_brick_price'], 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td rowspan="4" class="text-end bg-highlight align-top rowspan-cell">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                                            <span class="text-success-dark" style="font-size: 15px;">{{ number_format($res['grand_total'], 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td rowspan="4" class="text-end bg-highlight align-top rowspan-cell">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                                            <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td rowspan="4" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
-                                                    <td class="text-nowrap">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($brick->price_per_piece, 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-muted ps-1">/ bh</td>
-                                                    <td rowspan="4" class="text-center align-top rowspan-cell">
-                                                        <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
-                                                            @csrf
-                                                            @foreach($requestData as $key => $value)
-                                                                @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters')
-                                                                    @if(is_array($value))
-                                                                        @foreach($value as $v)
-                                                                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
-                                                                        @endforeach
-                                                                    @else
-                                                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                                                                    @endif
-                                                                @endif
-                                                            @endforeach
-                                                            <input type="hidden" name="brick_id" value="{{ $brick->id }}">
-                                                            <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
-                                                            <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
-                                                            <input type="hidden" name="price_filters[]" value="custom">
-                                                            <input type="hidden" name="confirm_save" value="1">
-                                                            <button type="submit" class="btn-select">
-                                                                <i class="bi bi-check-circle me-1"></i> Pilih
-                                                            </button>
-                                                        </form>
-                                                    </td>
-                                                </tr>
+                                                {{-- DYNAMIC MATERIAL ROWS --}}
+                                                @php $matIndex = 0; @endphp
+                                                @foreach($visibleMaterials as $matKey => $mat)
+                                                    @php
+                                                        $matIndex++;
+                                                        $isFirstMaterial = $matIndex === 1;
+                                                        $isLastMaterial = $matIndex === count($visibleMaterials);
+                                                    @endphp
+                                                    <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
+                                                        {{-- Column 1-3: Qty, Unit, Material Name --}}
+                                                        <td class="text-end fw-bold sticky-col-1">{{ $mat['unit'] === 'M3' ? number_format($mat['qty'], 3, ',', '.') : number_format($mat['qty'], 2, ',', '.') }}</td>
+                                                        <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
+                                                        <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 
-                                                {{-- ROW 2: SEMEN --}}
-                                                <tr>
-                                                    <td class="text-end fw-bold sticky-col-1">{{ number_format($res['cement_sak'], 2, ',', '.') }}</td>
-                                                    <td class="text-center sticky-col-2">Sak</td>
-                                                    <td class="fw-bold sticky-col-3">Semen</td>
-                                                    <td class="text-muted">{{ $item['cement']->type ?? '-' }}</td>
-                                                    <td class="fw-bold">{{ $item['cement']->brand }}</td>
-                                                    <td>{{ $item['cement']->color ?? '-' }}</td>
-                                                    <td class="text-start text-nowrap fw-bold">{{ $item['cement']->package_weight_net + 0 }} Kg</td>
-                                                    <td>{{ $item['cement']->store ?? '-' }}</td>
-                                                    <td class="small text-muted">{{ $item['cement']->address ?? '-' }}</td>
-                                                    <td class="text-nowrap fw-bold">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($item['cement']->package_price, 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-muted text-nowrap ps-1">/ {{ $item['cement']->package_unit }}</td>
-                                                    <td class="text-nowrap">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($res['total_cement_price'], 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-nowrap">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($res['total_cement_price'], 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-muted text-nowrap ps-1">/ {{ $item['cement']->package_unit }}</td>
-                                                </tr>
+                                                        {{-- Column 4-9: Material Details --}}
+                                                        <td class="text-muted">{{ $mat['type_display'] ?? ($mat['object']->{$mat['type_field']} ?? '-') }}</td>
+                                                        <td class="fw-bold">{{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}</td>
+                                                        <td class="{{ $matKey === 'brick' ? 'text-center text-nowrap' : '' }}">{{ $mat['detail_display'] }}</td>
+                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' ? 'text-start text-nowrap fw-bold' : '' }}">{{ $mat['detail_extra'] ?? '' }}</td>
+                                                        <td class="store-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</td>
+                                                        <td class="small text-muted address-cell">{{ $mat['address_display'] ?? ($mat['object']->{$mat['address_field']} ?? '-') }}</td>
 
-                                                {{-- ROW 3: PASIR --}}
-                                                <tr>
-                                                    <td class="text-end fw-bold sticky-col-1">{{ number_format($res['sand_m3'], 3, ',', '.') }}</td>
-                                                    <td class="text-center sticky-col-2">M3</td>
-                                                    <td class="fw-bold sticky-col-3">Pasir</td>
-                                                    <td class="text-muted">{{ $item['sand']->type ?? '-' }}</td>
-                                                    <td class="fw-bold">{{ $item['sand']->brand }}</td>
-                                                    <td>{{ $item['sand']->package_unit ?? '-' }}</td>
-                                                    <td class="text-start text-nowrap fw-bold">{{ $item['sand']->package_volume ? ($item['sand']->package_volume + 0) . ' M3' : '-' }}</td>
-                                                    <td>{{ $item['sand']->store ?? '-' }}</td>
-                                                    <td class="small text-muted">{{ $item['sand']->address ?? '-' }}</td>
-                                                    <td class="text-nowrap fw-bold">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($item['sand']->package_price, 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-muted text-nowrap ps-1">/ {{ $item['sand']->package_unit }}</td>
-                                                    <td class="text-nowrap">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($res['total_sand_price'], 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-nowrap">
-                                                        <div class="d-flex justify-content-between w-100">
-                                                            <span>Rp</span>
-                                                            <span>{{ number_format($res['total_sand_price'], 0, ',', '.') }}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-muted text-nowrap ps-1">/ {{ $item['sand']->package_unit }}</td>
-                                                </tr>
+                                                        {{-- Column 10-11: Package Price --}}
+                                                        @if(isset($mat['is_special']) && $mat['is_special'])
+                                                            <td class="text-center text-muted">-</td>
+                                                            <td></td>
+                                                        @else
+                                                            <td class="text-nowrap fw-bold">
+                                                                <div class="d-flex justify-content-between w-100">
+                                                                    <span>Rp</span>
+                                                                    <span>{{ number_format($mat['package_price'], 0, ',', '.') }}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-muted text-nowrap ps-1">/ {{ $mat['package_unit'] }}</td>
+                                                        @endif
 
-                                                {{-- ROW 4: AIR --}}
-                                                <tr class="group-end">
-                                                    <td class="text-end fw-bold sticky-col-1">{{ number_format($res['water_liters'], 2, ',', '.') }}</td>
-                                                    <td class="text-center sticky-col-2">L</td>
-                                                    <td class="fw-bold sticky-col-3">Air</td>
-                                                    <td class="text-muted">Bersih</td>
-                                                    <td>PDAM</td>
-                                                    <td colspan="2"></td>
-                                                    <td>Customer</td>
-                                                    <td>-</td>
-                                                    <td class="text-center text-muted">-</td>
-                                                    <td></td>
-                                                    <td class="text-center text-muted">-</td>
-                                                    <td class="text-center text-muted">-</td>
-                                                    <td></td>
-                                                </tr>
+                                                        {{-- Column 12: Total Price (Harga Komparasi) --}}
+                                                        @if(isset($mat['is_special']) && $mat['is_special'])
+                                                            <td class="text-center text-muted">-</td>
+                                                        @else
+                                                            <td class="text-nowrap">
+                                                                <div class="d-flex justify-content-between w-100">
+                                                                    <span>Rp</span>
+                                                                    <span>{{ number_format($mat['total_price'], 0, ',', '.') }}</span>
+                                                                </div>
+                                                            </td>
+                                                        @endif
+
+                                                        {{-- Column 13-15: Rowspan columns (Grand Total, Cost per M2, Action) --}}
+                                                        @if($isFirstMaterial)
+                                                            <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell">
+                                                                <div class="d-flex justify-content-between w-100">
+                                                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($res['grand_total'], 0, ',', '.') }}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell">
+                                                                <div class="d-flex justify-content-between w-100">
+                                                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td rowspan="{{ $rowCount }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                                                        @endif
+
+                                                        {{-- Column 16-17: Unit Price --}}
+                                                        @if(isset($mat['is_special']) && $mat['is_special'])
+                                                            <td class="text-center text-muted">-</td>
+                                                            <td></td>
+                                                        @else
+                                                            <td class="text-nowrap">
+                                                                <div class="d-flex justify-content-between w-100">
+                                                                    <span>Rp</span>
+                                                                    <span>{{ number_format($mat['unit_price'], 0, ',', '.') }}</span>
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-muted text-nowrap ps-1">/ {{ $mat['unit_price_label'] }}</td>
+                                                        @endif
+
+                                                        {{-- Column 18: Action (Rowspan) --}}
+                                                        @if($isFirstMaterial)
+                                                            <td rowspan="{{ $rowCount }}" class="text-center align-top rowspan-cell">
+                                                                <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
+                                                                    @csrf
+                                                                    @foreach($requestData as $key => $value)
+                                                                        @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters')
+                                                                            @if(is_array($value))
+                                                                                @foreach($value as $v)
+                                                                                    <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                                                                                @endforeach
+                                                                            @else
+                                                                                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                                                            @endif
+                                                                        @endif
+                                                                    @endforeach
+                                                                    <input type="hidden" name="brick_id" value="{{ $brick->id }}">
+                                                                    <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
+                                                                    <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
+                                                                    <input type="hidden" name="price_filters[]" value="custom">
+                                                                    <input type="hidden" name="confirm_save" value="1">
+                                                                    <button type="submit" class="btn-select">
+                                                                        <i class="bi bi-check-circle me-1"></i> Pilih
+                                                                    </button>
+                                                                </form>
+                                                            </td>
+                                                        @endif
+                                                    </tr>
+                                                @endforeach
                                         @endforeach
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="mt-4 text-center container">
-                            <p class="text-muted" style="font-size: 13px;">
-                                <i class="bi bi-info-circle me-1"></i> Gunakan tombol <strong>Pilih</strong> pada kolom Aksi untuk menyimpan perhitungan ini ke proyek Anda.
+                            <p class="" style="font-size: 13px;">
+                                <i class="bi bi-info-circle me-1"></i> Gunakan tombol <span class="text-muted">Pilih</span> pada kolom Aksi untuk menyimpan perhitungan ini ke proyek Anda.
                             </p>
                         </div>
             </div>
@@ -1039,6 +1137,15 @@
 </div>
 
 <style>
+    /* Global Text Styling for All Elements */
+    h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td, i, strong {
+        font-family: 'League Spartan', sans-serif !important;
+        color: #ffffff !important;
+        -webkit-text-stroke: 0.2px black !important;
+        text-shadow: 0 1.1px 0 #000000 !important;
+        font-weight: 700 !important;
+    }
+
     /* Smooth scroll untuk seluruh halaman */
     html {
         scroll-behavior: smooth;

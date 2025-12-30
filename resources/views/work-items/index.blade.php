@@ -37,9 +37,26 @@
                             </div>
                         </td>
                         <td>
-                            <div style="font-size: 12.5px; color: #64748b; line-height: 1.5;">
-                                {{ $formula['description'] ?? 'Formula analisa perhitungan kebutuhan material dan tenaga kerja.' }}
-                            </div>
+                            @php
+                                $formulaAnalytics = $analytics[$formula['code']] ?? null;
+                                $avgCost = $formulaAnalytics['avg_cost_per_m2'] ?? 0;
+                                $totalCalcs = $formulaAnalytics['total'] ?? 0;
+                            @endphp
+
+                            @if($totalCalcs > 0 && $avgCost > 0)
+                                <div style="font-size: 13px; color: #059669; line-height: 1.5; font-weight: 600;">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                    Rata-rata: <strong>Rp {{ number_format($avgCost, 0, ',', '.') }} / M2</strong>
+                                </div>
+                                <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                                    Berdasarkan {{ $totalCalcs }} perhitungan
+                                </div>
+                            @else
+                                <div style="font-size: 12px; color: #94a3b8; line-height: 1.5; font-style: italic;">
+                                    <i class="bi bi-info-circle"></i>
+                                    Belum ada data perhitungan untuk item ini
+                                </div>
+                            @endif
                         </td>
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 8px; justify-content: center;">

@@ -20,8 +20,8 @@ class WorkItemController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('category', 'like', "%{$search}%")
-                  ->orWhere('unit', 'like', "%{$search}%");
+                    ->orWhere('category', 'like', "%{$search}%")
+                    ->orWhere('unit', 'like', "%{$search}%");
             });
         }
 
@@ -50,6 +50,10 @@ class WorkItemController extends Controller
                 $cementCounts = [];
                 $sandCounts = [];
 
+                // Hitung total cost dan area untuk avg cost per M2
+                $totalCost = 0;
+                $totalArea = 0;
+
                 foreach ($calculations as $calc) {
                     // Count Bricks
                     if ($calc->brick) {
@@ -68,6 +72,10 @@ class WorkItemController extends Controller
                         $sandKey = $calc->sand->brand;
                         $sandCounts[$sandKey] = ($sandCounts[$sandKey] ?? 0) + 1;
                     }
+
+                    // Sum total cost and area
+                    $totalCost += $calc->total_material_cost ?? 0;
+                    $totalArea += $calc->wall_area ?? 0;
                 }
 
                 // Sort dan ambil top 3
@@ -75,8 +83,13 @@ class WorkItemController extends Controller
                 arsort($cementCounts);
                 arsort($sandCounts);
 
+                // Calculate average cost per M2
+                $avgCostPerM2 = $totalArea > 0 ? $totalCost / $totalArea : 0;
+
                 $analytics[$workType] = [
                     'total' => $totalCalculations,
+                    'avg_cost_per_m2' => $avgCostPerM2,
+                    'total_area' => $totalArea,
                     'top_bricks' => array_slice($brickCounts, 0, 3, true),
                     'top_cements' => array_slice($cementCounts, 0, 3, true),
                     'top_sands' => array_slice($sandCounts, 0, 3, true),
@@ -84,6 +97,8 @@ class WorkItemController extends Controller
             } else {
                 $analytics[$workType] = [
                     'total' => 0,
+                    'avg_cost_per_m2' => 0,
+                    'total_area' => 0,
                     'top_bricks' => [],
                     'top_cements' => [],
                     'top_sands' => [],
@@ -181,7 +196,8 @@ class WorkItemController extends Controller
             'total_cement_cost' => $totalCementCost,
             'total_sand_cost' => $totalSandCost,
             'total_area' => $totalArea,
-            'avg_cost_per_m2' => $totalArea > 0 ? ($totalBrickCost + $totalCementCost + $totalSandCost) / $totalArea : 0,
+            'avg_cost_per_m2' =>
+                $totalArea > 0 ? ($totalBrickCost + $totalCementCost + $totalSandCost) / $totalArea : 0,
             'brick_counts' => $brickCounts,
             'cement_counts' => $cementCounts,
             'sand_counts' => $sandCounts,

@@ -1,0 +1,289 @@
+<?php
+
+namespace App\Services\Formula;
+
+use App\Models\Cement;
+use App\Models\Sand;
+
+/**
+ * Formula - Perhitungan Plaster Dinding
+ * Menghitung kebutuhan material untuk plester dinding
+ */
+class WallPlasteringFormula implements FormulaInterface
+{
+    public static function getCode(): string
+    {
+        return 'wall_plastering';
+    }
+
+    public static function getName(): string
+    {
+        return 'Plester Dinding';
+    }
+
+    public static function getDescription(): string
+    {
+        return 'Menghitung Plester Dinding dengan input panjang, tinggi, tebal adukan dan jumlah sisi.';
+    }
+
+    public function validate(array $params): bool
+    {
+        $required = ['wall_length', 'wall_height', 'mortar_thickness', 'plaster_sides', 'cement_id', 'sand_id'];
+
+        foreach ($required as $field) {
+            if (!isset($params[$field]) || $params[$field] <= 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public function calculate(array $params): array
+    {
+        $trace = $this->trace($params);
+        return $trace['final_result'];
+    }
+
+    public function trace(array $params): array
+    {
+        $trace = [];
+        $trace['mode'] = self::getName();
+        $trace['steps'] = [];
+
+        // ============ STEP 1: Load Input Parameters ============
+        $panjang = $params['wall_length']; // m
+        $tinggi = $params['wall_height']; // m
+        $tebalAdukan = $params['mortar_thickness']; // cm
+        $sisiPlesteran = $params['plaster_sides']; // jumlah sisi
+
+        $trace['steps'][] = [
+            'step' => 1,
+            'title' => 'Input Parameters',
+            'calculations' => [
+                'Panjang Dinding' => $panjang . ' m',
+                'Tinggi Dinding' => $tinggi . ' m',
+                'Tebal Adukan' => $tebalAdukan . ' cm',
+                'Jumlah Sisi Plesteran' => $sisiPlesteran,
+            ],
+        ];
+
+        // ============ STEP 2: Load Material dari Database ============
+        $cement = Cement::findOrFail($params['cement_id']);
+        $sand = Sand::findOrFail($params['sand_id']);
+
+        $satuanKemasanSemen = $cement->package_weight_net; // kg (default 50)
+        $densitySemen = 1440; // kg/M3
+
+        $trace['steps'][] = [
+            'step' => 2,
+            'title' => 'Data Material',
+            'calculations' => [
+                'Semen' => $cement->brand . ' (' . $satuanKemasanSemen . ' kg)',
+                'Pasir' => $sand->brand,
+                'Densitas Semen' => $densitySemen . ' kg/M3',
+                'Rasio Campuran' => '1 : 4 : 30% (Semen : Pasir : Air)',
+            ],
+        ];
+
+        // ============ STEP 3: Hitung Luas Bidang ============
+        $luasBidang = $panjang * $tinggi;
+
+        $trace['steps'][] = [
+            'step' => 3,
+            'title' => 'Luas Bidang',
+            'formula' => 'Panjang × Tinggi',
+            'calculations' => [
+                'Perhitungan' => "$panjang × $tinggi",
+                'Hasil' => number_format($luasBidang, 4) . ' M2',
+            ],
+        ];
+
+        // ============ STEP 4: Hitung Volume Adukan Kubik Per Kemasan ============
+
+        // Kubik semen per kemasan
+        $kubikSemenPerKemasan = $satuanKemasanSemen * (1 / $densitySemen);
+
+        // Kubik pasir per kemasan (ratio 1:4)
+        $kubikPasirPerKemasan = $kubikSemenPerKemasan * 4;
+
+        // Kubik air per kemasan (30% dari volume padat)
+        $kubikAirPerKemasan = ($kubikSemenPerKemasan + $kubikPasirPerKemasan) * 0.3;
+
+        // Total volume adukan per kemasan
+        $volumeAdukanKubikPerKemasan = $kubikSemenPerKemasan + $kubikPasirPerKemasan + $kubikAirPerKemasan;
+
+        $trace['steps'][] = [
+            'step' => 4,
+            'title' => 'Volume Adukan Per Kemasan Semen',
+            'info' => 'Ratio 1 : 4 : 30% (Semen : Pasir : Air)',
+            'calculations' => [
+                'Kubik Semen' => number_format($kubikSemenPerKemasan, 6) . ' M3',
+                'Kubik Pasir' => number_format($kubikPasirPerKemasan, 6) . ' M3',
+                'Kubik Air' => number_format($kubikAirPerKemasan, 6) . ' M3',
+                'Total Volume Adukan' => number_format($volumeAdukanKubikPerKemasan, 6) . ' M3',
+            ],
+        ];
+
+        // ============ STEP 5: Hitung Luas Plesteran Per 1 Kemasan ============
+        $tebalAdukanMeter = $tebalAdukan / 100; // konversi cm ke meter
+        $luasPlesteranPer1Kemasan = $volumeAdukanKubikPerKemasan / $tebalAdukanMeter;
+
+        $trace['steps'][] = [
+            'step' => 5,
+            'title' => 'Luas Plesteran Per 1 Kemasan Semen',
+            'formula' => 'Volume adukan kubik per kemasan / (tebal adukan / 100)',
+            'info' => 'Berapa M2 yang bisa diplester dengan 1 sak semen',
+            'calculations' => [
+                'Perhitungan' =>
+                    number_format($volumeAdukanKubikPerKemasan, 6) . ' / ' . number_format($tebalAdukanMeter, 4),
+                'Hasil' => number_format($luasPlesteranPer1Kemasan, 4) . ' M2',
+            ],
+        ];
+
+        // ============ STEP 6: Hitung Koefisien Material Per 1 M2 ============
+
+        // Sak semen per 1M2
+        $sakSemenPer1M2 = 1 / $luasPlesteranPer1Kemasan;
+
+        // Kg semen per 1M2
+        $kgSemenPer1M2 = $satuanKemasanSemen / $luasPlesteranPer1Kemasan;
+
+        // Kubik semen per 1M2
+        $kubikSemenPer1M2 = $kubikSemenPerKemasan / $luasPlesteranPer1Kemasan;
+
+        // Sak pasir per 1M2 (mengikuti ratio 4x dari semen)
+        $sakPasirPer1M2 = 4 / $luasPlesteranPer1Kemasan;
+
+        // Kubik pasir per 1M2
+        $kubikPasirPer1M2 = $kubikPasirPerKemasan / $luasPlesteranPer1Kemasan;
+
+        // Liter air per 1M2
+        $literAirPer1M2 = ($kubikAirPerKemasan * 1000) / $luasPlesteranPer1Kemasan;
+
+        // Kubik air per 1M2
+        $kubikAirPer1M2 = $kubikAirPerKemasan / $luasPlesteranPer1Kemasan;
+
+        $trace['steps'][] = [
+            'step' => 6,
+            'title' => 'Koefisien Material Per 1 M2',
+            'calculations' => [
+                'Sak Semen per 1 M2' => number_format($sakSemenPer1M2, 4) . ' sak',
+                'Kg Semen per 1 M2' => number_format($kgSemenPer1M2, 4) . ' kg',
+                'Kubik Semen per 1 M2' => number_format($kubikSemenPer1M2, 6) . ' M3',
+                'Sak Pasir per 1 M2' => number_format($sakPasirPer1M2, 4) . ' sak',
+                'Kubik Pasir per 1 M2' => number_format($kubikPasirPer1M2, 6) . ' M3',
+                'Liter Air per 1 M2' => number_format($literAirPer1M2, 4) . ' liter',
+                'Kubik Air per 1 M2' => number_format($kubikAirPer1M2, 6) . ' M3',
+            ],
+        ];
+
+        // ============ STEP 7: Hitung Total Luas Plesteran ============
+        $totalLuasPlesteran = $luasBidang * $sisiPlesteran;
+
+        $trace['steps'][] = [
+            'step' => 7,
+            'title' => 'Total Luas Plesteran',
+            'formula' => 'Luas bidang × Jumlah sisi plesteran',
+            'calculations' => [
+                'Perhitungan' => number_format($luasBidang, 4) . " × $sisiPlesteran",
+                'Hasil' => number_format($totalLuasPlesteran, 4) . ' M2',
+            ],
+        ];
+
+        // ============ STEP 8: Hitung Kebutuhan Material Pekerjaan ============
+
+        // Sak semen pekerjaan
+        $sakSemenPekerjaan = $sakSemenPer1M2 * $totalLuasPlesteran;
+
+        // Kg semen pekerjaan
+        $kgSemenPekerjaan = $kgSemenPer1M2 * $totalLuasPlesteran;
+
+        // Kubik semen pekerjaan
+        $kubikSemenPekerjaan = $kubikSemenPer1M2 * $totalLuasPlesteran;
+
+        // Sak pasir pekerjaan
+        $sakPasirPekerjaan = $sakPasirPer1M2 * $totalLuasPlesteran;
+
+        // Kubik pasir pekerjaan
+        $kubikPasirPekerjaan = $kubikPasirPer1M2 * $totalLuasPlesteran;
+
+        // Liter air pekerjaan
+        $literAirPekerjaan = $literAirPer1M2 * $totalLuasPlesteran;
+
+        // Kubik air pekerjaan
+        $kubikAirPekerjaan = $kubikAirPer1M2 * $totalLuasPlesteran;
+
+        // Volume adukan pekerjaan
+        $volumeAdukanPekerjaan = $kubikSemenPekerjaan + $kubikPasirPekerjaan + $kubikAirPekerjaan;
+
+        $trace['steps'][] = [
+            'step' => 8,
+            'title' => 'Kebutuhan Material Pekerjaan',
+            'info' => 'Total Luas: ' . number_format($totalLuasPlesteran, 4) . ' M2',
+            'calculations' => [
+                'Semen (Sak)' => number_format($sakSemenPekerjaan, 4),
+                'Semen (Kg)' => number_format($kgSemenPekerjaan, 4),
+                'Semen (M3)' => number_format($kubikSemenPekerjaan, 6),
+                'Pasir (Sak)' => number_format($sakPasirPekerjaan, 4),
+                'Pasir (M3)' => number_format($kubikPasirPekerjaan, 6),
+                'Air (Liter)' => number_format($literAirPekerjaan, 2),
+                'Air (M3)' => number_format($kubikAirPekerjaan, 6),
+                'Volume Adukan Total' => number_format($volumeAdukanPekerjaan, 6) . ' M3',
+            ],
+        ];
+
+        // ============ STEP 9: Hitung Harga ============
+        $cementPrice = $cement->package_price ?? 0; // Harga per sak
+        $sandPricePerM3 = $sand->comparison_price_per_m3 ?? 0;
+
+        if ($sandPricePerM3 == 0 && $sand->package_price && $sand->package_volume > 0) {
+            $sandPricePerM3 = $sand->package_price / $sand->package_volume;
+        }
+
+        $totalCementPrice = $sakSemenPekerjaan * $cementPrice;
+        $totalSandPrice = $kubikPasirPekerjaan * $sandPricePerM3;
+        $grandTotal = $totalCementPrice + $totalSandPrice;
+
+        $trace['steps'][] = [
+            'step' => 9,
+            'title' => 'Perhitungan Harga',
+            'calculations' => [
+                'Harga Semen per Sak' => 'Rp ' . number_format($cementPrice, 0, ',', '.'),
+                'Total Harga Semen' => 'Rp ' . number_format($totalCementPrice, 0, ',', '.'),
+                'Harga Pasir per M3' => 'Rp ' . number_format($sandPricePerM3, 0, ',', '.'),
+                'Total Harga Pasir' => 'Rp ' . number_format($totalSandPrice, 0, ',', '.'),
+                'Grand Total' => 'Rp ' . number_format($grandTotal, 0, ',', '.'),
+            ],
+        ];
+
+        // ============ Final Result ============
+        $trace['final_result'] = [
+            'total_bricks' => 0, // Not applicable for plastering
+            'brick_price_per_piece' => 0,
+            'total_brick_price' => 0,
+            'cement_sak' => $sakSemenPekerjaan,
+            'cement_kg' => $kgSemenPekerjaan,
+            'cement_m3' => $kubikSemenPekerjaan,
+            'sand_m3' => $kubikPasirPekerjaan,
+            'sand_sak' => $sakPasirPekerjaan,
+            'water_liters' => $literAirPekerjaan,
+            'water_m3' => $kubikAirPekerjaan,
+            'mortar_volume_m3' => $volumeAdukanPekerjaan,
+
+            // Prices
+            'cement_price_per_sak' => $cementPrice,
+            'total_cement_price' => $totalCementPrice,
+            'sand_price_per_m3' => $sandPricePerM3,
+            'total_sand_price' => $totalSandPrice,
+            'grand_total' => $grandTotal,
+
+            // Additional info
+            'total_area' => $totalLuasPlesteran,
+            'area_per_side' => $luasBidang,
+            'plaster_sides' => $sisiPlesteran,
+        ];
+
+        return $trace;
+    }
+}

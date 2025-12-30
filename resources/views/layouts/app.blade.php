@@ -4,13 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Database Material')</title>
-    <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon">
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <!-- Google Fonts: League Spartan -->
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=League+Spartan:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary-font: 'League Spartan', sans-serif;
+            --text-color: #ffffff;
+            --text-stroke: 0.2px black;
+            --letter-spacing: 0;
+            --font-weight: 700;
+            --text-shadow: 0 1.1px 0 #000000;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -18,19 +29,109 @@
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
+            font-family: var(--primary-font);
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%); /* Light background */
             padding: 24px;
-            color: #1e293b;
+            color: var(--text-color);
             line-height: 1.6;
             min-height: 100vh;
+            letter-spacing: var(--letter-spacing);
+            font-weight: var(--font-weight);
+            -webkit-text-stroke: var(--text-stroke);
+            text-shadow: var(--text-shadow);
         }
         
+        h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td {
+            font-family: var(--primary-font) !important;
+            color: var(--text-color) !important;
+            letter-spacing: var(--letter-spacing) !important;
+            font-weight: var(--font-weight) !important;
+            -webkit-text-stroke: var(--text-stroke) !important;
+            text-shadow: var(--text-shadow) !important;
+        }
+
+        /* All form inputs (input, select, textarea) use global text style (white + stroke) */
+        input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]), 
+        textarea,
+        select,
+        .form-control,
+        .form-select,
+        .autocomplete-input {
+            color: var(--text-color) !important;
+            -webkit-text-stroke: var(--text-stroke) !important;
+            text-shadow: var(--text-shadow) !important;
+            background-color: #ffffff !important;
+            box-shadow: none !important;
+        }
+
+        /* Stronger Focus State for Active Input */
+        /* Specificity War: Must match the base input selector to override !important */
+        input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):focus,
+        select:focus, 
+        textarea:focus,
+        .form-control:focus,
+        .autocomplete-input:focus {
+            outline: none !important;
+            border-color: #891313 !important; /* Brand Red Border */
+            border-width: 2px !important; /* Thicker border */
+            box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.15), 0 4px 12px rgba(137, 19, 19, 0.1) !important; /* Prominent Glow */
+            background-color: #fffbfb !important; /* Very subtle red tint background */
+            transform: translateY(-1px); /* Slight lift */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 5; /* Ensure it floats above nearby elements */
+        }
+
+        /* Dropdown list items MUST stay black on white for system readability */
+        option {
+            color: #000000 !important;
+            -webkit-text-stroke: 0 !important;
+            text-shadow: none !important;
+            background-color: #ffffff !important;
+        }
+
         .container {
             max-width: 1600px;
             margin: 0 auto;
         }
+
+        /* --- Global Style Overrides --- */
+        /* Override specific hardcoded colors to inherit from the body */
+        .dimensi-label, 
+        .mini-label,
+        .unit-inside,
+        .text-upload, .text-delete,
+        td, strong,
+        div[style*="color"], span[style*="color"] {
+            color: inherit !important;
+            text-shadow: inherit !important;
+            -webkit-text-stroke: inherit !important;
+        }
+        /* Keep functional colors for required fields/errors */
+        span[style*="#ef4444"], small[style*="#ef4444"] {
+            color: #ef4444 !important;
+            text-shadow: none !important;
+            -webkit-text-stroke: 0 !important;
+        }
+        /* Keep functional green color for upload */
+         .text-upload, span[style*="#5cb85c"] {
+            color: #5cb85c !important;
+            text-shadow: none !important;
+            -webkit-text-stroke: 0 !important;
+        }
+        /* Keep functional red color for delete */
+        .text-delete, span[style*="#d9534f"] {
+            color: #d9534f !important;
+            text-shadow: none !important;
+            -webkit-text-stroke: 0 !important;
+        }
         
+        /* Ensure text inside hexagon is not affected by global overrides */
+        .css-hexagon + div span {
+            color: #ffffff !important; /* Force white text inside hexagon */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
+            -webkit-text-stroke: 0 !important;
+        }
+
         /* Navigation - Modern Minimalist */
         .nav { 
             background: #ffffff;
@@ -44,15 +145,14 @@
             backdrop-filter: blur(10px);
             position: relative;
             z-index: 100;
+            border: none;
         }
         
         .nav a { 
-            color: #64748b;
             text-decoration: none;
             padding: 10px 16px;
             border-radius: 10px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 500;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
@@ -61,13 +161,11 @@
         
         .nav a:hover { 
             background: #f8fafc;
-            color: #334155;
             transform: translateY(-5px);
         }
         
         .nav a.active {
             background: linear-gradient(135deg, #891313 0%, #a61515 100%);
-            color: #ffffff;
             box-shadow: 0 2px 8px rgba(137, 19, 19, 0.25);
         }
         
@@ -83,18 +181,13 @@
         
         /* Headers */
         h2 { 
-            color: #0f172a;
             margin-bottom: 24px;
             font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
         }
         
         h3 { 
-            color: #1e293b;
             margin-bottom: 16px;
             font-size: 17px;
-            font-weight: 600;
         }
         
         /* Table - Ultra Clean */
@@ -107,12 +200,9 @@
         
         table th { 
             background: #891313;
-            color: #ffffff;
             padding: 14px 16px;
             text-align: center;
-            font-weight: 900;
             font-size: 12px;
-            letter-spacing: 0.3px;
             white-space: nowrap;
         }
         
@@ -130,41 +220,21 @@
             background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
         }
         
-        /* Column widths 
-        table th:nth-child(1), table td:nth-child(1) { width: 50px; text-align: center; }
-        table th:nth-child(2), table td:nth-child(2) { width: 120px; }
-        table th:nth-child(3), table td:nth-child(3) { width: 100px; }
-        table th:nth-child(4), table td:nth-child(4) { width: 70px; text-align: center; }
-        table th:nth-child(5), table td:nth-child(5) { width: 100px; }
-        table th:nth-child(6), table td:nth-child(6) { width: 90px; }
-        table th:nth-child(7), table td:nth-child(7) { width: 140px; }
-        table th:nth-child(8), table td:nth-child(8) { width: 100px; text-align: right; }
-        table th:nth-child(9), table td:nth-child(9) { width: 130px; }
-        table th:nth-child(10), table td:nth-child(10) { width: 200px; }
-        table th:nth-child(11), table td:nth-child(11) { width: 120px; }
-        table th:nth-child(12), table td:nth-child(12) { width: 120px; }
-        table th:nth-child(13), table td:nth-child(13) { width: 150px; text-align: center; }
-        */
-        
         .btn-save {
             background-color: #5cb85c;
-            color: white;
             border: none;
             padding: 10px 40px;
             font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
             border-radius: 10px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-cancel {
-            border: 1px solid #FA6868;
-            background-color: transparent;
-            color: #FA6868;
+            border: 1px solid #FA6868 !important;
+            background-color: transparent !important;
             padding: 10px 40px;
             font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
             border-radius: 10px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); 
@@ -172,14 +242,14 @@
 
         .btn-cancel:hover {
             background-color: #f85a5a;
-            color: white;
             transform: translateY(-5px);
+            color: #FA6868 !important; /* Keep specific color but overridden by global white? Assuming text shadow makes it readable or we might need to revisit */
         }
 
         .btn-save:hover {
             background-color: transparent;
             border: 1px solid #5cb85c;
-            color: #5cb85c;
+            color: #5cb85c !important;
             transform: translateY(-5px)
         }
         
@@ -191,39 +261,40 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #334155;
             font-size: 13.5px;
         }
 
         .form-group input, 
         .form-group textarea, 
+        .form-group input,
+        .form-group textarea,
         .form-group select { 
             width: 100%;
             padding: 10px 14px;
-            border: 1.5px solid #e2e8f0;
             border-radius: 10px;
             font-size: 13.5px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: inherit;
-            background: #ffffff;
         }
 
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #891313;
-            box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.08);
-            background: #fffbfb;
-        }
-
-        .form-group input::placeholder {
-            color: #94a3b8;
+        /* Removed redundant focus styles to let global stronger focus take precedence */
+        .form-group input::placeholder,
+        .row input::placeholder,
+        .row textarea::placeholder,
+        input[name="search"]::placeholder { /* Specific override for search input */
+            color: #ffffff !important;
+            text-shadow: var(--text-shadow) !important;
+            -webkit-text-stroke: var(--text-stroke) !important;
         }
 
         .form-group select {
-            cursor: pointer;
+            cursor: pointer !important;
+        }
+        
+        .form-group select option {
+            background: #ffffff;
+            color: #1e293b; /* Reset option text color to dark for readability in dropdown */
+            text-shadow: none; /* Remove shadow in options */
+            -webkit-text-stroke: 0;
         }
                 
         .form-row { 
@@ -248,8 +319,6 @@
             width: 140px;
             margin-bottom: 0;
             padding-top: 10px;
-            font-weight: 600;
-            color: #334155;
             font-size: 13.5px;
             flex-shrink: 0;
         }
@@ -265,21 +334,9 @@
         .row textarea {
             width: 100%;
             padding: 10px 14px;
-            border: 1.5px solid #e2e8f0;
             border-radius: 10px;
             font-size: 16px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: inherit;
-            background: #ffffff;
-        }
-
-        .row input:focus,
-        .row select:focus,
-        .row textarea:focus {
-            outline: none;
-            border-color: #891313;
-            box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.08);
-            background: #fffbfb;
         }
 
         /* Autocomplete - Modern & Clean */
@@ -307,12 +364,10 @@
             border-bottom: 1px solid #f8fafc !important;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
             font-size: 13.5px !important;
-            color: #475569 !important;
         }
 
         .autocomplete-item:hover {
             background: linear-gradient(to right, #fef2f2 0%, #fef8f8 100%) !important;
-            color: #891313 !important;
             padding-left: 20px !important;
         }
 
@@ -357,14 +412,13 @@
         }
 
         #photoPreviewArea:hover #photoPlaceholder {
-            color: #891313;
+            color: #891313 !important;
             transform: scale(1.05);
         }
 
         /* Upload/Delete - Clean */
         .uploadDel span {
             transition: all 0.2s ease;
-            font-weight: 500;
             font-size: 13px;
         }
 
@@ -392,20 +446,17 @@
             border-radius: 10px;
             cursor: pointer;
             font-size: 13.5px;
-            font-weight: 600;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-family: inherit;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
         
         .btn-primary {
             background: linear-gradient(135deg, #891313 0%, #a61515 100%);
-            color: #fff;
         }
 
         .btn-primary:hover {
@@ -416,7 +467,6 @@
         
         .btn-success {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: #fff;
         }
 
         .btn-success:hover {
@@ -427,7 +477,6 @@
         
         .btn-danger { 
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: #fff;
         }
         
         .btn-danger:hover { 
@@ -438,7 +487,6 @@
         
         .btn-warning { 
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: #fff;
         }
         
         .btn-warning:hover { 
@@ -449,7 +497,6 @@
         
         .btn-secondary { 
             background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: #fff;
         }
         
         .btn-secondary:hover { 
@@ -470,7 +517,7 @@
             display: inline-flex;
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             align-items: stretch;
         }
         
@@ -537,17 +584,15 @@
         }
         
         .alert-success { 
-            background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-            color: #065f46;
-            border-color: #86efac;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+            color: #ffffff !important;
+            border-color: #059669;
         }
         
-
-        
         .alert-danger { 
-            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-            color: #991b1b;
-            border-color: #fca5a5;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+            color: #f87171 !important;
+            border-color: #dc2626;
         }
         
         .alert-danger::before {
@@ -555,9 +600,9 @@
         }
         
         .alert-info { 
-            background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-            color: #1e40af;
-            border-color: #93c5fd;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
+            color: #60a5fa !important;
+            border-color: #2563eb;
         }
         
         .alert-info::before {
@@ -575,24 +620,22 @@
         .pagination a, 
         .pagination span { 
             padding: 8px 14px;
-            border: 1.5px solid #e2e8f0;
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
             border-radius: 8px;
             text-decoration: none;
-            color: #94a3b8; /* Changed from #475569 to grey */
-            font-weight: 500;
+            color: #ffffff; /* Explicit white */
             font-size: 13.5px;
             transition: all 0.2s ease;
         }
         
         .pagination a:hover { 
-            background: #f8fafc;
-            border-color: #cbd5e1;
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #ffffff;
             transform: translateY(-1px);
         }
         
         .pagination .active {
             background: linear-gradient(135deg, #891313 0%, #a61515 100%);
-            color: #fff;
             border-color: #891313;
             box-shadow: 0 2px 8px rgba(137, 19, 19, 0.25);
         }
@@ -601,7 +644,7 @@
         .empty-state { 
             text-align: center;
             padding: 60px 20px;
-            color: #94a3b8;
+            color: rgba(255, 255, 255, 0.6) !important;
         }
         
         .empty-state-icon { 
@@ -612,7 +655,6 @@
         
         .empty-state p {
             font-size: 14.5px;
-            font-weight: 500;
         }
         
         /* Table container */
@@ -627,17 +669,17 @@
         }
         
         .table-container::-webkit-scrollbar-track {
-            background: #f8fafc;
+            background: #0f172a;
             border-radius: 4px;
         }
         
         .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
+            background: #475569;
             border-radius: 4px;
         }
         
         .table-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
+            background: #64748b;
         }
 
         /* Navbar Dropdown Styles */
@@ -648,24 +690,21 @@
         .nav-link-btn {
             background: none;
             border: 1.5px solid transparent;
-            color: #64748b;
             padding: 10px 16px;
             border-radius: 10px;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            font-weight: 500;
             white-space: nowrap;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             cursor: pointer;
             font-family: inherit;
-            font-size: 16px; /* Match existing links */
+            font-size: 16px;
         }
 
         .nav-link-btn:hover,
         .nav-link-btn:focus {
-            background: #f8fafc;
-            color: #334155;
+            background: rgba(255, 255, 255, 0.1);
             transform: translateY(-5px);
             outline: none;
         }
@@ -677,13 +716,12 @@
 
         .nav-link-btn.active {
             background: linear-gradient(135deg, #891313 0%, #a61515 100%);
-            color: #ffffff;
             box-shadow: 0 2px 8px rgba(137, 19, 19, 0.25);
         }
 
         .nav-link-btn.dropdown-open {
             border-color: #891313;
-            color: #891313;
+            color: #891313 !important;
             background: #ffffff;
             box-shadow: 0 4px 12px rgba(137, 19, 19, 0.15);
         }
@@ -694,15 +732,14 @@
             left: 0;
             background: #ffffff;
             border-radius: 16px;
-            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             min-width: 200px;
             opacity: 0;
             visibility: hidden;
             transform: translateY(-10px);
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
             z-index: 99999;
-            /* overflow: hidden; Removed to allow nested menus */
         }
 
         .nav-dropdown-menu.show {
@@ -726,9 +763,7 @@
             display: flex;
             align-items: center;
             padding: 10px 16px;
-            color: #475569;
             font-size: 14px;
-            font-weight: 500;
             cursor: pointer;
             transition: all 0.2s ease;
             width: 100%;
@@ -740,28 +775,27 @@
 
         .dropdown-item-parent:hover .dropdown-item-trigger,
         .dropdown-item-trigger:focus {
-            background: #f8fafc;
-            color: #1e293b;
+            background: rgba(0, 0, 0, 0.03);
             outline: none;
             border-color: #891313;
         }
 
         .dropdown-sub-menu {
             position: absolute;
-            top: -8px; /* Slight offset to align nicely */
-            left: 95%; /* Overlap with parent - shifted left */
+            top: -8px; 
+            left: 95%; 
             background: #ffffff;
             border-radius: 16px;
-            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.15);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(0, 0, 0, 0.05);
             min-width: 300px;
             padding: 12px 0;
             opacity: 0;
             visibility: hidden;
             transform: translateX(10px);
             transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            z-index: 1001; /* Higher than parent */
-            margin-left: -10px; /* Negative margin to shift left and overlap */
+            z-index: 1001; 
+            margin-left: -10px; 
         }
 
         .dropdown-item-parent:hover .dropdown-sub-menu,
@@ -771,28 +805,26 @@
             transform: translateX(0);
         }
 
-        /* Adjust grid for sub-menus: 5 items vertical, then new column */
         .dropdown-sub-menu .dropdown-grid {
             padding: 0 16px;
             display: grid;
-            grid-template-rows: repeat(5, min-content); /* Max 5 items down */
-            grid-auto-flow: column; /* Fill vertically first, then move right */
-            gap: 4px 24px; /* Vertical gap 4px, Horizontal gap 24px */
+            grid-template-rows: repeat(5, min-content); 
+            grid-auto-flow: column; 
+            gap: 4px 24px; 
         }
         
         .dropdown-sub-menu .dropdown-item {
-            padding: 6px 10px; /* Compact padding */
+            padding: 6px 10px; 
             border: none;
-            white-space: nowrap; /* Prevent wrapping text */
+            white-space: nowrap; 
             border-radius: 8px;
             transition: all 0.2s ease;
         }
 
         .dropdown-sub-menu .dropdown-item:hover,
         .dropdown-sub-menu .dropdown-item:focus {
-            background: #fff1f2 !important;
-            color: #891313 !important;
-            font-weight: 600;
+            background: rgba(137, 19, 19, 0.2) !important;
+            color: #ffffff !important;
             transform: translateX(4px);
             box-shadow: 0 2px 8px rgba(137, 19, 19, 0.15);
         }
@@ -807,15 +839,14 @@
         }
 
         .dropdown-section.bg-light {
-            background: #f8fafc;
+            background: rgba(255, 255, 255, 0.05);
         }
 
         .dropdown-header {
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            font-weight: 800;
-            color: #891313; /* Consistent brand color */
+            color: #891313 !important; 
             margin-bottom: 12px;
             display: flex;
             align-items: center;
@@ -835,23 +866,20 @@
             gap: 8px;
             padding: 8px 12px;
             border-radius: 8px;
-            color: #475569;
             text-decoration: none;
             font-size: 13.5px;
-            font-weight: 500;
             transition: all 0.2s ease;
-            background: #ffffff;
+            background: transparent;
             border: 1px solid transparent;
         }
         
         .bg-light .dropdown-item {
-            border-color: #e2e8f0;
+            border-color: rgba(255, 255, 255, 0.1);
         }
 
         .dropdown-item:hover,
         .dropdown-item:focus-within {
-            background: #fff1f2;
-            color: #891313;
+            background: rgba(137, 19, 19, 0.2);
             border-color: #891313;
             transform: translateY(-2px);
             outline: none;
@@ -859,9 +887,9 @@
         }
         
         .bg-light .dropdown-item:hover {
-            background: #ecfdf5;
-            color: #059669;
-            border-color: #a7f3d0;
+            background: rgba(5, 150, 105, 0.2);
+            color: #ffffff !important;
+            border-color: #059669;
         }
 
         .icon-box {
@@ -871,19 +899,18 @@
             width: 24px;
             height: 24px;
             font-size: 14px;
-            background: #f1f5f9;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 6px;
         }
         
         .icon-box.success {
-            background: #d1fae5;
-            color: #059669;
-            font-weight: bold;
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
         }
 
         .dropdown-divider {
             height: 1px;
-            background: #e2e8f0;
+            background: rgba(255, 255, 255, 0.1);
             margin: 0;
         }
 
@@ -892,8 +919,7 @@
             text-align: center;
             padding-top: 12px;
             font-size: 12px;
-            color: #891313;
-            font-weight: 600;
+            color: #891313 !important;
             text-decoration: none;
         }
         
@@ -918,9 +944,9 @@
             transform: translateY(-50%);
             width: 16px;
             height: 16px;
-            border: 2px solid #cbd5e1;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 4px;
-            background: #ffffff;
+            background: transparent;
             transition: all 0.2s ease;
         }
 
@@ -933,10 +959,8 @@
         }
 
         .checkbox-item.checked {
-            background: #fff1f2;
-            color: #891313;
-            border-color: #fecaca;
-            font-weight: 600;
+            background: rgba(137, 19, 19, 0.2);
+            border-color: #891313;
         }
 
         /* Checkbox checked state */
@@ -958,7 +982,7 @@
         }
 
         .checkbox-item.checked .icon-box {
-            background: #ffe4e6;
+            background: rgba(137, 19, 19, 0.2);
             color: #891313;
         }
 
@@ -984,7 +1008,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
         }
@@ -994,7 +1018,7 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: #ffffff;
+            background: #ffffff; /* Light Modal */
             border-radius: 16px;
             box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
             max-width: 95%;
@@ -1002,11 +1026,12 @@
             width: 1200px;
             overflow: hidden;
             animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .floating-modal-header {
             padding: 24px 32px;
-            border-bottom: 1.5px solid #f1f5f9;
+            border-bottom: 1.5px solid rgba(0, 0, 0, 0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1018,12 +1043,11 @@
         .floating-modal-header h2 {
             margin: 0;
             font-size: 20px;
-            font-weight: 700;
-            color: #ffffff;
             padding: 8px 0;
             position: relative;
             z-index: 1;
             flex: 1;
+            color: #ffffff; /* Keep white because of the red background pseudo-element */
         }
 
         .floating-modal-header h2::before {
@@ -1041,7 +1065,6 @@
             background: transparent;
             border: none;
             font-size: 28px;
-            color: #ffffff;
             cursor: pointer;
             width: 40px;
             height: 40px;
@@ -1052,11 +1075,12 @@
             transition: all 0.2s ease;
             position: relative;
             z-index: 10;
+            color: #64748b; /* Dark close button on light header */
         }
 
         .floating-modal-close:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
+            background: rgba(0, 0, 0, 0.05);
+            color: #334155;
         }
 
         .floating-modal-body {
@@ -1112,7 +1136,6 @@
             top: 50% !important;
             transform: translateY(-50%) !important;
             font-size: 13px !important;
-            color: #64748b !important;
             background: transparent !important;
             border: none !important;
             padding: 0 !important;
@@ -1124,14 +1147,15 @@
             appearance: none !important;
             -webkit-appearance: none !important;
             -moz-appearance: none !important;
-            font-weight: 500 !important;
-            transition: color 0.15s ease !important;
             pointer-events: auto !important;
             z-index: 10 !important;
             width: auto !important;
             max-width: 40px !important;
             text-align: right !important;
             direction: ltr !important;
+            color: #000000 !important;
+            -webkit-text-stroke: 0 !important;
+            text-shadow: none !important;
             /* Chevron icon kecil */
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
             background-repeat: no-repeat !important;
@@ -1158,7 +1182,6 @@
         .unit-selector option {
             padding: 12px 16px !important;
             font-size: 13.5px !important;
-            color: #475569 !important;
             background: #ffffff !important;
             border: none !important;
             cursor: pointer !important;
@@ -1174,7 +1197,6 @@
         .unit-selector option:checked {
             background: linear-gradient(to right, #fee2e2 0%, #fef2f2 100%) !important;
             color: #891313 !important;
-            font-weight: 600 !important;
         }
     </style>
 </head>
@@ -1284,7 +1306,7 @@
 
                         <!-- Menu Item 2 -->
                         <div class="dropdown-item-parent">
-                            <a href="{{ route('price-analysis.index') }}"
+                            <a href="{{ route('material-calculations.create') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Hitung Item Pekerjaan
@@ -1649,36 +1671,14 @@
                 console.log('[Init] Initializing form with function:', initFunctionName);
 
                 setTimeout(() => {
-                    console.log('[Init] Checking if function exists:', typeof window[initFunctionName]);
-
                     if (typeof window[initFunctionName] === 'function') {
                         console.log('[Init] Function exists, calling it...');
-                        // Special handling for recommendations: pass raw data from hidden script
-                        if (initFunctionName === 'initRecommendationsForm') {
-                            const dataEl = modalBodyEl.querySelector('#recommendationRawData');
-                            console.log('[Init] Looking for #recommendationRawData:', dataEl ? 'Found' : 'Not found');
-
-                            if (dataEl) {
-                                try {
-                                    const rawData = JSON.parse(dataEl.textContent);
-                                    console.log('[Init] Raw data parsed successfully:', rawData);
-                                    window[initFunctionName](modalBodyEl, rawData);
-                                } catch (e) {
-                                    console.error('[Init] Error parsing raw data:', e);
-                                    globalModalBody.innerHTML = `<div class="p-4 text-center text-danger">Error parsing data: ${e.message}</div>`;
-                                }
-                            } else {
-                                console.error('[Init] #recommendationRawData not found in modal body');
-                                window[initFunctionName](modalBodyEl, {});
-                            }
-                        } else {
-                            window[initFunctionName](modalBodyEl);
-                        }
+                        window[initFunctionName](modalBodyEl); // Pass scope
                     } else {
                         console.error('[Init] Function not found:', initFunctionName);
                     }
                     interceptGlobalFormSubmit();
-                }, 100);
+                }, 150); // Increased timeout slightly for safety
             }
 
             function closeGlobalModal() {
@@ -1813,6 +1813,79 @@
                     }
                 });
             }
+        });
+
+        // Global Validation for Dimension and Weight Inputs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Event delegation to handle both static and dynamic (modal) forms
+            document.body.addEventListener('keydown', function(e) {
+                const target = e.target;
+                
+                // Only targeting input elements
+                if (target.tagName !== 'INPUT') return;
+
+                // Identify target fields: type="number" OR fields with specific keywords in ID/Name
+                // Keywords: dimension, weight, berat, panjang, lebar, tinggi, volume, price, harga
+                const isNumericField = target.type === 'number' || 
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.id || '') ||
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.name || '');
+
+                if (isNumericField) {
+                    // Allow: Backspace, Delete, Tab, Escape, Enter
+                    if ([46, 8, 9, 27, 13].includes(e.keyCode) ||
+                        // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                        (e.ctrlKey === true && [65, 67, 86, 88].includes(e.keyCode)) ||
+                        // Allow: home, end, left, right
+                        (e.keyCode >= 35 && e.keyCode <= 39)) {
+                        return;
+                    }
+
+                    // Prevent 'e', 'E', '+', '-' specifically for number inputs as they are valid in HTML5 but often unwanted
+                    if (['e', 'E', '+', '-'].includes(e.key)) {
+                        e.preventDefault();
+                        return;
+                    }
+
+                    // Handle Decimal Point (Allow only one)
+                    // 190 = Period (.), 110 = Decimal Point (numpad), 188 = Comma (,)
+                    if ([190, 110, 188].includes(e.keyCode)) {
+                        // If value already contains . or , prevent adding another
+                        if (target.value.includes('.') || target.value.includes(',')) {
+                            e.preventDefault();
+                        }
+                        return; // Allow the first decimal point
+                    }
+
+                    // Ensure that it is a number (0-9)
+                    if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+                        e.preventDefault();
+                    }
+                }
+            });
+
+            // Sanitize paste events to remove non-numeric characters
+            document.body.addEventListener('paste', function(e) {
+                const target = e.target;
+                if (target.tagName !== 'INPUT') return;
+
+                const isNumericField = target.type === 'number' || 
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.id || '') ||
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.name || '');
+
+                if (isNumericField) {
+                    // Get pasted data via clipboard API
+                    let clipboardData = (e.clipboardData || window.clipboardData).getData('text');
+                    
+                    // Allow numbers, one dot, one comma
+                    // Clean content: Remove everything that is NOT 0-9, . or ,
+                    // Note: This simplistic regex might allow "1.2.3", logic below handles strictness better but for paste simple clean is usually enough
+                    if (!/^[0-9.,]+$/.test(clipboardData)) {
+                        e.preventDefault();
+                        // Optional: Insert cleaned data manually? 
+                        // For now, blocking invalid paste is safer.
+                    }
+                }
+            });
         });
     </script>
 </body>

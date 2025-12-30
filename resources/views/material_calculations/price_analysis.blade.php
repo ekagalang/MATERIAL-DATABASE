@@ -70,6 +70,26 @@
                         <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">Lapis</span>
                     </div>
                 </div>
+                {{-- INPUT SISI PLESTERAN UNTUK WALL PLASTERING --}}
+                <div id="plasterSidesGroup" style="flex: 0 0 8%; max-width: 8%; display: none;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light text-dark border">SISI</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" step="1" name="plaster_sides" class="form-control fw-bold text-center px-1" value="{{ $inputs['plaster_sides'] ?? 1 }}">
+                        <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">Sisi</span>
+                    </div>
+                </div>
+                {{-- INPUT SISI ACI UNTUK SKIM COATING --}}
+                <div id="skimSidesGroup" style="flex: 0 0 8%; max-width: 8%; display: none;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light text-dark border">SISI ACI</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="number" step="1" name="skim_sides" class="form-control fw-bold text-center px-1" value="{{ $inputs['skim_sides'] ?? 1 }}">
+                        <span class="input-group-text bg-light text-muted small px-1" style="font-size: 0.7rem;">Sisi</span>
+                    </div>
+                </div>
                 <div style="flex: 1;">
                     <button type="submit" class="btn btn-primary w-70 fw-bold shadow-sm" style="height: 38px;">
                         <i class="bi bi-calculator-fill me-2"></i>HITUNG ANALISA
@@ -360,21 +380,43 @@
             cb.addEventListener('change', updateFloatingBar);
         });
 
-        // 4. TOGGLE LAYER COUNT FOR ROLLAG
+        // 4. TOGGLE LAYER COUNT FOR ROLLAG, PLASTER SIDES, AND SKIM SIDES
         const formulaSelector = document.querySelector('select[name="formula_code"]');
         const layerCountGroup = document.getElementById('layerCountGroup');
+        const plasterSidesGroup = document.getElementById('plasterSidesGroup');
+        const skimSidesGroup = document.getElementById('skimSidesGroup');
         const wallHeightLabel = document.getElementById('wallHeightLabel');
 
         function toggleLayerCountInput() {
-            if (formulaSelector && layerCountGroup) {
+            if (formulaSelector && layerCountGroup && plasterSidesGroup && skimSidesGroup) {
                 if (formulaSelector.value === 'brick_rollag') {
                     layerCountGroup.style.display = 'block';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
                     // Change label from "TINGGI" to "LEBAR" for Rollag
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'LEBAR';
                     }
+                } else if (formulaSelector.value === 'wall_plastering') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'block';
+                    skimSidesGroup.style.display = 'none';
+                    // Restore label to "TINGGI" for Plastering
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'TINGGI';
+                    }
+                } else if (formulaSelector.value === 'skim_coating') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'block';
+                    // Restore label to "TINGGI" for Skim Coating
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'TINGGI';
+                    }
                 } else {
                     layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
                     // Restore label to "TINGGI" for other formulas
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'TINGGI';

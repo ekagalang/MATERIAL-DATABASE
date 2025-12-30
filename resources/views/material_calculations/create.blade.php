@@ -33,71 +33,94 @@
     <form action="{{ route('material-calculations.store') }}" method="POST" id="calculationForm">
         @csrf
 
-        {{-- WORK TYPE --}}
-        <div class="form-group">
-            <label>Item Pekerjaan</label>
-            <div class="input-wrapper">
-                <select id="workTypeSelector" name="work_type_select" required {{ request('formula_code') ? 'disabled' : '' }}>
-                    <option value="">-- Pilih Item Pekerjaan --</option>
-                    @foreach($formulas as $formula)
-                        <option value="{{ $formula['code'] }}" {{ request('formula_code') == $formula['code'] ? 'selected' : '' }}>
-                            {{ $formula['name'] }}
-                        </option>
-                    @endforeach
-                </select>
-                @if(request('formula_code'))
-                    <input type="hidden" name="work_type" value="{{ request('formula_code') }}">
-                @endif
-            </div>
-        </div>
+        {{-- TWO COLUMN LAYOUT - ALWAYS VISIBLE --}}
+        <div class="two-column-layout">
+            {{-- LEFT COLUMN: FORM INPUTS --}}
+            <div class="left-column">
+                {{-- WORK TYPE --}}
+                <div class="form-group-fullwidth">
+                    <label>Item Pekerjaan</label>
+                    <select id="workTypeSelector" name="work_type_select" required {{ request('formula_code') ? 'disabled' : '' }}>
+                        <option value="">-- Pilih Item Pekerjaan --</option>
+                        @foreach($formulas as $formula)
+                            <option value="{{ $formula['code'] }}" {{ request('formula_code') == $formula['code'] ? 'selected' : '' }}>
+                                {{ $formula['name'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @if(request('formula_code'))
+                        <input type="hidden" name="work_type" value="{{ request('formula_code') }}">
+                    @endif
+                </div>
 
-        <div id="inputFormContainer" style="{{ request('formula_code') ? 'display:block;' : 'display:none;' }}">
-            <div id="brickForm" class="work-type-form">
-                
-                {{-- DIMENSI --}}
-                <div class="dimensions-container">
-                    <div class="dimension-group">
-                        <label>Panjang</label>
-                        <div class="input-with-unit">
-                            <input type="number" name="wall_length" id="wallLength" step="0.01" min="0.01" 
-                                value="{{ request('wall_length') }}" 
-                                {{ request('wall_length') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
-                            <span class="unit">M</span>
-                        </div>
-                    </div>
-                    <span class="operator">x</span>
-                    <div class="dimension-group">
-                        <label id="wallHeightLabel">Tinggi</label>
-                        <div class="input-with-unit">
-                            <input type="number" name="wall_height" id="wallHeight" step="0.01" min="0.01"
-                                value="{{ request('wall_height') }}"
-                                {{ request('wall_height') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
-                            <span class="unit">M</span>
-                        </div>
-                    </div>
-                    <div class="dimension-group">
-                        <label>Tebal</label>
-                        <div class="input-with-unit">
-                            <input type="number" name="mortar_thickness" step="0.1" min="0.1"
-                                value="{{ request('mortar_thickness', 2) }}" 
-                                {{ request('mortar_thickness') ? 'readonly style=background-color:#f1f5f9;' : '' }}>
-                            <span class="unit">cm</span>
-                        </div>
-                    </div>
-                    {{-- INPUT TINGKAT UNTUK ROLLAG --}}
-                    <div class="dimension-group" id="layerCountGroup" style="display: none;">
-                        <label>Tingkat</label>
-                        <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
-                            <input type="number" name="layer_count" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
-                            <span class="unit" style="background-color: #fef3c7;">Lapis</span>
+                <div id="inputFormContainer">
+                    <div id="brickForm" class="work-type-form">
+
+                        {{-- DIMENSI - VERTICAL LAYOUT --}}
+                        <div class="dimensions-container-vertical">
+                            <div class="dimension-item">
+                                <label>Panjang</label>
+                                <div class="input-with-unit">
+                                    <input type="number" name="wall_length" id="wallLength" step="0.01" min="0.01"
+                                        value="{{ request('wall_length') }}" required>
+                                    <span class="unit">M</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item">
+                                <label id="wallHeightLabel">Tinggi</label>
+                                <div class="input-with-unit">
+                                    <input type="number" name="wall_height" id="wallHeight" step="0.01" min="0.01"
+                                        value="{{ request('wall_height') }}" required>
+                                    <span class="unit">M</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item">
+                                <label>Tebal</label>
+                                <div class="input-with-unit">
+                                    <input type="number" name="mortar_thickness" step="0.1" min="0.1"
+                                        value="{{ request('mortar_thickness', 2) }}" required>
+                                    <span class="unit">cm</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT TINGKAT UNTUK ROLLAG --}}
+                            <div class="dimension-item" id="layerCountGroup" style="display: none;">
+                                <label>Tingkat</label>
+                                <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
+                                    <input type="number" name="layer_count" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
+                                    <span class="unit" style="background-color: #fef3c7;">Lapis</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT SISI PLESTERAN UNTUK WALL PLASTERING --}}
+                            <div class="dimension-item" id="plasterSidesGroup" style="display: none;">
+                                <label>Sisi Plesteran</label>
+                                <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
+                                    <input type="number" name="plaster_sides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
+                                    <span class="unit" style="background-color: #bae6fd;">Sisi</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT SISI ACI UNTUK SKIM COATING --}}
+                            <div class="dimension-item" id="skimSidesGroup" style="display: none;">
+                                <label>Sisi Aci</label>
+                                <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
+                                    <input type="number" name="skim_sides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
+                                    <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
-                <div class="form-group">
-                    <label>+ Filter by:</label>
-                    <div class="input-wrapper">
+            {{-- RIGHT COLUMN: FILTERS --}}
+            <div class="right-column">
+                    {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
+                    <div class="filter-section">
+                        <label class="filter-section-title">+ Filter by:</label>
                         <div class="filter-tickbox-list">
                             <div class="tickbox-item">
                                 <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
@@ -173,122 +196,127 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                {{-- CUSTOM FORM --}}
-                <div id="customMaterialForm" style="display:none;">
-                    
-                    {{-- 1. BATA SECTION --}}
-                    <div class="material-section">
-                        <h4 class="section-header">Bata</h4>
-                        
-                        @if($isMultiBrick)
-                            {{-- TAMPILAN MULTI BATA --}}
-                            <div class="alert alert-info border-primary py-2">
-                                <strong><i class="bi bi-collection-fill me-2"></i>{{ $selectedBricks->count() }} Bata Terpilih</strong>
-                                <div class="text-muted small mt-1">Akan dibuat perbandingan untuk semua bata ini.</div>
-                                @foreach($selectedBricks as $b)
-                                    <input type="hidden" name="brick_ids[]" value="{{ $b->id }}">
-                                @endforeach
-                            </div>
-                        @elseif($isSingleCarryOver && $singleBrick)
-                            {{-- TAMPILAN SINGLE BATA (READONLY) --}}
-                            <div class="form-group">
-                                <label>Bata :</label>
-                                <div class="input-wrapper">
-                                    <input type="text" value="{{ $singleBrick->brand }} - {{ $singleBrick->type }}" readonly style="background-color:#d1fae5; font-weight:bold;">
-                                    <input type="hidden" name="brick_id" value="{{ $singleBrick->id }}">
+                    {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
+                    <div id="customMaterialForm" style="display:none; margin-top:16px;">
+
+                        {{-- 1. BATA SECTION --}}
+                        <div class="material-section">
+                            <h4 class="section-header">Bata</h4>
+
+                            @if($isMultiBrick)
+                                {{-- TAMPILAN MULTI BATA --}}
+                                <div class="alert alert-info border-primary py-2">
+                                    <strong><i class="bi bi-collection-fill me-2"></i>{{ $selectedBricks->count() }} Bata Terpilih</strong>
+                                    <div class="text-muted small mt-1">Akan dibuat perbandingan untuk semua bata ini.</div>
+                                    @foreach($selectedBricks as $b)
+                                        <input type="hidden" name="brick_ids[]" value="{{ $b->id }}">
+                                    @endforeach
                                 </div>
+                            @elseif($isSingleCarryOver && $singleBrick)
+                                {{-- TAMPILAN SINGLE BATA (READONLY) --}}
+                                <div class="form-group">
+                                    <label>Bata :</label>
+                                    <div class="input-wrapper">
+                                        <input type="text" value="{{ $singleBrick->brand }} - {{ $singleBrick->type }}" readonly style="background-color:#d1fae5; font-weight:bold;">
+                                        <input type="hidden" name="brick_id" value="{{ $singleBrick->id }}">
+                                    </div>
+                                </div>
+                            @else
+                                {{-- TAMPILAN NORMAL (DROPDOWN) - OPTIONAL --}}
+                                <div class="form-group">
+                                    <label>Bata :</label>
+                                    <div class="input-wrapper">
+                                        <select name="brick_id" class="form-select select-green">
+                                            <option value="">-- Semua Bata (Auto) --</option>
+                                            @foreach($bricks as $brick)
+                                                <option value="{{ $brick->id }}">
+                                                    {{ $brick->brand }} - {{ $brick->type }} ({{ $brick->dimension_length }}x{{ $brick->dimension_width }}x{{ $brick->dimension_height }} cm) - Rp {{ number_format($brick->price_per_piece) }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info py-1 px-2 mb-2" style="font-size:12px;">
+                                    <i class="bi bi-info-circle"></i> Kosongkan untuk menampilkan kombinasi dari beberapa bata
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- 2. SEMEN SECTION (RESTORED DROPDOWNS) --}}
+                        <div class="material-section">
+                            <h4 class="section-header">Semen</h4>
+                            <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                                <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Semen
                             </div>
-                        @else
-                            {{-- TAMPILAN NORMAL (DROPDOWN) --}}
+
                             <div class="form-group">
-                                <label>Bata :</label>
+                                <label>Jenis :</label>
                                 <div class="input-wrapper">
-                                    <select name="brick_id" class="form-select select-green">
-                                        <option value="">-- Pilih Bata --</option>
-                                        @foreach($bricks as $brick)
-                                            <option value="{{ $brick->id }}">
-                                                {{ $brick->brand }} - {{ $brick->type }} ({{ $brick->dimension_length }}x{{ $brick->dimension_width }}x{{ $brick->dimension_height }} cm) - Rp {{ number_format($brick->price_per_piece) }}
-                                            </option>
+                                    <select id="customCementType" name="custom_cement_type" class="select-pink">
+                                        <option value="">-- Pilih Jenis --</option>
+                                        @foreach($cements->groupBy('cement_name')->keys() as $type)
+                                            <option value="{{ $type }}">{{ $type }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                             </div>
-                        @endif
-                    </div>
-
-                    {{-- 2. SEMEN SECTION (RESTORED DROPDOWNS) --}}
-                    <div class="material-section">
-                        <h4 class="section-header">Semen</h4>
-                        <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
-                            <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Semen
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Jenis :</label>
-                            <div class="input-wrapper">
-                                <select id="customCementType" name="custom_cement_type" class="select-pink">
-                                    <option value="">-- Pilih Jenis --</option>
-                                    @foreach($cements->groupBy('cement_name')->keys() as $type)
-                                        <option value="{{ $type }}">{{ $type }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="form-group">
+                                <label>Merek :</label>
+                                <div class="input-wrapper">
+                                    <select id="customCementBrand" name="cement_id" class="select-orange">
+                                        <option value="">-- Pilih Merk (Opsional) --</option>
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Merek :</label>
-                            <div class="input-wrapper">
-                                <select id="customCementBrand" name="cement_id" class="select-orange">
-                                    <option value="">-- Pilih Merk (Opsional) --</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- 3. PASIR SECTION (RESTORED DROPDOWNS) --}}
-                    <div class="material-section">
-                        <h4 class="section-header">Pasir</h4>
-                        <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
-                            <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Pasir
                         </div>
 
-                        <div class="form-group">
-                            <label>Jenis :</label>
-                            <div class="input-wrapper">
-                                <select id="customSandType" name="custom_sand_type" class="select-gray">
-                                    <option value="">-- Pilih Jenis --</option>
-                                    @foreach($sands->groupBy('sand_name')->keys() as $type)
-                                        <option value="{{ $type }}">{{ $type }}</option>
-                                    @endforeach
-                                </select>
+                        {{-- 3. PASIR SECTION (RESTORED DROPDOWNS) --}}
+                        <div class="material-section">
+                            <h4 class="section-header">Pasir</h4>
+                            <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                                <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Pasir
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Merek :</label>
-                            <div class="input-wrapper">
-                                <select id="customSandBrand" name="custom_sand_brand" class="select-gray">
-                                    <option value="">-- Pilih Merk --</option>
-                                </select>
+
+                            <div class="form-group">
+                                <label>Jenis :</label>
+                                <div class="input-wrapper">
+                                    <select id="customSandType" name="custom_sand_type" class="select-gray">
+                                        <option value="">-- Pilih Jenis --</option>
+                                        @foreach($sands->groupBy('sand_name')->keys() as $type)
+                                            <option value="{{ $type }}">{{ $type }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
-                        </div>
-                        <div class="form-group">
-                            <label>Kemasan :</label>
-                            <div class="input-wrapper">
-                                <select id="customSandPackage" name="sand_id" class="select-gray-light">
-                                    <option value="">-- Pilih Kemasan (Opsional) --</option>
-                                </select>
+                            <div class="form-group">
+                                <label>Merek :</label>
+                                <div class="input-wrapper">
+                                    <select id="customSandBrand" name="custom_sand_brand" class="select-gray">
+                                        <option value="">-- Pilih Merk --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Kemasan :</label>
+                                <div class="input-wrapper">
+                                    <select id="customSandPackage" name="sand_id" class="select-gray-light">
+                                        <option value="">-- Pilih Kemasan (Opsional) --</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+
         </div>
 
         <div class="button-actions">
+            <!--
             <a href="{{ route('price-analysis.index') }}" class="btn btn-cancel">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
+            -->
             <button type="submit" class="btn btn-submit">
                 <i class="bi bi-search"></i> Hitung / Cari Kombinasi
             </button>
@@ -301,37 +329,80 @@
 <style data-modal-style="material-calculation">
     * { box-sizing: border-box; }
     
-    .card { 
-        max-width: 700px !important; 
+    .card {
+        max-width: 1200px !important;
         width: 100% !important;
-        background: #fff; 
-        padding: 24px; 
-        border-radius: 8px; 
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-        margin: 10px auto; 
+        background: #fff;
+        padding: 24px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin: 10px auto;
+    }
+
+    /* Two Column Layout */
+    .two-column-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        width: 100%;
+    }
+
+    .left-column,
+    .right-column {
+        min-width: 0;
+    }
+
+    .filter-section {
+        /* Sticky positioning removed */
+    }
+
+    .filter-section-title {
+        font-weight: 600;
+        color: inherit;
+        font-size: 14px;
+        margin-bottom: 12px;
+        display: block;
     }
     
-    .form-title { 
-        font-size: 18px; 
-        font-weight: 700; 
-        color: #1e293b; 
-        margin-bottom: 20px; 
-        padding-bottom: 12px; 
-        border-bottom: 1px solid #e2e8f0; 
+    .form-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: inherit;
+        margin-bottom: 20px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e2e8f0;
     }
-    
-    .form-group { 
-        display: flex; 
-        align-items: flex-start; 
-        gap: 12px; 
-        margin-bottom: 12px; 
+
+    /* Full Width Form Group (for Item Pekerjaan) */
+    .form-group-fullwidth {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
     }
-    
-    .form-group label { 
-        flex: 0 0 120px; 
-        font-weight: 400; 
-        color: #1e293b; 
-        font-size: 14px; 
+
+    .form-group-fullwidth label {
+        font-weight: 600;
+        color: inherit;
+        font-size: 14px;
+    }
+
+    .form-group-fullwidth select {
+        width: 100%;
+    }
+
+    .form-group {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .form-group label {
+        flex: 0 0 120px;
+        font-weight: 400;
+        color: inherit;
+        font-size: 14px;
         padding-top: 10px;
         text-align: left;
     }
@@ -348,7 +419,9 @@
         border: 1px solid #cbd5e1; 
         border-radius: 4px; 
         font-size: 14px; 
-        color: #1e293b; 
+        color: var(--text-color) !important; 
+        -webkit-text-stroke: var(--text-stroke) !important;
+        text-shadow: var(--text-shadow) !important;
         background: #fff; 
         font-family: inherit; 
     }
@@ -388,27 +461,51 @@
     .select-gray-light { background-color: #f1f5f9 !important; }
     .select-yellow { background-color: #fef3c7 !important; }
     
-    /* Dimensions container */
-    .dimensions-container { 
-        display: flex; 
-        align-items: flex-end; 
-        gap: 8px; 
+    /* Dimensions container - Vertical Layout */
+    .dimensions-container-vertical {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 16px;
+        width: 100%;
+    }
+
+    .dimension-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .dimension-item label {
+        font-size: 14px;
+        color: inherit;
+        font-weight: 600;
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Old dimensions container (keep for backwards compatibility) */
+    .dimensions-container {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
         margin-bottom: 16px;
         flex-wrap: wrap;
         width: 100%;
     }
-    
-    .dimension-group { 
-        display: flex; 
+
+    .dimension-group {
+        display: flex;
         flex-direction: column;
         gap: 4px;
         flex: 1;
         min-width: 100px;
     }
-    
-    .dimension-group label { 
-        font-size: 12px; 
-        color: #64748b; 
+
+    .dimension-group label {
+        font-size: 12px;
+        color: #64748b;
         font-weight: 400;
         margin: 0;
         padding: 0;
@@ -424,13 +521,12 @@
         width: 100%;
     }
     
-    .input-with-unit input { 
-        border: none; 
-        padding: 8px 8px; 
+    .input-with-unit input {
+        border: none;
+        padding: 8px 8px;
         flex: 1;
         width: 100%;
         text-align: center;
-        cursor: not-allowed;
     }
     
     .input-with-unit input:focus { 
@@ -448,7 +544,6 @@
     
     .input-with-unit .unit { 
         padding: 8px 10px; 
-        background: #f8fafc; 
         color: #64748b; 
         font-size: 12px; 
         font-weight: 600;
@@ -472,7 +567,7 @@
     .section-header { 
         font-weight: 700; 
         font-size: 15px; 
-        color: #1e293b; 
+        color: inherit; 
         margin-bottom: 12px;
     }
     
@@ -665,7 +760,7 @@
     .tickbox-item .tickbox-title {
         font-weight: 600;
         font-size: 14px;
-        color: #1e293b;
+        color: inherit;
         display: flex;
         align-items: center;
     }
@@ -723,6 +818,19 @@
     
     /* Responsive */
     @media (max-width: 768px) {
+        .card {
+            max-width: 100% !important;
+        }
+
+        .two-column-layout {
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+
+        .form-group-fullwidth {
+            width: 100%;
+        }
+
         .form-group {
             flex-direction: column;
             align-items: flex-start;
@@ -734,12 +842,14 @@
             padding-top: 0;
         }
 
-        .dimensions-container {
+        .dimensions-container,
+        .dimensions-container-vertical {
             flex-direction: column;
             align-items: stretch;
         }
 
-        .dimension-group {
+        .dimension-group,
+        .dimension-item {
             width: 100%;
         }
 
@@ -826,21 +936,43 @@
         // Initialize form visibility on page load
         toggleCustomForm();
 
-        // Handle Work Type Change for Layer Inputs (Rollag)
+        // Handle Work Type Change for Layer Inputs (Rollag), Plaster Sides, and Skim Sides
         const workTypeSelector = document.getElementById('workTypeSelector');
         const layerCountGroup = document.getElementById('layerCountGroup');
+        const plasterSidesGroup = document.getElementById('plasterSidesGroup');
+        const skimSidesGroup = document.getElementById('skimSidesGroup');
         const wallHeightLabel = document.getElementById('wallHeightLabel');
 
         function toggleLayerInputs() {
-            if (workTypeSelector && layerCountGroup) {
+            if (workTypeSelector && layerCountGroup && plasterSidesGroup && skimSidesGroup) {
                 if (workTypeSelector.value === 'brick_rollag') {
                     layerCountGroup.style.display = 'block';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
                     // Change label from "Tinggi" to "Lebar" for Rollag
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Lebar';
                     }
+                } else if (workTypeSelector.value === 'wall_plastering') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'block';
+                    skimSidesGroup.style.display = 'none';
+                    // Restore label to "Tinggi" for Plastering
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
+                } else if (workTypeSelector.value === 'skim_coating') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'block';
+                    // Restore label to "Tinggi" for Skim Coating
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
                 } else {
                     layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
                     // Restore label to "Tinggi" for other formulas
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -849,10 +981,54 @@
             }
         }
 
+        // Handle work type changes - simplified version
+        let handleWorkTypeChange;
+
         if (workTypeSelector) {
-            workTypeSelector.addEventListener('change', toggleLayerInputs);
+            handleWorkTypeChange = function() {
+                const selectedWorkType = workTypeSelector.value;
+
+                // Toggle special inputs (layer count, plaster sides, skim sides)
+                toggleLayerInputs();
+
+                // Show/hide material sections based on work type in custom form
+                setTimeout(() => {
+                    const allSections = document.querySelectorAll('#customMaterialForm .material-section');
+                    let brickSec = null;
+                    let sandSec = null;
+
+                    allSections.forEach(section => {
+                        const header = section.querySelector('h4.section-header');
+                        if (header) {
+                            const headerText = header.textContent.trim();
+                            if (headerText === 'Bata') {
+                                brickSec = section;
+                            } else if (headerText === 'Pasir') {
+                                sandSec = section;
+                            }
+                        }
+                    });
+
+                    if (selectedWorkType === 'wall_plastering') {
+                        // Wall plastering: hide brick, show sand
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (sandSec) sandSec.style.display = 'block';
+                    } else if (selectedWorkType === 'skim_coating') {
+                        // Skim coating: hide brick and sand
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (sandSec) sandSec.style.display = 'none';
+                    } else {
+                        // Brick formulas: show all
+                        if (brickSec) brickSec.style.display = 'block';
+                        if (sandSec) sandSec.style.display = 'block';
+                    }
+                }, 100);
+            };
+
+            workTypeSelector.addEventListener('change', handleWorkTypeChange);
+
             // Run on init
-            toggleLayerInputs();
+            handleWorkTypeChange();
         }
 
         // Add event listeners
@@ -872,11 +1048,20 @@
             }
         });
 
+        // Initialize on page load if formula_code exists or work type is selected
         @if(request('formula_code'))
             const workTypeSelect = document.getElementById('workTypeSelector');
             if(workTypeSelect) {
+                // Set the value first
+                workTypeSelect.value = '{{ request('formula_code') }}';
+                // Then trigger change
                 const event = new Event('change');
                 workTypeSelect.dispatchEvent(event);
+            }
+        @else
+            // Force initial check even without formula_code
+            if (workTypeSelector && workTypeSelector.value) {
+                handleWorkTypeChange();
             }
         @endif
     })();

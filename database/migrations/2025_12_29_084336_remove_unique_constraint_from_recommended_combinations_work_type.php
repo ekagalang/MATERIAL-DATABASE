@@ -11,14 +11,18 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('recommended_combinations', function (Blueprint $table) {
-            // Drop foreign key first to release the index
+            // Drop foreign keys first (if they depend on the index)
             $table->dropForeign(['brick_id']);
+            $table->dropForeign(['cement_id']);
+            $table->dropForeign(['sand_id']);
 
-            // Drop the unique index
-            $table->dropUnique(['brick_id', 'type']);
+            // Drop the unique constraint
+            $table->dropUnique('rec_brick_work_type_unique');
 
-            // Re-add foreign key
+            // Re-add foreign keys
             $table->foreign('brick_id')->references('id')->on('bricks')->cascadeOnDelete();
+            $table->foreign('cement_id')->references('id')->on('cements')->cascadeOnDelete();
+            $table->foreign('sand_id')->references('id')->on('sands')->cascadeOnDelete();
         });
     }
 
@@ -28,7 +32,8 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('recommended_combinations', function (Blueprint $table) {
-            $table->unique(['brick_id', 'type']);
+            // Restore the unique constraint
+            $table->unique(['brick_id', 'work_type', 'type'], 'rec_brick_work_type_unique');
         });
     }
 };

@@ -76,9 +76,11 @@ class Cat extends Model
     public function calculateNetWeight()
     {
         if ($this->package_weight_gross && $this->package_unit) {
-            $unit = Unit::where('code', $this->package_unit)->whereHas('materialTypes', function ($q) {
-                $q->where('material_type', self::getMaterialType());
-            })->first();
+            $unit = Unit::where('code', $this->package_unit)
+                ->whereHas('materialTypes', function ($q) {
+                    $q->where('material_type', self::getMaterialType());
+                })
+                ->first();
 
             if ($unit) {
                 $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;

@@ -38,7 +38,7 @@ class BrickInstallationType extends Model
     }
 
     /**
-     * Hitung jumlah bata per m² berdasarkan dimensi bata tertentu
+     * Hitung jumlah bata per M2 berdasarkan dimensi bata tertentu
      *
      * @param  float  $brickLength  Panjang bata (cm)
      * @param  float  $brickWidth  Lebar bata (cm)
@@ -87,10 +87,10 @@ class BrickInstallationType extends Model
                 return 0;
         }
 
-        // Luas 1 bata + adukan (m²)
+        // Luas 1 bata + adukan (M2)
         $areaBrickWithMortar = $visibleWidth * $visibleHeight;
 
-        // Jumlah bata per m²
+        // Jumlah bata per M2
         return $areaBrickWithMortar > 0 ? 1 / $areaBrickWithMortar : 0;
     }
 
