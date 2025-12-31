@@ -82,7 +82,10 @@
                                     'wall_height' => $wallHeight,
                                     'mortar_thickness' => $mortarThickness,
                                     'installation_type_id' => $requestData['installation_type_id'],
-                                    'formula_code' => $requestData['formula_code']
+                                    'formula_code' => $requestData['formula_code'],
+                                    'layer_count' => $requestData['layer_count'] ?? 1,
+                                    'plaster_sides' => $requestData['plaster_sides'] ?? 1,
+                                    'skim_sides' => $requestData['skim_sides'] ?? 1
                                 ]) }}" class="btn btn-sm btn-primary rounded-pill px-3 shadow-sm">
                                     Pilih <i class="bi bi-arrow-right ms-1"></i>
                                 </a>

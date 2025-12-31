@@ -35,6 +35,9 @@ class PriceAnalysisController extends Controller
             'mortar_thickness' => 'required|numeric|min:0.1',
             'wall_length' => 'required|numeric|min:0.1',
             'wall_height' => 'required|numeric|min:0.1',
+            'layer_count' => 'nullable|integer|min:1',
+            'plaster_sides' => 'nullable|integer|min:1',
+            'skim_sides' => 'nullable|integer|min:1',
         ]);
 
         // 1. SETUP PARAMETER
@@ -76,7 +79,9 @@ class PriceAnalysisController extends Controller
             'mortar_thickness' => $mortarThickness,
             'mortar_formula_id' => $defaultMortar->id,
             'installation_type_id' => $installationType->id,
-            'layer_count' => $request->layer_count ?? 1, // Tambahkan layer_count
+            'layer_count' => $request->layer_count ?? 1,
+            'plaster_sides' => $request->plaster_sides ?? 1,
+            'skim_sides' => $request->skim_sides ?? 1,
         ];
 
         // LOAD MATERIAL

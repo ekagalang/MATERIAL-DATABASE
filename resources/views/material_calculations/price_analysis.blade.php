@@ -145,9 +145,9 @@
                         <input type="hidden" name="mortar_thickness" value="{{ $inputs['mortar_thickness'] }}">
                         <input type="hidden" name="formula_code" value="{{ $inputs['formula_code'] }}">
                         <input type="hidden" name="installation_type_id" value="{{ $inputs['installation_type_id'] }}">
-                        @if(($inputs['formula_code'] ?? '') === 'brick_rollag')
-                            <input type="hidden" name="layer_count" value="{{ $inputs['layer_count'] ?? 1 }}">
-                        @endif
+                        <input type="hidden" name="layer_count" value="{{ $inputs['layer_count'] ?? 1 }}">
+                        <input type="hidden" name="plaster_sides" value="{{ $inputs['plaster_sides'] ?? 1 }}">
+                        <input type="hidden" name="skim_sides" value="{{ $inputs['skim_sides'] ?? 1 }}">
 
                         <div class="table-responsive">
                             <table class="table table-hover table-striped align-middle mb-0 text-nowrap" style="font-size: 0.85rem;">
@@ -186,14 +186,17 @@
                                         <td class="text-center fw-bold">{{ number_format($item['total_qty_job'], 0) }} pcs</td>
                                         <td class="text-end fw-bold text-success pe-4">Rp {{ number_format($item['total_price_job'], 0, ',', '.') }}</td>
                                         <td class="ps-2">
-                                            <a href="{{ route('material-calculations.create', array_merge([
+                                            <a href="{{ route('material-calculations.create', [
                                                 'brick_id' => $item['id'],
                                                 'wall_length' => $inputs['wall_length'],
                                                 'wall_height' => $inputs['wall_height'],
                                                 'mortar_thickness' => $inputs['mortar_thickness'],
                                                 'installation_type_id' => $inputs['installation_type_id'],
-                                                'formula_code' => $inputs['formula_code']
-                                            ], ($inputs['formula_code'] ?? '') === 'brick_rollag' ? ['layer_count' => $inputs['layer_count'] ?? 1] : [])) }}" class="btn btn-primary rounded shadow" title="Hitung Detail">
+                                                'formula_code' => $inputs['formula_code'],
+                                                'layer_count' => $inputs['layer_count'] ?? 1,
+                                                'plaster_sides' => $inputs['plaster_sides'] ?? 1,
+                                                'skim_sides' => $inputs['skim_sides'] ?? 1
+                                            ]) }}" class="btn btn-primary rounded shadow" title="Hitung Detail">
                                                 <i class="bi bi-arrow-right"></i>
                                             </a>
                                         </td>

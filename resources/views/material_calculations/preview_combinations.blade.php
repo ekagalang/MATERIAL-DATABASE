@@ -31,6 +31,9 @@
             // Prepare rekap data global untuk semua bata
             $filterCategories = ['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
             $globalRekapData = [];
+            $hasBrick = false;
+            $hasCement = false;
+            $hasSand = false;
 
             // Get historical frequency data for TerUMUM from database
             $historicalFrequency = DB::table('brick_calculations')
@@ -152,6 +155,11 @@
                 if ($selectedCombination) {
                     $project = $selectedCombination['project'];
                     $item = $selectedCombination['item'];
+                    $res = $item['result'];
+
+                    if (($res['total_bricks'] ?? 0) > 0) $hasBrick = true;
+                    if (($res['cement_sak'] ?? 0) > 0) $hasCement = true;
+                    if (($res['sand_m3'] ?? 0) > 0) $hasSand = true;
 
                     $globalRekapData[$key] = [
                         'grand_total' => $item['result']['grand_total'],
@@ -507,17 +515,29 @@
                             <tr>
                                 <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 0; z-index: 3; width: 100px; min-width: 100px;">Rekap</th>
                                 <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 100px; z-index: 3; width: 150px; min-width: 150px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.3);">Grand Total</th>
+                                @if($hasBrick)
                                 <th colspan="2" style="background: #891313; color: white;">Bata</th>
+                                @endif
+                                @if($hasCement)
                                 <th colspan="2" style="background: #891313; color: white;">Semen</th>
+                                @endif
+                                @if($hasSand)
                                 <th colspan="2" style="background: #891313; color: white;">Pasir</th>
+                                @endif
                             </tr>
                             <tr>
+                                @if($hasBrick)
                                 <th style="background: #891313; color: white;">Bata</th>
                                 <th style="background: #891313; color: white;">Detail</th>
+                                @endif
+                                @if($hasCement)
                                 <th style="background: #891313; color: white;">Semen</th>
                                 <th style="background: #891313; color: white;">Detail</th>
+                                @endif
+                                @if($hasSand)
                                 <th style="background: #891313; color: white;">Pasir</th>
                                 <th style="background: #891313; color: white;">Detail</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -554,6 +574,7 @@
                                         </td>
 
                                         {{-- Column 3: Merek Bata --}}
+                                        @if($hasBrick)
                                         <td style="background: {{ $brickBgColor }}; padding: 14px 16px; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 <div title="Grand Total: Rp {{ number_format($globalRekapData[$key]['grand_total'], 0, ',', '.') }}">
@@ -572,8 +593,10 @@
                                                 -
                                             @endif
                                         </td>
+                                        @endif
 
                                         {{-- Column 5: Merek Semen --}}
+                                        @if($hasCement)
                                         <td style="background: {{ $cementBgColor }}; padding: 14px 16px; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 {{ $globalRekapData[$key]['cement_brand'] }}
@@ -590,8 +613,10 @@
                                                 -
                                             @endif
                                         </td>
+                                        @endif
 
                                         {{-- Column 7: Merek Pasir --}}
+                                        @if($hasSand)
                                         <td style="background: {{ $sandBgColor }}; padding: 14px 16px; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 {{ $globalRekapData[$key]['sand_brand'] }}
@@ -608,6 +633,7 @@
                                                 -
                                             @endif
                                         </td>
+                                        @endif
                                     </tr>
                                 @endfor
                             @endforeach

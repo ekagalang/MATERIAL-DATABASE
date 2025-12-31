@@ -126,6 +126,9 @@ class MaterialCalculationController extends Controller
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
+                'layer_count' => 'nullable|integer|min:1',
+                'plaster_sides' => 'nullable|integer|min:1',
+                'skim_sides' => 'nullable|integer|min:1',
             ];
 
             // Default to 'best' if no filters selected
@@ -396,11 +399,12 @@ class MaterialCalculationController extends Controller
                 'installation_type_id' => $request->installation_type_id,
                 'mortar_formula_id' => $defaultMortar->id,
                 'brick_id' => $brick->id,
-                'cement_id' => $materials['cement_id'],
-                'sand_id' => $materials['sand_id'],
-                'layer_count' => $request->layer_count ?? 1, // For Rollag formula
-            ];
-
+                            'cement_id' => $materials['cement_id'],
+                            'sand_id' => $materials['sand_id'],
+                            'layer_count' => $request->layer_count ?? 1, // For Rollag formula
+                            'plaster_sides' => $request->plaster_sides ?? 1,
+                            'skim_sides' => $request->skim_sides ?? 1,
+                        ];
             try {
                 $trace = BrickCalculationTracer::traceProfessionalMode($params);
                 $result = $trace['final_result'];
@@ -1030,6 +1034,8 @@ class MaterialCalculationController extends Controller
             'project_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
             'layer_count' => 'nullable|integer|min:1', // For Rollag formula
+            'plaster_sides' => 'nullable|integer|min:1',
+            'skim_sides' => 'nullable|integer|min:1',
         ]);
 
         try {

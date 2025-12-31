@@ -226,6 +226,9 @@ class BrickCalculation extends Model
                 'ratio_used' => $useCustomRatio
                     ? "{$params['custom_cement_ratio']}:{$params['custom_sand_ratio']}"
                     : "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
+                'layer_count' => $params['layer_count'] ?? 1,
+                'plaster_sides' => $params['plaster_sides'] ?? 1,
+                'skim_sides' => $params['skim_sides'] ?? 1,
             ],
         ]);
 
