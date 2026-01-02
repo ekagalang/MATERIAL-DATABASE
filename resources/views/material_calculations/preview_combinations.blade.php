@@ -34,6 +34,7 @@
             $hasBrick = false;
             $hasCement = false;
             $hasSand = false;
+            $hasCat = false;
 
             // Get historical frequency data for TerUMUM from database
             $historicalFrequency = DB::table('brick_calculations')
@@ -114,11 +115,18 @@
                     $mostCommonHistorical = null;
 
                     foreach ($combinations as $combo) {
-                        $materialKey = $combo['item']['cement']->id . '-' . $combo['item']['sand']->id;
-                        $histFreq = isset($historicalFrequency[$materialKey]) ? $historicalFrequency[$materialKey]->frequency : 0;
+                        // Safe check for masonry materials
+                        if (isset($combo['item']['cement']) && isset($combo['item']['sand'])) {
+                            $materialKey = $combo['item']['cement']->id . '-' . $combo['item']['sand']->id;
+                            $histFreq = isset($historicalFrequency[$materialKey]) ? $historicalFrequency[$materialKey]->frequency : 0;
 
-                        if ($histFreq > $maxHistoricalFreq) {
-                            $maxHistoricalFreq = $histFreq;
+                            if ($histFreq > $maxHistoricalFreq) {
+                                $maxHistoricalFreq = $histFreq;
+                                $mostCommonHistorical = $combo;
+                            }
+                        } else {
+                            // For non-masonry (e.g. painting), just take the first one or logic for 'most common' painting
+                            // Fallback to cheapest for now if no history logic
                             $mostCommonHistorical = $combo;
                         }
                     }
@@ -160,8 +168,9 @@
                     if (($res['total_bricks'] ?? 0) > 0) $hasBrick = true;
                     if (($res['cement_sak'] ?? 0) > 0) $hasCement = true;
                     if (($res['sand_m3'] ?? 0) > 0) $hasSand = true;
+                    if (($res['cat_packages'] ?? 0) > 0) $hasCat = true;
 
-                    $globalRekapData[$key] = [
+                    $rekapEntry = [
                         'grand_total' => $item['result']['grand_total'],
                         'brick_id' => $project['brick']->id,
                         'brick_brand' => $project['brick']->brand,
@@ -169,16 +178,28 @@
                                         ($project['brick']->dimension_length + 0) . ' x ' .
                                         ($project['brick']->dimension_width + 0) . ' x ' .
                                         ($project['brick']->dimension_height + 0) . ' cm',
-                        'cement_id' => $item['cement']->id,
-                        'cement_brand' => $item['cement']->brand,
-                        'cement_detail' => ($item['cement']->color ?? '-') . ' - ' .
-                                         ($item['cement']->package_weight_net + 0) . ' Kg',
-                        'sand_id' => $item['sand']->id,
-                        'sand_brand' => $item['sand']->brand,
-                        'sand_detail' => ($item['sand']->package_unit ?? '-') . ' - ' .
-                                       (($item['sand']->package_volume ?? 0) > 0 ? (($item['sand']->package_volume + 0) . ' M3') : '-'),
                         'filter_label' => $key,
                     ];
+
+                    if (isset($item['cement'])) {
+                        $rekapEntry['cement_id'] = $item['cement']->id;
+                        $rekapEntry['cement_brand'] = $item['cement']->brand;
+                        $rekapEntry['cement_detail'] = ($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg';
+                    }
+
+                    if (isset($item['sand'])) {
+                        $rekapEntry['sand_id'] = $item['sand']->id;
+                        $rekapEntry['sand_brand'] = $item['sand']->brand;
+                        $rekapEntry['sand_detail'] = ($item['sand']->package_unit ?? '-') . ' - ' . (($item['sand']->package_volume ?? 0) > 0 ? (($item['sand']->package_volume + 0) . ' M3') : '-');
+                    }
+
+                    if (isset($item['cat'])) {
+                        $rekapEntry['cat_id'] = $item['cat']->id;
+                        $rekapEntry['cat_brand'] = $item['cat']->brand;
+                        $rekapEntry['cat_detail'] = ($item['cat']->cat_name ?? '-') . ' - ' . ($item['cat']->color_name ?? '-') . ' (' . ($item['cat']->package_weight_net + 0) . ' kg)';
+                    }
+
+                    $globalRekapData[$key] = $rekapEntry;
                 }
             }
 
@@ -227,8 +248,20 @@
                 '#F0F4C3', // Lime lighten-4 (Putih Tulang Kehijauan)
             ];
 
+            // CAT: Pastel Cerah (Nuansa Dekoratif)
+            $catColors = [
+                '#F8BBD0', // Pink lighten-4
+                '#E1BEE7', // Purple lighten-4
+                '#D1C4E9', // Deep Purple lighten-4
+                '#C5CAE9', // Indigo lighten-4
+                '#BBDEFB', // Blue lighten-4
+                '#B2EBF2', // Cyan lighten-4
+                '#B2DFDB', // Teal lighten-4
+                '#C8E6C9', // Green lighten-4
+            ];
+
             // Grand Total: Use combined palette
-            $availableColors = array_merge($brickColors, $cementColors, $sandColors);
+            $availableColors = array_merge($brickColors, $cementColors, $sandColors, $catColors);
 
             // Color map for Grand Total - only color if combination appears more than once
             $colorIndex = 0;
@@ -237,7 +270,13 @@
 
             // First pass: count how many times each signature appears
             foreach ($globalRekapData as $key1 => $data1) {
-                $signature = $data1['brick_id'] . '-' . $data1['cement_id'] . '-' . $data1['sand_id'];
+                // Generate safe signature
+                if (isset($data1['cat_id'])) {
+                    $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
+                } else {
+                    $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
+                }
+
                 if (!isset($signatureCount[$signature])) {
                     $signatureCount[$signature] = 0;
                 }
@@ -248,7 +287,11 @@
             foreach ($globalRekapData as $key1 => $data1) {
                 if (!isset($globalColorMap[$key1])) {
                     // Create unique signature for this combination
-                    $signature = $data1['brick_id'] . '-' . $data1['cement_id'] . '-' . $data1['sand_id'];
+                    if (isset($data1['cat_id'])) {
+                        $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
+                    } else {
+                        $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
+                    }
 
                     // Only assign color if this combination appears more than once
                     if ($signatureCount[$signature] > 1) {
@@ -329,7 +372,9 @@
                         foreach ($projects as $p) {
                             foreach ($p['combinations'] as $label => $items) {
                                 foreach ($items as $item) {
-                                    if (isset($globalRekapData[$key]) &&
+                                    if (isset($globalRekapData[$key]) && 
+                                        isset($globalRekapData[$key]['cement_id']) &&
+                                        isset($item['cement']) &&
                                         $item['cement']->id === $globalRekapData[$key]['cement_id']) {
                                         $cement = $item['cement'];
                                         break 3;
@@ -372,7 +417,9 @@
                         foreach ($projects as $p) {
                             foreach ($p['combinations'] as $label => $items) {
                                 foreach ($items as $item) {
-                                    if (isset($globalRekapData[$key]) &&
+                                    if (isset($globalRekapData[$key]) && 
+                                        isset($globalRekapData[$key]['sand_id']) &&
+                                        isset($item['sand']) &&
                                         $item['sand']->id === $globalRekapData[$key]['sand_id']) {
                                         $sand = $item['sand'];
                                         break 3;
@@ -400,6 +447,32 @@
                     }
                 }
             }
+
+            // Color map for Cat
+            $colorIndex = 0;
+            $catDataColorMap = [];
+            $catColorMap = [];
+
+            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
+                for ($i = 1; $i <= 3; $i++) {
+                    $key = $filterType . ' ' . $i;
+                    if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_id'])) {
+                        // Create signature
+                        $catId = $globalRekapData[$key]['cat_id'];
+                        $catBrand = $globalRekapData[$key]['cat_brand'];
+                        $dataSignature = $catId . '-' . $catBrand;
+
+                        if (isset($catDataColorMap[$dataSignature])) {
+                            $catColorMap[$key] = $catDataColorMap[$dataSignature];
+                        } else {
+                            $color = $catColors[$colorIndex % count($catColors)];
+                            $catColorMap[$key] = $color;
+                            $catDataColorMap[$dataSignature] = $color;
+                            $colorIndex++;
+                        }
+                    }
+                }
+            }
         @endphp
 
         @if(count($globalRekapData) > 0)
@@ -421,14 +494,21 @@
                         </div>
                     </div>
 
-                    {{-- Tebal Spesi --}}
+                    {{-- Tebal Spesi / Lapis Cat --}}
                     <div style="flex: 0 0 auto; width: 100px;">
+                        @php
+                            $isPainting = (isset($requestData['work_type']) && $requestData['work_type'] === 'painting');
+                            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL';
+                            $paramUnit = $isPainting ? 'Lapis' : 'cm';
+                            $paramValue = $isPainting ? ($requestData['painting_layers'] ?? 2) : ($requestData['mortar_thickness'] ?? 2.0);
+                            $badgeClass = $isPainting ? 'bg-primary text-white' : 'bg-light';
+                        @endphp
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light border">TEBAL</span>
+                            <span class="badge {{ $badgeClass }} border">{{ $paramLabel }}</span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $requestData['mortar_thickness'] ?? 2.0 }}</div>
-                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">cm</span>
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $paramValue }}</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">{{ $paramUnit }}</span>
                         </div>
                     </div>
 
@@ -495,6 +575,19 @@
                     </div>
                     @endif
 
+                    {{-- Lapis Pengecatan --}}
+                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'wall_painting')
+                    <div style="flex: 0 0 auto; width: 120px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-primary text-white border border-primary">LAPIS CAT</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #dbeafe; border-color: #3b82f6;">{{ $requestData['paint_layers'] ?? 1 }}</div>
+                            <span class="input-group-text bg-primary text-white small px-1" style="font-size: 0.7rem;">Lapisan</span>
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- Luas --}}
                     <div style="flex: 0 0 auto; width: 120px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
@@ -510,11 +603,20 @@
         </div>
             <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden;">
                 <div class="table-responsive">
-                    <table class="table-preview" style="margin: 0;">
+                    <style>
+                        .table-rekap-global th {
+                            padding: 8px 10px !important;
+                            font-size: 13px !important;
+                        }
+                        .table-rekap-global td {
+                            padding: 8px 10px !important;
+                        }
+                    </style>
+                    <table class="table-preview table-rekap-global" style="margin: 0;">
                         <thead>
                             <tr>
-                                <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 0; z-index: 3; width: 100px; min-width: 100px;">Rekap</th>
-                                <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 100px; z-index: 3; width: 150px; min-width: 150px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.3);">Grand Total</th>
+                                <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 0; z-index: 3; width: 80px; min-width: 80px;">Rekap</th>
+                                <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 80px; z-index: 3; width: 120px; min-width: 120px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.3);">Grand Total</th>
                                 @if($hasBrick)
                                 <th colspan="2" style="background: #891313; color: white;">Bata</th>
                                 @endif
@@ -524,18 +626,25 @@
                                 @if($hasSand)
                                 <th colspan="2" style="background: #891313; color: white;">Pasir</th>
                                 @endif
+                                @if($hasCat)
+                                <th colspan="2" style="background: #891313; color: white;">Cat</th>
+                                @endif
                             </tr>
                             <tr>
                                 @if($hasBrick)
-                                <th style="background: #891313; color: white;">Bata</th>
+                                <th style="background: #891313; color: white;">Merek</th>
                                 <th style="background: #891313; color: white;">Detail</th>
                                 @endif
                                 @if($hasCement)
-                                <th style="background: #891313; color: white;">Semen</th>
+                                <th style="background: #891313; color: white;">Merek</th>
                                 <th style="background: #891313; color: white;">Detail</th>
                                 @endif
                                 @if($hasSand)
-                                <th style="background: #891313; color: white;">Pasir</th>
+                                <th style="background: #891313; color: white;">Merek</th>
+                                <th style="background: #891313; color: white;">Detail</th>
+                                @endif
+                                @if($hasCat)
+                                <th style="background: #891313; color: white;">Merek</th>
                                 <th style="background: #891313; color: white;">Detail</th>
                                 @endif
                             </tr>
@@ -549,20 +658,21 @@
                                         $brickBgColor = $brickColorMap[$key] ?? '#ffffff';
                                         $cementBgColor = $cementColorMap[$key] ?? '#ffffff';
                                         $sandBgColor = $sandColorMap[$key] ?? '#ffffff';
+                                        $catBgColor = $catColorMap[$key] ?? '#ffffff';
 
                                         // Get label color untuk kolom Rekap
                                         $labelColor = $rekapLabelColors[$filterType][$i] ?? ['bg' => '#ffffff', 'text' => '#000000'];
                                     @endphp
                                     <tr>
                                         {{-- Column 1: Filter Label --}}
-                                        <td style="font-weight: 700; position: sticky; left: 0; z-index: 2; background: {{ $labelColor['bg'] }}; color: {{ $labelColor['text'] }}; padding: 4px 8px; vertical-align: middle; width: 100px; min-width: 100px;">
+                                        <td style="font-weight: 700; position: sticky; left: 0; z-index: 2; background: {{ $labelColor['bg'] }}; color: {{ $labelColor['text'] }}; padding: 4px 8px; vertical-align: middle; width: 80px; min-width: 80px;">
                                             <a href="#detail-{{ strtolower(str_replace(' ', '-', $key)) }}" style="color: inherit; text-decoration: none; display: block; cursor: pointer;">
                                                 {{ $key }}
                                             </a>
                                         </td>
 
                                         {{-- Column 2: Grand Total --}}
-                                        <td class="text-end fw-bold" style="position: sticky; left: 100px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $bgColor }}; padding: 4px 8px; vertical-align: middle; width: 150px; min-width: 150px;">
+                                        <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $bgColor }}; padding: 4px 8px; vertical-align: middle; width: 120px; min-width: 120px;">
                                             @if(isset($globalRekapData[$key]))
                                                 <div class="d-flex justify-content-between w-100">
                                                     <span>Rp</span>
@@ -575,7 +685,7 @@
 
                                         {{-- Column 3: Merek Bata --}}
                                         @if($hasBrick)
-                                        <td style="background: {{ $brickBgColor }}; padding: 14px 16px; vertical-align: middle;">
+                                        <td style="background: {{ $brickBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 <div title="Grand Total: Rp {{ number_format($globalRekapData[$key]['grand_total'], 0, ',', '.') }}">
                                                     {{ $globalRekapData[$key]['brick_brand'] }}
@@ -586,7 +696,7 @@
                                         </td>
 
                                         {{-- Column 4: Detail Bata --}}
-                                        <td class="text-muted small" style="background: {{ $brickBgColor }}; padding: 14px 16px; vertical-align: middle; border-right: 2px solid #891313;">
+                                        <td class="text-muted small" style="background: {{ $brickBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
                                             @if(isset($globalRekapData[$key]))
                                                 {{ $globalRekapData[$key]['brick_detail'] }}
                                             @else
@@ -597,7 +707,7 @@
 
                                         {{-- Column 5: Merek Semen --}}
                                         @if($hasCement)
-                                        <td style="background: {{ $cementBgColor }}; padding: 14px 16px; vertical-align: middle;">
+                                        <td style="background: {{ $cementBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 {{ $globalRekapData[$key]['cement_brand'] }}
                                             @else
@@ -606,7 +716,7 @@
                                         </td>
 
                                         {{-- Column 6: Detail Semen --}}
-                                        <td class="text-muted small" style="background: {{ $cementBgColor }}; padding: 14px 16px; vertical-align: middle; border-right: 2px solid #891313;">
+                                        <td class="text-muted small" style="background: {{ $cementBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
                                             @if(isset($globalRekapData[$key]))
                                                 {{ $globalRekapData[$key]['cement_detail'] }}
                                             @else
@@ -617,7 +727,7 @@
 
                                         {{-- Column 7: Merek Pasir --}}
                                         @if($hasSand)
-                                        <td style="background: {{ $sandBgColor }}; padding: 14px 16px; vertical-align: middle;">
+                                        <td style="background: {{ $sandBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 {{ $globalRekapData[$key]['sand_brand'] }}
                                             @else
@@ -626,9 +736,29 @@
                                         </td>
 
                                         {{-- Column 8: Detail Pasir --}}
-                                        <td class="text-muted small" style="background: {{ $sandBgColor }}; padding: 14px 16px; vertical-align: middle;">
-                                            @if(isset($globalRekapData[$key]))
+                                        <td class="text-muted small" style="background: {{ $sandBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['sand_brand']))
                                                 {{ $globalRekapData[$key]['sand_detail'] }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        @endif
+
+                                        {{-- Column 9: Merek Cat --}}
+                                        @if($hasCat)
+                                        <td style="background: {{ $catBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_brand']))
+                                                {{ $globalRekapData[$key]['cat_brand'] }}
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+
+                                        {{-- Column 10: Detail Cat --}}
+                                        <td class="text-muted small" style="background: {{ $catBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_detail']))
+                                                {{ $globalRekapData[$key]['cat_detail'] }}
                                             @else
                                                 -
                                             @endif
@@ -835,9 +965,20 @@
                                                                 // Find the matching combination in this project
                                                                 foreach ($project['combinations'] as $label => $items) {
                                                                     foreach ($items as $item) {
-                                                                        // Check if this combination matches the recap data
-                                                                        if ($item['cement']->id === $rekapData['cement_id'] &&
-                                                                            $item['sand']->id === $rekapData['sand_id']) {
+                                                                        $match = false;
+                                                                        if (isset($rekapData['cat_id']) && isset($item['cat'])) {
+                                                                            // Match by Cat ID
+                                                                            if ($item['cat']->id === $rekapData['cat_id']) {
+                                                                                $match = true;
+                                                                            }
+                                                                        } elseif (isset($rekapData['cement_id']) && isset($rekapData['sand_id']) && isset($item['cement']) && isset($item['sand'])) {
+                                                                            // Match by Cement & Sand ID
+                                                                            if ($item['cement']->id === $rekapData['cement_id'] && $item['sand']->id === $rekapData['sand_id']) {
+                                                                                $match = true;
+                                                                            }
+                                                                        }
+
+                                                                        if ($match) {
                                                                             $allFilteredCombinations[] = [
                                                                                 'label' => $key, // Use recap label
                                                                                 'item' => $item,
@@ -891,36 +1032,54 @@
                                                         'check_field' => 'cement_sak',
                                                         'qty' => $res['cement_sak'] ?? 0,
                                                         'unit' => 'Sak',
-                                                        'object' => $item['cement'],
+                                                        'object' => $item['cement'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
-                                                        'detail_display' => $item['cement']->color ?? '-',
-                                                        'detail_extra' => ($item['cement']->package_weight_net + 0) . ' Kg',
+                                                        'detail_display' => isset($item['cement']) ? ($item['cement']->color ?? '-') : '-',
+                                                        'detail_extra' => isset($item['cement']) ? (($item['cement']->package_weight_net + 0) . ' Kg') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
-                                                        'package_price' => $item['cement']->package_price ?? 0,
-                                                        'package_unit' => $item['cement']->package_unit ?? 'Sak',
+                                                        'package_price' => isset($item['cement']) ? ($item['cement']->package_price ?? 0) : 0,
+                                                        'package_unit' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
                                                         'total_price' => $res['total_cement_price'] ?? 0,
                                                         'unit_price' => $res['total_cement_price'] ?? 0,
-                                                        'unit_price_label' => $item['cement']->package_unit ?? 'Sak',
+                                                        'unit_price_label' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
                                                     ],
                                                     'sand' => [
                                                         'name' => 'Pasir',
                                                         'check_field' => 'sand_m3',
                                                         'qty' => $res['sand_m3'] ?? 0,
                                                         'unit' => 'M3',
-                                                        'object' => $item['sand'],
+                                                        'object' => $item['sand'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
-                                                        'detail_display' => $item['sand']->package_unit ?? '-',
-                                                        'detail_extra' => ($item['sand']->package_volume ? (($item['sand']->package_volume + 0) . ' M3') : '-'),
+                                                        'detail_display' => isset($item['sand']) ? ($item['sand']->package_unit ?? '-') : '-',
+                                                        'detail_extra' => isset($item['sand']) ? ($item['sand']->package_volume ? (($item['sand']->package_volume + 0) . ' M3') : '-') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
-                                                        'package_price' => $item['sand']->package_price ?? 0,
-                                                        'package_unit' => $item['sand']->package_unit ?? 'Karung',
+                                                        'package_price' => isset($item['sand']) ? ($item['sand']->package_price ?? 0) : 0,
+                                                        'package_unit' => isset($item['sand']) ? ($item['sand']->package_unit ?? 'Karung') : 'Karung',
                                                         'total_price' => $res['total_sand_price'] ?? 0,
                                                         'unit_price' => $res['total_sand_price'] ?? 0,
-                                                        'unit_price_label' => $item['sand']->package_unit ?? 'Karung',
+                                                        'unit_price_label' => isset($item['sand']) ? ($item['sand']->package_unit ?? 'Karung') : 'Karung',
+                                                    ],
+                                                    'cat' => [
+                                                        'name' => 'Cat',
+                                                        'check_field' => 'cat_packages',
+                                                        'qty' => $res['cat_packages'] ?? 0,
+                                                        'unit' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Kmsn') : 'Kmsn',
+                                                        'object' => $item['cat'] ?? null,
+                                                        'type_field' => 'type',
+                                                        'brand_field' => 'brand',
+                                                        'detail_display' => isset($item['cat']) ? ($item['cat']->color_name ?? '-') : '-',
+                                                        'detail_extra' => isset($item['cat']) ? (($item['cat']->package_weight_net + 0) . ' Kg') : '-',
+                                                        'store_field' => 'store',
+                                                        'address_field' => 'address',
+                                                        'package_price' => isset($item['cat']) ? ($item['cat']->purchase_price ?? 0) : 0,
+                                                        'package_unit' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
+                                                        'total_price' => $res['total_cat_price'] ?? 0,
+                                                        'unit_price' => $res['cat_price_per_package'] ?? 0,
+                                                        'unit_price_label' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
                                                     ],
                                                     'water' => [
                                                         'name' => 'Air',
@@ -1135,8 +1294,15 @@
                                                                         @endif
                                                                     @endforeach
                                                                     <input type="hidden" name="brick_id" value="{{ $brick->id }}">
-                                                                    <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
-                                                                    <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
+                                                                    @if(isset($item['cement']))
+                                                                        <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
+                                                                    @endif
+                                                                    @if(isset($item['sand']))
+                                                                        <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
+                                                                    @endif
+                                                                    @if(isset($item['cat']))
+                                                                        <input type="hidden" name="cat_id" value="{{ $item['cat']->id }}">
+                                                                    @endif
                                                                     <input type="hidden" name="price_filters[]" value="custom">
                                                                     <input type="hidden" name="confirm_save" value="1">
                                                                     <button type="submit" class="btn-select">

@@ -75,11 +75,11 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-lg-3 col-md-6">
+                                <div class="col-lg-3 col-md-6" id="mortarThicknessGroup">
                                     <label class="form-label fw-semibold">Tebal Adukan</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
-                                            name="mortar_thickness" value="1.0" step="0.01" required>
+                                            name="mortar_thickness" value="1.0" step="0.01">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             cm
                                         </span>
@@ -173,8 +173,22 @@
                                         @endforeach
                                     </select>
                                 </div>
+
+                                <div class="col-12" id="catSection" style="display: none;">
+                                    <label class="form-label fw-semibold">Cat</label>
+                                    <select class="form-select form-select-lg rounded-3 shadow-sm" name="cat_id">
+                                        <option value="">-- Gunakan Default --</option>
+                                        @if(isset($cats))
+                                            @foreach($cats as $cat)
+                                                <option value="{{ $cat->id }}">
+                                                    {{ $cat->cat_name }} - {{ $cat->brand }} ({{ $cat->package_weight_net }} kg)
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
                             </div>
-                            
+
                             <div class="form-text text-muted mt-3">
                                 <i class="bi bi-info-circle me-1"></i>
                                 Kosongkan pilihan untuk menggunakan material default dari database.
@@ -217,6 +231,18 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
     // Selalu gunakan strip tambahan di sisi kiri & bawah
     params.has_additional_layer = true;
 
+    // Remove parameter yang tidak diperlukan untuk formula painting
+    if (params.formula_code === 'painting') {
+        // Hapus mortar_thickness jika kosong atau 0
+        if (!params.mortar_thickness || params.mortar_thickness === '0' || params.mortar_thickness === 0) {
+            delete params.mortar_thickness;
+        }
+        // Set default mortar_thickness ke 1 jika masih ada
+        if (params.mortar_thickness) {
+            params.mortar_thickness = 1;
+        }
+    }
+
     // Show loading
     document.getElementById('resultsContainer').style.display = 'block';
     document.getElementById('traceContent').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
@@ -236,7 +262,28 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
         if (data.success) {
             renderTrace(data.data, 'traceContent');
         } else {
-            alert('Error: ' + data.message);
+            console.error('Validation Error:', data);
+            let errorMsg = 'Error: ' + (data.message || 'Validation failed');
+
+            // Tampilkan detail error jika ada
+            if (data.errors) {
+                errorMsg += '\n\nDetail:\n';
+                for (const [field, messages] of Object.entries(data.errors)) {
+                    errorMsg += `- ${field}: ${messages.join(', ')}\n`;
+                }
+            }
+
+            // Tampilkan di console juga
+            console.log('Params sent:', Object.fromEntries(new FormData(this).entries()));
+
+            alert(errorMsg);
+            document.getElementById('traceContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>Validation Error</h5>
+                    <p>${data.message}</p>
+                    ${data.errors ? '<pre>' + JSON.stringify(data.errors, null, 2) + '</pre>' : ''}
+                </div>
+            `;
         }
     } catch (error) {
         console.error('Error:', error);
@@ -248,23 +295,59 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     const layerCountGroup = document.getElementById('layerCountGroup');
     const plasterSidesGroup = document.getElementById('plasterSidesGroup');
     const skimSidesGroup = document.getElementById('skimSidesGroup');
+    const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
+    const catSection = document.getElementById('catSection');
+
+    // Get material sections
+    const brickSection = document.querySelector('select[name="brick_id"]')?.closest('.col-12');
+    const cementSection = document.querySelector('select[name="cement_id"]')?.closest('.col-md-6');
+    const sandSection = document.querySelector('select[name="sand_id"]')?.closest('.col-md-6');
 
     if (this.value === 'brick_rollag') {
         layerCountGroup.style.display = 'block';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        if (brickSection) brickSection.style.display = 'block';
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'block';
+        if (catSection) catSection.style.display = 'none';
     } else if (this.value === 'wall_plastering') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'block';
         skimSidesGroup.style.display = 'none';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        if (brickSection) brickSection.style.display = 'none';
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'block';
+        if (catSection) catSection.style.display = 'none';
     } else if (this.value === 'skim_coating') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'block';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        if (brickSection) brickSection.style.display = 'none';
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'none';
+        if (catSection) catSection.style.display = 'none';
+    } else if (this.value === 'painting') {
+        layerCountGroup.style.display = 'block';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+        if (brickSection) brickSection.style.display = 'none';
+        if (cementSection) cementSection.style.display = 'none';
+        if (sandSection) sandSection.style.display = 'none';
+        if (catSection) catSection.style.display = 'block';
     } else {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        if (brickSection) brickSection.style.display = 'block';
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'block';
+        if (catSection) catSection.style.display = 'none';
     }
 });
 

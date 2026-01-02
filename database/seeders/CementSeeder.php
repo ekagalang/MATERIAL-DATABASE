@@ -10,7 +10,7 @@ class CementSeeder extends Seeder
     public function run(): void
     {
         $cements = [
-            // Semen Gresik - Sesuai Excel (40kg, 30x20x60 cm = 0.036 m³)
+            // Semen Gresik - Sesuai Excel (40kg, 30x20x60 cm = 0.036 M3)
             [
                 'cement_name' => 'Semen Gresik (Excel Spec)',
                 'type' => 'PCC',
@@ -25,7 +25,7 @@ class CementSeeder extends Seeder
                 'dimension_length' => 0.3, // meter
                 'dimension_width' => 0.2, // meter
                 'dimension_height' => 0.6, // meter
-                'package_volume' => 0.036, // m³ (0.30 x 0.20 x 0.60)
+                'package_volume' => 0.036, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -48,7 +48,7 @@ class CementSeeder extends Seeder
                 'dimension_length' => 0.5, // meter
                 'dimension_width' => 0.35, // meter
                 'dimension_height' => 0.1, // meter
-                'package_volume' => 0.0175, // m³ (0.50 x 0.35 x 0.10)
+                'package_volume' => 0.0175, // M3 (0.50 x 0.35 x 0.10)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -70,7 +70,7 @@ class CementSeeder extends Seeder
                 'dimension_length' => 0.45,
                 'dimension_width' => 0.3,
                 'dimension_height' => 0.1,
-                'package_volume' => 0.0135, // m³ (0.45 x 0.30 x 0.10)
+                'package_volume' => 0.0135, // M3 (0.45 x 0.30 x 0.10)
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',

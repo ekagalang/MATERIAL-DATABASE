@@ -20,7 +20,7 @@ class CementController extends Controller
         $this->cementService = $cementService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $search = $request->get('search');
         $perPage = $request->get('per_page', 15);
@@ -31,7 +31,10 @@ class CementController extends Controller
             ? $this->cementService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->cementService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return CementResource::collection($cements);
+        return $this->paginatedResponse(
+            CementResource::collection($cements)->resource,
+            'Cements retrieved successfully'
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -110,7 +113,10 @@ class CementController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $this->cementService->delete($id);
-        return $this->noContentResponse();
+        return $this->successResponse(
+            null,
+            'Cement deleted successfully'
+        );
     }
 
     public function getFieldValues(string $field, Request $request): JsonResponse

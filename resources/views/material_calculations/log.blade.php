@@ -43,18 +43,131 @@
         border-color: #dbeafe;
         box-shadow: none;
     }
+
+    /* Custom Kanggo Pagination Styles */
+    .kanggo-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 0;
+    }
+
+    .kanggo-logo img {
+        height: 55px;
+        width: auto;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+        transition: transform 0.3s ease;
+    }
+
+    /* Hover removed as requested */
+
+    .kanggo-pages {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 2px;
+     }
+
+    .page-number, .page-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        background: transparent;
+        border: none;
+        font-family: 'League Spartan', sans-serif !important;
+        font-weight: 800;
+    }
+
+    .page-number {
+        width: 20px;
+        height: 20px;
+        color: #64748b;
+        font-size: 11px;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* The Donut Frame using number.png */
+    .page-number::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('/Pagination/number.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        z-index: -1;
+        filter: grayscale(100%);
+        opacity: 0.4;
+        transition: all 0.25s ease;
+    }
+
+    .page-number:hover {
+        transform: translateY(-3px);
+        color: #891313;
+    }
+
+    .page-number:hover::before {
+        filter: grayscale(0%) drop-shadow(0 5px 15px rgba(137, 19, 19, 0.3));
+        opacity: 1;
+    }
+
+    .page-number.active {
+        color: #891313;
+    }
+
+    .page-number.active::before {
+        filter: grayscale(0%) drop-shadow(0 8px 20px rgba(137, 19, 19, 0.4));
+        opacity: 1;
+    }
+
+    .page-arrow {
+        width: 38px;
+        height: 38px;
+        color: #891313;
+        background: #ffffff;
+        border-radius: 50%;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+        font-size: 18px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .page-arrow:not(.disabled):hover {
+        transform: translateY(-3px);
+        background: #891313;
+        color: #ffffff;
+        box-shadow: 0 5px 12px rgba(137, 19, 19, 0.2);
+    }
+
+    .page-arrow.disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        background: #f1f5f9;
+    }
+
+    .page-dots {
+        color: #cbd5e1;
+        font-weight: 700;
+        margin: 0 4px;
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="card">
+<div class="card mb-1">
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <h2 class="mb-1">
-                        <i class="fas fa-history text-primary"></i> 
+                        <i class="bi bi-clock-history text-primary"></i> 
                         Riwayat Perhitungan
                     </h2>
                     <p class="text-muted mb-0">Daftar semua perhitungan yang pernah dibuat</p>
@@ -64,7 +177,7 @@
                         <i class="bi bi-arrow-left"></i> Kembali
                     </a>
                     <a href="{{ route('material-calculations.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Perhitungan Baru
+                        <i class="bi bi-plus-lg"></i> Perhitungan Baru
                     </a>
                 </div>
             </div>
@@ -72,84 +185,145 @@
     </div>
 
     <!-- Search & Filter -->
-    <div class="row g-3">
-        <div class="col" style="flex:0 0 55%;max-width:51%;">
-            <input type="text"
-                class="form-control"
-                name="search"
-                value="{{ request('search') }}"
-                placeholder="Cari project...">
-        </div>
+    <form action="{{ route('material-calculations.log') }}" method="GET">
+        @php
+            $hasFilter = request('search') || request('work_type') || request('date_from') || request('date_to');
+        @endphp
 
-        <div class="col" style="flex:0 0 20%;max-width:20%;">
-            <select class="form-select" name="work_type">
-                <option value="">-- Semua Jenis Pekerjaan --</option>
-                @foreach($availableFormulas as $formula)
-                    <option value="{{ $formula['code'] }}"
-                        {{ request('work_type') == $formula['code'] ? 'selected' : '' }}>
-                        {{ $formula['name'] }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+        <div class="d-flex flex-wrap align-items-end gap-3 mb-4">
+            {{-- Search Input (Flexible Width) --}}
+            <div class="flex-grow-1" style="min-width: 250px;">
+                <label class="form-label fw-bold text-dark small mb-1">Pencarian</label>
+                <input type="text"
+                    class="form-control"
+                    name="search"
+                    value="{{ request('search') }}"
+                    placeholder="Cari Luas, Jenis, Biaya, Merek...">
+            </div>
 
-        <div class="col" style="flex:0 0 20%;max-width:20%;">
-            <input type="text"
-                class="form-control"
-                id="dateRangePicker"
-                placeholder="Pilih Rentang Tanggal"
-                readonly>
-            <input type="hidden" name="date_from" id="dateFrom" value="{{ request('date_from') }}">
-            <input type="hidden" name="date_to" id="dateTo" value="{{ request('date_to') }}">
-        </div>
+            {{-- Work Type Select (Fixed Width) --}}
+            <div style="flex: 0 0 220px;">
+                <label class="form-label fw-bold text-dark small mb-1">Jenis Pekerjaan</label>
+                <select class="form-select" name="work_type">
+                    <option value="">-- Semua Jenis --</option>
+                    @foreach($availableFormulas as $formula)
+                        <option value="{{ $formula['code'] }}"
+                            {{ request('work_type') == $formula['code'] ? 'selected' : '' }}>
+                            {{ $formula['name'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
 
-        <div class="col" style="flex:0 0 5%;max-width:5%;">
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-search"></i>
-            </button>
+            {{-- Date Range (Fixed Width) --}}
+            <div style="flex: 0 0 200px;">
+                <label class="form-label fw-bold text-dark small mb-1" style="-webkit-text-stroke: 0 !important; text-shadow: none !important;">Rentang Tanggal</label>
+                <input type="text"
+                    class="form-control"
+                    id="dateRangePicker"
+                    placeholder="Pilih Tanggal"
+                    readonly>
+                <input type="hidden" name="date_from" id="dateFrom" value="{{ request('date_from') }}">
+                <input type="hidden" name="date_to" id="dateTo" value="{{ request('date_to') }}">
+            </div>
+
+            {{-- Action Buttons --}}
+            <div style="flex: 0 0 auto;">
+                @if($hasFilter)
+                    <div class="d-flex gap-1">
+                        <button type="submit" class="btn btn-primary" title="Cari" style="min-width: 42px;">
+                            <i class="bi bi-search"></i>
+                        </button>
+                        <a href="{{ route('material-calculations.log') }}" class="btn btn-danger" title="Reset" style="min-width: 42px;">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </a>
+                    </div>
+                @else
+                    <button type="submit" class="btn btn-primary" style="min-width: 42px;">
+                        <i class="bi bi-search"></i>
+                    </button>
+                @endif
+            </div>
         </div>
-    </div>
+    </form>
 
     <!-- Table -->
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm mt-4" style="border-radius: 16px; overflow: hidden; background: transparent;">
         <div class="card-body p-0">
             @if($calculations->count() > 0)
                 <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
+                    <style>
+                        .table-preview {
+                            width: 100%;
+                            border-collapse: separate;
+                            border-spacing: 0;
+                            font-size: 13px;
+                            margin: 0;
+                            background: #fff;
+                        }
+                        .table-preview th {
+                            background: #891313 !important;
+                            color: #ffffff !important;
+                            text-align: center;
+                            font-weight: 900;
+                            padding: 14px 16px;
+                            border: none;
+                            font-size: 12px;
+                            letter-spacing: 0.3px;
+                            white-space: nowrap;
+                        }
+                        .table-preview td {
+                            padding: 12px 16px;
+                            border-bottom: 1px solid #f1f5f9;
+                            vertical-align: middle;
+                            color: #1e293b !important;
+                            -webkit-text-stroke: 0 !important;
+                            text-shadow: none !important;
+                        }
+                        /* Restore Spartan for specific elements in TD */
+                        .table-preview td strong, 
+                        .table-preview td .badge,
+                        .table-preview td .text-success {
+                            font-family: 'League Spartan', sans-serif !important;
+                            -webkit-text-stroke: 0.2px black !important;
+                            text-shadow: 0 1.1px 0 #000000 !important;
+                            color: #ffffff !important;
+                        }
+                        .table-preview td .text-success strong {
+                            color: #059669 !important;
+                        }
+                        .table-preview tbody tr:hover td {
+                            background-color: #f8fafc;
+                        }
+                        .table-preview tbody tr:last-child td {
+                            border-bottom: none;
+                        }
+                    </style>
+                    <table class="table-preview">
+                        <thead>
                             <tr>
-                                <th>Tanggal</th>
-                            <!-- <th>Project</th> -->
+                                <th style="border-top-left-radius: 16px;">Tanggal</th>
                                 <th>Luas Bidang</th>
-                                <th>Jenis</th>
+                                <th>Item Pekerjaan</th>
                                 <th>Total Biaya</th>
-                                <th>Aksi</th>
+                                <th style="border-top-right-radius: 16px;">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($calculations as $calc)
                             <tr>
-                                <td class="text-nowrap">
-                                    {{ $calc->created_at->format('d/m/Y H:i') }}
+                                <td class="text-start">
+                                    <div class="fw-bold">{{ $calc->created_at->format('d M Y') }} {{ $calc->created_at->format('H:i') }} WIB</div>
                                 </td>
-                                <!--
-                                <td>
-                                    <strong>{{ $calc->project_name ?: '-' }}</strong>
-                                    @if($calc->notes)
-                                        <br><small class="text-muted">{{ Str::limit($calc->notes, 30) }}</small>
-                                    @endif
-                                </td>
-                                -->
-                                <td class="text-nowrap">
-                                    <span class="text-muted">{{ rtrim(rtrim(number_format($calc->wall_area, 2), '0'), '.') }} M2</span>
+                                <td class="text-center">
+                                    <span class="text-dark">
+                                        {{ rtrim(rtrim(number_format($calc->wall_area, 2), '0'), '.') }} M2
+                                    </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-primary">
+                                    <span class="badge bg-primary w-100 py-2">
                                         @php
-                                            // Get work_type from calculation_params
                                             $workType = $calc->calculation_params['work_type'] ?? null;
-
-                                            // Map work_type to display name
                                             $workTypeNames = [
                                                 'brick_full' => 'Pasangan 1 Bata',
                                                 'brick_half' => 'Pasangan 1/2 Bata',
@@ -157,38 +331,32 @@
                                                 'brick_rollag' => 'Pasangan Rollag',
                                                 'wall_plastering' => 'Plesteran Dinding',
                                                 'skim_coating' => 'Aci Dinding',
+                                                'painting' => 'Pengecatan',
                                             ];
-
                                             $displayName = $workTypeNames[$workType] ?? ($calc->installationType->name ?? '-');
                                         @endphp
                                         {{ $displayName }}
                                     </span>
                                 </td>
-                                <td class="text-end text-success">
-                                    <strong>Rp {{ number_format($calc->total_material_cost, 0, ',', '.') }}</strong>
+                                <td class="text-end">
+                                    <div class="text-success">
+                                        <strong>Rp {{ number_format($calc->total_material_cost, 0, ',', '.') }}</strong>
+                                    </div>
                                 </td>
-                                <td class="text-end text-nowrap">
+                                <td class="text-end">
                                     <div class="btn-group">
                                         <a href="{{ route('material-calculations.show', $calc) }}"
-                                        class="btn btn-primary btn-sm"
-                                        title="Detail">
+                                           class="btn btn-primary btn-sm">
                                             <i class="bi bi-eye"></i>
                                         </a>
-
                                         <a href="{{ route('material-calculations.edit', $calc) }}"
-                                        class="btn btn-warning btn-sm"
-                                        title="Edit">
+                                           class="btn btn-warning btn-sm">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-
-                                        <form action="{{ route('material-calculations.destroy', $calc) }}"
-                                            method="POST"
-                                            onsubmit="return confirm('Yakin ingin menghapus data perhitungan ini?')">
+                                        <form action="{{ route('material-calculations.destroy', $calc) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus data ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit"
-                                                    class="btn btn-danger btn-sm"
-                                                    title="Hapus">
+                                            <button type="submit" class="btn btn-danger btn-sm">
                                                 <i class="bi bi-trash"></i>
                                             </button>
                                         </form>
@@ -199,22 +367,47 @@
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Pagination -->
-                <div class="card-footer bg-white">
-                    {{ $calculations->links() }}
-                </div>
             @else
                 <div class="text-center py-5">
-                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <i class="bi bi-inbox fa-3x text-muted mb-3" style="font-size: 3rem;"></i>
                     <h5 class="text-muted">Tidak ada data perhitungan</h5>
                     <p class="text-muted">Silakan buat perhitungan baru</p>
                     <a href="{{ route('material-calculations.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Buat Perhitungan
+                        <i class="bi bi-plus-lg"></i> Buat Perhitungan
                     </a>
                 </div>
             @endif
         </div>
+        
+        @if($calculations->count() > 0)
+            <div class="card-footer bg-white border-top-0 pt-2 pb-0">
+                <div class="kanggo-pagination">
+                    <div class="kanggo-logo">
+                        <img src="/Pagination/kangg.png" alt="Kanggo">
+                    </div>
+                    <div class="kanggo-pages">
+                        {{-- Pagination Elements --}}
+                        @foreach ($calculations->links()->elements as $element)
+                            {{-- "Three Dots" Separator --}}
+                            @if (is_string($element))
+                                <span class="page-dots">{{ $element }}</span>
+                            @endif
+
+                            {{-- Array Of Links --}}
+                            @if (is_array($element))
+                                @foreach ($element as $page => $url)
+                                    @if ($page == $calculations->currentPage())
+                                        <span class="page-number active">{{ $page }}</span>
+                                    @else
+                                        <a href="{{ $url }}" class="page-number">{{ $page }}</a>
+                                    @endif
+                                @endforeach
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
 </div>
 
@@ -495,8 +688,24 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Get current date_from and date_to values from hidden inputs
-    const dateFrom = document.getElementById('dateFrom').value;
-    const dateTo = document.getElementById('dateTo').value;
+    const dateFromInput = document.getElementById('dateFrom');
+    const dateToInput = document.getElementById('dateTo');
+    
+    const dateFromVal = dateFromInput.value;
+    const dateToVal = dateToInput.value;
+
+    // Helper: Parse YYYY-MM-DD string to Date object (local time)
+    const parseDate = (str) => {
+        if (!str) return null;
+        const parts = str.split('-');
+        if (parts.length !== 3) return null;
+        // Note: Month is 0-indexed in JS Date
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    };
+
+    const defaultStartDate = parseDate(dateFromVal);
+    const defaultEndDate = parseDate(dateToVal);
+    const defaultDates = (defaultStartDate && defaultEndDate) ? [defaultStartDate, defaultEndDate] : null;
 
     // Initialize Flatpickr
     const fp = flatpickr("#dateRangePicker", {
@@ -505,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
         locale: "id",
         allowInput: false,
         showMonths: 2,
-        defaultDate: (dateFrom && dateTo) ? [dateFrom, dateTo] : null,
+        defaultDate: defaultDates,
         onChange: function(selectedDates, dateStr, instance) {
             if (selectedDates.length === 2) {
                 // Format dates as YYYY-MM-DD for backend
@@ -516,47 +725,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     return `${year}-${month}-${day}`;
                 };
 
-                document.getElementById('dateFrom').value = formatDate(selectedDates[0]);
-                document.getElementById('dateTo').value = formatDate(selectedDates[1]);
+                dateFromInput.value = formatDate(selectedDates[0]);
+                dateToInput.value = formatDate(selectedDates[1]);
             } else if (selectedDates.length === 0) {
                 // Clear the hidden inputs when date range is cleared
-                document.getElementById('dateFrom').value = '';
-                document.getElementById('dateTo').value = '';
+                dateFromInput.value = '';
+                dateToInput.value = '';
             }
         },
         onClose: function(selectedDates, dateStr, instance) {
             // Clear if only one date selected (incomplete range)
             if (selectedDates.length === 1) {
                 instance.clear();
-                document.getElementById('dateFrom').value = '';
-                document.getElementById('dateTo').value = '';
+                dateFromInput.value = '';
+                dateToInput.value = '';
             }
         }
     });
 
-    // Add clear button
-    const dateRangeInput = document.getElementById('dateRangePicker');
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'btn btn-sm btn-link position-absolute';
-    clearBtn.style.cssText = 'right: 10px; top: 50%; transform: translateY(-50%); z-index: 10; padding: 0; color: #94a3b8;';
-    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
-    clearBtn.style.display = (dateFrom && dateTo) ? 'block' : 'none';
-
-    dateRangeInput.parentElement.style.position = 'relative';
-    dateRangeInput.parentElement.appendChild(clearBtn);
-
-    clearBtn.addEventListener('click', function() {
-        fp.clear();
-        document.getElementById('dateFrom').value = '';
-        document.getElementById('dateTo').value = '';
-        clearBtn.style.display = 'none';
-    });
-
-    // Show/hide clear button based on input value
-    dateRangeInput.addEventListener('change', function() {
-        clearBtn.style.display = this.value ? 'block' : 'none';
-    });
+    // Show/hide clear button logic removed as requested - using main reset button instead
 });
 </script>
 @endsection

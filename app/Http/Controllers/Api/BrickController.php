@@ -38,9 +38,9 @@ class BrickController extends Controller
      * Display a listing of bricks
      *
      * @param Request $request
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $search = $request->get('search');
         $perPage = $request->get('per_page', 15);
@@ -51,7 +51,10 @@ class BrickController extends Controller
             ? $this->brickService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->brickService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return BrickResource::collection($bricks);
+        return $this->paginatedResponse(
+            BrickResource::collection($bricks)->resource,
+            'Bricks retrieved successfully'
+        );
     }
 
     /**
@@ -151,7 +154,10 @@ class BrickController extends Controller
     {
         $this->brickService->delete($id);
 
-        return $this->noContentResponse();
+        return $this->successResponse(
+            null,
+            'Brick deleted successfully'
+        );
     }
 
     /**

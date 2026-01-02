@@ -32,9 +32,9 @@ class MortarFormulaSeeder extends Seeder
                 'cement_ratio' => 1,
                 'sand_ratio' => 4,
                 'water_ratio' => 0.3, // 30% sesuai Excel
-                'cement_kg_per_m3' => 321.96875, // Dari Excel: 1030.30 kg / 3.2 m³ = 321.96875 kg/m³
-                'sand_m3_per_m3' => 0.86875, // Dari Excel: 2.78 m³ / 3.2 m³ = 0.86875 m³/m³
-                'water_liter_per_m3' => 347.725, // Dari Excel: 1112.72 liter / 3.2 m³ = 347.725 liter/m³
+                'cement_kg_per_m3' => 321.96875, // Dari Excel: 1030.30 kg / 3.2 M3 = 321.96875 kg/M3
+                'sand_m3_per_m3' => 0.86875, // Dari Excel: 2.78 M3 / 3.2 M3 = 0.86875 M3/M3
+                'water_liter_per_m3' => 347.725, // Dari Excel: 1112.72 liter / 3.2 M3 = 347.725 liter/M3
                 'expansion_factor' => 0.15, // Shrinkage 15% sesuai Excel
                 'cement_bag_type' => 'both',
                 'is_default' => true,

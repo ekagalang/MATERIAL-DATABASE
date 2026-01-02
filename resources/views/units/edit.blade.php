@@ -158,13 +158,13 @@
                     border-top: 1px solid #f1f5f9;">
             <button type="button" 
                     class="btn btn-secondary" 
-                    onclick="if(document.getElementById('closeModal')){ document.getElementById('closeModal').click(); } else { window.history.back(); }"
+                    onclick="if(typeof window.closeFloatingModal === 'function'){ window.closeFloatingModal(); } else { window.history.back(); }"
                     style="background: transparent; 
                            color: #64748b; 
                            border: 1.5px solid #e2e8f0; 
                            box-shadow: none;
                            padding: 10px 20px;
-                           border-radius: 10px;
+                           border-radius: 10px; 
                            cursor: pointer;
                            font-size: 13.5px;
                            font-weight: 600;

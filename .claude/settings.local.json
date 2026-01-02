@@ -27,7 +27,10 @@
       "Bash(cat:*)",
       "Bash(node -c:*)",
       "Bash(if not exist \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\resources\\\\views\\\\settings\\\\recommendations\\\\partials\" mkdir \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\resources\\\\views\\\\settings\\\\recommendations\\\\partials\")",
-      "Bash(if not exist \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\app\\\\Traits\" mkdir \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\app\\\\Traits\")"
+      "Bash(if not exist \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\app\\\\Traits\" mkdir \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\app\\\\Traits\")",
+      "Bash(curl:*)",
+      "Bash(del:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

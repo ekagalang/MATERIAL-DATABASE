@@ -285,7 +285,6 @@
                                     @if($material['type'] == 'brick')
                                         <tr class="dim-group-row">
                                             <th rowspan="2">No</th>
-                                            <th rowspan="2">Material</th>
                                             <th class="sortable" rowspan="2">
                                                 <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
@@ -341,9 +340,9 @@
                                                 <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
                                             @endforeach
                                         </tr>
-                                            @elseif($material['type'] == 'sand')                                                                    <tr class="dim-group-row">
+                                            @elseif($material['type'] == 'sand')
+                                                                    <tr class="dim-group-row">
                                                                         <th rowspan="2">No</th>
-                                                                        <th rowspan="2">Material</th>
                                                                         <th class="sortable" rowspan="2">
                                                                             <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
@@ -402,7 +401,6 @@
                                                                         @elseif($material['type'] == 'cat')
                                                                     <tr>
                                                                         <th>No</th>
-                                                                        <th>Material</th>
                                                                         @foreach(['type','brand','sub_brand'] as $col)
                                                                             <th class="sortable">
                                                                                 <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
@@ -480,7 +478,6 @@
                                                                 @elseif($material['type'] == 'cement')
                                                                     <tr class="dim-group-row">
                                                                         <th rowspan="2">No</th>
-                                                                        <th rowspan="2">Material</th>
                                                                         @foreach(['type','brand','sub_brand'] as $col)
                                                                             <th class="sortable" rowspan="2">
                                                                                 <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
@@ -567,7 +564,6 @@
                                         {{ $material['data']->firstItem() + $index }}
                                     </td>
                                     @if($material['type'] == 'brick')
-                                        <td><strong style="font-weight: 600;">Bata</strong></td>
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td>{{ $item->form ?? '-' }}</td>
@@ -616,7 +612,6 @@
                                             @endif
                                         </td>
                                     @elseif($material['type'] == 'cat')
-                                        <td><strong style="font-weight: 600;">Cat</strong></td>
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td>{{ $item->sub_brand ?? '-' }}</td>
@@ -660,7 +655,6 @@
                                             @endif
                                         </td>
                                     @elseif($material['type'] == 'cement')
-                                        <td><strong style="font-weight: 600;">Semen</strong></td>
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td>{{ $item->sub_brand ?? '-' }}</td>
@@ -719,7 +713,6 @@
                                             @endif
                                         </td>
                                     @elseif($material['type'] == 'sand')
-                                        <td><strong style="font-weight: 600;">Pasir</strong></td>
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td style="font-size: 13px;">
@@ -774,7 +767,7 @@
                                             @endif
                                         </td>
                                     @endif
-                                    <td>
+                                    <td class="text-center">
                                         <div class="btn-group">
                                             <a href="{{ route($material['type'] . 's.show', $item->id) }}" class="btn btn-primary btn-sm open-modal" title="Detail">
                                                 <i class="bi bi-eye"></i>

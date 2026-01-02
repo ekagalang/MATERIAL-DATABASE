@@ -337,8 +337,9 @@ class CombinationGenerationService
                 continue;
             }
 
-            $cements = collect([$cement]);
-            $sands = collect([$sand]);
+            // Create Eloquent Collections instead of Support Collections
+            $cements = Cement::whereIn('id', [$cement->id])->get();
+            $sands = Sand::whereIn('id', [$sand->id])->get();
             $calculated = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerUMUM', 1);
 
             if (!empty($calculated)) {

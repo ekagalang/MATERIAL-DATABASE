@@ -16,7 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up'
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Enable query logging in development
+        $middleware->append(\App\Http\Middleware\LogDatabaseQueries::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Handle API exceptions - return JSON for /api/* routes

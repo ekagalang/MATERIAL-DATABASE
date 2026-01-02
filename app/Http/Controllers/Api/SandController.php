@@ -19,7 +19,7 @@ class SandController extends Controller
         $this->sandService = $sandService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $search = $request->get('search');
         $perPage = $request->get('per_page', 15);
@@ -30,7 +30,10 @@ class SandController extends Controller
             ? $this->sandService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->sandService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return SandResource::collection($sands);
+        return $this->paginatedResponse(
+            SandResource::collection($sands)->resource,
+            'Sands retrieved successfully'
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -89,7 +92,10 @@ class SandController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $this->sandService->delete($id);
-        return $this->noContentResponse();
+        return $this->successResponse(
+            null,
+            'Sand deleted successfully'
+        );
     }
 
     public function getFieldValues(string $field, Request $request): JsonResponse

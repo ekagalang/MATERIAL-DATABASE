@@ -65,7 +65,7 @@
                                    style="background: #0ea5e9; color: white; flex: 1; justify-content: center; height: 38px; border: none;">
                                     <i class="bi bi-graph-up"></i> Analytics
                                 </a>
-                                <a href="{{ route('price-analysis.index', ['formula' => $formula['code']]) }}"
+                                <a href="{{ route('materials.create', ['formula' => $formula['code']]) }}"
                                    class="btn btn-primary btn-sm"
                                    style="flex: 1; justify-content: center; height: 38px;">
                                     <i class="bi bi-play-circle"></i> Hitung

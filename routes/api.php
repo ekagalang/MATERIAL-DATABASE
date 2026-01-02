@@ -63,25 +63,25 @@ Route::prefix('v1')->group(function () {
     Route::get('/bricks/field-values/{field}', [\App\Http\Controllers\Api\BrickController::class, 'getFieldValues']);
     Route::get('/bricks/all-stores', [\App\Http\Controllers\Api\BrickController::class, 'getAllStores']);
     Route::get('/bricks/addresses-by-store', [\App\Http\Controllers\Api\BrickController::class, 'getAddressesByStore']);
-    Route::apiResource('bricks', \App\Http\Controllers\Api\BrickController::class);
+    Route::apiResource('bricks', \App\Http\Controllers\Api\BrickController::class)->names('api.bricks');
 
     // CEMENT
     Route::get('/cements/field-values/{field}', [\App\Http\Controllers\Api\CementController::class, 'getFieldValues']);
     Route::get('/cements/all-stores', [\App\Http\Controllers\Api\CementController::class, 'getAllStores']);
     Route::get('/cements/addresses-by-store', [\App\Http\Controllers\Api\CementController::class, 'getAddressesByStore']);
-    Route::apiResource('cements', \App\Http\Controllers\Api\CementController::class);
+    Route::apiResource('cements', \App\Http\Controllers\Api\CementController::class)->names('api.cements');
 
     // SAND
     Route::get('/sands/field-values/{field}', [\App\Http\Controllers\Api\SandController::class, 'getFieldValues']);
     Route::get('/sands/all-stores', [\App\Http\Controllers\Api\SandController::class, 'getAllStores']);
     Route::get('/sands/addresses-by-store', [\App\Http\Controllers\Api\SandController::class, 'getAddressesByStore']);
-    Route::apiResource('sands', \App\Http\Controllers\Api\SandController::class);
+    Route::apiResource('sands', \App\Http\Controllers\Api\SandController::class)->names('api.sands');
 
     // CAT
     Route::get('/cats/field-values/{field}', [\App\Http\Controllers\Api\CatController::class, 'getFieldValues']);
     Route::get('/cats/all-stores', [\App\Http\Controllers\Api\CatController::class, 'getAllStores']);
     Route::get('/cats/addresses-by-store', [\App\Http\Controllers\Api\CatController::class, 'getAddressesByStore']);
-    Route::apiResource('cats', \App\Http\Controllers\Api\CatController::class);
+    Route::apiResource('cats', \App\Http\Controllers\Api\CatController::class)->names('api.cats');
 
     // ========================================
     // CALCULATION APIs - Clean Architecture Pattern

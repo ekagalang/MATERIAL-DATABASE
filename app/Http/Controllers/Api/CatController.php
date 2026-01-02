@@ -19,7 +19,7 @@ class CatController extends Controller
         $this->catService = $catService;
     }
 
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         $search = $request->get('search');
         $perPage = $request->get('per_page', 15);
@@ -30,7 +30,10 @@ class CatController extends Controller
             ? $this->catService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->catService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return CatResource::collection($cats);
+        return $this->paginatedResponse(
+            CatResource::collection($cats)->resource,
+            'Cats retrieved successfully'
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -97,7 +100,10 @@ class CatController extends Controller
     public function destroy(int $id): JsonResponse
     {
         $this->catService->delete($id);
-        return $this->noContentResponse();
+        return $this->successResponse(
+            null,
+            'Cat deleted successfully'
+        );
     }
 
     public function getFieldValues(string $field, Request $request): JsonResponse

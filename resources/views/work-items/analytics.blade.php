@@ -159,9 +159,6 @@
                     Belum ada perhitungan yang tersimpan untuk item pekerjaan ini.<br>
                     Mulai hitung untuk melihat analytics material.
                 </p>
-                <a href="{{ route('price-analysis.index', ['formula' => $formula['code']]) }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
-                    <i class="bi bi-play-circle"></i> Mulai Hitung Analisa
-                </a>
             </div>
         </div>
     @endif

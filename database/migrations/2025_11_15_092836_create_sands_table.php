@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->decimal('dimension_length', 10, 2)->nullable(); // Panjang (m)
             $table->decimal('dimension_width', 10, 2)->nullable(); // Lebar (m)
             $table->decimal('dimension_height', 10, 2)->nullable(); // Tinggi (m)
-            $table->decimal('package_volume', 10, 6)->nullable(); // Volume dalam m³ (hasil kalkulasi)
+            $table->decimal('package_volume', 10, 6)->nullable(); // Volume dalam M3 (hasil kalkulasi)
 
             // Toko
             $table->string('store')->nullable(); // Nama Toko
@@ -32,7 +32,7 @@ return new class extends Migration {
 
             // Harga
             $table->decimal('package_price', 15, 2)->nullable(); // Harga per kemasan
-            $table->decimal('comparison_price_per_m3', 15, 2)->nullable(); // Harga komparasi per m³
+            $table->decimal('comparison_price_per_m3', 15, 2)->nullable(); // Harga komparasi per M3
 
             $table->timestamps();
         });

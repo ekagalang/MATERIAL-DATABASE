@@ -190,14 +190,40 @@ class CalculationRepository
             'brick',
             'cement',
             'sand',
+            'cat', // Added cat relationship
         ]);
 
-        // Search filter
+        // Enhanced search filter - searches in multiple fields and relationships
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
+                // Search in calculation fields
                 $q->where('project_name', 'like', "%{$search}%")
-                    ->orWhere('notes', 'like', "%{$search}%");
+                    ->orWhere('notes', 'like', "%{$search}%")
+                    // Search in related brick brand
+                    ->orWhereHas('brick', function ($q) use ($search) {
+                        $q->where('brand', 'like', "%{$search}%");
+                    })
+                    // Search in related cement brand
+                    ->orWhereHas('cement', function ($q) use ($search) {
+                        $q->where('brand', 'like', "%{$search}%");
+                    })
+                    // Search in related sand brand
+                    ->orWhereHas('sand', function ($q) use ($search) {
+                        $q->where('brand', 'like', "%{$search}%");
+                    })
+                    // Search in related cat brand
+                    ->orWhereHas('cat', function ($q) use ($search) {
+                        $q->where('brand', 'like', "%{$search}%");
+                    });
+
+                // Search in numeric fields if search term is numeric
+                if (is_numeric(str_replace(['.', ','], '', $search))) {
+                    $numericSearch = (float) str_replace(['.', ','], '', $search);
+                    $q->orWhereRaw('FLOOR(wall_area) = ?', [floor($numericSearch)])
+                      ->orWhere('total_material_cost', 'like', "%{$search}%")
+                      ->orWhere('total_material_cost', '=', $numericSearch);
+                }
             });
         }
 
@@ -231,6 +257,7 @@ class CalculationRepository
             'brick',
             'cement',
             'sand',
+            'cat', // Added cat relationship
         ])->find($id);
     }
 

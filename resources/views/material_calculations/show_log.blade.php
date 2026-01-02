@@ -7,18 +7,18 @@
         <div class="d-flex justify-content-between align-items-center">
             <div>
                 <h2 class="fw-bold mb-1" style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
-                    <i class="fas fa-file-alt text-primary me-2"></i>Detail Perhitungan
+                    <i class="bi bi-file-text text-primary me-2"></i>Detail Perhitungan
                 </h2>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ route('material-calculations.log') }}" class="btn-cancel" style="border: 1px solid #64748b; background-color: transparent; color: #64748b; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-                    <i class="fas fa-arrow-left"></i> Kembali
+                    <i class="bi bi-arrow-left"></i> Kembali
                 </a>
                 <a href="{{ route('material-calculations.edit', $materialCalculation) }}" class="btn-action" style="background-color: #f59e0b; color: white; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border: none;">
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="bi bi-pencil-square"></i> Edit
                 </a>
                 <button type="button" class="btn-action" onclick="window.print()" style="background-color: #0ea5e9; color: white; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; display: inline-flex; align-items: center; gap: 8px; border: none;">
-                    <i class="fas fa-print"></i> Print
+                    <i class="bi bi-printer"></i> Print
                 </button>
             </div>
         </div>
@@ -37,9 +37,15 @@
 
         // Deteksi kebutuhan material untuk tampilan dinamis
         $hasBrick = $materialCalculation->brick_quantity > 0;
+        $hasCement = $materialCalculation->cement_quantity_sak > 0;
         $hasSand = $materialCalculation->sand_m3 > 0;
-        // Base rows: Cement + Water = 2
-        $rowSpan = 2 + ($hasBrick ? 1 : 0) + ($hasSand ? 1 : 0);
+        $hasCat = $materialCalculation->cat_quantity > 0;
+        
+        // Calculate rowSpan based on active materials + Water (always 1)
+        $rowSpan = 1 + ($hasBrick ? 1 : 0) + ($hasCement ? 1 : 0) + ($hasSand ? 1 : 0) + ($hasCat ? 1 : 0);
+        
+        // Track rendered rows to place rowspan on the first one
+        $isFirstRow = true;
     @endphp
 
     {{-- Header Info: Item Pekerjaan Details Card --}}
@@ -56,14 +62,24 @@
                     </div>
                 </div>
 
-                {{-- Tebal Spesi --}}
+                {{-- Tebal Spesi / Lapis Cat --}}
                 <div style="flex: 0 0 auto; width: 100px;">
+                    @php
+                        $isPainting = $workType === 'painting';
+                        $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL';
+                        $paramUnit = $isPainting ? 'Lapis' : 'cm';
+                        $paramValue = $isPainting ? ($params['painting_layers'] ?? 2) : ($materialCalculation->mortar_thickness ?? 2.0);
+                        $badgeClass = $isPainting ? 'bg-primary text-white' : 'bg-light';
+                        $bgClass = $isPainting ? 'bg-primary text-white' : 'bg-light'; // Badge bg
+                        $inputBg = $isPainting ? '#e0f2fe' : '#e9ecef'; // Input bg
+                        $inputBorder = $isPainting ? '#38bdf8' : '#dee2e6'; // Input border color
+                    @endphp
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                        <span class="badge bg-light border">TEBAL</span>
+                        <span class="badge {{ $badgeClass }} border">{{ $paramLabel }}</span>
                     </label>
                     <div class="input-group">
-                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $materialCalculation->mortar_thickness ?? 2.0 }}</div>
-                        <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">cm</span>
+                        <div class="form-control fw-bold text-center px-1" style="background-color: {{ $inputBg }}; border-color: {{ $inputBorder }};">{{ $paramValue }}</div>
+                        <span class="input-group-text small px-1" style="font-size: 0.7rem; background-color: {{ $isPainting ? '#bae6fd' : '#e9ecef' }}; border-color: {{ $inputBorder }};">{{ $paramUnit }}</span>
                     </div>
                 </div>
 
@@ -317,19 +333,24 @@
                                 <span>{{ number_format($materialCalculation->brick_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
-                        <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
-                            <div class="d-flex justify-content-between w-100">
-                                <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
-                            </div>
-                        </td>
-                        <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
-                            <div class="d-flex justify-content-between w-100">
-                                <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
-                            </div>
-                        </td>
-                        <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                        
+                        @if($isFirstRow)
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                            @php $isFirstRow = false; @endphp
+                        @endif
+
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
@@ -341,6 +362,7 @@
                     @endif
 
                     {{-- ROW 2: SEMEN --}}
+                    @if($hasCement)
                     <tr>
                         <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->cement_quantity_sak, 2, ',', '.') }}</td>
                         <td class="text-center sticky-col-2">Sak</td>
@@ -365,7 +387,7 @@
                             </div>
                         </td>
                         
-                        @if(!$hasBrick)
+                        @if($isFirstRow)
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
@@ -379,26 +401,18 @@
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
-                            
-                            {{-- Harga Beli Semen (Jika Bata tidak ada, rowspan muncul disini) --}}
-                            <td class="text-nowrap">
-                                <div class="d-flex justify-content-between w-100">
-                                    <span>Rp</span>
-                                    <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
-                                </div>
-                            </td>
-                            <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
-                        @else
-                            {{-- Normal Cement Cells if Brick exists --}}
-                            <td class="text-nowrap">
-                                <div class="d-flex justify-content-between w-100">
-                                    <span>Rp</span>
-                                    <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
-                                </div>
-                            </td>
-                            <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
+                            @php $isFirstRow = false; @endphp
                         @endif
+
+                        <td class="text-nowrap">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
                     </tr>
+                    @endif
 
                     {{-- ROW 3: PASIR --}}
                     @if($hasSand)
@@ -425,6 +439,24 @@
                                 <span>{{ number_format($materialCalculation->sand_total_cost, 0, ',', '.') }}</span>
                             </div>
                         </td>
+                        
+                        @if($isFirstRow)
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                            @php $isFirstRow = false; @endphp
+                        @endif
+
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
@@ -435,7 +467,60 @@
                     </tr>
                     @endif
 
-                    {{-- ROW 4: AIR --}}
+                    {{-- ROW 4: CAT (NEW) --}}
+                    @if($hasCat)
+                    <tr>
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->cat_quantity, 2, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">{{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
+                        <td class="fw-bold sticky-col-3">Cat</td>
+                        <td class="text-muted">{{ $materialCalculation->cat->type ?? '-' }}</td>
+                        <td class="fw-bold">{{ $materialCalculation->cat->brand ?? '-' }}</td>
+                        <td>{{ $materialCalculation->cat->color_name ?? '-' }}</td>
+                        <td class="text-start text-nowrap fw-bold">{{ ($materialCalculation->cat->package_weight_net ?? 0) + 0 }} Kg</td>
+                        <td class="store-cell">{{ $materialCalculation->cat->store ?? '-' }}</td>
+                        <td class="small text-muted address-cell">{{ $materialCalculation->cat->address ?? '-' }}</td>
+                        <td class="text-nowrap fw-bold">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->cat_price_per_package, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
+                        <td class="text-nowrap">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->cat_total_cost, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        
+                        @if($isFirstRow)
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                            @php $isFirstRow = false; @endphp
+                        @endif
+
+                        <td class="text-nowrap">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->cat_price_per_package, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
+                    </tr>
+                    @endif
+
+                    {{-- ROW 5: AIR (ALWAYS LAST) --}}
                     <tr class="group-end">
                         <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->water_liters, 2, ',', '.') }}</td>
                         <td class="text-center sticky-col-2">L</td>
@@ -448,6 +533,14 @@
                         <td class="text-center text-muted">-</td>
                         <td></td>
                         <td class="text-center text-muted">-</td>
+                        
+                        @if($isFirstRow)
+                            {{-- Case where NO materials are selected (should not happen, but safe fallback) --}}
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">...</td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">...</td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell">...</td>
+                        @endif
+
                         <td class="text-center text-muted">-</td>
                         <td></td>
                     </tr>
