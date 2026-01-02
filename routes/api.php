@@ -68,7 +68,10 @@ Route::prefix('v1')->group(function () {
     // CEMENT
     Route::get('/cements/field-values/{field}', [\App\Http\Controllers\Api\CementController::class, 'getFieldValues']);
     Route::get('/cements/all-stores', [\App\Http\Controllers\Api\CementController::class, 'getAllStores']);
-    Route::get('/cements/addresses-by-store', [\App\Http\Controllers\Api\CementController::class, 'getAddressesByStore']);
+    Route::get('/cements/addresses-by-store', [
+        \App\Http\Controllers\Api\CementController::class,
+        'getAddressesByStore',
+    ]);
     Route::apiResource('cements', \App\Http\Controllers\Api\CementController::class)->names('api.cements');
 
     // SAND
@@ -83,6 +86,18 @@ Route::prefix('v1')->group(function () {
     Route::get('/cats/addresses-by-store', [\App\Http\Controllers\Api\CatController::class, 'getAddressesByStore']);
     Route::apiResource('cats', \App\Http\Controllers\Api\CatController::class)->names('api.cats');
 
+    // CERAMIC
+    Route::get('/ceramics/field-values/{field}', [
+        \App\Http\Controllers\Api\CeramicController::class,
+        'getFieldValues',
+    ]);
+    Route::get('/ceramics/all-stores', [\App\Http\Controllers\Api\CeramicController::class, 'getAllStores']);
+    Route::get('/ceramics/addresses-by-store', [
+        \App\Http\Controllers\Api\CeramicController::class,
+        'getAddressesByStore',
+    ]);
+    Route::apiResource('ceramics', \App\Http\Controllers\Api\CeramicController::class)->names('api.ceramics');
+
     // ========================================
     // CALCULATION APIs - Clean Architecture Pattern
     // ========================================
@@ -92,7 +107,10 @@ Route::prefix('v1')->group(function () {
     Route::post('/calculations/calculate', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'calculate']);
     Route::post('/calculations/preview', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'preview']);
     Route::post('/calculations/compare', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'compare']);
-    Route::post('/calculations/compare-installation-types', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'compareInstallationTypes']);
+    Route::post('/calculations/compare-installation-types', [
+        \App\Http\Controllers\Api\V1\CalculationApiController::class,
+        'compareInstallationTypes',
+    ]);
     Route::post('/calculations/trace', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'trace']);
     Route::get('/calculations', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'index']);
     Route::get('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'show']);
@@ -104,12 +122,18 @@ Route::prefix('v1')->group(function () {
     // ========================================
 
     // Installation Types (Config - Read Only)
-    Route::get('/installation-types/default', [\App\Http\Controllers\Api\V1\InstallationTypeApiController::class, 'getDefault']);
+    Route::get('/installation-types/default', [
+        \App\Http\Controllers\Api\V1\InstallationTypeApiController::class,
+        'getDefault',
+    ]);
     Route::get('/installation-types/{id}', [\App\Http\Controllers\Api\V1\InstallationTypeApiController::class, 'show']);
     Route::get('/installation-types', [\App\Http\Controllers\Api\V1\InstallationTypeApiController::class, 'index']);
 
     // Mortar Formulas (Config - Read Only)
-    Route::get('/mortar-formulas/default', [\App\Http\Controllers\Api\V1\MortarFormulaApiController::class, 'getDefault']);
+    Route::get('/mortar-formulas/default', [
+        \App\Http\Controllers\Api\V1\MortarFormulaApiController::class,
+        'getDefault',
+    ]);
     Route::get('/mortar-formulas/{id}', [\App\Http\Controllers\Api\V1\MortarFormulaApiController::class, 'show']);
     Route::get('/mortar-formulas', [\App\Http\Controllers\Api\V1\MortarFormulaApiController::class, 'index']);
 
@@ -118,7 +142,10 @@ Route::prefix('v1')->group(function () {
     // ========================================
 
     // Analytics routes MUST come before {id} route to avoid route conflict
-    Route::get('/work-items/analytics/{code}', [\App\Http\Controllers\Api\V1\WorkItemApiController::class, 'getAnalyticsByCode']);
+    Route::get('/work-items/analytics/{code}', [
+        \App\Http\Controllers\Api\V1\WorkItemApiController::class,
+        'getAnalyticsByCode',
+    ]);
     Route::get('/work-items/analytics', [\App\Http\Controllers\Api\V1\WorkItemApiController::class, 'getAllAnalytics']);
 
     // CRUD routes
@@ -132,7 +159,10 @@ Route::prefix('v1')->group(function () {
     // RECOMMENDATIONS APIs
     // ========================================
 
-    Route::post('/recommendations/bulk-update', [\App\Http\Controllers\Api\V1\RecommendationApiController::class, 'bulkUpdate']);
+    Route::post('/recommendations/bulk-update', [
+        \App\Http\Controllers\Api\V1\RecommendationApiController::class,
+        'bulkUpdate',
+    ]);
     Route::get('/recommendations', [\App\Http\Controllers\Api\V1\RecommendationApiController::class, 'index']);
 
     // ========================================

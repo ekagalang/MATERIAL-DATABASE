@@ -3,6 +3,7 @@
 use App\Http\Controllers\BrickController;
 use App\Http\Controllers\CatController;
 use App\Http\Controllers\CementController;
+use App\Http\Controllers\CeramicController;
 use App\Http\Controllers\MaterialCalculationController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SandController;
@@ -27,6 +28,7 @@ Route::resource('bricks', BrickController::class);
 Route::resource('materials', MaterialController::class);
 Route::resource('cements', CementController::class);
 Route::resource('sands', SandController::class);
+Route::resource('ceramics', CeramicController::class);
 
 // API untuk mendapatkan unique values per field - cats
 Route::get('/api/cats/field-values/{field}', [CatController::class, 'getFieldValues'])->name('cats.field-values');
@@ -67,6 +69,19 @@ Route::get('/api/cements/field-values/{field}', [CementController::class, 'getFi
 
 // API untuk mendapatkan unique values per field - Sands
 Route::get('/api/sands/field-values/{field}', [SandController::class, 'getFieldValues'])->name('sands.field-values');
+
+// --- Routes untuk Keramik (Ceramics) ---
+// 1. API Helper Routes (Letakkan SEBELUM resource route agar tidak tertimpa 'show')
+Route::get('/api/ceramics/all-stores', [CeramicController::class, 'getAllStores'])->name('ceramics.all-stores');
+Route::get('/api/ceramics/addresses-by-store', [CeramicController::class, 'getAddressesByStore'])->name(
+    'ceramics.addresses-by-store',
+);
+Route::get('/api/ceramics/field-values/{field}', [CeramicController::class, 'getFieldValues'])->name(
+    'ceramics.field-values',
+);
+
+// 2. Resource Routes (Index, Create, Store, Edit, Update, Destroy)
+Route::resource('ceramics', CeramicController::class);
 
 // Material Calculator Routes
 Route::prefix('material-calculations')

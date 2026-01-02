@@ -1048,6 +1048,16 @@
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
                     }
+                } else if (workTypeSelector.value === 'floor_screed' || workTypeSelector.value === 'coating_floor') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    
+                    // Change label to "Lebar" for Floor types
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Lebar';
+                    }
                 } else {
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
@@ -1113,6 +1123,18 @@
                         if (cementSec) cementSec.style.display = 'none';
                         if (sandSec) sandSec.style.display = 'none';
                         if (catSec) catSec.style.display = 'block';
+                    } else if (selectedWorkType === 'floor_screed') {
+                        // Floor Screed: hide brick and cat, show cement and sand
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'block';
+                        if (sandSec) sandSec.style.display = 'block';
+                        if (catSec) catSec.style.display = 'none';
+                    } else if (selectedWorkType === 'coating_floor') {
+                        // Coating Floor: hide brick, sand and cat, show cement
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'block';
+                        if (sandSec) sandSec.style.display = 'none';
+                        if (catSec) catSec.style.display = 'none';
                     } else {
                         // Brick formulas: show brick, cement, sand, hide cat
                         if (brickSec) brickSec.style.display = 'block';
