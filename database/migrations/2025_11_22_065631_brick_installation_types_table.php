@@ -17,7 +17,7 @@ return new class extends Migration {
             $table
                 ->decimal('mortar_volume_per_m2', 8, 6)
                 ->nullable()
-                ->comment('Volume adukan per M2 (m³/M2) - sesuai Excel');
+                ->comment('Volume adukan per M2 (M3/M2) - sesuai Excel');
 
             // Waste factor untuk perhitungan volume adukan
             // Mencakup: shrinkage, spillage, waste, dan lapisan dasar

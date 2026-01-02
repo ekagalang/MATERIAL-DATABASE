@@ -7,7 +7,6 @@ use App\Http\Controllers\MaterialCalculationController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\SandController;
 use App\Http\Controllers\UnitController;
-use App\Http\Controllers\PriceAnalysisController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkerController;
@@ -16,6 +15,11 @@ use App\Http\Controllers\SkillController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+
+// Tambahkan sementara untuk testing:
+Route::get('/test-error/{code}', function ($code) {
+    abort($code);
+});
 
 Route::resource('units', UnitController::class);
 Route::resource('cats', CatController::class);
@@ -68,7 +72,6 @@ Route::get('/api/sands/field-values/{field}', [SandController::class, 'getFieldV
 Route::prefix('material-calculations')
     ->name('material-calculations.')
     ->group(function () {
-        Route::get('/', [MaterialCalculationController::class, 'index'])->name('index');
         Route::get('/log', [MaterialCalculationController::class, 'log'])->name('log');
         Route::get('/create', [MaterialCalculationController::class, 'create'])->name('create');
         Route::post('/', [MaterialCalculationController::class, 'store'])->name('store');
@@ -82,11 +85,6 @@ Route::prefix('material-calculations')
             'export-pdf',
         );
     });
-
-// Dashboard kalkulator
-Route::get('/material-calculator/dashboard', [MaterialCalculationController::class, 'dashboard'])->name(
-    'material-calculator.dashboard',
-);
 
 // API Routes untuk real-time calculation
 Route::prefix('api/material-calculator')
@@ -104,22 +102,6 @@ Route::prefix('api/material-calculator')
 Route::get('/material-calculator/trace', [MaterialCalculationController::class, 'traceView'])->name(
     'material-calculator.trace',
 );
-
-/* Group route khusus untuk development tools
-Route::prefix('dev')->name('dev.')->group(function () {
-    Route::get('/price-analysis', [PriceAnalysisController::class, 'index'])
-        ->name('price-analysis.index');
-    Route::post('/price-analysis', [PriceAnalysisController::class, 'calculate'])
-        ->name('price-analysis.calculate');
-});
-*/
-
-Route::get('/price-analysis', [PriceAnalysisController::class, 'index'])->name('price-analysis.index');
-Route::post('/price-analysis', [PriceAnalysisController::class, 'calculate'])->name('price-analysis.calculate');
-Route::post('/material-calculations/compare-bricks', [
-    App\Http\Controllers\MaterialCalculationController::class,
-    'compareBricks',
-])->name('material-calculations.compare-bricks');
 
 Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
 Route::get('/work-items/analytics/{code}', [WorkItemController::class, 'analytics'])->name('work-items.analytics');

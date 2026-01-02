@@ -10,7 +10,7 @@ class RecommendedCombination extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['brick_id', 'cement_id', 'sand_id', 'type'];
+    protected $fillable = ['brick_id', 'cement_id', 'sand_id', 'type', 'work_type', 'is_active', 'sort_order'];
 
     public function brick(): BelongsTo
     {

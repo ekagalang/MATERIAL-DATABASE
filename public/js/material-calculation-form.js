@@ -9,6 +9,7 @@ function initMaterialCalculationForm(root, formData) {
     const bricksData = formData?.bricks || [];
     const cementsData = formData?.cements || [];
     const sandsData = formData?.sands || [];
+    const catsData = formData?.cats || [];
 
     // Helper function to calculate area
     function calculateArea() {
@@ -48,7 +49,7 @@ function initMaterialCalculationForm(root, formData) {
                 const brickForm = scope.querySelector('#brickForm') || document.getElementById('brickForm');
                 const otherForm = scope.querySelector('#otherForm') || document.getElementById('otherForm');
 
-                if (workType.includes('brick') || workType.includes('plaster') || workType.includes('skim')) {
+                if (workType.includes('brick') || workType.includes('plaster') || workType.includes('skim') || workType.includes('painting')) {
                     if (brickForm) brickForm.style.display = 'block';
                 } else if (otherForm) {
                     otherForm.style.display = 'block';
@@ -174,6 +175,57 @@ function initMaterialCalculationForm(root, formData) {
                         option.value = sand.id;
                         const pricePerM3 = sand.comparison_price_per_m3 || (sand.package_price / sand.package_volume);
                         option.textContent = `${sand.package_volume} M3 - Rp ${Number(pricePerM3).toLocaleString('id-ID')}/M3`;
+                        packageSelect.appendChild(option);
+                    });
+                }
+            }
+        });
+    }
+
+    // Cat type change handler
+    const customCatType = scope.querySelector('#customCatType') || document.getElementById('customCatType');
+    if (customCatType) {
+        customCatType.addEventListener('change', function() {
+            const type = this.value;
+            const brandSelect = scope.querySelector('#customCatBrand') || document.getElementById('customCatBrand');
+
+            if (brandSelect) {
+                brandSelect.innerHTML = '<option value="">-- Pilih Merk --</option>';
+
+                if (type) {
+                    const filteredCats = catsData.filter(c => c.cat_name === type);
+                    const uniqueBrands = [...new Set(filteredCats.map(c => c.brand))];
+
+                    uniqueBrands.forEach(brand => {
+                        const option = document.createElement('option');
+                        option.value = brand;
+                        option.textContent = brand;
+                        brandSelect.appendChild(option);
+                    });
+                }
+            }
+        });
+    }
+
+    // Cat brand change handler
+    const customCatBrand = scope.querySelector('#customCatBrand') || document.getElementById('customCatBrand');
+    if (customCatBrand) {
+        customCatBrand.addEventListener('change', function() {
+            const brand = this.value;
+            const typeEl = scope.querySelector('#customCatType') || document.getElementById('customCatType');
+            const packageSelect = scope.querySelector('#customCatPackage') || document.getElementById('customCatPackage');
+
+            if (packageSelect && typeEl) {
+                const type = typeEl.value;
+                packageSelect.innerHTML = '<option value="">-- Pilih Kemasan --</option>';
+
+                if (brand && type) {
+                    const filteredCats = catsData.filter(c => c.brand === brand && c.cat_name === type);
+                    filteredCats.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        const price = cat.purchase_price || 0;
+                        option.textContent = `${cat.package_weight_net} kg - Rp ${Number(price).toLocaleString('id-ID')}`;
                         packageSelect.appendChild(option);
                     });
                 }

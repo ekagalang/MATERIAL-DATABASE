@@ -14,23 +14,21 @@
         </button>
         <h2 style="margin: 0; flex-shrink: 0;">Database Cat</h2>
 
-        <form action="{{ route('cats.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
+        <form id="search-form" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1; position: relative;">
                 <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
-                <input type="text" 
-                       name="search" 
-                       value="{{ request('search') }}" 
-                       placeholder="Cari cat, merek, warna, toko..." 
+                <input type="text"
+                       id="search-input"
+                       name="search"
+                       placeholder="Cari cat, merek, warna, toko..."
                        style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search"></i> Cari
             </button>
-            @if(request('search'))
-                <a href="{{ route('cats.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-x-lg"></i> Reset
-                </a>
-            @endif
+            <button type="button" id="reset-button" class="btn btn-secondary" style="display: none;">
+                <i class="bi bi-x-lg"></i> Reset
+            </button>
         </form>
 
         <a href="{{ route('cats.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
@@ -38,191 +36,88 @@
         </a>
     </div>
 
-    @if($cats->count() > 0)
+    <div id="table-container-wrapper" style="display: none;">
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>No</th>
-                        @php
-                            function getSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
-                                $params = array_merge($requestQuery, []);
-                                unset($params['sort_by'], $params['sort_direction']);
-                                if ($currentSortBy === $column) {
-                                    if ($currentDirection === 'asc') {
-                                        $params['sort_by'] = $column;
-                                        $params['sort_direction'] = 'desc';
-                                    }
-                                } else {
-                                    $params['sort_by'] = $column;
-                                    $params['sort_direction'] = 'asc';
-                                }
-                                return route('cats.index', $params);
-                            }
-                            $sortColumns = [
-                                'cat_name' => ['label' => 'Material', 'align' => ''],
-                                'type' => ['label' => 'Jenis', 'align' => ''],
-                                'brand' => ['label' => 'Merek', 'align' => ''],
-                                'sub_brand' => ['label' => 'Sub Merek', 'align' => ''],
-                                'color_code' => ['label' => 'Code', 'align' => 'right'],
-                                'color_name' => ['label' => 'Warna', 'align' => 'left'],
-                                'package_unit' => ['label' => 'Kemasan', 'align' => ''],
-                                'volume' => ['label' => 'Volume', 'align' => ''],
-                                'package_weight_net' => ['label' => 'Berat Bersih', 'align' => 'left'],
-                                'store' => ['label' => 'Toko', 'align' => ''],
-                                'short_address' => ['label' => 'Alamat Singkat', 'align' => 'left'],
-                                'purchase_price' => ['label' => 'Harga Beli', 'align' => ''],
-                                'comparison_price_per_kg' => ['label' => 'Harga Komparasi (/ Kg)', 'align' => ''],
-                            ];
-                        @endphp
-
-                        @foreach(['cat_name', 'type'] as $col)
-                            <th class="sortable" @if($sortColumns[$col]['align']) style="text-align: {{ $sortColumns[$col]['align'] }};" @endif>
-                                <a href="{{ getSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $sortColumns[$col]['label'] }}</span>
-                                    @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
-
-                        @foreach(['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume', 'package_weight_net', 'store', 'short_address', 'purchase_price', 'comparison_price_per_kg'] as $col)
-                            <th class="sortable" @if($sortColumns[$col]['align']) style="text-align: {{ $sortColumns[$col]['align'] }};" @endif>
-                                <a href="{{ getSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $sortColumns[$col]['label'] }}</span>
-                                    @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
-
+                        <th class="sortable" data-column="type">
+                            <span>Jenis</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="brand">
+                            <span>Merek</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="sub_brand">
+                            <span>Sub Merek</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="color_code">
+                            <span>Code</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="color_name">
+                            <span>Warna</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="package_unit">
+                            <span>Kemasan</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="volume">
+                            <span>Volume</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="package_weight_net">
+                            <span>Berat Bersih</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="store">
+                            <span>Toko</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="short_address">
+                            <span>Alamat Singkat</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="purchase_price">
+                            <span>Harga Beli</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
+                        <th class="sortable" data-column="comparison_price_per_kg">
+                            <span>Harga Komparasi (/ Kg)</span>
+                            <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($cats as $index => $cat)
+                <tbody id="cat-list">
                     <tr>
-                        <td style="text-align: center; font-weight: 500; color: #64748b;">
-                            {{ $cats->firstItem() + $index }}
-                        </td>
-                        <td>
-                            <strong style="color: #0f172a; font-weight: 600;">Cat</strong>
-                        </td>
-                        <td style="color: #475569;">{{ $cat->type ?? '-' }}</td>
-                        <td style="color: #475569;">{{ $cat->brand ?? '-' }}</td>
-                        <td style="color: #475569;">{{ $cat->sub_brand ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 12px; text-align:right;">
-                            {{ $cat->color_code ?? '-' }}
-                        </td>
-                        <td style="color: #475569; text-align:left;">{{ $cat->color_name ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 13px;">
-                            @if($cat->package_unit)
-                                {{ $cat->packageUnit->name ?? $cat->package_unit }}</br> ({{ $cat->package_weight_gross }} Kg)
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td style="text-align: right; color: #475569; font-size: 12px;">
-                            @if($cat->volume)
-                                {{ rtrim(rtrim(number_format($cat->volume, 2, ',', '.'), '0'), ',') }} {{ $cat->volume_unit }}
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td style="text-align: left; color: #475569; font-size: 12px;">
-                            @if($cat->package_weight_net)
-                                {{ rtrim(rtrim(number_format($cat->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
-                                {{ $cat->store ?? '-' }}
-                            </span>
-                        </td>
-                        <td style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: left;">
-                            {{ $cat->short_address ?? '-' }}
-                        </td>
-                        <td>
-                            @if($cat->purchase_price)
-                                <div style="display: flex; width: 100%; font-size: 13px;">
-                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
-                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                                        {{ number_format($cat->purchase_price, 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($cat->comparison_price_per_kg)
-                                <div style="display: flex; width: 100%; font-size: 13px;">
-                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
-                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                                        {{ number_format($cat->comparison_price_per_kg, 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="{{ route('cats.show', $cat->id) }}"
-                                   class="btn btn-primary btn-sm open-modal"
-                                   title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-
-                                <a href="{{ route('cats.edit', $cat->id) }}"
-                                   class="btn btn-warning btn-sm open-modal"
-                                   title="Edit">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
-
-                                <form action="{{ route('cats.destroy', $cat->id) }}"
-                                      method="POST"
-                                      onsubmit="return confirm('Yakin ingin menghapus cat ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="btn btn-danger btn-sm"
-                                            title="Hapus">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
+                        <td colspan="15" style="text-align: center; padding: 60px;">
+                            <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+    <span class="visually-hidden">Loading...</span>
+</div>
+                            <div style="margin-top: 16px; color: #64748b;">Memuat data...</div>
                         </td>
                     </tr>
-                    @endforeach
                 </tbody>
             </table>
         </div>
 
-        <div class="pagination">
-            {{ $cats->links('pagination::simple-default') }}
-        </div>
-    @else
+        <div class="pagination" id="cat-pagination"></div>
+    </div>
+
+    <div id="empty-state-container" style="display: none;">
         <div class="empty-state">
             <div class="empty-state-icon">🎨</div>
-            <p>{{ request('search') ? 'Tidak ada cat yang sesuai dengan pencarian' : 'Belum ada data cat' }}</p>
-            @if(!request('search'))
-                <a href="{{ route('cats.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;">
-                    <i class="bi bi-plus-lg"></i> Tambah Data Pertama
-                </a>
-            @endif
+            <p id="empty-state-message">Belum ada data cat</p>
+            <a href="{{ route('cats.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;" id="empty-state-add-button">
+                <i class="bi bi-plus-lg"></i> Tambah Data Pertama
+            </a>
         </div>
-    @endif
+    </div>
 </div>
 
 <!-- Floating Modal Container -->
@@ -424,12 +319,8 @@ th.sortable {
     user-select: none;
 }
 
-th.sortable a {
-    transition: all 0.2s ease;
-}
-
-th.sortable:hover a {
-    color: #891313 !important;
+th.sortable:hover {
+    color: #fecaca !important;
 }
 
 th.sortable:hover i {
@@ -441,98 +332,379 @@ th.sortable i {
 }
 </style>
 
+<script src="{{ asset('js/api-helper.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('floatingModal');
-    const modalBody = document.getElementById('modalBody');
-    const modalTitle = document.getElementById('modalTitle');
-    const closeBtn = document.getElementById('closeModal');
-    const backdrop = modal.querySelector('.floating-modal-backdrop');
+    // State management
+    let currentPage = 1;
+    let currentSearch = '';
+    let currentSortBy = null;
+    let currentSortDirection = null;
 
-    function interceptFormSubmit() {
-        const form = modalBody.querySelector('form');
-        if (form) {
-            form.addEventListener('submit', function(e) {
-                // Let form submit normally
-            });
+    // Load cats from API
+    async function loadCats(page = 1, search = '', sortBy = null, sortDirection = null) {
+        currentPage = page;
+        currentSearch = search;
+        currentSortBy = sortBy;
+        currentSortDirection = sortDirection;
+
+        // Update reset button visibility
+        const resetButton = document.getElementById('reset-button');
+        if (search) {
+            resetButton.style.display = 'inline-block';
+        } else {
+            resetButton.style.display = 'none';
+        }
+
+        const params = {
+            per_page: 9999 // Get all data without pagination
+        };
+
+        if (search) params.search = search;
+        if (sortBy) {
+            params.sort_by = sortBy;
+            params.sort_direction = sortDirection || 'asc';
+        }
+
+        const response = await api.get('/cats', params);
+
+        if (response.success && response.data.length > 0) {
+            const pagination = response.meta || response.pagination;
+            renderCats(response.data, pagination);
+            updateSortIcons();
+            showTable();
+        } else {
+            showEmptyState(search);
         }
     }
 
-    document.querySelectorAll('.open-modal').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const url = this.href;
+    // Render cats table
+    function renderCats(cats, pagination) {
+        const tbody = document.getElementById('cat-list');
+        const html = cats.map((cat, index) => {
+            const rowNumber = index + 1;
 
-            modal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-            
-            if (url.includes('/create')) {
-                modalTitle.textContent = 'Tambah Cat Baru';
-            } else if (url.includes('/edit')) {
-                modalTitle.textContent = 'Edit Cat';
-            } else {
-                modalTitle.textContent = 'Detail Cat';
+            function formatWeight(value) {
+                if (!value) return '<span style="color: #cbd5e1;">—</span>';
+                return parseFloat(value).toString().replace('.', ',') + ' Kg';
             }
-            
-            fetch(url, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
-                modalBody.innerHTML = content ? content.outerHTML : html;
 
-                if (!window.catFormScriptLoaded) {
-                    const script = document.createElement('script');
-                    script.src = '/js/cat-form.js';
-                    script.onload = () => {
-                        window.catFormScriptLoaded = true;
+            function formatVolume(value, unit) {
+                if (!value) return '<span style="color: #cbd5e1;">—</span>';
+                return parseFloat(value).toString().replace('.', ',') + ' ' + (unit || 'L');
+            }
+
+            return `
+                <tr class="text-nowrap">
+                    <td style="text-align: center; font-weight: 500; color: #64748b;">
+                        ${rowNumber}
+                    </td>
+                    <td style="color: #475569;">${cat.type || '-'}</td>
+                    <td style="color: #475569;">${cat.brand || '-'}</td>
+                    <td style="color: #475569;">${cat.sub_brand || '-'}</td>
+                    <td style="color: #475569; font-size: 12px; text-align:right;">
+                        ${cat.color_code || '-'}
+                    </td>
+                    <td style="color: #475569; text-align:left;">${cat.color_name || '-'}</td>
+                    <td style="color: #475569; font-size: 13px;">
+                        ${cat.package_unit ? `
+                            ${cat.package_unit} (${cat.package_weight_gross || '-'} Kg)
+                        ` : '<span style="color: #cbd5e1;">—</span>'}
+                    </td>
+                    <td style="text-align: right; color: #475569; font-size: 12px;">
+                        ${formatVolume(cat.volume, cat.volume_unit)}
+                    </td>
+                    <td style="text-align: left; color: #475569; font-size: 12px;">
+                        ${formatWeight(cat.package_weight_net)}
+                    </td>
+                    <td>
+                        <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
+                            ${cat.store || '-'}
+                        </span>
+                    </td>
+                    <td style="color: #64748b; font-size: 12px; line-height: 1.5; text-align: left;">
+                        ${cat.short_address || '-'}
+                    </td>
+                    <td>
+                        ${cat.purchase_price ? `
+                            <div style="display: flex; width: 100%; font-size: 13px;">
+                                <span style="color: #64748b; font-weight: 500;">Rp</span>
+                                <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
+                                    ${api.formatRupiah(cat.purchase_price)}
+                                </span>
+                            </div>
+                        ` : '<span style="color: #cbd5e1;">—</span>'}
+                    </td>
+                    <td>
+                        ${cat.comparison_price_per_kg ? `
+                            <div style="display: flex; width: 100%; font-size: 13px;">
+                                <span style="color: #64748b; font-weight: 500;">Rp</span>
+                                <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
+                                    ${api.formatRupiah(cat.comparison_price_per_kg)}
+                                </span>
+                            </div>
+                        ` : '<span style="color: #cbd5e1;">—</span>'}
+                    </td>
+                    <td>
+                        <div class="btn-group">
+                            <a href="/cats/${cat.id}"
+                               class="btn btn-primary btn-sm open-modal"
+                               title="Detail">
+                                <i class="bi bi-eye"></i>
+                            </a>
+
+                            <a href="/cats/${cat.id}/edit"
+                               class="btn btn-warning btn-sm open-modal"
+                               title="Edit">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+
+                            <button type="button"
+                                    class="btn btn-danger btn-sm"
+                                    onclick="deleteCat(${cat.id})"
+                                    title="Hapus">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.innerHTML = html;
+
+        // Re-attach modal handlers for new buttons
+        attachModalHandlers();
+    }
+
+    // Render pagination
+    function renderPagination(pagination) {
+        const container = document.getElementById('cat-pagination');
+
+        // Hide pagination if only 1 page or no data
+        if (!pagination || pagination.last_page <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '<div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">';
+
+        // Previous button
+        if (pagination.current_page > 1) {
+            html += `<button onclick="loadCats(${pagination.current_page - 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary btn-sm">← Sebelumnya</button>`;
+        } else {
+            html += `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">← Sebelumnya</button>`;
+        }
+
+        // Page info
+        html += `<span style="color: #64748b; font-size: 14px;">Halaman ${pagination.current_page} dari ${pagination.last_page}</span>`;
+
+        // Next button
+        if (pagination.current_page < pagination.last_page) {
+            html += `<button onclick="loadCats(${pagination.current_page + 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary btn-sm">Selanjutnya →</button>`;
+        } else {
+            html += `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">Selanjutnya →</button>`;
+        }
+
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    // Show/hide containers
+    function showTable() {
+        document.getElementById('table-container-wrapper').style.display = 'block';
+        document.getElementById('empty-state-container').style.display = 'none';
+    }
+
+    function showEmptyState(hasSearch) {
+        document.getElementById('table-container-wrapper').style.display = 'none';
+        document.getElementById('empty-state-container').style.display = 'block';
+
+        const message = document.getElementById('empty-state-message');
+        const addButton = document.getElementById('empty-state-add-button');
+
+        if (hasSearch) {
+            message.textContent = 'Tidak ada cat yang sesuai dengan pencarian';
+            addButton.style.display = 'none';
+        } else {
+            message.textContent = 'Belum ada data cat';
+            addButton.style.display = 'inline-block';
+        }
+    }
+
+    // Search form handler
+    document.getElementById('search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const searchValue = document.getElementById('search-input').value;
+        loadCats(1, searchValue, currentSortBy, currentSortDirection);
+    });
+
+    // Reset button handler
+    document.getElementById('reset-button').addEventListener('click', function() {
+        document.getElementById('search-input').value = '';
+        loadCats(1, '', currentSortBy, currentSortDirection);
+    });
+
+    // Sort functionality
+    document.querySelectorAll('th.sortable').forEach(header => {
+        header.addEventListener('click', function() {
+            const column = this.dataset.column;
+            let direction = 'asc';
+
+            if (currentSortBy === column) {
+                if (currentSortDirection === 'asc') {
+                    direction = 'desc';
+                } else if (currentSortDirection === 'desc') {
+                    // Reset sort
+                    currentSortBy = null;
+                    currentSortDirection = null;
+                    loadCats(currentPage, currentSearch, null, null);
+                    return;
+                }
+            }
+
+            loadCats(currentPage, currentSearch, column, direction);
+        });
+    });
+
+    // Update sort icons
+    function updateSortIcons() {
+        document.querySelectorAll('th.sortable i').forEach(icon => {
+            icon.className = 'bi bi-arrow-down-up';
+            icon.style.opacity = '0.3';
+        });
+
+        if (currentSortBy) {
+            const activeHeader = document.querySelector(`th.sortable[data-column="${currentSortBy}"] i`);
+            if (activeHeader) {
+                activeHeader.style.opacity = '1';
+                if (currentSortDirection === 'asc') {
+                    activeHeader.className = 'bi bi-sort-up';
+                } else {
+                    activeHeader.className = 'bi bi-sort-down-alt';
+                }
+            }
+        }
+    }
+
+    // Delete cat
+    window.deleteCat = async function(id) {
+        if (!confirm('Yakin ingin menghapus cat ini?')) return;
+
+        const result = await api.delete(`/cats/${id}`);
+        if (result.success) {
+            loadCats(currentPage, currentSearch, currentSortBy, currentSortDirection);
+        } else {
+            alert('Gagal menghapus data: ' + result.message);
+        }
+    };
+
+    // Modal functionality
+    function attachModalHandlers() {
+        document.querySelectorAll('.open-modal').forEach(link => {
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+        });
+
+        initModalHandlers();
+    }
+
+    function initModalHandlers() {
+        const modal = document.getElementById('floatingModal');
+        const modalBody = document.getElementById('modalBody');
+        const modalTitle = document.getElementById('modalTitle');
+        const closeBtn = document.getElementById('closeModal');
+        const backdrop = modal.querySelector('.floating-modal-backdrop');
+
+        function interceptFormSubmit() {
+            const form = modalBody.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    // Let form submit normally
+                });
+            }
+        }
+
+        document.querySelectorAll('.open-modal').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const url = this.href;
+
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                if (url.includes('/create')) {
+                    modalTitle.textContent = 'Tambah Cat Baru';
+                } else if (url.includes('/edit')) {
+                    modalTitle.textContent = 'Edit Cat';
+                } else {
+                    modalTitle.textContent = 'Detail Cat';
+                }
+
+                fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
+                    modalBody.innerHTML = content ? content.outerHTML : html;
+
+                    if (!window.catFormScriptLoaded) {
+                        const script = document.createElement('script');
+                        script.src = '/js/cat-form.js';
+                        script.onload = () => {
+                            window.catFormScriptLoaded = true;
+                            setTimeout(() => {
+                                if (typeof initCatForm === 'function') {
+                                    initCatForm(modalBody);
+                                }
+                                interceptFormSubmit();
+                            }, 100);
+                        };
+                        document.head.appendChild(script);
+                    } else {
                         setTimeout(() => {
                             if (typeof initCatForm === 'function') {
                                 initCatForm(modalBody);
                             }
                             interceptFormSubmit();
                         }, 100);
-                    };
-                    document.head.appendChild(script);
-                } else {
-                    setTimeout(() => {
-                        if (typeof initCatForm === 'function') {
-                            initCatForm(modalBody);
-                        }
-                        interceptFormSubmit();
-                    }, 100);
-                }
-            })
-            .catch(err => {
-                modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
-                console.error('Fetch error:', err);
+                    }
+                })
+                .catch(err => {
+                    modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
+                    console.error('Fetch error:', err);
+                });
             });
         });
-    });
 
-    // Close modal function - Global
-    window.closeFloatingModal = function() {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-        setTimeout(() => {
-            modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
-        }, 300);
+        window.closeFloatingModal = function() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            setTimeout(() => {
+                modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
+            }, 300);
+            // Reload data after modal closes
+            loadCats(currentPage, currentSearch, currentSortBy, currentSortDirection);
+        }
+
+        closeBtn.addEventListener('click', window.closeFloatingModal);
+        backdrop.addEventListener('click', window.closeFloatingModal);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                window.closeFloatingModal();
+            }
+        });
     }
 
-    closeBtn.addEventListener('click', window.closeFloatingModal);
-    backdrop.addEventListener('click', window.closeFloatingModal);
-
-    // Close on ESC key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.classList.contains('active')) {
-            window.closeFloatingModal();
-        }
-    });
+    // Initialize
+    initModalHandlers();
+    loadCats();
 });
 </script>
 @endsection

@@ -33,6 +33,10 @@
     <form action="{{ route('material-calculations.store') }}" method="POST" id="calculationForm">
         @csrf
 
+        {{-- Hidden fields for default values --}}
+        <input type="hidden" name="installation_type_id" value="{{ $defaultInstallationType->id ?? '' }}">
+        <input type="hidden" name="mortar_formula_id" value="{{ $defaultMortarFormula->id ?? '' }}">
+
         {{-- TWO COLUMN LAYOUT - ALWAYS VISIBLE --}}
         <div class="two-column-layout">
             {{-- LEFT COLUMN: FORM INPUTS --}}
@@ -76,21 +80,21 @@
                                 </div>
                             </div>
 
-                            <div class="dimension-item">
+                            <div class="dimension-item" id="mortarThicknessGroup">
                                 <label>Tebal</label>
                                 <div class="input-with-unit">
-                                    <input type="number" name="mortar_thickness" step="0.1" min="0.1"
-                                        value="{{ request('mortar_thickness', 2) }}" required>
+                                    <input type="number" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1"
+                                        value="{{ request('mortar_thickness', 2) }}">
                                     <span class="unit">cm</span>
                                 </div>
                             </div>
 
-                            {{-- INPUT TINGKAT UNTUK ROLLAG --}}
+                            {{-- INPUT TINGKAT UNTUK ROLLAG / LAPIS UNTUK PENGECATAN --}}
                             <div class="dimension-item" id="layerCountGroup" style="display: none;">
-                                <label>Tingkat</label>
-                                <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
-                                    <input type="number" name="layer_count" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
-                                    <span class="unit" style="background-color: #fef3c7;">Lapis</span>
+                                <label id="layerCountLabel">Tingkat</label>
+                                <div class="input-with-unit" id="layerCountInputWrapper" style="background-color: #fffbeb; border-color: #fcd34d;">
+                                    <input type="number" name="layer_count" id="layerCount" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
+                                    <span class="unit" id="layerCountUnit" style="background-color: #fef3c7;">Lapis</span>
                                 </div>
                             </div>
 
@@ -98,7 +102,7 @@
                             <div class="dimension-item" id="plasterSidesGroup" style="display: none;">
                                 <label>Sisi Plesteran</label>
                                 <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                                    <input type="number" name="plaster_sides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
+                                    <input type="number" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
                                     <span class="unit" style="background-color: #bae6fd;">Sisi</span>
                                 </div>
                             </div>
@@ -107,7 +111,7 @@
                             <div class="dimension-item" id="skimSidesGroup" style="display: none;">
                                 <label>Sisi Aci</label>
                                 <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
-                                    <input type="number" name="skim_sides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
+                                    <input type="number" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
                                     <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
                                 </div>
                             </div>
@@ -227,7 +231,7 @@
                                 <div class="form-group">
                                     <label>Bata :</label>
                                     <div class="input-wrapper">
-                                        <select name="brick_id" class="form-select select-green">
+                                        <select name="brick_id" id="customBrick" class="form-select select-green">
                                             <option value="">-- Semua Bata (Auto) --</option>
                                             @foreach($bricks as $brick)
                                                 <option value="{{ $brick->id }}">
@@ -306,17 +310,50 @@
                                 </div>
                             </div>
                         </div>
+
+                        {{-- 4. CAT SECTION --}}
+                        <div class="material-section" id="catSection" style="display: none;">
+                            <h4 class="section-header">Cat</h4>
+                            <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                                <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Cat
+                            </div>
+
+                            <div class="form-group">
+                                <label>Jenis :</label>
+                                <div class="input-wrapper">
+                                    <select id="customCatType" name="custom_cat_type" class="select-gray">
+                                        <option value="">-- Pilih Jenis --</option>
+                                        @if(isset($cats))
+                                            @foreach($cats->groupBy('cat_name')->keys() as $type)
+                                                <option value="{{ $type }}">{{ $type }}</option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Merek :</label>
+                                <div class="input-wrapper">
+                                    <select id="customCatBrand" name="custom_cat_brand" class="select-gray">
+                                        <option value="">-- Pilih Merk --</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Kemasan :</label>
+                                <div class="input-wrapper">
+                                    <select id="customCatPackage" name="cat_id" class="select-gray-light">
+                                        <option value="">-- Pilih Kemasan (Opsional) --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
         </div>
 
         <div class="button-actions">
-            <!--
-            <a href="{{ route('price-analysis.index') }}" class="btn btn-cancel">
-                <i class="bi bi-arrow-left"></i> Kembali
-            </a>
-            -->
             <button type="submit" class="btn btn-submit">
                 <i class="bi bi-search"></i> Hitung / Cari Kombinasi
             </button>
@@ -880,6 +917,7 @@
     'bricks' => $bricks,
     'cements' => $cements,
     'sands' => $sands,
+    'cats' => $cats ?? [],
 ]) !!}
 </script>
 <script src="{{ asset('js/material-calculation-form.js') }}"></script>
@@ -944,11 +982,29 @@
         const wallHeightLabel = document.getElementById('wallHeightLabel');
 
         function toggleLayerInputs() {
+            const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
+            const layerCountLabel = document.getElementById('layerCountLabel');
+            const layerCountUnit = document.getElementById('layerCountUnit');
+            const layerCountInputWrapper = document.getElementById('layerCountInputWrapper');
+
             if (workTypeSelector && layerCountGroup && plasterSidesGroup && skimSidesGroup) {
                 if (workTypeSelector.value === 'brick_rollag') {
                     layerCountGroup.style.display = 'block';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    
+                    // Update label and unit for Rollag
+                    if (layerCountLabel) layerCountLabel.textContent = 'Tingkat';
+                    if (layerCountUnit) {
+                        layerCountUnit.textContent = 'Tingkat';
+                        layerCountUnit.style.backgroundColor = '#fef3c7';
+                    }
+                    if (layerCountInputWrapper) {
+                        layerCountInputWrapper.style.backgroundColor = '#fffbeb';
+                        layerCountInputWrapper.style.borderColor = '#fcd34d';
+                    }
+
                     // Change label from "Tinggi" to "Lebar" for Rollag
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Lebar';
@@ -957,6 +1013,7 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'block';
                     skimSidesGroup.style.display = 'none';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
                     // Restore label to "Tinggi" for Plastering
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -965,7 +1022,29 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
                     // Restore label to "Tinggi" for Skim Coating
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
+                } else if (workTypeSelector.value === 'painting') {
+                    layerCountGroup.style.display = 'block';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+                    
+                    // Update label and unit for Painting
+                    if (layerCountLabel) layerCountLabel.textContent = 'Lapis';
+                    if (layerCountUnit) {
+                        layerCountUnit.textContent = 'Lapis';
+                        layerCountUnit.style.backgroundColor = '#dbeafe';
+                    }
+                    if (layerCountInputWrapper) {
+                        layerCountInputWrapper.style.backgroundColor = '#f0f9ff';
+                        layerCountInputWrapper.style.borderColor = '#38bdf8';
+                    }
+
+                    // Restore label to "Tinggi" for Painting
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
                     }
@@ -973,6 +1052,7 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
                     // Restore label to "Tinggi" for other formulas
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -995,7 +1075,9 @@
                 setTimeout(() => {
                     const allSections = document.querySelectorAll('#customMaterialForm .material-section');
                     let brickSec = null;
+                    let cementSec = null;
                     let sandSec = null;
+                    let catSec = null;
 
                     allSections.forEach(section => {
                         const header = section.querySelector('h4.section-header');
@@ -1003,24 +1085,40 @@
                             const headerText = header.textContent.trim();
                             if (headerText === 'Bata') {
                                 brickSec = section;
+                            } else if (headerText === 'Semen') {
+                                cementSec = section;
                             } else if (headerText === 'Pasir') {
                                 sandSec = section;
+                            } else if (headerText === 'Cat') {
+                                catSec = section;
                             }
                         }
                     });
 
                     if (selectedWorkType === 'wall_plastering') {
-                        // Wall plastering: hide brick, show sand
+                        // Wall plastering: hide brick, show cement and sand
                         if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'block';
+                        if (catSec) catSec.style.display = 'none';
                     } else if (selectedWorkType === 'skim_coating') {
-                        // Skim coating: hide brick and sand
+                        // Skim coating: hide brick and sand, show cement
                         if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'none';
+                        if (catSec) catSec.style.display = 'none';
+                    } else if (selectedWorkType === 'painting') {
+                        // Painting: hide brick, cement, sand, show cat
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'none';
+                        if (sandSec) sandSec.style.display = 'none';
+                        if (catSec) catSec.style.display = 'block';
                     } else {
-                        // Brick formulas: show all
+                        // Brick formulas: show brick, cement, sand, hide cat
                         if (brickSec) brickSec.style.display = 'block';
+                        if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'block';
+                        if (catSec) catSec.style.display = 'none';
                     }
                 }, 100);
             };

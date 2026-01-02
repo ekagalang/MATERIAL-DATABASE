@@ -36,6 +36,12 @@ class BrickCalculation extends Model
         'sand_id',
         'sand_price_per_m3',
         'sand_total_cost',
+        'cat_id',
+        'cat_quantity',
+        'cat_kg',
+        'paint_liters',
+        'cat_price_per_package',
+        'cat_total_cost',
         'water_liters',
         'total_material_cost',
         'calculation_params',
@@ -67,6 +73,11 @@ class BrickCalculation extends Model
         'sand_kg' => 'decimal:2',
         'sand_price_per_m3' => 'decimal:2',
         'sand_total_cost' => 'decimal:2',
+        'cat_quantity' => 'decimal:2',
+        'cat_kg' => 'decimal:2',
+        'paint_liters' => 'decimal:2',
+        'cat_price_per_package' => 'decimal:2',
+        'cat_total_cost' => 'decimal:2',
         'water_liters' => 'decimal:2',
         'total_material_cost' => 'decimal:2',
         'calculation_params' => 'array',
@@ -102,6 +113,11 @@ class BrickCalculation extends Model
     public function sand(): BelongsTo
     {
         return $this->belongsTo(Sand::class);
+    }
+
+    public function cat(): BelongsTo
+    {
+        return $this->belongsTo(Cat::class);
     }
 
     /**
@@ -206,6 +222,14 @@ class BrickCalculation extends Model
             'sand_price_per_m3' => $result['sand_price_per_m3'],
             'sand_total_cost' => $result['total_sand_price'],
 
+            // Cat results
+            'cat_id' => $params['cat_id'] ?? null,
+            'cat_quantity' => $result['cat_packages'] ?? 0,
+            'cat_kg' => $result['cat_kg'] ?? 0,
+            'paint_liters' => $result['cat_liters'] ?? 0,
+            'cat_price_per_package' => $result['cat_price_per_package'] ?? 0,
+            'cat_total_cost' => $result['total_cat_price'] ?? 0,
+
             // Water
             'water_liters' => $result['water_liters'],
 
@@ -226,6 +250,9 @@ class BrickCalculation extends Model
                 'ratio_used' => $useCustomRatio
                     ? "{$params['custom_cement_ratio']}:{$params['custom_sand_ratio']}"
                     : "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
+                'layer_count' => $params['layer_count'] ?? 1,
+                'plaster_sides' => $params['plaster_sides'] ?? 1,
+                'skim_sides' => $params['skim_sides'] ?? 1,
             ],
         ]);
 
@@ -389,6 +416,12 @@ class BrickCalculation extends Model
                     'kg' => number_format($this->sand_kg, 2) . ' kg',
                     'm3' => number_format($this->sand_m3, 6) . ' M3',
                     'cost' => 'Rp ' . number_format($this->sand_total_cost, 0, ',', '.'),
+                ],
+                'cat' => [
+                    'quantity' => number_format($this->cat_quantity, 2) . ' kemasan',
+                    'kg' => number_format($this->cat_kg, 2) . ' kg',
+                    'liters' => number_format($this->paint_liters, 2) . ' liter',
+                    'cost' => 'Rp ' . number_format($this->cat_total_cost, 0, ',', '.'),
                 ],
                 'water' => [
                     'liters' => number_format($this->water_liters, 2) . ' liter',

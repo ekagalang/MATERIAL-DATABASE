@@ -1888,5 +1888,9 @@
             });
         });
     </script>
+
+    <!-- Performance Optimization Scripts -->
+    <script src="{{ asset('js/search-debounce.js') }}"></script>
+    <script src="{{ asset('js/lazy-loading.js') }}"></script>
 </body>
 </html>

@@ -15,23 +15,21 @@
 
         <h2 style="margin: 0; flex-shrink: 0;">Database Bata</h2>
 
-        <form action="{{ route('bricks.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
+        <form id="search-form" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1; position: relative;">
                 <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
-                <input type="text" 
-                    name="search" 
-                    value="{{ request('search') }}" 
-                    placeholder="Cari jenis, merek, bentuk, toko..." 
+                <input type="text"
+                    id="search-input"
+                    name="search"
+                    placeholder="Cari jenis, merek, bentuk, toko..."
                     style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search"></i> Cari
             </button>
-            @if(request('search'))
-                <a href="{{ route('bricks.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-x-lg"></i> Reset
-                </a>
-            @endif
+            <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
+                <i class="bi bi-x-lg"></i> Reset
+            </button>
         </form>
 
         <a href="{{ route('bricks.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
@@ -39,230 +37,110 @@
         </a>
     </div>
 
-    @if($bricks->count() > 0)
-        <div class="table-container">
-            <table>
-                <thead>
-                    @php
-                        $sortableColumns = [
-                            'material_name' => 'Material',
-                            'type' => 'Jenis',
-                            'brand' => 'Merek',
-                            'form' => 'Bentuk',
-                            'dimension_length' => 'Panjang (cm)',
-                            'dimension_width' => 'Lebar (cm)',
-                            'dimension_height' => 'Tinggi (cm)',
-                            'package_volume' => 'Volume',
-                            'store' => 'Toko',
-                            'address' => 'Alamat',
-                            'price_per_piece' => 'Harga Beli',
-                            'comparison_price_per_m3' => 'Harga Komparasi (/ M3)',
-                        ];
+    <!-- Table Container -->
+    <div id="table-container" class="table-container">
+        <table>
+            <thead>
+                <tr class="dim-group-row">
+                    <th rowspan="2">No</th>
 
-                        // Function to get next sort state
-                        function getNextSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
-                            $params = array_merge($requestQuery, []);
-                            unset($params['sort_by'], $params['sort_direction']);
+                    <th class="sortable" rowspan="2" data-column="type">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Jenis</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                            // 3-state logic: asc -> desc -> reset (no sort)
-                            if ($currentSortBy === $column) {
-                                if ($currentDirection === 'asc') {
-                                    $params['sort_by'] = $column;
-                                    $params['sort_direction'] = 'desc';
-                                }
-                                // If desc, don't add params (reset to default)
-                            } else {
-                                $params['sort_by'] = $column;
-                                $params['sort_direction'] = 'asc';
-                            }
+                    <th class="sortable" rowspan="2" data-column="brand">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Merek</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                            return route('bricks.index', $params);
-                        }
-                    @endphp
-                    <tr class="dim-group-row">
-                        <th rowspan="2">No</th>
+                    <th class="sortable" rowspan="2" data-column="form">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Bentuk</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        @foreach(['material_name', 'type'] as $column)
-                            <th class="sortable" rowspan="2">
-                                <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $sortableColumns[$column] }}</span>
-                                    @if(request('sort_by') == $column)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                    <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;" data-column="dimension_length">
+                        <a href="#" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                            <span>Dimensi (cm)</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        @foreach(['brand', 'form'] as $column)
-                            <th class="sortable" rowspan="2">
-                                <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $sortableColumns[$column] }}</span>
-                                    @if(request('sort_by') == $column)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                    <th class="sortable" rowspan="2" data-column="package_volume">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Volume</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
-                            <a href="{{ getNextSortUrl('dimension_length', request('sort_by'), request('sort_direction'), request()->query()) }}"
-                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                <span>Dimensi (cm)</span>
-                                @if(in_array(request('sort_by'), ['dimension_length', 'dimension_width', 'dimension_height']))
-                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="font-size: 12px;"></i>
-                                @else
-                                    <i class="bi bi-arrow-down-up" style="font-size: 12px; opacity: 0.3;"></i>
-                                @endif
-                            </a>
-                        </th>
+                    <th class="sortable" rowspan="2" data-column="store">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Toko</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        @foreach(['package_volume', 'store', 'address', 'price_per_piece', 'comparison_price_per_m3'] as $column)
-                            <th class="sortable" rowspan="2">
-                                <a href="{{ getNextSortUrl($column, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $sortableColumns[$column] }}</span>
-                                    @if(request('sort_by') == $column)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                    <th class="sortable" rowspan="2" data-column="address">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Alamat</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        <th rowspan="2" style="text-align: center">Aksi</th>
-                    </tr>
-                    <tr class="dim-sub-row">
-                        @foreach(['P', 'L', 'T'] as $label)
-                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($bricks as $index => $brick)
-                    <tr>
-                        <td style="text-align: center; font-weight: 500; color: #64748b;">
-                            {{ $bricks->firstItem() + $index }}
-                        </td>
-                        <td>
-                            <strong style="color: #0f172a; font-weight: 600;">{{ $brick->material_name }}</strong>
-                        </td>
-                        <td style="color: #475569;">{{ $brick->type ?? '-' }}</td>
-                        <td style="color: #475569;">{{ $brick->brand ?? '-' }}</td>
-                        <td style="color: #475569;">{{ $brick->form ?? '-' }}</td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
-                            @if(!is_null($brick->dimension_length))
-                                {{ rtrim(rtrim(number_format($brick->dimension_length, 1, ',', '.'), '0'), ',') }}
-                            @else
-                                <span style="color: #cbd5e1;">-</span>
-                            @endif
-                        </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
-                            @if(!is_null($brick->dimension_width))
-                                {{ rtrim(rtrim(number_format($brick->dimension_width, 1, ',', '.'), '0'), ',') }}
-                            @else
-                                <span style="color: #cbd5e1;">-</span>
-                            @endif
-                        </td>
-                        <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
-                            @if(!is_null($brick->dimension_height))
-                                {{ rtrim(rtrim(number_format($brick->dimension_height, 1, ',', '.'), '0'), ',') }}
-                            @else
-                                <span style="color: #cbd5e1;">-</span>
-                            @endif
-                        </td>
-                        <td class="volume-cell" style="text-align: right; color: #475569; font-size: 12px;">
-                            @if($brick->package_volume)
-                                {{ number_format($brick->package_volume, 6, ',', '.') }} M3
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
-                                {{ $brick->store ?? '-' }}
-                            </span>
-                        </td>
-                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                            {{ $brick->address ?? '-' }}
-                        </td>
-                        <td>
-                            @if($brick->price_per_piece)
-                                <div style="display: flex; width: 100%; font-size: 13px;">
-                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
-                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                                        {{ number_format($brick->price_per_piece, 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($brick->comparison_price_per_m3)
-                                <div style="display: flex; width: 100%; font-size: 13px;">
-                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
-                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                                        {{ number_format($brick->comparison_price_per_m3, 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td style="text-align: center">
-                            <div class="btn-group">
-                                <a href="{{ route('bricks.show', $brick->id) }}"
-                                   class="btn btn-primary btn-sm open-modal"
-                                   title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
+                    <th class="sortable" rowspan="2" data-column="price_per_piece">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Harga Beli</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                                <a href="{{ route('bricks.edit', $brick->id) }}"
-                                   class="btn btn-warning btn-sm open-modal"
-                                   title="Edit">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
+                    <th class="sortable" rowspan="2" data-column="comparison_price_per_m3">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Harga Komparasi (/ M3)</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                                <form action="{{ route('bricks.destroy', $brick->id) }}"
-                                      method="POST"
-                                      onsubmit="return confirm('Yakin ingin menghapus data bata ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="btn btn-danger btn-sm"
-                                            title="Hapus">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                    <th rowspan="2" style="text-align: center">Aksi</th>
+                </tr>
+                <tr class="dim-sub-row">
+                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
+                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
+                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
+                </tr>
+            </thead>
+            <tbody id="brick-list">
+                <tr>
+                    <td colspan="13" style="text-align: center; padding: 60px;">
+                        <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+    <span class="visually-hidden">Loading...</span>
+</div>
+                        <div style="margin-top: 16px; color: #64748b; font-weight: 500;">Memuat data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-        <div class="pagination">
-            {{ $bricks->links('pagination::simple-default') }}
-        </div>
-    @else
+    <!-- Pagination -->
+    <div class="pagination" id="brick-pagination"></div>
+
+    <!-- Empty State Container -->
+    <div id="empty-state-container" style="display: none;">
         <div class="empty-state">
             <div class="empty-state-icon">🧱</div>
-            <p>{{ request('search') ? 'Tidak ada data bata yang sesuai dengan pencarian' : 'Belum ada data bata' }}</p>
-            @if(!request('search'))
-                <a href="{{ route('bricks.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;">
-                    <i class="bi bi-plus-lg"></i> Tambah Data Pertama
-                </a>
-            @endif
+            <p id="empty-state-message">Belum ada data bata</p>
+            <a href="{{ route('bricks.create') }}" class="btn btn-primary open-modal" id="add-first-btn" style="margin-top: 16px;">
+                <i class="bi bi-plus-lg"></i> Tambah Data Pertama
+            </a>
         </div>
-    @endif
+    </div>
 </div>
 
 <!-- Floating Modal Container -->
@@ -332,37 +210,37 @@
     justify-content: space-between;
     align-items: center;
     background: #f8fafc;
-    position: relative; /* Added for ::before positioning */
-    overflow: hidden; /* Added to contain the extended ::before */
+    position: relative;
+    overflow: hidden;
 }
 
 .floating-modal-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 700;
-    color: #ffffff; /* Changed text color to white */
-    padding: 8px 0; /* Added padding */
-    position: relative; /* Added for z-index and ::before relative positioning */
-    z-index: 1; /* Ensures text is above the ::before background */
-    flex: 1; /* Allows h2 to take available space */
+    color: #ffffff;
+    padding: 8px 0;
+    position: relative;
+    z-index: 1;
+    flex: 1;
 }
 
 .floating-modal-header h2::before {
     content: '';
     position: absolute;
-    left: -32px; /* Compensates for parent padding-left */
-    right: -200px; /* Extends far enough to cover the button and right edge */
+    left: -32px;
+    right: -200px;
     top: 0;
     bottom: 0;
     background: #891313;
-    z-index: -1; /* Places the background behind the h2 text */
+    z-index: -1;
 }
 
 .floating-modal-close {
     background: transparent;
     border: none;
     font-size: 28px;
-    color: #ffffff; /* Changed to white to be visible on red */
+    color: #ffffff;
     cursor: pointer;
     width: 40px;
     height: 40px;
@@ -371,12 +249,12 @@
     justify-content: center;
     border-radius: 8px;
     transition: all 0.2s ease;
-    position: relative; /* Added position */
-    z-index: 10; /* Added z-index to sit above h2 */
+    position: relative;
+    z-index: 10;
 }
 
 .floating-modal-close:hover {
-    background: rgba(255, 255, 255, 0.1); /* Changed hover to semi-transparent white */
+    background: rgba(255, 255, 255, 0.1);
     color: #ffffff;
 }
 
@@ -534,8 +412,351 @@ th.sortable i {
 }
 </style>
 
+<!-- API Helper Script -->
+<script src="{{ asset('js/api-helper.js') }}"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// ========================================
+// STATE MANAGEMENT
+// ========================================
+let currentPage = 1;
+let currentSearch = '';
+let currentSortBy = null;
+let currentSortDirection = null;
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+function formatDimension(value) {
+    if (!value || value === null) {
+        return '<span style="color: #cbd5e1;">-</span>';
+    }
+    // Remove trailing zeros and format with comma
+    const formatted = parseFloat(value).toString().replace('.', ',');
+    return formatted;
+}
+
+function formatVolume(value) {
+    if (!value || value === null) {
+        return '<span style="color: #cbd5e1;">—</span>';
+    }
+    return parseFloat(value).toFixed(6).replace('.', ',') + ' M3';
+}
+
+function formatPrice(value) {
+    if (!value || value === null) {
+        return '<span style="color: #cbd5e1;">—</span>';
+    }
+    return `
+        <div style="display: flex; width: 100%; font-size: 13px;">
+            <span style="color: #64748b; font-weight: 500;">Rp</span>
+            <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
+                ${parseInt(value).toLocaleString('id-ID')}
+            </span>
+        </div>
+    `;
+}
+
+// ========================================
+// CORE FUNCTIONS
+// ========================================
+
+async function loadBricks(page = 1, search = '', sortBy = null, sortDirection = null) {
+    // Update state
+    currentPage = page;
+    currentSearch = search;
+    currentSortBy = sortBy;
+    currentSortDirection = sortDirection;
+
+    // Show loading
+    const brickList = document.getElementById('brick-list');
+    brickList.innerHTML = `
+        <tr>
+            <td colspan="13" style="text-align: center; padding: 60px;">
+                <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+    <span class="visually-hidden">Loading...</span>
+</div>
+                <div style="margin-top: 16px; color: #64748b; font-weight: 500;">Memuat data...</div>
+            </td>
+        </tr>
+    `;
+
+    // Build query parameters
+    const params = {
+        per_page: 9999 // Get all data without pagination
+    };
+
+    if (search) params.search = search;
+    if (sortBy) params.sort_by = sortBy;
+    if (sortDirection) params.sort_direction = sortDirection;
+
+    try {
+        // Fetch from API
+        const response = await api.get('/bricks', params);
+
+        if (response.success && response.data.length > 0) {
+            // Use meta for pagination info (Laravel standard)
+            const pagination = response.meta || response.pagination;
+            renderBricks(response.data, pagination);
+            showTable();
+        } else {
+            showEmptyState(search);
+        }
+    } catch (error) {
+        console.error('Error loading bricks:', error);
+        brickList.innerHTML = `
+            <tr>
+                <td colspan="13" style="text-align: center; padding: 60px; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 32px;"></i>
+                    <div style="margin-top: 16px; font-weight: 500;">Gagal memuat data. Silakan coba lagi.</div>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function renderBricks(bricks, pagination) {
+    const brickList = document.getElementById('brick-list');
+
+    const html = bricks.map((brick, index) => {
+        const rowNumber = index + 1;
+
+        return `
+            <tr>
+                <td style="text-align: center; font-weight: 500; color: #64748b;">
+                    ${rowNumber}
+                </td>
+                <td style="color: #475569;">${brick.type || '-'}</td>
+                <td style="color: #475569;">${brick.brand || '-'}</td>
+                <td style="color: #475569;">${brick.form || '-'}</td>
+                <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
+                    ${formatDimension(brick.dimension_length)}
+                </td>
+                <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
+                    ${formatDimension(brick.dimension_width)}
+                </td>
+                <td class="dim-cell" style="text-align: center; color: #475569; font-size: 12px; width: 40px; padding: 0 2px;">
+                    ${formatDimension(brick.dimension_height)}
+                </td>
+                <td class="volume-cell" style="text-align: right; color: #475569; font-size: 12px;">
+                    ${formatVolume(brick.package_volume)}
+                </td>
+                <td>
+                    <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
+                        ${brick.store || '-'}
+                    </span>
+                </td>
+                <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
+                    ${brick.address || '-'}
+                </td>
+                <td>
+                    ${formatPrice(brick.price_per_piece)}
+                </td>
+                <td>
+                    ${formatPrice(brick.comparison_price_per_m3)}
+                </td>
+                <td style="text-align: center">
+                    <div class="btn-group">
+                        <a href="/bricks/${brick.id}"
+                           class="btn btn-primary btn-sm open-modal"
+                           title="Detail">
+                            <i class="bi bi-eye"></i>
+                        </a>
+
+                        <a href="/bricks/${brick.id}/edit"
+                           class="btn btn-warning btn-sm open-modal"
+                           title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                title="Hapus"
+                                onclick="deleteBrick(${brick.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    brickList.innerHTML = html;
+
+    // Re-attach modal handlers for new buttons
+    attachModalHandlers();
+}
+
+function renderPagination(pagination) {
+    const paginationContainer = document.getElementById('brick-pagination');
+
+    if (!pagination || pagination.last_page <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    const prevDisabled = pagination.current_page === 1;
+    const nextDisabled = pagination.current_page === pagination.last_page;
+
+    const html = `
+        <button class="btn btn-secondary btn-sm"
+                ${prevDisabled ? 'disabled' : ''}
+                onclick="loadBricks(${pagination.current_page - 1}, currentSearch, currentSortBy, currentSortDirection)">
+            <i class="bi bi-chevron-left"></i> Sebelumnya
+        </button>
+        <span style="padding: 0 16px; font-weight: 500; color: #475569;">
+            Halaman ${pagination.current_page} dari ${pagination.last_page}
+        </span>
+        <button class="btn btn-secondary btn-sm"
+                ${nextDisabled ? 'disabled' : ''}
+                onclick="loadBricks(${pagination.current_page + 1}, currentSearch, currentSortBy, currentSortDirection)">
+            Selanjutnya <i class="bi bi-chevron-right"></i>
+        </button>
+    `;
+
+    paginationContainer.innerHTML = html;
+}
+
+function showTable() {
+    document.getElementById('table-container').style.display = 'block';
+    document.getElementById('empty-state-container').style.display = 'none';
+}
+
+function showEmptyState(search) {
+    document.getElementById('table-container').style.display = 'none';
+    document.getElementById('empty-state-container').style.display = 'block';
+
+    const message = search
+        ? 'Tidak ada data bata yang sesuai dengan pencarian'
+        : 'Belum ada data bata';
+
+    document.getElementById('empty-state-message').textContent = message;
+    document.getElementById('add-first-btn').style.display = search ? 'none' : 'inline-block';
+}
+
+async function deleteBrick(id) {
+    if (!confirm('Yakin ingin menghapus data bata ini?')) {
+        return;
+    }
+
+    try {
+        const result = await api.delete(`/bricks/${id}`);
+
+        if (result.success) {
+            // Reload current page
+            loadBricks(currentPage, currentSearch, currentSortBy, currentSortDirection);
+        } else {
+            alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Gagal menghapus data. Silakan coba lagi.');
+    }
+}
+
+// ========================================
+// SEARCH FUNCTIONALITY
+// ========================================
+
+function setupSearch() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const resetBtn = document.getElementById('reset-search');
+
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const searchValue = searchInput.value.trim();
+
+        // Show/hide reset button
+        resetBtn.style.display = searchValue ? 'inline-block' : 'none';
+
+        // Reset to page 1 and load with search
+        loadBricks(1, searchValue, currentSortBy, currentSortDirection);
+    });
+
+    resetBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        resetBtn.style.display = 'none';
+        loadBricks(1, '', currentSortBy, currentSortDirection);
+    });
+}
+
+// ========================================
+// SORT FUNCTIONALITY
+// ========================================
+
+function setupSort() {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+
+    sortableHeaders.forEach(header => {
+        const link = header.querySelector('a');
+        const column = header.getAttribute('data-column');
+
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // 3-state logic: asc -> desc -> reset (no sort)
+            let newSortBy = column;
+            let newSortDirection = 'asc';
+
+            if (currentSortBy === column) {
+                if (currentSortDirection === 'asc') {
+                    newSortDirection = 'desc';
+                } else {
+                    // Reset to no sort
+                    newSortBy = null;
+                    newSortDirection = null;
+                }
+            }
+
+            // Update all icons
+            updateSortIcons(newSortBy, newSortDirection);
+
+            // Load data with new sort
+            loadBricks(currentPage, currentSearch, newSortBy, newSortDirection);
+        });
+    });
+}
+
+function updateSortIcons(sortBy, sortDirection) {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+
+    sortableHeaders.forEach(header => {
+        const icon = header.querySelector('.sort-icon');
+        const column = header.getAttribute('data-column');
+
+        if (column === sortBy) {
+            if (sortDirection === 'asc') {
+                icon.className = 'bi bi-sort-up sort-icon';
+                icon.style.opacity = '1';
+            } else if (sortDirection === 'desc') {
+                icon.className = 'bi bi-sort-down-alt sort-icon';
+                icon.style.opacity = '1';
+            }
+        } else {
+            icon.className = 'bi bi-arrow-down-up sort-icon';
+            icon.style.opacity = '0.3';
+        }
+    });
+}
+
+// ========================================
+// MODAL FUNCTIONALITY (Keep existing)
+// ========================================
+
+function attachModalHandlers() {
+    document.querySelectorAll('.open-modal').forEach(link => {
+        // Remove existing listeners by cloning
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+    });
+
+    // Now attach fresh listeners (handled by DOMContentLoaded below)
+    initModalHandlers();
+}
+
+function initModalHandlers() {
     const modal = document.getElementById('floatingModal');
     const modalBody = document.getElementById('modalBody');
     const modalTitle = document.getElementById('modalTitle');
@@ -561,19 +782,19 @@ document.addEventListener('DOMContentLoaded', function() {
             // Show modal
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
-            
+
             // Update title and close button visibility
             if (url.includes('/create')) {
                 modalTitle.textContent = 'Tambah Data Bata Baru';
-                closeBtn.style.display = 'none'; // Hide close button
+                closeBtn.style.display = 'none';
             } else if (url.includes('/edit')) {
                 modalTitle.textContent = 'Edit Data Bata';
-                closeBtn.style.display = 'none'; // Hide close button
+                closeBtn.style.display = 'none';
             } else {
                 modalTitle.textContent = 'Detail Data Bata';
-                closeBtn.style.display = 'flex'; // Show close button
+                closeBtn.style.display = 'flex';
             }
-            
+
             // Load content via AJAX
             fetch(url, {
                 headers: {
@@ -624,6 +845,9 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => {
             modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
         }, 300);
+
+        // Reload data after closing modal (in case data was added/edited)
+        loadBricks(currentPage, currentSearch, currentSortBy, currentSortDirection);
     }
 
     closeBtn.addEventListener('click', window.closeFloatingModal);
@@ -635,6 +859,20 @@ document.addEventListener('DOMContentLoaded', function() {
             window.closeFloatingModal();
         }
     });
+}
+
+// ========================================
+// INITIALIZE ON PAGE LOAD
+// ========================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup functionality
+    setupSearch();
+    setupSort();
+    initModalHandlers();
+
+    // Load initial data
+    loadBricks(1);
 });
 </script>
 @endsection

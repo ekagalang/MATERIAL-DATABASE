@@ -26,7 +26,7 @@ return new class extends Migration {
             $table->decimal('dimension_length', 10, 4)->nullable(); // Panjang kemasan (m)
             $table->decimal('dimension_width', 10, 4)->nullable(); // Lebar kemasan (m)
             $table->decimal('dimension_height', 10, 4)->nullable(); // Tinggi kemasan (m)
-            $table->decimal('package_volume', 10, 6)->nullable(); // Volume kemasan (m³)
+            $table->decimal('package_volume', 10, 6)->nullable(); // Volume kemasan (M3)
 
             // Toko
             $table->string('store')->nullable(); // Nama Toko

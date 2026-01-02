@@ -12,25 +12,24 @@
             onclick="window.location.href='{{ route('materials.index') }}'">
             <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
         </button>
+
         <h2 style="margin: 0; flex-shrink: 0;">Database Semen</h2>
 
-        <form action="{{ route('cements.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
+        <form id="search-form" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1; position: relative;">
                 <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px;"></i>
                 <input type="text"
-                       name="search"
-                       value="{{ request('search') }}"
-                       placeholder="Cari jenis, merek, Kode, warna, toko..."
-                       style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
+                    id="search-input"
+                    name="search"
+                    placeholder="Cari jenis, merek, kode, warna, toko..."
+                    style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-search"></i> Cari
             </button>
-            @if(request('search'))
-                <a href="{{ route('cements.index') }}" class="btn btn-secondary">
-                    <i class="bi bi-x-lg"></i> Reset
-                </a>
-            @endif
+            <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
+                <i class="bi bi-x-lg"></i> Reset
+            </button>
         </form>
 
         <a href="{{ route('cements.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
@@ -38,230 +37,98 @@
         </a>
     </div>
 
-    @if($cements->count() > 0)
-        <div class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th rowspan="2">No</th>
-                        @php
-                            function getCementSortUrl($column, $currentSortBy, $currentDirection, $requestQuery) {
-                                $params = array_merge($requestQuery, []);
-                                unset($params['sort_by'], $params['sort_direction']);
-                                if ($currentSortBy === $column) {
-                                    if ($currentDirection === 'asc') {
-                                        $params['sort_by'] = $column;
-                                        $params['sort_direction'] = 'desc';
-                                    }
-                                } else {
-                                    $params['sort_by'] = $column;
-                                    $params['sort_direction'] = 'asc';
-                                }
-                                return route('cements.index', $params);
-                            }
-                            $cementSortColumns = [
-                                'cement_name' => ['label' => 'Material', 'align' => ''],
-                                'type' => ['label' => 'Jenis', 'align' => ''],
-                                'brand' => ['label' => 'Merek', 'align' => ''],
-                                'sub_brand' => ['label' => 'Sub Merek', 'align' => ''],
-                                'code' => ['label' => 'Kode', 'align' => 'right'],
-                                'color' => ['label' => 'Warna', 'align' => 'left'],
-                                'package_unit' => ['label' => 'Kemasan', 'align' => ''],
-                                'package_weight_net' => ['label' => 'Berat Bersih', 'align' => ''],
-                                'store' => ['label' => 'Toko', 'align' => ''],
-                                'address' => ['label' => 'Alamat', 'align' => ''],
-                                'package_price' => ['label' => 'Harga Beli', 'align' => ''],
-                                'comparison_price_per_kg' => ['label' => 'Harga Komparasi (/ Kg)', 'align' => ''],
-                            ];
-                        @endphp
+    <!-- Table Container -->
+    <div id="table-container" class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th rowspan="2">No</th>
 
-                        @foreach(['cement_name', 'type'] as $col)
-                            <th rowspan="2" class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
-                                <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $cementSortColumns[$col]['label'] }}</span>
-                                    @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                    <th class="sortable" rowspan="2" data-column="type">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Jenis</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        @foreach(['brand', 'sub_brand', 'code', 'color', 'package_unit'] as $col)
-                            <th rowspan="2" class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
-                                <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $cementSortColumns[$col]['label'] }}</span>
-                                    @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                    <th class="sortable" rowspan="2" data-column="brand">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Merek</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        <!-- Dimensi Header Group -->
-                        <th colspan="3" style="text-align: center;">Dimensi Kemasan (cm)</th>
+                    <th class="sortable" rowspan="2" data-column="code">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Kode</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        @foreach(['package_weight_net', 'store', 'address', 'package_price', 'comparison_price_per_kg'] as $col)
-                            <th rowspan="2" class="sortable" @if($cementSortColumns[$col]['align']) style="text-align: {{ $cementSortColumns[$col]['align'] }};" @endif>
-                                <a href="{{ getCementSortUrl($col, request('sort_by'), request('sort_direction'), request()->query()) }}"
-                                   style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
-                                    <span>{{ $cementSortColumns[$col]['label'] }}</span>
-                                    @if(request('sort_by') == $col)
-                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                    @else
-                                        <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                    @endif
-                                </a>
-                            </th>
-                        @endforeach
+                    <th class="sortable" rowspan="2" data-column="color">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Warna</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        <th rowspan="2" style="text-align: center">Aksi</th>
-                    </tr>
-                    <!-- Dimensi Sub-headers -->
-                    <tr class="dim-sub-row">
-                        @foreach(['P', 'L', 'T'] as $label)
-                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
-                        @endforeach
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach($cements as $index => $cement)
-                    <tr>
-                        <td style="text-align: center; font-weight: 500; color: #64748b;">
-                            {{ $cements->firstItem() + $index }}
-                        </td>
-                        <td>
-                            <strong style="color: #0f172a; font-weight: 600;">Semen</strong>
-                        </td>
-                        <td style="color: #475569;">{{ $cement->type ?? '-' }}</td>
-                        <td style="color: #475569;">{{ $cement->brand ?? '-' }}</td>
-                        <td style="color: #475569;">{{ $cement->sub_brand ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 12px; text-align: right;">
-                            {{ $cement->code ?? '-' }}
-                        </td>
-                        <td style="color: #475569; text-align: left;">{{ $cement->color ?? '-' }}</td>
-                        <td style="color: #475569; font-size: 13px; text-align: right;">
-                            @if($cement->package_unit)
-                                {{ $cement->packageUnit->name ?? $cement->package_unit }}
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
+                    <th class="sortable" rowspan="2" data-column="package_weight">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Berat (Kg)</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        <!-- Dimensi Data -->
-                        <td style="text-align: center; color: #475569; font-size: 12px;">
-                            @if($cement->dimension_length)
-                                {{ rtrim(rtrim(number_format($cement->dimension_length * 100, 1, ',', '.'), '0'), ',') }}
-                            @else
-                                <span style="color: #cbd5e1;">-</span>
-                            @endif
-                        </td>
-                        <td style="text-align: center; color: #475569; font-size: 12px;">
-                            @if($cement->dimension_width)
-                                {{ rtrim(rtrim(number_format($cement->dimension_width * 100, 1, ',', '.'), '0'), ',') }}
-                            @else
-                                <span style="color: #cbd5e1;">-</span>
-                            @endif
-                        </td>
-                        <td style="text-align: center; color: #475569; font-size: 12px;">
-                            @if($cement->dimension_height)
-                                {{ rtrim(rtrim(number_format($cement->dimension_height * 100, 1, ',', '.'), '0'), ',') }}
-                            @else
-                                <span style="color: #cbd5e1;">-</span>
-                            @endif
-                        </td>
+                    <th class="sortable" rowspan="2" data-column="store">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Toko</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                        <td style="text-align: left; color: #475569; font-size: 12px;">
-                            @if($cement->package_weight_net)
-                                {{ rtrim(rtrim(number_format($cement->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
-                                {{ $cement->store ?? '-' }}
-                            </span>
-                        </td>
-                        <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                            {{ $cement->address ?? '-' }}
-                        </td>
-                        <td>
-                            @if($cement->package_price)
-                                <div style="display: flex; width: 100%; font-size: 13px;">
-                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
-                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                                        {{ number_format($cement->package_price, 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            @if($cement->comparison_price_per_kg)
-                                <div style="display: flex; width: 100%; font-size: 13px;">
-                                    <span style="color: #64748b; font-weight: 500;">Rp</span>
-                                    <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                                        {{ number_format($cement->comparison_price_per_kg, 0, ',', '.') }}
-                                    </span>
-                                </div>
-                            @else
-                                <span style="color: #cbd5e1;">—</span>
-                            @endif
-                        </td>
-                        <td>
-                            <div class="btn-group">
-                                <a href="{{ route('cements.show', $cement->id) }}"
-                                   class="btn btn-primary btn-sm open-modal"
-                                   title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
+                    <th class="sortable" rowspan="2" data-column="address">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Alamat</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                                <a href="{{ route('cements.edit', $cement->id) }}"
-                                   class="btn btn-warning btn-sm open-modal"
-                                   title="Edit">
-                                    <i class="bi bi-pencil-square"></i>
-                                </a>
+                    <th class="sortable" rowspan="2" data-column="price_per_bag">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Harga Beli</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
 
-                                <form action="{{ route('cements.destroy', $cement->id) }}"
-                                      method="POST"
-                                      onsubmit="return confirm('Yakin ingin menghapus semen ini?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit"
-                                            class="btn btn-danger btn-sm"
-                                            title="Hapus">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+                    <th rowspan="2" style="text-align: center">Aksi</th>
+                </tr>
+            </thead>
+            <tbody id="cement-list">
+                <tr>
+                    <td colspan="9" style="text-align: center; padding: 60px;">
+                        <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+    <span class="visually-hidden">Loading...</span>
+</div>
+                        <div style="margin-top: 16px; color: #64748b; font-weight: 500;">Memuat data...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 
-        <div class="pagination">
-            {{ $cements->links('pagination::simple-default') }}
-        </div>
-    @else
+    <!-- Pagination -->
+    <div class="pagination" id="cement-pagination"></div>
+
+    <!-- Empty State Container -->
+    <div id="empty-state-container" style="display: none;">
         <div class="empty-state">
             <div class="empty-state-icon">🏗️</div>
-            <p>{{ request('search') ? 'Tidak ada semen yang sesuai dengan pencarian' : 'Belum ada data semen' }}</p>
-            @if(!request('search'))
-                <a href="{{ route('cements.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;">
-                    <i class="bi bi-plus-lg"></i> Tambah Data Pertama
-                </a>
-            @endif
+            <p id="empty-state-message">Belum ada data semen</p>
+            <a href="{{ route('cements.create') }}" class="btn btn-primary open-modal" id="add-first-btn" style="margin-top: 16px;">
+                <i class="bi bi-plus-lg"></i> Tambah Data Pertama
+            </a>
         </div>
-    @endif
+    </div>
 </div>
 
 <!-- Floating Modal Container -->
@@ -282,7 +149,7 @@
 </div>
 
 <style>
-/* Modal Styles - Modern & Minimalist */
+/* Modal Styles */
 .floating-modal {
     display: none;
     position: fixed;
@@ -361,7 +228,7 @@
     background: transparent;
     border: none;
     font-size: 28px;
-    color: #94a3b8;
+    color: #ffffff;
     cursor: pointer;
     width: 40px;
     height: 40px;
@@ -370,11 +237,13 @@
     justify-content: center;
     border-radius: 8px;
     transition: all 0.2s ease;
+    position: relative;
+    z-index: 10;
 }
 
 .floating-modal-close:hover {
-    background: #fee2e2;
-    color: #ef4444;
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
 }
 
 .floating-modal-body {
@@ -399,7 +268,6 @@
     }
 }
 
-/* Scrollbar styling */
 .floating-modal-body::-webkit-scrollbar {
     width: 10px;
 }
@@ -418,27 +286,20 @@
     background: #94a3b8;
 }
 
-/* Table fixed column widths */
 .table-container thead th {
     background-color: #891313 !important;
     color: #ffffff !important;
-    vertical-align: top !important;
+    vertical-align: middle !important;
     text-align: center !important;
     white-space: nowrap;
 }
 
-.table-container table td {
-    vertical-align: top !important;
-}
-
-/* Input focus styles */
 input[type="text"]:focus {
     outline: none;
     border-color: #891313 !important;
     box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1) !important;
 }
 
-/* Sortable header styles */
 th.sortable {
     cursor: pointer;
     user-select: none;
@@ -461,44 +322,321 @@ th.sortable i {
 }
 </style>
 
+<!-- API Helper Script -->
+<script src="{{ asset('js/api-helper.js') }}"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// STATE MANAGEMENT
+let currentPage = 1;
+let currentSearch = '';
+let currentSortBy = null;
+let currentSortDirection = null;
+
+// HELPER FUNCTIONS
+function formatPrice(value) {
+    if (!value || value === null) {
+        return '<span style="color: #cbd5e1;">—</span>';
+    }
+    return `
+        <div style="display: flex; width: 100%; font-size: 13px;">
+            <span style="color: #64748b; font-weight: 500;">Rp</span>
+            <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
+                ${parseInt(value).toLocaleString('id-ID')}
+            </span>
+        </div>
+    `;
+}
+
+// CORE FUNCTIONS
+async function loadCements(page = 1, search = '', sortBy = null, sortDirection = null) {
+    currentPage = page;
+    currentSearch = search;
+    currentSortBy = sortBy;
+    currentSortDirection = sortDirection;
+
+    const cementList = document.getElementById('cement-list');
+    cementList.innerHTML = `
+        <tr>
+            <td colspan="9" style="text-align: center; padding: 60px;">
+                <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+    <span class="visually-hidden">Loading...</span>
+</div>
+                <div style="margin-top: 16px; color: #64748b; font-weight: 500;">Memuat data...</div>
+            </td>
+        </tr>
+    `;
+
+    const params = {
+        per_page: 9999 // Get all data without pagination
+    };
+
+    if (search) params.search = search;
+    if (sortBy) params.sort_by = sortBy;
+    if (sortDirection) params.sort_direction = sortDirection;
+
+    try {
+        const response = await api.get('/cements', params);
+
+        if (response.success && response.data.length > 0) {
+            const pagination = response.meta || response.pagination;
+            renderCements(response.data, pagination);
+            showTable();
+        } else {
+            showEmptyState(search);
+        }
+    } catch (error) {
+        console.error('Error loading cements:', error);
+        cementList.innerHTML = `
+            <tr>
+                <td colspan="9" style="text-align: center; padding: 60px; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 32px;"></i>
+                    <div style="margin-top: 16px; font-weight: 500;">Gagal memuat data. Silakan coba lagi.</div>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function renderCements(cements, pagination) {
+    const cementList = document.getElementById('cement-list');
+
+    const html = cements.map((cement, index) => {
+        const rowNumber = index + 1;
+
+        return `
+            <tr>
+                <td style="text-align: center; font-weight: 500; color: #64748b;">
+                    ${rowNumber}
+                </td>
+                <td style="color: #475569;">${cement.type || '-'}</td>
+                <td style="color: #475569;">${cement.brand || '-'}</td>
+                <td style="color: #475569;">${cement.code || '-'}</td>
+                <td style="color: #475569;">${cement.color || '-'}</td>
+                <td style="text-align: center; color: #475569;">${cement.package_weight || '-'}</td>
+                <td>
+                    <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
+                        ${cement.store || '-'}
+                    </span>
+                </td>
+                <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
+                    ${cement.address || '-'}
+                </td>
+                <td>
+                    ${formatPrice(cement.price_per_bag)}
+                </td>
+                <td style="text-align: center">
+                    <div class="btn-group">
+                        <a href="/cements/${cement.id}"
+                           class="btn btn-primary btn-sm open-modal"
+                           title="Detail">
+                            <i class="bi bi-eye"></i>
+                        </a>
+
+                        <a href="/cements/${cement.id}/edit"
+                           class="btn btn-warning btn-sm open-modal"
+                           title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                title="Hapus"
+                                onclick="deleteCement(${cement.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    cementList.innerHTML = html;
+    attachModalHandlers();
+}
+
+function renderPagination(pagination) {
+    const paginationContainer = document.getElementById('cement-pagination');
+
+    if (!pagination || pagination.last_page <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    const prevDisabled = pagination.current_page === 1;
+    const nextDisabled = pagination.current_page === pagination.last_page;
+
+    const html = `
+        <button class="btn btn-secondary btn-sm"
+                ${prevDisabled ? 'disabled' : ''}
+                onclick="loadCements(${pagination.current_page - 1}, currentSearch, currentSortBy, currentSortDirection)">
+            <i class="bi bi-chevron-left"></i> Sebelumnya
+        </button>
+        <span style="padding: 0 16px; font-weight: 500; color: #475569;">
+            Halaman ${pagination.current_page} dari ${pagination.last_page}
+        </span>
+        <button class="btn btn-secondary btn-sm"
+                ${nextDisabled ? 'disabled' : ''}
+                onclick="loadCements(${pagination.current_page + 1}, currentSearch, currentSortBy, currentSortDirection)">
+            Selanjutnya <i class="bi bi-chevron-right"></i>
+        </button>
+    `;
+
+    paginationContainer.innerHTML = html;
+}
+
+function showTable() {
+    document.getElementById('table-container').style.display = 'block';
+    document.getElementById('empty-state-container').style.display = 'none';
+}
+
+function showEmptyState(search) {
+    document.getElementById('table-container').style.display = 'none';
+    document.getElementById('empty-state-container').style.display = 'block';
+
+    const message = search
+        ? 'Tidak ada data semen yang sesuai dengan pencarian'
+        : 'Belum ada data semen';
+
+    document.getElementById('empty-state-message').textContent = message;
+    document.getElementById('add-first-btn').style.display = search ? 'none' : 'inline-block';
+}
+
+async function deleteCement(id) {
+    if (!confirm('Yakin ingin menghapus data semen ini?')) {
+        return;
+    }
+
+    try {
+        const result = await api.delete(`/cements/${id}`);
+
+        if (result.success) {
+            loadCements(currentPage, currentSearch, currentSortBy, currentSortDirection);
+        } else {
+            alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Gagal menghapus data. Silakan coba lagi.');
+    }
+}
+
+// SEARCH FUNCTIONALITY
+function setupSearch() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const resetBtn = document.getElementById('reset-search');
+
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const searchValue = searchInput.value.trim();
+
+        resetBtn.style.display = searchValue ? 'inline-block' : 'none';
+        loadCements(1, searchValue, currentSortBy, currentSortDirection);
+    });
+
+    resetBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        resetBtn.style.display = 'none';
+        loadCements(1, '', currentSortBy, currentSortDirection);
+    });
+}
+
+// SORT FUNCTIONALITY
+function setupSort() {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+
+    sortableHeaders.forEach(header => {
+        const link = header.querySelector('a');
+        const column = header.getAttribute('data-column');
+
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            let newSortBy = column;
+            let newSortDirection = 'asc';
+
+            if (currentSortBy === column) {
+                if (currentSortDirection === 'asc') {
+                    newSortDirection = 'desc';
+                } else {
+                    newSortBy = null;
+                    newSortDirection = null;
+                }
+            }
+
+            updateSortIcons(newSortBy, newSortDirection);
+            loadCements(currentPage, currentSearch, newSortBy, newSortDirection);
+        });
+    });
+}
+
+function updateSortIcons(sortBy, sortDirection) {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+
+    sortableHeaders.forEach(header => {
+        const icon = header.querySelector('.sort-icon');
+        const column = header.getAttribute('data-column');
+
+        if (column === sortBy) {
+            if (sortDirection === 'asc') {
+                icon.className = 'bi bi-sort-up sort-icon';
+                icon.style.opacity = '1';
+            } else if (sortDirection === 'desc') {
+                icon.className = 'bi bi-sort-down-alt sort-icon';
+                icon.style.opacity = '1';
+            }
+        } else {
+            icon.className = 'bi bi-arrow-down-up sort-icon';
+            icon.style.opacity = '0.3';
+        }
+    });
+}
+
+// MODAL FUNCTIONALITY
+function attachModalHandlers() {
+    document.querySelectorAll('.open-modal').forEach(link => {
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+    });
+
+    initModalHandlers();
+}
+
+function initModalHandlers() {
     const modal = document.getElementById('floatingModal');
     const modalBody = document.getElementById('modalBody');
     const modalTitle = document.getElementById('modalTitle');
     const closeBtn = document.getElementById('closeModal');
     const backdrop = modal.querySelector('.floating-modal-backdrop');
 
-    // Intercept form submission in modal
     function interceptFormSubmit() {
         const form = modalBody.querySelector('form');
         if (form) {
             form.addEventListener('submit', function(e) {
-                // Let form submit normally - akan redirect
+                // Let form submit normally
             });
         }
     }
 
-    // Open modal
     document.querySelectorAll('.open-modal').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const url = this.href;
 
-            // Show modal
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
 
-            // Update title
             if (url.includes('/create')) {
-                modalTitle.textContent = 'Tambah Semen Baru';
+                modalTitle.textContent = 'Tambah Data Semen Baru';
+                closeBtn.style.display = 'none';
             } else if (url.includes('/edit')) {
-                modalTitle.textContent = 'Edit Semen';
+                modalTitle.textContent = 'Edit Data Semen';
+                closeBtn.style.display = 'none';
             } else {
-                modalTitle.textContent = 'Detail Semen';
+                modalTitle.textContent = 'Detail Data Semen';
+                closeBtn.style.display = 'flex';
             }
 
-            // Load content via AJAX
             fetch(url, {
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
@@ -511,10 +649,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
                 modalBody.innerHTML = content ? content.outerHTML : html;
 
-                // Load cement-form.js if not loaded
                 if (!window.cementFormScriptLoaded) {
                     const script = document.createElement('script');
-                    script.src = '/js/cement-form.js';
+                    script.src = '/js/cement-form.js?v=' + Date.now();
                     script.onload = () => {
                         window.cementFormScriptLoaded = true;
                         setTimeout(() => {
@@ -541,24 +678,32 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Close modal function - Global
     window.closeFloatingModal = function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
             modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
         }, 300);
+
+        loadCements(currentPage, currentSearch, currentSortBy, currentSortDirection);
     }
 
     closeBtn.addEventListener('click', window.closeFloatingModal);
     backdrop.addEventListener('click', window.closeFloatingModal);
 
-    // Close on ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             window.closeFloatingModal();
         }
     });
+}
+
+// INITIALIZE
+document.addEventListener('DOMContentLoaded', function() {
+    setupSearch();
+    setupSort();
+    initModalHandlers();
+    loadCements(1);
 });
 </script>
 @endsection

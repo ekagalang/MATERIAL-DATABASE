@@ -330,7 +330,7 @@
                 <!-- Action Buttons -->
                 <div style="display: flex; justify-content: center; gap: 20px; padding-bottom: 15px;">
                     <button type="button" class="btn-cancel"
-                          onclick="if(document.getElementById('closeModal')){ document.getElementById('closeModal').click(); } else { window.history.back(); }">Batal</button>
+                          onclick="if(typeof window.closeFloatingModal === 'function'){ window.closeFloatingModal(); }">Batal</button>
                     <button type="submit" class="btn-save">Simpan</button>
                 </div>
             </div>
