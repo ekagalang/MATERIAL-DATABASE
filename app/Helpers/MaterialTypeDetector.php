@@ -71,6 +71,7 @@ class MaterialTypeDetector
             'cement' => 'Semen',
             'sand' => 'Pasir',
             'cat' => 'Cat',
+            'ceramic' => 'Keramik',
         ];
 
         if (array_key_exists($type, $labels)) {
