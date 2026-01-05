@@ -32,7 +32,7 @@ class Ceramic extends Model
         'photo',
     ];
 
-    protected $appends = ['photo_url'];
+    protected $appends = ['photo_url', 'area_per_piece'];
 
     /**
      * Get the attributes that should be cast.
@@ -101,6 +101,24 @@ class Ceramic extends Model
 
         // Default: assume it's in storage
         return asset('storage/' . ltrim($path, '/'));
+    }
+
+    /**
+     * Accessor: Luas per piece (M² / Lbr)
+     * Dimensi dalam CM, hasil dalam M²
+     */
+    public function getAreaPerPieceAttribute(): ?float
+    {
+        if ($this->dimension_length && $this->dimension_width) {
+            // Konversi dimensi dari CM ke M
+            $lengthM = $this->dimension_length / 100;
+            $widthM = $this->dimension_width / 100;
+
+            // Luas satu piece dalam M²
+            return $lengthM * $widthM;
+        }
+
+        return null;
     }
 
     /**

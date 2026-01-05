@@ -99,7 +99,11 @@ class CeramicRepository extends BaseRepository
             'address',
             'dimension_length',
             'dimension_width',
+            'dimension_thickness',
             'packaging',
+            'pieces_per_package',
+            'price_per_package',
+            'comparison_price_per_m2',
         ];
 
         if (!in_array($field, $allowedFields)) {

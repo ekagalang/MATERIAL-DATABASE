@@ -48,13 +48,13 @@ class CeramicService extends BaseService
 
         // Upload photo jika ada (disimpan di folder ceramics)
         if ($photo) {
-            $data['image_path'] = $this->fileUploadService->upload($photo, 'ceramics');
+            $data['photo'] = $this->fileUploadService->upload($photo, 'ceramics');
         }
 
         // Create via repository
         $ceramic = $this->repository->create($data);
 
-        // Auto-calculate derived fields (Harga per m2)
+        // Auto-calculate derived fields (Harga per m2, Coverage)
         $this->calculateDerivedFields($ceramic);
 
         return $ceramic;
@@ -76,14 +76,7 @@ class CeramicService extends BaseService
 
         // Handle photo upload/update
         if ($photo) {
-            // Hapus foto lama jika ada (perhatikan nama kolom di Ceramic migration sebelumnya tidak ada 'photo', tapi 'image_path' atau tidak didefine?
-            // Mari kita asumsikan kolomnya 'image_path' sesuai konvensi umum,
-            // ATAU jika mengikuti Brick: 'photo'.
-            // *NOTE*: Di migration Ceramic fase 1 revisi terakhir Anda tidak memasukkan kolom foto.
-            // Jika ingin ada foto, pastikan migrationnya ada. Untuk kode ini saya pakai 'photo' agar konsisten dengan BaseService/BrickService,
-            // tapi cek ulang migration Anda. Jika belum ada, nanti kita add kolomnya.
-
-            // Asumsi pakai 'photo' agar sama dengan BrickService logic
+            // Hapus foto lama jika ada
             if ($ceramic->photo) {
                 $this->fileUploadService->delete($ceramic->photo);
             }

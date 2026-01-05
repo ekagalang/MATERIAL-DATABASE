@@ -25,6 +25,7 @@ class MaterialSetting extends Model
             'cat' => 'Cat',
             'cement' => 'Semen',
             'sand' => 'Pasir',
+            'ceramic' => 'Keramik',
         ];
 
         return $labels[$type] ?? ucfirst($type);

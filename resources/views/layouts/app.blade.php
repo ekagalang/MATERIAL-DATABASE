@@ -1243,6 +1243,10 @@
                                         <input type="checkbox" class="nav-material-toggle" data-material="cat">
                                         Cat
                                     </label>
+                                    <label class="dropdown-item checkbox-item">
+                                        <input type="checkbox" class="nav-material-toggle" data-material="ceramic">
+                                        Keramik
+                                    </label>
                                 </div>
                                 <div style="padding: 12px 16px; border-top: 1px solid #e2e8f0;">
                                     <button type="button" id="applyMaterialFilter" class="btn btn-primary btn-sm" style="width: 100%; justify-content: center;">
@@ -1274,6 +1278,9 @@
                                     </a>
                                     <a href="{{ route('cats.create') }}" class="dropdown-item global-open-modal">
                                         Cat
+                                    </a>
+                                    <a href="{{ route('ceramics.create') }}" class="dropdown-item global-open-modal">
+                                        Keramik
                                     </a>
                                 </div>
                             </div>
