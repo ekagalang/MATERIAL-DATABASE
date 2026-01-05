@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Ceramic;
+use App\Models\Unit;
 use App\Services\Material\CeramicService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,12 +20,45 @@ class CeramicController extends Controller
     public function index(Request $request)
     {
         $search = $request->input('search', '');
+        $sortBy = $request->input('sort_by', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        $perPage = $request->input('per_page', 15);
 
-        // Jika request AJAX (untuk search/pagination), kembalikan potongan tabel saja
-        // Namun jika Anda tidak menggunakan partial, biarkan ini reload halaman biasa (fallback)
-        // atau kita return view index dengan layout jika bukan ajax.
+        // Validasi sort column untuk security
+        $allowedSorts = [
+            'material_name',
+            'type',
+            'brand',
+            'sub_brand',
+            'code',
+            'color',
+            'form',
+            'dimension_length',
+            'dimension_width',
+            'dimension_thickness',
+            'pieces_per_package',
+            'coverage_per_package',
+            'store',
+            'address',
+            'price_per_package',
+            'comparison_price_per_m2',
+            'created_at',
+            'updated_at',
+        ];
 
-        $ceramics = $this->service->search($search, 10);
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'created_at';
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
+        // Get data dengan search & sorting
+        $ceramics = $search
+            ? $this->service->search($search, $perPage, $sortBy, $sortDirection)
+            : $this->service->paginateWithSort($perPage, $sortBy, $sortDirection);
+
         $ceramics->appends($request->all());
 
         return view('ceramics.index', compact('ceramics'));
@@ -32,13 +66,15 @@ class CeramicController extends Controller
 
     public function create(): View
     {
+        // Ambil data unit untuk dropdown kemasan
+        $units = Unit::forMaterial('ceramic')->get();
         // Return view TANPA layout (untuk modal)
-        return view('ceramics.create');
+        return view('ceramics.create', compact('units'));
     }
 
     public function store(Request $request)
     {
-        // Validasi & Simpan (Sama seperti sebelumnya)
+        // Validasi & Simpan
         $data = $request->validate([
             'brand' => 'required|string|max:255',
             'sub_brand' => 'nullable|string|max:255',
@@ -71,8 +107,9 @@ class CeramicController extends Controller
 
     public function edit(Ceramic $ceramic): View
     {
+        $units = Unit::forMaterial('ceramic')->get();
         // Return view TANPA layout (untuk modal)
-        return view('ceramics.edit', compact('ceramic'));
+        return view('ceramics.edit', compact('ceramic', 'units'));
     }
 
     public function update(Request $request, Ceramic $ceramic)
@@ -111,26 +148,95 @@ class CeramicController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function getFieldValues($field)
+    public function getFieldValues(string $field, Request $request)
     {
-        $search = request('search');
-        $values = $this->service->getFieldValues($field, [], $search);
+        $allowedFields = [
+            'type',
+            'brand',
+            'sub_brand',
+            'code',
+            'color',
+            'form',
+            'packaging',
+            'pieces_per_package',
+            'dimension_length',
+            'dimension_width',
+            'dimension_thickness',
+            'price_per_package',
+            'comparison_price_per_m2',
+            'store',
+            'address',
+        ];
+
+        if (!in_array($field, $allowedFields, true)) {
+            return response()->json([]);
+        }
+
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+        $filters = [];
+
+        // Rule: filter by selected brand
+        $brandFilteredFields = [
+            'sub_brand',
+            'color',
+            'code',
+            'form',
+            'pieces_per_package',
+            'dimension_length',
+            'dimension_width',
+            'dimension_thickness',
+        ];
+        if (in_array($field, $brandFilteredFields, true) && $request->filled('brand')) {
+            $filters['brand'] = (string) $request->query('brand');
+        }
+
+        // Rule: filter price by selected packaging
+        $packagingFilteredFields = [
+            'price_per_package',
+            'comparison_price_per_m2',
+        ];
+        if (in_array($field, $packagingFilteredFields, true) && $request->filled('packaging')) {
+            $filters['packaging'] = (string) $request->query('packaging');
+        }
+
+        // Optional: address by selected store
+        if ($field === 'address' && $request->filled('store')) {
+            $filters['store'] = (string) $request->query('store');
+        }
+
+        $values = $this->service->getFieldValues($field, $filters, $search, $limit);
+
         return response()->json($values);
     }
 
-    public function getAllStores()
+    public function getAllStores(Request $request)
     {
-        $search = request('search');
-        // 'all' untuk mencari di semua material, 'ceramic' untuk hanya keramik
-        $stores = $this->service->getAllStores($search, 20, 'all');
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $materialType = (string) $request->query('material_type', 'all'); // 'ceramic' atau 'all'
+
+        $stores = $this->service->getAllStores($search, $limit, $materialType);
+
         return response()->json($stores);
     }
 
-    public function getAddressesByStore()
+    public function getAddressesByStore(Request $request)
     {
-        $store = request('store');
-        $search = request('search');
-        $addresses = $this->service->getAddressesByStore($store, $search);
+        $store = (string) $request->query('store', '');
+        $search = (string) $request->query('search', '');
+        $limit = (int) $request->query('limit', 20);
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+
+        if ($store === '') {
+            return response()->json([]);
+        }
+
+        $addresses = $this->service->getAddressesByStore($store, $search, $limit);
+
         return response()->json($addresses);
     }
 }

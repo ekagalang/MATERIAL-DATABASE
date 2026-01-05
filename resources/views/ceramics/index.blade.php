@@ -22,198 +22,873 @@
                     id="search-input"
                     name="search"
                     placeholder="Cari merek, kode, warna, toko..."
-                    value="{{ request('search') }}"
-                    style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; transition: all 0.2s;"
-                    onfocus="this.style.borderColor='#4f46e5'; this.style.boxShadow='0 0 0 4px rgba(79, 70, 229, 0.1)';"
-                    onblur="this.style.borderColor='#e2e8f0'; this.style.boxShadow='none';">
+                    style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
-            
-            <button type="button" 
-                    onclick="openFloatingModal('{{ route('ceramics.create') }}', 'Tambah Data Keramik')"
-                    class="btn btn-primary" 
-                    style="padding: 11px 20px; display: flex; align-items: center; gap: 8px; font-weight: 500; border-radius: 10px; background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); border: none; box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.2); text-decoration: none; color: white; cursor: pointer;">
-                <i class="bi bi-plus-lg"></i> Tambah Data
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-search"></i> Cari
+            </button>
+            <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
+                <i class="bi bi-x-lg"></i> Reset
             </button>
         </form>
+
+        <a href="{{ route('ceramics.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
+            <i class="bi bi-plus-lg"></i> Tambah Keramik
+        </a>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success" style="background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-            <i class="bi bi-check-circle-fill"></i>
-            {{ session('success') }}
-        </div>
-    @endif
-
-    <div id="table-container" style="overflow-x: auto; border: 1px solid #f1f5f9; border-radius: 12px;">
-        <table class="table" style="width: 100%; border-collapse: collapse; margin: 0;">
+    <!-- Table Container -->
+    <div id="table-container" class="table-container text-nowrap" style="overflow-x: auto; display: none;">
+        <table>
             <thead>
-                <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                    <th style="padding: 16px; text-align: left; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Produk Info</th>
-                    <th style="padding: 16px; text-align: left; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Spesifikasi</th>
-                    <th style="padding: 16px; text-align: left; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Harga</th>
-                    <th style="padding: 16px; text-align: left; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Toko</th>
-                    <th style="padding: 16px; text-align: center; font-weight: 600; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Aksi</th>
+                <tr>
+                    <th rowspan="2">No</th>
+
+                    <th class="sortable" rowspan="2" data-column="type">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Jenis</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="brand">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Merek</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="sub_brand">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Sub Merek</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="code">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Code</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="color">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Warna</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="form">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Bentuk</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th rowspan="2">Kemasan</th>
+
+                    <th class="sortable" rowspan="2" data-column="pieces_per_package">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Volume</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th rowspan="2">Luas (M2 / Lbr)</th>
+
+                    <th class="sortable" colspan="3" style="text-align: center;" data-column="dimension_length">
+                        <a href="#" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                            <span>Dimensi (cm)</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="store">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Toko</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="address">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Alamat</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="price_per_package">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Harga / Kemasan</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th class="sortable" rowspan="2" data-column="comparison_price_per_m2">
+                        <a href="#" style="color: inherit; text-decoration: none; display: flex; align-items: center; justify-content: space-between;">
+                            <span>Harga Komparasi (/ Satuan)</span>
+                            <i class="bi bi-arrow-down-up sort-icon" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                        </a>
+                    </th>
+
+                    <th rowspan="2" style="text-align: center">Aksi</th>
+                </tr>
+                <tr class="dim-sub-row">
+                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
+                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
+                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
                 </tr>
             </thead>
-            <tbody>
-                @forelse($ceramics as $ceramic)
-                <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 16px;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <div style="width: 40px; height: 40px; border-radius: 8px; overflow: hidden; background: #f1f5f9; flex-shrink: 0; border: 1px solid #e2e8f0;">
-                                @if($ceramic->photo)
-                                    <img src="{{ Storage::url($ceramic->photo) }}" alt="" style="width: 100%; height: 100%; object-fit: cover;">
-                                @else
-                                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #cbd5e1;">
-                                        <i class="bi bi-image"></i>
-                                    </div>
-                                @endif
-                            </div>
-                            <div>
-                                <div style="font-weight: 600; color: #0f172a;">{{ $ceramic->brand }}</div>
-                                <div style="font-size: 12px; color: #64748b;">{{ $ceramic->sub_brand }}</div>
-                                <div style="font-size: 11px; color: #6366f1; background: #eef2ff; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;">{{ $ceramic->type }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td style="padding: 16px;">
-                        <div style="font-family: monospace; font-size: 13px; color: #334155; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px;">
-                            {{ $ceramic->dimension_length }}x{{ $ceramic->dimension_width }}
-                        </div>
-                        <div style="font-size: 12px; color: #64748b;">Isi: {{ $ceramic->pieces_per_package }} / {{ $ceramic->packaging }}</div>
-                    </td>
-                    <td style="padding: 16px;">
-                        <div style="font-weight: 700; color: #0f172a;">Rp {{ number_format($ceramic->price_per_package, 0, ',', '.') }}</div>
-                        <div style="font-size: 12px; color: #16a34a; font-weight: 500;">
-                            @if($ceramic->comparison_price_per_m2)
-                                {{ number_format($ceramic->comparison_price_per_m2, 0, ',', '.') }}/m²
-                            @endif
-                        </div>
-                    </td>
-                    <td style="padding: 16px;">
-                        <div style="font-weight: 500; color: #334155;">{{ $ceramic->store ?? '-' }}</div>
-                        <div style="font-size: 12px; color: #94a3b8; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $ceramic->address }}</div>
-                    </td>
-                    <td style="padding: 16px; text-align: center;">
-                        <div style="display: flex; justify-content: center; gap: 8px;">
-                            <button onclick="openFloatingModal('{{ route('ceramics.show', $ceramic) }}', 'Detail Keramik')" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #eff6ff; color: #3b82f6; border: 1px solid #dbeafe; transition: all 0.2s; cursor: pointer;" title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </button>
-                            <button onclick="openFloatingModal('{{ route('ceramics.edit', $ceramic) }}', 'Edit Keramik')" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #f5f3ff; color: #8b5cf6; border: 1px solid #ede9fe; transition: all 0.2s; cursor: pointer;" title="Edit">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <form action="{{ route('ceramics.destroy', $ceramic) }}" method="POST" onsubmit="return confirm('Hapus data ini?');" style="display: inline;">
-                                @csrf @method('DELETE')
-                                <button type="submit" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; cursor: pointer; transition: all 0.2s;" title="Hapus">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-                @empty
+            <tbody id="ceramic-list">
                 <tr>
-                    <td colspan="5" style="padding: 40px; text-align: center; color: #94a3b8;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">📦</div>
-                        <div>Belum ada data keramik ditemukan.</div>
+                    <td colspan="18" style="text-align: center; padding: 60px;">
+                        <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div style="margin-top: 16px; color: #64748b; font-weight: 500;">Memuat data...</div>
                     </td>
                 </tr>
-                @endforelse
             </tbody>
         </table>
     </div>
 
-    <div style="margin-top: 20px;">
-        {{ $ceramics->withQueryString()->links() }}
+    <!-- Pagination -->
+    <div class="pagination" id="ceramic-pagination"></div>
+
+    <!-- Empty State Container -->
+    <div id="empty-state-container" style="display: none;">
+        <div class="empty-state">
+            <div class="empty-state-icon">📦</div>
+            <p id="empty-state-message">Belum ada data keramik</p>
+            <a href="{{ route('ceramics.create') }}" class="btn btn-primary open-modal" id="add-first-btn" style="margin-top: 16px;">
+                <i class="bi bi-plus-lg"></i> Tambah Data Pertama
+            </a>
+        </div>
     </div>
 </div>
 
-<div id="floatingModal" style="position: fixed; inset: 0; z-index: 50; display: none; justify-content: center; align-items: center;">
-    <div id="modalBackdrop" style="position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.3s ease;"></div>
-    
-    <div id="modalContent" style="position: relative; background: white; width: 100%; max-width: 1100px; max-height: 90vh; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transform: scale(0.95); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden; display: flex; flex-direction: column;">
-        
-        <div style="padding: 20px 30px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; background: #ffffff; z-index: 10;">
-            <h3 id="modalTitle" style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">Form Data</h3>
-            <button type="button" onclick="closeFloatingModal()" style="background: transparent; border: none; cursor: pointer; color: #94a3b8; padding: 8px; border-radius: 50%; transition: all 0.2s; display: flex; align-items: center; justify-content: center;">
-                <i class="bi bi-x-lg" style="font-size: 20px;"></i>
-            </button>
+<!-- Floating Modal Container -->
+<div id="floatingModal" class="floating-modal">
+    <div class="floating-modal-backdrop"></div>
+    <div class="floating-modal-content">
+        <div class="floating-modal-header">
+            <h2 id="modalTitle">Form Keramik</h2>
+            <button class="floating-modal-close" id="closeModal">&times;</button>
         </div>
-
-        <div id="modalBody" style="padding: 30px; overflow-y: auto; background: #f8fafc; flex: 1;">
-            <div style="text-align: center; padding: 40px;">
-                <div class="spinner-border" role="status"></div>
+        <div class="floating-modal-body" id="modalBody">
+            <div style="text-align: center; padding: 60px; color: #94a3b8;">
+                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                <div style="font-weight: 500;">Loading...</div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+/* Modal Styles - Modern & Minimalist */
+.floating-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease;
+}
+
+.floating-modal.active {
+    display: block;
+}
+
+.floating-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.floating-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+    max-width: 95%;
+    max-height: 95vh;
+    width: 1200px;
+    overflow: hidden;
+    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.floating-modal-header {
+    padding: 24px 32px;
+    border-bottom: 1.5px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    position: relative;
+    overflow: hidden;
+}
+
+.floating-modal-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 8px 0;
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+.floating-modal-header h2::before {
+    content: '';
+    position: absolute;
+    left: -32px;
+    right: -200px;
+    top: 0;
+    bottom: 0;
+    background: #891313;
+    z-index: -1;
+}
+
+.floating-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    color: #ffffff;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 10;
+}
+
+.floating-modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.floating-modal-body {
+    padding: 32px;
+    overflow-y: auto;
+    max-height: calc(95vh - 90px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translate(-50%, -48%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+/* Scrollbar styling */
+.floating-modal-body::-webkit-scrollbar {
+    width: 10px;
+}
+
+.floating-modal-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.floating-modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 5px;
+}
+
+.floating-modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.table-container table {
+    border-collapse: collapse;
+    border-spacing: 0;
+}
+
+.table-container thead th {
+    background-color: #891313 !important;
+    color: #ffffff !important;
+    vertical-align: top !important;
+    text-align: center !important;
+    white-space: nowrap;
+    padding: 10px 8px !important;
+    font-size: 13px;
+}
+
+.table-container table td {
+    vertical-align: middle !important;
+    padding: 10px 8px !important;
+    font-size: 13px;
+}
+
+.table-container thead .dim-sub-row th {
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    padding: 8px 2px 10px 2px !important;
+    width: 40px;
+    position: relative;
+    line-height: 1.1;
+    vertical-align: middle;
+}
+
+.table-container tbody td.dim-cell {
+    padding: 10px 2px !important;
+    width: 40px;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    position: relative;
+    text-align: center;
+    font-size: 12px;
+}
+
+/* Header 'x' separator */
+.table-container thead .dim-sub-row th + th::before {
+    content: 'x';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+/* Body 'x' separator */
+.table-container tbody td.dim-cell + td.dim-cell::before {
+    content: 'x';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 11px;
+    pointer-events: none;
+}
+
+/* Input focus styles */
+input[type="text"]:focus {
+    outline: none;
+    border-color: #891313 !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+}
+
+/* Badge/Tag styles */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #475569;
+}
+
+/* Sortable header styles */
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable a {
+    transition: all 0.2s ease;
+}
+
+th.sortable:hover a {
+    color: #c7d2fe !important;
+}
+
+th.sortable:hover i {
+    opacity: 1 !important;
+}
+
+th.sortable i {
+    transition: opacity 0.2s ease;
+}
+</style>
+
+<!-- API Helper Script -->
+<script src="{{ asset('js/api-helper.js') }}"></script>
+
 <script>
-    // Search Debounce Logic
-    let searchTimeout;
-    document.getElementById('search-input').addEventListener('input', function(e) {
-        clearTimeout(searchTimeout);
-        searchTimeout = setTimeout(() => {
-            document.getElementById('search-form').submit();
-        }, 500);
+// ========================================
+// STATE MANAGEMENT
+// ========================================
+let currentPage = 1;
+let currentSearch = '';
+let currentSortBy = null;
+let currentSortDirection = null;
+
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+function formatDimension(value) {
+    if (!value || value === null) {
+        return '<span style="color: #cbd5e1;">-</span>';
+    }
+    const formatted = parseFloat(value).toString().replace('.', ',');
+    return formatted;
+}
+
+function formatAreaPerPiece(length, width) {
+    if (!length || !width) {
+        return '<span style="color: #cbd5e1;">—</span>';
+    }
+    // Convert cm to m and calculate area
+    const lengthM = parseFloat(length) / 100;
+    const widthM = parseFloat(width) / 100;
+    const area = lengthM * widthM;
+    return area.toFixed(4).replace('.', ',');
+}
+
+function formatPrice(value) {
+    if (!value || value === null) {
+        return '<span style="color: #cbd5e1;">—</span>';
+    }
+    return `
+        <div style="display: flex; width: 100%; font-size: 13px;">
+            <span style="color: #64748b; font-weight: 500;">Rp</span>
+            <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
+                ${parseInt(value).toLocaleString('id-ID')}
+            </span>
+        </div>
+    `;
+}
+
+// ========================================
+// CORE FUNCTIONS
+// ========================================
+
+async function loadCeramics(page = 1, search = '', sortBy = null, sortDirection = null) {
+    // Update state
+    currentPage = page;
+    currentSearch = search;
+    currentSortBy = sortBy;
+    currentSortDirection = sortDirection;
+
+    // Show loading
+    const ceramicList = document.getElementById('ceramic-list');
+    ceramicList.innerHTML = `
+        <tr>
+            <td colspan="18" style="text-align: center; padding: 60px;">
+                <div class="spinner-border" role="status" style="width: 32px; height: 32px; color: #94a3b8;">
+    <span class="visually-hidden">Loading...</span>
+</div>
+                <div style="margin-top: 16px; color: #64748b; font-weight: 500;">Memuat data...</div>
+            </td>
+        </tr>
+    `;
+
+    // Build query parameters
+    const params = {
+        per_page: 9999
+    };
+
+    if (search) params.search = search;
+    if (sortBy) params.sort_by = sortBy;
+    if (sortDirection) params.sort_direction = sortDirection;
+
+    try {
+        const response = await api.get('/ceramics', params);
+
+        if (response.success && response.data.length > 0) {
+            const pagination = response.meta || response.pagination;
+            renderCeramics(response.data, pagination);
+            showTable();
+        } else {
+            showEmptyState(search);
+        }
+    } catch (error) {
+        console.error('Error loading ceramics:', error);
+        ceramicList.innerHTML = `
+            <tr>
+                <td colspan="18" style="text-align: center; padding: 60px; color: #ef4444;">
+                    <i class="bi bi-exclamation-triangle" style="font-size: 32px;"></i>
+                    <div style="margin-top: 16px; font-weight: 500;">Gagal memuat data. Silakan coba lagi.</div>
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function renderCeramics(ceramics, pagination) {
+    const ceramicList = document.getElementById('ceramic-list');
+
+    const html = ceramics.map((ceramic, index) => {
+        const rowNumber = index + 1;
+        // Access nested properties safely
+        const length = ceramic.dimensions?.length;
+        const width = ceramic.dimensions?.width;
+        const thickness = ceramic.dimensions?.thickness;
+        
+        const packagingType = ceramic.packaging?.type;
+        const pieces = ceramic.packaging?.pieces;
+        
+        const pricePerPackage = ceramic.price?.per_package;
+        const pricePerM2 = ceramic.price?.per_m2;
+
+        const areaPerPiece = formatAreaPerPiece(length, width);
+
+        return `
+            <tr>
+                <td style="text-align: center; font-weight: 500; color: #64748b;">
+                    ${rowNumber}
+                </td>
+                <td style="color: #475569;">${ceramic.type || '-'}</td>
+                <td style="color: #475569;">${ceramic.brand || '-'}</td>
+                <td style="color: #475569;">${ceramic.sub_brand || '-'}</td>
+                <td style="color: #475569;">${ceramic.code || '-'}</td>
+                <td style="color: #475569;">${ceramic.color || '-'}</td>
+                <td style="color: #475569;">${ceramic.form || '-'}</td>
+                <td style="color: #475569;">
+                    <span style="display: inline-block; padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 12px;">
+                        ${packagingType || 'Dus'}
+                    </span>
+                </td>
+                <td style="color: #475569; text-align: center;">
+                    ${pieces || '-'} Lbr
+                </td>
+                <td style="color: #475569; text-align: right; font-family: monospace;">
+                    ${areaPerPiece} M²
+                </td>
+                <td class="dim-cell">
+                    ${formatDimension(length)}
+                </td>
+                <td class="dim-cell">
+                    ${formatDimension(width)}
+                </td>
+                <td class="dim-cell">
+                    ${formatDimension(thickness)}
+                </td>
+                <td>
+                    <span style="display: inline-block; padding: 4px 10px; background: #f1f5f9; border-radius: 6px; font-size: 12px; font-weight: 500; color: #475569;">
+                        ${ceramic.store?.name || ceramic.store || '-'}
+                    </span>
+                </td>
+                <td style="color: #64748b; font-size: 12px; line-height: 1.5; max-width: 180px;">
+                    ${ceramic.store?.address || ceramic.address || '-'}
+                </td>
+                <td>
+                    ${formatPrice(pricePerPackage)}
+                </td>
+                <td>
+                    ${formatPrice(pricePerM2)}
+                </td>
+                <td style="text-align: center">
+                    <div class="btn-group">
+                        <a href="/ceramics/${ceramic.id}"
+                           class="btn btn-primary btn-sm open-modal"
+                           title="Detail">
+                            <i class="bi bi-eye"></i>
+                        </a>
+
+                        <a href="/ceramics/${ceramic.id}/edit"
+                           class="btn btn-warning btn-sm open-modal"
+                           title="Edit">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <button type="button"
+                                class="btn btn-danger btn-sm"
+                                title="Hapus"
+                                onclick="deleteCeramic(${ceramic.id})">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    ceramicList.innerHTML = html;
+    attachModalHandlers();
+}
+
+function renderPagination(pagination) {
+    const paginationContainer = document.getElementById('ceramic-pagination');
+
+    if (!pagination || pagination.last_page <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+
+    const prevDisabled = pagination.current_page === 1;
+    const nextDisabled = pagination.current_page === pagination.last_page;
+
+    const html = `
+        <button class="btn btn-secondary btn-sm"
+                ${prevDisabled ? 'disabled' : ''}
+                onclick="loadCeramics(${pagination.current_page - 1}, currentSearch, currentSortBy, currentSortDirection)">
+            <i class="bi bi-chevron-left"></i> Sebelumnya
+        </button>
+        <span style="padding: 0 16px; font-weight: 500; color: #475569;">
+            Halaman ${pagination.current_page} dari ${pagination.last_page}
+        </span>
+        <button class="btn btn-secondary btn-sm"
+                ${nextDisabled ? 'disabled' : ''}
+                onclick="loadCeramics(${pagination.current_page + 1}, currentSearch, currentSortBy, currentSortDirection)">
+            Selanjutnya <i class="bi bi-chevron-right"></i>
+        </button>
+    `;
+
+    paginationContainer.innerHTML = html;
+}
+
+function showTable() {
+    document.getElementById('table-container').style.display = 'block';
+    document.getElementById('empty-state-container').style.display = 'none';
+}
+
+function showEmptyState(search) {
+    document.getElementById('table-container').style.display = 'none';
+    document.getElementById('empty-state-container').style.display = 'block';
+
+    const message = search
+        ? 'Tidak ada data keramik yang sesuai dengan pencarian'
+        : 'Belum ada data keramik';
+
+    document.getElementById('empty-state-message').textContent = message;
+    document.getElementById('add-first-btn').style.display = search ? 'none' : 'inline-block';
+}
+
+async function deleteCeramic(id) {
+    if (!confirm('Yakin ingin menghapus data keramik ini?')) {
+        return;
+    }
+
+    try {
+        const result = await api.delete(`/ceramics/${id}`);
+
+        if (result.success) {
+            loadCeramics(currentPage, currentSearch, currentSortBy, currentSortDirection);
+        } else {
+            alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Gagal menghapus data. Silakan coba lagi.');
+    }
+}
+
+// ========================================
+// SEARCH FUNCTIONALITY
+// ========================================
+
+function setupSearch() {
+    const searchForm = document.getElementById('search-form');
+    const searchInput = document.getElementById('search-input');
+    const resetBtn = document.getElementById('reset-search');
+
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const searchValue = searchInput.value.trim();
+
+        resetBtn.style.display = searchValue ? 'inline-block' : 'none';
+        loadCeramics(1, searchValue, currentSortBy, currentSortDirection);
     });
 
-    // Modal Logic
-    function openFloatingModal(url, title) {
-        document.getElementById('modalTitle').innerText = title;
-        const modal = document.getElementById('floatingModal');
-        const backdrop = document.getElementById('modalBackdrop');
-        const content = document.getElementById('modalContent');
-        const body = document.getElementById('modalBody');
+    resetBtn.addEventListener('click', function() {
+        searchInput.value = '';
+        resetBtn.style.display = 'none';
+        loadCeramics(1, '', currentSortBy, currentSortDirection);
+    });
+}
 
-        modal.style.display = 'flex';
-        // Animasi Masuk
-        setTimeout(() => {
-            backdrop.style.opacity = '1';
-            content.style.opacity = '1';
-            content.style.transform = 'scale(1)';
-        }, 10);
+// ========================================
+// SORT FUNCTIONALITY
+// ========================================
 
-        // Fetch Content
-        fetch(url)
+function setupSort() {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+
+    sortableHeaders.forEach(header => {
+        const link = header.querySelector('a');
+        const column = header.getAttribute('data-column');
+
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            let newSortBy = column;
+            let newSortDirection = 'asc';
+
+            if (currentSortBy === column) {
+                if (currentSortDirection === 'asc') {
+                    newSortDirection = 'desc';
+                } else {
+                    newSortBy = null;
+                    newSortDirection = null;
+                }
+            }
+
+            updateSortIcons(newSortBy, newSortDirection);
+            loadCeramics(currentPage, currentSearch, newSortBy, newSortDirection);
+        });
+    });
+}
+
+function updateSortIcons(sortBy, sortDirection) {
+    const sortableHeaders = document.querySelectorAll('th.sortable');
+
+    sortableHeaders.forEach(header => {
+        const icon = header.querySelector('.sort-icon');
+        const column = header.getAttribute('data-column');
+
+        if (column === sortBy) {
+            if (sortDirection === 'asc') {
+                icon.className = 'bi bi-sort-up sort-icon';
+                icon.style.opacity = '1';
+            } else if (sortDirection === 'desc') {
+                icon.className = 'bi bi-sort-down-alt sort-icon';
+                icon.style.opacity = '1';
+            }
+        } else {
+            icon.className = 'bi bi-arrow-down-up sort-icon';
+            icon.style.opacity = '0.3';
+        }
+    });
+}
+
+// ========================================
+// MODAL FUNCTIONALITY
+// ========================================
+
+function attachModalHandlers() {
+    document.querySelectorAll('.open-modal').forEach(link => {
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+    });
+    initModalHandlers();
+}
+
+function initModalHandlers() {
+    const modal = document.getElementById('floatingModal');
+    const modalBody = document.getElementById('modalBody');
+    const modalTitle = document.getElementById('modalTitle');
+    const closeBtn = document.getElementById('closeModal');
+    const backdrop = modal.querySelector('.floating-modal-backdrop');
+
+    function interceptFormSubmit() {
+        const form = modalBody.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Let form submit normally
+            });
+        }
+    }
+
+    document.querySelectorAll('.open-modal').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = this.href;
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+
+            if (url.includes('/create')) {
+                modalTitle.textContent = 'Tambah Data Keramik Baru';
+                closeBtn.style.display = 'none';
+            } else if (url.includes('/edit')) {
+                modalTitle.textContent = 'Edit Data Keramik';
+                closeBtn.style.display = 'none';
+            } else {
+                modalTitle.textContent = 'Detail Data Keramik';
+                closeBtn.style.display = 'flex';
+            }
+
+            fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
             .then(response => response.text())
             .then(html => {
-                body.innerHTML = html;
-                // Re-run scripts in new HTML
-                const scripts = body.querySelectorAll('script');
-                scripts.forEach(oldScript => {
-                    const newScript = document.createElement('script');
-                    if(oldScript.src) {
-                        newScript.src = oldScript.src;
-                    } else {
-                        newScript.textContent = oldScript.textContent;
-                    }
-                    document.body.appendChild(newScript);
-                });
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
+                modalBody.innerHTML = content ? content.outerHTML : html;
+
+                if (!window.ceramicFormScriptLoaded) {
+                    const script = document.createElement('script');
+                    script.src = '/js/ceramic-form.js?v=' + Date.now();
+                    script.onload = () => {
+                        window.ceramicFormScriptLoaded = true;
+                        setTimeout(() => {
+                            if (typeof initCeramicForm === 'function') {
+                                initCeramicForm(modalBody);
+                            }
+                            interceptFormSubmit();
+                        }, 100);
+                    };
+                    document.head.appendChild(script);
+                } else {
+                    setTimeout(() => {
+                        if (typeof initCeramicForm === 'function') {
+                            initCeramicForm(modalBody);
+                        }
+                        interceptFormSubmit();
+                    }, 100);
+                }
             })
             .catch(err => {
-                body.innerHTML = '<div style="text-align: center; padding: 20px; color: red;">Gagal memuat konten.</div>';
+                modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
+                console.error('Fetch error:', err);
             });
-    }
+        });
+    });
 
     window.closeFloatingModal = function() {
-        const modal = document.getElementById('floatingModal');
-        const backdrop = document.getElementById('modalBackdrop');
-        const content = document.getElementById('modalContent');
-
-        backdrop.style.opacity = '0';
-        content.style.opacity = '0';
-        content.style.transform = 'scale(0.95)';
-
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
         setTimeout(() => {
-            modal.style.display = 'none';
-            document.getElementById('modalBody').innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
+            modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
         }, 300);
+        loadCeramics(currentPage, currentSearch, currentSortBy, currentSortDirection);
     }
 
-    // Close on Escape
+    closeBtn.addEventListener('click', window.closeFloatingModal);
+    backdrop.addEventListener('click', window.closeFloatingModal);
+
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') closeFloatingModal();
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            window.closeFloatingModal();
+        }
     });
+}
+
+// ========================================
+// INITIALIZE ON PAGE LOAD
+// ========================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupSearch();
+    setupSort();
+    initModalHandlers();
+    loadCeramics(1);
+});
 </script>
 @endsection

@@ -8,6 +8,7 @@ use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Sand;
+use App\Models\Ceramic;
 
 class MaterialController extends Controller
 {
@@ -37,6 +38,9 @@ class MaterialController extends Controller
                     break;
                 case 'sand':
                     $model = Sand::class;
+                    break;
+                case 'ceramic':
+                    $model = Ceramic::class;
                     break;
             }
 
@@ -90,6 +94,9 @@ class MaterialController extends Controller
             case 'sand':
                 $model = Sand::class;
                 break;
+            case 'ceramic':
+                $model = Ceramic::class;
+                break;
         }
 
         if (!$model) {
@@ -125,6 +132,9 @@ class MaterialController extends Controller
             case 'sand':
                 $query = Sand::query()->with('packageUnit');
                 break;
+            case 'ceramic':
+                $query = Ceramic::query();
+                break;
         }
 
         if (!$query) {
@@ -149,6 +159,9 @@ class MaterialController extends Controller
                 }
                 if ($type == 'sand') {
                     $q->orWhere('sand_name', 'like', "%{$search}%");
+                }
+                if ($type == 'ceramic') {
+                    $q->orWhere('material_name', 'like', "%{$search}%");
                 }
             });
         } else {

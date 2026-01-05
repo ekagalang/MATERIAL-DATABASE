@@ -166,7 +166,7 @@ class CeramicController extends Controller
         $search = $request->get('search');
         $limit = $request->get('limit', 20);
         // Filter spesifik yang mungkin dikirim frontend
-        $filters = $request->only(['brand', 'store', 'type']);
+        $filters = $request->only(['brand', 'store', 'type', 'packaging']);
 
         $values = $this->ceramicService->getFieldValues($field, $filters, $search, $limit);
 
