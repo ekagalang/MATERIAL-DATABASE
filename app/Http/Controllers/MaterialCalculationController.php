@@ -7,6 +7,7 @@ use App\Models\BrickCalculation;
 use App\Models\BrickInstallationType;
 use App\Models\Cat;
 use App\Models\Cement;
+use App\Models\Ceramic;
 use App\Models\MortarFormula;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
@@ -696,7 +697,8 @@ class MaterialCalculationController extends Controller
         $cements = Cement::orderBy('cement_name')->get();
         $sands = Sand::orderBy('sand_name')->get();
         $cats = Cat::orderBy('brand')->get();
-        return view('material_calculations.trace', compact('availableFormulas', 'installationTypes', 'mortarFormulas', 'bricks', 'cements', 'sands', 'cats'));
+        $ceramics = Ceramic::orderBy('brand')->get();
+        return view('material_calculations.trace', compact('availableFormulas', 'installationTypes', 'mortarFormulas', 'bricks', 'cements', 'sands', 'cats', 'ceramics'));
     }
 
     public function traceCalculation(Request $request)
@@ -712,6 +714,11 @@ class MaterialCalculationController extends Controller
             'cement_id' => 'nullable|exists:cements,id',
             'sand_id' => 'nullable|exists:sands,id',
             'cat_id' => 'nullable|exists:cats,id',
+            'ceramic_id' => 'nullable|exists:ceramics,id',
+            'grout_thickness' => 'nullable|numeric|min:0.1|max:20',
+            'grout_package_weight' => 'nullable|numeric|min:0.1',
+            'grout_volume_per_package' => 'nullable|numeric|min:0.0001',
+            'grout_price_per_package' => 'nullable|numeric|min:0',
             'custom_cement_ratio' => 'nullable|numeric|min:1',
             'custom_sand_ratio' => 'nullable|numeric|min:1',
             'has_additional_layer' => 'nullable|boolean',

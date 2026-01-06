@@ -131,3 +131,5 @@ Route::prefix('settings/recommendations')
         Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
     });
+
+Route::resource('nats', NatController::class);

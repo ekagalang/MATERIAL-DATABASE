@@ -39,6 +39,11 @@ class MaterialSettingSeeder extends Seeder
                 'is_visible' => true,
                 'display_order' => 5,
             ],
+            [
+                'material_type' => 'nat',
+                'is_visible' => true,
+                'display_order' => 6,
+            ],
         ];
 
         foreach ($materials as $material) {

@@ -121,6 +121,51 @@
                                         </span>
                                     </div>
                                 </div>
+
+                                {{-- Input Tebal Nat untuk Tile Installation --}}
+                                <div class="col-lg-3 col-md-6" id="groutThicknessGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Tebal Nat</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="grout_thickness" value="3" step="0.1">
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            mm
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-3 col-md-6" id="groutPackageWeightGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Berat Kemasan Nat</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="grout_package_weight" value="5" step="0.1">
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            kg
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-3 col-md-6" id="groutVolumePerPackageGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Volume Pasta Nat</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="grout_volume_per_package" value="0.0035" step="0.0001">
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            m³
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-3 col-md-6" id="groutPricePerPackageGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Harga Nat per Bungkus</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="grout_price_per_package" value="0" step="100">
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            Rp
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -182,6 +227,20 @@
                                             @foreach($cats as $cat)
                                                 <option value="{{ $cat->id }}">
                                                     {{ $cat->cat_name }} - {{ $cat->brand }} ({{ $cat->package_weight_net }} kg)
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+
+                                <div class="col-12" id="ceramicSection" style="display: none;">
+                                    <label class="form-label fw-semibold">Keramik</label>
+                                    <select class="form-select form-select-lg rounded-3 shadow-sm" name="ceramic_id">
+                                        <option value="">-- Gunakan Default --</option>
+                                        @if(isset($ceramics))
+                                            @foreach($ceramics as $ceramic)
+                                                <option value="{{ $ceramic->id }}">
+                                                    {{ $ceramic->brand }} - {{ $ceramic->color }} ({{ $ceramic->dimension_length }}×{{ $ceramic->dimension_width }} cm, {{ $ceramic->pieces_per_package }} pcs/dus)
                                                 </option>
                                             @endforeach
                                         @endif
@@ -295,8 +354,13 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     const layerCountGroup = document.getElementById('layerCountGroup');
     const plasterSidesGroup = document.getElementById('plasterSidesGroup');
     const skimSidesGroup = document.getElementById('skimSidesGroup');
+    const groutThicknessGroup = document.getElementById('groutThicknessGroup');
+    const groutPackageWeightGroup = document.getElementById('groutPackageWeightGroup');
+    const groutVolumePerPackageGroup = document.getElementById('groutVolumePerPackageGroup');
+    const groutPricePerPackageGroup = document.getElementById('groutPricePerPackageGroup');
     const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
     const catSection = document.getElementById('catSection');
+    const ceramicSection = document.getElementById('ceramicSection');
 
     // Get material sections
     const brickSection = document.querySelector('select[name="brick_id"]')?.closest('.col-12');
@@ -307,47 +371,86 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         layerCountGroup.style.display = 'block';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
+        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
+        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'block';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'none';
     } else if (this.value === 'wall_plastering') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'block';
         skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
+        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
+        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'none';
     } else if (this.value === 'skim_coating') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'block';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
+        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
+        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'none';
     } else if (this.value === 'painting') {
         layerCountGroup.style.display = 'block';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
+        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
+        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'none';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'block';
+        if (ceramicSection) ceramicSection.style.display = 'none';
+    } else if (this.value === 'tile_installation') {
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'block';
+        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'block';
+        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'block';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        if (brickSection) brickSection.style.display = 'none';
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'block';
+        if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'block';
     } else {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
+        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
+        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'block';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'none';
     }
 });
 
@@ -413,64 +516,200 @@ function renderTrace(trace, containerId) {
                 <h5 class="mb-0"><i class="bi bi-check-circle"></i> Hasil Akhir</h5>
             </div>
             <div class="card-body">
-                <table class="table table-bordered mb-0">
-                    <tbody>
-                        <tr>
-                            <td class="fw-bold">Total Bata</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.total_bricks)} buah</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Semen (kg)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.cement_kg)} kg</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Semen (satuan kemasan)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.cement_sak)} sak</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Semen (M3)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.cement_m3)} M3</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Pasir (M3)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.sand_m3)} M3</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Pasir (satuan kemasan)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.sand_sak)} sak</strong></td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Air (liter)</td>
-                            <td class="text-end"><strong>${formatNumber(trace.final_result.water_liters)} liter</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+    `;
 
-                <table class="table table-bordered mt-3 mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th colspan="2" class="text-center">Rincian Harga</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td class="fw-bold">Harga Bata (@${formatCurrency(trace.final_result.brick_price_per_piece)}/buah)</td>
-                            <td class="text-end">${formatCurrency(trace.final_result.total_brick_price)}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Harga Semen (@${formatCurrency(trace.final_result.cement_price_per_sak)}/sak)</td>
-                            <td class="text-end">${formatCurrency(trace.final_result.total_cement_price)}</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold">Harga Pasir (@${formatCurrency(trace.final_result.sand_price_per_m3)}/M3)</td>
-                            <td class="text-end">${formatCurrency(trace.final_result.total_sand_price)}</td>
-                        </tr>
-                        <tr class="table-success">
-                            <td class="fw-bold">TOTAL HARGA</td>
-                            <td class="text-end"><strong>${formatCurrency(trace.final_result.grand_total)}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
+    // Render hasil berdasarkan tipe formula
+    const result = trace.final_result;
+
+    // Cek apakah ini tile installation (ada data keramik)
+    if (result.total_tiles !== undefined && result.total_tiles > 0) {
+        // TILE INSTALLATION RESULT
+        html += `
+            <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-grid-3x3-gap"></i> Kebutuhan Keramik</h6>
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold" style="width: 60%">Total Keramik</td>
+                        <td class="text-end"><strong>${formatNumber(result.total_tiles)} pcs</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Kebutuhan Dus Keramik</td>
+                        <td class="text-end"><strong>${formatNumber(result.tiles_packages)} dus</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Keramik per M2</td>
+                        <td class="text-end">${formatNumber(result.tiles_per_m2)} pcs/M2</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Dus per M2</td>
+                        <td class="text-end">${formatNumber(result.tiles_packages_per_m2)} dus/M2</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-bricks"></i> Kebutuhan Adukan Semen</h6>
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold" style="width: 60%">Semen (sak)</td>
+                        <td class="text-end"><strong>${formatNumber(result.cement_sak)} sak</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Semen (kg)</td>
+                        <td class="text-end">${formatNumber(result.cement_kg)} kg</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Semen (M3)</td>
+                        <td class="text-end">${formatNumber(result.cement_m3)} M3</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Pasir (M3)</td>
+                        <td class="text-end"><strong>${formatNumber(result.sand_m3)} M3</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Pasir (sak)</td>
+                        <td class="text-end">${formatNumber(result.sand_sak)} sak</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Air untuk Semen (liter)</td>
+                        <td class="text-end">${formatNumber(result.water_cement_liters)} liter</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-grid"></i> Kebutuhan Nat (Grout)</h6>
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold" style="width: 60%">Nat (bungkus)</td>
+                        <td class="text-end"><strong>${formatNumber(result.grout_packages)} bungkus</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Nat (kg)</td>
+                        <td class="text-end">${formatNumber(result.grout_kg)} kg</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Nat (M3)</td>
+                        <td class="text-end">${formatNumber(result.grout_m3)} M3</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Air untuk Nat (liter)</td>
+                        <td class="text-end">${formatNumber(result.water_grout_liters)} liter</td>
+                    </tr>
+                    <tr class="table-light">
+                        <td class="fw-bold">Total Air Keseluruhan (liter)</td>
+                        <td class="text-end"><strong>${formatNumber(result.total_water_liters)} liter</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-currency-dollar"></i> Rincian Harga</h6>
+            <table class="table table-bordered mb-0">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold" style="width: 60%">Harga Keramik (@${formatCurrency(result.ceramic_price_per_package)}/dus)</td>
+                        <td class="text-end">${formatCurrency(result.total_ceramic_price)}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Harga Semen (@${formatCurrency(result.cement_price_per_sak)}/sak)</td>
+                        <td class="text-end">${formatCurrency(result.total_cement_price)}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Harga Pasir (@${formatCurrency(result.sand_price_per_m3)}/M3)</td>
+                        <td class="text-end">${formatCurrency(result.total_sand_price)}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Harga Nat (@${formatCurrency(result.grout_price_per_package)}/bungkus)</td>
+                        <td class="text-end">${formatCurrency(result.total_grout_price)}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td class="fw-bold fs-5">TOTAL HARGA</td>
+                        <td class="text-end fs-5"><strong>${formatCurrency(result.grand_total)}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+    } else {
+        // DEFAULT RESULT (Brick, Plastering, etc.)
+        html += `
+            <table class="table table-bordered mb-0">
+                <tbody>
+        `;
+
+        if (result.total_bricks > 0) {
+            html += `
+                    <tr>
+                        <td class="fw-bold">Total Bata</td>
+                        <td class="text-end"><strong>${formatNumber(result.total_bricks)} buah</strong></td>
+                    </tr>
+            `;
+        }
+
+        html += `
+                    <tr>
+                        <td class="fw-bold">Semen (kg)</td>
+                        <td class="text-end"><strong>${formatNumber(result.cement_kg)} kg</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Semen (satuan kemasan)</td>
+                        <td class="text-end"><strong>${formatNumber(result.cement_sak)} sak</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Semen (M3)</td>
+                        <td class="text-end"><strong>${formatNumber(result.cement_m3)} M3</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Pasir (M3)</td>
+                        <td class="text-end"><strong>${formatNumber(result.sand_m3)} M3</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Pasir (satuan kemasan)</td>
+                        <td class="text-end"><strong>${formatNumber(result.sand_sak)} sak</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Air (liter)</td>
+                        <td class="text-end"><strong>${formatNumber(result.water_liters)} liter</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <table class="table table-bordered mt-3 mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th colspan="2" class="text-center">Rincian Harga</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        if (result.total_bricks > 0) {
+            html += `
+                    <tr>
+                        <td class="fw-bold">Harga Bata (@${formatCurrency(result.brick_price_per_piece)}/buah)</td>
+                        <td class="text-end">${formatCurrency(result.total_brick_price)}</td>
+                    </tr>
+            `;
+        }
+
+        html += `
+                    <tr>
+                        <td class="fw-bold">Harga Semen (@${formatCurrency(result.cement_price_per_sak)}/sak)</td>
+                        <td class="text-end">${formatCurrency(result.total_cement_price)}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Harga Pasir (@${formatCurrency(result.sand_price_per_m3)}/M3)</td>
+                        <td class="text-end">${formatCurrency(result.total_sand_price)}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td class="fw-bold">TOTAL HARGA</td>
+                        <td class="text-end"><strong>${formatCurrency(result.grand_total)}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+    }
+
+    html += `
             </div>
         </div>
     `;

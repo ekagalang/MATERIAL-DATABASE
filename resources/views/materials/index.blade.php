@@ -2339,6 +2339,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
 
+    // Expose closeModal as global function for form cancel buttons
+    window.closeFloatingModal = closeModal;
+
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
 

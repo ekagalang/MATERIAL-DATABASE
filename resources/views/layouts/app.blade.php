@@ -1697,6 +1697,9 @@
                 }, 300);
             }
 
+            // Expose closeGlobalModal as global function for form cancel buttons
+            window.closeFloatingModal = closeGlobalModal;
+
             if (globalModal && globalModalBody && globalModalTitle && globalCloseBtn && globalBackdrop) {
                 // Listen specifically for .global-open-modal class
                 document.addEventListener('click', function(e) {
