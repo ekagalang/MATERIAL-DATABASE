@@ -332,6 +332,8 @@
                                                 'wall_plastering' => 'Plesteran Dinding',
                                                 'skim_coating' => 'Aci Dinding',
                                                 'painting' => 'Pengecatan',
+                                                'tile_installation' => 'Pasang Keramik',
+                                                'grout_tile' => 'Pekerjaan Nat Keramik',
                                             ];
                                             $displayName = $workTypeNames[$workType] ?? ($calc->installationType->name ?? '-');
                                         @endphp

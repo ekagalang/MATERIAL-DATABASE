@@ -115,9 +115,78 @@
                                     <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
                                 </div>
                             </div>
+
+                            {{-- INPUT TEBAL NAT UNTUK TILE INSTALLATION & GROUT ONLY --}}
+                            <div class="dimension-item" id="groutThicknessGroup" style="display: none;">
+                                <label>Tebal Nat</label>
+                                <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
+                                    <input type="number" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ request('grout_thickness', 2) }}">
+                                    <span class="unit" style="background-color: #e2e8f0;">mm</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT UKURAN KERAMIK UNTUK GROUT TILE --}}
+                            <div class="dimension-item" id="ceramicLengthGroup" style="display: none;">
+                                <label>Panjang Keramik</label>
+                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                    <input type="number" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ request('ceramic_length', 30) }}">
+                                    <span class="unit" style="background-color: #fef08a;">cm</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item" id="ceramicWidthGroup" style="display: none;">
+                                <label>Lebar Keramik</label>
+                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                    <input type="number" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ request('ceramic_width', 30) }}">
+                                    <span class="unit" style="background-color: #fef08a;">cm</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {{-- CERAMIC FILTERS - ONLY FOR TILE INSTALLATION --}}
+                    <div class="filter-section" id="ceramicFilterSection" style="display: none;">
+                        <label class="filter-section-title">+ Filter Keramik:</label>
+
+                        {{-- Jenis Keramik - Dynamic from Database --}}
+                        @if(isset($ceramicTypes) && $ceramicTypes->count() > 0)
+                        <div class="mb-3">
+                            <label class="fw-semibold mb-2" style="font-size: 0.9rem; color: #f59e0b;">
+                                <i class="bi bi-grid-3x3-gap-fill"></i> Jenis Keramik
+                            </label>
+                            <div class="filter-tickbox-list">
+                                @foreach($ceramicTypes as $type)
+                                <div class="tickbox-item">
+                                    <input type="checkbox" name="ceramic_types[]" id="ceramic_type_{{ Str::slug($type) }}" value="{{ $type }}">
+                                    <label for="ceramic_type_{{ Str::slug($type) }}">
+                                        <span class="tickbox-title">{{ $type }}</span>
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Ukuran Keramik - Dynamic from Database --}}
+                        @if(isset($ceramicSizes) && $ceramicSizes->count() > 0)
+                        <div>
+                            <label class="fw-semibold mb-2" style="font-size: 0.9rem; color: #f59e0b;">
+                                <i class="bi bi-rulers"></i> Ukuran Keramik
+                            </label>
+                            <div class="filter-tickbox-list">
+                                @foreach($ceramicSizes as $size)
+                                <div class="tickbox-item">
+                                    <input type="checkbox" name="ceramic_sizes[]" id="ceramic_size_{{ str_replace('x', '_', $size) }}" value="{{ $size }}">
+                                    <label for="ceramic_size_{{ str_replace('x', '_', $size) }}">
+                                        <span class="tickbox-title">{{ str_replace('x', ' x ', $size) }} cm</span>
+                                    </label>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+                    </div>
             </div>
 
             {{-- RIGHT COLUMN: FILTERS --}}
@@ -200,6 +269,8 @@
                             </div>
                         </div>
                     </div>
+
+                    
 
                     {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
                     <div id="customMaterialForm" style="display:none; margin-top:16px;">
@@ -344,6 +415,52 @@
                                 <div class="input-wrapper">
                                     <select id="customCatPackage" name="cat_id" class="select-gray-light">
                                         <option value="">-- Pilih Kemasan (Opsional) --</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- 5. KERAMIK SECTION --}}
+                        <div class="material-section" id="ceramicSection" style="display: none;">
+                            <h4 class="section-header">Keramik</h4>
+                            <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                                <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Keramik
+                            </div>
+                            <div class="form-group">
+                                <label>Pilih :</label>
+                                <div class="input-wrapper">
+                                    <select name="ceramic_id" class="select-gray">
+                                        <option value="">-- Semua Keramik (Auto) --</option>
+                                        @if(isset($ceramics))
+                                            @foreach($ceramics as $ceramic)
+                                                <option value="{{ $ceramic->id }}">
+                                                    {{ $ceramic->brand }} - {{ $ceramic->color }} ({{ $ceramic->dimension_length }}x{{ $ceramic->dimension_width }} cm)
+                                                </option>
+                                            @endforeach
+                                        @endif
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- 6. NAT SECTION --}}
+                        <div class="material-section" id="natSection" style="display: none;">
+                            <h4 class="section-header">Nat</h4>
+                            <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
+                                <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Nat
+                            </div>
+                            <div class="form-group">
+                                <label>Pilih :</label>
+                                <div class="input-wrapper">
+                                    <select name="nat_id" class="select-gray">
+                                        <option value="">-- Semua Nat (Auto) --</option>
+                                        @if(isset($nats))
+                                            @foreach($nats as $nat)
+                                                <option value="{{ $nat->id }}">
+                                                    {{ $nat->brand }} ({{ $nat->package_weight_net }} kg)
+                                                </option>
+                                            @endforeach
+                                        @endif
                                     </select>
                                 </div>
                             </div>
@@ -916,8 +1033,10 @@
     ],
     'bricks' => $bricks,
     'cements' => $cements,
+    'nats' => $nats ?? [],
     'sands' => $sands,
     'cats' => $cats ?? [],
+    'ceramics' => $ceramics ?? [],
 ]) !!}
 </script>
 <script src="{{ asset('js/material-calculation-form.js') }}"></script>
@@ -979,7 +1098,11 @@
         const layerCountGroup = document.getElementById('layerCountGroup');
         const plasterSidesGroup = document.getElementById('plasterSidesGroup');
         const skimSidesGroup = document.getElementById('skimSidesGroup');
+        const groutThicknessGroup = document.getElementById('groutThicknessGroup');
+        const ceramicLengthGroup = document.getElementById('ceramicLengthGroup');
+        const ceramicWidthGroup = document.getElementById('ceramicWidthGroup');
         const wallHeightLabel = document.getElementById('wallHeightLabel');
+        const ceramicFilterSection = document.getElementById('ceramicFilterSection');
 
         function toggleLayerInputs() {
             const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
@@ -992,8 +1115,12 @@
                     layerCountGroup.style.display = 'block';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-                    
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
+
                     // Update label and unit for Rollag
                     if (layerCountLabel) layerCountLabel.textContent = 'Tingkat';
                     if (layerCountUnit) {
@@ -1013,7 +1140,11 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'block';
                     skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     // Restore label to "Tinggi" for Plastering
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -1022,7 +1153,11 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'block';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     // Restore label to "Tinggi" for Skim Coating
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -1031,8 +1166,12 @@
                     layerCountGroup.style.display = 'block';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
-                    
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
+
                     // Update label and unit for Painting
                     if (layerCountLabel) layerCountLabel.textContent = 'Lapis';
                     if (layerCountUnit) {
@@ -1052,16 +1191,53 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-                    
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
+
                     // Change label to "Lebar" for Floor types
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Lebar';
+                    }
+                } else if (workTypeSelector.value === 'tile_installation') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'block';
+                    // Restore label to "Tinggi"
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
+                } else if (workTypeSelector.value === 'grout_tile') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+
+                    // Show ceramic dimension inputs for grout_tile
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
+
+                    // Restore label to "Tinggi"
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
                     }
                 } else {
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
                     // Restore label to "Tinggi" for other formulas
                     if (wallHeightLabel) {
@@ -1088,6 +1264,8 @@
                     let cementSec = null;
                     let sandSec = null;
                     let catSec = null;
+                    let ceramicSec = null;
+                    let natSec = null;
 
                     allSections.forEach(section => {
                         const header = section.querySelector('h4.section-header');
@@ -1101,6 +1279,10 @@
                                 sandSec = section;
                             } else if (headerText === 'Cat') {
                                 catSec = section;
+                            } else if (headerText === 'Keramik') {
+                                ceramicSec = section;
+                            } else if (headerText === 'Nat') {
+                                natSec = section;
                             }
                         }
                     });
@@ -1111,36 +1293,64 @@
                         if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'block';
                         if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'none';
+                        if (natSec) natSec.style.display = 'none';
                     } else if (selectedWorkType === 'skim_coating') {
                         // Skim coating: hide brick and sand, show cement
                         if (brickSec) brickSec.style.display = 'none';
                         if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'none';
                         if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'none';
+                        if (natSec) natSec.style.display = 'none';
                     } else if (selectedWorkType === 'painting') {
                         // Painting: hide brick, cement, sand, show cat
                         if (brickSec) brickSec.style.display = 'none';
                         if (cementSec) cementSec.style.display = 'none';
                         if (sandSec) sandSec.style.display = 'none';
                         if (catSec) catSec.style.display = 'block';
+                        if (ceramicSec) ceramicSec.style.display = 'none';
+                        if (natSec) natSec.style.display = 'none';
                     } else if (selectedWorkType === 'floor_screed') {
                         // Floor Screed: hide brick and cat, show cement and sand
                         if (brickSec) brickSec.style.display = 'none';
                         if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'block';
                         if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'none';
+                        if (natSec) natSec.style.display = 'none';
                     } else if (selectedWorkType === 'coating_floor') {
                         // Coating Floor: hide brick, sand and cat, show cement
                         if (brickSec) brickSec.style.display = 'none';
                         if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'none';
                         if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'none';
+                        if (natSec) natSec.style.display = 'none';
+                    } else if (selectedWorkType === 'tile_installation') {
+                        // Tile Installation: show cement, sand, ceramic, nat
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'block';
+                        if (sandSec) sandSec.style.display = 'block';
+                        if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'block';
+                        if (natSec) natSec.style.display = 'block';
+                    } else if (selectedWorkType === 'grout_tile') {
+                        // Grout Tile: show ceramic, nat only
+                        if (brickSec) brickSec.style.display = 'none';
+                        if (cementSec) cementSec.style.display = 'none';
+                        if (sandSec) sandSec.style.display = 'none';
+                        if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'block';
+                        if (natSec) natSec.style.display = 'block';
                     } else {
                         // Brick formulas: show brick, cement, sand, hide cat
                         if (brickSec) brickSec.style.display = 'block';
                         if (cementSec) cementSec.style.display = 'block';
                         if (sandSec) sandSec.style.display = 'block';
                         if (catSec) catSec.style.display = 'none';
+                        if (ceramicSec) ceramicSec.style.display = 'none';
+                        if (natSec) natSec.style.display = 'none';
                     }
                 }, 100);
             };

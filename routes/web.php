@@ -111,6 +111,9 @@ Route::prefix('api/material-calculator')
         Route::get('/brick-dimensions/{brickId}', [MaterialCalculationController::class, 'getBrickDimensions'])->name(
             'brick-dimensions',
         );
+        Route::post('/ceramic-combinations', [MaterialCalculationController::class, 'getCeramicCombinations'])->name(
+            'ceramic-combinations',
+        );
     });
 
 // Trace View - step by step

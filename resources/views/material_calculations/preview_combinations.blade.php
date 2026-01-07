@@ -18,12 +18,125 @@
         </div>
     </div>
 
-    @if(empty($projects))
+    @if(empty($projects) && empty($ceramicProjects ?? []))
         <div class="container">
             <div class="alert" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 12px; padding: 16px 20px; color: #856404;">
                 <i class="bi bi-exclamation-triangle me-2"></i> Tidak ditemukan data material yang cocok dengan filter Anda.
             </div>
         </div>
+    @elseif(isset($isMultiCeramic) && $isMultiCeramic && isset($groupedCeramics))
+
+        {{-- MULTI-CERAMIC TABS SECTION --}}
+        <div class="container">
+            <div class="card shadow-sm" style="border-radius: 16px; border: none; background: #ffffff;">
+                <div class="card-body p-4">
+                    {{-- Ceramic Type Tabs (Main Level) --}}
+                    <ul class="nav nav-tabs mb-4" id="ceramicTypeTabs" role="tablist">
+                        @foreach($groupedCeramics as $type => $ceramicsOfType)
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link {{ $loop->first ? 'active' : '' }}"
+                                        id="type-{{ Str::slug($type) }}-tab"
+                                        data-bs-toggle="tab"
+                                        data-bs-target="#type-{{ Str::slug($type) }}"
+                                        type="button"
+                                        role="tab">
+                                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>{{ $type }}
+                                    <span class="badge bg-secondary ms-2">{{ $ceramicsOfType->count() }}</span>
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    {{-- Ceramic Type Tab Content --}}
+                    <div class="tab-content" id="ceramicTypeTabContent">
+                        @foreach($groupedCeramics as $type => $ceramicsOfType)
+                            <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
+                                 id="type-{{ Str::slug($type) }}"
+                                 role="tabpanel">
+
+                                {{-- Size Tabs (Sub Level) --}}
+                                <ul class="nav nav-pills mb-3" id="size-{{ Str::slug($type) }}-tabs" role="tablist">
+                                    @foreach($ceramicsOfType->groupBy('size') as $size => $ceramicsOfSize)
+                                        <li class="nav-item" role="presentation">
+                                            <button class="nav-link {{ $loop->first ? 'active' : '' }}"
+                                                    id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tab"
+                                                    data-bs-toggle="pill"
+                                                    data-bs-target="#size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
+                                                    type="button"
+                                                    role="tab">
+                                                <i class="bi bi-rulers me-2"></i>{{ $size }} cm
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+
+                                {{-- Size Tab Content --}}
+                                <div class="tab-content" id="size-{{ Str::slug($type) }}-tabContent">
+                                    @foreach($ceramicsOfType->groupBy('size') as $size => $ceramicsOfSize)
+                                        <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
+                                             id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
+                                             role="tabpanel">
+
+                                            @php
+                                                $brandsOfSize = $ceramicsOfSize->groupBy(function ($project) {
+                                                    return $project['ceramic']->brand ?? 'Tanpa Merek';
+                                                });
+                                            @endphp
+
+                                            {{-- Brand Tabs (Sub Level) --}}
+                                            <ul class="nav nav-pills mb-3" id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tabs" role="tablist">
+                                                @foreach($brandsOfSize as $brand => $ceramicsOfBrand)
+                                                    <li class="nav-item" role="presentation">
+                                                        <button class="nav-link {{ $loop->first ? 'active' : '' }}"
+                                                                id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}-tab"
+                                                                data-bs-toggle="pill"
+                                                                data-bs-target="#brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}"
+                                                                type="button"
+                                                                role="tab">
+                                                            <i class="bi bi-tag-fill me-2"></i>{{ $brand }}
+                                                            <span class="badge bg-secondary ms-2">{{ $ceramicsOfBrand->count() }}</span>
+                                                        </button>
+                                                    </li>
+                                                @endforeach
+                                            </ul>
+
+                                            {{-- Brand Tab Content --}}
+                                            <div class="tab-content" id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tabContent">
+                                                @foreach($brandsOfSize as $brand => $ceramicsOfBrand)
+                                                    <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
+                                                         id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}"
+                                                         role="tabpanel">
+                                                        {{-- LAZY LOAD: Ceramic combinations loaded via AJAX --}}
+                                                        @foreach($ceramicsOfBrand as $ceramicProject)
+                                                            <div class="ceramic-project mb-4"
+                                                                 data-ceramic-id="{{ $ceramicProject['ceramic']->id }}"
+                                                                 data-loaded="false">
+
+                                                                {{-- Loading placeholder --}}
+                                                                <div class="loading-placeholder text-center py-5">
+                                                                    <div class="spinner-border text-primary" role="status">
+                                                                        <span class="visually-hidden">Loading...</span>
+                                                                    </div>
+                                                                    <p class="mt-3 text-muted">Memuat kombinasi untuk {{ $ceramicProject['ceramic']->brand ?? 'Keramik' }}...</p>
+                                                                </div>
+
+                                                                {{-- Content will be loaded here via AJAX --}}
+                                                                <div class="combinations-content" style="display: none;"></div>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+        </div>
+
     @else
 
         {{-- TABEL REKAP GLOBAL (untuk semua bata) --}}
@@ -35,6 +148,8 @@
             $hasCement = false;
             $hasSand = false;
             $hasCat = false;
+            $hasCeramic = false;
+            $hasNat = false;
 
             // Get historical frequency data for TerUMUM from database
             $historicalFrequency = DB::table('brick_calculations')
@@ -169,6 +284,8 @@
                     if (($res['cement_sak'] ?? 0) > 0) $hasCement = true;
                     if (($res['sand_m3'] ?? 0) > 0) $hasSand = true;
                     if (($res['cat_packages'] ?? 0) > 0) $hasCat = true;
+                    if (($res['total_tiles'] ?? 0) > 0) $hasCeramic = true;
+                    if (($res['grout_packages'] ?? 0) > 0) $hasNat = true;
 
                     $rekapEntry = [
                         'grand_total' => $item['result']['grand_total'],
@@ -197,6 +314,18 @@
                         $rekapEntry['cat_id'] = $item['cat']->id;
                         $rekapEntry['cat_brand'] = $item['cat']->brand;
                         $rekapEntry['cat_detail'] = ($item['cat']->cat_name ?? '-') . ' - ' . ($item['cat']->color_name ?? '-') . ' (' . ($item['cat']->package_weight_net + 0) . ' kg)';
+                    }
+                    
+                    if (isset($item['ceramic'])) {
+                        $rekapEntry['ceramic_id'] = $item['ceramic']->id;
+                        $rekapEntry['ceramic_brand'] = $item['ceramic']->brand;
+                        $rekapEntry['ceramic_detail'] = ($item['ceramic']->color ?? '-') . ' (' . ($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ')';
+                    }
+                    
+                    if (isset($item['nat'])) {
+                        $rekapEntry['nat_id'] = $item['nat']->id;
+                        $rekapEntry['nat_brand'] = $item['nat']->brand;
+                        $rekapEntry['nat_detail'] = ($item['nat']->color ?? 'Nat') . ' (' . ($item['nat']->package_weight_net + 0) . ' kg)';
                     }
 
                     $globalRekapData[$key] = $rekapEntry;
@@ -260,8 +389,32 @@
                 '#C8E6C9', // Green lighten-4
             ];
 
+            // KERAMIK: Pastel Dingin/Netral
+            $ceramicColors = [
+                '#E0F7FA', // Cyan lighten-5
+                '#E1F5FE', // Light Blue lighten-5
+                '#F3E5F5', // Purple lighten-5
+                '#FBE9E7', // Deep Orange lighten-5
+                '#ECEFF1', // Blue Grey lighten-5
+                '#FAFAFA', // Grey lighten-5
+                '#FFF3E0', // Orange lighten-5
+                '#E8EAF6', // Indigo lighten-5
+            ];
+
+            // NAT: Pastel Gelap/Kontras
+            $natColors = [
+                '#CFD8DC', // Blue Grey lighten-4
+                '#B0BEC5', // Blue Grey lighten-3
+                '#90A4AE', // Blue Grey lighten-2
+                '#78909C', // Blue Grey lighten-1
+                '#D7CCC8', // Brown lighten-4
+                '#BCAAA4', // Brown lighten-3
+                '#A1887F', // Brown lighten-2
+                '#8D6E63', // Brown lighten-1
+            ];
+
             // Grand Total: Use combined palette
-            $availableColors = array_merge($brickColors, $cementColors, $sandColors, $catColors);
+            $availableColors = array_merge($brickColors, $cementColors, $sandColors, $catColors, $ceramicColors, $natColors);
 
             // Color map for Grand Total - only color if combination appears more than once
             $colorIndex = 0;
@@ -273,6 +426,8 @@
                 // Generate safe signature
                 if (isset($data1['cat_id'])) {
                     $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
+                } elseif (isset($data1['ceramic_id'])) {
+                     $signature = ($data1['ceramic_id'] ?? '0') . '-' . ($data1['nat_id'] ?? '0') . '-' . ($data1['cement_id'] ?? '0') . '-' . ($data1['sand_id'] ?? '0');
                 } else {
                     $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
                 }
@@ -289,6 +444,8 @@
                     // Create unique signature for this combination
                     if (isset($data1['cat_id'])) {
                         $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
+                    } elseif (isset($data1['ceramic_id'])) {
+                         $signature = ($data1['ceramic_id'] ?? '0') . '-' . ($data1['nat_id'] ?? '0') . '-' . ($data1['cement_id'] ?? '0') . '-' . ($data1['sand_id'] ?? '0');
                     } else {
                         $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
                     }
@@ -473,6 +630,56 @@
                     }
                 }
             }
+
+            // Color map for Ceramic
+            $colorIndex = 0;
+            $ceramicDataColorMap = [];
+            $ceramicColorMap = [];
+
+            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
+                for ($i = 1; $i <= 3; $i++) {
+                    $key = $filterType . ' ' . $i;
+                    if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_id'])) {
+                        $ceramicId = $globalRekapData[$key]['ceramic_id'];
+                        $ceramicBrand = $globalRekapData[$key]['ceramic_brand'];
+                        $dataSignature = $ceramicId . '-' . $ceramicBrand;
+
+                        if (isset($ceramicDataColorMap[$dataSignature])) {
+                            $ceramicColorMap[$key] = $ceramicDataColorMap[$dataSignature];
+                        } else {
+                            $color = $ceramicColors[$colorIndex % count($ceramicColors)];
+                            $ceramicColorMap[$key] = $color;
+                            $ceramicDataColorMap[$dataSignature] = $color;
+                            $colorIndex++;
+                        }
+                    }
+                }
+            }
+
+            // Color map for Nat
+            $colorIndex = 0;
+            $natDataColorMap = [];
+            $natColorMap = [];
+
+            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
+                for ($i = 1; $i <= 3; $i++) {
+                    $key = $filterType . ' ' . $i;
+                    if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_id'])) {
+                        $natId = $globalRekapData[$key]['nat_id'];
+                        $natBrand = $globalRekapData[$key]['nat_brand'];
+                        $dataSignature = $natId . '-' . $natBrand;
+
+                        if (isset($natDataColorMap[$dataSignature])) {
+                            $natColorMap[$key] = $natDataColorMap[$dataSignature];
+                        } else {
+                            $color = $natColors[$colorIndex % count($natColors)];
+                            $natColorMap[$key] = $color;
+                            $natDataColorMap[$dataSignature] = $color;
+                            $colorIndex++;
+                        }
+                    }
+                }
+            }
         @endphp
 
         @if(count($globalRekapData) > 0)
@@ -588,6 +795,45 @@
                     </div>
                     @endif
 
+                    {{-- Tebal Nat (untuk Pasang Keramik dan Pasang Nat) --}}
+                    @if(isset($requestData['work_type']) && ($requestData['work_type'] === 'tile_installation' || $requestData['work_type'] === 'grout_tile'))
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-info text-white border">TEBAL NAT</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e0f2fe; border-color: #38bdf8;">{{ $requestData['grout_thickness'] ?? 3 }}</div>
+                            <span class="input-group-text bg-info text-white small px-1" style="font-size: 0.7rem;">mm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Panjang Keramik (untuk Pasang Nat saja) --}}
+                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'grout_tile' && isset($requestData['ceramic_length']))
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge text-white border" style="background-color: #f59e0b;">P. KERAMIK</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_length'] }}</div>
+                            <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">cm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Lebar Keramik (untuk Pasang Nat saja) --}}
+                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'grout_tile' && isset($requestData['ceramic_width']))
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge text-white border" style="background-color: #f59e0b;">L. KERAMIK</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_width'] }}</div>
+                            <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">cm</span>
+                        </div>
+                    </div>
+                    @endif
+
                     {{-- Luas --}}
                     <div style="flex: 0 0 auto; width: 120px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
@@ -629,6 +875,12 @@
                                 @if($hasCat)
                                 <th colspan="2" style="background: #891313; color: white;">Cat</th>
                                 @endif
+                                @if($hasCeramic)
+                                <th colspan="2" style="background: #891313; color: white;">Keramik</th>
+                                @endif
+                                @if($hasNat)
+                                <th colspan="2" style="background: #891313; color: white;">Nat</th>
+                                @endif
                             </tr>
                             <tr>
                                 @if($hasBrick)
@@ -647,6 +899,14 @@
                                 <th style="background: #891313; color: white;">Merek</th>
                                 <th style="background: #891313; color: white;">Detail</th>
                                 @endif
+                                @if($hasCeramic)
+                                <th style="background: #891313; color: white;">Merek</th>
+                                <th style="background: #891313; color: white;">Detail</th>
+                                @endif
+                                @if($hasNat)
+                                <th style="background: #891313; color: white;">Merek</th>
+                                <th style="background: #891313; color: white;">Detail</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -659,6 +919,8 @@
                                         $cementBgColor = $cementColorMap[$key] ?? '#ffffff';
                                         $sandBgColor = $sandColorMap[$key] ?? '#ffffff';
                                         $catBgColor = $catColorMap[$key] ?? '#ffffff';
+                                        $natBgColor = $natColorMap[$key] ?? '#ffffff';
+                                        $ceramicBgColor = $ceramicColorMap[$key] ?? '#ffffff';
 
                                         // Get label color untuk kolom Rekap
                                         $labelColor = $rekapLabelColors[$filterType][$i] ?? ['bg' => '#ffffff', 'text' => '#000000'];
@@ -755,16 +1017,55 @@
                                             @endif
                                         </td>
 
-                                        {{-- Column 10: Detail Cat --}}
-                                        <td class="text-muted small" style="background: {{ $catBgColor }}; vertical-align: middle;">
-                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_detail']))
-                                                {{ $globalRekapData[$key]['cat_detail'] }}
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
-                                        @endif
-                                    </tr>
+                                                                                    {{-- Column 10: Detail Cat --}}
+                                                                                    <td class="text-muted small" style="background: {{ $catBgColor }}; vertical-align: middle;">
+                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_detail']))
+                                                                                            {{ $globalRekapData[$key]['cat_detail'] }}
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                    @endif
+                                        
+                                                                                    {{-- Column 11: Merek Keramik --}}
+                                                                                    @if($hasCeramic)
+                                                                                    <td style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
+                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_brand']))
+                                                                                            {{ $globalRekapData[$key]['ceramic_brand'] }}
+                                                                                        @else
+                                                                                            <span class="text-muted">-</span>
+                                                                                        @endif
+                                                                                    </td>
+                                        
+                                                                                    {{-- Column 12: Detail Keramik --}}
+                                                                                    <td class="text-muted small" style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
+                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_detail']))
+                                                                                            {{ $globalRekapData[$key]['ceramic_detail'] }}
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                    @endif
+                                        
+                                                                                    {{-- Column 13: Merek Nat --}}
+                                                                                    @if($hasNat)
+                                                                                    <td style="background: {{ $natBgColor }}; vertical-align: middle;">
+                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_brand']))
+                                                                                            {{ $globalRekapData[$key]['nat_brand'] }}
+                                                                                        @else
+                                                                                            <span class="text-muted">-</span>
+                                                                                        @endif
+                                                                                    </td>
+                                        
+                                                                                    {{-- Column 14: Detail Nat --}}
+                                                                                    <td class="text-muted small" style="background: {{ $natBgColor }}; vertical-align: middle;">
+                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_detail']))
+                                                                                            {{ $globalRekapData[$key]['nat_detail'] }}
+                                                                                        @else
+                                                                                            -
+                                                                                        @endif
+                                                                                    </td>
+                                                                                    @endif                                    </tr>
                                 @endfor
                             @endforeach
                         </tbody>
@@ -967,12 +1268,17 @@
                                                                     foreach ($items as $item) {
                                                                         $match = false;
                                                                         if (isset($rekapData['cat_id']) && isset($item['cat'])) {
-                                                                            // Match by Cat ID
+                                                                            // Match by Cat ID (for painting)
                                                                             if ($item['cat']->id === $rekapData['cat_id']) {
                                                                                 $match = true;
                                                                             }
+                                                                        } elseif (isset($rekapData['ceramic_id']) && isset($rekapData['nat_id']) && isset($item['ceramic']) && isset($item['nat'])) {
+                                                                            // Match by Ceramic & Nat ID (for tile_installation and grout_tile)
+                                                                            if ($item['ceramic']->id === $rekapData['ceramic_id'] && $item['nat']->id === $rekapData['nat_id']) {
+                                                                                $match = true;
+                                                                            }
                                                                         } elseif (isset($rekapData['cement_id']) && isset($rekapData['sand_id']) && isset($item['cement']) && isset($item['sand'])) {
-                                                                            // Match by Cement & Sand ID
+                                                                            // Match by Cement & Sand ID (for masonry work)
                                                                             if ($item['cement']->id === $rekapData['cement_id'] && $item['sand']->id === $rekapData['sand_id']) {
                                                                                 $match = true;
                                                                             }
@@ -1081,10 +1387,46 @@
                                                         'unit_price' => $res['cat_price_per_package'] ?? 0,
                                                         'unit_price_label' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
                                                     ],
+                                                    'ceramic' => [
+                                                        'name' => 'Keramik',
+                                                        'check_field' => 'total_tiles',
+                                                        'qty' => $res['total_tiles'] ?? 0,
+                                                        'unit' => 'Bh',
+                                                        'object' => $item['ceramic'] ?? null,
+                                                        'type_field' => 'type',
+                                                        'brand_field' => 'brand',
+                                                        'detail_display' => isset($item['ceramic']) ? ($item['ceramic']->color ?? '-') : '-',
+                                                        'detail_extra' => isset($item['ceramic']) ? (($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ' cm') : '-',
+                                                        'store_field' => 'store',
+                                                        'address_field' => 'address',
+                                                        'package_price' => isset($item['ceramic']) ? ($item['ceramic']->price_per_package ?? 0) : 0,
+                                                        'package_unit' => 'Dus',
+                                                        'total_price' => $res['total_ceramic_price'] ?? 0,
+                                                        'unit_price' => isset($item['ceramic']) ? ($item['ceramic']->price_per_package ?? 0) : 0,
+                                                        'unit_price_label' => 'Dus',
+                                                    ],
+                                                    'nat' => [
+                                                        'name' => 'Nat',
+                                                        'check_field' => 'grout_packages',
+                                                        'qty' => $res['grout_packages'] ?? 0,
+                                                        'unit' => 'Bks',
+                                                        'object' => $item['nat'] ?? null,
+                                                        'type_field' => 'type',
+                                                        'brand_field' => 'brand',
+                                                        'detail_display' => isset($item['nat']) ? ($item['nat']->color ?? 'Nat') : 'Nat',
+                                                        'detail_extra' => isset($item['nat']) ? (($item['nat']->package_weight_net + 0) . ' Kg') : '-',
+                                                        'store_field' => 'store',
+                                                        'address_field' => 'address',
+                                                        'package_price' => isset($item['nat']) ? ($item['nat']->package_price ?? 0) : 0,
+                                                        'package_unit' => isset($item['nat']) ? ($item['nat']->package_unit ?? 'Bks') : 'Bks',
+                                                        'total_price' => $res['total_grout_price'] ?? 0,
+                                                        'unit_price' => isset($item['nat']) ? ($item['nat']->package_price ?? 0) : 0,
+                                                        'unit_price_label' => isset($item['nat']) ? ($item['nat']->package_unit ?? 'Bks') : 'Bks',
+                                                    ],
                                                     'water' => [
                                                         'name' => 'Air',
-                                                        'check_field' => 'water_liters',
-                                                        'qty' => $res['water_liters'] ?? 0,
+                                                        'check_field' => 'total_water_liters',
+                                                        'qty' => $res['total_water_liters'] ?? ($res['water_liters'] ?? 0),
                                                         'unit' => 'L',
                                                         'object' => null,
                                                         'type_field' => null,
@@ -1303,6 +1645,12 @@
                                                                     @if(isset($item['cat']))
                                                                         <input type="hidden" name="cat_id" value="{{ $item['cat']->id }}">
                                                                     @endif
+                                                                    @if(isset($item['ceramic']))
+                                                                        <input type="hidden" name="ceramic_id" value="{{ $item['ceramic']->id }}">
+                                                                    @endif
+                                                                    @if(isset($item['nat']))
+                                                                        <input type="hidden" name="nat_id" value="{{ $item['nat']->id }}">
+                                                                    @endif
                                                                     <input type="hidden" name="price_filters[]" value="custom">
                                                                     <input type="hidden" name="confirm_save" value="1">
                                                                     <button type="submit" class="btn-select">
@@ -1355,6 +1703,158 @@
     .table-preview tbody td a:hover {
         text-decoration: underline !important;
         opacity: 0.8;
+    }
+
+    .table-rekap-global th {
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+    .table-rekap-global td {
+        padding: 8px 10px !important;
+    }
+
+    /* Table Styling (shared for normal + multi-ceramic) */
+    .table-preview th,
+    .table-preview td,
+    .table-preview span,
+    .table-preview div,
+    .table-preview a,
+    .table-preview label,
+    .table-preview button {
+        font-family: 'League Spartan', sans-serif !important;
+        color: #ffffff !important;
+        -webkit-text-stroke: 0.2px black !important;
+        text-shadow: 0 1.1px 0 #000000 !important;
+        font-weight: 700 !important;
+    }
+    .table-preview {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 13px;
+        margin: 0;
+    }
+    .table-preview th {
+        background: #891313;
+        color: #ffffff;
+        text-align: center;
+        font-weight: 900;
+        padding: 14px 16px;
+        border: none;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+    }
+    .table-preview td {
+        padding: 14px 16px;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: top;
+        white-space: nowrap;
+    }
+    .table-preview td.store-cell,
+    .table-preview td.address-cell {
+        white-space: normal;
+        word-wrap: break-word;
+        word-break: break-word;
+        max-width: 200px;
+        min-width: 150px;
+    }
+    .table-preview tbody tr:last-child td {
+        border-bottom: none;
+    }
+    .table-preview tbody tr:hover td {
+        background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
+    }
+    .bg-highlight {
+        background: linear-gradient(to right, #f8fafc 0%, #f1f5f9 100%) !important;
+    }
+    .text-primary-dark {
+        color: #891313;
+        font-weight: 700;
+    }
+    .text-success-dark {
+        color: #059669;
+        font-weight: 700;
+    }
+    .sticky-col {
+        position: sticky;
+        left: 0;
+        background-color: white;
+        z-index: 1;
+    }
+    .sticky-col-1 {
+        position: sticky;
+        left: 0;
+        background-color: white;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        min-width: 90px;
+        max-width: 105px;
+        width: 90px;
+    }
+    .sticky-col-2 {
+        position: sticky;
+        left: 105px;
+        background-color: white;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        min-width: 80px;
+    }
+    .sticky-col-3 {
+        position: sticky;
+        left: 200px;
+        background-color: white;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        min-width: 100px;
+    }
+    .table-preview thead th.sticky-col-1,
+    .table-preview thead th.sticky-col-2,
+    .table-preview thead th.sticky-col-3 {
+        background-color: #891313;
+        z-index: 3;
+    }
+    .table-preview tbody tr:hover td.sticky-col-1,
+    .table-preview tbody tr:hover td.sticky-col-2,
+    .table-preview tbody tr:hover td.sticky-col-3 {
+        background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
+    }
+    .btn-select {
+        background: linear-gradient(135deg, #891313 0%, #a61515 100%);
+        color: #ffffff;
+        border: none;
+        padding: 6px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 4px rgba(137, 19, 19, 0.2);
+    }
+    .btn-select:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(137, 19, 19, 0.3);
+    }
+    .group-divider {
+        border-top: 2px solid #891313 !important;
+    }
+    .group-end {
+        border-bottom: 3px solid #891313 !important;
+    }
+    .group-end td {
+        border-bottom: 3px solid #891313 !important;
+    }
+    .rowspan-cell {
+        border-bottom: 3px solid #891313 !important;
+    }
+    .sticky-col-label {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+        min-width: 320px;
     }
 
     /* Highlight effect dengan blinking border untuk target row */
@@ -1413,5 +1913,115 @@
 @endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+@if(isset($isMultiCeramic) && $isMultiCeramic && isset($isLazyLoad) && $isLazyLoad)
+<script>
+$(document).ready(function() {
+    // Request data untuk AJAX
+    const requestData = @json($requestData ?? []);
+    const maxConcurrent = 2;
+    let activeRequests = 0;
+    const queue = [];
+
+    // Function to load combinations for a ceramic
+    function loadCeramicCombinations($ceramicProject) {
+        const ceramicId = $ceramicProject.data('ceramic-id');
+        const isLoaded = $ceramicProject.data('loaded');
+
+        // Skip if already loaded
+        if (isLoaded === 'true' || isLoaded === true) {
+            return $.Deferred().resolve().promise();
+        }
+
+        // Show loading
+        $ceramicProject.find('.loading-placeholder').show();
+        $ceramicProject.find('.combinations-content').hide();
+
+        // AJAX request
+        return $.ajax({
+            url: '{{ route("api.material-calculator.ceramic-combinations") }}',
+            method: 'POST',
+            data: {
+                ...requestData,
+                ceramic_id: ceramicId,
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    // Hide loading, show content
+                    $ceramicProject.find('.loading-placeholder').hide();
+                    $ceramicProject.find('.combinations-content').html(response.html).show();
+                    $ceramicProject.data('loaded', 'true');
+                } else {
+                    showError($ceramicProject, response.message || 'Gagal memuat kombinasi');
+                    $ceramicProject.data('loaded', 'false');
+                }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || 'Terjadi kesalahan saat memuat kombinasi';
+                showError($ceramicProject, errorMsg + ' (Check console for details)');
+                $ceramicProject.data('loaded', 'false');
+            }
+        });
+    }
+
+    // Show error message
+    function showError($ceramicProject, message) {
+        $ceramicProject.find('.loading-placeholder').hide();
+        $ceramicProject.find('.combinations-content')
+            .html(`<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${message}</div>`)
+            .show();
+    }
+
+    function enqueueCeramic($ceramicProject) {
+        const isLoaded = $ceramicProject.data('loaded');
+        if (isLoaded === 'true' || isLoaded === true || isLoaded === 'loading') {
+            return;
+        }
+        $ceramicProject.data('loaded', 'loading');
+        queue.push($ceramicProject);
+        processQueue();
+    }
+
+    function processQueue() {
+        while (activeRequests < maxConcurrent && queue.length > 0) {
+            const $next = queue.shift();
+            activeRequests++;
+            loadCeramicCombinations($next).always(function() {
+                activeRequests = Math.max(0, activeRequests - 1);
+                processQueue();
+            });
+        }
+    }
+
+    // Load combinations for visible ceramics when tab is shown
+    function loadVisibleCeramics() {
+        // Find active leaf panes (deepest visible tabs)
+        const $activeLeafPanes = $('.tab-pane.active').filter(function() {
+            return $(this).find('.tab-pane.active').length === 0;
+        });
+
+        // Load all ceramics in active leaf panes
+        $activeLeafPanes.each(function() {
+            $(this).find('.ceramic-project[data-loaded="false"]').each(function() {
+                enqueueCeramic($(this));
+            });
+        });
+    }
+
+    // On page load: Load first visible ceramics
+    setTimeout(loadVisibleCeramics, 100);
+
+    // On tab change: Load ceramics in newly shown tab
+    $('button[data-bs-toggle="tab"], button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function() {
+        loadVisibleCeramics();
+    });
+
+    console.log('Lazy loading initialized for', $('.ceramic-project').length, 'ceramics');
+});
+</script>
+@endif
 @endpush
+

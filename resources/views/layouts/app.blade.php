@@ -15,11 +15,11 @@
     <style>
         :root {
             --primary-font: 'League Spartan', sans-serif;
-            --text-color: #ffffff;
-            --text-stroke: 0.2px black;
-            --letter-spacing: 0;
-            --font-weight: 700;
-            --text-shadow: 0 1.1px 0 #000000;
+            --text-color: #2c2b2b;
+            /* --text-stroke: 0.2px black; */
+            /* --letter-spacing: 0;*/
+            /* --font-weight: 700; */
+            /* --text-shadow: 0 1.1px 0 #000000; */
         }
 
         * {
@@ -218,6 +218,61 @@
         
         table tr:hover td { 
             background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
+        }
+
+        .btn-glossy {
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+
+            background: linear-gradient(
+                to bottom,
+                #3ee78c 0%,
+                #2ecc71 45%,
+                #27ae60 100%
+            );
+
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.5),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+                0 6px 14px rgba(0, 0, 0, 0.25);
+        }
+
+        /* lapisan glossy */
+        .btn-glossy::before {
+            content: "";
+            position: absolute;
+            top: -10%;
+            left: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(
+                circle at top left,
+                rgba(255, 255, 255, 0.35),
+                rgba(255, 255, 255, 0.12),
+                rgba(255, 255, 255, 0)
+            );
+            pointer-events: none;
+        }
+
+        /* hover tetap halus (bukan efek kilau berjalan) */
+        .btn-glossy:hover {
+            background: linear-gradient(
+                to bottom,
+                #4af09a 0%,
+                #32d87b 45%,
+                #2bbf67 100%
+            );
+        }
+
+        /* efek tekan */
+        .btn-glossy:active {
+            transform: translateY(1px);
+            box-shadow:
+                inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                0 4px 10px rgba(0, 0, 0, 0.25);
         }
         
         .btn-save {
@@ -440,12 +495,13 @@
         }
 
         /* Buttons - Modern Minimal */
-        .btn { 
+        .btn {
+            color: #ffffff !important; 
             padding: 10px 20px;
             border: none;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 13.5px;
+            font-size: 16px;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
@@ -455,14 +511,68 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
         
-        .btn-primary {
-            background: linear-gradient(135deg, #891313 0%, #a61515 100%);
+        .btn-primary-glossy {
+            position: relative;
+            overflow: hidden;
+            font-weight: 600;
+            border-radius: 10px;
+            border: none;
+            color: #fff;
+
+            /* gradient utama */
+            background: linear-gradient(
+                to bottom,
+                #b81d1d 0%,
+                #a61515 45%,
+                #891313 100%
+            );
+
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.45),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+                0 6px 14px rgba(137, 19, 19, 0.35);
+
+            transition: all 0.25s ease;
         }
 
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #6b0f0f 0%, #891313 100%);
+        /* lapisan glossy */
+        .btn-primary-glossy::before {
+            content: "";
+            position: absolute;
+            top: -10%;
+            left: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(
+                circle at top left,
+                rgba(255, 255, 255, 0.35),
+                rgba(255, 255, 255, 0.12),
+                rgba(255, 255, 255, 0)
+            );
+            pointer-events: none;
+        }
+
+        /* hover halus */
+        .btn-primary-glossy:hover {
+            background: linear-gradient(
+                to bottom,
+                #cc2222 0%,
+                #b81d1d 45%,
+                #a61515 100%
+            );
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(137, 19, 19, 0.3);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.5),
+                inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+                0 8px 18px rgba(137, 19, 19, 0.45);
+        }
+
+        /* efek tekan */
+        .btn-primary-glossy:active {
+            transform: translateY(1px);
+            box-shadow:
+                inset 0 2px 4px rgba(0, 0, 0, 0.35),
+                0 4px 10px rgba(137, 19, 19, 0.35);
         }
         
         .btn-success {

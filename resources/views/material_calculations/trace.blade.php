@@ -134,35 +134,26 @@
                                     </div>
                                 </div>
 
-                                <div class="col-lg-3 col-md-6" id="groutPackageWeightGroup" style="display: none;">
-                                    <label class="form-label fw-semibold">Berat Kemasan Nat</label>
+                                {{-- Input Panjang Keramik untuk Grout Tile --}}
+                                <div class="col-lg-3 col-md-6" id="ceramicLengthGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Panjang Keramik</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
-                                            name="grout_package_weight" value="5" step="0.1">
+                                            name="ceramic_length" value="30" step="0.1" min="1">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
-                                            kg
+                                            cm
                                         </span>
                                     </div>
                                 </div>
 
-                                <div class="col-lg-3 col-md-6" id="groutVolumePerPackageGroup" style="display: none;">
-                                    <label class="form-label fw-semibold">Volume Pasta Nat</label>
+                                {{-- Input Lebar Keramik untuk Grout Tile --}}
+                                <div class="col-lg-3 col-md-6" id="ceramicWidthGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Lebar Keramik</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
-                                            name="grout_volume_per_package" value="0.0035" step="0.0001">
+                                            name="ceramic_width" value="30" step="0.1" min="1">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
-                                            m³
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div class="col-lg-3 col-md-6" id="groutPricePerPackageGroup" style="display: none;">
-                                    <label class="form-label fw-semibold">Harga Nat per Bungkus</label>
-                                    <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
-                                            name="grout_price_per_package" value="0" step="100">
-                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
-                                            Rp
+                                            cm
                                         </span>
                                     </div>
                                 </div>
@@ -206,7 +197,7 @@
                                         @endforeach
                                     </select>
                                 </div>
-                                
+
                                 <div class="col-md-6">
                                     <label class="form-label fw-semibold">Pasir</label>
                                     <select class="form-select form-select-lg rounded-3 shadow-sm" name="sand_id">
@@ -216,6 +207,20 @@
                                                 {{ $sand->sand_name }} - {{ $sand->brand }}
                                             </option>
                                         @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-12" id="natSection" style="display: none;">
+                                    <label class="form-label fw-semibold">Nat (Semen Type Nat)</label>
+                                    <select class="form-select form-select-lg rounded-3 shadow-sm" name="nat_id">
+                                        <option value="">-- Gunakan Default --</option>
+                                        @if(isset($nats))
+                                            @foreach($nats as $nat)
+                                                <option value="{{ $nat->id }}">
+                                                    {{ $nat->brand }} ({{ $nat->package_weight_net }} kg) - Rp {{ number_format($nat->package_price) }}
+                                                </option>
+                                            @endforeach
+                                        @endif
                                     </select>
                                 </div>
 
@@ -355,12 +360,12 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     const plasterSidesGroup = document.getElementById('plasterSidesGroup');
     const skimSidesGroup = document.getElementById('skimSidesGroup');
     const groutThicknessGroup = document.getElementById('groutThicknessGroup');
-    const groutPackageWeightGroup = document.getElementById('groutPackageWeightGroup');
-    const groutVolumePerPackageGroup = document.getElementById('groutVolumePerPackageGroup');
-    const groutPricePerPackageGroup = document.getElementById('groutPricePerPackageGroup');
+    const ceramicLengthGroup = document.getElementById('ceramicLengthGroup');
+    const ceramicWidthGroup = document.getElementById('ceramicWidthGroup');
     const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
     const catSection = document.getElementById('catSection');
     const ceramicSection = document.getElementById('ceramicSection');
+    const natSection = document.getElementById('natSection');
 
     // Get material sections
     const brickSection = document.querySelector('select[name="brick_id"]')?.closest('.col-12');
@@ -372,85 +377,99 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
-        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
-        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'block';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
+        if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'wall_plastering') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'block';
         skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
-        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
-        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
+        if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'skim_coating') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'block';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
-        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
-        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
+        if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'painting') {
         layerCountGroup.style.display = 'block';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
-        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
-        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'none';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'block';
         if (ceramicSection) ceramicSection.style.display = 'none';
+        if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'tile_installation') {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
-        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'block';
-        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'block';
-        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'block';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'none';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'block';
+        if (natSection) natSection.style.display = 'block';
+    } else if (this.value === 'grout_tile') {
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+        if (brickSection) brickSection.style.display = 'none';
+        if (cementSection) cementSection.style.display = 'none';
+        if (sandSection) sandSection.style.display = 'none';
+        if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'block';
+        if (natSection) natSection.style.display = 'block';
     } else {
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-        if (groutPackageWeightGroup) groutPackageWeightGroup.style.display = 'none';
-        if (groutVolumePerPackageGroup) groutVolumePerPackageGroup.style.display = 'none';
-        if (groutPricePerPackageGroup) groutPricePerPackageGroup.style.display = 'none';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
         if (brickSection) brickSection.style.display = 'block';
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
+        if (natSection) natSection.style.display = 'none';
     }
 });
 
@@ -618,6 +637,49 @@ function renderTrace(trace, containerId) {
                         <td class="fw-bold">Harga Pasir (@${formatCurrency(result.sand_price_per_m3)}/M3)</td>
                         <td class="text-end">${formatCurrency(result.total_sand_price)}</td>
                     </tr>
+                    <tr>
+                        <td class="fw-bold">Harga Nat (@${formatCurrency(result.grout_price_per_package)}/bungkus)</td>
+                        <td class="text-end">${formatCurrency(result.total_grout_price)}</td>
+                    </tr>
+                    <tr class="table-success">
+                        <td class="fw-bold fs-5">TOTAL HARGA</td>
+                        <td class="text-end fs-5"><strong>${formatCurrency(result.grand_total)}</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+    } else if (result.grout_packages !== undefined && result.grout_packages > 0) {
+        // GROUT ONLY RESULT
+        html += `
+            <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-grid"></i> Kebutuhan Nat (Grout)</h6>
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    <tr>
+                        <td class="fw-bold" style="width: 60%">Nat (bungkus)</td>
+                        <td class="text-end"><strong>${formatNumber(result.grout_packages)} bungkus</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Nat (kg)</td>
+                        <td class="text-end">${formatNumber(result.grout_kg)} kg</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Nat (M3)</td>
+                        <td class="text-end">${formatNumber(result.grout_m3)} M3</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-bold">Air untuk Nat (liter)</td>
+                        <td class="text-end">${formatNumber(result.water_grout_liters)} liter</td>
+                    </tr>
+                    <tr class="table-light">
+                        <td class="fw-bold">Total Air Keseluruhan (liter)</td>
+                        <td class="text-end"><strong>${formatNumber(result.total_water_liters)} liter</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-currency-dollar"></i> Rincian Harga</h6>
+            <table class="table table-bordered mb-0">
+                <tbody>
                     <tr>
                         <td class="fw-bold">Harga Nat (@${formatCurrency(result.grout_price_per_package)}/bungkus)</td>
                         <td class="text-end">${formatCurrency(result.total_grout_price)}</td>

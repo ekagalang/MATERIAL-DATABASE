@@ -61,9 +61,36 @@ class MaterialCalculationController extends Controller
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
-        $cements = Cement::orderBy('brand')->get();
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('brand')->get();
+        $nats = Cement::where('type', 'Nat')->orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
+        $ceramics = Ceramic::orderBy('brand')->get();
+
+        // Get distinct ceramic types and sizes for filters
+        $ceramicTypes = Ceramic::whereNotNull('type')
+            ->distinct()
+            ->pluck('type')
+            ->filter()
+            ->sort()
+            ->values();
+
+        $ceramicSizes = Ceramic::whereNotNull('dimension_length')
+            ->whereNotNull('dimension_width')
+            ->where('dimension_length', '>', 0)
+            ->where('dimension_width', '>', 0)
+            ->select('dimension_length', 'dimension_width')
+            ->distinct()
+            ->get()
+            ->map(function ($ceramic) {
+                // Format as "30x30" or "20x25"
+                $length = (int) $ceramic->dimension_length;
+                $width = (int) $ceramic->dimension_width;
+                return min($length, $width) . 'x' . max($length, $width);
+            })
+            ->unique()
+            ->sort()
+            ->values();
 
         $defaultInstallationType = BrickInstallationType::getDefault();
         $defaultMortarFormula = MortarFormula::getDefault();
@@ -83,11 +110,15 @@ class MaterialCalculationController extends Controller
                 'mortarFormulas',
                 'bricks',
                 'cements',
+                'nats',
                 'sands',
                 'cats',
+                'ceramics',
+                'ceramicTypes',
+                'ceramicSizes',
                 'defaultInstallationType',
                 'defaultMortarFormula',
-                'selectedBricks', 
+                'selectedBricks',
             ),
         );
     }
@@ -129,10 +160,12 @@ class MaterialCalculationController extends Controller
 
             // NEW LOGIC: Dynamic Material Validation based on Work Type
             $workType = $request->work_type;
-            $needsBrick = !in_array($workType, ['wall_plastering', 'skim_coating', 'painting']);
-            $needsSand = !in_array($workType, ['skim_coating', 'painting']);
-            $needsCement = !in_array($workType, ['painting']);
+            $needsBrick = !in_array($workType, ['wall_plastering', 'skim_coating', 'painting', 'tile_installation', 'grout_tile']);
+            $needsSand = !in_array($workType, ['skim_coating', 'painting', 'grout_tile']);
+            $needsCement = !in_array($workType, ['painting', 'grout_tile']);
             $needsCat = in_array($workType, ['painting']);
+            $needsCeramic = in_array($workType, ['tile_installation', 'grout_tile']);
+            $needsNat = in_array($workType, ['tile_installation', 'grout_tile']);
 
             // Brick Validation
             if (!$needsBrick) {
@@ -162,6 +195,32 @@ class MaterialCalculationController extends Controller
 
             if (!$needsSand) {
                 $rules['sand_id'] = 'nullable';
+            }
+            
+            if (!$needsCement) {
+                $rules['cement_id'] = 'nullable';
+            }
+
+            // Ceramic Validation
+            if ($needsCeramic) {
+                if (in_array('custom', $request->price_filters ?? [])) {
+                    $rules['ceramic_id'] = 'required|exists:ceramics,id';
+                } else {
+                    $rules['ceramic_id'] = 'nullable|exists:ceramics,id';
+                }
+            } else {
+                $rules['ceramic_id'] = 'nullable';
+            }
+
+            // Nat Validation
+            if ($needsNat) {
+                if (in_array('custom', $request->price_filters ?? [])) {
+                    $rules['nat_id'] = 'required|exists:cements,id';
+                } else {
+                    $rules['nat_id'] = 'nullable|exists:cements,id';
+                }
+            } else {
+                $rules['nat_id'] = 'nullable';
             }
 
             $request->validate($rules);
@@ -244,7 +303,19 @@ class MaterialCalculationController extends Controller
         $targetBricks = collect();
         $priceFilters = $request->price_filters ?? [];
         $workType = $request->work_type ?? 'brick_half';
-        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating', 'painting']);
+        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating', 'painting', 'tile_installation', 'grout_tile']);
+        $isCeramicWork = in_array($workType, ['tile_installation', 'grout_tile']);
+
+        // Check if multi-ceramic is selected
+        $hasCeramicFilters = $request->has('ceramic_types') || $request->has('ceramic_sizes');
+        $isMultiCeramic = $isCeramicWork && $hasCeramicFilters &&
+            ((is_array($request->ceramic_types) && count($request->ceramic_types) > 0) ||
+             (is_array($request->ceramic_sizes) && count($request->ceramic_sizes) > 0));
+
+        // Handle Multi-Ceramic Selection
+        if ($isMultiCeramic) {
+            return $this->generateMultiCeramicCombinations($request);
+        }
 
         if ($isBrickless) {
             $targetBricks = Brick::limit(1)->get();
@@ -290,6 +361,192 @@ class MaterialCalculationController extends Controller
             'requestData' => $request->except(['brick_ids', 'brick_id']),
             'formulaName' => $formulaName,
         ]);
+    }
+
+    /**
+     * Generate combinations for multiple ceramics
+     * Group by Type -> Size and display in tabs
+     * OPTIMIZED: Limits ceramics and combinations to prevent memory exhaustion
+     */
+    protected function generateMultiCeramicCombinations(Request $request)
+    {
+        $workType = $request->work_type ?? 'tile_installation';
+
+        // Build ceramic query based on filters
+        $ceramicQuery = Ceramic::query();
+
+        // For grout_tile, filter ceramics with valid dimension_thickness
+        if ($workType === 'grout_tile') {
+            $ceramicQuery->whereNotNull('dimension_thickness')
+                ->where('dimension_thickness', '>', 0);
+        }
+
+        // Apply ceramic type and size filters
+        $ceramicQuery = $this->applyCeramicFilters($ceramicQuery, $request);
+
+        // Get ALL matching ceramics - no limit needed with lazy loading
+        // Combinations are calculated on-demand via AJAX per ceramic
+        $targetCeramics = $ceramicQuery->orderBy('type')
+            ->orderBy('price_per_package')
+            ->orderBy('dimension_length')
+            ->orderBy('dimension_width')
+            ->get();
+
+        if ($targetCeramics->isEmpty()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Tidak ada keramik yang sesuai dengan filter yang dipilih.');
+        }
+
+        // LAZY LOAD: DON'T calculate combinations here
+        // Combinations will be loaded via AJAX when user clicks tab
+        $ceramicProjects = [];
+
+        foreach ($targetCeramics as $ceramic) {
+            // Format size as "30x30"
+            $length = (int) $ceramic->dimension_length;
+            $width = (int) $ceramic->dimension_width;
+            $sizeLabel = min($length, $width) . 'x' . max($length, $width);
+
+            $ceramicProjects[] = [
+                'ceramic' => $ceramic,
+                'type' => $ceramic->type ?? 'Lainnya',
+                'size' => $sizeLabel,
+                'combinations' => [], // Empty - will be loaded via AJAX
+            ];
+        }
+
+        // Group by Type -> Size
+        $groupedByType = collect($ceramicProjects)->groupBy('type');
+
+        $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
+        $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Keramik';
+
+        return view('material_calculations.preview_combinations', [
+            'projects' => [], // Empty for ceramic-only work
+            'ceramicProjects' => $ceramicProjects,
+            'groupedCeramics' => $groupedByType,
+            'isMultiCeramic' => true,
+            'isLazyLoad' => true, // Enable lazy loading
+            'requestData' => $request->except(['ceramic_types', 'ceramic_sizes']),
+            'formulaName' => $formulaName,
+            'totalCeramics' => $targetCeramics->count(),
+        ]);
+    }
+
+    /**
+     * AJAX Endpoint: Get combinations for a specific ceramic
+     * Called when user clicks a ceramic tab
+     */
+    public function getCeramicCombinations(Request $request)
+    {
+        try {
+            $ceramicId = $request->ceramic_id;
+            $ceramic = Ceramic::findOrFail($ceramicId);
+
+            $brick = Brick::first(); // Dummy brick for ceramic work
+
+            // Calculate combinations for this specific ceramic
+            $combinations = $this->calculateCombinationsForCeramicLite($brick, $request, $ceramic);
+
+            // Return HTML fragment for the combinations table
+            return response()->json([
+                'success' => true,
+                'html' => view('material_calculations.partials.ceramic_combinations_table', [
+                    'ceramic' => $ceramic,
+                    'combinations' => $combinations,
+                    'requestData' => $request->except(['ceramic_id', '_token']),
+                ])->render()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * FULL CALCULATION: Calculate all combinations for a specific ceramic
+     * No limits - full calculation with all materials and filters
+     */
+    protected function calculateCombinationsForCeramicLite($brick, $request, $ceramic)
+    {
+        $workType = $request->work_type ?? 'tile_installation';
+
+        // FULL CALCULATION: Use all requested price filters
+        $priceFilters = $request->price_filters ?? ['best'];
+
+        // Use the same logic as calculateCombinationsForBrick but with fixed ceramic
+        $allCombinations = [];
+
+        foreach ($priceFilters as $filter) {
+            if ($filter === 'custom') continue;
+
+            // Get combinations using the standard filter methods (no limits)
+            $combinations = $this->getCombinationsByFilter($brick, $request, $filter, $ceramic);
+
+            foreach ($combinations as $index => $combo) {
+                $number = $index + 1;
+                $filterLabel = $this->getFilterLabel($filter);
+
+                $allCombinations[] = array_merge($combo, [
+                    'filter_label' => "{$filterLabel} {$number}",
+                    'filter_type' => $filter,
+                    'filter_number' => $number,
+                ]);
+            }
+        }
+
+        $uniqueCombos = $this->detectAndMergeDuplicates($allCombinations);
+
+        // Convert back to label-keyed array for display
+        $finalResults = [];
+        foreach ($uniqueCombos as $combo) {
+            $label = $combo['filter_label'];
+            $finalResults[$label] = [$combo];
+        }
+
+        return $finalResults;
+    }
+
+    /**
+     * Calculate combinations for a specific ceramic
+     */
+    protected function calculateCombinationsForCeramic($brick, $request, $ceramic)
+    {
+        $priceFilters = $request->price_filters ?? ['best'];
+
+        // Use the same logic as calculateCombinationsForBrick but with fixed ceramic
+        $allCombinations = [];
+
+        foreach ($priceFilters as $filter) {
+            if ($filter === 'custom') continue;
+
+            $combinations = $this->getCombinationsByFilter($brick, $request, $filter);
+
+            foreach ($combinations as $index => $combo) {
+                $number = $index + 1;
+                $filterLabel = $this->getFilterLabel($filter);
+
+                $allCombinations[] = array_merge($combo, [
+                    'filter_label' => "{$filterLabel} {$number}",
+                    'filter_type' => $filter,
+                    'filter_number' => $number,
+                ]);
+            }
+        }
+
+        $uniqueCombos = $this->detectAndMergeDuplicates($allCombinations);
+
+        // Convert back to label-keyed array for display
+        $finalResults = [];
+        foreach ($uniqueCombos as $combo) {
+            $label = $combo['filter_label'];
+            $finalResults[$label] = [$combo];
+        }
+
+        return $finalResults;
     }
 
     protected function calculateCombinationsForBrick($brick, $request)
@@ -361,23 +618,23 @@ class MaterialCalculationController extends Controller
         return $finalResults;
     }
 
-    protected function getCombinationsByFilter($brick, $request, $filter)
+    protected function getCombinationsByFilter($brick, $request, $filter, $fixedCeramic = null)
     {
         switch ($filter) {
-            case 'best': return $this->getBestCombinations($brick, $request);
-            case 'common': return $this->getCommonCombinations($brick, $request);
-            case 'cheapest': return $this->getCheapestCombinations($brick, $request);
-            case 'medium': return $this->getMediumCombinations($brick, $request);
-            case 'expensive': return $this->getExpensiveCombinations($brick, $request);
+            case 'best': return $this->getBestCombinations($brick, $request, $fixedCeramic);
+            case 'common': return $this->getCommonCombinations($brick, $request, $fixedCeramic);
+            case 'cheapest': return $this->getCheapestCombinations($brick, $request, $fixedCeramic);
+            case 'medium': return $this->getMediumCombinations($brick, $request, $fixedCeramic);
+            case 'expensive': return $this->getExpensiveCombinations($brick, $request, $fixedCeramic);
             case 'custom': return $this->getCustomCombinations($brick, $request);
             default: return [];
         }
     }
 
-    protected function getBestCombinations($brick, $request)
+    protected function getBestCombinations($brick, $request, $fixedCeramic = null)
     {
         $workType = $request->work_type ?? 'brick_half';
-        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating', 'painting']);
+        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating', 'painting', 'tile_installation', 'grout_tile']);
 
         if ($workType === 'painting') {
              $recommendations = collect([]);
@@ -399,23 +656,66 @@ class MaterialCalculationController extends Controller
         if (!empty($allRecommendedResults)) return $allRecommendedResults;
 
         if ($isBrickless) {
-             $cheapest = $this->getCheapestCombinations($brick, $request);
+             // For grout_tile, return MEDIUM priced combinations to differentiate from cheapest
+             if ($workType === 'grout_tile') {
+                 $medium = $this->getMediumCombinations($brick, $request, $fixedCeramic);
+                 return array_map(function ($combo) { $combo['source_filter'] = 'best'; return $combo; }, array_slice($medium, 0, 3));
+             }
+             $cheapest = $this->getCheapestCombinations($brick, $request, $fixedCeramic);
              return array_map(function ($combo) { $combo['source_filter'] = 'best'; return $combo; }, array_slice($cheapest, 0, 3));
         }
         return [];
     }
 
-    protected function getCommonCombinations($brick, $request)
+    protected function getCommonCombinations($brick, $request, $fixedCeramic = null)
     {
         $workType = $request->work_type ?? 'brick_half';
-        if (in_array($workType, ['wall_plastering', 'skim_coating', 'painting'])) {
-             $cheapest = $this->getCheapestCombinations($brick, $request);
+        if (in_array($workType, ['wall_plastering', 'skim_coating', 'painting', 'tile_installation', 'grout_tile'])) {
+             // For grout_tile, get combinations from mid-low price range to differentiate from cheapest
+             if ($workType === 'grout_tile') {
+                 $materialLimit = 10;
+                 // Skip first 3 cheapest, take next 5 for variety - filter by valid dimension_thickness
+                 $ceramics = $this->resolveCeramicsForCalculation(
+                     $request,
+                     $workType,
+                     $fixedCeramic,
+                     'price_per_package',
+                     'asc',
+                     $materialLimit,
+                     3
+                 );
+                 $nats = Cement::where('type', 'Nat')->orderBy('package_price')->skip(2)->limit($materialLimit)->get();
+
+                 // Fallback to cheapest if not enough data
+                 if ($ceramics->isEmpty() && !$fixedCeramic && !$request->filled('ceramic_id')) {
+                     $ceramics = $this->resolveCeramicsForCalculation(
+                         $request,
+                         $workType,
+                         null,
+                         'price_per_package',
+                         'asc',
+                         $materialLimit
+                     );
+                 }
+                 if ($nats->isEmpty()) {
+                     $nats = Cement::where('type', 'Nat')->orderBy('package_price')->limit($materialLimit)->get();
+                 }
+
+                 $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->limit(1)->get();
+                 $sands = Sand::limit(1)->get();
+                 $cats = collect([]);
+
+                 $results = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerUMUM', 3, $ceramics, $nats);
+                 return array_map(function ($combo) { $combo['source_filter'] = 'common'; return $combo; }, $results);
+             }
+
+             $cheapest = $this->getCheapestCombinations($brick, $request, $fixedCeramic);
              return array_map(function ($combo) { $combo['source_filter'] = 'common'; return $combo; }, array_slice($cheapest, 0, 3));
         }
 
         $commonCombos = DB::table('brick_calculations')->select('cement_id', 'sand_id', DB::raw('count(*) as frequency'))->where('brick_id', $brick->id)->groupBy('cement_id', 'sand_id')->orderByDesc('frequency')->limit(3)->get();
         if ($commonCombos->isEmpty()) {
-            $cheapest = $this->getCheapestCombinations($brick, $request);
+            $cheapest = $this->getCheapestCombinations($brick, $request, $fixedCeramic);
             return array_map(function ($combo) { $combo['source_filter'] = 'cheapest'; return $combo; }, $cheapest);
         }
 
@@ -429,42 +729,184 @@ class MaterialCalculationController extends Controller
         return $results;
     }
 
-    protected function getCheapestCombinations($brick, $request)
+    /**
+     * Apply ceramic filters based on request parameters
+     * Filters by type and size (dimensions)
+     */
+    protected function applyCeramicFilters($query, $request)
     {
-        $cements = Cement::orderBy('package_price')->get();
-        $sands = Sand::orderBy('package_price')->get();
-        $cats = Cat::orderBy('purchase_price')->get();
-        return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerMURAH', 3);
+        // Filter by ceramic types (Jenis Keramik)
+        if ($request->has('ceramic_types') && is_array($request->ceramic_types) && !empty($request->ceramic_types)) {
+            $query->whereIn('type', $request->ceramic_types);
+        }
+
+        // Filter by ceramic sizes (Ukuran Keramik)
+        if ($request->has('ceramic_sizes') && is_array($request->ceramic_sizes) && !empty($request->ceramic_sizes)) {
+            $query->where(function ($q) use ($request) {
+                foreach ($request->ceramic_sizes as $size) {
+                    // Parse size like "30x30" or "20x25"
+                    $dimensions = explode('x', $size);
+                    if (count($dimensions) === 2) {
+                        $length = trim($dimensions[0]);
+                        $width = trim($dimensions[1]);
+
+                        // Match ceramics with these dimensions (either length x width or width x length)
+                        $q->orWhere(function ($subQ) use ($length, $width) {
+                            $subQ->where('dimension_length', $length)
+                                ->where('dimension_width', $width);
+                        })->orWhere(function ($subQ) use ($length, $width) {
+                            $subQ->where('dimension_length', $width)
+                                ->where('dimension_width', $length);
+                        });
+                    }
+                }
+            });
+        }
+
+        return $query;
     }
 
-    protected function getMediumCombinations($brick, $request)
+    protected function resolveCeramicsForCalculation(
+        $request,
+        $workType,
+        $fixedCeramic,
+        $orderBy,
+        $direction = 'asc',
+        $limit = null,
+        $skip = null
+    ) {
+        if ($fixedCeramic) {
+            return collect([$fixedCeramic]);
+        }
+
+        if ($request->filled('ceramic_id')) {
+            $ceramic = Ceramic::find($request->ceramic_id);
+            return $ceramic ? collect([$ceramic]) : collect();
+        }
+
+        $ceramicQuery = Ceramic::query();
+
+        if ($workType === 'grout_tile') {
+            $ceramicQuery->whereNotNull('dimension_thickness')
+                ->where('dimension_thickness', '>', 0);
+        }
+
+        if ($workType === 'tile_installation') {
+            $ceramicQuery = $this->applyCeramicFilters($ceramicQuery, $request);
+        }
+
+        $ceramicQuery->orderBy($orderBy, $direction);
+
+        if (!is_null($skip) && $skip > 0) {
+            $ceramicQuery->skip($skip);
+        }
+
+        if (!is_null($limit)) {
+            $ceramicQuery->limit($limit);
+        }
+
+        return $ceramicQuery->get();
+    }
+
+    protected function getCheapestCombinations($brick, $request, $fixedCeramic = null)
     {
-        $cements = Cement::orderBy('package_price')->get();
-        $sands = Sand::orderBy('package_price')->get();
-        $cats = Cat::orderBy('purchase_price')->get();
-        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerSEDANG');
+        $workType = $request->work_type ?? 'brick_half';
+
+        // Dengan generator, bisa handle lebih banyak kombinasi tanpa memory issue
+        // Limit lebih besar untuk tile_installation untuk mendapat kombinasi terbaik
+        $materialLimit = ($workType === 'tile_installation') ? 10 : 5;
+
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->limit($materialLimit)->get();
+        $nats = Cement::where('type', 'Nat')->orderBy('package_price')->limit($materialLimit)->get();
+        $sands = Sand::orderBy('package_price')->limit($materialLimit)->get();
+        $cats = Cat::orderBy('purchase_price')->limit($materialLimit)->get();
+
+        $ceramics = $this->resolveCeramicsForCalculation(
+            $request,
+            $workType,
+            $fixedCeramic,
+            'price_per_package',
+            'asc',
+            $materialLimit
+        );
+
+        return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerMURAH', 3, $ceramics, $nats);
+    }
+
+    protected function getMediumCombinations($brick, $request, $fixedCeramic = null)
+    {
+        $workType = $request->work_type ?? 'brick_half';
+        $materialLimit = ($workType === 'tile_installation') ? 10 : 5;
+
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->limit($materialLimit)->get();
+        $nats = Cement::where('type', 'Nat')->orderBy('package_price')->limit($materialLimit)->get();
+        $sands = Sand::orderBy('package_price')->limit($materialLimit)->get();
+        $cats = Cat::orderBy('purchase_price')->limit($materialLimit)->get();
+
+        $ceramics = $this->resolveCeramicsForCalculation(
+            $request,
+            $workType,
+            $fixedCeramic,
+            'price_per_package',
+            'asc',
+            $materialLimit
+        );
+
+        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerSEDANG', null, $ceramics, $nats);
+
         $total = count($allResults);
         if ($total < 3) return $allResults;
         $startIndex = max(0, floor(($total - 3) / 2));
         return array_slice($allResults, $startIndex, 3);
     }
 
-    protected function getExpensiveCombinations($brick, $request)
+    protected function getExpensiveCombinations($brick, $request, $fixedCeramic = null)
     {
-        $cements = Cement::orderByDesc('package_price')->get();
-        $sands = Sand::orderByDesc('package_price')->get();
-        $cats = Cat::orderByDesc('purchase_price')->get();
-        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerMAHAL');
+        $workType = $request->work_type ?? 'brick_half';
+        $materialLimit = ($workType === 'tile_installation') ? 10 : 5;
+
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderByDesc('package_price')->limit($materialLimit)->get();
+        $nats = Cement::where('type', 'Nat')->orderByDesc('package_price')->limit($materialLimit)->get();
+        $sands = Sand::orderByDesc('package_price')->limit($materialLimit)->get();
+        $cats = Cat::orderByDesc('purchase_price')->limit($materialLimit)->get();
+
+        $ceramics = $this->resolveCeramicsForCalculation(
+            $request,
+            $workType,
+            $fixedCeramic,
+            'price_per_package',
+            'desc',
+            $materialLimit
+        );
+
+        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerMAHAL', null, $ceramics, $nats);
+
         return array_slice(array_reverse($allResults), 0, 3);
     }
 
     protected function getCustomCombinations($brick, $request)
     {
-        if ($request->work_type === 'painting') {
+        $workType = $request->work_type ?? 'brick_half';
+
+        if ($workType === 'painting') {
             if ($request->cat_id) {
                 $cats = Cat::where('id', $request->cat_id)->get();
                 return $this->calculateCombinationsFromMaterials($brick, $request, [], [], $cats, 'Custom', 1);
             }
+        } elseif ($workType === 'grout_tile') {
+             if ($request->ceramic_id && $request->nat_id) {
+                 $ceramics = Ceramic::where('id', $request->ceramic_id)->get();
+                 $nats = Cement::where('id', $request->nat_id)->get();
+                 return $this->calculateCombinationsFromMaterials($brick, $request, [], [], [], 'Custom', 1, $ceramics, $nats);
+             }
+        } elseif ($workType === 'tile_installation') {
+             if ($request->ceramic_id && $request->nat_id && $request->cement_id && $request->sand_id) {
+                 $ceramics = Ceramic::where('id', $request->ceramic_id)->get();
+                 $nats = Cement::where('id', $request->nat_id)->get();
+                 $cements = Cement::where('id', $request->cement_id)->get();
+                 $sands = Sand::where('id', $request->sand_id)->get();
+                 return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, [], 'Custom', 1, $ceramics, $nats);
+             }
         } else {
              if ($request->cement_id && $request->sand_id) {
                 $cements = Cement::where('id', $request->cement_id)->get();
@@ -475,11 +917,21 @@ class MaterialCalculationController extends Controller
         return $this->getCheapestCombinations($brick, $request);
     }
 
-    protected function calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats = [], $groupLabel = 'Kombinasi', $limit = null)
+    protected function calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats = [], $groupLabel = 'Kombinasi', $limit = null, $ceramics = [], $nats = [])
     {
         $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id']);
         $paramsBase['brick_id'] = $brick->id;
         $workType = $request->work_type ?? 'brick_half';
+
+        // Gunakan generator untuk tile_installation untuk efisiensi memory
+        if ($workType === 'tile_installation') {
+            return $this->processGeneratorResults(
+                $this->yieldTileInstallationCombinations($paramsBase, $ceramics, $nats, $cements, $sands, $groupLabel),
+                $limit
+            );
+        }
+
+        // Untuk workType lain, gunakan cara biasa (sudah cukup efisien)
         $results = [];
 
         if ($workType === 'painting') {
@@ -491,6 +943,17 @@ class MaterialCalculationController extends Controller
                      $result = $formula->calculate($params);
                      $results[] = ['cat' => $cat, 'result' => $result, 'total_cost' => $result['grand_total'], 'filter_type' => $groupLabel];
                  } catch (\Exception $e) {}
+             }
+        } elseif ($workType === 'grout_tile') {
+             foreach ($ceramics as $ceramic) {
+                 foreach ($nats as $nat) {
+                     $params = array_merge($paramsBase, ['ceramic_id' => $ceramic->id, 'nat_id' => $nat->id]);
+                     try {
+                         $formula = FormulaRegistry::instance('grout_tile');
+                         $result = $formula->calculate($params);
+                         $results[] = ['ceramic' => $ceramic, 'nat' => $nat, 'result' => $result, 'total_cost' => $result['grand_total'], 'filter_type' => $groupLabel];
+                     } catch (\Exception $e) {}
+                 }
              }
         } else {
             foreach ($cements as $cement) {
@@ -515,6 +978,86 @@ class MaterialCalculationController extends Controller
         return $results;
     }
 
+    /**
+     * Generator function untuk tile installation - streaming results tanpa menyimpan semua di memory
+     */
+    protected function yieldTileInstallationCombinations($paramsBase, $ceramics, $nats, $cements, $sands, $groupLabel)
+    {
+        foreach ($ceramics as $ceramic) {
+            foreach ($nats as $nat) {
+                foreach ($cements as $cement) {
+                    if ($cement->package_weight_net <= 0) continue;
+
+                    foreach ($sands as $sand) {
+                        $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
+                        $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
+                        if (!$hasPricePerM3 && !$hasPackageData) continue;
+
+                        $params = array_merge($paramsBase, [
+                            'ceramic_id' => $ceramic->id,
+                            'nat_id' => $nat->id,
+                            'cement_id' => $cement->id,
+                            'sand_id' => $sand->id
+                        ]);
+
+                        try {
+                            $formula = FormulaRegistry::instance('tile_installation');
+                            $result = $formula->calculate($params);
+
+                            // Yield result satu per satu, tidak menyimpan di memory
+                            yield [
+                                'ceramic' => $ceramic,
+                                'nat' => $nat,
+                                'cement' => $cement,
+                                'sand' => $sand,
+                                'result' => $result,
+                                'total_cost' => $result['grand_total'],
+                                'filter_type' => $groupLabel
+                            ];
+                        } catch (\Exception $e) {
+                            // Skip kombinasi yang error
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Process generator results dengan smart batching
+     * Hanya simpan kombinasi terbaik di memory, buang yang lebih mahal
+     */
+    protected function processGeneratorResults($generator, $limit = null)
+    {
+        $results = [];
+        $batchSize = 100; // Process setiap 100 kombinasi
+        $targetSize = $limit ?? 10; // Berapa kombinasi yang mau kita simpan
+        $keepSize = max($targetSize * 3, 30); // Simpan 3x lebih banyak untuk sorting
+        $processed = 0;
+
+        foreach ($generator as $combination) {
+            $results[] = $combination;
+            $processed++;
+
+            // Setiap batch, sort dan ambil yang terbaik saja
+            if (count($results) >= $batchSize) {
+                usort($results, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+                $results = array_slice($results, 0, $keepSize);
+            }
+        }
+
+        // Final sort
+        usort($results, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+
+        // Return sesuai limit
+        if ($limit) {
+            $results = array_slice($results, 0, $limit);
+        }
+
+        return $results;
+    }
+
     protected function getFilterLabel($filter)
     {
         return match ($filter) {
@@ -533,8 +1076,13 @@ class MaterialCalculationController extends Controller
     {
         $uniqueCombos = []; $duplicateMap = [];
         foreach ($combinations as $combo) {
-            if (isset($combo['cat'])) { $key = 'cat-' . $combo['cat']->id; }
-            else { $key = ($combo['cement']->id ?? 0) . '-' . ($combo['sand']->id ?? 0); }
+            if (isset($combo['cat'])) { 
+                $key = 'cat-' . $combo['cat']->id; 
+            } elseif (isset($combo['ceramic'])) {
+                $key = 'cer-' . ($combo['ceramic']->id ?? 0) . '-nat-' . ($combo['nat']->id ?? 0) . '-cem-' . ($combo['cement']->id ?? 0) . '-snd-' . ($combo['sand']->id ?? 0);
+            } else { 
+                $key = ($combo['cement']->id ?? 0) . '-' . ($combo['sand']->id ?? 0); 
+            }
 
             if (!isset($combo['source_filters'])) $combo['source_filters'] = [$combo['filter_type']];
             $currentLabel = $combo['filter_label'];
@@ -557,7 +1105,7 @@ class MaterialCalculationController extends Controller
 
     public function show(BrickCalculation $materialCalculation)
     {
-        $materialCalculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat']);
+        $materialCalculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
         $summary = $materialCalculation->getSummary();
         return view('material_calculations.show_log', compact('materialCalculation', 'summary'));
     }
@@ -694,11 +1242,12 @@ class MaterialCalculationController extends Controller
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
-        $cements = Cement::orderBy('cement_name')->get();
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('cement_name')->get();
+        $nats = Cement::where('type', 'Nat')->orderBy('brand')->get();
         $sands = Sand::orderBy('sand_name')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
-        return view('material_calculations.trace', compact('availableFormulas', 'installationTypes', 'mortarFormulas', 'bricks', 'cements', 'sands', 'cats', 'ceramics'));
+        return view('material_calculations.trace', compact('availableFormulas', 'installationTypes', 'mortarFormulas', 'bricks', 'cements', 'nats', 'sands', 'cats', 'ceramics'));
     }
 
     public function traceCalculation(Request $request)
