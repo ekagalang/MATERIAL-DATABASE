@@ -21,17 +21,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 40.0,
                 'package_weight_net' => 40.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => 0.3, // meter
-                'dimension_width' => 0.2, // meter
-                'dimension_height' => 0.6, // meter
-                'package_volume' => 0.036, // M3 (0.30 x 0.20 x 0.60)
+                'package_volume' => 0.036, // M3
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 42000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1050, // 56000 / 40
+                'comparison_price_per_kg' => 1050, 
             ],
             // Semen Gresik
             [
@@ -44,17 +40,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.5,
                 'package_weight_net' => 50.0,
-                // Dimensi kemasan sak semen standar: 50cm x 35cm x 10cm
-                'dimension_length' => 0.5, // meter
-                'dimension_width' => 0.35, // meter
-                'dimension_height' => 0.1, // meter
-                'package_volume' => 0.0175, // M3 (0.50 x 0.35 x 0.10)
+                'package_volume' => 0.0175, // M3
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 62000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1240, // 62000 / 50
+                'comparison_price_per_kg' => 1240, 
             ],
             [
                 'cement_name' => 'Semen Gresik Merah',
@@ -66,17 +58,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 40.5,
                 'package_weight_net' => 40.0,
-                // Dimensi kemasan sak 40kg: 45cm x 30cm x 10cm
-                'dimension_length' => 0.45,
-                'dimension_width' => 0.3,
-                'dimension_height' => 0.1,
-                'package_volume' => 0.0135, // M3 (0.45 x 0.30 x 0.10)
+                'package_volume' => 0.0135, // M3
                 'store' => 'Toko Bangunan Maju',
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 56000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1400, // 56000 / 40
+                'comparison_price_per_kg' => 1400, 
             ],
 
             // Semen Padang
@@ -90,16 +78,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.5,
                 'package_weight_net' => 50.0,
-                'dimension_length' => 0.5,
-                'dimension_width' => 0.35,
-                'dimension_height' => 0.1,
                 'package_volume' => 0.0175,
                 'store' => 'Bangunan Jaya',
                 'address' => 'Jl. Raya Depok No. 123, Depok',
                 'short_address' => 'Depok',
                 'package_price' => 64000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1280, // 64000 / 50
+                'comparison_price_per_kg' => 1280, 
             ],
             [
                 'cement_name' => 'Semen Padang Acian',
@@ -111,16 +96,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 40.5,
                 'package_weight_net' => 40.0,
-                'dimension_length' => 0.45,
-                'dimension_width' => 0.3,
-                'dimension_height' => 0.1,
                 'package_volume' => 0.0135,
                 'store' => 'Bangunan Jaya',
                 'address' => 'Jl. Raya Depok No. 123, Depok',
                 'short_address' => 'Depok',
                 'package_price' => 72000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1800, // 72000 / 40
+                'comparison_price_per_kg' => 1800, 
             ],
 
             // Semen Holcim
@@ -134,16 +116,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.5,
                 'package_weight_net' => 50.0,
-                'dimension_length' => 0.5,
-                'dimension_width' => 0.35,
-                'dimension_height' => 0.1,
                 'package_volume' => 0.0175,
                 'store' => 'Sumber Makmur',
                 'address' => 'Jl. Raya Condet No. 45, Jakarta Timur',
                 'short_address' => 'Condet, Jakarta Timur',
                 'package_price' => 65000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1300, // 65000 / 50
+                'comparison_price_per_kg' => 1300, 
             ],
 
             // Semen Tiga Roda
@@ -157,16 +136,13 @@ class CementSeeder extends Seeder
                 'package_unit' => 'Sak',
                 'package_weight_gross' => 50.5,
                 'package_weight_net' => 50.0,
-                'dimension_length' => 0.5,
-                'dimension_width' => 0.35,
-                'dimension_height' => 0.1,
                 'package_volume' => 0.0175,
                 'store' => 'Toko Material Sejahtera',
                 'address' => 'Jl. Raya Bekasi No. 88, Bekasi',
                 'short_address' => 'Bekasi',
                 'package_price' => 61000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1220, // 61000 / 50
+                'comparison_price_per_kg' => 1220, 
             ],
         ];
 

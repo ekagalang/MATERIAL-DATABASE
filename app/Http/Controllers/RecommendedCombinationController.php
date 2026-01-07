@@ -14,8 +14,11 @@ class RecommendedCombinationController extends Controller
 {
     public function index()
     {
-        // Get existing recommendations grouped by work_type
-        $recommendations = RecommendedCombination::where('type', 'best')->orderBy('work_type')->get();
+        // Get existing recommendations grouped by work_type with eager loaded relationships
+        $recommendations = RecommendedCombination::with(['brick', 'cement', 'sand'])
+            ->where('type', 'best')
+            ->orderBy('work_type')
+            ->get();
 
         // Group recommendations by work_type
         $groupedRecommendations = $recommendations->groupBy('work_type');

@@ -25,7 +25,7 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-funnel"></i> Filter
             </button>
             @if(request('material_type'))

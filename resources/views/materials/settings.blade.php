@@ -78,7 +78,7 @@
             <a href="{{ route('materials.index') }}" class="btn btn-secondary">
                 Batal
             </a>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-check-lg"></i> Simpan Pengaturan
             </button>
         </div>

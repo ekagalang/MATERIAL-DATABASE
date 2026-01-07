@@ -3,11 +3,117 @@
 @section('title', 'Database Cat')
 
 @section('content')
+<style>
+    .table-container table tr {
+        height: 20px !important;
+    }
+    .table-container table td {
+        display: table-cell !important;
+        padding: 0 6px !important;
+        font-size: 15px !important;
+        height: 20px !important;
+        line-height: 20px !important;
+        vertical-align: middle !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .table-container table td > * {
+        vertical-align: middle;
+        display: inline-block;
+        line-height: 1.2;
+    }
+
+    .table-container table td > div[style*="display: flex"] {
+        display: flex !important;
+        width: 100%;
+        align-items: center;
+        height: 100%;
+    }
+
+    .table-container table td span[style*="background"] {
+        display: inline-block !important;
+        line-height: 1.2;
+        padding: 2px 6px !important;
+        vertical-align: middle;
+    }
+
+    .btn-group-compact {
+        display: inline-flex !important;
+        vertical-align: middle;
+    }
+
+    .table-container table {
+        width: max-content !important;
+        min-width: 100%;
+        margin-bottom: 5px;
+    }
+
+    .table-container {
+        width: 100%;
+        overflow-x: auto !important;
+        overflow-y: auto !important;
+        max-height: 70vh;
+        border-radius: 8px !important;
+        margin-bottom: 10px;
+    }
+
+    .table-container thead th {
+        padding: 4px 6px !important;
+        font-size: 15px !important;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: #891313 !important;
+        color: #fff !important;
+    }
+
+    .action-cell {
+        padding: 1px 4px !important;
+        width: 1px;
+        white-space: nowrap;
+        vertical-align: middle !important;
+    }
+
+    .btn-action {
+        padding: 0 !important;
+        width: 22px !important;
+        height: 20px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 0 !important;
+    }
+
+    .btn-action i {
+        font-size: 11px !important;
+        -webkit-text-stroke: 0.3px currentColor !important;
+    }
+
+    .btn-group-compact {
+        display: inline-flex !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+        border: 1px solid rgba(0,0,0,0.1) !important;
+    }
+
+    .btn-group-compact .btn {
+        margin: 0 !important;
+        border-radius: 0 !important;
+        border-left: 1px solid rgba(255,255,255,0.2) !important;
+    }
+
+    .btn-group-compact .btn:first-child {
+        border-left: none !important;
+    }
+</style>
 <div class="card">
     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
         <button
             type="button"
-            class="btn btn-primary btn-sm"
+            class="btn btn-primary-glossy  btn-sm"
             style="display: inline-flex; align-items: center; gap: 6px;"
             onclick="window.location.href='{{ route('materials.index') }}'">
             <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
@@ -23,7 +129,7 @@
                        placeholder="Cari cat, merek, warna, toko..."
                        style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
             <button type="button" id="reset-button" class="btn btn-secondary" style="display: none;">
@@ -113,7 +219,7 @@
         <div class="empty-state">
             <div class="empty-state-icon">🎨</div>
             <p id="empty-state-message">Belum ada data cat</p>
-            <a href="{{ route('cats.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;" id="empty-state-add-button">
+            <a href="{{ route('cats.create') }}" class="btn btn-primary-glossy  open-modal" style="margin-top: 16px;" id="empty-state-add-button">
                 <i class="bi bi-plus-lg"></i> Tambah Data Pertama
             </a>
         </div>
@@ -448,7 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>
                         <div class="btn-group">
                             <a href="/cats/${cat.id}"
-                               class="btn btn-primary btn-sm open-modal"
+                               class="btn btn-primary-glossy  btn-sm open-modal"
                                title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>

@@ -83,9 +83,7 @@ class CementController extends Controller
             'package_unit' => 'nullable|string|max:20',
             'package_weight_gross' => 'nullable|numeric|min:0',
             'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
+            'package_volume' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'short_address' => 'nullable|string|max:255',
@@ -126,11 +124,6 @@ class CementController extends Controller
 
         // Buat cement
         $cement = Cement::create($data);
-
-        // Kalkulasi volume dari dimensi
-        if ($cement->dimension_length && $cement->dimension_width && $cement->dimension_height) {
-            $cement->calculateVolume();
-        }
 
         // Kalkulasi berat bersih jika belum diisi
         if (
@@ -182,9 +175,7 @@ class CementController extends Controller
             'package_unit' => 'nullable|string|max:20',
             'package_weight_gross' => 'nullable|numeric|min:0',
             'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
+            'package_volume' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'short_address' => 'nullable|string|max:255',
@@ -230,11 +221,6 @@ class CementController extends Controller
 
         // Update cement
         $cement->update($data);
-
-        // Kalkulasi volume dari dimensi
-        if ($cement->dimension_length && $cement->dimension_width && $cement->dimension_height) {
-            $cement->calculateVolume();
-        }
 
         // Kalkulasi berat bersih jika belum diisi
         if (
@@ -289,9 +275,6 @@ class CementController extends Controller
             'short_address',
             'address',
             'price_unit',
-            'dimension_length',
-            'dimension_width',
-            'dimension_height',
             'package_weight_gross',
             'package_price',
         ];
@@ -318,9 +301,6 @@ class CementController extends Controller
                 'sub_brand',
                 'code',
                 'color',
-                'dimension_length',
-                'dimension_width',
-                'dimension_height',
                 'package_weight_gross',
             ])
         ) {
@@ -371,13 +351,6 @@ class CementController extends Controller
 
         // Ambil nilai unik, dibatasi
         $values = $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
-
-        // Konversi dimensi dari meter ke cm untuk autosuggest (karena default unit adalah cm)
-        if (in_array($field, ['dimension_length', 'dimension_width', 'dimension_height'])) {
-            $values = $values->map(function ($value) {
-                return $value ? round($value * 100, 2) : $value;
-            });
-        }
 
         return response()->json($values);
     }

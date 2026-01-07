@@ -97,7 +97,7 @@
                     onclick="if(document.getElementById('closeModal')){ document.getElementById('closeModal').click(); } else { window.history.back(); }">
                 <i class="bi bi-x-lg"></i> Batal
             </button>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-check-lg"></i> Update Data
             </button>
         </div>

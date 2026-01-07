@@ -77,55 +77,34 @@
                                              id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
                                              role="tabpanel">
 
-                                            @php
-                                                $brandsOfSize = $ceramicsOfSize->groupBy(function ($project) {
-                                                    return $project['ceramic']->brand ?? 'Tanpa Merek';
-                                                });
-                                            @endphp
+                                            {{-- GROUP MODE: Single Container for this Type + Size --}}
+                                            {{-- AJAX will load the comparison table for ALL brands in this size --}}
+                                            <div class="ceramic-project mb-4"
+                                                 data-type="{{ $type }}"
+                                                 data-size="{{ $size }}"
+                                                 data-loaded="false">
 
-                                            {{-- Brand Tabs (Sub Level) --}}
-                                            <ul class="nav nav-pills mb-3" id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tabs" role="tablist">
-                                                @foreach($brandsOfSize as $brand => $ceramicsOfBrand)
-                                                    <li class="nav-item" role="presentation">
-                                                        <button class="nav-link {{ $loop->first ? 'active' : '' }}"
-                                                                id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}-tab"
-                                                                data-bs-toggle="pill"
-                                                                data-bs-target="#brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}"
-                                                                type="button"
-                                                                role="tab">
-                                                            <i class="bi bi-tag-fill me-2"></i>{{ $brand }}
-                                                            <span class="badge bg-secondary ms-2">{{ $ceramicsOfBrand->count() }}</span>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-
-                                            {{-- Brand Tab Content --}}
-                                            <div class="tab-content" id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tabContent">
-                                                @foreach($brandsOfSize as $brand => $ceramicsOfBrand)
-                                                    <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
-                                                         id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}"
-                                                         role="tabpanel">
-                                                        {{-- LAZY LOAD: Ceramic combinations loaded via AJAX --}}
-                                                        @foreach($ceramicsOfBrand as $ceramicProject)
-                                                            <div class="ceramic-project mb-4"
-                                                                 data-ceramic-id="{{ $ceramicProject['ceramic']->id }}"
-                                                                 data-loaded="false">
-
-                                                                {{-- Loading placeholder --}}
-                                                                <div class="loading-placeholder text-center py-5">
-                                                                    <div class="spinner-border text-primary" role="status">
-                                                                        <span class="visually-hidden">Loading...</span>
-                                                                    </div>
-                                                                    <p class="mt-3 text-muted">Memuat kombinasi untuk {{ $ceramicProject['ceramic']->brand ?? 'Keramik' }}...</p>
-                                                                </div>
-
-                                                                {{-- Content will be loaded here via AJAX --}}
-                                                                <div class="combinations-content" style="display: none;"></div>
-                                                            </div>
-                                                        @endforeach
+                                                {{-- Loading placeholder with Progress Bar --}}
+                                                <div class="loading-placeholder text-center py-5">
+                                                    <div class="mb-3">
+                                                         <i class="bi bi-calculator text-primary animate-bounce" style="font-size: 2rem;"></i>
                                                     </div>
-                                                @endforeach
+                                                    <h5 class="text-primary fw-bold mb-2">Menghitung Kombinasi Antar Merek...</h5>
+                                                    <p class="text-muted mb-3 small">Membandingkan {{ $ceramicsOfSize->count() }} varian keramik ukuran {{ $size }} cm</p>
+                                                    
+                                                    <div class="progress mx-auto" style="height: 8px; width: 60%; max-width: 300px; border-radius: 4px;">
+                                                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                                                             role="progressbar" 
+                                                             style="width: 0%" 
+                                                             aria-valuenow="0" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100"></div>
+                                                    </div>
+                                                    <div class="mt-2 text-muted small fw-bold progress-text">0%</div>
+                                                </div>
+
+                                                {{-- Content will be loaded here via AJAX --}}
+                                                <div class="combinations-content" style="display: none;"></div>
                                             </div>
                                         </div>
                                     @endforeach
@@ -1927,7 +1906,11 @@ $(document).ready(function() {
 
     // Function to load combinations for a ceramic
     function loadCeramicCombinations($ceramicProject) {
+        // Check for Group Mode (Type + Size) OR Single Mode (Ceramic ID)
+        const type = $ceramicProject.data('type');
+        const size = $ceramicProject.data('size');
         const ceramicId = $ceramicProject.data('ceramic-id');
+        
         const isLoaded = $ceramicProject.data('loaded');
 
         // Skip if already loaded
@@ -1935,31 +1918,77 @@ $(document).ready(function() {
             return $.Deferred().resolve().promise();
         }
 
-        // Show loading
+        // Show loading and Reset Progress
         $ceramicProject.find('.loading-placeholder').show();
         $ceramicProject.find('.combinations-content').hide();
+        
+        const $progressBar = $ceramicProject.find('.progress-bar');
+        const $progressText = $ceramicProject.find('.progress-text');
+        
+        $progressBar.css('width', '0%').attr('aria-valuenow', 0);
+        $progressText.text('0%');
+
+        // Start Progress Simulation
+        let progress = 0;
+        const interval = setInterval(function() {
+            // Aggressive start
+            let increment = 0;
+            if (progress < 40) increment = Math.random() * 5 + 2;
+            else if (progress < 70) increment = Math.random() * 2 + 1;
+            else if (progress < 95) increment = 0.5;
+            
+            progress = Math.min(progress + increment, 98);
+            
+            $progressBar.css('width', progress + '%').attr('aria-valuenow', progress);
+            $progressText.text(Math.round(progress) + '%');
+        }, 100);
+
+        // Store interval to clear it later
+        $ceramicProject.data('loading-interval', interval);
+
+        // Prepare data payload
+        const payload = {
+            ...requestData,
+            _token: '{{ csrf_token() }}'
+        };
+
+        if (type && size) {
+            payload.type = type;
+            payload.size = size;
+        } else {
+            payload.ceramic_id = ceramicId;
+        }
 
         // AJAX request
         return $.ajax({
             url: '{{ route("api.material-calculator.ceramic-combinations") }}',
             method: 'POST',
-            data: {
-                ...requestData,
-                ceramic_id: ceramicId,
-                _token: '{{ csrf_token() }}'
-            },
+            data: payload,
             success: function(response) {
-                if (response.success) {
-                    // Hide loading, show content
-                    $ceramicProject.find('.loading-placeholder').hide();
-                    $ceramicProject.find('.combinations-content').html(response.html).show();
-                    $ceramicProject.data('loaded', 'true');
-                } else {
-                    showError($ceramicProject, response.message || 'Gagal memuat kombinasi');
-                    $ceramicProject.data('loaded', 'false');
-                }
+                // Clear Interval
+                clearInterval($ceramicProject.data('loading-interval'));
+                
+                // Force 100%
+                $progressBar.css('width', '100%').attr('aria-valuenow', 100);
+                $progressText.text('100%');
+
+                // Short delay to show 100% before showing content
+                setTimeout(function() {
+                    if (response.success) {
+                        // Hide loading, show content
+                        $ceramicProject.find('.loading-placeholder').hide();
+                        $ceramicProject.find('.combinations-content').html(response.html).show();
+                        $ceramicProject.data('loaded', 'true');
+                    } else {
+                        showError($ceramicProject, response.message || 'Gagal memuat kombinasi');
+                        $ceramicProject.data('loaded', 'false');
+                    }
+                }, 300);
             },
             error: function(xhr) {
+                // Clear Interval
+                clearInterval($ceramicProject.data('loading-interval'));
+                
                 const errorMsg = xhr.responseJSON?.message || 'Terjadi kesalahan saat memuat kombinasi';
                 showError($ceramicProject, errorMsg + ' (Check console for details)');
                 $ceramicProject.data('loaded', 'false');

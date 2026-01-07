@@ -7,7 +7,7 @@
     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
         <button
             type="button"
-            class="btn btn-primary btn-sm"
+            class="btn btn-primary-glossy  btn-sm"
             style="display: inline-flex; align-items: center; gap: 6px;"
             onclick="window.location.href='{{ route('materials.index') }}'">
             <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
@@ -24,7 +24,7 @@
                     placeholder="Cari jenis, merek, bentuk, toko..."
                     style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
             <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
@@ -136,7 +136,7 @@
         <div class="empty-state">
             <div class="empty-state-icon">🧱</div>
             <p id="empty-state-message">Belum ada data bata</p>
-            <a href="{{ route('bricks.create') }}" class="btn btn-primary open-modal" id="add-first-btn" style="margin-top: 16px;">
+            <a href="{{ route('bricks.create') }}" class="btn btn-primary-glossy  open-modal" id="add-first-btn" style="margin-top: 16px;">
                 <i class="bi bi-plus-lg"></i> Tambah Data Pertama
             </a>
         </div>
@@ -559,7 +559,7 @@ function renderBricks(bricks, pagination) {
                 <td style="text-align: center">
                     <div class="btn-group">
                         <a href="/bricks/${brick.id}"
-                           class="btn btn-primary btn-sm open-modal"
+                           class="btn btn-primary-glossy  btn-sm open-modal"
                            title="Detail">
                             <i class="bi bi-eye"></i>
                         </a>

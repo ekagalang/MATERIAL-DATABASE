@@ -175,7 +175,7 @@
                 <i class="bi bi-x-lg"></i> Batalkan
             </button>
             <button type="submit" 
-                    class="btn btn-primary"
+                    class="btn btn-primary-glossy "
                     style="background: linear-gradient(135deg, #891313 0%, #a61515 100%);
                            color: #fff;
                            border: none;
@@ -233,7 +233,7 @@
         border-color: #cbd5e1 !important;
     }
     
-    .btn-primary:hover {
+    .btn-primary-glossy :hover {
         background: linear-gradient(135deg, #6b0f0f 0%, #891313 100%) !important;
         box-shadow: 0 6px 16px rgba(137, 19, 19, 0.3) !important;
     }

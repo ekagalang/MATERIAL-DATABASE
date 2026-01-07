@@ -107,7 +107,10 @@ class MaterialGeneratorCommand extends Command
         $this->materialLabel = $this->ask('Indonesian label (e.g., Ubin)', $this->materialName);
         $this->materialIcon = $this->ask('Icon emoji (e.g., 🟦)', '📦');
 
-        $this->hasPackageUnit = $this->confirm('Does this material have packageUnit relationship to Units table?', false);
+        $this->hasPackageUnit = $this->confirm(
+            'Does this material have packageUnit relationship to Units table?',
+            false,
+        );
 
         $this->info('Define fields (press Enter with empty name to finish):');
         $this->defineFields();
@@ -119,7 +122,7 @@ class MaterialGeneratorCommand extends Command
         $useTemplate = $this->choice(
             'Use existing material as template?',
             ['None (manual)', 'Ceramic', 'Brick', 'Cat', 'Cement', 'Sand'],
-            0
+            0,
         );
 
         if ($useTemplate !== 'None (manual)') {
@@ -136,20 +139,14 @@ class MaterialGeneratorCommand extends Command
                 break;
             }
 
-            $fieldType = $this->choice('Field type', [
-                'string',
-                'text',
-                'integer',
-                'decimal:2',
-                'boolean',
-                'date',
-                'datetime',
-                'file'
-            ], 0);
+            $fieldType = $this->choice(
+                'Field type',
+                ['string', 'text', 'integer', 'decimal:2', 'boolean', 'date', 'datetime', 'file'],
+                0,
+            );
 
             $nullable = $this->confirm('Nullable?', true);
-            $hasAutocomplete = in_array($fieldType, ['string', 'text']) &&
-                             $this->confirm('Enable autocomplete?', true);
+            $hasAutocomplete = in_array($fieldType, ['string', 'text']) && $this->confirm('Enable autocomplete?', true);
 
             $this->fields[$fieldName] = [
                 'type' => $fieldType,
@@ -219,7 +216,7 @@ class MaterialGeneratorCommand extends Command
                 ['Icon', $this->materialIcon],
                 ['Has packageUnit', $this->hasPackageUnit ? 'Yes' : 'No'],
                 ['Fields Count', count($this->fields)],
-            ]
+            ],
         );
     }
 
@@ -231,15 +228,15 @@ class MaterialGeneratorCommand extends Command
         $this->info('🎉 Material berhasil di-generate!');
         $this->newLine();
         $this->info('📝 Next steps:');
-        $this->line("1. php artisan migrate");
+        $this->line('1. php artisan migrate');
         $this->line("2. php artisan db:seed --class={$seederClass}");
-        $this->line("3. php artisan db:seed --class=MaterialSettingSeeder");
+        $this->line('3. php artisan db:seed --class=MaterialSettingSeeder');
         $this->line("4. Visit: /{$this->materialNamePlural}");
         $this->newLine();
         $this->comment('💡 Tips:');
-        $this->line("   - MaterialSettingSeeder dan DatabaseSeeder sudah auto-update");
-        $this->line("   - Seeder sudah include sample data untuk testing");
-        $this->line("   - Untuk delete: php artisan make:material --delete");
+        $this->line('   - MaterialSettingSeeder dan DatabaseSeeder sudah auto-update');
+        $this->line('   - Seeder sudah include sample data untuk testing');
+        $this->line('   - Untuk delete: php artisan make:material --delete');
         $this->newLine();
     }
 
@@ -275,29 +272,29 @@ class MaterialGeneratorCommand extends Command
         }
 
         return <<<PHP
-<?php
+        <?php
 
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+        use Illuminate\Database\Migrations\Migration;
+        use Illuminate\Database\Schema\Blueprint;
+        use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('{$this->materialNamePlural}', function (Blueprint \$table) {
-            \$table->id();
-{$fields}
-            \$table->timestamps();
-        });
-    }
+        return new class extends Migration
+        {
+            public function up(): void
+            {
+                Schema::create('{$this->materialNamePlural}', function (Blueprint \$table) {
+                    \$table->id();
+        {$fields}
+                    \$table->timestamps();
+                });
+            }
 
-    public function down(): void
-    {
-        Schema::dropIfExists('{$this->materialNamePlural}');
-    }
-};
-PHP;
+            public function down(): void
+            {
+                Schema::dropIfExists('{$this->materialNamePlural}');
+            }
+        };
+        PHP;
     }
 
     protected function generateModel()
@@ -328,49 +325,51 @@ PHP;
         }
         $castsStr = !empty($casts) ? implode(",\n            ", $casts) : '';
 
-        $packageUnitRelation = $this->hasPackageUnit ? <<<'PHP'
+        $packageUnitRelation = $this->hasPackageUnit
+            ? <<<'PHP'
 
-    /**
-     * Relationship to Unit for package_unit
-     */
-    public function packageUnit()
-    {
-        return $this->belongsTo(Unit::class, 'package_unit', 'code')->whereHas('materialTypes', function ($q) {
-            $q->where('material_type', self::getMaterialType());
-        });
-    }
-PHP : '';
+                /**
+                 * Relationship to Unit for package_unit
+                 */
+                public function packageUnit()
+                {
+                    return $this->belongsTo(Unit::class, 'package_unit', 'code')->whereHas('materialTypes', function ($q) {
+                        $q->where('material_type', self::getMaterialType());
+                    });
+                }
+            PHP
+            : '';
 
         return <<<PHP
-<?php
+        <?php
 
-namespace App\Models;
+        namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
+        use Illuminate\Database\Eloquent\Factories\HasFactory;
+        use Illuminate\Database\Eloquent\Model;
 
-class {$this->materialName} extends Model
-{
-    use HasFactory;
+        class {$this->materialName} extends Model
+        {
+            use HasFactory;
 
-    protected \$fillable = [
-        {$fillable}
-    ];
+            protected \$fillable = [
+                {$fillable}
+            ];
 
-    protected function casts(): array
-    {
-        return [
-            {$castsStr}
-        ];
-    }
+            protected function casts(): array
+            {
+                return [
+                    {$castsStr}
+                ];
+            }
 
-    public static function getMaterialType(): string
-    {
-        return '" . Str::snake($this->materialName) . "';
-    }
-{$packageUnitRelation}
-}
-PHP;
+            public static function getMaterialType(): string
+            {
+                return '" . Str::snake($this->materialName) . "';
+            }
+        {$packageUnitRelation}
+        }
+        PHP;
     }
 
     protected function generateRepository()
@@ -388,37 +387,37 @@ PHP;
     protected function getRepositoryStub()
     {
         return <<<PHP
-<?php
+        <?php
 
-namespace App\Repositories\Material;
+        namespace App\Repositories\Material;
 
-use App\Models\\{$this->materialName};
-use App\Repositories\BaseRepository;
+        use App\Models\\{$this->materialName};
+        use App\Repositories\BaseRepository;
 
-class {$this->materialName}Repository extends BaseRepository
-{
-    public function __construct({$this->materialName} \$model)
-    {
-        parent::__construct(\$model);
-    }
+        class {$this->materialName}Repository extends BaseRepository
+        {
+            public function __construct({$this->materialName} \$model)
+            {
+                parent::__construct(\$model);
+            }
 
-    public function paginateWithSort(\$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
-    {
-        return \$this->model
-            ->orderBy(\$sortBy, \$sortDirection)
-            ->paginate(\$perPage);
-    }
+            public function paginateWithSort(\$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
+            {
+                return \$this->model
+                    ->orderBy(\$sortBy, \$sortDirection)
+                    ->paginate(\$perPage);
+            }
 
-    public function search(\$keyword, \$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
-    {
-        return \$this->model
-            ->where('brand', 'like', "%{\$keyword}%")
-            ->orWhere('store', 'like', "%{\$keyword}%")
-            ->orderBy(\$sortBy, \$sortDirection)
-            ->paginate(\$perPage);
-    }
-}
-PHP;
+            public function search(\$keyword, \$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
+            {
+                return \$this->model
+                    ->where('brand', 'like', "%{\$keyword}%")
+                    ->orWhere('store', 'like', "%{\$keyword}%")
+                    ->orderBy(\$sortBy, \$sortDirection)
+                    ->paginate(\$perPage);
+            }
+        }
+        PHP;
     }
 
     protected function generateService()
@@ -435,66 +434,68 @@ PHP;
 
     protected function getServiceStub()
     {
-        $photoHandling = isset($this->fields['photo']) ? <<<'PHP'
+        $photoHandling = isset($this->fields['photo'])
+            ? <<<'PHP'
 
-        // Handle photo upload
-        if ($photo) {
-            $data['photo'] = $this->handlePhotoUpload($photo, $data);
-        }
-PHP : '';
+                    // Handle photo upload
+                    if ($photo) {
+                        $data['photo'] = $this->handlePhotoUpload($photo, $data);
+                    }
+            PHP
+            : '';
 
         return <<<PHP
-<?php
+        <?php
 
-namespace App\Services\Material;
+        namespace App\Services\Material;
 
-use App\Repositories\Material\\{$this->materialName}Repository;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+        use App\Repositories\Material\\{$this->materialName}Repository;
+        use Illuminate\Http\UploadedFile;
+        use Illuminate\Support\Facades\Storage;
 
-class {$this->materialName}Service
-{
-    protected \$repository;
+        class {$this->materialName}Service
+        {
+            protected \$repository;
 
-    public function __construct({$this->materialName}Repository \$repository)
-    {
-        \$this->repository = \$repository;
-    }
+            public function __construct({$this->materialName}Repository \$repository)
+            {
+                \$this->repository = \$repository;
+            }
 
-    public function paginateWithSort(\$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
-    {
-        return \$this->repository->paginateWithSort(\$perPage, \$sortBy, \$sortDirection);
-    }
+            public function paginateWithSort(\$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
+            {
+                return \$this->repository->paginateWithSort(\$perPage, \$sortBy, \$sortDirection);
+            }
 
-    public function search(\$keyword, \$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
-    {
-        return \$this->repository->search(\$keyword, \$perPage, \$sortBy, \$sortDirection);
-    }
+            public function search(\$keyword, \$perPage = 15, \$sortBy = 'created_at', \$sortDirection = 'desc')
+            {
+                return \$this->repository->search(\$keyword, \$perPage, \$sortBy, \$sortDirection);
+            }
 
-    public function create(array \$data, ?UploadedFile \$photo = null)
-    {
-{$photoHandling}
-        return \$this->repository->create(\$data);
-    }
+            public function create(array \$data, ?UploadedFile \$photo = null)
+            {
+        {$photoHandling}
+                return \$this->repository->create(\$data);
+            }
 
-    public function update(\$id, array \$data, ?UploadedFile \$photo = null)
-    {
-{$photoHandling}
-        return \$this->repository->update(\$id, \$data);
-    }
+            public function update(\$id, array \$data, ?UploadedFile \$photo = null)
+            {
+        {$photoHandling}
+                return \$this->repository->update(\$id, \$data);
+            }
 
-    public function delete(\$id)
-    {
-        return \$this->repository->delete(\$id);
-    }
+            public function delete(\$id)
+            {
+                return \$this->repository->delete(\$id);
+            }
 
-    protected function handlePhotoUpload(UploadedFile \$photo, array &\$data): string
-    {
-        \$path = \$photo->store('{$this->materialNamePlural}', 'public');
-        return \$path;
-    }
-}
-PHP;
+            protected function handlePhotoUpload(UploadedFile \$photo, array &\$data): string
+            {
+                \$path = \$photo->store('{$this->materialNamePlural}', 'public');
+                return \$path;
+            }
+        }
+        PHP;
     }
 
     protected function generateController()
@@ -510,77 +511,77 @@ PHP;
     protected function getControllerStub()
     {
         return <<<PHP
-<?php
+        <?php
 
-namespace App\Http\Controllers;
+        namespace App\Http\Controllers;
 
-use App\Models\\{$this->materialName};
-use App\Services\Material\\{$this->materialName}Service;
-use Illuminate\Http\Request;
+        use App\Models\\{$this->materialName};
+        use App\Services\Material\\{$this->materialName}Service;
+        use Illuminate\Http\Request;
 
-class {$this->materialName}Controller extends Controller
-{
-    protected \$service;
+        class {$this->materialName}Controller extends Controller
+        {
+            protected \$service;
 
-    public function __construct({$this->materialName}Service \$service)
-    {
-        \$this->service = \$service;
-    }
+            public function __construct({$this->materialName}Service \$service)
+            {
+                \$this->service = \$service;
+            }
 
-    public function index(Request \$request)
-    {
-        \$search = \$request->input('search', '');
-        \$sortBy = \$request->input('sort_by', 'created_at');
-        \$sortDirection = \$request->input('sort_direction', 'desc');
-        \$perPage = \$request->input('per_page', 15);
+            public function index(Request \$request)
+            {
+                \$search = \$request->input('search', '');
+                \$sortBy = \$request->input('sort_by', 'created_at');
+                \$sortDirection = \$request->input('sort_direction', 'desc');
+                \$perPage = \$request->input('per_page', 15);
 
-        \${$this->materialNamePlural} = \$search
-            ? \$this->service->search(\$search, \$perPage, \$sortBy, \$sortDirection)
-            : \$this->service->paginateWithSort(\$perPage, \$sortBy, \$sortDirection);
+                \${$this->materialNamePlural} = \$search
+                    ? \$this->service->search(\$search, \$perPage, \$sortBy, \$sortDirection)
+                    : \$this->service->paginateWithSort(\$perPage, \$sortBy, \$sortDirection);
 
-        \${$this->materialNamePlural}->appends(\$request->all());
+                \${$this->materialNamePlural}->appends(\$request->all());
 
-        return view('{$this->materialNamePlural}.index', compact('{$this->materialNamePlural}'));
-    }
+                return view('{$this->materialNamePlural}.index', compact('{$this->materialNamePlural}'));
+            }
 
-    public function create()
-    {
-        return view('{$this->materialNamePlural}.create');
-    }
+            public function create()
+            {
+                return view('{$this->materialNamePlural}.create');
+            }
 
-    public function store(Request \$request)
-    {
-        \$data = \$request->all();
-        \$this->service->create(\$data, \$request->file('photo'));
+            public function store(Request \$request)
+            {
+                \$data = \$request->all();
+                \$this->service->create(\$data, \$request->file('photo'));
 
-        return redirect()->route('{$this->materialNamePlural}.index')->with('success', 'Data berhasil disimpan');
-    }
+                return redirect()->route('{$this->materialNamePlural}.index')->with('success', 'Data berhasil disimpan');
+            }
 
-    public function show({$this->materialName} \${$this->materialNameSingular()})
-    {
-        return view('{$this->materialNamePlural}.show', compact('{$this->materialNameSingular()}'));
-    }
+            public function show({$this->materialName} \${$this->materialNameSingular()})
+            {
+                return view('{$this->materialNamePlural}.show', compact('{$this->materialNameSingular()}'));
+            }
 
-    public function edit({$this->materialName} \${$this->materialNameSingular()})
-    {
-        return view('{$this->materialNamePlural}.edit', compact('{$this->materialNameSingular()}'));
-    }
+            public function edit({$this->materialName} \${$this->materialNameSingular()})
+            {
+                return view('{$this->materialNamePlural}.edit', compact('{$this->materialNameSingular()}'));
+            }
 
-    public function update(Request \$request, {$this->materialName} \${$this->materialNameSingular()})
-    {
-        \$data = \$request->all();
-        \$this->service->update(\${$this->materialNameSingular()}->id, \$data, \$request->file('photo'));
+            public function update(Request \$request, {$this->materialName} \${$this->materialNameSingular()})
+            {
+                \$data = \$request->all();
+                \$this->service->update(\${$this->materialNameSingular()}->id, \$data, \$request->file('photo'));
 
-        return redirect()->route('{$this->materialNamePlural}.index')->with('success', 'Data berhasil diperbarui');
-    }
+                return redirect()->route('{$this->materialNamePlural}.index')->with('success', 'Data berhasil diperbarui');
+            }
 
-    public function destroy({$this->materialName} \${$this->materialNameSingular()})
-    {
-        \$this->service->delete(\${$this->materialNameSingular()}->id);
-        return redirect()->route('{$this->materialNamePlural}.index')->with('success', 'Data berhasil dihapus');
-    }
-}
-PHP;
+            public function destroy({$this->materialName} \${$this->materialNameSingular()})
+            {
+                \$this->service->delete(\${$this->materialNameSingular()}->id);
+                return redirect()->route('{$this->materialNamePlural}.index')->with('success', 'Data berhasil dihapus');
+            }
+        }
+        PHP;
     }
 
     protected function materialNameSingular()
@@ -591,13 +592,13 @@ PHP;
     protected function generateFormRequests()
     {
         // Placeholder - will implement later
-        $this->line("⏭️  Skipped: FormRequests (will be added in next iteration)");
+        $this->line('⏭️  Skipped: FormRequests (will be added in next iteration)');
     }
 
     protected function generateResource()
     {
         // Placeholder - will implement later
-        $this->line("⏭️  Skipped: Resource (will be added in next iteration)");
+        $this->line('⏭️  Skipped: Resource (will be added in next iteration)');
     }
 
     protected function generateSeeder()
@@ -621,29 +622,29 @@ PHP;
         $sampleData = $this->generateSampleData();
 
         return <<<PHP
-<?php
+        <?php
 
-namespace Database\Seeders;
+        namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\\{$modelName};
+        use Illuminate\Database\Seeder;
+        use App\Models\\{$modelName};
 
-class {$seederClass} extends Seeder
-{
-    /**
-     * Run the database seeds.
-     */
-    public function run(): void
-    {
-        // Sample data for {$this->materialLabel}
-        \$data = {$sampleData};
+        class {$seederClass} extends Seeder
+        {
+            /**
+             * Run the database seeds.
+             */
+            public function run(): void
+            {
+                // Sample data for {$this->materialLabel}
+                \$data = {$sampleData};
 
-        foreach (\$data as \$item) {
-            {$modelName}::create(\$item);
+                foreach (\$data as \$item) {
+                    {$modelName}::create(\$item);
+                }
+            }
         }
-    }
-}
-PHP;
+        PHP;
     }
 
     protected function generateSampleData()
@@ -661,7 +662,7 @@ PHP;
                 }
 
                 if (Str::startsWith($type, 'decimal')) {
-                    $sample[$name] = ($i * 10) + 0.5;
+                    $sample[$name] = $i * 10 + 0.5;
                 } elseif ($type === 'integer') {
                     $sample[$name] = $i * 10;
                 } elseif ($type === 'boolean') {
@@ -671,7 +672,7 @@ PHP;
                 } elseif ($name === 'code') {
                     $sample[$name] = 'CODE-' . str_pad($i, 3, '0', STR_PAD_LEFT);
                 } elseif (Str::startsWith($name, 'price_')) {
-                    $sample[$name] = ($i * 50000);
+                    $sample[$name] = $i * 50000;
                 } elseif ($name === 'store') {
                     $sample[$name] = 'Toko ' . chr(64 + $i);
                 } elseif ($name === 'address') {
@@ -698,7 +699,7 @@ PHP;
             }
             $output .= "            ],\n";
         }
-        $output .= "        ]";
+        $output .= '        ]';
 
         return $output;
     }
@@ -747,9 +748,9 @@ PHP;
         if (!Str::contains($content, $route)) {
             $content .= "\n{$route}\n";
             File::put($routePath, $content);
-            $this->line("✅ Updated: routes/web.php");
+            $this->line('✅ Updated: routes/web.php');
         } else {
-            $this->line("⏭️  Route already exists in web.php");
+            $this->line('⏭️  Route already exists in web.php');
         }
     }
 
@@ -758,7 +759,7 @@ PHP;
         $seederPath = database_path('seeders/MaterialSettingSeeder.php');
 
         if (!File::exists($seederPath)) {
-            $this->warn("⚠️  MaterialSettingSeeder.php not found, skipping...");
+            $this->warn('⚠️  MaterialSettingSeeder.php not found, skipping...');
             return;
         }
 
@@ -767,7 +768,7 @@ PHP;
 
         // Check if already exists
         if (Str::contains($content, "'material_type' => '{$materialType}'")) {
-            $this->line("⏭️  Material already exists in MaterialSettingSeeder");
+            $this->line('⏭️  Material already exists in MaterialSettingSeeder');
             return;
         }
 
@@ -777,24 +778,29 @@ PHP;
 
         // Create new material entry (multi-line format to match existing style)
         $newMaterial = <<<PHP
-            [
-                'material_type' => '{$materialType}',
-                'is_visible' => true,
-                'display_order' => {$nextOrder},
-            ],
-PHP;
+                    [
+                        'material_type' => '{$materialType}',
+                        'is_visible' => true,
+                        'display_order' => {$nextOrder},
+                    ],
+        PHP;
 
         // Find the position to insert (before the closing ];)
         // Pattern matches the closing bracket of the array
         $pattern = '/(\s*\];.*?foreach)/s';
         if (preg_match($pattern, $content, $matches, PREG_OFFSET_CAPTURE)) {
             $insertPosition = $matches[1][1];
-            $content = substr_replace($content, "\n{$newMaterial}" . $matches[1][0], $insertPosition, strlen($matches[1][0]));
+            $content = substr_replace(
+                $content,
+                "\n{$newMaterial}" . $matches[1][0],
+                $insertPosition,
+                strlen($matches[1][0]),
+            );
 
             File::put($seederPath, $content);
             $this->line("✅ Updated: MaterialSettingSeeder.php (added {$materialType})");
         } else {
-            $this->warn("⚠️  Could not find insertion point in MaterialSettingSeeder");
+            $this->warn('⚠️  Could not find insertion point in MaterialSettingSeeder');
         }
     }
 
@@ -803,7 +809,7 @@ PHP;
         $seederPath = database_path('seeders/DatabaseSeeder.php');
 
         if (!File::exists($seederPath)) {
-            $this->warn("⚠️  DatabaseSeeder.php not found, skipping...");
+            $this->warn('⚠️  DatabaseSeeder.php not found, skipping...');
             return;
         }
 
@@ -833,7 +839,7 @@ PHP;
             File::put($seederPath, $content);
             $this->line("✅ Updated: DatabaseSeeder.php (registered {$seederClass})");
         } else {
-            $this->warn("⚠️  Could not find insertion point in DatabaseSeeder");
+            $this->warn('⚠️  Could not find insertion point in DatabaseSeeder');
         }
     }
 
@@ -918,11 +924,9 @@ PHP;
 
     protected function getRegularFields()
     {
-        $excluded = array_merge(
-            array_keys($this->getDimensionFields()),
-            array_keys($this->getPriceFields()),
-            ['photo']
-        );
+        $excluded = array_merge(array_keys($this->getDimensionFields()), array_keys($this->getPriceFields()), [
+            'photo',
+        ]);
 
         $regular = [];
         foreach ($this->fields as $name => $config) {
@@ -968,95 +972,95 @@ PHP;
         }
 
         return <<<BLADE
-@extends('layouts.app')
+        @extends('layouts.app')
 
-@section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5>Data {$this->materialLabel}</h5>
-                    <a href="{{ route('{$this->materialNamePlural}.create') }}" class="btn btn-primary btn-sm">
-                        {$this->materialIcon} Tambah {$this->materialLabel}
-                    </a>
-                </div>
-
-                <div class="card-body">
-                    <!-- Search Form -->
-                    <form method="GET" action="{{ route('{$this->materialNamePlural}.index') }}" class="mb-3">
-                        <div class="input-group">
-                            <input type="text" name="search" class="form-control"
-                                   placeholder="Cari {$this->materialLabel}..."
-                                   value="{{ request('search') }}">
-                            <button class="btn btn-outline-secondary" type="submit">Cari</button>
+        @section('content')
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5>Data {$this->materialLabel}</h5>
+                            <a href="{{ route('{$this->materialNamePlural}.create') }}" class="btn btn-primary-glossy  btn-sm">
+                                {$this->materialIcon} Tambah {$this->materialLabel}
+                            </a>
                         </div>
-                    </form>
 
-                    <!-- Table -->
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px;">No</th>
-{$tableHeaders}
-                                    <th style="width: 150px;">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse(\${$this->materialNamePlural} as \$index => \$item)
-                                <tr>
-                                    <td>{{ \${$this->materialNamePlural}->firstItem() + \$index }}</td>
-{$tableCells}
-                                    <td>
-                                        <a href="{{ route('{$this->materialNamePlural}.edit', \$item->id) }}"
-                                           class="btn btn-sm btn-warning">Edit</a>
-                                        <form action="{{ route('{$this->materialNamePlural}.destroy', \$item->id) }}"
-                                              method="POST" style="display: inline;">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger"
-                                                    onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                @empty
-                                <tr>
-                                    <td colspan="{{ count(\$columns) + 2 }}" class="text-center">Tidak ada data</td>
-                                </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                        <div class="card-body">
+                            <!-- Search Form -->
+                            <form method="GET" action="{{ route('{$this->materialNamePlural}.index') }}" class="mb-3">
+                                <div class="input-group">
+                                    <input type="text" name="search" class="form-control"
+                                           placeholder="Cari {$this->materialLabel}..."
+                                           value="{{ request('search') }}">
+                                    <button class="btn btn-outline-secondary" type="submit">Cari</button>
+                                </div>
+                            </form>
 
-                    <!-- Pagination -->
-                    <div class="d-flex justify-content-center">
-                        {{ \${$this->materialNamePlural}->links() }}
+                            <!-- Table -->
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 50px;">No</th>
+        {$tableHeaders}
+                                            <th style="width: 150px;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse(\${$this->materialNamePlural} as \$index => \$item)
+                                        <tr>
+                                            <td>{{ \${$this->materialNamePlural}->firstItem() + \$index }}</td>
+        {$tableCells}
+                                            <td>
+                                                <a href="{{ route('{$this->materialNamePlural}.edit', \$item->id) }}"
+                                                   class="btn btn-sm btn-warning">Edit</a>
+                                                <form action="{{ route('{$this->materialNamePlural}.destroy', \$item->id) }}"
+                                                      method="POST" style="display: inline;">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-danger"
+                                                            onclick="return confirm('Yakin ingin menghapus?')">Hapus</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="{{ count(\$columns) + 2 }}" class="text-center">Tidak ada data</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <div class="d-flex justify-content-center">
+                                {{ \${$this->materialNamePlural}->links() }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<script>
-// Simple table sorting
-document.querySelectorAll('.sortable').forEach(header => {
-    header.style.cursor = 'pointer';
-    header.addEventListener('click', function() {
-        const sortBy = this.dataset.sort;
-        const url = new URL(window.location.href);
-        url.searchParams.set('sort_by', sortBy);
+        <script>
+        // Simple table sorting
+        document.querySelectorAll('.sortable').forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', function() {
+                const sortBy = this.dataset.sort;
+                const url = new URL(window.location.href);
+                url.searchParams.set('sort_by', sortBy);
 
-        const currentDirection = url.searchParams.get('sort_direction') || 'asc';
-        url.searchParams.set('sort_direction', currentDirection === 'asc' ? 'desc' : 'asc');
+                const currentDirection = url.searchParams.get('sort_direction') || 'asc';
+                url.searchParams.set('sort_direction', currentDirection === 'asc' ? 'desc' : 'asc');
 
-        window.location.href = url.toString();
-    });
-});
-</script>
-@endsection
-BLADE;
+                window.location.href = url.toString();
+            });
+        });
+        </script>
+        @endsection
+        BLADE;
     }
 
     protected function getCreateViewStub()
@@ -1064,49 +1068,49 @@ BLADE;
         $formFields = $this->generateFormFields();
 
         return <<<BLADE
-@extends('layouts.app')
+        @extends('layouts.app')
 
-@section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Tambah {$this->materialLabel}</h5>
-                </div>
-
-                <div class="card-body">
-                    <form action="{{ route('{$this->materialNamePlural}.store') }}" method="POST" enctype="multipart/form-data" id="{$this->materialNamePlural}-form">
-                        @csrf
-
-                        <div class="row">
-                            <!-- Left Column: Form Fields -->
-                            <div class="col-md-8">
-{$formFields}
-                            </div>
-
-                            <!-- Right Column: Photo Upload -->
-                            <div class="col-md-4">
-                                {$this->generatePhotoUploadSection()}
-                            </div>
+        @section('content')
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-10">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Tambah {$this->materialLabel}</h5>
                         </div>
 
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Simpan</button>
-                                <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary">Batal</a>
-                            </div>
+                        <div class="card-body">
+                            <form action="{{ route('{$this->materialNamePlural}.store') }}" method="POST" enctype="multipart/form-data" id="{$this->materialNamePlural}-form">
+                                @csrf
+
+                                <div class="row">
+                                    <!-- Left Column: Form Fields -->
+                                    <div class="col-md-8">
+        {$formFields}
+                                    </div>
+
+                                    <!-- Right Column: Photo Upload -->
+                                    <div class="col-md-4">
+                                        {$this->generatePhotoUploadSection()}
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary-glossy ">Simpan</button>
+                                        <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary">Batal</a>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<script src="{{ asset('js/{$this->materialNamePlural}-form.js') }}"></script>
-@endsection
-BLADE;
+        <script src="{{ asset('js/{$this->materialNamePlural}-form.js') }}"></script>
+        @endsection
+        BLADE;
     }
 
     protected function getEditViewStub()
@@ -1114,50 +1118,50 @@ BLADE;
         $formFields = $this->generateFormFields(true); // true = edit mode
 
         return <<<BLADE
-@extends('layouts.app')
+        @extends('layouts.app')
 
-@section('content')
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-10">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Edit {$this->materialLabel}</h5>
-                </div>
-
-                <div class="card-body">
-                    <form action="{{ route('{$this->materialNamePlural}.update', \${$this->materialNameSingular()}->id) }}" method="POST" enctype="multipart/form-data" id="{$this->materialNamePlural}-form">
-                        @csrf
-                        @method('PUT')
-
-                        <div class="row">
-                            <!-- Left Column: Form Fields -->
-                            <div class="col-md-8">
-{$formFields}
-                            </div>
-
-                            <!-- Right Column: Photo Upload -->
-                            <div class="col-md-4">
-                                {$this->generatePhotoUploadSection(true)}
-                            </div>
+        @section('content')
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-10">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Edit {$this->materialLabel}</h5>
                         </div>
 
-                        <div class="row mt-4">
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-primary">Update</button>
-                                <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary">Batal</a>
-                            </div>
+                        <div class="card-body">
+                            <form action="{{ route('{$this->materialNamePlural}.update', \${$this->materialNameSingular()}->id) }}" method="POST" enctype="multipart/form-data" id="{$this->materialNamePlural}-form">
+                                @csrf
+                                @method('PUT')
+
+                                <div class="row">
+                                    <!-- Left Column: Form Fields -->
+                                    <div class="col-md-8">
+        {$formFields}
+                                    </div>
+
+                                    <!-- Right Column: Photo Upload -->
+                                    <div class="col-md-4">
+                                        {$this->generatePhotoUploadSection(true)}
+                                    </div>
+                                </div>
+
+                                <div class="row mt-4">
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary-glossy ">Update</button>
+                                        <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary">Batal</a>
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-<script src="{{ asset('js/{$this->materialNamePlural}-form.js') }}"></script>
-@endsection
-BLADE;
+        <script src="{{ asset('js/{$this->materialNamePlural}-form.js') }}"></script>
+        @endsection
+        BLADE;
     }
 
     protected function generateFormFields($isEdit = false)
@@ -1253,16 +1257,16 @@ BLADE;
             : "{{ asset('images/no-image.png') }}";
 
         return <<<HTML
-                                <div class="mb-3">
-                                    <label class="form-label">Foto</label>
-                                    <div class="text-center">
-                                        <img id="photo-preview" src="{$previewImage}"
-                                             alt="Preview" class="img-thumbnail mb-2" style="max-width: 100%; max-height: 300px;">
-                                    </div>
-                                    <input type="file" class="form-control" name="photo" id="photo-input" accept="image/*">
-                                    <small class="text-muted">Format: JPG, PNG, GIF. Max: 2MB</small>
-                                </div>
-HTML;
+                                        <div class="mb-3">
+                                            <label class="form-label">Foto</label>
+                                            <div class="text-center">
+                                                <img id="photo-preview" src="{$previewImage}"
+                                                     alt="Preview" class="img-thumbnail mb-2" style="max-width: 100%; max-height: 300px;">
+                                            </div>
+                                            <input type="file" class="form-control" name="photo" id="photo-input" accept="image/*">
+                                            <small class="text-muted">Format: JPG, PNG, GIF. Max: 2MB</small>
+                                        </div>
+        HTML;
     }
 
     protected function getJavaScriptStub()
@@ -1279,46 +1283,48 @@ HTML;
         foreach ($autocompleteFields as $field) {
             $autocompleteSetup .= <<<JS
 
-    // Autocomplete for {$field}
-    setupAutocomplete('.autocomplete-{$field}', '{$field}');
+                // Autocomplete for {$field}
+                setupAutocomplete('.autocomplete-{$field}', '{$field}');
 
-JS;
+            JS;
         }
 
-        $photoPreview = isset($this->fields['photo']) ? <<<'JS'
+        $photoPreview = isset($this->fields['photo'])
+            ? <<<'JS'
 
-    // Photo preview
-    const photoInput = document.getElementById('photo-input');
-    const photoPreview = document.getElementById('photo-preview');
+                // Photo preview
+                const photoInput = document.getElementById('photo-input');
+                const photoPreview = document.getElementById('photo-preview');
 
-    if (photoInput && photoPreview) {
-        photoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    photoPreview.src = e.target.result;
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
-JS : '';
+                if (photoInput && photoPreview) {
+                    photoInput.addEventListener('change', function(e) {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                photoPreview.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+            JS
+            : '';
 
         return <<<JS
-document.addEventListener('DOMContentLoaded', function() {{$autocompleteSetup}{$photoPreview}
-});
+        document.addEventListener('DOMContentLoaded', function() {{$autocompleteSetup}{$photoPreview}
+        });
 
-// Autocomplete helper function
-function setupAutocomplete(selector, fieldName) {
-    const input = document.querySelector(selector);
-    if (!input) return;
+        // Autocomplete helper function
+        function setupAutocomplete(selector, fieldName) {
+            const input = document.querySelector(selector);
+            if (!input) return;
 
-    // You can fetch existing values from API or database
-    // For now, this is a placeholder for autocomplete functionality
-    // Implement with your preferred autocomplete library (e.g., Bootstrap Autocomplete, jQuery UI)
-}
-JS;
+            // You can fetch existing values from API or database
+            // For now, this is a placeholder for autocomplete functionality
+            // Implement with your preferred autocomplete library (e.g., Bootstrap Autocomplete, jQuery UI)
+        }
+        JS;
     }
 
     protected function deleteMaterial()
@@ -1406,7 +1412,7 @@ JS;
         $content = preg_replace($pattern, '', $content);
 
         File::put($seederPath, $content);
-        $this->line("🗑️  Removed from MaterialSettingSeeder");
+        $this->line('🗑️  Removed from MaterialSettingSeeder');
     }
 
     protected function removeFromDatabaseSeeder()
@@ -1424,6 +1430,6 @@ JS;
         $content = preg_replace($pattern, '', $content);
 
         File::put($seederPath, $content);
-        $this->line("🗑️  Removed from DatabaseSeeder");
+        $this->line('🗑️  Removed from DatabaseSeeder');
     }
 }

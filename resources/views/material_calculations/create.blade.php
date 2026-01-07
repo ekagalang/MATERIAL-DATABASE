@@ -16,6 +16,28 @@
 @endphp
 
 @section('content')
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.98); z-index: 9999; justify-content: center; align-items: center; flex-direction: column; backdrop-filter: blur(8px);">
+    <div style="width: 80%; max-width: 500px; text-align: center;">
+        <div class="mb-4 animate-bounce">
+             <i class="bi bi-calculator text-primary" style="font-size: 3.5rem;"></i>
+        </div>
+        <h4 id="loadingTitle" class="mb-2 text-primary fw-bold" style="font-size: 1.5rem; transition: opacity 0.3s ease;">Memulai Perhitungan...</h4>
+        <p id="loadingSubtitle" class="text-muted mb-4" style="transition: opacity 0.3s ease;">Mohon tunggu, kami sedang menyiapkan data Anda.</p>
+        
+        <div class="progress" style="height: 12px; border-radius: 6px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); background-color: #e9ecef;">
+            <div id="loadingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-gradient-primary" role="progressbar" style="width: 0%; transition: width 0.3s ease;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <div class="d-flex justify-content-between mt-2 text-muted small fw-medium">
+            <span id="loadingPercent">0%</span>
+            <span id="loadingTime"><i class="bi bi-clock me-1"></i>Est. 3-8 detik</span>
+        </div>
+
+        <button type="button" id="cancelCalculation" class="btn btn-sm btn-outline-danger mt-4 px-4 rounded-pill">
+            <i class="bi bi-x-circle me-1"></i> Batalkan
+        </button>
+    </div>
+</div>
+
 <div class="card">
     <h3 class="form-title"><i class="bi bi-calculator text-primary"></i> Perhitungan Material Baru</h3>
 
@@ -479,6 +501,8 @@
 </div>
 @endsection
 
+{{-- CSS moved to public/css/material-calculations.css and loaded via global.css --}}
+{{--
 @push('styles')
 <style data-modal-style="material-calculation">
     * { box-sizing: border-box; }
@@ -1022,6 +1046,7 @@
     }
 </style>
 @endpush
+--}}
 
 @push('scripts')
 {{-- Load JS Asli --}}
@@ -1038,6 +1063,9 @@
     'cats' => $cats ?? [],
     'ceramics' => $ceramics ?? [],
 ]) !!}
+</script>
+<script>
+    const availableBestRecommendations = @json($bestRecommendations ?? []);
 </script>
 <script src="{{ asset('js/material-calculation-form.js') }}"></script>
 <script>
@@ -1065,17 +1093,25 @@
 
         // Function to handle "Semua" checkbox
         function handleAllCheckbox() {
-            if (filterAll && filterAll.checked) {
-                // Check all other checkboxes except custom
-                filterCheckboxes.forEach(checkbox => {
-                    if (checkbox === filterAll) return;
+            if (filterAll) {
+                if (filterAll.checked) {
+                    // Check all other checkboxes except custom AND best
+                    filterCheckboxes.forEach(checkbox => {
+                        if (checkbox === filterAll) return;
 
-                    if (checkbox.value === 'custom') {
+                        if (checkbox.value === 'custom' || checkbox.value === 'best') {
+                            checkbox.checked = false;
+                        } else {
+                            checkbox.checked = true;
+                        }
+                    });
+                } else {
+                    // Uncheck ALL checkboxes
+                    filterCheckboxes.forEach(checkbox => {
+                        if (checkbox === filterAll) return;
                         checkbox.checked = false;
-                    } else {
-                        checkbox.checked = true;
-                    }
-                });
+                    });
+                }
             }
         }
 
@@ -1254,6 +1290,16 @@
             handleWorkTypeChange = function() {
                 const selectedWorkType = workTypeSelector.value;
 
+                // Update "TerBAIK" filter state based on availability
+                const filterBest = document.getElementById('filter_best');
+                if (filterBest) {
+                    if (availableBestRecommendations.includes(selectedWorkType)) {
+                        filterBest.checked = true;
+                    } else {
+                        filterBest.checked = false;
+                    }
+                }
+
                 // Toggle special inputs (layer count, plaster sides, skim sides)
                 toggleLayerInputs();
 
@@ -1394,6 +1440,166 @@
                 handleWorkTypeChange();
             }
         @endif
+
+        // Loading State Handler with Real Progress Simulation
+        const form = document.getElementById('calculationForm');
+        let loadingInterval = null;
+
+        // Function to Reset UI
+        function resetLoadingState() {
+            // Hide overlay
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+            
+            // Stop Interval
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+                loadingInterval = null;
+            }
+
+            // Reset Button
+            const btn = form ? form.querySelector('button[type="submit"]') : null;
+            if (btn) {
+                btn.disabled = false;
+                const originalText = btn.getAttribute('data-original-text');
+                if (originalText) {
+                    btn.innerHTML = originalText;
+                } else {
+                    btn.innerHTML = '<i class="bi bi-search"></i> Hitung / Cari Kombinasi';
+                }
+            }
+            
+            // Reset Progress Bar Elements
+            const bar = document.getElementById('loadingProgressBar');
+            const percent = document.getElementById('loadingPercent');
+            const title = document.getElementById('loadingTitle');
+            const subtitle = document.getElementById('loadingSubtitle');
+            
+            if (bar) bar.style.width = '0%';
+            if (percent) percent.textContent = '0%';
+            if (title) title.textContent = 'Memulai Perhitungan...';
+            if (subtitle) subtitle.textContent = 'Mohon tunggu, kami sedang menyiapkan data Anda.';
+        }
+
+        // Handle Back/Forward Navigation
+        window.addEventListener('pageshow', function(event) {
+            resetLoadingState();
+        });
+
+        // Handle Cancel Button
+        const cancelBtn = document.getElementById('cancelCalculation');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', function() {
+                // Stop browser navigation/request
+                if (window.stop) {
+                    window.stop();
+                } else if (document.execCommand) {
+                    document.execCommand('Stop'); // Fallback for older IE
+                }
+                
+                resetLoadingState();
+            });
+        }
+
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (this.checkValidity()) {
+                    // Save original button text if not saved
+                    const btn = this.querySelector('button[type="submit"]');
+                    if (btn && !btn.getAttribute('data-original-text')) {
+                         btn.setAttribute('data-original-text', btn.innerHTML);
+                    }
+
+                    // Show Overlay
+                    document.getElementById('loadingOverlay').style.display = 'flex';
+                    
+                    // Update Button State
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Memproses...';
+                    }
+
+                    // Progress Simulation Data
+                    const bar = document.getElementById('loadingProgressBar');
+                    const title = document.getElementById('loadingTitle');
+                    const subtitle = document.getElementById('loadingSubtitle');
+                    const percent = document.getElementById('loadingPercent');
+                    
+                    let progress = 0;
+                    const messages = [
+                        { p: 5, t: 'Menganalisis Permintaan...', s: 'Memvalidasi input dan preferensi filter.' },
+                        { p: 20, t: 'Mengambil Data Material...', s: 'Memuat database harga bata, semen, dan pasir terbaru.' },
+                        { p: 40, t: 'Menjalankan Algoritma...', s: 'Menghitung volume dan kebutuhan material presisi.' },
+                        { p: 60, t: 'Komparasi Harga...', s: 'Membandingkan efisiensi biaya antar merek material.' },
+                        { p: 80, t: 'Menyusun Laporan...', s: 'Membuat ringkasan rekomendasi terbaik untuk Anda.' },
+                        { p: 95, t: 'Finalisasi...', s: 'Sedang mengalihkan ke halaman hasil...' }
+                    ];
+
+                    // Clear previous interval if any
+                    if (loadingInterval) clearInterval(loadingInterval);
+
+                    // Start Animation Loop
+                    loadingInterval = setInterval(() => {
+                        // REVISED LOGIC: Aggressive start for "Realtime" feel
+                        let increment = 0;
+                        
+                        // Phase 1: Rapid Acceleration (0-60% in ~0.8s)
+                        if (progress < 60) {
+                            increment = Math.random() * 4 + 1; // Adds 1-5% per tick (very fast)
+                        } 
+                        // Phase 2: Moderate Pace (60-85% in ~1s)
+                        else if (progress < 85) {
+                            increment = Math.random() * 1.5 + 0.2; // Adds 0.2-1.7% per tick
+                        } 
+                        // Phase 3: Zeno's Paradox (85-98%) - crawl to wait for server
+                        else if (progress < 98) {
+                            increment = 0.05; // Crawl
+                        }
+                        
+                        progress = Math.min(progress + increment, 98); // Cap at 98, jump to 100 on unload
+                        
+                        // Update UI
+                        bar.style.width = `${progress}%`;
+                        percent.textContent = `${Math.round(progress)}%`;
+
+                        // Update Text
+                        let currentMsg = null;
+                        for (let i = messages.length - 1; i >= 0; i--) {
+                            if (progress >= messages[i].p) {
+                                currentMsg = messages[i];
+                                break;
+                            }
+                        }
+
+                        if (currentMsg && title.textContent !== currentMsg.t) {
+                            title.textContent = currentMsg.t;
+                            subtitle.textContent = currentMsg.s;
+                        }
+
+                    }, 50); // Faster tick (50ms) for smoother animation
+                }
+            });
+        }
+        
+        // VISUAL TRICK: Force 100% when browser starts navigation (server responded)
+        window.addEventListener('beforeunload', function() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay && overlay.style.display !== 'none') {
+                // If overlay is visible, it means we are in a calculation that just finished
+                const bar = document.getElementById('loadingProgressBar');
+                const percent = document.getElementById('loadingPercent');
+                const title = document.getElementById('loadingTitle');
+                const subtitle = document.getElementById('loadingSubtitle');
+                
+                if (bar) {
+                    bar.style.width = '100%';
+                    bar.classList.remove('progress-bar-animated'); // Stop stripe animation
+                }
+                if (percent) percent.textContent = '100%';
+                if (title) title.textContent = 'Selesai!';
+                if (subtitle) subtitle.textContent = 'Memuat hasil perhitungan...';
+            }
+        });
     })();
 </script>
 @endpush

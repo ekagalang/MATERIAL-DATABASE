@@ -176,7 +176,7 @@
                     <a href="{{ route('work-items.index') }}" class="btn-cancel" style="border: 1px solid #64748b; background-color: transparent; color: #64748b; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
                         <i class="bi bi-arrow-left"></i> Kembali
                     </a>
-                    <a href="{{ route('material-calculations.create') }}" class="btn btn-primary">
+                    <a href="{{ route('material-calculations.create') }}" class="btn btn-primary-glossy ">
                         <i class="bi bi-plus-lg"></i> Perhitungan Baru
                     </a>
                 </div>
@@ -231,7 +231,7 @@
             <div style="flex: 0 0 auto;">
                 @if($hasFilter)
                     <div class="d-flex gap-1">
-                        <button type="submit" class="btn btn-primary" title="Cari" style="min-width: 42px;">
+                        <button type="submit" class="btn btn-primary-glossy " title="Cari" style="min-width: 42px;">
                             <i class="bi bi-search"></i>
                         </button>
                         <a href="{{ route('material-calculations.log') }}" class="btn btn-danger" title="Reset" style="min-width: 42px;">
@@ -239,7 +239,7 @@
                         </a>
                     </div>
                 @else
-                    <button type="submit" class="btn btn-primary" style="min-width: 42px;">
+                    <button type="submit" class="btn btn-primary-glossy " style="min-width: 42px;">
                         <i class="bi bi-search"></i>
                     </button>
                 @endif
@@ -348,7 +348,7 @@
                                 <td class="text-end">
                                     <div class="btn-group">
                                         <a href="{{ route('material-calculations.show', $calc) }}"
-                                           class="btn btn-primary btn-sm">
+                                           class="btn btn-primary-glossy  btn-sm">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{{ route('material-calculations.edit', $calc) }}"
@@ -374,7 +374,7 @@
                     <i class="bi bi-inbox fa-3x text-muted mb-3" style="font-size: 3rem;"></i>
                     <h5 class="text-muted">Tidak ada data perhitungan</h5>
                     <p class="text-muted">Silakan buat perhitungan baru</p>
-                    <a href="{{ route('material-calculations.create') }}" class="btn btn-primary">
+                    <a href="{{ route('material-calculations.create') }}" class="btn btn-primary-glossy ">
                         <i class="bi bi-plus-lg"></i> Buat Perhitungan
                     </a>
                 </div>

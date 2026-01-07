@@ -3,12 +3,11 @@
 @section('title', 'Katalog Item Pekerjaan (Formula)')
 
 @section('content')
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-        <h2 style="margin-bottom: 0;">Daftar Item Pekerjaan</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Daftar Item Pekerjaan</h2>
 
         <a href="{{ route('material-calculations.log') }}"
-            class="btn btn-primary btn-sm">
+            class="btn btn-primary-glossy  btn-sm">
             <i class="bi bi-clock-history"></i>
             Riwayat
         </a>
@@ -61,12 +60,11 @@
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 8px; justify-content: center;">
                                 <a href="{{ route('work-items.analytics', ['code' => $formula['code']]) }}"
-                                   class="btn btn-sm"
-                                   style="background: #0ea5e9; color: white; flex: 1; justify-content: center; height: 38px; border: none;">
+                                   class="btn btn-secondary btn-sm">
                                     <i class="bi bi-graph-up"></i> Analytics
                                 </a>
                                 <a href="{{ route('materials.create', ['formula' => $formula['code']]) }}"
-                                   class="btn btn-primary btn-sm"
+                                   class="btn btn-primary-glossy  btn-sm"
                                    style="flex: 1; justify-content: center; height: 38px;">
                                     <i class="bi bi-play-circle"></i> Hitung
                                 </a>
@@ -83,7 +81,6 @@
             <p>Tidak ada formula yang terdaftar di sistem.</p>
         </div>
     @endif
-</div>
 
 <style>
     table tr td {
@@ -91,6 +88,15 @@
     }
     table tr:hover td {
         background: #fffafa !important;
+    }
+
+    h2 {
+        color: var(--special-text-color);
+        font-weight: var(--special-font-weight);
+        -webkit-text-stroke: var(--special-text-stroke);
+        text-shadow: var(--special-text-shadow);
+        font-size: 32px !important;
+        margin-bottom: 0px !important;
     }
 </style>
 @endsection

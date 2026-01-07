@@ -11,6 +11,8 @@ use App\Observers\BrickCalculationObserver;
 use App\Observers\MaterialObserver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\Blade;
+use App\Helpers\NumberHelper;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -37,5 +39,15 @@ class AppServiceProvider extends ServiceProvider
 
         // Register BrickCalculation Observer for analytics cache invalidation
         BrickCalculation::observe(BrickCalculationObserver::class);
+
+        // Register custom Blade directive for number formatting
+        Blade::directive('format', function ($expression) {
+            return "<?php echo \App\Helpers\NumberHelper::format($expression); ?>";
+        });
+
+        // Alias for @format
+        Blade::directive('number', function ($expression) {
+            return "<?php echo \App\Helpers\NumberHelper::format($expression); ?>";
+        });
     }
 }
