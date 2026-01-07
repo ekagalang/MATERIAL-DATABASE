@@ -34,15 +34,30 @@
         $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
 
         $brickType = $materialCalculation->brick ? $materialCalculation->brick->type : 'Merah';
+        $isPainting = $workType === 'painting';
+        $isGroutOnly = $workType === 'grout_tile';
+        $isTileInstall = $workType === 'tile_installation';
+        $isFloorType = in_array($workType, ['floor_screed', 'coating_floor'], true);
+
+        $groutThickness = $params['grout_thickness'] ?? null;
+        $ceramicLength = $params['ceramic_dimensions']['length'] ?? $params['ceramic_length'] ?? optional($materialCalculation->ceramic)->dimension_length;
+        $ceramicWidth = $params['ceramic_dimensions']['width'] ?? $params['ceramic_width'] ?? optional($materialCalculation->ceramic)->dimension_width;
+        $ceramicLengthValue = (is_numeric($ceramicLength) && $ceramicLength > 0) ? $ceramicLength + 0 : null;
+        $ceramicWidthValue = (is_numeric($ceramicWidth) && $ceramicWidth > 0) ? $ceramicWidth + 0 : null;
+        $hasCeramicDimensions = $ceramicLengthValue && $ceramicWidthValue;
+        $showCeramicRow = ($materialCalculation->ceramic_quantity ?? 0) > 0 || $isGroutOnly;
+        $heightLabel = ($workType === 'brick_rollag' || $isFloorType) ? 'LEBAR' : 'TINGGI';
 
         // Deteksi kebutuhan material untuk tampilan dinamis
         $hasBrick = $materialCalculation->brick_quantity > 0;
         $hasCement = $materialCalculation->cement_quantity_sak > 0;
         $hasSand = $materialCalculation->sand_m3 > 0;
         $hasCat = $materialCalculation->cat_quantity > 0;
+        $hasCeramic = ($materialCalculation->ceramic_quantity ?? 0) > 0;
+        $hasNat = ($materialCalculation->nat_quantity ?? 0) > 0;
         
         // Calculate rowSpan based on active materials + Water (always 1)
-        $rowSpan = 1 + ($hasBrick ? 1 : 0) + ($hasCement ? 1 : 0) + ($hasSand ? 1 : 0) + ($hasCat ? 1 : 0);
+        $rowSpan = 1 + ($hasBrick ? 1 : 0) + ($hasCement ? 1 : 0) + ($hasSand ? 1 : 0) + ($hasCat ? 1 : 0) + ($showCeramicRow ? 1 : 0) + ($hasNat ? 1 : 0);
         
         // Track rendered rows to place rowspan on the first one
         $isFirstRow = true;
@@ -65,10 +80,11 @@
                 {{-- Tebal Spesi / Lapis Cat --}}
                 <div style="flex: 0 0 auto; width: 100px;">
                     @php
-                        $isPainting = $workType === 'painting';
-                        $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL';
-                        $paramUnit = $isPainting ? 'Lapis' : 'cm';
-                        $paramValue = $isPainting ? ($params['painting_layers'] ?? 2) : ($materialCalculation->mortar_thickness ?? 2.0);
+                        $paramLabel = $isPainting ? 'LAPIS' : ($isGroutOnly ? 'TEBAL NAT' : 'TEBAL');
+                        $paramUnit = $isPainting ? 'Lapis' : ($isGroutOnly ? 'mm' : 'cm');
+                        $paramValue = $isPainting
+                            ? ($params['layer_count'] ?? $params['painting_layers'] ?? 2)
+                            : ($isGroutOnly ? ($groutThickness !== null ? $groutThickness : '-') : ($materialCalculation->mortar_thickness ?? 2.0));
                         $badgeClass = $isPainting ? 'bg-primary text-white' : 'bg-light';
                         $bgClass = $isPainting ? 'bg-primary text-white' : 'bg-light'; // Badge bg
                         $inputBg = $isPainting ? '#e0f2fe' : '#e9ecef'; // Input bg
@@ -82,6 +98,34 @@
                         <span class="input-group-text small px-1" style="font-size: 0.7rem; background-color: {{ $isPainting ? '#bae6fd' : '#e9ecef' }}; border-color: {{ $inputBorder }};">{{ $paramUnit }}</span>
                     </div>
                 </div>
+
+                {{-- Tebal Nat (khusus Pasang Keramik) --}}
+                @if($isTileInstall)
+                <div style="flex: 0 0 auto; width: 110px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light border">TEBAL NAT</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ $groutThickness !== null ? $groutThickness : '-' }}</div>
+                        <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">mm</span>
+                    </div>
+                </div>
+                @endif
+
+                {{-- Ukuran Keramik (khusus Pasang Nat) --}}
+                @if($isGroutOnly)
+                <div style="flex: 0 0 auto; width: 130px;">
+                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                        <span class="badge bg-light border">UKURAN KERAMIK</span>
+                    </label>
+                    <div class="input-group">
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">
+                            {{ $hasCeramicDimensions ? $ceramicLengthValue . ' x ' . $ceramicWidthValue : '-' }}
+                        </div>
+                        <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">cm</span>
+                    </div>
+                </div>
+                @endif
 
                 {{-- Panjang --}}
                 <div style="flex: 0 0 auto; width: 100px;">
@@ -98,7 +142,7 @@
                 <div style="flex: 0 0 auto; width: 100px;">
                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
                         <span class="badge bg-light border">
-                            {{ $workType === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
+                            {{ $heightLabel }}
                         </span>
                     </label>
                     <div class="input-group">
@@ -517,6 +561,123 @@
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
+                    </tr>
+                    @endif
+
+                    {{-- ROW CERAMIC (NEW) --}}
+                    @if($showCeramicRow)
+                    <tr>
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->ceramic_quantity, 0, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">Bh</td>
+                        <td class="fw-bold sticky-col-3">Keramik</td>
+                        <td class="text-muted">{{ optional($materialCalculation->ceramic)->type ?? ($isGroutOnly ? 'Referensi' : '-') }}</td>
+                        <td class="fw-bold">{{ optional($materialCalculation->ceramic)->brand ?? '-' }}</td>
+                        <td>{{ optional($materialCalculation->ceramic)->color ?? '-' }}</td>
+                        <td class="text-start text-nowrap fw-bold">{{ $hasCeramicDimensions ? $ceramicLengthValue . ' x ' . $ceramicWidthValue : '-' }}</td>
+                        <td class="store-cell">{{ optional($materialCalculation->ceramic)->store ?? '-' }}</td>
+                        <td class="small text-muted address-cell">{{ optional($materialCalculation->ceramic)->address ?? '-' }}</td>
+                        @if($hasCeramic)
+                            <td class="text-nowrap fw-bold">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span>Rp</span>
+                                    <span>{{ number_format(optional($materialCalculation->ceramic)->price_per_package ?? 0, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td class="text-muted text-nowrap ps-1">/ Dus</td>
+                            <td class="text-nowrap">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span>Rp</span>
+                                    <span>{{ number_format($materialCalculation->ceramic_total_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                        @else
+                            <td class="text-center text-muted">-</td>
+                            <td class="text-muted text-nowrap ps-1">-</td>
+                            <td class="text-center text-muted">-</td>
+                        @endif
+                        
+                        @if($isFirstRow)
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                            @php $isFirstRow = false; @endphp
+                        @endif
+
+                        @if($hasCeramic)
+                            <td class="text-nowrap">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span>Rp</span>
+                                    <span>{{ number_format(optional($materialCalculation->ceramic)->price_per_package ?? 0, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td class="text-muted text-nowrap ps-1">/ Dus</td>
+                        @else
+                            <td class="text-center text-muted">-</td>
+                            <td class="text-muted text-nowrap ps-1">-</td>
+                        @endif
+                    </tr>
+                    @endif
+
+                    {{-- ROW NAT (NEW) --}}
+                    @if($hasNat)
+                    <tr>
+                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->nat_quantity, 2, ',', '.') }}</td>
+                        <td class="text-center sticky-col-2">Bks</td>
+                        <td class="fw-bold sticky-col-3">Nat</td>
+                        <td class="text-muted">{{ $materialCalculation->nat->type ?? 'Nat' }}</td>
+                        <td class="fw-bold">{{ $materialCalculation->nat->brand ?? '-' }}</td>
+                        <td>{{ $materialCalculation->nat->color ?? 'Nat' }}</td>
+                        <td class="text-start text-nowrap fw-bold">{{ ($materialCalculation->nat->package_weight_net ?? 0) + 0 }} Kg</td>
+                        <td class="store-cell">{{ $materialCalculation->nat->store ?? '-' }}</td>
+                        <td class="small text-muted address-cell">{{ $materialCalculation->nat->address ?? '-' }}</td>
+                        <td class="text-nowrap fw-bold">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->nat->package_price ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted text-nowrap ps-1">/ Bks</td>
+                        <td class="text-nowrap">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->nat_total_cost, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        
+                        @if($isFirstRow)
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-success-dark" style="font-size: 15px;">Rp</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
+                                <div class="d-flex justify-content-between w-100">
+                                    <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                </div>
+                            </td>
+                            <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
+                            @php $isFirstRow = false; @endphp
+                        @endif
+
+                        <td class="text-nowrap">
+                            <div class="d-flex justify-content-between w-100">
+                                <span>Rp</span>
+                                <span>{{ number_format($materialCalculation->nat->package_price ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                        </td>
+                        <td class="text-muted text-nowrap ps-1">/ Bks</td>
                     </tr>
                     @endif
 

@@ -43,7 +43,7 @@
             }
 
             /* Floating Buttons */
-            .btn, .material-settings-btn {
+            .btn {
                 box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1); /* Stronger standby shadow */
                 transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
                 transform: translateY(0);
@@ -129,35 +129,33 @@
                         <span>{{ $material['label'] }}</span>
                     </button>
                 @endforeach
-            </div>
 
-            <div class="material-settings-dropdown">
-                <button type="button" id="materialSettingsToggle" class="material-settings-btn">
-                    <i class="bi bi-sliders"></i>
-                    <span>Filter</span>
-                    <i class="bi bi-chevron-down" style="font-size: 12px; transition: transform 0.2s;"></i>
-                </button>
-                <div class="material-settings-menu" id="materialSettingsMenu">
-                    <div style="padding: 12px 16px; border-bottom: 1.5px solid #e2e8f0; background: #f8fafc;">
-                        <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a;">Pilih Material yang Ditampilkan</h4>
-                    </div>
-                    <div class="material-settings-grid">
-                        @foreach($allSettings as $setting)
-                            <label class="material-setting-item" for="material-checkbox-{{ $setting->material_type }}">
-                                <input type="checkbox"
-                                       id="material-checkbox-{{ $setting->material_type }}"
-                                       class="material-toggle-checkbox"
-                                       data-material="{{ $setting->material_type }}"
-                                       autocomplete="off">
-                                <span class="material-setting-checkbox"></span>
-                                <span class="material-setting-label">{{ \App\Models\MaterialSetting::getMaterialLabel($setting->material_type) }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                    <div style="padding: 12px 16px; border-top: 1.5px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: center;">
-                        <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary" style="font-size: 12px;">
-                            <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
-                        </button>
+                <div class="material-settings-dropdown">
+                    <button type="button" id="materialSettingsToggle" class="material-settings-btn">
+                        <span>Filter</span>
+                    </button>
+                    <div class="material-settings-menu" id="materialSettingsMenu">
+                        <div style="padding: 12px 16px; border-bottom: 1.5px solid #e2e8f0; background: #f8fafc;">
+                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a;">Pilih Material yang Ditampilkan</h4>
+                        </div>
+                        <div class="material-settings-grid">
+                            @foreach($allSettings as $setting)
+                                <label class="material-setting-item" for="material-checkbox-{{ $setting->material_type }}">
+                                    <input type="checkbox"
+                                           id="material-checkbox-{{ $setting->material_type }}"
+                                           class="material-toggle-checkbox"
+                                           data-material="{{ $setting->material_type }}"
+                                           autocomplete="off">
+                                    <span class="material-setting-checkbox"></span>
+                                    <span class="material-setting-label">{{ \App\Models\MaterialSetting::getMaterialLabel($setting->material_type) }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <div style="padding: 12px 16px; border-top: 1.5px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: center;">
+                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary" style="font-size: 12px;">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -187,7 +185,7 @@
                                     placeholder="Cari semua material..."
                                     style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s ease;">
                             </div>
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary-glossy">
                                 <i class="bi bi-search"></i> Cari
                             </button>
                             @if(request('search'))
@@ -207,7 +205,7 @@
                         {{-- Tombol Baru (Spesifik per Material) --}}
                         <div style="display: flex; gap: 12px; flex-shrink: 0;">
                             <a href="{{ route($material['type'] . 's.create') }}"
-                            class="btn btn-success btn-glossy open-modal">
+                            class="btn btn-glossy open-modal">
                                 <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
                             </a>
                         </div>
@@ -906,7 +904,7 @@
                                     @endif
                                     <td class="text-center">
                                         <div class="btn-group">
-                                            <a href="{{ route($material['type'] . 's.show', $item->id) }}" class="btn btn-primary btn-sm open-modal" title="Detail">
+                                            <a href="{{ route($material['type'] . 's.show', $item->id) }}" class="btn btn-primary-glossy btn-sm open-modal" title="Detail">
                                                 <i class="bi bi-eye"></i>
                                             </a>
                                             <a href="{{ route($material['type'] . 's.edit', $item->id) }}" class="btn btn-warning btn-sm open-modal" title="Edit">
@@ -922,42 +920,48 @@
                     <div style="position: relative; margin-top: 20px; margin-bottom: -20px; display: flex; align-items: center; justify-content: center; min-height: 80px;">
                         
                         <!-- Left Area: Stats Info (Absolute Positioned) -->
-                        <div style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row;">
+                        <div style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row; gap: 8px;">
 
                             <!-- HEXAGON PER MATERIAL -->
-                            <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;"
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total {{ $material['label'] }}">
+                                
+                                <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                    <img src="./assets/hex1.png"
+                                        alt="Hexagon"
+                                        style="width: 74px; height: 74px;">
 
-                                <img src="./assets/hex1.png"
-                                    alt="Hexagon"
-                                    style="width: 74px; height: 74px;">
-
-                                <div style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 64px;">
-                                    <span style="font-size: 18px; line-height: 1;">
-                                        {{ number_format($material['db_count'], 0, ',', '.') }}
-                                    </span>
-                                    <span style="font-size: 9px; text-transform: uppercase; margin-top: 2px; letter-spacing: 0.2px;">
-                                        {{ $material['label'] }}
-                                    </span>
+                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                            {{ number_format($material['db_count'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
                                 </div>
+                                
+                                <span style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important;">
+                                    {{ $material['label'] }}
+                                </span>
                             </div>
 
                             <!-- HEXAGON TOTAL -->
-                            <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;"
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total Semua Material">
+                                
+                                <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                    <img src="./assets/hex2.png"
+                                        alt="Hexagon"
+                                        style="width: 74px; height: 74px;">
 
-                                <img src="./assets/hex2.png"
-                                    alt="Hexagon"
-                                    style="width: 74px; height: 74px;">
-
-                                <div style="position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; width: 64px;">
-                                    <span style="font-size: 18px; line-height: 1;">
-                                        {{ number_format($grandTotal, 0, ',', '.') }}
-                                    </span>
-                                    <span style="font-size: 8px; text-transform: uppercase; margin-top: 1px; line-height: 1.1; letter-spacing: -0.1px;">
-                                        SEMUA MATERIAL
-                                    </span>
+                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                            {{ number_format($grandTotal, 0, ',', '.') }}
+                                        </span>
+                                    </div>
                                 </div>
+
+                                <span style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important; text-align: center; line-height: 1.2;">
+                                    SEMUA MATERIAL
+                                </span>
                             </div>
 
                         </div>
@@ -1071,7 +1075,7 @@
 
                         <!-- Right Area: Button (Absolute Positioned) -->
                         <div style="position: absolute; right: 0; top: 50%; transform: translateY(calc(-50% - 10px));">
-                            <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary" style="background: #891313; border-color: #891313; box-shadow: 0 4px 6px rgba(137, 19, 19, 0.2); padding: 10px 24px; border-radius: 12px;">
+                            <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary-glossy">
                                 Lihat Semua <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
                             </a>
                         </div>
@@ -1093,7 +1097,7 @@
             <div class="empty-state-icon">📦</div>
             <p>Belum ada material yang ditampilkan</p>
             <p style="font-size: 14px; color: #94a3b8;">Atur material yang ingin ditampilkan di pengaturan</p>
-            <a href="{{ route('materials.settings') }}" class="btn btn-primary" style="margin-top: 16px;">
+            <a href="{{ route('materials.settings') }}" class="btn btn-primary-glossy" style="margin-top: 16px;">
                 <i class="bi bi-gear"></i> Pengaturan Filter
             </a>
         </div>
@@ -1423,6 +1427,9 @@
     padding: 0px;
     position: relative;
     z-index: 1;
+    justify-content: center;
+    width: 100%;
+    align-items: flex-end; /* Align all buttons to the bottom line */
 }
 
 .material-tab-header {
@@ -1431,6 +1438,7 @@
     gap: 5px;
     margin-bottom: -1px;
     position: relative;
+    z-index: 10; /* Ensure header and dropdowns are above content */
 }
 
 .material-tab-header::after {
@@ -1452,6 +1460,7 @@
     --tab-border-color: transparent;
     display: inline-flex;
     align-items: center;
+    justify-content: center; /* Center text horizontally */
     gap: 8px;
     padding: 12px 20px;
     border: 1px solid #F6F3C2;
@@ -1466,6 +1475,8 @@
     margin-bottom: -1px;
     position: relative;
     z-index: 1;
+    line-height: 1.2;
+    min-width: 100px;
 }
 
 .material-tab-btn::before,
@@ -1624,42 +1635,95 @@ input[type="text"]:focus {
 
 /* Material Settings Dropdown */
 .material-settings-btn {
+    --tab-border-color: transparent;
     display: inline-flex;
     align-items: center;
+    justify-content: center; /* Center content horizontally */
     gap: 8px;
-    padding: 14px 20px;
-    border: 2px solid #f6f3c2;
+    padding: 12px 20px;
+    border: 1px solid #F6F3C2;
+    border-bottom: none;
     border-radius: 12px 12px 0 0;
     background: #f8fafc;
     color: #64748b;
     font-weight: 600;
-    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin-bottom: -1px;
     position: relative;
     z-index: 1;
-    width: 100%;
+    line-height: 1.2;
+    min-width: 100px;
+}
+
+.material-settings-btn i {
+    font-size: 16px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
 }
 
 .material-settings-btn i:last-child {
-    margin-left: auto;
+    margin-left: 4px;
+    font-size: 12px;
 }
 
 .material-settings-dropdown {
-    flex: 1;
-    min-width: 220px;
-    position: static;
+    position: static; /* Static so absolute children reference .material-tabs */
+    display: flex;
+    align-items: flex-end;
 }
 
 .material-settings-btn:hover {
     background: #fff5f5;
+    color: #891313;
 }
 
 .material-settings-btn.active {
-    background: #ffffff;
+    background: #F6F3C2;
     color: #891313;
-    border-color: #f6f3c2;
+    border-width: 2px;
+    border-bottom: none;
     font-weight: 700;
+    padding-bottom: 14px;
+    z-index: 5;
+}
+
+.material-settings-btn.active::before,
+.material-settings-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background: transparent;
+    pointer-events: none;
+}
+
+.material-settings-btn.active::before {
+    right: 100%;
+    background:
+        radial-gradient(
+            circle at 0 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            #F6F3C2 var(--tab-foot-radius)
+        );
+    background-position: bottom right;
+}
+
+.material-settings-btn.active::after {
+    left: 100%;
+    background:
+        radial-gradient(
+            circle at 100% 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            #F6F3C2 var(--tab-foot-radius)
+        );
+    background-position: bottom left;
 }
 
 .material-settings-btn.active i:last-child {
@@ -1668,7 +1732,7 @@ input[type="text"]:focus {
 
 .material-settings-menu {
     position: absolute;
-    top: 100%;
+    top: calc(100% - 1px); /* Align perfectly with the bottom border */
     left: 0;
     right: 0;
     background: #ffffff;
@@ -1877,60 +1941,6 @@ input[type="text"]:focus {
     transform: scale(0.9);
 }
 
-.btn-glossy {
-    position: relative;
-    overflow: hidden;
-    font-weight: 600;
-    border-radius: 10px;
-    border: none;
-
-    background: linear-gradient(
-        to bottom,
-        #3ee78c 0%,
-        #2ecc71 45%,
-        #27ae60 100%
-    );
-
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.5),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.25),
-        0 6px 14px rgba(0, 0, 0, 0.25);
-}
-
-/* lapisan glossy */
-.btn-glossy::before {
-    content: "";
-    position: absolute;
-    top: -10%;
-    left: -20%;
-    width: 70%;
-    height: 70%;
-    background: radial-gradient(
-        circle at top left,
-        rgba(255, 255, 255, 0.35),
-        rgba(255, 255, 255, 0.12),
-        rgba(255, 255, 255, 0)
-    );
-    pointer-events: none;
-}
-
-/* hover tetap halus (bukan efek kilau berjalan) */
-.btn-glossy:hover {
-    background: linear-gradient(
-        to bottom,
-        #4af09a 0%,
-        #32d87b 45%,
-        #2bbf67 100%
-    );
-}
-
-/* efek tekan */
-.btn-glossy:active {
-    transform: translateY(1px);
-    box-shadow:
-        inset 0 2px 4px rgba(0, 0, 0, 0.3),
-        0 4px 10px rgba(0, 0, 0, 0.25);
-}
 </style>
 
 <script>
@@ -2026,6 +2036,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function reorderTabs() {
         const tabContainer = document.querySelector('.material-tabs');
         if (!tabContainer) return;
+        
+        const settingsDropdown = tabContainer.querySelector('.material-settings-dropdown');
 
         // Create a map of current tab buttons
         const tabButtons = {};
@@ -2053,6 +2065,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+            
+            // Always move settings dropdown to the end
+            if (settingsDropdown) {
+                tabContainer.appendChild(settingsDropdown);
+            }
         }
     }
 

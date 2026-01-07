@@ -49,7 +49,7 @@ function initMaterialCalculationForm(root, formData) {
                 const brickForm = scope.querySelector('#brickForm') || document.getElementById('brickForm');
                 const otherForm = scope.querySelector('#otherForm') || document.getElementById('otherForm');
 
-                if (workType.includes('brick') || workType.includes('plaster') || workType.includes('skim') || workType.includes('painting') || workType.includes('floor')) {
+                if (workType.includes('brick') || workType.includes('plaster') || workType.includes('skim') || workType.includes('painting') || workType.includes('floor') || workType.includes('tile') || workType.includes('grout')) {
                     if (brickForm) brickForm.style.display = 'block';
                 } else if (otherForm) {
                     otherForm.style.display = 'block';

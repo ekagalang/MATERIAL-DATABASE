@@ -73,13 +73,21 @@ class TileInstallationFormula implements FormulaInterface
         $cement = isset($params['cement_id']) ? Cement::find($params['cement_id']) : null;
         $sand = isset($params['sand_id']) ? Sand::find($params['sand_id']) : null;
         $ceramic = isset($params['ceramic_id']) ? Ceramic::find($params['ceramic_id']) : null;
+        $nat = isset($params['nat_id']) ? Cement::find($params['nat_id']) : null;
 
-        $cement = $cement ?: Cement::first();
+        $cement = $cement ?: Cement::where('type', '!=', 'Nat')->orWhereNull('type')->first();
         $sand = $sand ?: Sand::first();
         $ceramic = $ceramic ?: Ceramic::first();
+        $nat = $nat ?: Cement::where('type', 'Nat')->first();
 
         if (!$cement || !$sand || !$ceramic) {
             throw new \RuntimeException('Data material (semen/pasir/keramik) tidak tersedia di database.');
+        }
+
+        if (!$nat) {
+            throw new \RuntimeException(
+                'Data material nat tidak tersedia di database. Pastikan ada data cement dengan type "Nat".',
+            );
         }
 
         $kemasanSemen = $cement->package_weight_net > 0 ? $cement->package_weight_net : 50; // kg
@@ -96,10 +104,10 @@ class TileInstallationFormula implements FormulaInterface
             throw new \RuntimeException('Data keramik tidak lengkap (dimensi/isi per dus).');
         }
 
-        // Grout parameters
-        $beratKemasanNat = $params['grout_package_weight'] ?? 5; // kg per bungkus
-        $volumePastaNatPerBungkus = $params['grout_volume_per_package'] ?? 0.0035; // M3 per bungkus
-        $hargaNatPerBungkus = $params['grout_price_per_package'] ?? 0;
+        // Grout parameters from database
+        $beratKemasanNat = $nat->package_weight_net > 0 ? $nat->package_weight_net : 5; // kg per bungkus
+        $volumePastaNatPerBungkus = $nat->package_volume > 0 ? $nat->package_volume : 0.00069444; // M3 per bungkus
+        $hargaNatPerBungkus = $nat->package_price ?? 0;
 
         $trace['steps'][] = [
             'step' => 2,
@@ -110,9 +118,12 @@ class TileInstallationFormula implements FormulaInterface
                 'Keramik' => $ceramic->brand . ' (' . $panjangKeramik . 'x' . $lebarKeramik . ' cm)',
                 'Isi per Dus Keramik' => $isiPerDus . ' pcs',
                 'Tebal Keramik' => $tebalKeramikMm . ' mm',
+                'Nat' => $nat->brand . ' (' . $beratKemasanNat . ' kg)',
                 'Berat Kemasan Nat' => $beratKemasanNat . ' kg',
                 'Volume Pasta Nat per Bungkus' => number_format($volumePastaNatPerBungkus, 6) . ' M3',
+                'Harga Nat per Bungkus' => 'Rp ' . number_format($hargaNatPerBungkus, 0, ',', '.'),
                 'Densitas Semen' => $densitySemen . ' kg/M3',
+                'Densitas Nat' => $densityNat . ' kg/M3',
                 'Rasio Adukan Semen' => '1 : 3 : 30% (Semen : Pasir : Air)',
                 'Rasio Adukan Nat' => '1 : 33% (Nat : Air)',
             ],
@@ -148,7 +159,8 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Kubik per Kemasan (Semen, Pasir, Air)',
             'info' => 'Ratio 1 : 3 : 30% (Semen : Pasir : Air)',
             'calculations' => [
-                'Kubik per Kemasan Semen' => number_format($kubikPerKemasanSemen, 6) . ' M3 (= ' . $kemasanSemen . ' × (1/1440))',
+                'Kubik per Kemasan Semen' =>
+                    number_format($kubikPerKemasanSemen, 6) . ' M3 (= ' . $kemasanSemen . ' × (1/1440))',
                 'Kubik per Kemasan Pasir' => number_format($kubikPerKemasanPasir, 6) . ' M3 (= 3 × kubik semen)',
                 'Kubik per Kemasan Air' => number_format($kubikPerKemasanAir, 6) . ' M3 (= 30% × (semen + pasir))',
             ],
@@ -163,7 +175,12 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Volume Adukan per Kemasan Semen',
             'formula' => 'Kubik Semen + Kubik Pasir + Kubik Air',
             'calculations' => [
-                'Perhitungan' => number_format($kubikPerKemasanSemen, 6) . ' + ' . number_format($kubikPerKemasanPasir, 6) . ' + ' . number_format($kubikPerKemasanAir, 6),
+                'Perhitungan' =>
+                    number_format($kubikPerKemasanSemen, 6) .
+                    ' + ' .
+                    number_format($kubikPerKemasanPasir, 6) .
+                    ' + ' .
+                    number_format($kubikPerKemasanAir, 6),
                 'Hasil' => number_format($volumeAdukanPerKemasan, 6) . ' M3',
             ],
         ];
@@ -179,7 +196,8 @@ class TileInstallationFormula implements FormulaInterface
             'info' => 'Berapa M2 yang bisa di-screed dengan 1 kemasan semen',
             'calculations' => [
                 'Tebal Adukan (meter)' => number_format($tebalAdukan / 100, 4) . ' m',
-                'Perhitungan' => number_format($volumeAdukanPerKemasan, 6) . ' / ' . number_format($tebalAdukan / 100, 4),
+                'Perhitungan' =>
+                    number_format($volumeAdukanPerKemasan, 6) . ' / ' . number_format($tebalAdukan / 100, 4),
                 'Hasil' => number_format($luasScreedanPerKemasan, 4) . ' M2',
             ],
         ];
@@ -246,10 +264,10 @@ class TileInstallationFormula implements FormulaInterface
 
         // ============ STEP 9: Jumlah Keramik per Baris dan Kolom ============
         // jumlah keramik utuh per baris pekerjaan = Panjang bidang / ((panjang dimensi keramik + (tebal nat / 10)) / 100)
-        $jumlahKeramikPerBaris = ceil($panjangBidang / (($panjangKeramik + ($tebalNat / 10)) / 100));
+        $jumlahKeramikPerBaris = ceil($panjangBidang / (($panjangKeramik + $tebalNat / 10) / 100));
 
         // jumlah keramik utuh per kolom pekerjaan = Lebar bidang / ((lebar dimensi keramik + (tebal nat / 10)) / 100)
-        $jumlahKeramikPerKolom = ceil($lebarBidang / (($lebarKeramik + ($tebalNat / 10)) / 100));
+        $jumlahKeramikPerKolom = ceil($lebarBidang / (($lebarKeramik + $tebalNat / 10) / 100));
 
         // Total keramik utuh = jumlah keramik utuh per baris pekerjaan * jumlah keramik utuh per kolom pekerjaan
         $totalKeramikUtuh = $jumlahKeramikPerBaris * $jumlahKeramikPerKolom;
@@ -257,9 +275,19 @@ class TileInstallationFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 9,
             'title' => 'Jumlah Keramik yang Dibutuhkan',
-            'formula' => 'ceil(Panjang / ((Panjang Keramik + Tebal Nat/10) / 100)) × ceil(Lebar / ((Lebar Keramik + Tebal Nat/10) / 100))',
+            'formula' =>
+                'ceil(Panjang / ((Panjang Keramik + Tebal Nat/10) / 100)) × ceil(Lebar / ((Lebar Keramik + Tebal Nat/10) / 100))',
             'calculations' => [
-                'Dimensi Keramik + Nat' => '(' . $panjangKeramik . ' + ' . ($tebalNat / 10) . ') cm × (' . $lebarKeramik . ' + ' . ($tebalNat / 10) . ') cm',
+                'Dimensi Keramik + Nat' =>
+                    '(' .
+                    $panjangKeramik .
+                    ' + ' .
+                    $tebalNat / 10 .
+                    ') cm × (' .
+                    $lebarKeramik .
+                    ' + ' .
+                    $tebalNat / 10 .
+                    ') cm',
                 'Jumlah Keramik per Baris' => number_format($jumlahKeramikPerBaris, 0) . ' pcs',
                 'Jumlah Keramik per Kolom' => number_format($jumlahKeramikPerKolom, 0) . ' pcs',
                 'Total Keramik Utuh' => number_format($totalKeramikUtuh, 0) . ' pcs',
@@ -268,7 +296,7 @@ class TileInstallationFormula implements FormulaInterface
 
         // ============ STEP 10: Kebutuhan Dus Keramik ============
         // Kebutuhan keramik utuh per pekerjaan = Total keramik utuh / isi keramik per kemasan
-        $kebutuhanDusUtuhPekerjaan = ceil($totalKeramikUtuh / $isiPerDus);
+        $kebutuhanDusUtuhPekerjaan = $totalKeramikUtuh / $isiPerDus;
 
         // Kebutuhan keramik dus per m2 = kebutuhan keramik dus per pekerjaan / Luas bidang
         $kebutuhanDusPerM2 = $kebutuhanDusUtuhPekerjaan / $luasBidang;
@@ -282,7 +310,7 @@ class TileInstallationFormula implements FormulaInterface
             'formula' => 'ceil(Total Keramik Utuh / Isi per Dus)',
             'calculations' => [
                 'Isi per Dus' => $isiPerDus . ' pcs',
-                'Kebutuhan Dus per Pekerjaan' => number_format($kebutuhanDusUtuhPekerjaan, 0) . ' dus',
+                'Kebutuhan Dus per Pekerjaan' => number_format($kebutuhanDusUtuhPekerjaan, 4) . ' dus',
                 'Kebutuhan Dus per M2' => number_format($kebutuhanDusPerM2, 4) . ' dus/M2',
                 'Kebutuhan Keramik per M2' => number_format($kebutuhanKeramikPerM2, 4) . ' pcs/M2',
             ],
@@ -292,10 +320,10 @@ class TileInstallationFormula implements FormulaInterface
 
         // ============ STEP 11: Jumlah Kolom dan Baris Nat ============
         // jumlah kolom nat per pekerjaan = (Panjang bidang / ((Panjang keramik + (tebal nat / 10)) / 100)) + 1
-        $jumlahKolomNat = ceil($panjangBidang / (($panjangKeramik + ($tebalNat / 10)) / 100)) + 1;
+        $jumlahKolomNat = ceil($panjangBidang / (($panjangKeramik + $tebalNat / 10) / 100)) + 1;
 
         // jumlah baris nat per pekerjaan = (Lebar bidang / ((lebar keramik + (tebal nat / 10)) / 100)) + 1
-        $jumlahBarisNat = ceil($lebarBidang / (($lebarKeramik + ($tebalNat / 10)) / 100)) + 1;
+        $jumlahBarisNat = ceil($lebarBidang / (($lebarKeramik + $tebalNat / 10) / 100)) + 1;
 
         $trace['steps'][] = [
             'step' => 11,
@@ -309,14 +337,23 @@ class TileInstallationFormula implements FormulaInterface
 
         // ============ STEP 12: Panjang Bentangan Nat ============
         // Panjang bentangan nat per pekerjaan = (jumlah kolom nat * lebar bidang) + (jumlah baris nat * Panjang bidang)
-        $panjangBentanganNat = ($jumlahKolomNat * $lebarBidang) + ($jumlahBarisNat * $panjangBidang);
+        $panjangBentanganNat = $jumlahKolomNat * $lebarBidang + $jumlahBarisNat * $panjangBidang;
 
         $trace['steps'][] = [
             'step' => 12,
             'title' => 'Panjang Bentangan Nat',
             'formula' => '(Jumlah Kolom Nat × Lebar Bidang) + (Jumlah Baris Nat × Panjang Bidang)',
             'calculations' => [
-                'Perhitungan' => '(' . $jumlahKolomNat . ' × ' . $lebarBidang . ') + (' . $jumlahBarisNat . ' × ' . $panjangBidang . ')',
+                'Perhitungan' =>
+                    '(' .
+                    $jumlahKolomNat .
+                    ' × ' .
+                    $lebarBidang .
+                    ') + (' .
+                    $jumlahBarisNat .
+                    ' × ' .
+                    $panjangBidang .
+                    ')',
                 'Hasil' => number_format($panjangBentanganNat, 4) . ' m',
             ],
         ];
@@ -382,7 +419,8 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Volume Adukan Nat',
             'info' => 'Ratio 1 : 33% (Nat : Air)',
             'calculations' => [
-                'Kubik Nat per Bungkus' => number_format($kubikNatPerBungkus, 6) . ' M3 (= (1/1440) × ' . $beratKemasanNat . ' kg)',
+                'Kubik Nat per Bungkus' =>
+                    number_format($kubikNatPerBungkus, 6) . ' M3 (= (1/1440) × ' . $beratKemasanNat . ' kg)',
                 'Kubik Air per Ratio' => number_format($kubikAirNatPerBungkus, 6) . ' M3 (= 33% × kubik nat)',
                 'Liter Air per Ratio' => number_format($literAirNatPerBungkus, 4) . ' liter',
                 'Volume Adukan per Bungkus' => number_format($volumeAdukanNatPerBungkus, 6) . ' M3',
@@ -397,7 +435,12 @@ class TileInstallationFormula implements FormulaInterface
         // ============ STEP 16: Harga ============
         $cementPrice = $cement->package_price ?? 0;
         $sandPricePerM3 = $sand->comparison_price_per_m3 ?? 0;
-        if ($sandPricePerM3 == 0 && isset($sand->package_price) && isset($sand->package_volume) && $sand->package_volume > 0) {
+        if (
+            $sandPricePerM3 == 0 &&
+            isset($sand->package_price) &&
+            isset($sand->package_volume) &&
+            $sand->package_volume > 0
+        ) {
             $sandPricePerM3 = $sand->package_price / $sand->package_volume;
         }
         $ceramicPricePerDus = $ceramic->price_per_package ?? 0;

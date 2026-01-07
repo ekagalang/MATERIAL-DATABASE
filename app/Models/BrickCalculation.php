@@ -49,6 +49,14 @@ class BrickCalculation extends Model
         'custom_sand_ratio',
         'custom_water_ratio',
         'use_custom_ratio',
+        'ceramic_id',
+        'ceramic_quantity',
+        'ceramic_packages',
+        'ceramic_total_cost',
+        'nat_id',
+        'nat_quantity',
+        'nat_kg',
+        'nat_total_cost',
     ];
 
     protected $casts = [
@@ -78,6 +86,12 @@ class BrickCalculation extends Model
         'paint_liters' => 'decimal:2',
         'cat_price_per_package' => 'decimal:2',
         'cat_total_cost' => 'decimal:2',
+        'ceramic_quantity' => 'decimal:2',
+        'ceramic_packages' => 'decimal:2',
+        'ceramic_total_cost' => 'decimal:2',
+        'nat_quantity' => 'decimal:2',
+        'nat_kg' => 'decimal:2',
+        'nat_total_cost' => 'decimal:2',
         'water_liters' => 'decimal:2',
         'total_material_cost' => 'decimal:2',
         'calculation_params' => 'array',
@@ -120,6 +134,16 @@ class BrickCalculation extends Model
         return $this->belongsTo(Cat::class);
     }
 
+    public function ceramic(): BelongsTo
+    {
+        return $this->belongsTo(Ceramic::class);
+    }
+
+    public function nat(): BelongsTo
+    {
+        return $this->belongsTo(Cement::class, 'nat_id');
+    }
+
     /**
      * Perform complete calculation using Formula Bank
      */
@@ -157,6 +181,17 @@ class BrickCalculation extends Model
         $cement = isset($params['cement_id']) ? Cement::find($params['cement_id']) : Cement::first();
         $sand = isset($params['sand_id']) ? Sand::find($params['sand_id']) : Sand::first();
 
+        $workType = $params['work_type'] ?? $formulaCode;
+        $ceramic = null;
+        if (
+            in_array($workType, ['tile_installation', 'grout_tile'], true) ||
+            !empty($params['ceramic_id']) ||
+            !empty($params['ceramic_length']) ||
+            !empty($params['ceramic_width'])
+        ) {
+            $ceramic = isset($params['ceramic_id']) ? Ceramic::find($params['ceramic_id']) : Ceramic::first();
+        }
+
         // Extract values from formula result
         $wallLength = $params['wall_length'];
         $wallHeight = $params['wall_height'];
@@ -166,15 +201,55 @@ class BrickCalculation extends Model
 
         // Get cement package weight for sak calculation
         $cementPackageWeight = $cement ? $cement->package_weight_net : 50;
-        $cementQuantitySak = $result['cement_kg'] / $cementPackageWeight;
+        $cementQuantitySak = ($result['cement_kg'] ?? 0) / $cementPackageWeight;
 
         // Calculate 40kg and 50kg quantities for backward compatibility
-        $cementQuantity40kg = $result['cement_kg'] / 40;
-        $cementQuantity50kg = $result['cement_kg'] / 50;
+        $cementQuantity40kg = ($result['cement_kg'] ?? 0) / 40;
+        $cementQuantity50kg = ($result['cement_kg'] ?? 0) / 50;
 
         // Mortar volume per brick
         $mortarVolumePerBrick =
-            $result['total_bricks'] > 0 ? ($result['cement_m3'] + $result['sand_m3']) / $result['total_bricks'] : 0;
+            ($result['total_bricks'] ?? 0) > 0 ? (($result['cement_m3'] ?? 0) + ($result['sand_m3'] ?? 0)) / $result['total_bricks'] : 0;
+
+        $ceramicLength = $ceramic ? $ceramic->dimension_length : null;
+        $ceramicWidth = $ceramic ? $ceramic->dimension_width : null;
+        if (isset($params['ceramic_length']) && $params['ceramic_length'] > 0) {
+            $ceramicLength = $params['ceramic_length'];
+        }
+        if (isset($params['ceramic_width']) && $params['ceramic_width'] > 0) {
+            $ceramicWidth = $params['ceramic_width'];
+        }
+
+        $groutThickness = isset($params['grout_thickness']) ? (float) $params['grout_thickness'] : null;
+
+        $calculationParams = [
+            'formula_used' => $formulaCode,
+            'work_type' => $params['work_type'] ?? $formulaCode,
+            'brick_dimensions' => [
+                'length' => $brick->dimension_length ?? 20,
+                'width' => $brick->dimension_width ?? 10,
+                'height' => $brick->dimension_height ?? 5,
+            ],
+            'installation_type_name' => $installationType->name,
+            'mortar_formula_name' => $mortarFormula->name,
+            'ratio_used' => $useCustomRatio
+                ? "{$params['custom_cement_ratio']}:{$params['custom_sand_ratio']}"
+                : "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
+            'layer_count' => $params['layer_count'] ?? 1,
+            'plaster_sides' => $params['plaster_sides'] ?? 1,
+            'skim_sides' => $params['skim_sides'] ?? 1,
+        ];
+
+        if ($groutThickness !== null) {
+            $calculationParams['grout_thickness'] = $groutThickness;
+        }
+
+        if ($ceramicLength !== null || $ceramicWidth !== null) {
+            $calculationParams['ceramic_dimensions'] = [
+                'length' => $ceramicLength,
+                'width' => $ceramicWidth,
+            ];
+        }
 
         // Create calculation record
         $calculation = new self();
@@ -195,32 +270,32 @@ class BrickCalculation extends Model
             'custom_water_ratio' => $useCustomRatio ? $params['custom_water_ratio'] ?? null : null,
 
             // Brick results
-            'brick_quantity' => $result['total_bricks'],
+            'brick_quantity' => $result['total_bricks'] ?? 0,
             'brick_id' => $params['brick_id'] ?? null,
-            'brick_price_per_piece' => $result['brick_price_per_piece'],
-            'brick_total_cost' => $result['total_brick_price'],
+            'brick_price_per_piece' => $result['brick_price_per_piece'] ?? 0,
+            'brick_total_cost' => $result['total_brick_price'] ?? 0,
 
             // Mortar volume
-            'mortar_volume' => $result['cement_m3'] + $result['sand_m3'],
+            'mortar_volume' => ($result['cement_m3'] ?? 0) + ($result['sand_m3'] ?? 0),
             'mortar_volume_per_brick' => $mortarVolumePerBrick,
 
             // Cement results
             'cement_quantity_40kg' => $cementQuantity40kg,
             'cement_quantity_50kg' => $cementQuantity50kg,
-            'cement_kg' => $result['cement_kg'],
+            'cement_kg' => $result['cement_kg'] ?? 0,
             'cement_package_weight' => $cementPackageWeight,
             'cement_quantity_sak' => $cementQuantitySak,
             'cement_id' => $params['cement_id'] ?? null,
-            'cement_price_per_sak' => $result['cement_price_per_sak'],
-            'cement_total_cost' => $result['total_cement_price'],
+            'cement_price_per_sak' => $result['cement_price_per_sak'] ?? 0,
+            'cement_total_cost' => $result['total_cement_price'] ?? 0,
 
             // Sand results
-            'sand_sak' => $result['sand_sak'],
-            'sand_m3' => $result['sand_m3'],
-            'sand_kg' => $result['sand_m3'] * 1600, // Sand density kg/M3
+            'sand_sak' => $result['sand_sak'] ?? 0,
+            'sand_m3' => $result['sand_m3'] ?? 0,
+            'sand_kg' => ($result['sand_m3'] ?? 0) * 1600, // Sand density kg/M3
             'sand_id' => $params['sand_id'] ?? null,
-            'sand_price_per_m3' => $result['sand_price_per_m3'],
-            'sand_total_cost' => $result['total_sand_price'],
+            'sand_price_per_m3' => $result['sand_price_per_m3'] ?? 0,
+            'sand_total_cost' => $result['total_sand_price'] ?? 0,
 
             // Cat results
             'cat_id' => $params['cat_id'] ?? null,
@@ -230,30 +305,26 @@ class BrickCalculation extends Model
             'cat_price_per_package' => $result['cat_price_per_package'] ?? 0,
             'cat_total_cost' => $result['total_cat_price'] ?? 0,
 
+            // Ceramic results
+            'ceramic_id' => $params['ceramic_id'] ?? null,
+            'ceramic_quantity' => $result['total_tiles'] ?? 0,
+            'ceramic_packages' => $result['tiles_packages'] ?? 0,
+            'ceramic_total_cost' => $result['total_ceramic_price'] ?? 0,
+
+            // Nat results
+            'nat_id' => $params['nat_id'] ?? null,
+            'nat_quantity' => $result['grout_packages'] ?? 0,
+            'nat_kg' => $result['grout_kg'] ?? 0,
+            'nat_total_cost' => $result['total_grout_price'] ?? 0,
+
             // Water
-            'water_liters' => $result['water_liters'],
+            'water_liters' => $result['total_water_liters'] ?? $result['water_liters'] ?? 0,
 
             // Total cost
             'total_material_cost' => $result['grand_total'],
 
             // Store calculation params for reference
-            'calculation_params' => [
-                'formula_used' => $formulaCode,
-                'work_type' => $params['work_type'] ?? $formulaCode,
-                'brick_dimensions' => [
-                    'length' => $brick->dimension_length ?? 20,
-                    'width' => $brick->dimension_width ?? 10,
-                    'height' => $brick->dimension_height ?? 5,
-                ],
-                'installation_type_name' => $installationType->name,
-                'mortar_formula_name' => $mortarFormula->name,
-                'ratio_used' => $useCustomRatio
-                    ? "{$params['custom_cement_ratio']}:{$params['custom_sand_ratio']}"
-                    : "{$mortarFormula->cement_ratio}:{$mortarFormula->sand_ratio}",
-                'layer_count' => $params['layer_count'] ?? 1,
-                'plaster_sides' => $params['plaster_sides'] ?? 1,
-                'skim_sides' => $params['skim_sides'] ?? 1,
-            ],
+            'calculation_params' => $calculationParams,
         ]);
 
         return $calculation;
@@ -422,6 +493,16 @@ class BrickCalculation extends Model
                     'kg' => number_format($this->cat_kg, 2) . ' kg',
                     'liters' => number_format($this->paint_liters, 2) . ' liter',
                     'cost' => 'Rp ' . number_format($this->cat_total_cost, 0, ',', '.'),
+                ],
+                'ceramic' => [
+                    'quantity' => number_format($this->ceramic_quantity, 0) . ' pcs',
+                    'packages' => number_format($this->ceramic_packages, 2) . ' dus',
+                    'cost' => 'Rp ' . number_format($this->ceramic_total_cost, 0, ',', '.'),
+                ],
+                'nat' => [
+                    'quantity' => number_format($this->nat_quantity, 2) . ' bks',
+                    'kg' => number_format($this->nat_kg, 2) . ' kg',
+                    'cost' => 'Rp ' . number_format($this->nat_total_cost, 0, ',', '.'),
                 ],
                 'water' => [
                     'liters' => number_format($this->water_liters, 2) . ' liter',
