@@ -1,14 +1,29 @@
 {{-- Partial View: Ceramic Combinations Table --}}
 {{-- Loaded via AJAX when user clicks ceramic tab --}}
 
+@php
+    $isGroupMode = $isGroupMode ?? false;
+@endphp
+
 <div class="ceramic-combinations-content">
-    <h5 class="fw-bold mb-3" style="color: #f59e0b;">
-        {{ $ceramic->brand ?? 'Keramik' }}
-        <small class="text-muted">
-            ({{ $ceramic->type ?? 'Lainnya' }} -
-            {{ (int)$ceramic->dimension_length }}x{{ (int)$ceramic->dimension_width }} cm)
-        </small>
-    </h5>
+    @if($isGroupMode)
+        <h5 class="fw-bold mb-1" style="color: #f59e0b;">
+            Komparasi Merek
+            <small class="text-muted">
+                ({{ $ceramic->type ?? 'Keramik' }} -
+                {{ (int)$ceramic->dimension_length }}x{{ (int)$ceramic->dimension_width }} cm)
+            </small>
+        </h5>
+        <p class="text-muted small mb-3">Menampilkan kombinasi material terbaik dari berbagai merek untuk ukuran ini.</p>
+    @else
+        <h5 class="fw-bold mb-3" style="color: #f59e0b;">
+            {{ $ceramic->brand ?? 'Keramik' }}
+            <small class="text-muted">
+                ({{ $ceramic->type ?? 'Lainnya' }} -
+                {{ (int)$ceramic->dimension_length }}x{{ (int)$ceramic->dimension_width }} cm)
+            </small>
+        </h5>
+    @endif
 
     @if(!empty($combinations))
         @php
@@ -565,7 +580,7 @@
                                 $isLastMaterial = $matIndex === count($visibleMaterials);
                             @endphp
                             <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
-                                <td class="text-end fw-bold sticky-col-1">{{ $mat['unit'] === 'M3' ? number_format($mat['qty'], 3, ',', '.') : number_format($mat['qty'], 2, ',', '.') }}</td>
+                                <td class="text-end fw-bold sticky-col-1">@format($mat['qty'])</td>
                                 <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
                                 <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 

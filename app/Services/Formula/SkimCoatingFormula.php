@@ -2,6 +2,8 @@
 
 namespace App\Services\Formula;
 
+use App\Helpers\NumberHelper;
+
 use App\Models\Cement;
 
 /**
@@ -92,7 +94,7 @@ class SkimCoatingFormula implements FormulaInterface
             'formula' => 'Panjang × Tinggi',
             'calculations' => [
                 'Perhitungan' => "$panjang × $tinggi",
-                'Hasil' => number_format($luasBidang, 4) . ' M2',
+                'Hasil' => NumberHelper::format($luasBidang) . ' M2',
             ],
         ];
 
@@ -112,9 +114,9 @@ class SkimCoatingFormula implements FormulaInterface
             'title' => 'Volume Adukan Per Kemasan Semen',
             'info' => 'Ratio 1 : 40% (Semen : Air)',
             'calculations' => [
-                'Kubik Semen' => number_format($kubikSemenPerKemasan, 6) . ' M3',
-                'Kubik Air (40%)' => number_format($kubikAirPerKemasan, 6) . ' M3',
-                'Total Volume Adukan' => number_format($volumeAdukanKubikPerKemasan, 6) . ' M3',
+                'Kubik Semen' => NumberHelper::format($kubikSemenPerKemasan) . ' M3',
+                'Kubik Air (40%)' => NumberHelper::format($kubikAirPerKemasan) . ' M3',
+                'Total Volume Adukan' => NumberHelper::format($volumeAdukanKubikPerKemasan) . ' M3',
             ],
         ];
 
@@ -129,8 +131,8 @@ class SkimCoatingFormula implements FormulaInterface
             'info' => 'Berapa M2 yang bisa diaci dengan 1 sak semen',
             'calculations' => [
                 'Tebal Adukan' => $tebalAdukanMM . ' mm',
-                'Perhitungan' => number_format($volumeAdukanKubikPerKemasan, 6) . ' / (' . $tebalAdukanMM . ' / 1000)',
-                'Hasil' => number_format($luasAcianPer1Kemasan, 4) . ' M2',
+                'Perhitungan' => NumberHelper::format($volumeAdukanKubikPerKemasan) . ' / (' . $tebalAdukanMM . ' / 1000)',
+                'Hasil' => NumberHelper::format($luasAcianPer1Kemasan) . ' M2',
             ],
         ];
 
@@ -155,11 +157,11 @@ class SkimCoatingFormula implements FormulaInterface
             'step' => 6,
             'title' => 'Koefisien Material Per 1 M2',
             'calculations' => [
-                'Sak Semen per 1 M2' => number_format($sakSemenPer1M2, 4) . ' sak',
-                'Kg Semen per 1 M2' => number_format($kgSemenPer1M2, 4) . ' kg',
-                'Kubik Semen per 1 M2' => number_format($kubikSemenPer1M2, 6) . ' M3',
-                'Liter Air per 1 M2' => number_format($literAirPer1M2, 4) . ' liter',
-                'Kubik Air per 1 M2' => number_format($kubikAirPer1M2, 6) . ' M3',
+                'Sak Semen per 1 M2' => NumberHelper::format($sakSemenPer1M2) . ' sak',
+                'Kg Semen per 1 M2' => NumberHelper::format($kgSemenPer1M2) . ' kg',
+                'Kubik Semen per 1 M2' => NumberHelper::format($kubikSemenPer1M2) . ' M3',
+                'Liter Air per 1 M2' => NumberHelper::format($literAirPer1M2) . ' liter',
+                'Kubik Air per 1 M2' => NumberHelper::format($kubikAirPer1M2) . ' M3',
             ],
         ];
 
@@ -171,8 +173,8 @@ class SkimCoatingFormula implements FormulaInterface
             'title' => 'Total Luas Acian',
             'formula' => 'Luas bidang × Jumlah sisi aci',
             'calculations' => [
-                'Perhitungan' => number_format($luasBidang, 4) . " × $sisiAci",
-                'Hasil' => number_format($totalLuasAcian, 4) . ' M2',
+                'Perhitungan' => NumberHelper::format($luasBidang) . " × $sisiAci",
+                'Hasil' => NumberHelper::format($totalLuasAcian) . ' M2',
             ],
         ];
 
@@ -199,14 +201,14 @@ class SkimCoatingFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 8,
             'title' => 'Kebutuhan Material Pekerjaan',
-            'info' => 'Total Luas: ' . number_format($totalLuasAcian, 4) . ' M2',
+            'info' => 'Total Luas: ' . NumberHelper::format($totalLuasAcian) . ' M2',
             'calculations' => [
-                'Semen (Sak)' => number_format($sakSemenPekerjaan, 4),
-                'Semen (Kg)' => number_format($kgSemenPekerjaan, 4),
-                'Semen (M3)' => number_format($kubikSemenPekerjaan, 6),
-                'Air (Liter)' => number_format($literAirPekerjaan, 2),
-                'Air (M3)' => number_format($kubikAirPekerjaan, 6),
-                'Volume Adukan Total' => number_format($volumeAdukanPekerjaan, 6) . ' M3',
+                'Semen (Sak)' => NumberHelper::format($sakSemenPekerjaan),
+                'Semen (Kg)' => NumberHelper::format($kgSemenPekerjaan),
+                'Semen (M3)' => NumberHelper::format($kubikSemenPekerjaan),
+                'Air (Liter)' => NumberHelper::format($literAirPekerjaan),
+                'Air (M3)' => NumberHelper::format($kubikAirPekerjaan),
+                'Volume Adukan Total' => NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
             ],
         ];
 

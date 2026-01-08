@@ -24,7 +24,7 @@
                 <label>Merek</label>
                 <div class="input-wrapper">
                     <select class="form-select select-green brick-brand-select" 
-                            data-selected="{{ $rec ? $rec->brick->brand : '' }}">
+                            data-selected="{{ $rec ? optional($rec->brick)->brand : '' }}">
                         <option value="">-- Pilih Merk --</option>
                         {{-- Populated by JS --}}
                     </select>
@@ -62,7 +62,7 @@
                 <label>Jenis</label>
                 <div class="input-wrapper">
                     <select class="form-select select-pink cement-type-select"
-                            data-selected="{{ $rec ? $rec->cement->cement_name : '' }}">
+                            data-selected="{{ $rec ? optional($rec->cement)->cement_name : '' }}">
                         <option value="">-- Pilih Jenis --</option>
                         {{-- Populated by JS --}}
                     </select>
@@ -100,7 +100,7 @@
                 <label>Jenis</label>
                 <div class="input-wrapper">
                     <select class="form-select select-gray sand-type-select"
-                            data-selected="{{ $rec ? $rec->sand->sand_name : '' }}">
+                            data-selected="{{ $rec ? optional($rec->sand)->sand_name : '' }}">
                         <option value="">-- Pilih Jenis --</option>
                         {{-- Populated by JS --}}
                     </select>
@@ -111,7 +111,7 @@
                 <label>Merek</label>
                 <div class="input-wrapper">
                     <select class="form-select select-gray sand-brand-select"
-                            data-selected="{{ $rec ? $rec->sand->brand : '' }}">
+                            data-selected="{{ $rec ? optional($rec->sand)->brand : '' }}">
                         <option value="">-- Pilih Merk --</option>
                         {{-- Populated by JS --}}
                     </select>

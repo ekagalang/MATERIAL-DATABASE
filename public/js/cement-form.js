@@ -16,6 +16,27 @@ function initCementForm(root) {
     let currentPackageUnit = '';
     let currentStore = '';
 
+    function formatSmartDecimal(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
     // Auto-suggest with cascading logic
     const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
@@ -258,7 +279,7 @@ function initCementForm(root) {
         const netCalc = getCurrentWeight();
         
         if (netCalcDisplay) {
-            const formattedValue = netCalc > 0 ? parseFloat(netCalc.toFixed(2)).toString() + ' Kg' : '-';
+            const formattedValue = netCalc > 0 ? formatSmartDecimal(netCalc) + ' Kg' : '-';
             netCalcDisplay.textContent = formattedValue;
         }
     }
@@ -457,7 +478,7 @@ function initCementForm(root) {
 
         if (lengthM > 0 && widthM > 0 && heightM > 0) {
             const volume = lengthM * widthM * heightM;
-            volumeDisplay.value = volume.toFixed(6);
+            volumeDisplay.value = formatSmartDecimal(volume);
         } else {
             volumeDisplay.value = '';
         }

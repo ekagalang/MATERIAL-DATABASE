@@ -23,17 +23,36 @@ function initCeramicForm(root) {
         return isNaN(n) ? '' : n.toLocaleString('id-ID');
     }
 
-    function formatNumberTrim(value, decimals = 2) {
+    function formatSmartDecimal(value, maxDecimals = 8) {
         const num = Number(value);
         if (!isFinite(num)) return '';
-        return parseFloat(num.toFixed(decimals)).toString();
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
+    function formatNumberTrim(value) {
+        return formatSmartDecimal(value);
     }
 
     function formatSuggestionNumber(raw) {
         if (raw === null || raw === undefined) return '';
         const num = Number(raw);
         if (!isFinite(num)) return String(raw);
-        return num.toString(); // removes trailing zeros (e.g. 30.00 -> 30, 30.10 -> 30.1)
+        return formatSmartDecimal(num);
     }
 
     // ========== PACKAGING DROPDOWN ==========
@@ -92,7 +111,7 @@ function initCeramicForm(root) {
             const areaPerPiece = lengthM * widthM;
 
             if (areaPerPieceDisplay) {
-                areaPerPieceDisplay.value = areaPerPiece.toFixed(4);
+                areaPerPieceDisplay.value = formatSmartDecimal(areaPerPiece);
             }
         } else {
             if (areaPerPieceDisplay) {
@@ -237,13 +256,14 @@ function initCeramicForm(root) {
             const coverage = areaPerPiece * pieces;
             currentCoverage = coverage;
 
-            const coverageText = coverage.toFixed(4);
+            const coverageText = formatSmartDecimal(coverage);
+            const coverageValue = coverage.toFixed(4);
             if (coverageDisplay) {
                 coverageDisplay.textContent = coverageText + ' M²';
                 coverageDisplay.style.color = '#27ae60';
             }
             if (coveragePerPackage) {
-                coveragePerPackage.value = coverageText;
+                coveragePerPackage.value = coverageValue;
             }
             if (coverageCalculationDisplay) {
                 coverageCalculationDisplay.textContent =

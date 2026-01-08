@@ -6,6 +6,27 @@ function initCatForm() {
     }
     form.__catFormInited = true;
 
+    function formatSmartDecimal(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
     // Auto-suggest dengan cascading logic
     const autosuggestInputs = document.querySelectorAll('.autocomplete-input');
 
@@ -356,7 +377,7 @@ function initCatForm() {
                 netWeightLabel.textContent = 'Berat Bersih Kalkulasi (Kg)';
                 // Auto-fill nilai kalkulasi jika user tidak sedang mengetik
                 if (!isUserTyping) {
-                    netInput.value = netCalc.toFixed(2);
+                    netInput.value = formatSmartDecimal(netCalc);
                 }
             }
             // Default

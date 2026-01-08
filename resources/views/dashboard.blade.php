@@ -4,12 +4,12 @@
 
 @section('content')
 <!-- Hero Section -->
-<div class="row mb-5">
-    <div class="col-12">
-        <div class="welcome-card text-white p-5 rounded-4 shadow-lg position-relative overflow-hidden" style="background: linear-gradient(135deg, #891313 0%, #4a0404 100%);">
+<div class="row">
+    <div>
+        <div class="welcome-card p-5 rounded-4  position-relative overflow-hidden" style="background: linear-gradient(135deg, #891313 0%, #4a0404 100%);">
             <div class="position-relative z-1">
-                <h1 class="fw-bold display-5 mb-2 text-shadow-bottom">Selamat Datang di Material Database</h1>
-                <p class="lead mb-4 text-shadow-bottom">Kelola data material, sumber daya, dan analisis harga proyek Anda dalam satu tempat.</p>
+                <h1 class="sub-welcome-card display-5 mb-2">Selamat Datang di Material Database</h1>
+                <p class="sub-welcome-card lead">Kelola data material, sumber daya, dan analisis harga proyek Anda dalam satu tempat.</p>
             </div>
             <!-- Decorative Background Elements -->
             <img src="{{ asset('Logo.png') }}" alt="Logo" class="position-absolute opacity-10" style="height: 100%; width: auto; right: 0; bottom: 0; transform: rotate(0deg);">
@@ -18,7 +18,7 @@
 </div>
 
 <!-- Main Stats Grid (CSS Grid Layout) -->
-<div class="stats-grid-container mb-5">
+<div class="stats-grid-container mb-3">
     <!-- 1. Total Material -->
     <div class="modern-stat-card">
         <div class="card-icon-wrapper red">
@@ -27,9 +27,6 @@
         <div class="card-content">
             <p class="card-label text-shadow-bottom">Total Material</p>
             <h2 class="card-value text-shadow-bottom">{{ number_format($materialCount) }}</h2>
-            <div class="card-meta">
-                <span class="status-badge red text-shadow-bottom"><i class="bi bi-graph-up-arrow"></i> +4 Kategori</span>
-            </div>
         </div>
         <div class="card-overlay red"></div>
     </div>
@@ -42,39 +39,36 @@
         <div class="card-content">
             <p class="card-label text-shadow-bottom">Satuan Unit</p>
             <h2 class="card-value text-shadow-bottom">{{ number_format($unitCount) }}</h2>
-            <div class="card-meta">
-                <span class="status-badge cyan text-shadow-bottom"><i class="bi bi-check2-circle"></i> Terstandarisasi</span>
-            </div>
         </div>
         <div class="card-overlay cyan"></div>
     </div>
 
     <!-- 3. Database Toko -->
     <div class="modern-stat-card">
+        <div class="card-meta">
+            <span class="status-badge orange text-shadow-bottom">COMING SOON</span>
+        </div>
         <div class="card-icon-wrapper orange">
             <i class="bi bi-shop"></i>
         </div>
         <div class="card-content">
             <p class="card-label text-shadow-bottom">Mitra Toko</p>
             <h2 class="card-value text-shadow-bottom">--</h2>
-            <div class="card-meta">
-                <span class="status-badge orange text-shadow-bottom">COMING SOON</span>
-            </div>
         </div>
         <div class="card-overlay orange"></div>
     </div>
 
     <!-- 4. Tenaga Kerja -->
     <div class="modern-stat-card">
+        <div class="card-meta">
+            <span class="status-badge green text-shadow-bottom">Coming Soon</span>
+        </div>
         <div class="card-icon-wrapper green">
             <i class="bi bi-people"></i>
         </div>
         <div class="card-content">
             <p class="card-label text-shadow-bottom">Tenaga Kerja</p>
             <h2 class="card-value text-shadow-bottom">--</h2>
-            <div class="card-meta">
-                <span class="status-badge green text-shadow-bottom">Coming Soon</span>
-            </div>
         </div>
         <div class="card-overlay green"></div>
     </div>
@@ -87,24 +81,21 @@
         <div class="card-content">
             <p class="card-label text-shadow-bottom">Item Pekerjaan</p>
             <h2 class="card-value text-shadow-bottom">{{ number_format($workItemCount) }}</h2>
-            <div class="card-meta">
-                <span class="status-badge blue text-shadow-bottom">Total Rumus</span>
-            </div>
         </div>
         <div class="card-overlay blue"></div>
     </div>
 
     <!-- 6. Keterampilan -->
     <div class="modern-stat-card">
+        <div class="card-meta">
+            <span class="status-badge purple text-shadow-bottom">COMING SOON</span>
+        </div>
         <div class="card-icon-wrapper purple">
             <i class="bi bi-tools"></i>
         </div>
         <div class="card-content">
-            <p class="card-label text-shadow-bottom">Keterampilan</p>
+            <p class="card-label text-shadow-bottom">Keahlian</p>
             <h2 class="card-value text-shadow-bottom">--</h2>
-            <div class="card-meta">
-                <span class="status-badge purple text-shadow-bottom">COMING SOON</span>
-            </div>
         </div>
         <div class="card-overlay purple"></div>
     </div>
@@ -114,8 +105,8 @@
     /* CSS Grid Layout - The Fix */
     .stats-grid-container {
         display: grid;
-        grid-template-columns: repeat(3, 1fr); /* FORCE 3 Columns */
-        gap: 24px;
+        grid-template-columns: repeat(6, 1fr); /* FORCE 3 Columns */
+        grid-column-gap: 10px;
     }
 
     /* Responsive: 2 cols on tablets, 1 col on phones */
@@ -142,8 +133,8 @@
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        min-height: 180px;
+        justify-content: flex-start;
+        min-height: 150px;
     }
 
     .modern-stat-card:hover {
@@ -160,7 +151,7 @@
         align-items: center;
         justify-content: center;
         font-size: 24px;
-        margin-bottom: 20px;
+        margin-bottom: 12px;
         transition: transform 0.3s ease;
     }
 
@@ -190,16 +181,20 @@
         font-size: 32px;
         font-weight: 800;
         color: #ffffff;
-        margin-bottom: 12px;
+        margin-bottom: 0;
         line-height: 1;
         -webkit-text-stroke: 0.5px black;
     }
 
     .card-meta {
+        position: absolute;
+        top: 20px;
+        right: 20px;
         display: flex;
         align-items: center;
         font-size: 13px;
         font-weight: 500;
+        z-index: 2;
     }
 
     .trend.up { 
@@ -243,20 +238,20 @@
 </style>
 
 <!-- Content Grid -->
-<div class="row g-4">
+<div class="row g-3">
     <!-- Chart Section -->
-    <div class="col-lg-8">
+    <div class="col-lg-7">
         <div class="card border-0 shadow-sm rounded-4 h-100">
-            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0">Distribusi Material</h5>
+            <div class="card-header bg-white border-0 pt-3 px-3 pb-0 d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">Distribusi Material</h6>
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-light rounded-pill px-3" type="button">
-                        <i class="bi bi-filter me-1"></i> Filter
+                    <button class="btn btn-sm btn-light rounded-pill px-2 py-0" type="button" style="font-size: 0.75rem;">
+                        <i class="bi bi-filter"></i> Filter
                     </button>
                 </div>
             </div>
-            <div class="card-body p-4">
-                <div style="height: 300px; width: 100%;">
+            <div class="card-body p-3">
+                <div style="height: 220px; width: 100%;">
                     <canvas id="materialChart"></canvas>
                 </div>
             </div>
@@ -264,38 +259,42 @@
     </div>
 
     <!-- Recent Activity & Quick Actions -->
-    <div class="col-lg-4">
+    <div class="col-lg-5">
         <!-- Recent Activity -->
         <div class="card border-0 shadow-sm rounded-4">
-            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
-                <h5 class="fw-bold mb-0">Aktivitas Terakhir</h5>
+            <div class="card-header bg-white border-0 pt-3 px-3 pb-0">
+                <h6 class="fw-bold mb-0">Aktivitas Terakhir</h6>
             </div>
             <div class="card-body p-0">
-                <div class="list-group list-group-flush py-2">
+                <div class="list-group list-group-flush py-1">
                     @forelse($recentActivities as $activity)
-                        <div class="list-group-item border-0 px-4 py-3 d-flex align-items-center hover-bg-light transition-base">
-                            <div class="avatar rounded-circle bg-{{ $activity->category_color ?? 'primary' }} bg-opacity-10 text-{{ $activity->category_color ?? 'primary' }} p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                <i class="bi bi-{{ $activity->category == 'Bata' ? 'bricks' : ($activity->category == 'Cat' ? 'palette' : ($activity->category == 'Pasir' ? 'bucket' : 'box')) }}"></i>
+                        <div class="list-group-item border-0 px-3 py-1.5 d-flex align-items-center hover-bg-light transition-base">
+                            <div class="avatar rounded-circle bg-{{ $activity->category_color ?? 'primary' }} bg-opacity-10 text-{{ $activity->category_color ?? 'primary' }} p-1 me-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 1rem;">
+                                <i class="bi bi-{{ 
+                                    $activity->category == 'Bata' ? 'bricks' : 
+                                    ($activity->category == 'Cat' ? 'palette' : 
+                                    ($activity->category == 'Pasir' ? 'bucket' : 
+                                    ($activity->category == 'Keramik' ? 'grid-3x3' : 
+                                    ($activity->category == 'Semen' ? 'box-seam' : 'box')))) 
+                                }}"></i>
                             </div>
                             <div class="flex-grow-1 min-width-0">
-                                <h6 class="mb-0 text-truncate fw-semibold font-sans">{{ $activity->name }}</h6>
-                                <small class="d-block text-shadow-bottom">
-                                    Ditambahkan ke <span class="badge bg-light border">{{ $activity->category }}</span>
-                                </small>
+                                <h6 class="mb-0 text-truncate fw-semibold font-sans" style="font-size: 0.85rem;">{{ $activity->name }}</h6>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ $activity->category }}</small>
                             </div>
-                            <small class="ms-2 whitespace-nowrap">{{ $activity->created_at->diffForHumans() }}</small>
+                            <small class="ms-2 whitespace-nowrap text-muted" style="font-size: 0.7rem;">{{ $activity->created_at->diffForHumans() }}</small>
                         </div>
                     @empty
-                        <div class="text-center py-5 text-shadow-bottom">
-                            <i class="bi bi-inbox fs-1 mb-2 d-block"></i>
+                        <div class="text-center py-4 text-shadow-bottom">
+                            <i class="bi bi-inbox fs-2 mb-1 d-block"></i>
                             Belum ada aktivitas
                         </div>
                     @endforelse
                 </div>
             </div>
             @if($recentActivities->count() > 0)
-            <div class="card-footer bg-white border-0 px-4 pb-4 pt-0">
-                <a href="{{ route('materials.index') }}" class="btn btn-light w-100 fw-medium text-shadow-bottom rounded-3">Lihat Semua History</a>
+            <div class="card-footer bg-white border-0 px-3 pb-3 pt-0">
+                <a href="{{ route('materials.index') }}" class="btn btn-light btn-sm w-100 fw-medium text-shadow-bottom rounded-3" style="font-size: 0.8rem;">Lihat Semua</a>
             </div>
             @endif
         </div>
@@ -307,6 +306,27 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('materialChart').getContext('2d');
+
+    function formatSmartDecimalPlain(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
     
     // Gradient for chart
     let gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -314,29 +334,36 @@ document.addEventListener('DOMContentLoaded', function() {
     gradient.addColorStop(1, 'rgba(137, 19, 19, 0)');
 
     new Chart(ctx, {
-        type: 'bar',
+        type: 'doughnut',
         data: {
             labels: {!! json_encode($chartData['labels']) !!},
             datasets: [{
-                label: 'Jumlah Item',
                 data: {!! json_encode($chartData['data']) !!},
                 backgroundColor: [
                     '#891313', // Bata
                     '#0dcaf0', // Cat (Info)
                     '#6c757d', // Semen (Secondary)
-                    '#ffc107'  // Pasir (Warning)
+                    '#ffc107', // Pasir (Warning)
+                    '#0d6efd'  // Keramik (Primary)
                 ],
-                borderRadius: 8,
-                borderSkipped: false,
-                barThickness: 40
+                borderWidth: 0,
+                hoverOffset: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '75%', // Makes it a thin ring
             plugins: {
                 legend: {
-                    display: false
+                    display: true,
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 6,
+                        padding: 10,
+                        font: { family: "'Inter', sans-serif", size: 11 }
+                    }
                 },
                 tooltip: {
                     backgroundColor: '#1e293b',
@@ -344,29 +371,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     cornerRadius: 8,
                     titleFont: { family: "'Inter', sans-serif", size: 13 },
                     bodyFont: { family: "'Inter', sans-serif", size: 13 },
-                    displayColors: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: '#f1f5f9',
-                        borderDash: [5, 5]
-                    },
-                    ticks: {
-                        font: { family: "'Inter', sans-serif" },
-                        color: '#64748b'
-                    },
-                    border: { display: false }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        font: { family: "'Inter', sans-serif", weight: '500' },
-                        color: '#475569'
-                    },
-                    border: { display: false }
+                    displayColors: true,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            let value = context.parsed || 0;
+                            let total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const pct = (value / total) * 100;
+                            const percentage = formatSmartDecimalPlain(pct) + '%';
+                            return label + ': ' + value + ' (' + percentage + ')';
+                        }
+                    }
                 }
             }
         }
@@ -394,6 +409,13 @@ document.addEventListener('DOMContentLoaded', function() {
     .welcome-card {
         background-size: cover;
         background-position: center;
+    }
+
+    .sub-welcome-card {
+        color: var(--special-text-color);
+        -webkit-text-stroke: var(--special-text-stroke);
+        font-weight: var(--special-font-weight);
+        text-shadow: var(--special-text-shadow);
     }
     
     .stat-card {

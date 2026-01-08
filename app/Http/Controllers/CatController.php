@@ -144,7 +144,11 @@ class CatController extends Controller
 
         $cat->save();
 
-        // Check if redirect to materials.index is requested
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Cat berhasil ditambahkan!');
+        }
+        // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
             return redirect()->route('materials.index')->with('success', 'Cat berhasil ditambahkan!');
         }
@@ -244,7 +248,11 @@ class CatController extends Controller
 
         $cat->save();
 
-        // Check if redirect to materials.index is requested
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Cat berhasil diupdate!');
+        }
+        // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
             return redirect()->route('materials.index')->with('success', 'Cat berhasil diupdate!');
         }

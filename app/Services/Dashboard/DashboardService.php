@@ -5,6 +5,7 @@ namespace App\Services\Dashboard;
 use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
+use App\Models\Ceramic;
 use App\Models\Sand;
 use App\Models\Unit;
 use App\Services\Cache\CacheService;
@@ -37,6 +38,7 @@ class DashboardService
             'cat' => Cat::count(),
             'cement' => Cement::count(),
             'sand' => Sand::count(),
+            'ceramic' => Ceramic::count(),
         ];
     }
 
@@ -99,6 +101,11 @@ class DashboardService
         // Get recent sands
         $recents = $recents->concat(
             $this->getRecentSands(3)
+        );
+
+        // Get recent ceramics
+        $recents = $recents->concat(
+            $this->getRecentCeramics(3)
         );
 
         // Sort by created_at desc and take top 5
@@ -182,6 +189,25 @@ class DashboardService
     }
 
     /**
+     * Get recent ceramics
+     *
+     * @param int $limit
+     * @return Collection
+     */
+    protected function getRecentCeramics(int $limit = 3): Collection
+    {
+        return Ceramic::latest()
+            ->take($limit)
+            ->get()
+            ->map(function ($item) {
+                $item->category = 'Keramik';
+                $item->category_color = 'primary';
+                $item->name = "{$item->brand} {$item->type}";
+                return $item;
+            });
+    }
+
+    /**
      * Get chart data for material distribution
      *
      * @return array
@@ -191,8 +217,8 @@ class DashboardService
         $counts = $this->getMaterialCounts();
 
         return [
-            'labels' => ['Bata', 'Cat', 'Semen', 'Pasir'],
-            'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['sand']],
+            'labels' => ['Bata', 'Cat', 'Semen', 'Pasir', 'Keramik'],
+            'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['sand'], $counts['ceramic']],
         ];
     }
 
@@ -217,8 +243,8 @@ class DashboardService
                 'skillCount' => null, // Under development
                 'recentActivities' => $this->getRecentActivities(),
                 'chartData' => [
-                    'labels' => ['Bata', 'Cat', 'Semen', 'Pasir'],
-                    'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['sand']],
+                    'labels' => ['Bata', 'Cat', 'Semen', 'Pasir', 'Keramik'],
+                    'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['sand'], $counts['ceramic']],
                 ],
             ];
         });

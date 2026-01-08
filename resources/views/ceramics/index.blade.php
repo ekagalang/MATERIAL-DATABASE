@@ -7,7 +7,7 @@
     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
         <button
             type="button"
-            class="btn btn-primary btn-sm"
+            class="btn btn-primary-glossy  btn-sm"
             style="display: inline-flex; align-items: center; gap: 6px;"
             onclick="window.location.href='{{ route('materials.index') }}'">
             <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
@@ -24,10 +24,10 @@
                     placeholder="Cari merek, kode, warna, toko..."
                     style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
-            <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
+            <button type="button" id="reset-search" class="btn btn-secondary-glossy " style="display: none;">
                 <i class="bi bi-x-lg"></i> Reset
             </button>
         </form>
@@ -161,7 +161,7 @@
         <div class="empty-state">
             <div class="empty-state-icon">📦</div>
             <p id="empty-state-message">Belum ada data keramik</p>
-            <a href="{{ route('ceramics.create') }}" class="btn btn-primary open-modal" id="add-first-btn" style="margin-top: 16px;">
+            <a href="{{ route('ceramics.create') }}" class="btn btn-primary-glossy  open-modal" id="add-first-btn" style="margin-top: 16px;">
                 <i class="bi bi-plus-lg"></i> Tambah Data Pertama
             </a>
         </div>
@@ -394,7 +394,7 @@
 input[type="text"]:focus {
     outline: none;
     border-color: #891313 !important;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1) !important;    
 }
 
 /* Badge/Tag styles */
@@ -447,11 +447,32 @@ let currentSortDirection = null;
 // HELPER FUNCTIONS
 // ========================================
 
+function formatSmartDecimalPlain(value, maxDecimals = 8) {
+    const num = Number(value);
+    if (!isFinite(num)) return '';
+    if (Math.floor(num) === num) return num.toString();
+
+    const str = num.toFixed(10);
+    const decimalPart = (str.split('.')[1] || '');
+    let firstNonZero = decimalPart.length;
+    for (let i = 0; i < decimalPart.length; i++) {
+        if (decimalPart[i] !== '0') {
+            firstNonZero = i;
+            break;
+        }
+    }
+
+    if (firstNonZero === decimalPart.length) return num.toString();
+
+    const precision = Math.min(firstNonZero + 2, maxDecimals);
+    return num.toFixed(precision).replace(/\.?0+$/, '');
+}
+
 function formatDimension(value) {
     if (!value || value === null) {
         return '<span style="color: #cbd5e1;">-</span>';
     }
-    const formatted = parseFloat(value).toString().replace('.', ',');
+    const formatted = formatSmartDecimalPlain(value).replace('.', ',');
     return formatted;
 }
 
@@ -463,7 +484,7 @@ function formatAreaPerPiece(length, width) {
     const lengthM = parseFloat(length) / 100;
     const widthM = parseFloat(width) / 100;
     const area = lengthM * widthM;
-    return area.toFixed(4).replace('.', ',');
+    return formatSmartDecimalPlain(area).replace('.', ',');
 }
 
 function formatPrice(value) {
@@ -602,7 +623,7 @@ function renderCeramics(ceramics, pagination) {
                 <td style="text-align: center">
                     <div class="btn-group">
                         <a href="/ceramics/${ceramic.id}"
-                           class="btn btn-primary btn-sm open-modal"
+                           class="btn btn-primary-glossy  btn-sm open-modal"
                            title="Detail">
                             <i class="bi bi-eye"></i>
                         </a>
@@ -641,7 +662,7 @@ function renderPagination(pagination) {
     const nextDisabled = pagination.current_page === pagination.last_page;
 
     const html = `
-        <button class="btn btn-secondary btn-sm"
+        <button class="btn btn-secondary-glossy  btn-sm"
                 ${prevDisabled ? 'disabled' : ''}
                 onclick="loadCeramics(${pagination.current_page - 1}, currentSearch, currentSortBy, currentSortDirection)">
             <i class="bi bi-chevron-left"></i> Sebelumnya
@@ -649,7 +670,7 @@ function renderPagination(pagination) {
         <span style="padding: 0 16px; font-weight: 500; color: #475569;">
             Halaman ${pagination.current_page} dari ${pagination.last_page}
         </span>
-        <button class="btn btn-secondary btn-sm"
+        <button class="btn btn-secondary-glossy  btn-sm"
                 ${nextDisabled ? 'disabled' : ''}
                 onclick="loadCeramics(${pagination.current_page + 1}, currentSearch, currentSortBy, currentSortDirection)">
             Selanjutnya <i class="bi bi-chevron-right"></i>
@@ -677,21 +698,28 @@ function showEmptyState(search) {
 }
 
 async function deleteCeramic(id) {
-    if (!confirm('Yakin ingin menghapus data keramik ini?')) {
-        return;
-    }
+    const confirmed = await window.showConfirm({
+        message: 'Yakin ingin menghapus data keramik ini?',
+        confirmText: 'Hapus',
+        cancelText: 'Batal',
+        type: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
         const result = await api.delete(`/ceramics/${id}`);
 
         if (result.success) {
+            window.showToast('Data keramik berhasil dihapus.', 'success');
             loadCeramics(currentPage, currentSearch, currentSortBy, currentSortDirection);
         } else {
-            alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+            const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+            window.showToast(message, 'error');
         }
     } catch (error) {
         console.error('Delete error:', error);
-        alert('Gagal menghapus data. Silakan coba lagi.');
+        const message = 'Gagal menghapus data. Silakan coba lagi.';
+        window.showToast(message, 'error');
     }
 }
 

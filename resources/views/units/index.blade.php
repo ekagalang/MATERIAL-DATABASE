@@ -25,11 +25,11 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-funnel"></i> Filter
             </button>
             @if(request('material_type'))
-                <a href="{{ route('units.index') }}" class="btn btn-secondary">
+                <a href="{{ route('units.index') }}" class="btn btn-secondary-glossy ">
                     <i class="bi bi-x-lg"></i> Reset
                 </a>
             @endif
@@ -109,7 +109,7 @@
                             </td>
                             <td style="text-align: right; color: #475569; font-size: 13px;">
                                 @if($unit->package_weight && $unit->package_weight > 0)
-                                    {{ rtrim(rtrim(number_format($unit->package_weight, 2, ',', '.'), '0'), ',') }}
+                                    @format($unit->package_weight)
                                 @else
                                     <span style="color: #cbd5e1;">-</span>
                                 @endif
@@ -134,7 +134,9 @@
 
                                     <form action="{{ route('units.destroy', $unit->id) }}"
                                           method="POST"
-                                          onsubmit="return confirm('Yakin ingin menghapus satuan ini?')"
+                                          data-confirm="Yakin ingin menghapus satuan ini?"
+                                          data-confirm-ok="Hapus"
+                                          data-confirm-cancel="Batal"
                                           style="display: inline; margin: 0;">
                                         @csrf
                                         @method('DELETE')
@@ -190,7 +192,7 @@
                             </td>
                             <td style="text-align: right; color: #475569; font-size: 13px;">
                                 @if($unit->package_weight && $unit->package_weight > 0)
-                                    {{ rtrim(rtrim(number_format($unit->package_weight, 2, ',', '.'), '0'), ',') }}
+                                    @format($unit->package_weight)
                                 @else
                                     <span style="color: #cbd5e1;">-</span>
                                 @endif
@@ -215,7 +217,9 @@
 
                                     <form action="{{ route('units.destroy', $unit->id) }}"
                                           method="POST"
-                                          onsubmit="return confirm('Yakin ingin menghapus satuan ini?')"
+                                          data-confirm="Yakin ingin menghapus satuan ini?"
+                                          data-confirm-ok="Hapus"
+                                          data-confirm-cancel="Batal"
                                           style="display: inline; margin: 0;">
                                         @csrf
                                         @method('DELETE')

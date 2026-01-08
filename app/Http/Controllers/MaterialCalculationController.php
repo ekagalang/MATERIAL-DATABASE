@@ -102,6 +102,13 @@ class MaterialCalculationController extends Controller
             $selectedBricks = Brick::whereIn('id', $request->brick_ids)->get();
         }
 
+        // Check availability of 'best' recommendations per work type
+        $bestRecommendations = RecommendedCombination::where('type', 'best')
+            ->select('work_type')
+            ->distinct()
+            ->pluck('work_type')
+            ->toArray();
+
         return view(
             'material_calculations.create',
             compact(
@@ -119,6 +126,7 @@ class MaterialCalculationController extends Controller
                 'defaultInstallationType',
                 'defaultMortarFormula',
                 'selectedBricks',
+                'bestRecommendations',
             ),
         );
     }
@@ -435,34 +443,187 @@ class MaterialCalculationController extends Controller
     }
 
     /**
-     * AJAX Endpoint: Get combinations for a specific ceramic
+     * AJAX Endpoint: Get combinations for a specific ceramic OR a group of ceramics (Type + Size)
      * Called when user clicks a ceramic tab
      */
     public function getCeramicCombinations(Request $request)
     {
         try {
-            $ceramicId = $request->ceramic_id;
-            $ceramic = Ceramic::findOrFail($ceramicId);
-
             $brick = Brick::first(); // Dummy brick for ceramic work
 
-            // Calculate combinations for this specific ceramic
-            $combinations = $this->calculateCombinationsForCeramicLite($brick, $request, $ceramic);
+            if ($request->has('type') && $request->has('size')) {
+                // GROUP MODE: Compare all brands within this size
+                $type = $request->type;
+                $size = $request->size; // e.g., "30x30"
+                $dims = explode('x', $size);
+                $dim1 = isset($dims[0]) ? trim($dims[0]) : 0;
+                $dim2 = isset($dims[1]) ? trim($dims[1]) : 0;
+
+                // Find all ceramics matching type and dimensions (flexible LxW or WxL)
+                $ceramics = Ceramic::where('type', $type)
+                    ->where(function ($q) use ($dim1, $dim2) {
+                        $q->where(function ($sq) use ($dim1, $dim2) {
+                            $sq->where('dimension_length', $dim1)->where('dimension_width', $dim2);
+                        })->orWhere(function ($sq) use ($dim1, $dim2) {
+                            $sq->where('dimension_length', $dim2)->where('dimension_width', $dim1);
+                        });
+                    })
+                    ->orderBy('brand')
+                    ->get();
+
+                if ($ceramics->isEmpty()) {
+                     return response()->json(['success' => false, 'message' => 'Data keramik tidak ditemukan'], 404);
+                }
+
+                $combinations = $this->calculateCombinationsForCeramicGroup($brick, $request, $ceramics);
+                $contextCeramic = $ceramics->first(); // Context for view
+                $isGroupMode = true;
+
+            } else {
+                // SINGLE MODE: Specific ceramic ID
+                $ceramicId = $request->ceramic_id;
+                $ceramic = Ceramic::findOrFail($ceramicId);
+                $ceramics = collect([$ceramic]);
+                
+                $combinations = $this->calculateCombinationsForCeramicLite($brick, $request, $ceramic);
+                $contextCeramic = $ceramic;
+                $isGroupMode = false;
+            }
 
             // Return HTML fragment for the combinations table
             return response()->json([
                 'success' => true,
                 'html' => view('material_calculations.partials.ceramic_combinations_table', [
-                    'ceramic' => $ceramic,
+                    'ceramic' => $contextCeramic,
                     'combinations' => $combinations,
                     'requestData' => $request->except(['ceramic_id', '_token']),
+                    'isGroupMode' => $isGroupMode,
                 ])->render()
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => 'Error: ' . $e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine()
             ], 500);
+        }
+    }
+
+    /**
+     * Calculate and compare combinations for a GROUP of ceramics (e.g. all 30x30 Glossy)
+     * Competes across brands.
+     */
+    protected function calculateCombinationsForCeramicGroup($brick, $request, $ceramics)
+    {
+        $priceFilters = $request->price_filters ?? ['best'];
+        $allCombinations = [];
+
+        // Pre-fetch related materials to avoid N+1 in loops
+        $materialLimit = 10;
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->limit($materialLimit)->get();
+        $nats = Cement::where('type', 'Nat')->orderBy('package_price')->limit($materialLimit)->get();
+        $sands = Sand::orderBy('package_price')->limit($materialLimit)->get();
+
+        foreach ($priceFilters as $filter) {
+            if ($filter === 'custom') continue;
+
+            $groupCombos = [];
+
+            // 1. Generate combos for ALL ceramics in this group
+            // We use a generator that yields results from all ceramics sequentially
+            $groupGenerator = $this->yieldGroupCombinations($brick, $request, $ceramics, $cements, $sands, $nats, $this->getFilterLabel($filter));
+
+            // 2. Collect ALL results (we need to sort globally)
+            // Warning: memory usage. We use a larger limit but aggressive pruning in processGeneratorResults
+            // But processGeneratorResults sorts by cost ASC. 
+            // We need custom sorting based on filter.
+            
+            // Let's implement specific logic per filter type
+            $candidates = [];
+            foreach ($groupGenerator as $combo) {
+                $candidates[] = $combo;
+                // Keep memory check - keep top 50 per iteration? 
+                // No, just collect decent amount then sort.
+                if (count($candidates) > 200) {
+                     // Intermediate sort and prune to keep memory low
+                     $this->sortCandidates($candidates, $filter);
+                     $candidates = array_slice($candidates, 0, 50);
+                }
+            }
+            
+            // Final Sort
+            $this->sortCandidates($candidates, $filter);
+            
+            // Take Top 3 (or unique top 3)
+            $topCandidates = array_slice($candidates, 0, 3);
+
+            // Add to results
+            foreach ($topCandidates as $index => $combo) {
+                $number = $index + 1;
+                $filterLabel = $this->getFilterLabel($filter);
+
+                $allCombinations[] = array_merge($combo, [
+                    'filter_label' => "{$filterLabel} {$number}",
+                    'filter_type' => $filter,
+                    'filter_number' => $number,
+                ]);
+            }
+        }
+
+        $uniqueCombos = $this->detectAndMergeDuplicates($allCombinations);
+
+        // Convert back to label-keyed array for display
+        $finalResults = [];
+        foreach ($uniqueCombos as $combo) {
+            $label = $combo['filter_label'];
+            $finalResults[$label] = [$combo];
+        }
+
+        return $finalResults;
+    }
+
+    /**
+     * Helper to yield combinations from MULTIPLE ceramics
+     */
+    protected function yieldGroupCombinations($brick, $request, $ceramics, $cements, $sands, $nats, $label)
+    {
+        $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id', 'ceramic_id', 'ceramic_ids']);
+        $paramsBase['brick_id'] = $brick->id;
+
+        foreach ($ceramics as $ceramic) {
+            foreach ($this->yieldTileInstallationCombinations($paramsBase, [$ceramic], $nats, $cements, $sands, $label) as $combo) {
+                yield $combo;
+            }
+        }
+    }
+
+    /**
+     * Helper to sort combination candidates based on filter type
+     */
+    protected function sortCandidates(&$candidates, $filter)
+    {
+        usort($candidates, function ($a, $b) use ($filter) {
+            if ($filter === 'expensive') {
+                return $b['total_cost'] <=> $a['total_cost']; // Descending
+            } elseif ($filter === 'best') {
+                 // For Best, prioritize recommendation, then price
+                 // Since we don't have recommendation score in yield, fallback to price ASC
+                 return $a['total_cost'] <=> $b['total_cost'];
+            } elseif ($filter === 'medium') {
+                // Hard to do true medium without full set. 
+                // Fallback to ASC (Cheapest) or maybe randomize?
+                // Let's stick to ASC for consistency or maybe reverse slightly?
+                // Standard medium logic requires full dataset.
+                return $a['total_cost'] <=> $b['total_cost'];
+            } else {
+                return $a['total_cost'] <=> $b['total_cost']; // Ascending (Cheapest, Common)
+            }
+        });
+        
+        // Special logic for MEDIUM: Pick middle if we have enough
+        if ($filter === 'medium' && count($candidates) > 10) {
+            $middle = floor(count($candidates) / 2);
+            $slice = array_slice($candidates, $middle - 1, count($candidates)); // Take second half
+            // $candidates = $slice; // Actually this is risky with partial data. Sticking to ASC is safer for now.
         }
     }
 
@@ -816,10 +977,30 @@ class MaterialCalculationController extends Controller
         // Limit lebih besar untuk tile_installation untuk mendapat kombinasi terbaik
         $materialLimit = ($workType === 'tile_installation') ? 10 : 5;
 
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->limit($materialLimit)->get();
-        $nats = Cement::where('type', 'Nat')->orderBy('package_price')->limit($materialLimit)->get();
-        $sands = Sand::orderBy('package_price')->limit($materialLimit)->get();
-        $cats = Cat::orderBy('purchase_price')->limit($materialLimit)->get();
+        $cements = Cement::where(function($q) {
+                $q->where('type', '!=', 'Nat')->orWhereNull('type');
+            })
+            ->where('package_price', '>', 0)
+            ->where('package_weight_net', '>', 0)
+            ->orderBy('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $nats = Cement::where('type', 'Nat')
+            ->where('package_price', '>', 0)
+            ->orderBy('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $sands = Sand::where('package_price', '>', 0)
+            ->orderBy('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $cats = Cat::where('purchase_price', '>', 0)
+            ->orderBy('purchase_price')
+            ->limit($materialLimit)
+            ->get();
 
         $ceramics = $this->resolveCeramicsForCalculation(
             $request,
@@ -838,10 +1019,30 @@ class MaterialCalculationController extends Controller
         $workType = $request->work_type ?? 'brick_half';
         $materialLimit = ($workType === 'tile_installation') ? 10 : 5;
 
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->limit($materialLimit)->get();
-        $nats = Cement::where('type', 'Nat')->orderBy('package_price')->limit($materialLimit)->get();
-        $sands = Sand::orderBy('package_price')->limit($materialLimit)->get();
-        $cats = Cat::orderBy('purchase_price')->limit($materialLimit)->get();
+        $cements = Cement::where(function($q) {
+                $q->where('type', '!=', 'Nat')->orWhereNull('type');
+            })
+            ->where('package_price', '>', 0)
+            ->where('package_weight_net', '>', 0)
+            ->orderBy('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $nats = Cement::where('type', 'Nat')
+            ->where('package_price', '>', 0)
+            ->orderBy('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $sands = Sand::where('package_price', '>', 0)
+            ->orderBy('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $cats = Cat::where('purchase_price', '>', 0)
+            ->orderBy('purchase_price')
+            ->limit($materialLimit)
+            ->get();
 
         $ceramics = $this->resolveCeramicsForCalculation(
             $request,
@@ -865,10 +1066,30 @@ class MaterialCalculationController extends Controller
         $workType = $request->work_type ?? 'brick_half';
         $materialLimit = ($workType === 'tile_installation') ? 10 : 5;
 
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderByDesc('package_price')->limit($materialLimit)->get();
-        $nats = Cement::where('type', 'Nat')->orderByDesc('package_price')->limit($materialLimit)->get();
-        $sands = Sand::orderByDesc('package_price')->limit($materialLimit)->get();
-        $cats = Cat::orderByDesc('purchase_price')->limit($materialLimit)->get();
+        $cements = Cement::where(function($q) {
+                $q->where('type', '!=', 'Nat')->orWhereNull('type');
+            })
+            ->where('package_price', '>', 0)
+            ->where('package_weight_net', '>', 0)
+            ->orderByDesc('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $nats = Cement::where('type', 'Nat')
+            ->where('package_price', '>', 0)
+            ->orderByDesc('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $sands = Sand::where('package_price', '>', 0)
+            ->orderByDesc('package_price')
+            ->limit($materialLimit)
+            ->get();
+
+        $cats = Cat::where('purchase_price', '>', 0)
+            ->orderByDesc('purchase_price')
+            ->limit($materialLimit)
+            ->get();
 
         $ceramics = $this->resolveCeramicsForCalculation(
             $request,

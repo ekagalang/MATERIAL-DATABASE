@@ -7,7 +7,7 @@
     <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 24px; flex-wrap: wrap;">
         <button
             type="button"
-            class="btn btn-primary btn-sm"
+            class="btn btn-primary-glossy  btn-sm"
             style="display: inline-flex; align-items: center; gap: 6px;"
             onclick="window.location.href='{{ route('materials.index') }}'">
             <i class="bi bi-chevron-left" style="color: #ffffff; font-size: 1.2rem;"></i>
@@ -23,10 +23,10 @@
                        placeholder="Cari jenis, merek, toko..."
                        style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit; transition: all 0.2s ease;">
             </div>
-            <button type="submit" class="btn btn-primary">
+            <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
-            <button type="button" id="reset-button" class="btn btn-secondary" style="display: none;">
+            <button type="button" id="reset-button" class="btn btn-secondary-glossy " style="display: none;">
                 <i class="bi bi-x-lg"></i> Reset
             </button>
         </form>
@@ -106,7 +106,7 @@
         <div class="empty-state">
             <div class="empty-state-icon">🏖️</div>
             <p id="empty-state-message">Belum ada data pasir</p>
-            <a href="{{ route('sands.create') }}" class="btn btn-primary open-modal" style="margin-top: 16px;" id="empty-state-add-button">
+            <a href="{{ route('sands.create') }}" class="btn btn-primary-glossy  open-modal" style="margin-top: 16px;" id="empty-state-add-button">
                 <i class="bi bi-plus-lg"></i> Tambah Data Pertama
             </a>
         </div>
@@ -411,6 +411,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function getSmartDecimals(num, maxDecimals = 8) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return 0;
+        return Math.min(firstNonZero + 2, maxDecimals);
+    }
+
+    function formatSmartDecimalPlain(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const precision = getSmartDecimals(num, maxDecimals);
+        if (!precision) return num.toString();
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
+    function formatSmartDecimalLocale(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartDecimals(num, maxDecimals);
+        return num.toLocaleString('id-ID', {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: precision
+        });
+    }
+
     // Render sands table
     function renderSands(sands, pagination) {
         const tbody = document.getElementById('sand-list');
@@ -419,15 +457,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             function formatDimension(value) {
                 if (!value) return '<span style="color: #cbd5e1;">-</span>';
-                return parseFloat(value).toString().replace('.', ',');
+                return formatSmartDecimalPlain(value).replace('.', ',');
             }
 
             function formatVolume(value) {
                 if (!value) return '<span style="color: #cbd5e1;">—</span>';
-                return new Intl.NumberFormat('id-ID', {
-                    minimumFractionDigits: 6,
-                    maximumFractionDigits: 6
-                }).format(value) + ' M3';
+                return formatSmartDecimalLocale(value) + ' M3';
             }
 
             return `
@@ -485,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>
                         <div class="btn-group">
                             <a href="/sands/${sand.id}"
-                               class="btn btn-primary btn-sm open-modal"
+                               class="btn btn-primary-glossy  btn-sm open-modal"
                                title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
@@ -528,9 +563,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Previous button
         if (pagination.current_page > 1) {
-            html += `<button onclick="loadSands(${pagination.current_page - 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary btn-sm">← Sebelumnya</button>`;
+            html += `<button onclick="loadSands(${pagination.current_page - 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary-glossy  btn-sm">← Sebelumnya</button>`;
         } else {
-            html += `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">← Sebelumnya</button>`;
+            html += `<button class="btn btn-secondary-glossy  btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">← Sebelumnya</button>`;
         }
 
         // Page info
@@ -538,9 +573,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Next button
         if (pagination.current_page < pagination.last_page) {
-            html += `<button onclick="loadSands(${pagination.current_page + 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary btn-sm">Selanjutnya →</button>`;
+            html += `<button onclick="loadSands(${pagination.current_page + 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary-glossy  btn-sm">Selanjutnya →</button>`;
         } else {
-            html += `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">Selanjutnya →</button>`;
+            html += `<button class="btn btn-secondary-glossy  btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">Selanjutnya →</button>`;
         }
 
         html += '</div>';
@@ -626,13 +661,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Delete sand
     window.deleteSand = async function(id) {
-        if (!confirm('Yakin ingin menghapus data pasir ini?')) return;
+        const confirmed = await window.showConfirm({
+            message: 'Yakin ingin menghapus data pasir ini?',
+            confirmText: 'Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
-        const result = await api.delete(`/sands/${id}`);
-        if (result.success) {
-            loadSands(currentPage, currentSearch, currentSortBy, currentSortDirection);
-        } else {
-            alert('Gagal menghapus data: ' + result.message);
+        try {
+            const result = await api.delete(`/sands/${id}`);
+            if (result.success) {
+                window.showToast('Data pasir berhasil dihapus.', 'success');
+                loadSands(currentPage, currentSearch, currentSortBy, currentSortDirection);
+            } else {
+                const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+                window.showToast(message, 'error');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            const message = 'Gagal menghapus data. Silakan coba lagi.';
+            window.showToast(message, 'error');
         }
     };
 

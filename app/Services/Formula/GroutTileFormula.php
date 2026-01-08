@@ -2,6 +2,8 @@
 
 namespace App\Services\Formula;
 
+use App\Helpers\NumberHelper;
+
 use App\Models\Cement;
 use App\Models\Ceramic;
 
@@ -119,7 +121,7 @@ class GroutTileFormula implements FormulaInterface
                 'Tebal Keramik' => $tebalKeramikMm . ' mm',
                 'Nat' => $nat->brand . ' (' . $beratKemasanNat . ' kg)',
                 'Berat Kemasan Nat' => $beratKemasanNat . ' kg',
-                'Volume Pasta Nat per Bungkus' => number_format($volumePastaNatPerBungkus, 6) . ' M3',
+                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus) . ' M3',
                 'Harga Nat per Bungkus' => 'Rp ' . number_format($hargaNatPerBungkus, 0, ',', '.'),
                 'Densitas Nat' => $densityNat . ' kg/M3',
                 'Rasio Adukan Nat' => '1 : 33% (Nat : Air)',
@@ -135,7 +137,7 @@ class GroutTileFormula implements FormulaInterface
             'formula' => 'Panjang × Lebar',
             'calculations' => [
                 'Perhitungan' => "$panjangBidang × $lebarBidang",
-                'Hasil' => number_format($luasBidang, 4) . ' M2',
+                'Hasil' => NumberHelper::format($luasBidang) . ' M2',
             ],
         ];
 
@@ -177,7 +179,7 @@ class GroutTileFormula implements FormulaInterface
                     ' × ' .
                     $panjangBidang .
                     ')',
-                'Hasil' => number_format($panjangBentanganNat, 4) . ' m',
+                'Hasil' => NumberHelper::format($panjangBentanganNat) . ' m',
             ],
         ];
 
@@ -190,10 +192,10 @@ class GroutTileFormula implements FormulaInterface
             'title' => 'Volume Nat per Pekerjaan',
             'formula' => 'Panjang Bentangan × Tebal Nat × Tebal Keramik / 1000000',
             'calculations' => [
-                'Panjang Bentangan' => number_format($panjangBentanganNat, 4) . ' m',
+                'Panjang Bentangan' => NumberHelper::format($panjangBentanganNat) . ' m',
                 'Tebal Nat' => $tebalNat . ' mm',
                 'Tebal Keramik' => $tebalKeramikMm . ' mm',
-                'Volume Nat' => number_format($volumeNatPekerjaan, 6) . ' M3',
+                'Volume Nat' => NumberHelper::format($volumeNatPekerjaan) . ' M3',
             ],
         ];
 
@@ -209,9 +211,9 @@ class GroutTileFormula implements FormulaInterface
             'title' => 'Kebutuhan Bungkus Nat',
             'formula' => 'Volume Nat / Volume Pasta Nat per Bungkus',
             'calculations' => [
-                'Volume Pasta Nat per Bungkus' => number_format($volumePastaNatPerBungkus, 6) . ' M3',
-                'Kebutuhan Bungkus' => number_format($kebutuhanBungkusNat, 4) . ' bungkus',
-                'Kebutuhan (Kg)' => number_format($kebutuhanKgNat, 4) . ' kg',
+                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus) . ' M3',
+                'Kebutuhan Bungkus' => NumberHelper::format($kebutuhanBungkusNat) . ' bungkus',
+                'Kebutuhan (Kg)' => NumberHelper::format($kebutuhanKgNat) . ' kg',
             ],
         ];
 
@@ -243,15 +245,15 @@ class GroutTileFormula implements FormulaInterface
             'info' => 'Ratio 1 : 33% (Nat : Air)',
             'calculations' => [
                 'Kubik Nat per Bungkus' =>
-                    number_format($kubikNatPerBungkus, 6) . ' M3 (= (1/1440) × ' . $beratKemasanNat . ' kg)',
-                'Kubik Air per Ratio' => number_format($kubikAirNatPerBungkus, 6) . ' M3 (= 33% × kubik nat)',
-                'Liter Air per Ratio' => number_format($literAirNatPerBungkus, 4) . ' liter',
-                'Volume Adukan per Bungkus' => number_format($volumeAdukanNatPerBungkus, 6) . ' M3',
+                    NumberHelper::format($kubikNatPerBungkus) . ' M3 (= (1/1440) × ' . $beratKemasanNat . ' kg)',
+                'Kubik Air per Ratio' => NumberHelper::format($kubikAirNatPerBungkus) . ' M3 (= 33% × kubik nat)',
+                'Liter Air per Ratio' => NumberHelper::format($literAirNatPerBungkus) . ' liter',
+                'Volume Adukan per Bungkus' => NumberHelper::format($volumeAdukanNatPerBungkus) . ' M3',
                 '---' => '---',
-                'Total Kubik Nat Pekerjaan' => number_format($kubikNatPekerjaan, 6) . ' M3',
-                'Total Kubik Air Pekerjaan' => number_format($kubikAirNatPekerjaan, 6) . ' M3',
-                'Total Liter Air Pekerjaan' => number_format($literAirNatPekerjaan, 4) . ' liter',
-                'Total Volume Adukan Nat' => number_format($volumeAdukanNatPekerjaan, 6) . ' M3',
+                'Total Kubik Nat Pekerjaan' => NumberHelper::format($kubikNatPekerjaan) . ' M3',
+                'Total Kubik Air Pekerjaan' => NumberHelper::format($kubikAirNatPekerjaan) . ' M3',
+                'Total Liter Air Pekerjaan' => NumberHelper::format($literAirNatPekerjaan) . ' liter',
+                'Total Volume Adukan Nat' => NumberHelper::format($volumeAdukanNatPekerjaan) . ' M3',
             ],
         ];
 

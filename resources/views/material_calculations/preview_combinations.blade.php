@@ -3,7 +3,7 @@
 @section('title', 'Pilih Kombinasi Material')
 
 @section('content')
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 preview-combinations-page">
     <div class="container mb-4">
         <div class="d-flex justify-content-between align-items-center">
             <div>
@@ -25,117 +25,336 @@
             </div>
         </div>
     @elseif(isset($isMultiCeramic) && $isMultiCeramic && isset($groupedCeramics))
+        @php
+            $workType = $requestData['work_type'] ?? '';
+            $heightLabel = in_array($workType, ['brick_rollag', 'tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'], true) ? 'LEBAR' : 'TINGGI';
+            $lengthValue = $requestData['wall_length'] ?? null;
+            $heightValue = $requestData['wall_height'] ?? null;
+            $groutValue = $requestData['grout_thickness'] ?? null;
+            $areaValue = $requestData['area'] ?? null;
+            if (!$areaValue && $lengthValue !== null && $heightValue !== null) {
+                $areaValue = $lengthValue * $heightValue;
+            }
+            $formulaDisplay = $formulaName ?? ($requestData['formula_name'] ?? null);
+            $mortarValue = $requestData['mortar_thickness'] ?? null;
+            $isPainting = (isset($requestData['work_type']) && $requestData['work_type'] === 'painting');
+            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL';
+            $paramUnit = $isPainting ? 'Lapis' : 'cm';
+            $paramValue = $isPainting ? ($requestData['painting_layers'] ?? 2) : $mortarValue;
+        @endphp
 
-        {{-- MULTI-CERAMIC TABS SECTION --}}
-        <div class="container">
-            <div class="card shadow-sm" style="border-radius: 16px; border: none; background: #ffffff;">
-                <div class="card-body p-4">
-                    {{-- Ceramic Type Tabs (Main Level) --}}
-                    <ul class="nav nav-tabs mb-4" id="ceramicTypeTabs" role="tablist">
-                        @foreach($groupedCeramics as $type => $ceramicsOfType)
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link {{ $loop->first ? 'active' : '' }}"
-                                        id="type-{{ Str::slug($type) }}-tab"
-                                        data-bs-toggle="tab"
-                                        data-bs-target="#type-{{ Str::slug($type) }}"
-                                        type="button"
-                                        role="tab">
-                                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>{{ $type }}
-                                    <span class="badge bg-secondary ms-2">{{ $ceramicsOfType->count() }}</span>
-                                </button>
-                            </li>
-                        @endforeach
-                    </ul>
+        @if($formulaDisplay || $paramValue || $lengthValue || $heightValue || $groutValue || $areaValue)
+        <div class="container mb-3">
+            <div class="card p-3 shadow-sm border-0 ceramic-info-card" style="background-color: #fdfdfd; border-radius: 12px;">
+                <div class="d-flex flex-wrap align-items-end gap-3 justify-content-between">
+                    @if($formulaDisplay)
+                    <div style="flex: 1; min-width: 250px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">ITEM PEKERJAAN</span>
+                        </label>
+                        <div class="form-control fw-bold text-dark" style="background-color: #e9ecef;">
+                            {{ $formulaDisplay }}
+                        </div>
+                    </div>
+                    @endif
 
-                    {{-- Ceramic Type Tab Content --}}
+                    @if($paramValue)
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">{{ $paramLabel }}</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($paramValue)</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">{{ $paramUnit }}</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($lengthValue)
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">PANJANG</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($lengthValue)</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($heightValue)
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">{{ $heightLabel }}</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($heightValue)</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($groutValue)
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-info text-white border">TEBAL NAT</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e0f2fe; border-color: #38bdf8;">@format($groutValue)</div>
+                            <span class="input-group-text bg-info text-white small px-1" style="font-size: 0.7rem;">mm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    @if($areaValue)
+                    <div style="flex: 0 0 auto; width: 120px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-danger text-white border border-danger">LUAS</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center bg-white text-danger px-1" style="border-color: #dc3545;">@format($areaValue)</div>
+                            <span class="input-group-text bg-danger text-white small px-1" style="font-size: 0.7rem; border-color: #dc3545;">M2</span>
+                        </div>
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- MULTI-CERAMIC TABS SECTION (COMPACT TWO ROWS) --}}
+        <div class="container mb-3">
+            <div class="card shadow-sm ceramic-tabs-card" style="border: 1px solid #e2e8f0; background: #ffffff; border-radius: 8px; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); padding: 0;">
+                <div class="card-body ceramic-tabs-card-body" style="padding: 6px 8px;">
+                    
+                    {{-- Row 1: JENIS --}}
+                    <div class="ceramic-group-row ceramic-group-row--types">
+                        <div class="ceramic-group-label">JENIS:</div>
+                        <ul class="nav nav-pills hide-scrollbar ceramic-group-tabs" id="ceramicTypeTabs" role="tablist">
+                            @foreach($groupedCeramics as $type => $ceramicsOfType)
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link btn-sm {{ $loop->first ? 'active' : '' }}"
+                                            style="white-space: nowrap; font-size: 12px; padding: 4px 12px; border-radius: 6px; border: 1px solid #f1f5f9;"
+                                            id="type-{{ Str::slug($type) }}-tab"
+                                            data-bs-toggle="pill"
+                                            data-bs-target="#type-{{ Str::slug($type) }}"
+                                            type="button"
+                                            role="tab">
+                                        {{ $type }}
+                                    </button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    {{-- Row 2: UKURAN (Dynamic Content based on Type) --}}
                     <div class="tab-content" id="ceramicTypeTabContent">
                         @foreach($groupedCeramics as $type => $ceramicsOfType)
                             <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
                                  id="type-{{ Str::slug($type) }}"
                                  role="tabpanel">
-
-                                {{-- Size Tabs (Sub Level) --}}
-                                <ul class="nav nav-pills mb-3" id="size-{{ Str::slug($type) }}-tabs" role="tablist">
-                                    @foreach($ceramicsOfType->groupBy('size') as $size => $ceramicsOfSize)
-                                        <li class="nav-item" role="presentation">
-                                            <button class="nav-link {{ $loop->first ? 'active' : '' }}"
-                                                    id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tab"
-                                                    data-bs-toggle="pill"
-                                                    data-bs-target="#size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
-                                                    type="button"
-                                                    role="tab">
-                                                <i class="bi bi-rulers me-2"></i>{{ $size }} cm
-                                            </button>
-                                        </li>
-                                    @endforeach
-                                </ul>
-
-                                {{-- Size Tab Content --}}
-                                <div class="tab-content" id="size-{{ Str::slug($type) }}-tabContent">
-                                    @foreach($ceramicsOfType->groupBy('size') as $size => $ceramicsOfSize)
-                                        <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
-                                             id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
-                                             role="tabpanel">
-
-                                            @php
-                                                $brandsOfSize = $ceramicsOfSize->groupBy(function ($project) {
-                                                    return $project['ceramic']->brand ?? 'Tanpa Merek';
-                                                });
-                                            @endphp
-
-                                            {{-- Brand Tabs (Sub Level) --}}
-                                            <ul class="nav nav-pills mb-3" id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tabs" role="tablist">
-                                                @foreach($brandsOfSize as $brand => $ceramicsOfBrand)
-                                                    <li class="nav-item" role="presentation">
-                                                        <button class="nav-link {{ $loop->first ? 'active' : '' }}"
-                                                                id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}-tab"
-                                                                data-bs-toggle="pill"
-                                                                data-bs-target="#brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}"
-                                                                type="button"
-                                                                role="tab">
-                                                            <i class="bi bi-tag-fill me-2"></i>{{ $brand }}
-                                                            <span class="badge bg-secondary ms-2">{{ $ceramicsOfBrand->count() }}</span>
-                                                        </button>
-                                                    </li>
-                                                @endforeach
-                                            </ul>
-
-                                            {{-- Brand Tab Content --}}
-                                            <div class="tab-content" id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tabContent">
-                                                @foreach($brandsOfSize as $brand => $ceramicsOfBrand)
-                                                    <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}"
-                                                         id="brand-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-{{ Str::slug($brand) }}"
-                                                         role="tabpanel">
-                                                        {{-- LAZY LOAD: Ceramic combinations loaded via AJAX --}}
-                                                        @foreach($ceramicsOfBrand as $ceramicProject)
-                                                            <div class="ceramic-project mb-4"
-                                                                 data-ceramic-id="{{ $ceramicProject['ceramic']->id }}"
-                                                                 data-loaded="false">
-
-                                                                {{-- Loading placeholder --}}
-                                                                <div class="loading-placeholder text-center py-5">
-                                                                    <div class="spinner-border text-primary" role="status">
-                                                                        <span class="visually-hidden">Loading...</span>
-                                                                    </div>
-                                                                    <p class="mt-3 text-muted">Memuat kombinasi untuk {{ $ceramicProject['ceramic']->brand ?? 'Keramik' }}...</p>
-                                                                </div>
-
-                                                                {{-- Content will be loaded here via AJAX --}}
-                                                                <div class="combinations-content" style="display: none;"></div>
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    @endforeach
+                                <div class="ceramic-group-row ceramic-group-row--sizes">
+                                    <div class="ceramic-group-label">UKURAN:</div>
+                                    <ul class="nav nav-pills hide-scrollbar ceramic-group-tabs" id="size-{{ Str::slug($type) }}-tabs" role="tablist">
+                                        @foreach($ceramicsOfType->groupBy('size') as $size => $ceramicsOfSize)
+                                            <li class="nav-item" role="presentation">
+                                                <button class="nav-link btn-sm {{ $loop->first ? 'active' : '' }}"
+                                                        style="white-space: nowrap; font-size: 12px; padding: 3px 10px; border-radius: 6px;"
+                                                        id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}-tab"
+                                                        data-bs-toggle="pill"
+                                                        data-bs-target="#size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
+                                                        type="button"
+                                                        role="tab">
+                                                    {{ $size }}
+                                                </button>
+                                            </li>
+                                        @endforeach
+                                    </ul>
                                 </div>
                             </div>
                         @endforeach
                     </div>
                 </div>
             </div>
+
+            {{-- Result Area for the selected combinations --}}
+            <div class="tab-content mt-2" id="ceramicSizeTabContent">
+                @foreach($groupedCeramics as $type => $ceramicsOfType)
+                    @foreach($ceramicsOfType->groupBy('size') as $size => $ceramicsOfSize)
+                        <div class="tab-pane fade {{ $loop->parent->first && $loop->first ? 'show active' : '' }}"
+                             id="size-{{ Str::slug($type) }}-{{ str_replace('x', '_', $size) }}"
+                             role="tabpanel">
+                            
+                            <div class="ceramic-project" data-type="{{ $type }}" data-size="{{ $size }}" data-loaded="false">
+                                {{-- Compact Loading --}}
+                                <div class="loading-placeholder text-center py-4 bg-white rounded-3 border">
+                                    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status"></div>
+                                    <div class="small fw-bold text-dark">Menghitung {{ $type }} {{ $size }}...</div>
+                                    <div class="progress mx-auto mt-2" style="height: 4px; width: 120px;">
+                                        <div class="progress-bar bg-primary" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                <div class="combinations-content" style="display: none;"></div>
+                            </div>
+
+                        </div>
+                    @endforeach
+                @endforeach
+            </div>
         </div>
+
+        <style>
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+            .ceramic-tabs-card {
+                border-radius: 8px !important;
+                box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08) !important;
+                padding: 0 !important;
+            }
+
+            .ceramic-tabs-card-body {
+                padding: 6px 8px !important;
+            }
+            
+            .ceramic-group-row {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: nowrap;
+                width: 100%;
+            }
+
+            .ceramic-group-row--types {
+                margin-bottom: 8px;
+                padding-bottom: 8px;
+                border-bottom: 1px solid #f1f5f9;
+            }
+
+            .ceramic-group-label {
+                font-size: 10px;
+                font-weight: 800;
+                letter-spacing: 0.5px;
+                color: #64748b;
+                min-width: 75px;
+                padding: 0 8px 0 4px;
+                flex: 0 0 50px;
+                text-align: right;
+                border-right: 1px solid #e2e8f0;
+            }
+
+            .ceramic-group-tabs {
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                gap: 4px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 0 !important;
+                margin: 0 !important;
+                flex: 1 1 auto;
+                min-width: 0;
+                white-space: nowrap;
+                background: transparent !important;
+                height: auto !important;
+                border: none !important;
+            }
+
+            .ceramic-group-tabs .nav-item {
+                flex: 0 0 auto;
+                display: inline-flex;
+            }
+
+            .ceramic-group-tabs.nav {
+                padding: 0 !important;
+                margin: 0 !important;
+                gap: 4px !important;
+            }
+
+            .ceramic-info-item {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                min-width: 100px;
+            }
+
+            .ceramic-info-item--work {
+                min-width: 260px;
+                flex: 1 1 260px;
+            }
+
+            /* TYPE PILLS */
+            #ceramicTypeTabs .nav-link { color: #64748b; background: #f8fafc; font-weight: 600; }
+            #ceramicTypeTabs .nav-link.active { 
+                background: #891313 !important; 
+                color: white !important; 
+                border-color: #891313 !important;
+                box-shadow: 0 2px 4px rgba(137, 19, 19, 0.2);
+            }
+
+            /* SIZE PILLS */
+            [id^="size-"][id$="-tabs"] .nav-link { color: #64748b; background: transparent; border: 1px solid #e2e8f0; }
+            [id^="size-"][id$="-tabs"] .nav-link.active { 
+                background: #f1f5f9 !important; 
+                color: #891313 !important; 
+                border: 1px solid #891313 !important;
+                font-weight: 800;
+            }
+        </style>
+
+
+        
+        {{-- Custom Styles for Chips/Pills --}}
+        <style>
+            .hide-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .hide-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            
+            /* TYPE TABS STYLING */
+            #ceramicTypeTabs .nav-link {
+                color: #64748b;
+                background-color: #fff;
+                transition: all 0.2s ease;
+            }
+            #ceramicTypeTabs .nav-link:hover {
+                background-color: #f8fafc;
+                border-color: #cbd5e1 !important;
+                color: #475569;
+            }
+            #ceramicTypeTabs .nav-link.active {
+                background-color: #891313 !important;
+                color: white !important;
+                border-color: #891313 !important;
+                box-shadow: 0 4px 6px -1px rgba(137, 19, 19, 0.2), 0 2px 4px -1px rgba(137, 19, 19, 0.1);
+            }
+            #ceramicTypeTabs .nav-link.active .badge {
+                background-color: rgba(255,255,255,0.2) !important;
+                color: white !important;
+                border: none !important;
+            }
+
+            /* SIZE TABS STYLING */
+            [id^="size-"][id$="-tabs"] .nav-link {
+                color: #64748b;
+                background: transparent;
+                border: 1px solid transparent;
+            }
+            [id^="size-"][id$="-tabs"] .nav-link:hover {
+                background-color: #e2e8f0;
+                color: #1e293b;
+            }
+            [id^="size-"][id$="-tabs"] .nav-link.active {
+                background-color: #fff !important;
+                color: #891313 !important;
+                border: 1px solid #891313 !important;
+                font-weight: 700;
+                box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            }
+        </style>
 
     @else
 
@@ -725,7 +944,7 @@
                             <span class="badge bg-light border">PANJANG</span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format((float)$requestData['wall_length'], 2, '.', '') }}</div>
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_length'])</div>
                             <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
                         </div>
                     </div>
@@ -738,7 +957,7 @@
                             </span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format((float)$requestData['wall_height'], 2, '.', '') }}</div>
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_height'])</div>
                             <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
                         </div>
                     </div>
@@ -840,7 +1059,7 @@
                             <span class="badge bg-danger text-white border border-danger">LUAS</span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center bg-white text-danger px-1" style="border-color: #dc3545;">{{ number_format($area, 2) }}</div>
+                            <div class="form-control fw-bold text-center bg-white text-danger px-1" style="border-color: #dc3545;">@format($area)</div>
                             <span class="input-group-text bg-danger text-white small px-1" style="font-size: 0.7rem; border-color: #dc3545;">M2</span>
                         </div>
                     </div>
@@ -1550,7 +1769,7 @@
                                                     @endphp
                                                     <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
                                                         {{-- Column 1-3: Qty, Unit, Material Name --}}
-                                                        <td class="text-end fw-bold sticky-col-1">{{ $mat['unit'] === 'M3' ? number_format($mat['qty'], 3, ',', '.') : number_format($mat['qty'], 2, ',', '.') }}</td>
+                                                        <td class="text-end fw-bold sticky-col-1">@format($mat['qty'])</td>
                                                         <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
                                                         <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 
@@ -1678,7 +1897,25 @@
 
 <style>
     /* Global Text Styling for All Elements */
-    h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td, i, strong {
+    .preview-combinations-page h1,
+    .preview-combinations-page h2,
+    .preview-combinations-page h3,
+    .preview-combinations-page h4,
+    .preview-combinations-page h5,
+    .preview-combinations-page h6,
+    .preview-combinations-page p,
+    .preview-combinations-page span,
+    .preview-combinations-page div,
+    .preview-combinations-page a,
+    .preview-combinations-page label,
+    .preview-combinations-page input,
+    .preview-combinations-page select,
+    .preview-combinations-page textarea,
+    .preview-combinations-page button,
+    .preview-combinations-page th,
+    .preview-combinations-page td,
+    .preview-combinations-page i,
+    .preview-combinations-page strong {
         font-family: 'League Spartan', sans-serif !important;
         color: #ffffff !important;
         -webkit-text-stroke: 0.2px black !important;
@@ -1692,7 +1929,7 @@
     }
 
     /* Hover effect untuk button cancel */
-    .btn-cancel:hover {
+    .preview-combinations-page .btn-cancel:hover {
         background: linear-gradient(135deg, #891313 0%, #a61515 100%) !important;
         color: #ffffff !important;
         transform: translateY(-2px);
@@ -1700,7 +1937,7 @@
     }
 
     /* Hover effect untuk link rekap - tambahkan underline saat hover */
-    .table-preview tbody td a:hover {
+    .preview-combinations-page .table-preview tbody td a:hover {
         text-decoration: underline !important;
         opacity: 0.8;
     }
@@ -1927,7 +2164,11 @@ $(document).ready(function() {
 
     // Function to load combinations for a ceramic
     function loadCeramicCombinations($ceramicProject) {
+        // Check for Group Mode (Type + Size) OR Single Mode (Ceramic ID)
+        const type = $ceramicProject.data('type');
+        const size = $ceramicProject.data('size');
         const ceramicId = $ceramicProject.data('ceramic-id');
+        
         const isLoaded = $ceramicProject.data('loaded');
 
         // Skip if already loaded
@@ -1935,31 +2176,77 @@ $(document).ready(function() {
             return $.Deferred().resolve().promise();
         }
 
-        // Show loading
+        // Show loading and Reset Progress
         $ceramicProject.find('.loading-placeholder').show();
         $ceramicProject.find('.combinations-content').hide();
+        
+        const $progressBar = $ceramicProject.find('.progress-bar');
+        const $progressText = $ceramicProject.find('.progress-text');
+        
+        $progressBar.css('width', '0%').attr('aria-valuenow', 0);
+        $progressText.text('0%');
+
+        // Start Progress Simulation
+        let progress = 0;
+        const interval = setInterval(function() {
+            // Aggressive start
+            let increment = 0;
+            if (progress < 40) increment = Math.random() * 5 + 2;
+            else if (progress < 70) increment = Math.random() * 2 + 1;
+            else if (progress < 95) increment = 0.5;
+            
+            progress = Math.min(progress + increment, 98);
+            
+            $progressBar.css('width', progress + '%').attr('aria-valuenow', progress);
+            $progressText.text(Math.round(progress) + '%');
+        }, 100);
+
+        // Store interval to clear it later
+        $ceramicProject.data('loading-interval', interval);
+
+        // Prepare data payload
+        const payload = {
+            ...requestData,
+            _token: '{{ csrf_token() }}'
+        };
+
+        if (type && size) {
+            payload.type = type;
+            payload.size = size;
+        } else {
+            payload.ceramic_id = ceramicId;
+        }
 
         // AJAX request
         return $.ajax({
             url: '{{ route("api.material-calculator.ceramic-combinations") }}',
             method: 'POST',
-            data: {
-                ...requestData,
-                ceramic_id: ceramicId,
-                _token: '{{ csrf_token() }}'
-            },
+            data: payload,
             success: function(response) {
-                if (response.success) {
-                    // Hide loading, show content
-                    $ceramicProject.find('.loading-placeholder').hide();
-                    $ceramicProject.find('.combinations-content').html(response.html).show();
-                    $ceramicProject.data('loaded', 'true');
-                } else {
-                    showError($ceramicProject, response.message || 'Gagal memuat kombinasi');
-                    $ceramicProject.data('loaded', 'false');
-                }
+                // Clear Interval
+                clearInterval($ceramicProject.data('loading-interval'));
+                
+                // Force 100%
+                $progressBar.css('width', '100%').attr('aria-valuenow', 100);
+                $progressText.text('100%');
+
+                // Short delay to show 100% before showing content
+                setTimeout(function() {
+                    if (response.success) {
+                        // Hide loading, show content
+                        $ceramicProject.find('.loading-placeholder').hide();
+                        $ceramicProject.find('.combinations-content').html(response.html).show();
+                        $ceramicProject.data('loaded', 'true');
+                    } else {
+                        showError($ceramicProject, response.message || 'Gagal memuat kombinasi');
+                        $ceramicProject.data('loaded', 'false');
+                    }
+                }, 300);
             },
             error: function(xhr) {
+                // Clear Interval
+                clearInterval($ceramicProject.data('loading-interval'));
+                
                 const errorMsg = xhr.responseJSON?.message || 'Terjadi kesalahan saat memuat kombinasi';
                 showError($ceramicProject, errorMsg + ' (Check console for details)');
                 $ceramicProject.data('loaded', 'false');
@@ -1996,6 +2283,58 @@ $(document).ready(function() {
         }
     }
 
+    function showSizePaneByTarget(targetSelector) {
+        if (!targetSelector) {
+            return;
+        }
+
+        const $targetPane = $(targetSelector);
+        if (!$targetPane.length) {
+            return;
+        }
+
+        let $sizeContent = $('#ceramicSizeTabContent');
+        if (!$sizeContent.length) {
+            $sizeContent = $('.preview-combinations-page .tab-content.mt-2').first();
+        }
+
+        $sizeContent.find('.tab-pane').removeClass('show active');
+        $targetPane.addClass('show active');
+
+        loadVisibleCeramics();
+    }
+
+    function activateSizeButton($button) {
+        if (!$button || !$button.length) {
+            return;
+        }
+
+        const target = $button.attr('data-bs-target');
+
+        if (window.bootstrap && bootstrap.Tab) {
+            bootstrap.Tab.getOrCreateInstance($button[0]).show();
+        } else {
+            $button.addClass('active').attr('aria-selected', 'true');
+            $button.closest('.nav').find('.nav-link').not($button).removeClass('active').attr('aria-selected', 'false');
+            showSizePaneByTarget(target);
+        }
+
+        showSizePaneByTarget(target);
+    }
+
+    function syncActiveSizeForType($typePane) {
+        if (!$typePane || !$typePane.length) {
+            return;
+        }
+
+        let $sizeButton = $typePane.find('[id^="size-"][id$="-tabs"] .nav-link.active').first();
+        if (!$sizeButton.length) {
+            $sizeButton = $typePane.find('[id^="size-"][id$="-tabs"] .nav-link').first();
+        }
+
+        activateSizeButton($sizeButton);
+    }
+
     // Load combinations for visible ceramics when tab is shown
     function loadVisibleCeramics() {
         // Find active leaf panes (deepest visible tabs)
@@ -2011,12 +2350,23 @@ $(document).ready(function() {
         });
     }
 
-    // On page load: Load first visible ceramics
+    // On page load: sync size tab with active type, then load ceramics
+    const $initialTypePane = $('#ceramicTypeTabContent .tab-pane.active').first();
+    syncActiveSizeForType($initialTypePane);
     setTimeout(loadVisibleCeramics, 100);
 
     // On tab change: Load ceramics in newly shown tab
     $('button[data-bs-toggle="tab"], button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function() {
         loadVisibleCeramics();
+    });
+
+    $('#ceramicTypeTabs button[data-bs-toggle="pill"], #ceramicTypeTabs button[data-bs-toggle="tab"]').on('shown.bs.tab shown.bs.pill', function() {
+        const target = $(this).attr('data-bs-target');
+        syncActiveSizeForType($(target));
+    });
+
+    $(document).on('shown.bs.tab shown.bs.pill', '[id^="size-"][id$="-tabs"] .nav-link', function() {
+        showSizePaneByTarget($(this).attr('data-bs-target'));
     });
 
     console.log('Lazy loading initialized for', $('.ceramic-project').length, 'ceramics');

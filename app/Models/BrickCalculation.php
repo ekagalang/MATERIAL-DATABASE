@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\NumberHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -463,12 +464,12 @@ class BrickCalculation extends Model
                 'area' => $this->wall_area . ' M2',
             ],
             'brick_info' => [
-                'quantity' => number_format($this->brick_quantity, 2) . ' buah',
+                'quantity' => NumberHelper::format($this->brick_quantity) . ' buah',
                 'type' => $this->installationType->name ?? '-',
                 'cost' => 'Rp ' . number_format($this->brick_total_cost, 0, ',', '.'),
             ],
             'mortar_info' => [
-                'volume' => number_format($this->mortar_volume, 6) . ' M3',
+                'volume' => NumberHelper::format($this->mortar_volume) . ' M3',
                 'formula' => $this->mortarFormula->name ?? '-',
                 'thickness' => $this->mortar_thickness . ' cm',
             ],
@@ -476,36 +477,36 @@ class BrickCalculation extends Model
                 'cement' => [
                     'package_weight' => $this->cement_package_weight ?? 50,
                     'quantity_sak' =>
-                        number_format($this->cement_quantity_sak ?? $this->cement_quantity_50kg, 2) . ' sak',
-                    '40kg' => number_format($this->cement_quantity_40kg, 2) . ' sak',
-                    '50kg' => number_format($this->cement_quantity_50kg, 2) . ' sak',
-                    'kg' => number_format($this->cement_kg, 2) . ' kg',
+                        NumberHelper::format($this->cement_quantity_sak ?? $this->cement_quantity_50kg) . ' sak',
+                    '40kg' => NumberHelper::format($this->cement_quantity_40kg) . ' sak',
+                    '50kg' => NumberHelper::format($this->cement_quantity_50kg) . ' sak',
+                    'kg' => NumberHelper::format($this->cement_kg) . ' kg',
                     'cost' => 'Rp ' . number_format($this->cement_total_cost, 0, ',', '.'),
                 ],
                 'sand' => [
-                    'sak' => number_format($this->sand_sak, 2) . ' karung',
-                    'kg' => number_format($this->sand_kg, 2) . ' kg',
-                    'm3' => number_format($this->sand_m3, 6) . ' M3',
+                    'sak' => NumberHelper::format($this->sand_sak) . ' karung',
+                    'kg' => NumberHelper::format($this->sand_kg) . ' kg',
+                    'm3' => NumberHelper::format($this->sand_m3) . ' M3',
                     'cost' => 'Rp ' . number_format($this->sand_total_cost, 0, ',', '.'),
                 ],
                 'cat' => [
-                    'quantity' => number_format($this->cat_quantity, 2) . ' kemasan',
-                    'kg' => number_format($this->cat_kg, 2) . ' kg',
-                    'liters' => number_format($this->paint_liters, 2) . ' liter',
+                    'quantity' => NumberHelper::format($this->cat_quantity) . ' kemasan',
+                    'kg' => NumberHelper::format($this->cat_kg) . ' kg',
+                    'liters' => NumberHelper::format($this->paint_liters) . ' liter',
                     'cost' => 'Rp ' . number_format($this->cat_total_cost, 0, ',', '.'),
                 ],
                 'ceramic' => [
                     'quantity' => number_format($this->ceramic_quantity, 0) . ' pcs',
-                    'packages' => number_format($this->ceramic_packages, 2) . ' dus',
+                    'packages' => NumberHelper::format($this->ceramic_packages) . ' dus',
                     'cost' => 'Rp ' . number_format($this->ceramic_total_cost, 0, ',', '.'),
                 ],
                 'nat' => [
-                    'quantity' => number_format($this->nat_quantity, 2) . ' bks',
-                    'kg' => number_format($this->nat_kg, 2) . ' kg',
+                    'quantity' => NumberHelper::format($this->nat_quantity) . ' bks',
+                    'kg' => NumberHelper::format($this->nat_kg) . ' kg',
                     'cost' => 'Rp ' . number_format($this->nat_total_cost, 0, ',', '.'),
                 ],
                 'water' => [
-                    'liters' => number_format($this->water_liters, 2) . ' liter',
+                    'liters' => NumberHelper::format($this->water_liters) . ' liter',
                 ],
             ],
             'total_cost' => 'Rp ' . number_format($this->total_material_cost, 0, ',', '.'),

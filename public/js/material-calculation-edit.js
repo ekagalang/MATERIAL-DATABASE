@@ -32,6 +32,27 @@ function initMaterialCalculationEdit(root, config) {
     const resultPanel = scope.querySelector('#resultPanel') || document.getElementById('resultPanel');
     const resultContent = scope.querySelector('#resultContent') || document.getElementById('resultContent');
 
+    function formatSmartDecimal(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
     function toggleRatioMethod() {
         const customSelected = customRadio && customRadio.checked;
 
@@ -83,9 +104,9 @@ function initMaterialCalculationEdit(root, config) {
     function updateWallArea() {
         const length = wallLengthInput ? parseFloat(wallLengthInput.value) || 0 : 0;
         const height = wallHeightInput ? parseFloat(wallHeightInput.value) || 0 : 0;
-        const area = (length * height).toFixed(2);
+        const area = length * height;
         if (wallAreaDisplay) {
-            wallAreaDisplay.textContent = area;
+            wallAreaDisplay.textContent = area > 0 ? formatSmartDecimal(area) : '';
         }
     }
 
@@ -184,12 +205,14 @@ function initMaterialCalculationEdit(root, config) {
                 if (data && data.success) {
                     displayResult(data.summary);
                 } else {
-                    alert('Error: ' + (data && data.message ? data.message : 'Tidak diketahui'));
+                    const message = 'Error: ' + (data && data.message ? data.message : 'Tidak diketahui');
+                    window.showToast(message, 'error');
                 }
             })
             .catch(function(error) {
                 console.error('Error:', error);
-                alert('Terjadi kesalahan saat menghitung');
+                const message = 'Terjadi kesalahan saat menghitung';
+                window.showToast(message, 'error');
             });
     }
 

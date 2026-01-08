@@ -13,6 +13,505 @@
     }
 })();
 </script>
+<style>
+:root {
+    --tab-foot-radius: 18px;
+    --tab-active-bg: #91C6BC;
+}
+@keyframes material-row-blink {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+  .table-container {
+      position: relative;
+  }
+  /* Single-header styling for Cat & Cement - COMPACT 40px */
+  .table-container thead.single-header th {
+      height: 40px !important;
+      padding: 8px 12px !important;
+      line-height: 1.1;
+      vertical-align: top !important;
+      box-sizing: border-box;
+  }
+  .table-container thead.single-header th a {
+      align-items: flex-start !important;
+  }
+
+  /* Double-header styling for Ceramic (and Brick/Sand) - COMPACT 40px total */
+  .table-container thead.has-dim-sub th {
+      padding: 6px 12px !important;
+      line-height: 1.1;
+      vertical-align: top !important;
+      box-sizing: border-box;
+  }
+
+  /* Ensure dim-group-row (first row) has proper height - COMPACT 26px */
+  .table-container thead.has-dim-sub tr.dim-group-row th {
+      height: 26px !important;
+  }
+
+  /* Ensure dim-sub-row (second row) has proper height - COMPACT 14px */
+  .table-container thead.has-dim-sub tr.dim-sub-row th {
+      height: 14px !important;
+      padding: 1px 2px !important;
+      font-size: 11px !important;
+  }
+
+  /* CRITICAL: Force ALL thead heights to be exactly the same - COMPACT 40px */
+  #section-brick .table-container thead,
+  #section-sand .table-container thead,
+  #section-cat .table-container thead,
+  #section-cement .table-container thead,
+  #section-ceramic .table-container thead {
+      height: 40px !important;
+  }
+
+  /* Single header rows should fill the full 40px - COMPACT */
+  #section-cat .table-container thead.single-header tr th,
+  #section-cement .table-container thead.single-header tr th {
+      height: 40px !important;
+      line-height: 1.2 !important;
+      vertical-align: top !important;
+      padding: 8px 12px !important;
+  }
+
+  /* Double header rows should total 40px (26px + 14px) - COMPACT */
+  #section-brick .table-container thead.has-dim-sub tr.dim-group-row th,
+  #section-sand .table-container thead.has-dim-sub tr.dim-group-row th,
+  #section-ceramic .table-container thead.has-dim-sub tr.dim-group-row th {
+      height: 26px !important;
+      vertical-align: top !important;
+      padding: 6px 12px !important;
+  }
+
+  #section-brick .table-container thead.has-dim-sub tr.dim-sub-row th,
+  #section-sand .table-container thead.has-dim-sub tr.dim-sub-row th,
+  #section-ceramic .table-container thead.has-dim-sub tr.dim-sub-row th {
+      height: 14px !important;
+      padding: 1px 2px !important;
+      font-size: 11px !important;
+      vertical-align: top !important;
+  }
+
+  /* CRITICAL: Force ALL thead th to align top */
+  #section-brick .table-container thead th,
+  #section-sand .table-container thead th,
+  #section-cat .table-container thead th,
+  #section-cement .table-container thead th,
+  #section-ceramic .table-container thead th {
+      vertical-align: top !important;
+  }
+  /* Override global.css - make all tbody td consistent */
+  .table-container tbody td {
+      height: 20px !important;
+      padding: 0 6px !important;
+      line-height: 1.1 !important;
+      vertical-align: middle !important;
+  }
+
+  /* Specific overrides for dimension cells - SEMUA MATERIAL */
+  .table-container tbody td.dim-cell {
+      text-align: center !important;
+      font-size: 12px !important;
+      width: 40px !important;
+      padding: 0 2px !important;
+  }
+
+  /* Specific overrides for volume cells - SEMUA MATERIAL */
+  .table-container tbody td.volume-cell {
+      text-align: right !important;
+      font-size: 12px !important;
+      padding: 0 8px !important;
+      width: auto !important;
+  }
+
+  /* CRITICAL: Force consistent cell heights across ALL materials */
+  #section-brick .table-container tbody td,
+  #section-sand .table-container tbody td,
+  #section-cat .table-container tbody td,
+  #section-cement .table-container tbody td,
+  #section-ceramic .table-container tbody td {
+      height: 35px !important;
+      padding: 2px 8px !important;
+      font-size: 13px !important;
+      line-height: 1.3 !important;
+  }
+
+  /* Force dimension cells to be identical across ALL materials */
+  #section-brick .table-container tbody td.dim-cell,
+  #section-sand .table-container tbody td.dim-cell,
+  #section-ceramic .table-container tbody td.dim-cell {
+      text-align: center !important;
+      font-size: 12px !important;
+      width: 40px !important;
+      padding: 2px 2px !important;
+      height: 35px !important;
+  }
+
+  /* Force volume cells to be identical */
+  #section-brick .table-container tbody td.volume-cell,
+  #section-sand .table-container tbody td.volume-cell {
+      text-align: right !important;
+      font-size: 12px !important;
+      padding: 2px 8px !important;
+      height: 35px !important;
+  }
+
+  .btn-group-compact {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  }
+  .btn-group-compact .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 22px;
+      width: 26px;
+      padding: 0;
+      margin: 0;
+      border-radius: 0 !important;
+      font-size: 12px;
+      line-height: 1;
+  }
+  .btn-group-compact .btn-action:first-child {
+      border-top-left-radius: 999px !important;
+      border-bottom-left-radius: 999px !important;
+  }
+  .btn-group-compact .btn-action:last-child {
+      border-top-right-radius: 999px !important;
+      border-bottom-right-radius: 999px !important;
+  }
+  .btn-group-compact .btn-action + .btn-action {
+      border-left: 1px solid rgba(255, 255, 255, 0.35);
+  }
+.material-row-outline {
+    position: absolute;
+    border: 2px solid #891313;
+    border-radius: 6px;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: material-row-blink 1.2s ease-in-out 0s 2;
+    z-index: 5;
+}
+  .material-footer-sticky {
+      position: sticky;
+      bottom: 0;
+      margin-top: 20px;
+      margin-bottom: -20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      z-index: 6;
+      background: transparent;
+      border-top: none;
+      box-shadow: none;
+      padding: 0;
+  }
+  .material-footer-count {
+      display: inline-block;
+      transform: translateY(2px);
+      color: var(--special-text-color) !important;
+      -webkit-text-stroke: var(--special-text-stroke) !important;
+      font-weight: var(--special-font-weight) !important;
+      text-shadow: var(--special-text-shadow) !important;
+  }
+  .material-footer-label {
+      color: var(--special-text-color) !important;
+      -webkit-text-stroke: var(--special-text-stroke) !important;
+      font-weight: var(--special-font-weight) !important;
+      text-shadow: var(--special-text-shadow) !important;
+  }
+  .material-footer-left {
+      align-items: center;
+  }
+.material-footer-sticky::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 100vw;
+    transform: translateX(-50%);
+    background: rgba(248, 250, 252, 0.98);
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.08);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: -1;
+}
+.material-footer-sticky.is-stuck {
+    position: fixed;
+    left: var(--footer-left, 0px);
+    width: var(--footer-width, 100%);
+    min-height: 48px;
+    padding: 2px 8px;
+    margin-top: 0;
+    margin-bottom: 0;
+    gap: 8px;
+    justify-content: space-between;
+}
+.material-footer-sticky.is-stuck::before {
+    opacity: 1;
+}
+.material-footer-sticky.is-stuck .kanggo-logo img {
+    height: 48px !important;
+}
+.material-footer-sticky.is-stuck .kanggo-letters {
+    height: 17px !important;
+    margin-top: 0 !important;
+}
+.material-footer-sticky.is-stuck .kanggo-img {
+    height: 18px !important;
+    width: auto !important;
+}
+.material-footer-sticky.is-stuck img[alt="Hexagon"] {
+    width: 40px !important;
+    height: 40px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-left,
+.material-footer-sticky.is-stuck .material-footer-center,
+.material-footer-sticky.is-stuck .material-footer-right {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+.material-footer-sticky.is-stuck .material-footer-left {
+    align-items: center;
+}
+.material-footer-sticky.is-stuck .material-footer-center {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.material-footer-sticky.is-stuck .kanggo-container {
+    transform: translateX(-110px);
+}
+.material-footer-sticky.is-stuck .material-footer-right {
+    align-items: center;
+}
+.material-tab-header {
+    gap: 12px;
+}
+.material-tab-header .material-tabs {
+    position: relative;
+    flex: 1 1 67%;
+    width: auto;
+    top: -1px;
+}
+.material-tab-header .material-settings-menu {
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+.material-tabs.only-filter .material-settings-btn.active::before {
+    content: none;
+}
+.material-tab-actions {
+    flex: 0 0 33%;
+    max-width: 33%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+.material-tab-action {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    width: 100%;
+}
+.material-tab-action.active {
+    display: flex;
+    --tab-border-color: #91C6BC;
+    position: relative;
+    background: #91C6BC;
+    border: 2px solid #91C6BC;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    padding: 10px 12px 12px;
+    margin-bottom: -1px;
+    z-index: 6;
+    overflow: visible !important;
+    min-height: 48px;
+    max-height: 48px;
+}
+.material-tab-actions {
+    overflow: visible !important;
+}
+.material-tab-header {
+    overflow: visible !important;
+}
+.material-tabs {
+    overflow: visible !important;
+}
+.material-tab-btn {
+    overflow: visible !important;
+}
+.material-tab-btn.active {
+    --tab-border-color: #91C6BC;
+}
+/* Kaki cekung untuk TAB MATERIAL (Bata, Cat, dll) - BENAR SEKARANG */
+.material-tab-btn.active::before {
+    content: "" !important;
+    position: absolute;
+    bottom: -2px;
+    right: calc(100% - 1px);
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background:
+        radial-gradient(
+            circle at 0 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            var(--tab-active-bg) var(--tab-foot-radius)
+        );
+    background-position: bottom right;
+    pointer-events: none;
+    z-index: 5;
+}
+.material-tab-btn.active::after {
+    content: "" !important;
+    position: absolute;
+    bottom: -2px;
+    left: calc(100% - 1px);
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background:
+        radial-gradient(
+            circle at 100% 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            var(--tab-active-bg) var(--tab-foot-radius)
+        );
+    background-position: bottom left;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Tab PERTAMA yang visible - cuma kaki KANAN (hapus kaki kiri) */
+.material-tab-btn.active.first-visible::before {
+    content: none !important;
+}
+
+/* Tab TERAKHIR yang visible - cuma kaki KIRI (hapus kaki kanan) */
+.material-tab-btn.active.last-visible::after {
+    content: none !important;
+}
+
+/* Kaki cekung untuk SEARCH ACTION ROW - KIRI SAJA */
+.material-tab-action.active::before {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    right: calc(100% - 1px);
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background:
+        radial-gradient(
+            circle at 0 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            var(--tab-active-bg) var(--tab-foot-radius)
+        );
+    background-position: bottom right;
+    pointer-events: none;
+    z-index: 5;
+}
+/* Hapus kaki kanan untuk search action row */
+.material-tab-action.active::after {
+    content: none !important;
+}
+.material-search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+.material-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative;
+    padding: 2px 0;
+}
+.material-search-input input {
+    width: 100%;
+    height: 32px;
+    padding: 4px 10px 4px 30px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+.material-search-input i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: var(--text-color);
+    opacity: 0.8;
+    z-index: 2;
+    pointer-events: none;
+}
+.material-tab-action .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+}
+@media (max-width: 1200px) {
+    .material-tab-header {
+        flex-wrap: wrap;
+    }
+    .material-tab-header .material-tabs,
+    .material-tab-actions {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+    .material-tab-actions {
+        margin-top: 8px;
+    }
+}
+.material-footer-sticky.is-stuck .material-footer-hex-block {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-hex {
+    width: 40px !important;
+    height: 40px !important;
+}
+  .material-footer-sticky.is-stuck .material-footer-hex-inner {
+      width: 36px !important;
+  }
+  .material-footer-sticky.is-stuck .material-footer-count {
+      font-size: 20px !important;
+  }
+  .material-footer-sticky.is-stuck .material-footer-label {
+      margin-top: 0 !important;
+      font-size: 12px !important;
+      line-height: 1 !important;
+      color: var(--text-color) !important;
+      -webkit-text-stroke: 0 !important;
+      text-shadow: none !important;
+      font-weight: bold !important;
+  }
+.material-footer-sticky.is-stuck .material-footer-right .btn {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+}
+</style>
 
 <div class="card">
     @php
@@ -28,97 +527,7 @@
         }
     @endphp
     <div class="material-tab-wrapper">
-        <style>
-            /* 3D Floating Effects */
-            .table-container {
-                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2), 0 5px 15px rgba(0, 0, 0, 0.1);
-                border-radius: 16px; /* Rounded corners for the floating table */
-                overflow-x: auto; /* Enable horizontal scroll */
-                overflow-y: hidden; /* Hide vertical scroll if not needed */
-                margin-top: 15px; /* Space for shadow */
-                margin-bottom: 30px; /* Space for shadow */
-                background: #fff;
-                border: 1px solid rgba(0,0,0,0.08);
-                -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
-            }
-
-            /* Floating Buttons */
-            .btn {
-                box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.1); /* Stronger standby shadow */
-                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-                transform: translateY(0);
-                border: 1px solid #f6f3c2 !important;
-                position: relative;
-                background-clip: padding-box;
-            }
-
-            .btn:hover, .material-settings-btn:hover {
-                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25), 0 10px 20px rgba(0, 0, 0, 0.15);
-                filter: brightness(1.08);
-            }
-
-            .btn:active, .material-settings-btn:active {
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                transform: translateY(-1px);
-            }
-
-            /* Kanggo Pagination Floating Effect (Image specific) */
-            .kanggo-img-link {
-                transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-                display: inline-block;
-                border: none !important; /* Ensure no box border */
-            }
-
-            .kanggo-img-link img {
-                filter: drop-shadow(0 4px 3px rgba(0,0,0,0.15)); /* Shadow follows image shape */
-                transition: all 0.25s ease;
-            }
-
-            .kanggo-img-link:hover {
-                transform: translateY(-5px);
-            }
-
-            .kanggo-img-link:hover img {
-                filter: drop-shadow(0 8px 6px rgba(0,0,0,0.25)) brightness(1.1);
-            }
-
-            .kanggo-img-link:active {
-                transform: translateY(-1px);
-            }
-            
-            .kanggo-img-link:active img {
-                 filter: drop-shadow(0 2px 2px rgba(0,0,0,0.15));
-            }
-            
-            /* Ensure settings button keeps its specific style overrides if needed, but inheriting floating effect */
-            
-            /* Force header visibility */
-            .table-container thead th {
-                background-color: #891313 !important;
-                color: #ffffff !important;
-                vertical-align: top !important;
-                text-align: center !important;
-                padding-top: 10px !important;
-                height: 40px !important;
-            }
-
-            /* Reset height for split dimension headers to allow them to stack within the fixed height */
-            .table-container thead .dim-group-row th:not([rowspan]),
-            .table-container thead .dim-sub-row th {
-                height: auto !important;
-            }
-            
-            /* Table Body Alignment: Top Center */
-            .table-container table td {
-                vertical-align: top !important;
-                background-color: #ffffff !important;
-            }
-
-            /* Ensure body scroll is not locked */
-            body {
-                overflow: auto !important;
-            }
-        </style>
+        
         <div class="material-tab-header">
             <div class="material-tabs">
                 @foreach($materials as $material)
@@ -132,6 +541,7 @@
 
                 <div class="material-settings-dropdown">
                     <button type="button" id="materialSettingsToggle" class="material-settings-btn">
+                        <i class="bi bi-sliders"></i>
                         <span>Filter</span>
                     </button>
                     <div class="material-settings-menu" id="materialSettingsMenu">
@@ -152,12 +562,40 @@
                             @endforeach
                         </div>
                         <div style="padding: 12px 16px; border-top: 1.5px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: center;">
-                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary" style="font-size: 12px;">
+                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary-glossy " style="font-size: 12px;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="material-tab-actions">
+                @foreach($materials as $material)
+                    <div class="material-tab-action {{ $material['type'] === $activeTab ? 'active' : '' }}" data-tab="{{ $material['type'] }}">
+                        <form action="{{ route('materials.index') }}" method="GET" class="material-search-form manual-search" data-search-manual="true">
+                            <input type="hidden" name="tab" value="{{ $material['type'] }}">
+                            <div class="material-search-input">
+                                <i class="bi bi-search"></i>
+                                <input type="text"
+                                    name="search"
+                                    value="{{ request('search') }}"
+                                    placeholder="Cari {{ strtolower($material['label']) }}...">
+                            </div>
+                            <button type="submit" class="btn btn-primary-glossy">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                            @if(request('search'))
+                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary-glossy ">
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            @endif
+                        </form>
+                        <a href="{{ route($material['type'] . 's.create') }}"
+                           class="btn btn-glossy open-modal">
+                            <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
+                        </a>
+                    </div>
+                @endforeach
             </div>
         </div>
 
@@ -170,50 +608,14 @@
 
         @if(count($materials) > 0)
             @foreach($materials as $material)
-                <div class="material-section material-tab-panel {{ $material['type'] === $activeTab ? 'active' : 'hidden' }}" data-tab="{{ $material['type'] }}" id="section-{{ $material['type'] }}" style="margin-bottom: 24px;">
+                {{-- Removed 'material-section' class to prevent global CSS margin-top conflict which causes gap between tab and content --}}
+                <div class="material-tab-panel {{ $material['type'] === $activeTab ? 'active' : 'hidden' }}" data-tab="{{ $material['type'] }}" id="section-{{ $material['type'] }}" style="margin-bottom: 24px;">
                     <div class="material-tab-card">
                     
-
                     @if($material['data']->count() > 0)
-                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <form action="{{ route('materials.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
-                            <div style="flex: 1; position: relative;">
-                                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px;"></i>
-                                <input type="text"
-                                    name="search"
-                                    value="{{ request('search') }}"
-                                    placeholder="Cari semua material..."
-                                    style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s ease;">
-                            </div>
-                            <button type="submit" class="btn btn-primary-glossy">
-                                <i class="bi bi-search"></i> Cari
-                            </button>
-                            @if(request('search'))
-                                <a href="{{ route('materials.index') }}" class="btn btn-secondary">
-                                    <i class="bi bi-x-lg"></i> Reset
-                                </a>
-                            @endif
-                        </form>
-
-                        {{-- Tombol Lama (Commented Out) --}}
-                        {{-- <div style="display: flex; gap: 12px; flex-shrink: 0;">
-                            <button type="button" id="openMaterialChoiceModal" class="btn btn-success">
-                                <i class="bi bi-plus-lg"></i> Tambah Data
-                            </button>
-                        </div> --}}
-
-                        {{-- Tombol Baru (Spesifik per Material) --}}
-                        <div style="display: flex; gap: 12px; flex-shrink: 0;">
-                            <a href="{{ route($material['type'] . 's.create') }}"
-                            class="btn btn-glossy open-modal">
-                                <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
-                            </a>
-                        </div>
-
-                    </div>
                 <div class="table-container text-nowrap">
                     <table>
-                        <thead style="background-color: #891313; color: white;">
+                        <thead class="{{ in_array($material['type'], ['brick','sand','ceramic']) ? 'has-dim-sub' : 'single-header' }}">
                             @php                                   
                               if (!function_exists('getMaterialSortUrl')) {
                                     function getMaterialSortUrl($column, $currentSortBy, $currentDirection) {
@@ -349,7 +751,7 @@
                                                     </a>
                                                 </th>
                                             @endforeach
-                                            <th rowspan="2">Aksi</th>
+                                            <th rowspan="2" class="action-cell">Aksi</th>
                                         </tr>
                                         <tr class="dim-sub-row">
                                             @foreach(['P', 'L', 'T'] as $label)
@@ -407,14 +809,14 @@
                                                                                     </a>
                                                                                 </th>
                                                                             @endforeach
-                                                                        <th rowspan="2">Aksi</th>
+                                                                        <th rowspan="2" class="action-cell">Aksi</th>
                                                                     </tr>
                                                                     <tr class="dim-sub-row">
                                                                         @foreach(['P', 'L', 'T'] as $label)
                                                                             <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
                                                                         @endforeach
                                                                     </tr>
-                                                                        @elseif($material['type'] == 'cat')
+                                                                @elseif($material['type'] == 'cat')
                                                                     <tr>
                                                                         <th>No</th>
                                                                         @foreach(['type','brand','sub_brand'] as $col)
@@ -489,13 +891,13 @@
                                                                                 </a>
                                                                             </th>
                                                                         @endforeach
-                                                                        <th>Aksi</th>
+                                                                        <th class="action-cell">Aksi</th>
                                                                     </tr>
                                                                 @elseif($material['type'] == 'cement')
-                                                                    <tr class="dim-group-row">
-                                                                        <th rowspan="2">No</th>
+                                                                    <tr>
+                                                                        <th>No</th>
                                                                         @foreach(['type','brand','sub_brand'] as $col)
-                                                                            <th class="sortable" rowspan="2">
+                                                                            <th class="sortable">
                                                                                 <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                                                     <span>{{ $cementSortable[$col] }}</span>
@@ -507,7 +909,7 @@
                                                                                 </a>
                                                                             </th>
                                                                         @endforeach
-                                                                        <th class="sortable" rowspan="2">
+                                                                        <th class="sortable">
                                                                             <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
                                                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                                                 <span>{{ $cementSortable['code'] }}</span>
@@ -518,7 +920,7 @@
                                                                                 @endif
                                                                             </a>
                                                                         </th>
-                                        <th class="sortable" rowspan="2">
+                                        <th class="sortable">
                                             <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
                                             style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $cementSortable['color'] }}</span>
@@ -529,7 +931,7 @@
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" rowspan="2">
+                                        <th class="sortable">
                                             <a href="{{ getMaterialSortUrl('package_unit', request('sort_by'), request('sort_direction')) }}"
                                             style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $cementSortable['package_unit'] }}</span>
@@ -540,19 +942,9 @@
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
-                                            <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
-                                            style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Dimensi (cm)</span>
-                                                @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
-                                                @else
-                                                    <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
-                                                @endif
-                                            </a>
-                                        </th>
+
                                         @foreach(['package_weight_net','store','address','package_price','comparison_price_per_kg'] as $col)
-                                        <th class="sortable" rowspan="2">
+                                        <th class="sortable">
                                             <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                             style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{!! $cementSortable[$col] !!}</span>
@@ -564,12 +956,7 @@
                                             </a>
                                         </th>
                                         @endforeach
-                                        <th rowspan="2">Aksi</th>
-                                    </tr>
-                                    <tr class="dim-sub-row">
-                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">P</th>
-                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">L</th>
-                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">T</th>
+                                        <th class="action-cell">Aksi</th>
                                     </tr>
                                 @elseif($material['type'] == 'ceramic')
                                     <tr class="dim-group-row">
@@ -624,7 +1011,7 @@
                                                 </a>
                                             </th>
                                         @endforeach
-                                        <th rowspan="2">Aksi</th>
+                                        <th rowspan="2" class="action-cell">Aksi</th>
                                     </tr>
                                     <tr class="dim-sub-row">
                                         <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">P</th>
@@ -633,11 +1020,34 @@
                                     </tr>
                                 @endif
                             </thead>
+                            @php
+                                $letterGroups = $material['data']->groupBy(function ($item) {
+                                    $brand = trim($item->brand ?? '');
+                                    return $brand !== '' ? strtoupper(substr($brand, 0, 1)) : '#';
+                                });
+                                $orderedGroups = collect();
+                                foreach ($material['active_letters'] as $letter) {
+                                    if ($letterGroups->has($letter)) {
+                                        $orderedGroups[$letter] = $letterGroups[$letter];
+                                    }
+                                }
+                                if ($letterGroups->has('#')) {
+                                    $orderedGroups['#'] = $letterGroups['#'];
+                                }
+                                $rowNumber = 1;
+                            @endphp
                             <tbody>
-                                @foreach($material['data'] as $index => $item)
+                                @foreach($orderedGroups as $letter => $items)
+                                    @php
+                                        $anchorId = $letter === '#' ? 'other' : $letter;
+                                    @endphp
+                                    @foreach($items as $item)
+                                        @php
+                                            $rowAnchorId = $loop->first ? $material['type'] . '-letter-' . $anchorId : null;
+                                        @endphp
                                 <tr>
-                                    <td style="text-align: center; font-weight: 500;">
-                                        {{ $material['data']->firstItem() + $index }}
+                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" style="scroll-margin-top: 120px;" @endif>
+                                        {{ $rowNumber++ }}
                                     </td>
                                     @if($material['type'] == 'brick')
                                         <td>{{ $item->type ?? '-' }}</td>
@@ -645,33 +1055,33 @@
                                         <td>{{ $item->form ?? '-' }}</td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_height))
-                                                {{ rtrim(rtrim(number_format($item->dimension_height, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_height)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="volume-cell" style="text-align: right; font-size: 12px;">
                                             @if($item->package_volume)
-                                                {{ number_format($item->package_volume, 6, ',', '.') }} M3
+                                                @format($item->package_volume) M3
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
+                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
                                         <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->price_per_piece)
@@ -691,30 +1101,30 @@
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td>{{ $item->sub_brand ?? '-' }}</td>
-                                        <td style="font-size: 12px; text-align:right;">{{ $item->color_code ?? '-' }}</td>
-                                        <td style="text-align:left;">{{ $item->color_name ?? '-' }}</td>
-                                        <td style="font-size: 13px;">
+                                        <td class="dim-cell">{{ $item->color_code ?? '-' }}</td>
+                                        <td class="dim-cell">{{ $item->color_name ?? '-' }}</td>
+                                        <td class="dim-cell">
                                             @if($item->package_unit)
                                                 {{ $item->packageUnit?->name ?? $item->package_unit }} ({{ $item->package_weight_gross }} Kg)
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; font-size: 12px;">
+                                        <td>
                                             @if($item->volume)
-                                                {{ rtrim(rtrim(number_format($item->volume, 2, ',', '.'), '0'), ',') }} {{ $item->volume_unit }}
+                                                @format($item->volume) {{ $item->volume_unit }}
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; font-size: 13px;">
+                                        <td>
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
-                                                {{ rtrim(rtrim(number_format($item->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
+                                                @format($item->package_weight_net) Kg
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
+                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
                                         <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->purchase_price)
@@ -734,45 +1144,25 @@
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td>{{ $item->sub_brand ?? '-' }}</td>
-                                        <td style="font-size: 12px; text-align:right;">{{ $item->code ?? '-' }}</td>
-                                        <td style="text-align:left;">{{ $item->color ?? '-' }}</td>
-                                        <td style="font-size: 13px;">
+                                        <td class="dim-cell" style="font-size: 12px; text-align:right;">{{ $item->code ?? '-' }}</td>
+                                        <td class="dim-cell" style="text-align:left;">{{ $item->color ?? '-' }}</td>
+                                        <td class="dim-cell" style="font-size: 13px;">
                                             @if($item->package_unit)
                                                 {{ $item->packageUnit?->name ?? $item->package_unit }}
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <!-- Dimensi Data -->
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
-                                            @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length * 100, 1, ',', '.'), '0'), ',') }}
-                                            @else
-                                                <span>-</span>
-                                            @endif
-                                        </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
-                                            @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width * 100, 1, ',', '.'), '0'), ',') }}
-                                            @else
-                                                <span>-</span>
-                                            @endif
-                                        </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
-                                            @if(!is_null($item->dimension_height))
-                                                {{ rtrim(rtrim(number_format($item->dimension_height * 100, 1, ',', '.'), '0'), ',') }}
-                                            @else
-                                                <span>-</span>
-                                            @endif
-                                        </td>
+                                        <!-- Dimensi Data Removed -->
+                                        
                                         <td style="text-align: right; font-size: 13px;">
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
-                                                {{ rtrim(rtrim(number_format($item->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
+                                                @format($item->package_weight_net) Kg
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
+                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
                                         <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->package_price)
@@ -800,33 +1190,33 @@
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 2, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width, 2, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_height))
-                                                {{ rtrim(rtrim(number_format($item->dimension_height, 2, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_height)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="volume-cell" style="text-align: right; font-size: 12px;">
                                             @if($item->package_volume)
-                                                {{ number_format($item->package_volume, 6, ',', '.') }} M3
+                                                @format($item->package_volume) M3
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
+                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
                                         <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->package_price)
@@ -859,33 +1249,33 @@
                                         </td>
                                         <td style="text-align: right; font-size: 12px;">
                                             @if($item->area_per_piece)
-                                                {{ number_format($item->area_per_piece, 4, ',', '.') }} M²
+                                                @format($item->area_per_piece) M²
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_thickness))
-                                                {{ rtrim(rtrim(number_format($item->dimension_thickness, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_thickness)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 4px 10px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
+                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
                                         <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->price_per_package)
@@ -902,72 +1292,79 @@
                                             @endif
                                         </td>
                                     @endif
-                                    <td class="text-center">
-                                        <div class="btn-group">
-                                            <a href="{{ route($material['type'] . 's.show', $item->id) }}" class="btn btn-primary-glossy btn-sm open-modal" title="Detail">
+                                    <td class="text-center action-cell">
+                                        <div class="btn-group-compact">
+                                            <a href="{{ route($material['type'] . 's.show', $item->id) }}" class="btn btn-primary-glossy btn-action open-modal" title="Detail">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <a href="{{ route($material['type'] . 's.edit', $item->id) }}" class="btn btn-warning btn-sm open-modal" title="Edit">
+                                            <a href="{{ route($material['type'] . 's.edit', $item->id) }}" class="btn btn-warning btn-action open-modal" title="Edit">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
+                                            <button type="button"
+                                                class="btn btn-danger btn-action"
+                                                title="Hapus"
+                                                onclick="deleteMaterial('{{ $material['type'] }}', {{ $item->id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <div style="position: relative; margin-top: 20px; margin-bottom: -20px; display: flex; align-items: center; justify-content: center; min-height: 80px;">
+                    <div class="material-footer-sticky">
                         
                         <!-- Left Area: Stats Info (Absolute Positioned) -->
-                        <div style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row; gap: 8px;">
+                        <div class="material-footer-left" style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row; gap: 8px;">
 
                             <!-- HEXAGON PER MATERIAL -->
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total {{ $material['label'] }}">
                                 
-                                <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                <div class="material-footer-hex" style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
                                     <img src="./assets/hex1.png"
                                         alt="Hexagon"
                                         style="width: 74px; height: 74px;">
 
-                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
                                             {{ number_format($material['db_count'], 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
                                 
-                                <span style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important;">
+                                <span class="material-footer-label">
                                     {{ $material['label'] }}
                                 </span>
                             </div>
 
                             <!-- HEXAGON TOTAL -->
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total Semua Material">
                                 
-                                <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                <div class="material-footer-hex" style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
                                     <img src="./assets/hex2.png"
                                         alt="Hexagon"
                                         style="width: 74px; height: 74px;">
 
-                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
                                             {{ number_format($grandTotal, 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
 
-                                <span style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important; text-align: center; line-height: 1.2;">
-                                    SEMUA MATERIAL
+                                <span class="material-footer-label">
+                                    Total Material
                                 </span>
                             </div>
 
                         </div>
 
                         <!-- Center Area: Pagination & Kanggo Logo -->
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; top: -10px;">
+                        <div class="material-footer-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; top: -10px;">
 
 
 
@@ -979,93 +1376,19 @@
                                 </div>
                                 <div class="kanggo-letters" style="justify-content: center; margin-top: 5px; height: 80px;">
                                     @php
-                                        // Get active letters and find current position
                                         $activeLetters = $material['active_letters'];
-                                        $currentLetter = $material['current_letter'];
-                                        $currentPosition = array_search($currentLetter, $activeLetters);
-                                        if ($currentPosition === false) $currentPosition = -1;
-                                        
-                                        // Pagination Logic variables
-                                        $paginator = $material['data'];
-                                        $pageName = $material['type'] . '_page';
-                                        $currentPage = $paginator->currentPage();
-                                        $lastPage = $paginator->lastPage();
-                                        
-                                        // Helper to build page URL
-                                        $getPageUrl = function($page) use ($pageName) {
-                                            $params = request()->query();
-                                            $params[$pageName] = $page;
-                                            return route('materials.index', $params);
-                                        };
                                     @endphp
 
                                     @foreach(range('A', 'Z') as $index => $char)
                                         @php
                                             $isActive = in_array($char, $activeLetters);
-                                            $isCurrent = $char === $currentLetter;
-                                            $imgIndex = $index + 1; // 0-based index to 1-based (1.png for A, etc)
-
-                                            // Calculate gradient for buttons before current
-                                            $gradientClass = '';
-                                            $gradientStyle = '';
-
-                                            if ($isActive && !$isCurrent) {
-                                                $letterPosition = array_search($char, $activeLetters);
-
-                                                if ($letterPosition !== false && $currentPosition !== false && $letterPosition < $currentPosition) {
-                                                    // This button is before current - apply gradient
-                                                    $gradientClass = 'gradient-active';
-                                                    $totalSteps = $currentPosition; // Total buttons before current
-                                                    $positionIndex = $letterPosition; // 0-based position
-
-                                                    // Calculate intensity
-                                                    $intensity = $totalSteps > 0 ? ($positionIndex / $totalSteps) : 0;
-
-                                                    // Approach baru: Sepia full + saturate tinggi + brightness untuk gradasi
-                                                    $sepia = 1.0;
-                                                    $saturate = 3.5 + ($intensity * 1.0); 
-                                                    $hueRotate = -35;
-                                                    $brightness = 2.5 - ($intensity * 1.2); 
-                                                    $contrast = 1.3;
-
-                                                    $gradientStyle = "filter: grayscale(0%) sepia({$sepia}) saturate({$saturate}) hue-rotate({$hueRotate}deg) brightness({$brightness}) contrast({$contrast});";
-                                                }
-                                            }
+                                            $imgIndex = $index + 1;
                                         @endphp
 
                                         @if($isActive)
-                                            @if($isCurrent)
-                                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 0 0 2px;">
-                                                    <!-- Up Arrow (Prev Page) -->
-                                                    <a href="{{ $currentPage > 1 ? $getPageUrl($currentPage - 1) : '#' }}" 
-                                                       class="page-arrow-btn {{ $currentPage <= 1 ? 'disabled' : '' }}"
-                                                       title="{{ $currentPage > 1 ? 'Halaman Sebelumnya' : '' }}"
-                                                       style="color: {{ $currentPage > 1 ? '#0046FF' : '#cbd5e1' }} !important;">
-                                                        <i class="bi bi-chevron-up"></i>
-                                                    </a>
-
-                                                    <!-- Active Letter Image -->
-                                                    <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
-                                                       class="kanggo-img-link current"
-                                                       style="margin: 2px 0;">
-                                                        <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
-                                                    </a>
-
-                                                    <!-- Down Arrow (Next Page) -->
-                                                    <a href="{{ $currentPage < $lastPage ? $getPageUrl($currentPage + 1) : '#' }}" 
-                                                       class="page-arrow-btn {{ $currentPage >= $lastPage ? 'disabled' : '' }}"
-                                                       title="{{ $currentPage < $lastPage ? 'Halaman Selanjutnya' : '' }}"
-                                                       style="color: {{ $currentPage < $lastPage ? '#0046FF' : '#cbd5e1' }} !important;">
-                                                        <i class="bi bi-chevron-down"></i>
-                                                    </a>
-                                                </div>
-                                            @else
-                                                <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
-                                                   class="kanggo-img-link {{ $gradientClass }}"
-                                                   style="{{ $gradientStyle }}">
-                                                    <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
-                                                </a>
-                                            @endif
+                                            <a href="#{{ $material['type'] }}-letter-{{ $char }}" class="kanggo-img-link">
+                                                <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
+                                            </a>
                                         @endif
                                     @endforeach
                                 </div>
@@ -1073,19 +1396,33 @@
                             @endif
                         </div>
 
-                        <!-- Right Area: Button (Absolute Positioned) -->
-                        <div style="position: absolute; right: 0; top: 50%; transform: translateY(calc(-50% - 10px));">
+                        <!-- Right Area: Button (Absolute Positioned) 
+                        <div class="material-footer-right" style="position: absolute; right: 0; top: 50%; transform: translateY(calc(-50% - 10px));">
                             <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary-glossy">
                                 Lihat Semua <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
                             </a>
                         </div>
+                        -->
                     </div>
                 @else
-                    <div style="padding: 40px; text-align: center; color: #94a3b8;">
+                    <div style="padding: 60px 40px; text-align: center; color: #64748b; background: #fff; border-radius: 12px; border: 1px dashed #e2e8f0; margin-top: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">🔍</div>
+                        <h4 style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Tidak ada data ditemukan</h4>
+                        <p style="margin: 0 0 24px 0; font-size: 14px;">
+                            @if(request('search'))
+                                Pencarian untuk "<strong>{{ request('search') }}</strong>" di kategori {{ $material['label'] }} tidak membuahkan hasil.
+                            @else
+                                Belum ada data {{ strtolower($material['label']) }} yang tersedia.
+                            @endif
+                        </p>
                         @if(request('search'))
-                            Tidak ada data {{ strtolower($material['label']) }} yang cocok dengan pencarian "{{ request('search') }}"
+                            <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary-glossy ">
+                                <i class="bi bi-arrow-counterclockwise"></i> Reset Pencarian
+                            </a>
                         @else
-                            Tidak ada data {{ strtolower($material['label']) }} untuk huruf <strong>{{ $material['current_letter'] }}</strong>
+                            <a href="{{ route($material['type'] . 's.create') }}" class="btn btn-primary-glossy open-modal">
+                                <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }} Baru
+                            </a>
                         @endif
                     </div>
                 @endif
@@ -1149,10 +1486,10 @@
 <!-- Floating Modal -->
 <div id="floatingModal" class="floating-modal">
     <div class="floating-modal-backdrop"></div>
-    <div class="floating-modal-content">
+        <div class="floating-modal-content">
         <div class="floating-modal-header">
             <h2 id="modalTitle">Detail Material</h2>
-            <button class="floating-modal-close" id="globalCloseModal">&times;</button>
+            <button class="floating-modal-close" id="floatingCloseModal">&times;</button>
         </div>
         <div class="floating-modal-body" id="modalBody">
             <div style="text-align: center; padding: 60px; color: #94a3b8;">
@@ -1163,786 +1500,9 @@
     </div>
 </div>
 
-<style>
-/* Page Arrow Buttons */
-.page-arrow-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 14px;
-    color: #0046FF;
-    font-size: 14px;
-    text-decoration: none;
-    transition: all 0.2s;
-    cursor: pointer;
-    line-height: 1;
-}
 
-.page-arrow-btn:hover {
-    color: #0037cd;
-    transform: scale(1.2);
-}
 
-.page-arrow-btn.disabled {
-    color: #cbd5e1;
-    pointer-events: none;
-    cursor: default;
-}
-
-/* Modal Styles - Modern & Minimalist */
-.floating-modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 9999;
-    animation: fadeIn 0.2s ease;
-}
-
-.floating-modal.active {
-    display: block;
-}
-
-.floating-modal-backdrop {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-
-.floating-modal-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
-    max-width: 95%;
-    max-height: 95vh;
-    width: 1200px;
-    overflow: hidden;
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.floating-modal-header {
-    padding: 24px 32px;
-    border-bottom: 1.5px solid #f1f5f9;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f8fafc;
-    position: relative; /* Added for ::before positioning */
-    overflow: hidden;   /* Added to contain the extended ::before */
-}
-
-.floating-modal-header h2 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 700;
-    color: #ffffff; /* Changed text color to white */
-    padding: 8px 0; /* Added padding */
-    position: relative; /* Added for z-index and ::before relative positioning */
-    z-index: 1; /* Ensures text is above the ::before background */
-    flex: 1; /* Allows h2 to take available space */
-}
-
-.floating-modal-header h2::before {
-    content: '';
-    position: absolute;
-    left: -32px; /* Compensates for parent padding-left */
-    right: -200px; /* Extends far enough to cover the button and right edge */
-    top: 0;
-    bottom: 0;
-    background: #891313;
-    z-index: -1; /* Places the background behind the h2 text */
-}
-
-.floating-modal-close {
-    background: transparent;
-    border: none;
-    font-size: 28px;
-    color: #ffffff; /* Changed to white */
-    cursor: pointer;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    position: relative; /* Added position */
-    z-index: 10; /* Added z-index */
-}
-
-.floating-modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-}
-
-.floating-modal-body {
-    padding: 32px;
-    overflow-y: auto;
-    max-height: calc(95vh - 90px);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes slideUp {
-    from {
-        transform: translate(-50%, -48%);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, -50%);
-        opacity: 1;
-    }
-}
-
-/* Scrollbar styling */
-.floating-modal-body::-webkit-scrollbar {
-    width: 10px;
-}
-
-.floating-modal-body::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 5px;
-}
-
-.floating-modal-body::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 5px;
-}
-
-.floating-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-.table-container table {
-    border-collapse: collapse;
-    border-spacing: 0;
-}
-
-.table-container thead th {
-    white-space: nowrap;
-}
-
-.table-container thead .dim-group-row th {
-    border-bottom: 0 !important;
-    padding-top: 10px !important;
-    padding-bottom: 0 !important;
-    line-height: 1.2;
-}
-
-.table-container thead .dim-sub-row th {
-    border-top: 0 !important;
-    border-bottom: 0 !important;
-    border-left: 0 !important;
-    border-right: 0 !important;
-    padding: 0 2px 8px 2px !important;
-    width: 40px;
-    position: relative;
-    line-height: 1.2;
-    vertical-align: top !important;
-}
-
-.table-container tbody td.dim-cell {
-    padding: 14px 2px !important;
-    width: 40px;
-    border-left: 0 !important;
-    border-right: 0 !important;
-    position: relative;
-}
-
-/* Header 'x' separator - Align with top-aligned labels */
-.table-container thead .dim-sub-row th + th::before {
-    content: 'x';
-    position: absolute;
-    left: -6px;
-    top: 8px;
-    transform: translateY(-50%);
-    color: rgb(255, 255, 255); /* Semi-transparent white for red background */
-    font-size: 11px;
-    pointer-events: none;
-}
-
-/* Body 'x' separator - Fixed top position to match top-aligned text */
-.table-container tbody td.dim-cell + td.dim-cell::before {
-    content: 'x';
-    position: absolute;
-    left: -6px;
-    top: 22px; /* Align with top-aligned text (14px padding + half line-height) */
-    transform: translateY(-50%);
-    color: #ffffff;
-    font-size: 11px;
-    pointer-events: none;
-}
-
-.table-container tbody td.volume-cell {
-    padding: 14px 8px !important;
-    width: 90px;
-}
-
-.table-container thead th,
-.table-container thead th a,
-.table-container thead th i {
-    color: #ffffff !important;
-}
-
-.table-container thead th i {
-    opacity: 1 !important;
-}
-
-.db-dropdown-body {
-    display: none;
-}
-
-.db-dropdown-body.open {
-    display: block;
-}
-
-.db-dropdown-toggle i {
-    transition: transform 0.2s ease;
-}
-
-.db-dropdown-toggle[aria-expanded="false"] i {
-    transform: rotate(-90deg);
-}
-
-.material-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    margin: 0;
-    gap: 1px;
-    padding: 0px;
-    position: relative;
-    z-index: 1;
-    justify-content: center;
-    width: 100%;
-    align-items: flex-end; /* Align all buttons to the bottom line */
-}
-
-.material-tab-header {
-    display: flex;
-    align-items: flex-end;
-    gap: 5px;
-    margin-bottom: -1px;
-    position: relative;
-    z-index: 10; /* Ensure header and dropdowns are above content */
-}
-
-.material-tab-header::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-bottom: 1px solid #e2e8f0;
-    z-index: 0;
-}
-
-.material-tab-wrapper {
-    --tab-surface: #ffffff;
-    --tab-foot-radius: 16px;
-}
-
-.material-tab-btn {
-    --tab-border-color: transparent;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center; /* Center text horizontally */
-    gap: 8px;
-    padding: 12px 20px;
-    border: 1px solid #F6F3C2;
-    border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    text-decoration: none;
-    color: #64748b;
-    font-weight: 600;
-    background: #f8fafc;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    margin-bottom: -1px;
-    position: relative;
-    z-index: 1;
-    line-height: 1.2;
-    min-width: 100px;
-}
-
-.material-tab-btn::before,
-.material-tab-btn::after {
-    content: none;
-}
-
-.material-tab-btn:hover {
-    color: #891313;
-    background: #fff5f5;
-}
-
-.material-tab-btn.active {
-    background: #F6F3C2;
-    color: #891313;
-    border-width: 2px;
-    border-bottom: none;
-    position: relative;
-    z-index: 5;
-    font-weight: 700;
-    padding-bottom: 14px;
-}
-
-.material-tab-btn.active::before,
-.material-tab-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    width: var(--tab-foot-radius);
-    height: var(--tab-foot-radius);
-    background: transparent;
-    pointer-events: none;
-}
-
-.material-tab-btn.active::before {
-    right: 100%;
-    background:
-        radial-gradient(
-            circle at 0 0,
-            transparent calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) var(--tab-foot-radius),
-            #F6F3C2 var(--tab-foot-radius)
-        );
-    background-position: bottom right;
-}
-
-.material-tab-btn.active::after {
-    left: 100%;
-    background:
-        radial-gradient(
-            circle at 100% 0,
-            transparent calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) var(--tab-foot-radius),
-            #F6F3C2 var(--tab-foot-radius)
-        );
-    background-position: bottom left;
-}
-
-.material-tab-btn.active.first-visible::before {
-    content: none;
-}
-
-.material-tab-btn.active.last-visible::after {
-    content: none;
-}
-
-.material-tab-btn .material-nav-count {
-    display: inline-block;
-    min-width: 26px;
-    padding: 4px 8px;
-    background: rgba(255,255,255,0.18);
-    border-radius: 999px;
-    font-size: 12px;
-    color: inherit;
-    text-align: center;
-}
-
-.material-tab-panel {
-    padding-top: 0;
-    margin-top: -1px;
-}
-
-.material-tab-panel.hidden {
-    display: none !important;
-}
-
-.material-tab-card {
-    border-radius: 0 0 12px 12px;
-    background: #F6F3C2;
-    padding: 20px;
-    margin-top: 0;
-    position: relative;
-    z-index: 3;
-}
-
-.material-tab-panel.active .material-tab-card {
-    border-color: #891313;
-    box-shadow:
-        0 4px 6px -1px rgba(137, 19, 19, 0.08),
-        0 2px 4px -1px rgba(137, 19, 19, 0.06);
-}
-
-.material-section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1.5px solid #e2e8f0;
-}
-/* Input focus styles */
-input[type="text"]:focus {
-    outline: none;
-    border-color: #891313 !important;
-    box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1) !important;
-}
-
-/* Material Choice Cards */
-.material-choice-card {
-    display: block;
-    padding: 24px;
-    background: #ffffff;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    text-align: center;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.material-choice-card:hover {
-    border-color: #891313;
-    background: #fff5f5;
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px rgba(137, 19, 19, 0.15);
-}
-
-.material-choice-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-}
-
-.material-choice-label {
-    font-size: 18px;
-    font-weight: 700;
-    color: #0f172a;
-    margin-bottom: 6px;
-}
-
-.material-choice-desc {
-    font-size: 13px;
-    color: #64748b;
-}
-
-/* Material Settings Dropdown */
-.material-settings-btn {
-    --tab-border-color: transparent;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center; /* Center content horizontally */
-    gap: 8px;
-    padding: 12px 20px;
-    border: 1px solid #F6F3C2;
-    border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    background: #f8fafc;
-    color: #64748b;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-bottom: -1px;
-    position: relative;
-    z-index: 1;
-    line-height: 1.2;
-    min-width: 100px;
-}
-
-.material-settings-btn i {
-    font-size: 16px;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-}
-
-.material-settings-btn i:last-child {
-    margin-left: 4px;
-    font-size: 12px;
-}
-
-.material-settings-dropdown {
-    position: static; /* Static so absolute children reference .material-tabs */
-    display: flex;
-    align-items: flex-end;
-}
-
-.material-settings-btn:hover {
-    background: #fff5f5;
-    color: #891313;
-}
-
-.material-settings-btn.active {
-    background: #F6F3C2;
-    color: #891313;
-    border-width: 2px;
-    border-bottom: none;
-    font-weight: 700;
-    padding-bottom: 14px;
-    z-index: 5;
-}
-
-.material-settings-btn.active::before,
-.material-settings-btn.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    width: var(--tab-foot-radius);
-    height: var(--tab-foot-radius);
-    background: transparent;
-    pointer-events: none;
-}
-
-.material-settings-btn.active::before {
-    right: 100%;
-    background:
-        radial-gradient(
-            circle at 0 0,
-            transparent calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) var(--tab-foot-radius),
-            #F6F3C2 var(--tab-foot-radius)
-        );
-    background-position: bottom right;
-}
-
-.material-settings-btn.active::after {
-    left: 100%;
-    background:
-        radial-gradient(
-            circle at 100% 0,
-            transparent calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) var(--tab-foot-radius),
-            #F6F3C2 var(--tab-foot-radius)
-        );
-    background-position: bottom left;
-}
-
-.material-settings-btn.active i:last-child {
-    transform: rotate(180deg);
-}
-
-.material-settings-menu {
-    position: absolute;
-    top: calc(100% - 1px); /* Align perfectly with the bottom border */
-    left: 0;
-    right: 0;
-    background: #ffffff;
-    border: 2px solid #f6f3c2;
-    box-shadow: 0 8px 24px rgba(137, 19, 19, 0.15);
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.2s ease;
-    z-index: 1000;
-}
-
-.material-settings-grid {
-    padding: 12px 16px;
-    max-height: 280px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 10px 12px;
-}
-
-.material-setting-item {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-}
-
-.material-settings-grid::-webkit-scrollbar {
-    width: 8px;
-}
-
-.material-settings-grid::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.material-settings-grid::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.material-settings-grid::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-@media (max-width: 992px) {
-    .material-settings-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 576px) {
-    .material-settings-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.material-settings-menu.active {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.material-setting-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    user-select: none;
-    position: relative;
-}
-
-.material-setting-item:hover {
-    background: #f8fafc;
-}
-
-.material-setting-item:active {
-    background: #f1f5f9;
-}
-
-.material-toggle-checkbox {
-    display: none;
-}
-
-.material-setting-checkbox {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #cbd5e1;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
-    background: #ffffff;
-}
-
-.material-toggle-checkbox:checked + .material-setting-checkbox {
-    background: #891313;
-    border-color: #891313;
-}
-
-.material-toggle-checkbox:checked + .material-setting-checkbox::after {
-    content: '\F26B';
-    font-family: 'bootstrap-icons';
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.material-setting-label {
-    flex: 1;
-    font-size: 14px;
-    font-weight: 500;
-    color: #0f172a;
-}
-
-/* Kanggo Pagination Styles */
-.kanggo-container {
-    padding-top: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    user-select: none;
-}
-
-.kanggo-logo {
-    display: flex;
-    align-items: center;
-    margin-right: 2px;
-}
-
-.kanggo-letters {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-}
-
-.kanggo-img {
-    height: 25px; /* Ukuran lebih kecil untuk logo page */
-    width: auto;
-    display: block;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* Link Wrapper */
-.kanggo-img-link {
-    display: inline-block;
-    cursor: pointer;
-    padding: 2px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
-}
-
-/* Default state: Grey (untuk button yang tidak di gradasi) */
-.kanggo-img-link .kanggo-img {
-    filter: grayscale(100%);
-    opacity: 0.6;
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-/* Gradient Active: Warna selalu aktif untuk button sebelum current */
-.kanggo-img-link.gradient-active .kanggo-img {
-    opacity: 1 !important;
-    /* Filter akan di-override oleh inline style untuk gradasi */
-}
-
-/* Hover state: Color & Animation */
-.kanggo-img-link:hover .kanggo-img {
-    transform: translateY(-4px) scale(1.1);
-}
-
-/* Hover untuk gradient active: tidak ubah warna, hanya animasi */
-.kanggo-img-link.gradient-active:hover .kanggo-img {
-    transform: translateY(-4px) scale(1.1);
-    /* Warna tetap sesuai gradasi */
-}
-
-/* Hover untuk default (grey): baru muncul warna */
-.kanggo-img-link:not(.gradient-active):not(.current):hover .kanggo-img {
-    filter: grayscale(0%);
-    opacity: 1;
-}
-
-/* Current state: Color, Big, Shadow */
-.kanggo-img-link.current .kanggo-img {
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)) grayscale(0%);
-    opacity: 1;
-    z-index: 10;
-    position: relative;
-}
-
-/* Disabled State */
-.kanggo-img-wrapper {
-    display: inline-block;
-    padding: 2px;
-    pointer-events: none;
-}
-
-.kanggo-img-wrapper.disabled .kanggo-img {
-    opacity: 0.3;
-    filter: grayscale(100%);
-    transform: scale(0.9);
-}
-
-</style>
-
+<script src="{{ asset('js/api-helper.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Safety check: Unlock scroll on load
@@ -1995,10 +1555,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleCheckboxes = document.querySelectorAll('.material-toggle-checkbox');
     const allTabButtons = document.querySelectorAll('.material-tab-btn');
     const allTabPanels = document.querySelectorAll('.material-tab-panel');
+    const allTabActions = document.querySelectorAll('.material-tab-action');
 
     // Tab switching function (declared early to avoid reference errors)
     const tabButtons = Array.from(allTabButtons);
     const tabPanels = Array.from(allTabPanels);
+    let stickyTicking = false;
+
+    function updateFooterStickyState() {
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        document.querySelectorAll('.material-footer-sticky').forEach(footer => {
+            const rect = footer.getBoundingClientRect();
+            const parent = footer.closest('.material-tab-card');
+            if (!parent) return;
+            const parentRect = parent.getBoundingClientRect();
+            const isParentOverflowing = parentRect.bottom > viewportHeight + 1;
+            const isStuck = isParentOverflowing && Math.abs(rect.bottom - viewportHeight) <= 2;
+            footer.classList.toggle('is-stuck', isStuck);
+            if (isStuck) {
+                footer.style.setProperty('--footer-left', `${Math.round(parentRect.left)}px`);
+                footer.style.setProperty('--footer-width', `${Math.round(parentRect.width)}px`);
+            } else {
+                footer.style.removeProperty('--footer-left');
+                footer.style.removeProperty('--footer-width');
+            }
+        });
+    }
+
+    function requestStickyUpdate() {
+        if (stickyTicking) return;
+        stickyTicking = true;
+        window.requestAnimationFrame(() => {
+            updateFooterStickyState();
+            stickyTicking = false;
+        });
+    }
+
     const setActiveTab = (tab) => {
         tabButtons.forEach(btn => {
             const isActive = btn.dataset.tab === tab;
@@ -2015,9 +1607,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 panel.setAttribute('aria-hidden', 'true');
             }
         });
+        allTabActions.forEach(action => {
+            const isActive = action.dataset.tab === tab;
+            action.classList.toggle('active', isActive);
+        });
 
         // Save active tab to localStorage
         localStorage.setItem('materialActiveTab', tab);
+        requestStickyUpdate();
     };
 
     // Function to save filter preferences to localStorage
@@ -2130,10 +1727,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 panel.style.display = 'none';
             }
         });
+        allTabActions.forEach(action => {
+            const actionType = action.getAttribute('data-tab');
+            if (checkedMaterials.includes(actionType)) {
+                action.style.display = '';
+            } else {
+                action.classList.remove('active');
+                action.style.display = 'none';
+            }
+        });
 
-        // Hide tab container when nothing is selected (so Filter can stretch full width)
+        // Ensure tab container is always visible so Filter button remains accessible
         if (tabContainer) {
-            tabContainer.style.display = checkedMaterials.length > 0 ? 'flex' : 'none';
+            tabContainer.style.display = 'flex';
+            tabContainer.classList.toggle('only-filter', checkedMaterials.length === 0);
+        }
+        const tabActionsContainer = document.querySelector('.material-tab-actions');
+        if (tabActionsContainer) {
+            tabActionsContainer.style.display = checkedMaterials.length > 0 ? 'flex' : 'none';
         }
 
         // Auto-activate tab (prefer saved tab, fallback to first visible)
@@ -2150,6 +1761,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save to localStorage
         saveFilterToLocalStorage(checkedMaterials, materialOrder);
+        requestStickyUpdate();
     }
 
     // Listen to checkbox changes FIRST (before restore)
@@ -2211,19 +1823,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('floatingModal');
     const modalBody = document.getElementById('modalBody');
     const modalTitle = document.getElementById('modalTitle');
-    const closeBtn = document.getElementById('globalCloseModal');
+    const closeBtn = modal ? modal.querySelector('.floating-modal-close') : null;
     const backdrop = modal ? modal.querySelector('.floating-modal-backdrop') : null;
 
     function interceptFormSubmit() {
         if (!modalBody) return;
         const form = modalBody.querySelector('form');
         if (form) {
-            // Add hidden input to tell controller to redirect to materials.index
-            const redirectInput = document.createElement('input');
-            redirectInput.type = 'hidden';
-            redirectInput.name = '_redirect_to_materials';
-            redirectInput.value = '1';
-            form.appendChild(redirectInput);
+            // Add hidden input to redirect back to the current page after submit
+            let redirectInput = form.querySelector('input[name="_redirect_url"]');
+            if (!redirectInput) {
+                redirectInput = document.createElement('input');
+                redirectInput.type = 'hidden';
+                redirectInput.name = '_redirect_url';
+                form.appendChild(redirectInput);
+            }
+            redirectInput.value = window.location.href;
 
             form.addEventListener('submit', function(e) {
                 // Show loading state before submit
@@ -2233,7 +1848,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const originalHtml = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
                 }
-                // Let form submit normally, controller will redirect to materials.index
+                // Let form submit normally, controller will redirect back
             });
         }
     }
@@ -2310,13 +1925,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update title based on action
             if (action === 'create') {
                 modalTitle.textContent = `Tambah ${materialLabel} Baru`;
-                closeBtn.style.display = 'none'; // Hide close button
+                closeBtn.style.display = 'flex';
             } else if (action === 'edit') {
                 modalTitle.textContent = `Edit ${materialLabel}`;
-                closeBtn.style.display = 'none'; // Hide close button
+                closeBtn.style.display = 'flex';
             } else if (action === 'show') {
                 modalTitle.textContent = `Detail ${materialLabel}`;
-                closeBtn.style.display = 'flex'; // Show close button
+                closeBtn.style.display = 'flex';
             } else {
                 modalTitle.textContent = materialLabel;
                 closeBtn.style.display = 'flex';
@@ -2357,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Expose closeModal as global function for form cancel buttons
-    window.closeFloatingModal = closeModal;
+    window.closeFloatingModalLocal = closeModal;
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
@@ -2410,9 +2025,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize tab click listeners
     if (tabButtons.length) {
         tabButtons.forEach(btn => {
-            btn.addEventListener('click', () => setActiveTab(btn.dataset.tab));
+            btn.addEventListener('click', () => {
+                setActiveTab(btn.dataset.tab);
+                // Also update the stored URL when tab changes to ensure we return to this tab
+                // We construct a new URL with the updated 'tab' parameter
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', btn.dataset.tab);
+                // Reset page to 1 when switching tabs to avoid empty pages
+                url.searchParams.delete(btn.dataset.tab + '_page'); 
+                localStorage.setItem('lastMaterialsUrl', url.toString());
+                // Note: We don't pushState here to avoid reload, but saving to LS is enough for Navbar return
+            });
         });
     }
+
+    // --- Save Current State for Navbar Return ---
+    // Save the full current URL to localStorage on page load
+    localStorage.setItem('lastMaterialsUrl', window.location.href);
 
     // Add click handlers to "Lihat Semua" buttons to save current tab
     document.querySelectorAll('a[href*="bricks.index"], a[href*="cats.index"], a[href*="cements.index"], a[href*="sands.index"]').forEach(link => {
@@ -2426,6 +2055,88 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    function highlightMaterialRow(targetId) {
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const row = target.closest('tr');
+        if (!row) return;
+
+        const container = row.closest('.table-container');
+        if (!container) return;
+
+        const existing = container.querySelector('.material-row-outline');
+        if (existing) {
+            existing.remove();
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        const outline = document.createElement('div');
+        outline.className = 'material-row-outline';
+        outline.style.left = `${rowRect.left - containerRect.left + container.scrollLeft}px`;
+        outline.style.top = `${rowRect.top - containerRect.top + container.scrollTop}px`;
+        outline.style.width = `${rowRect.width}px`;
+        outline.style.height = `${rowRect.height}px`;
+
+        container.appendChild(outline);
+        window.setTimeout(() => {
+            outline.remove();
+        }, 2600);
+    }
+
+    window.deleteMaterial = async function(type, id) {
+        const endpointMap = {
+            brick: 'bricks',
+            cat: 'cats',
+            cement: 'cements',
+            sand: 'sands',
+            ceramic: 'ceramics',
+        };
+        const labelMap = {
+            brick: 'bata',
+            cat: 'cat',
+            cement: 'semen',
+            sand: 'pasir',
+            ceramic: 'keramik',
+        };
+
+        const endpoint = endpointMap[type];
+        const label = labelMap[type] || 'material';
+        if (!endpoint) {
+            const message = 'Tipe material tidak dikenal.';
+            window.showToast(message, 'error');
+            return;
+        }
+
+        const confirmed = await window.showConfirm({
+            message: `Yakin ingin menghapus data ${label} ini?`,
+            confirmText: 'Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
+
+        try {
+            const result = await api.delete(`/${endpoint}/${id}`);
+            if (result.success) {
+                localStorage.setItem('materialActiveTab', type);
+                sessionStorage.setItem('pendingToast', JSON.stringify({
+                    type: 'success',
+                    message: `Data ${label} berhasil dihapus.`
+                }));
+                window.location.reload();
+            } else {
+                const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+                window.showToast(message, 'error');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            const message = 'Gagal menghapus data. Silakan coba lagi.';
+            window.showToast(message, 'error');
+        }
+    };
+
     // Add click handlers to pagination links to preserve current tab
     document.querySelectorAll('.kanggo-img-link').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -2435,8 +2146,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentTab = activeTab.dataset.tab;
                 localStorage.setItem('materialActiveTab', currentTab);
             }
+
+            const href = link.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                const targetId = href.slice(1);
+                window.setTimeout(() => highlightMaterialRow(targetId), 120);
+            }
         });
     });
+
+    if (window.location.hash) {
+        window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
+    }
+
+    window.addEventListener('hashchange', () => {
+        window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
+    });
+
+    requestStickyUpdate();
+    window.addEventListener('scroll', requestStickyUpdate, { passive: true });
+    window.addEventListener('resize', requestStickyUpdate);
 
 });
 </script>

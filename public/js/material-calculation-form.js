@@ -6,10 +6,32 @@ function initMaterialCalculationForm(root, formData) {
 
     // Extract formula descriptions and material data from formData
     const formulaDescriptions = formData?.formulaDescriptions || {};
+    const formulasData = Array.isArray(formData?.formulas) ? formData.formulas : [];
     const bricksData = formData?.bricks || [];
     const cementsData = formData?.cements || [];
     const sandsData = formData?.sands || [];
     const catsData = formData?.cats || [];
+
+    function formatSmartDecimal(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
 
     // Helper function to calculate area
     function calculateArea() {
@@ -21,7 +43,132 @@ function initMaterialCalculationForm(root, formData) {
             const length = parseFloat(lengthEl.value) || 0;
             const height = parseFloat(heightEl.value) || 0;
             const area = length * height;
-            areaEl.value = area > 0 ? area.toFixed(2) : '';
+            areaEl.value = area > 0 ? formatSmartDecimal(area) : '';
+        }
+    }
+
+    function setupWorkTypeAutocomplete() {
+        const displayInput = scope.querySelector('#workTypeDisplay') || document.getElementById('workTypeDisplay');
+        const hiddenInput = scope.querySelector('#workTypeSelector') || document.getElementById('workTypeSelector');
+        const listEl = scope.querySelector('#workType-list') || document.getElementById('workType-list');
+
+        if (!displayInput || !hiddenInput || !listEl || formulasData.length === 0) {
+            return;
+        }
+
+        const options = formulasData
+            .filter(option => option && option.code && option.name)
+            .map(option => ({
+                code: String(option.code),
+                name: String(option.name),
+            }));
+
+        if (options.length === 0) {
+            return;
+        }
+
+        function normalize(text) {
+            return (text || '').toLowerCase();
+        }
+
+        function closeList() {
+            listEl.style.display = 'none';
+        }
+
+        function renderList(items) {
+            listEl.innerHTML = '';
+            items.forEach(option => {
+                const item = document.createElement('div');
+                item.className = 'autocomplete-item';
+                item.textContent = option.name;
+                item.addEventListener('click', function() {
+                    applySelection(option);
+                });
+                listEl.appendChild(item);
+            });
+            listEl.style.display = items.length > 0 ? 'block' : 'none';
+        }
+
+        function filterOptions(term) {
+            const query = normalize(term);
+            if (!query) {
+                return options;
+            }
+            return options.filter(option => {
+                const name = normalize(option.name);
+                const code = normalize(option.code);
+                return name.includes(query) || code.includes(query);
+            });
+        }
+
+        function findExactMatch(term) {
+            const query = normalize(term);
+            if (!query) return null;
+            return options.find(option => normalize(option.name) === query || normalize(option.code) === query) || null;
+        }
+
+        function applySelection(option) {
+            displayInput.value = option.name;
+            hiddenInput.value = option.code;
+            hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+            closeList();
+        }
+
+        displayInput.addEventListener('focus', function() {
+            if (displayInput.readOnly || displayInput.disabled) return;
+            renderList(filterOptions(''));
+        });
+
+        displayInput.addEventListener('input', function() {
+            if (displayInput.readOnly || displayInput.disabled) return;
+            const term = this.value || '';
+            renderList(filterOptions(term));
+
+            if (!term.trim()) {
+                if (hiddenInput.value) {
+                    hiddenInput.value = '';
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
+            }
+
+            const exactMatch = findExactMatch(term);
+            if (exactMatch) {
+                hiddenInput.value = exactMatch.code;
+                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+
+        displayInput.addEventListener('keydown', function(event) {
+            if (event.key !== 'Enter') return;
+            const exactMatch = findExactMatch(displayInput.value);
+            if (exactMatch) {
+                applySelection(exactMatch);
+                event.preventDefault();
+            }
+        });
+
+        displayInput.addEventListener('blur', function() {
+            setTimeout(closeList, 150);
+        });
+
+        document.addEventListener('click', function(event) {
+            if (event.target === displayInput || listEl.contains(event.target)) return;
+            closeList();
+        });
+
+        hiddenInput.addEventListener('change', function() {
+            const selected = options.find(option => option.code === hiddenInput.value);
+            if (selected && displayInput.value !== selected.name) {
+                displayInput.value = selected.name;
+            }
+        });
+
+        if (hiddenInput.value && !displayInput.value) {
+            const selected = options.find(option => option.code === hiddenInput.value);
+            if (selected) {
+                displayInput.value = selected.name;
+            }
         }
     }
 
@@ -67,6 +214,8 @@ function initMaterialCalculationForm(root, formData) {
         // Set initial state on load (in case value already selected)
         handleWorkTypeChange(workTypeSelector.value);
     }
+
+    setupWorkTypeAutocomplete();
 
     // Auto-calculate area when length or height changes
     const wallLength = scope.querySelector('#wallLength') || document.getElementById('wallLength');

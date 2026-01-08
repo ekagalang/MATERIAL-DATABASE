@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Helpers\NumberHelper;
+
 use App\Models\Brick;
 use App\Models\BrickInstallationType;
 use App\Models\Cement;
@@ -53,7 +55,7 @@ class BrickCalculationTracer
             'formula' => 'Luas = Panjang × Tinggi',
             'calculations' => [
                 'Perhitungan' => "$wallLength × $wallHeight",
-                'Luas Total Bidang' => number_format($wallArea, 2) . ' M2',
+                'Luas Total Bidang' => NumberHelper::format($wallArea) . ' M2',
             ],
         ];
 
@@ -70,24 +72,24 @@ class BrickCalculationTracer
             'calculations' => [
                 'Panjang Efektif' =>
                     "$wallLength - " .
-                    number_format($additionalLayerThickness, 4) .
+                    NumberHelper::format($additionalLayerThickness) .
                     ' = ' .
-                    number_format($effectiveLength, 4) .
+                    NumberHelper::format($effectiveLength) .
                     ' m',
                 'Tinggi Efektif' =>
                     "$wallHeight - " .
-                    number_format($additionalLayerThickness, 4) .
+                    NumberHelper::format($additionalLayerThickness) .
                     ' = ' .
-                    number_format($effectiveHeight, 4) .
+                    NumberHelper::format($effectiveHeight) .
                     ' m',
                 'Luas Efektif' =>
-                    number_format($effectiveLength, 4) .
+                    NumberHelper::format($effectiveLength) .
                     ' × ' .
-                    number_format($effectiveHeight, 4) .
+                    NumberHelper::format($effectiveHeight) .
                     ' = ' .
-                    number_format($effectiveArea, 4) .
+                    NumberHelper::format($effectiveArea) .
                     ' M2',
-                'Pengurangan Luas' => number_format($wallArea - $effectiveArea, 4) . ' M2 (area strip adukan)',
+                'Pengurangan Luas' => NumberHelper::format($wallArea - $effectiveArea) . ' M2 (area strip adukan)',
             ],
         ];
 
@@ -135,18 +137,18 @@ class BrickCalculationTracer
             'formula' => '1 / ((panjang + tebal) × (tinggi + tebal))',
             'calculations' => [
                 'Lebar Visible' =>
-                    "($brickLength + $mortarThickness) / 100 = " . number_format($visibleWidth, 4) . ' m',
+                    "($brickLength + $mortarThickness) / 100 = " . NumberHelper::format($visibleWidth) . ' m',
                 'Tinggi Visible' =>
-                    "($brickHeight + $mortarThickness) / 100 = " . number_format($visibleHeight, 4) . ' m',
+                    "($brickHeight + $mortarThickness) / 100 = " . NumberHelper::format($visibleHeight) . ' m',
                 'Luas per Bata' =>
-                    number_format($visibleWidth, 4) .
+                    NumberHelper::format($visibleWidth) .
                     ' × ' .
-                    number_format($visibleHeight, 4) .
+                    NumberHelper::format($visibleHeight) .
                     ' = ' .
-                    number_format($areaPerBrick, 6) .
+                    NumberHelper::format($areaPerBrick) .
                     ' M2',
                 'Bata per M2' =>
-                    '1 / ' . number_format($areaPerBrick, 6) . ' = ' . number_format($bricksPerSqm, 2) . ' buah',
+                    '1 / ' . NumberHelper::format($areaPerBrick) . ' = ' . NumberHelper::format($bricksPerSqm) . ' buah',
             ],
         ];
 
@@ -172,10 +174,10 @@ class BrickCalculationTracer
             'title' => 'Total Bata',
             'formula' => 'Luas Efektif × Bata per M2',
             'calculations' => [
-                'Luas yang Digunakan' => number_format($wallAreaForBricks, 4) . ' M2 (luas efektif)',
-                'Perhitungan' => number_format($wallAreaForBricks, 4) . ' × ' . number_format($bricksPerSqm, 2),
-                'Hasil (sebelum pembulatan)' => number_format($totalBricksRaw, 2) . ' buah',
-                'Desimal' => number_format($decimal, 4),
+                'Luas yang Digunakan' => NumberHelper::format($wallAreaForBricks) . ' M2 (luas efektif)',
+                'Perhitungan' => NumberHelper::format($wallAreaForBricks) . ' × ' . NumberHelper::format($bricksPerSqm),
+                'Hasil (sebelum pembulatan)' => NumberHelper::format($totalBricksRaw) . ' buah',
+                'Desimal' => NumberHelper::format($decimal),
                 'Hasil (setelah pembulatan)' => number_format($totalBricks) . ' buah',
             ],
         ];
@@ -193,13 +195,13 @@ class BrickCalculationTracer
                 'Dimensi' => "p={$brickLength}cm, t={$brickHeight}cm, l={$brickWidth}cm, tebal={$mortarThickness}cm",
                 'Perhitungan' => "({$brickLength} + {$brickHeight} + {$mortarThickness}) × {$brickWidth} × {$mortarThickness} / 1000000",
                 'Detail' =>
-                    number_format($brickLength + $brickHeight + $mortarThickness, 2) .
+                    NumberHelper::format($brickLength + $brickHeight + $mortarThickness) .
                     ' × ' .
-                    number_format($brickWidth, 2) .
+                    NumberHelper::format($brickWidth) .
                     ' × ' .
-                    number_format($mortarThickness, 2) .
+                    NumberHelper::format($mortarThickness) .
                     ' / 1000000',
-                'Total per Bata' => number_format($mortarVolumePerBrick, 6) . ' M3',
+                'Total per Bata' => NumberHelper::format($mortarVolumePerBrick) . ' M3',
             ],
         ];
 
@@ -210,8 +212,8 @@ class BrickCalculationTracer
             'title' => 'Total Volume Mortar',
             'formula' => 'Volume per Bata × Total Bata',
             'calculations' => [
-                'Perhitungan' => number_format($mortarVolumePerBrick, 6) . ' × ' . number_format($totalBricks, 2),
-                'Hasil' => number_format($totalMortarVolume, 6) . ' M3',
+                'Perhitungan' => NumberHelper::format($mortarVolumePerBrick) . ' × ' . NumberHelper::format($totalBricks),
+                'Hasil' => NumberHelper::format($totalMortarVolume) . ' M3',
             ],
         ];
 
@@ -223,24 +225,24 @@ class BrickCalculationTracer
             'calculations' => [
                 'Volume Sisi Kiri' =>
                     "tinggi × lebar_bata × tebal / 10000 = $wallHeight × $brickWidth × $mortarThickness / 10000 = " .
-                    number_format($volumeSisiKiri, 6) .
+                    NumberHelper::format($volumeSisiKiri) .
                     ' M3',
                 'Volume Sisi Bawah' =>
                     "panjang × lebar_bata × tebal / 10000 = $wallLength × $brickWidth × $mortarThickness / 10000 = " .
-                    number_format($volumeSisiBawah, 6) .
+                    NumberHelper::format($volumeSisiBawah) .
                     ' M3',
                 'Volume Overlap (sudut)' =>
                     "tebal × tebal × lebar_bata / 1000000 = $mortarThickness × $mortarThickness × $brickWidth / 1000000 = " .
-                    number_format($volumeOverlap, 8) .
+                    NumberHelper::format($volumeOverlap) .
                     ' M3',
                 'Total Volume Strip' =>
-                    number_format($volumeSisiKiri, 6) .
+                    NumberHelper::format($volumeSisiKiri) .
                     ' + ' .
-                    number_format($volumeSisiBawah, 6) .
+                    NumberHelper::format($volumeSisiBawah) .
                     ' - ' .
-                    number_format($volumeOverlap, 8) .
+                    NumberHelper::format($volumeOverlap) .
                     ' = ' .
-                    number_format($volumeTambahanTotal, 6) .
+                    NumberHelper::format($volumeTambahanTotal) .
                     ' M3',
             ],
         ];
@@ -253,9 +255,9 @@ class BrickCalculationTracer
             'title' => 'Total Volume Mortar',
             'formula' => 'Volume Mortar Bata + Volume Strip',
             'calculations' => [
-                'Volume Mortar Bata' => number_format($totalMortarVolume, 6) . ' M3',
-                'Volume Strip' => number_format($volumeTambahanTotal, 6) . ' M3',
-                'Total Volume Mortar' => number_format($totalMortarVolumeWithAddition, 6) . ' M3',
+                'Volume Mortar Bata' => NumberHelper::format($totalMortarVolume) . ' M3',
+                'Volume Strip' => NumberHelper::format($volumeTambahanTotal) . ' M3',
+                'Total Volume Mortar' => NumberHelper::format($totalMortarVolumeWithAddition) . ' M3',
             ],
         ];
 
@@ -275,7 +277,7 @@ class BrickCalculationTracer
                 'Semen Dipilih' => $cement ? $cement->cement_name . ' - ' . $cement->brand : 'Default',
                 'Dimensi Kemasan' => "{$cementPackageLength}cm × {$cementPackageWidth}cm × {$cementPackageHeight}cm",
                 'Perhitungan' => "($cementPackageLength × $cementPackageWidth × $cementPackageHeight) / 1000000",
-                'Volume Sak' => number_format($volumeSakM3, 6) . ' M3',
+                'Volume Sak' => NumberHelper::format($volumeSakM3) . ' M3',
             ],
         ];
 
@@ -285,7 +287,7 @@ class BrickCalculationTracer
             'title' => 'Volume Adukan per Pasangan Bata',
             'info' => 'Sudah dihitung di Step 6',
             'calculations' => [
-                'Volume per Pasangan' => number_format($mortarVolumePerBrick, 6) . ' M3',
+                'Volume per Pasangan' => NumberHelper::format($mortarVolumePerBrick) . ' M3',
             ],
         ];
 
@@ -310,29 +312,29 @@ class BrickCalculationTracer
                     "30% dari ($cementRatio + $sandRatio) = 0.3 × " .
                     ($cementRatio + $sandRatio) .
                     ' = ' .
-                    number_format($waterRatio, 2),
+                    NumberHelper::format($waterRatio),
                 'Kontribusi Air' => $waterContribution . ' (20%)',
                 'Penyusutan' => $shrinkage . ' (15%)',
                 'Perhitungan' =>
                     "($cementRatio + $sandRatio + ($waterContribution × 0.3 × ($cementRatio + $sandRatio))) × " .
-                    number_format($volumeSakM3, 6) .
+                    NumberHelper::format($volumeSakM3) .
                     " × (1 - $shrinkage)",
                 'Detail' =>
                     '(' .
                     ($cementRatio + $sandRatio) .
                     ' + ' .
-                    number_format($waterContribution * $waterRatio, 2) .
+                    NumberHelper::format($waterContribution * $waterRatio) .
                     ') × ' .
-                    number_format($volumeSakM3, 6) .
+                    NumberHelper::format($volumeSakM3) .
                     ' × ' .
-                    number_format(1 - $shrinkage, 2),
+                    NumberHelper::format(1 - $shrinkage),
                 'Detail 2' =>
-                    number_format($cementRatio + $sandRatio + $waterContribution * $waterRatio, 4) .
+                    NumberHelper::format($cementRatio + $sandRatio + $waterContribution * $waterRatio) .
                     ' × ' .
-                    number_format($volumeSakM3, 6) .
+                    NumberHelper::format($volumeSakM3) .
                     ' × ' .
-                    number_format(1 - $shrinkage, 2),
-                'Volume Adukan dari 1 Sak' => number_format($volumeAdukanM3, 6) . ' M3',
+                    NumberHelper::format(1 - $shrinkage),
+                'Volume Adukan dari 1 Sak' => NumberHelper::format($volumeAdukanM3) . ' M3',
             ],
         ];
 
@@ -368,23 +370,23 @@ class BrickCalculationTracer
             'title' => 'Jumlah Pasangan Bata dari 1 Sak Semen',
             'formula' => '(Volume Adukan - Volume Strip) / Volume Adukan per Pasangan',
             'calculations' => [
-                'Volume Adukan dari 1 Sak' => number_format($volumeAdukanM3, 6) . ' M3',
-                'Estimasi Luas dari 1 Sak' => number_format($estimatedAreaFromOneSak, 4) . ' M2',
+                'Volume Adukan dari 1 Sak' => NumberHelper::format($volumeAdukanM3) . ' M3',
+                'Estimasi Luas dari 1 Sak' => NumberHelper::format($estimatedAreaFromOneSak) . ' M2',
                 'Volume Strip untuk Luas Tersebut' =>
-                    number_format($estimatedAreaFromOneSak, 4) .
+                    NumberHelper::format($estimatedAreaFromOneSak) .
                     ' × ' .
-                    number_format($volumeStripPerM2, 8) .
+                    NumberHelper::format($volumeStripPerM2) .
                     ' = ' .
-                    number_format($volumeStripForEstimatedArea, 6) .
+                    NumberHelper::format($volumeStripForEstimatedArea) .
                     ' M3',
                 'Volume Tersisa untuk Bata' =>
-                    number_format($volumeAdukanM3, 6) .
+                    NumberHelper::format($volumeAdukanM3) .
                     ' - ' .
-                    number_format($volumeStripForEstimatedArea, 6) .
+                    NumberHelper::format($volumeStripForEstimatedArea) .
                     ' = ' .
-                    number_format($volumeForBricks, 6) .
+                    NumberHelper::format($volumeForBricks) .
                     ' M3',
-                'Perhitungan' => number_format($volumeForBricks, 6) . ' / ' . number_format($mortarVolumePerBrick, 6),
+                'Perhitungan' => NumberHelper::format($volumeForBricks) . ' / ' . NumberHelper::format($mortarVolumePerBrick),
                 'Jumlah Pasangan' => number_format($jumlahPasanganBata) . ' pasangan bata',
             ],
         ];
@@ -399,11 +401,11 @@ class BrickCalculationTracer
             'calculations' => [
                 'Perhitungan' => "($brickLength + $mortarThickness) × ($brickHeight + $mortarThickness) / 10000",
                 'Detail' =>
-                    number_format($brickLength + $mortarThickness, 2) .
+                    NumberHelper::format($brickLength + $mortarThickness) .
                     ' × ' .
-                    number_format($brickHeight + $mortarThickness, 2) .
+                    NumberHelper::format($brickHeight + $mortarThickness) .
                     ' / 10000',
-                'Luas per Bata' => number_format($luasPasanganPerBata, 6) . ' M2',
+                'Luas per Bata' => NumberHelper::format($luasPasanganPerBata) . ' M2',
             ],
         ];
 
@@ -415,10 +417,10 @@ class BrickCalculationTracer
             'title' => 'Luas Pasangan dari 1 Sak Semen',
             'formula' => 'Jumlah Pasangan Bata × Luas per Bata',
             'calculations' => [
-                'Perhitungan' => number_format($jumlahPasanganBata, 2) . ' × ' . number_format($luasPasanganPerBata, 6),
-                'Luas dari 1 Sak' => number_format($luasPasanganDari1Sak, 4) . ' M2',
+                'Perhitungan' => NumberHelper::format($jumlahPasanganBata) . ' × ' . NumberHelper::format($luasPasanganPerBata),
+                'Luas dari 1 Sak' => NumberHelper::format($luasPasanganDari1Sak) . ' M2',
                 'Arti' =>
-                    '1 sak semen bisa untuk ' . number_format($luasPasanganDari1Sak, 2) . ' M2 luas bidang dinding',
+                    '1 sak semen bisa untuk ' . NumberHelper::format($luasPasanganDari1Sak) . ' M2 luas bidang dinding',
             ],
         ];
 
@@ -437,8 +439,8 @@ class BrickCalculationTracer
             'title' => 'Kebutuhan Semen per M2 Dinding',
             'formula' => '1 sak / Luas Pasangan dari 1 Sak',
             'calculations' => [
-                'Perhitungan' => '1 / ' . number_format($luasPasanganDari1Sak, 4),
-                'Kebutuhan per M2' => number_format($cementSakPerM2, 6) . ' sak/M2',
+                'Perhitungan' => '1 / ' . NumberHelper::format($luasPasanganDari1Sak),
+                'Kebutuhan per M2' => NumberHelper::format($cementSakPerM2) . ' sak/M2',
             ],
         ];
 
@@ -453,13 +455,13 @@ class BrickCalculationTracer
             'title' => 'Total Kebutuhan Semen',
             'formula' => 'Kebutuhan Semen per M2 × Luas Bangunan',
             'calculations' => [
-                'Perhitungan' => number_format($cementSakPerM2, 6) . ' sak/M2 × ' . number_format($wallArea, 2) . ' M2',
-                'Total Semen (sak sebelum pembulatan)' => number_format($totalCementSakRaw, 4) . ' sak',
-                'Total Semen (sak setelah pembulatan)' => number_format($totalCementSak, 2) . ' sak',
+                'Perhitungan' => NumberHelper::format($cementSakPerM2) . ' sak/M2 × ' . NumberHelper::format($wallArea) . ' M2',
+                'Total Semen (sak sebelum pembulatan)' => NumberHelper::format($totalCementSakRaw) . ' sak',
+                'Total Semen (sak setelah pembulatan)' => NumberHelper::format($totalCementSak) . ' sak',
                 'Total Semen (kg)' =>
-                    number_format($totalCementSak * $cementWeightPerSak, 2) .
+                    NumberHelper::format($totalCementSak * $cementWeightPerSak) .
                     ' kg (' .
-                    number_format($totalCementSak, 2) .
+                    NumberHelper::format($totalCementSak) .
                     ' × ' .
                     $cementWeightPerSak .
                     ' kg/sak)',
@@ -488,28 +490,28 @@ class BrickCalculationTracer
             'title' => 'Total Kebutuhan Pasir & Air',
             'calculations' => [
                 'Pasir (sak)' =>
-                    number_format($totalCementSak) .
+                    NumberHelper::format($totalCementSak) .
                     ' × ' .
                     $sandRatio .
                     ' = ' .
-                    number_format($totalSandSak, 4) .
+                    number_format($totalSandSak) .
                     ' sak',
                 'Pasir (M3)' =>
-                    number_format($totalSandSak, 4) .
+                    NumberHelper::format($totalSandSak) .
                     ' × ' .
-                    number_format($volumeSakM3, 6) .
+                    NumberHelper::format($volumeSakM3) .
                     ' = ' .
-                    number_format($sandM3, 6) .
+                    NumberHelper::format($sandM3) .
                     ' M3',
                 'Air (liter sebelum pembulatan)' =>
                     '(' .
-                    number_format($totalCementSak) .
+                    NumberHelper::format($totalCementSak) .
                     ' + ' .
-                    number_format($totalSandSak, 4) .
+                    number_format($totalSandSak) .
                     ') × ' .
-                    number_format($volumeSakM3, 6) .
+                    NumberHelper::format($volumeSakM3) .
                     ' × 30% × 1000 = ' .
-                    number_format($waterLitersRaw, 2) .
+                    NumberHelper::format($waterLitersRaw) .
                     ' liter',
                 'Air (liter setelah pembulatan)' => number_format($waterLiters) . ' liter',
             ],

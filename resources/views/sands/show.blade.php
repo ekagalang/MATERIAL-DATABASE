@@ -93,11 +93,11 @@
                                    color: #1e293b;">
                             @if($sand->dimension_length && $sand->dimension_width && $sand->dimension_height)
                                 <span style="font-weight: 600;">
-                                    {{ rtrim(rtrim(number_format($sand->dimension_length, 2, ',', '.'), '0'), ',') }} M
+                                    @format($sand->dimension_length) M
                                     <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                    {{ rtrim(rtrim(number_format($sand->dimension_width, 2, ',', '.'), '0'), ',') }} M
+                                    @format($sand->dimension_width) M
                                     <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                    {{ rtrim(rtrim(number_format($sand->dimension_height, 2, ',', '.'), '0'), ',') }} M
+                                    @format($sand->dimension_height) M
                                 </span>
                             @else
                                 -
@@ -122,7 +122,7 @@
                                             border: 1.5px solid #86efac; 
                                             border-radius: 8px;">
                                     <span style="font-weight: 700; color: #15803d;">
-                                        {{ number_format($sand->package_volume, 6, ',', '.') }}
+                                        @format($sand->package_volume)
                                     </span>
                                     <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> M3</span>
                                 </div>
@@ -289,7 +289,7 @@
             padding-top: 24px; 
             border-top: 1px solid #f1f5f9;">
     <button type="button" 
-            class="btn btn-secondary" 
+            class="btn btn-secondary-glossy " 
             onclick="window.parent.document.getElementById('closeModal').click()"
             style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
                    color: #ffffff; 

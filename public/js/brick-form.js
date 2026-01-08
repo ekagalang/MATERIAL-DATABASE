@@ -310,10 +310,29 @@ function initBrickForm(root) {
     const volumeCalculationDisplay = getElement('volume_calculation_display');
     const packageVolume = getElement('package_volume');
 
-    function formatNumberTrim(value, decimals = 2) {
+    function formatSmartDecimal(value, maxDecimals = 8) {
         const num = Number(value);
         if (!isFinite(num)) return '';
-        return parseFloat(num.toFixed(decimals)).toString();
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
+    function formatNumberTrim(value) {
+        return formatSmartDecimal(value);
     }
 
     function calculateVolume() {
@@ -342,7 +361,8 @@ function initBrickForm(root) {
             const volumeCm3 = length * width * height;
             const volumeM3 = volumeCm3 / 1000000;
             currentVolume = volumeM3;
-            const volumeText = volumeM3.toFixed(6);
+            const volumeText = formatSmartDecimal(volumeM3);
+            const volumeValue = volumeM3.toFixed(6);
             if (volumeDisplay) {
                 volumeDisplay.textContent = volumeText;
                 volumeDisplay.style.color = '#27ae60';
@@ -351,7 +371,7 @@ function initBrickForm(root) {
                 volumeDisplayInput.value = volumeText;
             }
             if (packageVolume) {
-                packageVolume.value = volumeText;
+                packageVolume.value = volumeValue;
             }
             if (volumeCalculationDisplay) {
                 volumeCalculationDisplay.textContent =
@@ -460,8 +480,7 @@ function initBrickForm(root) {
             if (cmValue !== null) {
                 hiddenElement.value = cmValue.toFixed(2);
                 if (displayElement) {
-                    const formattedValue = parseFloat(cmValue.toFixed(2)).toString();
-                    displayElement.textContent = formattedValue;
+                    displayElement.textContent = formatSmartDecimal(cmValue);
                     displayElement.style.color = '#15803d';
                 }
                 inputElement.style.borderColor = '#e2e8f0';

@@ -25,9 +25,6 @@ class Cement extends Model
         'package_unit',
         'package_weight_gross',
         'package_weight_net',
-        'dimension_length',
-        'dimension_width',
-        'dimension_height',
         'package_volume',
         'store',
         'address',
@@ -40,9 +37,6 @@ class Cement extends Model
     protected $casts = [
         'package_weight_gross' => 'float',
         'package_weight_net' => 'float',
-        'dimension_length' => 'float',
-        'dimension_width' => 'float',
-        'dimension_height' => 'float',
         'package_volume' => 'float',
         'package_price' => 'float',
         'comparison_price_per_kg' => 'float',
@@ -96,22 +90,6 @@ class Cement extends Model
         }
 
         return $this->package_weight_gross;
-    }
-
-    /**
-     * Kalkulasi volume dari dimensi (p x l x t) dalam M3
-     */
-    public function calculateVolume(): float
-    {
-        if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
-            // Dimensi langsung dalam M3
-            $volumeM3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
-            $this->package_volume = $volumeM3;
-
-            return $volumeM3;
-        }
-
-        return 0;
     }
 
     /**

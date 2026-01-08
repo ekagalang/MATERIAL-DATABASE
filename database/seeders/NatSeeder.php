@@ -21,11 +21,6 @@ class NatSeeder extends Seeder
                 'package_unit' => 'Bks',
                 'package_weight_gross' => 1.0,
                 'package_weight_net' => 1.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => null, // meter
-                'dimension_width' => null, // meter
-                'dimension_height' => null, // meter
-                'package_volume' => null, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -43,11 +38,6 @@ class NatSeeder extends Seeder
                 'package_unit' => 'Bks',
                 'package_weight_gross' => 1.0,
                 'package_weight_net' => 1.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => null, // meter
-                'dimension_width' => null, // meter
-                'dimension_height' => null, // meter
-                'package_volume' => null, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -65,11 +55,6 @@ class NatSeeder extends Seeder
                 'package_unit' => 'Bks',
                 'package_weight_gross' => 1.0,
                 'package_weight_net' => 1.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => null, // meter
-                'dimension_width' => null, // meter
-                'dimension_height' => null, // meter
-                'package_volume' => null, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -87,11 +72,6 @@ class NatSeeder extends Seeder
                 'package_unit' => 'Bks',
                 'package_weight_gross' => 1.0,
                 'package_weight_net' => 1.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => null, // meter
-                'dimension_width' => null, // meter
-                'dimension_height' => null, // meter
-                'package_volume' => null, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -109,11 +89,6 @@ class NatSeeder extends Seeder
                 'package_unit' => 'Bks',
                 'package_weight_gross' => 1.0,
                 'package_weight_net' => 1.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => null, // meter
-                'dimension_width' => null, // meter
-                'dimension_height' => null, // meter
-                'package_volume' => null, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',
@@ -131,11 +106,6 @@ class NatSeeder extends Seeder
                 'package_unit' => 'Bks',
                 'package_weight_gross' => 1.0,
                 'package_weight_net' => 1.0,
-                // Dimensi sesuai Excel: 30cm x 20cm x 60cm
-                'dimension_length' => null, // meter
-                'dimension_width' => null, // meter
-                'dimension_height' => null, // meter
-                'package_volume' => null, // M3 (0.30 x 0.20 x 0.60)
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
                 'short_address' => 'Pasar Minggu, Jakarta Selatan',

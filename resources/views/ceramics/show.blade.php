@@ -133,12 +133,12 @@
                                    color: #1e293b;">
                             @if($ceramic->dimension_length && $ceramic->dimension_width)
                                 <span style="font-weight: 600;">
-                                    {{ rtrim(rtrim(number_format($ceramic->dimension_length, 2, ',', '.'), '0'), ',') }} cm 
+                                    @format($ceramic->dimension_length) cm 
                                     <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                    {{ rtrim(rtrim(number_format($ceramic->dimension_width, 2, ',', '.'), '0'), ',') }} cm
+                                    @format($ceramic->dimension_width) cm
                                     @if($ceramic->dimension_thickness)
                                         <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                        {{ rtrim(rtrim(number_format($ceramic->dimension_thickness * 10, 1, ',', '.'), '0'), ',') }} mm
+                                        @format($ceramic->dimension_thickness * 10) mm
                                     @endif
                                 </span>
                             @else
@@ -184,7 +184,7 @@
                                             border: 1.5px solid #86efac; 
                                             border-radius: 8px;">
                                     <span style="font-weight: 700; color: #15803d;">
-                                        {{ number_format($ceramic->coverage_per_package, 4, ',', '.') }}
+                                        @format($ceramic->coverage_per_package)
                                     </span>
                                     <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> M2</span>
                                 </div>
@@ -341,7 +341,7 @@
             padding-top: 24px; 
             border-top: 1px solid #f1f5f9;">
     <button type="button" 
-            class="btn btn-secondary" 
+            class="btn btn-secondary-glossy " 
             onclick="closeFloatingModal()"
             style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
                    color: #ffffff; 
