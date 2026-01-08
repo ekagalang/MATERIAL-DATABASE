@@ -7,7 +7,7 @@
         <h2>Daftar Item Pekerjaan</h2>
 
         <a href="{{ route('material-calculations.log') }}"
-            class="btn btn-primary-glossy  btn-sm">
+            class="btn btn-primary-glossy btn-sm">
             <i class="bi bi-clock-history"></i>
             Riwayat
         </a>
@@ -27,11 +27,11 @@
                 <tbody>
                     @foreach($formulas as $index => $formula)
                     <tr>
-                        <td style="text-align: center; font-weight: 600; color: #94a3b8;">
+                        <td style="text-align: center; font-weight: 600; color: var(--text-color);">
                             {{ $index + 1 }}
                         </td>
                         <td>
-                            <div style="font-weight: 700; color: #0f172a; font-size: 14.5px; margin-bottom: 4px;">
+                            <div style="font-weight: 700; margin-bottom: 4px;">
                                 {{ $formula['name'] }}
                             </div>
                         </td>
@@ -43,15 +43,15 @@
                             @endphp
 
                             @if($totalCalcs > 0 && $avgCost > 0)
-                                <div style="font-size: 13px; color: #059669; line-height: 1.5; font-weight: 600;">
+                                <div style="color: #059669; line-height: 1.5; font-weight: 600;">
                                     <i class="bi bi-graph-up-arrow"></i>
                                     Rata-rata: <strong>Rp {{ number_format($avgCost, 0, ',', '.') }} / M2</strong>
                                 </div>
-                                <div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">
+                                <div>
                                     Berdasarkan {{ $totalCalcs }} perhitungan
                                 </div>
                             @else
-                                <div style="font-size: 12px; color: #94a3b8; line-height: 1.5; font-style: italic;">
+                                <div style="font-style: italic;">
                                     <i class="bi bi-info-circle"></i>
                                     Belum ada data perhitungan untuk item ini
                                 </div>
@@ -60,12 +60,11 @@
                         <td style="text-align: center;">
                             <div style="display: flex; gap: 8px; justify-content: center;">
                                 <a href="{{ route('work-items.analytics', ['code' => $formula['code']]) }}"
-                                   class="btn btn-secondary btn-sm">
+                                   class="btn btn-secondary-glossy  btn-sm">
                                     <i class="bi bi-graph-up"></i> Analytics
                                 </a>
-                                <a href="{{ route('materials.create', ['formula' => $formula['code']]) }}"
-                                   class="btn btn-primary-glossy  btn-sm"
-                                   style="flex: 1; justify-content: center; height: 38px;">
+                                <a href="{{ route('material-calculations.create', ['formula_code' => $formula['code']]) }}"
+                                   class="btn btn-primary-glossy  btn-sm">
                                     <i class="bi bi-play-circle"></i> Hitung
                                 </a>
                             </div>
@@ -84,10 +83,15 @@
 
 <style>
     table tr td {
-        padding: 20px 16px !important;
+        padding: 8px 16px !important;
     }
     table tr:hover td {
         background: #fffafa !important;
+    }
+
+    table th {
+        font-size: 14px !important;
+        padding: 1px 16px !important;
     }
 
     h2 {
