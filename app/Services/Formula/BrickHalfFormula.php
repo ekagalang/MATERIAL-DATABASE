@@ -2,6 +2,8 @@
 
 namespace App\Services\Formula;
 
+use App\Helpers\NumberHelper;
+
 use App\Models\Brick;
 use App\Models\BrickInstallationType;
 use App\Models\Cement;
@@ -107,8 +109,8 @@ class BrickHalfFormula implements FormulaInterface
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
                 'Perhitungan' => "($tinggiDinding - ($tebalAdukan / 100)) / (($tinggiBata + $tebalAdukan) / 100)",
-                'Raw' => number_format($kolomVertikalBataRaw, 4),
-                'Desimal' => number_format($decimal, 4),
+                'Raw' => NumberHelper::format($kolomVertikalBataRaw),
+                'Desimal' => NumberHelper::format($decimal),
                 'Hasil' => $kolomVertikalBata . ' baris',
             ],
         ];
@@ -129,8 +131,8 @@ class BrickHalfFormula implements FormulaInterface
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
                 'Perhitungan' => "($panjangDinding - ($tebalAdukan / 100)) / (($panjangBata + $tebalAdukan) / 100)",
-                'Raw' => number_format($barisHorizontalBataRaw, 4),
-                'Desimal' => number_format($decimal, 4),
+                'Raw' => NumberHelper::format($barisHorizontalBataRaw),
+                'Desimal' => NumberHelper::format($decimal),
                 'Hasil' => $barisHorizontalBata . ' kolom',
             ],
         ];
@@ -165,8 +167,8 @@ class BrickHalfFormula implements FormulaInterface
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
                 'Perhitungan' => "($tinggiDinding - ($tebalAdukan / 100)) / (($tinggiBata + $tebalAdukan) / 100) + 1",
-                'Raw' => number_format($barisHorizontalAdukanRaw, 4),
-                'Desimal' => number_format($decimal, 4),
+                'Raw' => NumberHelper::format($barisHorizontalAdukanRaw),
+                'Desimal' => NumberHelper::format($decimal),
                 'Hasil' => $barisHorizontalAdukan . ' baris',
             ],
         ];
@@ -187,8 +189,8 @@ class BrickHalfFormula implements FormulaInterface
             'info' => 'Jika hasilnya desimal, dibulatkan keatas',
             'calculations' => [
                 'Perhitungan' => "($panjangDinding - ($tebalAdukan / 100)) / (($panjangBata + $tebalAdukan) / 100)) + 1",
-                'Raw' => number_format($kolomVertikalAdukanRaw, 4),
-                'Desimal' => number_format($decimal, 4),
+                'Raw' => NumberHelper::format($kolomVertikalAdukanRaw),
+                'Desimal' => NumberHelper::format($decimal),
                 'Hasil' => $kolomVertikalAdukan . ' kolom',
             ],
         ];
@@ -208,13 +210,13 @@ class BrickHalfFormula implements FormulaInterface
             'formula' =>
                 '(baris horizontal adukan × Panjang dinding) + (kolom vertical adukan × (kolom vertikal bata × (tinggi bata / 100))) + ((kolom vertikal bata / 2) × (tinggi bata / 100))',
             'calculations' => [
-                'Part 1' => "($barisHorizontalAdukan × $panjangDinding) = " . number_format($part1, 6) . ' m',
+                'Part 1' => "($barisHorizontalAdukan × $panjangDinding) = " . NumberHelper::format($part1) . ' m',
                 'Part 2' =>
                     "($kolomVertikalAdukan × ($kolomVertikalBata × ($tinggiBata / 100))) = " .
-                    number_format($part2, 6) .
+                    NumberHelper::format($part2) .
                     ' m',
-                'Part 3' => "(($kolomVertikalBata / 2) × ($tinggiBata / 100)) = " . number_format($part3, 6) . ' m',
-                'Hasil Panjang Adukan' => number_format($panjangAdukan, 6) . ' m',
+                'Part 3' => "(($kolomVertikalBata / 2) × ($tinggiBata / 100)) = " . NumberHelper::format($part3) . ' m',
+                'Hasil Panjang Adukan' => NumberHelper::format($panjangAdukan) . ' m',
             ],
         ];
 
@@ -227,8 +229,8 @@ class BrickHalfFormula implements FormulaInterface
             'title' => 'Luas Adukan',
             'formula' => 'Panjang adukan × tebal adukan / 100',
             'calculations' => [
-                'Perhitungan' => number_format($panjangAdukan, 6) . " × $tebalAdukan / 100",
-                'Hasil Luas Adukan' => number_format($luasAdukan, 6) . ' M2',
+                'Perhitungan' => NumberHelper::format($panjangAdukan) . " × $tebalAdukan / 100",
+                'Hasil Luas Adukan' => NumberHelper::format($luasAdukan) . ' M2',
             ],
         ];
 
@@ -241,8 +243,8 @@ class BrickHalfFormula implements FormulaInterface
             'title' => 'Volume Adukan Pekerjaan',
             'formula' => 'Luas Adukan × lebar bata / 100',
             'calculations' => [
-                'Perhitungan' => number_format($luasAdukan, 6) . " × $lebarBata / 100",
-                'Hasil Volume Adukan Pekerjaan' => number_format($volumeAdukanPekerjaan, 6) . ' M3',
+                'Perhitungan' => NumberHelper::format($luasAdukan) . " × $lebarBata / 100",
+                'Hasil Volume Adukan Pekerjaan' => NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
             ],
         ];
 
@@ -258,7 +260,7 @@ class BrickHalfFormula implements FormulaInterface
             'calculations' => [
                 'Density Semen' => $densitySemen . ' kg/M3',
                 'Perhitungan' => "$beratSemenPerSak × (1 / $densitySemen)",
-                'Hasil Kubik Semen' => number_format($kubikSemen, 6) . ' M3',
+                'Hasil Kubik Semen' => NumberHelper::format($kubikSemen) . ' M3',
             ],
         ];
 
@@ -273,8 +275,8 @@ class BrickHalfFormula implements FormulaInterface
             'formula' => 'kubik semen × ratio pasir',
             'calculations' => [
                 'Ratio Pasir' => $ratioPasir,
-                'Perhitungan' => number_format($kubikSemen, 6) . " × $ratioPasir",
-                'Hasil Kubik Pasir' => number_format($kubikPasir, 6) . ' M3',
+                'Perhitungan' => NumberHelper::format($kubikSemen) . " × $ratioPasir",
+                'Hasil Kubik Pasir' => NumberHelper::format($kubikPasir) . ' M3',
             ],
         ];
 
@@ -288,8 +290,8 @@ class BrickHalfFormula implements FormulaInterface
             'formula' => '0.3 × (kubik semen + kubik pasir)',
             'calculations' => [
                 'Perhitungan' =>
-                    '0.3 × (' . number_format($kubikSemen, 6) . ' + ' . number_format($kubikPasir, 6) . ')',
-                'Hasil Kubik Air' => number_format($kubikAir, 6) . ' M3',
+                    '0.3 × (' . NumberHelper::format($kubikSemen) . ' + ' . NumberHelper::format($kubikPasir) . ')',
+                'Hasil Kubik Air' => NumberHelper::format($kubikAir) . ' M3',
             ],
         ];
 
@@ -302,8 +304,8 @@ class BrickHalfFormula implements FormulaInterface
             'title' => 'Kebutuhan Air',
             'formula' => 'kubik air × 1000',
             'calculations' => [
-                'Perhitungan' => number_format($kubikAir, 6) . ' × 1000',
-                'Hasil Kebutuhan Air' => number_format($kebutuhanAir, 2) . ' liter',
+                'Perhitungan' => NumberHelper::format($kubikAir) . ' × 1000',
+                'Hasil Kebutuhan Air' => NumberHelper::format($kebutuhanAir) . ' liter',
             ],
         ];
 
@@ -317,12 +319,12 @@ class BrickHalfFormula implements FormulaInterface
             'formula' => 'kubik semen + kubik pasir + kubik air',
             'calculations' => [
                 'Perhitungan' =>
-                    number_format($kubikSemen, 6) .
+                    NumberHelper::format($kubikSemen) .
                     ' + ' .
-                    number_format($kubikPasir, 6) .
+                    NumberHelper::format($kubikPasir) .
                     ' + ' .
-                    number_format($kubikAir, 6),
-                'Hasil Volume Adukan' => number_format($volumeAdukan, 6) . ' M3',
+                    NumberHelper::format($kubikAir),
+                'Hasil Volume Adukan' => NumberHelper::format($volumeAdukan) . ' M3',
             ],
         ];
 
@@ -347,42 +349,42 @@ class BrickHalfFormula implements FormulaInterface
             'title' => 'Kebutuhan Volume Adukan untuk 1 M3',
             'calculations' => [
                 'Sak Semen 1 M3' =>
-                    '1 / ' . number_format($volumeAdukan, 6) . ' = ' . number_format($sakSemen1M3, 4) . ' sak',
+                    '1 / ' . NumberHelper::format($volumeAdukan) . ' = ' . NumberHelper::format($sakSemen1M3) . ' sak',
                 'Kg Semen 1 M3' =>
                     "$beratSemenPerSak / " .
-                    number_format($volumeAdukan, 6) .
+                    NumberHelper::format($volumeAdukan) .
                     ' = ' .
-                    number_format($kgSemen1M3, 4) .
+                    NumberHelper::format($kgSemen1M3) .
                     ' kg',
                 'Kubik Semen 1 M3' =>
-                    number_format($kubikSemen, 6) .
+                    NumberHelper::format($kubikSemen) .
                     ' / ' .
-                    number_format($volumeAdukan, 6) .
+                    NumberHelper::format($volumeAdukan) .
                     ' = ' .
-                    number_format($kubikSemen1M3, 6) .
+                    NumberHelper::format($kubikSemen1M3) .
                     ' M3',
                 'Sak Pasir 1 M3' =>
-                    '3 / ' . number_format($volumeAdukan, 6) . ' = ' . number_format($sakPasir1M3, 4) . ' sak',
+                    '3 / ' . NumberHelper::format($volumeAdukan) . ' = ' . NumberHelper::format($sakPasir1M3) . ' sak',
                 'Kubik Pasir 1 M3' =>
-                    number_format($kubikPasir, 6) .
+                    NumberHelper::format($kubikPasir) .
                     ' / ' .
-                    number_format($volumeAdukan, 6) .
+                    NumberHelper::format($volumeAdukan) .
                     ' = ' .
-                    number_format($kubikPasir1M3, 6) .
+                    NumberHelper::format($kubikPasir1M3) .
                     ' M3',
                 'Liter Air 1 M3' =>
-                    number_format($kebutuhanAir, 2) .
+                    NumberHelper::format($kebutuhanAir) .
                     ' / ' .
-                    number_format($volumeAdukan, 6) .
+                    NumberHelper::format($volumeAdukan) .
                     ' = ' .
-                    number_format($literAir1M3, 2) .
+                    NumberHelper::format($literAir1M3) .
                     ' liter',
                 'Kubik Air 1 M3' =>
-                    number_format($kubikAir, 6) .
+                    NumberHelper::format($kubikAir) .
                     ' / ' .
-                    number_format($volumeAdukan, 6) .
+                    NumberHelper::format($volumeAdukan) .
                     ' = ' .
-                    number_format($kubikAir1M3, 6) .
+                    NumberHelper::format($kubikAir1M3) .
                     ' M3',
             ],
         ];
@@ -399,56 +401,56 @@ class BrickHalfFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 17,
             'title' => 'Kebutuhan Volume Adukan Pekerjaan',
-            'info' => 'Volume Adukan Pekerjaan = ' . number_format($volumeAdukanPekerjaan, 6) . ' M3',
+            'info' => 'Volume Adukan Pekerjaan = ' . NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
             'calculations' => [
                 'Sak Semen Pekerjaan' =>
-                    number_format($sakSemen1M3, 4) .
+                    NumberHelper::format($sakSemen1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($sakSemenPekerjaan, 4) .
+                    NumberHelper::format($sakSemenPekerjaan) .
                     ' sak',
                 'Kg Semen Pekerjaan' =>
-                    number_format($kgSemen1M3, 4) .
+                    NumberHelper::format($kgSemen1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($kgSemenPekerjaan, 4) .
+                    NumberHelper::format($kgSemenPekerjaan) .
                     ' kg',
                 'Kubik Semen Pekerjaan' =>
-                    number_format($kubikSemen1M3, 6) .
+                    NumberHelper::format($kubikSemen1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($kubikSemenPekerjaan, 6) .
+                    NumberHelper::format($kubikSemenPekerjaan) .
                     ' M3',
                 'Sak Pasir Pekerjaan' =>
-                    number_format($sakPasir1M3, 4) .
+                    NumberHelper::format($sakPasir1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($sakPasirPekerjaan, 4) .
+                    NumberHelper::format($sakPasirPekerjaan) .
                     ' sak',
                 'Kubik Pasir Pekerjaan' =>
-                    number_format($kubikPasir1M3, 6) .
+                    NumberHelper::format($kubikPasir1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($kubikPasirPekerjaan, 6) .
+                    NumberHelper::format($kubikPasirPekerjaan) .
                     ' M3',
                 'Liter Air Pekerjaan' =>
-                    number_format($literAir1M3, 2) .
+                    NumberHelper::format($literAir1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($literAirPekerjaan, 2) .
+                    NumberHelper::format($literAirPekerjaan) .
                     ' liter',
                 'Kubik Air Pekerjaan' =>
-                    number_format($kubikAir1M3, 6) .
+                    NumberHelper::format($kubikAir1M3) .
                     ' × ' .
-                    number_format($volumeAdukanPekerjaan, 6) .
+                    NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
-                    number_format($kubikAirPekerjaan, 6) .
+                    NumberHelper::format($kubikAirPekerjaan) .
                     ' M3',
             ],
         ];

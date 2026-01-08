@@ -141,7 +141,11 @@ class CementController extends Controller
 
         $cement->save();
 
-        // Check if redirect to materials.index is requested
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Semen berhasil ditambahkan!');
+        }
+        // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
             return redirect()->route('materials.index')->with('success', 'Semen berhasil ditambahkan!');
         }
@@ -240,7 +244,11 @@ class CementController extends Controller
 
         $cement->save();
 
-        // Check if redirect to materials.index is requested
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Semen berhasil diupdate!');
+        }
+        // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
             return redirect()->route('materials.index')->with('success', 'Semen berhasil diupdate!');
         }

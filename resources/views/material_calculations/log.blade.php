@@ -168,7 +168,7 @@
                 <div>
                     <h2 class="mb-1">
                         <i class="bi bi-clock-history text-primary"></i> 
-                        Riwayat Perhitungan
+                        Riwayat Perhitungan 
                     </h2>
                     <p class="text-muted mb-0">Daftar semua perhitungan yang pernah dibuat</p>
                 </div>
@@ -317,7 +317,7 @@
                                 </td>
                                 <td class="text-center">
                                     <span class="text-dark">
-                                        {{ rtrim(rtrim(number_format($calc->wall_area, 2), '0'), '.') }} M2
+                                        @format($calc->wall_area) M2
                                     </span>
                                 </td>
                                 <td>
@@ -345,17 +345,17 @@
                                         <strong>Rp {{ number_format($calc->total_material_cost, 0, ',', '.') }}</strong>
                                     </div>
                                 </td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     <div class="btn-group">
                                         <a href="{{ route('material-calculations.show', $calc) }}"
-                                           class="btn btn-primary-glossy  btn-sm">
+                                           class="btn btn-primary-glossy btn-sm">
                                             <i class="bi bi-eye"></i>
                                         </a>
                                         <a href="{{ route('material-calculations.edit', $calc) }}"
                                            class="btn btn-warning btn-sm">
                                             <i class="bi bi-pencil-square"></i>
                                         </a>
-                                        <form action="{{ route('material-calculations.destroy', $calc) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus data ini?')">
+                                        <form action="{{ route('material-calculations.destroy', $calc) }}" method="POST" class="d-inline" data-confirm="Hapus data ini?" data-confirm-ok="Hapus" data-confirm-cancel="Batal">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger btn-sm">

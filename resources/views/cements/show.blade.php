@@ -149,7 +149,7 @@
                                             border: 1.5px solid #86efac; 
                                             border-radius: 8px;">
                                     <span style="font-weight: 700; color: #15803d;">
-                                        {{ rtrim(rtrim(number_format($cement->package_weight_net, 2, ',', '.'), '0'), ',') }}
+                                        @format($cement->package_weight_net)
                                     </span>
                                     <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> Kg</span>
                                 </div>
@@ -321,7 +321,7 @@
             padding-top: 24px; 
             border-top: 1px solid #f1f5f9;">
     <button type="button" 
-            class="btn btn-secondary" 
+            class="btn btn-secondary-glossy " 
             onclick="window.parent.document.getElementById('closeModal').click()"
             style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
                    color: #ffffff; 

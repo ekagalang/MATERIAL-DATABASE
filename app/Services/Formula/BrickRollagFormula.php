@@ -2,6 +2,8 @@
 
 namespace App\Services\Formula;
 
+use App\Helpers\NumberHelper;
+
 use App\Models\Brick;
 use App\Models\BrickInstallationType;
 use App\Models\Cement;
@@ -125,7 +127,7 @@ class BrickRollagFormula implements FormulaInterface
             'info' => 'Dibulatkan keatas',
             'calculations' => [
                 'Perhitungan' => "($panjangRollag - ($tinggiBata / 100)) / (($tinggiBata + $tebalAdukan) / 100)",
-                'Raw' => number_format($barisHorizontalAdukanRaw, 4),
+                'Raw' => NumberHelper::format($barisHorizontalAdukanRaw),
                 'Hasil' => $barisHorizontalAdukan,
             ],
         ];
@@ -147,7 +149,7 @@ class BrickRollagFormula implements FormulaInterface
             'info' => 'Dibulatkan keatas',
             'calculations' => [
                 'Perhitungan' => "(($panjangRollag - ($tinggiBata / 100)) / (($tinggiBata + $tebalAdukan) / 100)) + 1",
-                'Raw' => number_format($kolomVertikalBataRaw, 4),
+                'Raw' => NumberHelper::format($kolomVertikalBataRaw),
                 'Hasil' => $kolomVertikalBata,
             ],
         ];
@@ -178,7 +180,7 @@ class BrickRollagFormula implements FormulaInterface
             'formula' => 'Panjang bata * (baris horizontal adukan / 100) * jumlah tingkat',
             'calculations' => [
                 'Perhitungan' => "$panjangBata * ($barisHorizontalAdukan / 100) * $jumlahTingkat",
-                'Hasil' => number_format($panjangAdukan, 4) . ' m',
+                'Hasil' => NumberHelper::format($panjangAdukan) . ' m',
             ],
         ];
 
@@ -192,7 +194,7 @@ class BrickRollagFormula implements FormulaInterface
             'formula' => 'Panjang adukan * tebal adukan / 100',
             'calculations' => [
                 'Perhitungan' => "$panjangAdukan * $tebalAdukan / 100",
-                'Hasil' => number_format($luasAdukan, 6) . ' M2',
+                'Hasil' => NumberHelper::format($luasAdukan) . ' M2',
             ],
         ];
 
@@ -207,7 +209,7 @@ class BrickRollagFormula implements FormulaInterface
             'info' => 'Lebar rollag dikonversi ke meter',
             'calculations' => [
                 'Perhitungan' => "$panjangRollag * ($lebarRollag / 100)",
-                'Hasil' => number_format($luasRollag, 6) . ' M2',
+                'Hasil' => NumberHelper::format($luasRollag) . ' M2',
             ],
         ];
 
@@ -225,9 +227,9 @@ class BrickRollagFormula implements FormulaInterface
             'formula' =>
                 '(Luas Adukan * (lebar bata / 100)) + ((Luas Rollag * (tebal adukan / 100)) * Jumlah tingkat bata)',
             'calculations' => [
-                'Part 1' => "$luasAdukan * ($lebarBata / 100) = " . number_format($part1, 6),
-                'Part 2' => "($luasRollag * ($tebalAdukan / 100)) * $jumlahTingkat = " . number_format($part2, 6),
-                'Hasil' => number_format($volumeAdukanPekerjaan, 6) . ' M3',
+                'Part 1' => "$luasAdukan * ($lebarBata / 100) = " . NumberHelper::format($part1),
+                'Part 2' => "($luasRollag * ($tebalAdukan / 100)) * $jumlahTingkat = " . NumberHelper::format($part2),
+                'Hasil' => NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
             ],
         ];
 
@@ -254,10 +256,10 @@ class BrickRollagFormula implements FormulaInterface
             'step' => 10,
             'title' => 'Analisa Campuran per 1 Sak Semen',
             'calculations' => [
-                'Kubik Semen' => number_format($kubikSemenPerSak, 6) . ' M3',
-                'Kubik Pasir' => number_format($kubikPasirPerSakSemen, 6) . ' M3',
-                'Kubik Air' => number_format($kubikAirPerSakSemen, 6) . ' M3',
-                'Total Volume Adukan (Yield)' => number_format($volumeAdukanPerSakSemen, 6) . ' M3',
+                'Kubik Semen' => NumberHelper::format($kubikSemenPerSak) . ' M3',
+                'Kubik Pasir' => NumberHelper::format($kubikPasirPerSakSemen) . ' M3',
+                'Kubik Air' => NumberHelper::format($kubikAirPerSakSemen) . ' M3',
+                'Total Volume Adukan (Yield)' => NumberHelper::format($volumeAdukanPerSakSemen) . ' M3',
             ],
         ];
 
@@ -279,10 +281,10 @@ class BrickRollagFormula implements FormulaInterface
             'step' => 11,
             'title' => 'Koefisien Material per 1 M3 Adukan',
             'calculations' => [
-                'Sak Semen 1 M3' => number_format($sakSemen1M3, 4) . ' sak',
-                'Kg Semen 1 M3' => number_format($kgSemen1M3, 4) . ' kg',
-                'Kubik Pasir 1 M3' => number_format($kubikPasir1M3, 4) . ' M3',
-                'Liter Air 1 M3' => number_format($literAir1M3, 2) . ' liter',
+                'Sak Semen 1 M3' => NumberHelper::format($sakSemen1M3) . ' sak',
+                'Kg Semen 1 M3' => NumberHelper::format($kgSemen1M3) . ' kg',
+                'Kubik Pasir 1 M3' => NumberHelper::format($kubikPasir1M3) . ' M3',
+                'Liter Air 1 M3' => NumberHelper::format($literAir1M3) . ' liter',
             ],
         ];
 
@@ -300,12 +302,12 @@ class BrickRollagFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 12,
             'title' => 'Kebutuhan Material Pekerjaan',
-            'info' => 'Volume Pekerjaan: ' . number_format($volumeAdukanPekerjaan, 6) . ' M3',
+            'info' => 'Volume Pekerjaan: ' . NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
             'calculations' => [
-                'Semen (Sak)' => number_format($sakSemenPekerjaan, 4),
-                'Semen (Kg)' => number_format($kgSemenPekerjaan, 4),
-                'Pasir (M3)' => number_format($kubikPasirPekerjaan, 4),
-                'Air (Liter)' => number_format($literAirPekerjaan, 2),
+                'Semen (Sak)' => NumberHelper::format($sakSemenPekerjaan),
+                'Semen (Kg)' => NumberHelper::format($kgSemenPekerjaan),
+                'Pasir (M3)' => NumberHelper::format($kubikPasirPekerjaan),
+                'Air (Liter)' => NumberHelper::format($literAirPekerjaan),
             ],
         ];
 

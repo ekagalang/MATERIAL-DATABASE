@@ -340,7 +340,7 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
             // Tampilkan di console juga
             console.log('Params sent:', Object.fromEntries(new FormData(this).entries()));
 
-            alert(errorMsg);
+            window.showToast(errorMsg, 'error');
             document.getElementById('traceContent').innerHTML = `
                 <div class="alert alert-danger">
                     <h5>Validation Error</h5>
@@ -351,7 +351,8 @@ document.getElementById('traceForm').addEventListener('submit', async function(e
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('Terjadi kesalahan saat melakukan perhitungan');
+        const message = 'Terjadi kesalahan saat melakukan perhitungan';
+        window.showToast(message, 'error');
     }
 });
 
@@ -784,11 +785,32 @@ function renderTrace(trace, containerId) {
     document.getElementById(containerId).innerHTML = html;
 }
 
+function getSmartDecimals(num, maxDecimals = 8) {
+    if (!isFinite(num)) return 0;
+    if (Math.floor(num) === num) return 0;
+
+    const str = num.toFixed(10);
+    const decimalPart = (str.split('.')[1] || '');
+    let firstNonZero = decimalPart.length;
+    for (let i = 0; i < decimalPart.length; i++) {
+        if (decimalPart[i] !== '0') {
+            firstNonZero = i;
+            break;
+        }
+    }
+
+    if (firstNonZero === decimalPart.length) return 0;
+    return Math.min(firstNonZero + 2, maxDecimals);
+}
+
 function formatNumber(num) {
     if (num === null || num === undefined) return '0';
-    return parseFloat(num).toLocaleString('id-ID', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+    const value = Number(num);
+    if (!isFinite(value)) return '0';
+    const decimals = getSmartDecimals(value);
+    return value.toLocaleString('id-ID', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: decimals
     });
 }
 

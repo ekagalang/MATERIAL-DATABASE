@@ -27,7 +27,7 @@
             <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
-            <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
+            <button type="button" id="reset-search" class="btn btn-secondary-glossy " style="display: none;">
                 <i class="bi bi-x-lg"></i> Reset
             </button>
         </form>
@@ -428,12 +428,33 @@ let currentSortDirection = null;
 // HELPER FUNCTIONS
 // ========================================
 
+function formatSmartDecimalPlain(value, maxDecimals = 8) {
+    const num = Number(value);
+    if (!isFinite(num)) return '';
+    if (Math.floor(num) === num) return num.toString();
+
+    const str = num.toFixed(10);
+    const decimalPart = (str.split('.')[1] || '');
+    let firstNonZero = decimalPart.length;
+    for (let i = 0; i < decimalPart.length; i++) {
+        if (decimalPart[i] !== '0') {
+            firstNonZero = i;
+            break;
+        }
+    }
+
+    if (firstNonZero === decimalPart.length) return num.toString();
+
+    const precision = Math.min(firstNonZero + 2, maxDecimals);
+    return num.toFixed(precision).replace(/\.?0+$/, '');
+}
+
 function formatDimension(value) {
     if (!value || value === null) {
         return '<span style="color: #cbd5e1;">-</span>';
     }
     // Remove trailing zeros and format with comma
-    const formatted = parseFloat(value).toString().replace('.', ',');
+    const formatted = formatSmartDecimalPlain(value).replace('.', ',');
     return formatted;
 }
 
@@ -441,7 +462,7 @@ function formatVolume(value) {
     if (!value || value === null) {
         return '<span style="color: #cbd5e1;">—</span>';
     }
-    return parseFloat(value).toFixed(6).replace('.', ',') + ' M3';
+    return formatSmartDecimalPlain(value).replace('.', ',') + ' M3';
 }
 
 function formatPrice(value) {
@@ -600,7 +621,7 @@ function renderPagination(pagination) {
     const nextDisabled = pagination.current_page === pagination.last_page;
 
     const html = `
-        <button class="btn btn-secondary btn-sm"
+        <button class="btn btn-secondary-glossy  btn-sm"
                 ${prevDisabled ? 'disabled' : ''}
                 onclick="loadBricks(${pagination.current_page - 1}, currentSearch, currentSortBy, currentSortDirection)">
             <i class="bi bi-chevron-left"></i> Sebelumnya
@@ -608,7 +629,7 @@ function renderPagination(pagination) {
         <span style="padding: 0 16px; font-weight: 500; color: #475569;">
             Halaman ${pagination.current_page} dari ${pagination.last_page}
         </span>
-        <button class="btn btn-secondary btn-sm"
+        <button class="btn btn-secondary-glossy  btn-sm"
                 ${nextDisabled ? 'disabled' : ''}
                 onclick="loadBricks(${pagination.current_page + 1}, currentSearch, currentSortBy, currentSortDirection)">
             Selanjutnya <i class="bi bi-chevron-right"></i>
@@ -636,22 +657,29 @@ function showEmptyState(search) {
 }
 
 async function deleteBrick(id) {
-    if (!confirm('Yakin ingin menghapus data bata ini?')) {
-        return;
-    }
+    const confirmed = await window.showConfirm({
+        message: 'Yakin ingin menghapus data bata ini?',
+        confirmText: 'Hapus',
+        cancelText: 'Batal',
+        type: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
         const result = await api.delete(`/bricks/${id}`);
 
         if (result.success) {
+            window.showToast('Data bata berhasil dihapus.', 'success');
             // Reload current page
             loadBricks(currentPage, currentSearch, currentSortBy, currentSortDirection);
         } else {
-            alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+            const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+            window.showToast(message, 'error');
         }
     } catch (error) {
         console.error('Delete error:', error);
-        alert('Gagal menghapus data. Silakan coba lagi.');
+        const message = 'Gagal menghapus data. Silakan coba lagi.';
+        window.showToast(message, 'error');
     }
 }
 

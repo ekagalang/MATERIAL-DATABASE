@@ -132,7 +132,11 @@ class SandController extends Controller
 
         $sand->save();
 
-        // Check if redirect to materials.index is requested
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data Pasir berhasil ditambahkan!');
+        }
+        // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
             return redirect()->route('materials.index')->with('success', 'Data Pasir berhasil ditambahkan!');
         }
@@ -222,7 +226,11 @@ class SandController extends Controller
 
         $sand->save();
 
-        // Check if redirect to materials.index is requested
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data Pasir berhasil diupdate!');
+        }
+        // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
             return redirect()->route('materials.index')->with('success', 'Data Pasir berhasil diupdate!');
         }

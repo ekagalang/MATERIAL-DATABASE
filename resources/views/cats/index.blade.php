@@ -132,7 +132,7 @@
             <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
-            <button type="button" id="reset-button" class="btn btn-secondary" style="display: none;">
+            <button type="button" id="reset-button" class="btn btn-secondary-glossy " style="display: none;">
                 <i class="bi bi-x-lg"></i> Reset
             </button>
         </form>
@@ -484,6 +484,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function formatSmartDecimalPlain(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
     // Render cats table
     function renderCats(cats, pagination) {
         const tbody = document.getElementById('cat-list');
@@ -492,12 +513,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
             function formatWeight(value) {
                 if (!value) return '<span style="color: #cbd5e1;">—</span>';
-                return parseFloat(value).toString().replace('.', ',') + ' Kg';
+                return formatSmartDecimalPlain(value).replace('.', ',') + ' Kg';
             }
 
             function formatVolume(value, unit) {
                 if (!value) return '<span style="color: #cbd5e1;">—</span>';
-                return parseFloat(value).toString().replace('.', ',') + ' ' + (unit || 'L');
+                return formatSmartDecimalPlain(value).replace('.', ',') + ' ' + (unit || 'L');
             }
 
             return `
@@ -597,9 +618,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Previous button
         if (pagination.current_page > 1) {
-            html += `<button onclick="loadCats(${pagination.current_page - 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary btn-sm">← Sebelumnya</button>`;
+            html += `<button onclick="loadCats(${pagination.current_page - 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary-glossy  btn-sm">← Sebelumnya</button>`;
         } else {
-            html += `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">← Sebelumnya</button>`;
+            html += `<button class="btn btn-secondary-glossy  btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">← Sebelumnya</button>`;
         }
 
         // Page info
@@ -607,9 +628,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Next button
         if (pagination.current_page < pagination.last_page) {
-            html += `<button onclick="loadCats(${pagination.current_page + 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary btn-sm">Selanjutnya →</button>`;
+            html += `<button onclick="loadCats(${pagination.current_page + 1}, '${currentSearch}', '${currentSortBy}', '${currentSortDirection}')" class="btn btn-secondary-glossy  btn-sm">Selanjutnya →</button>`;
         } else {
-            html += `<button class="btn btn-secondary btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">Selanjutnya →</button>`;
+            html += `<button class="btn btn-secondary-glossy  btn-sm" disabled style="opacity: 0.5; cursor: not-allowed;">Selanjutnya →</button>`;
         }
 
         html += '</div>';
@@ -695,13 +716,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Delete cat
     window.deleteCat = async function(id) {
-        if (!confirm('Yakin ingin menghapus cat ini?')) return;
+        const confirmed = await window.showConfirm({
+            message: 'Yakin ingin menghapus cat ini?',
+            confirmText: 'Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
-        const result = await api.delete(`/cats/${id}`);
-        if (result.success) {
-            loadCats(currentPage, currentSearch, currentSortBy, currentSortDirection);
-        } else {
-            alert('Gagal menghapus data: ' + result.message);
+        try {
+            const result = await api.delete(`/cats/${id}`);
+            if (result.success) {
+                window.showToast('Data cat berhasil dihapus.', 'success');
+                loadCats(currentPage, currentSearch, currentSortBy, currentSortDirection);
+            } else {
+                const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+                window.showToast(message, 'error');
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            const message = 'Gagal menghapus data. Silakan coba lagi.';
+            window.showToast(message, 'error');
         }
     };
 

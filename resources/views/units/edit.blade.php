@@ -157,7 +157,7 @@
                     padding-top: 24px; 
                     border-top: 1px solid #f1f5f9;">
             <button type="button" 
-                    class="btn btn-secondary" 
+                    class="btn btn-secondary-glossy " 
                     onclick="if(typeof window.closeFloatingModal === 'function'){ window.closeFloatingModal(); } else { window.history.back(); }"
                     style="background: transparent; 
                            color: #64748b; 
@@ -228,7 +228,7 @@
         transform: translateY(-2px);
     }
     
-    .btn-secondary:hover {
+    .btn-secondary-glossy :hover {
         background: #f8fafc !important;
         border-color: #cbd5e1 !important;
     }

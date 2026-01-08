@@ -14,13 +14,179 @@
 })();
 </script>
 <style>
+:root {
+    --tab-foot-radius: 18px;
+    --tab-active-bg: #91C6BC;
+}
 @keyframes material-row-blink {
     0%, 100% { opacity: 0; }
     50% { opacity: 1; }
 }
-.table-container {
-    position: relative;
-}
+  .table-container {
+      position: relative;
+  }
+  /* Single-header styling for Cat & Cement - COMPACT 40px */
+  .table-container thead.single-header th {
+      height: 40px !important;
+      padding: 8px 12px !important;
+      line-height: 1.1;
+      vertical-align: top !important;
+      box-sizing: border-box;
+  }
+  .table-container thead.single-header th a {
+      align-items: flex-start !important;
+  }
+
+  /* Double-header styling for Ceramic (and Brick/Sand) - COMPACT 40px total */
+  .table-container thead.has-dim-sub th {
+      padding: 6px 12px !important;
+      line-height: 1.1;
+      vertical-align: top !important;
+      box-sizing: border-box;
+  }
+
+  /* Ensure dim-group-row (first row) has proper height - COMPACT 26px */
+  .table-container thead.has-dim-sub tr.dim-group-row th {
+      height: 26px !important;
+  }
+
+  /* Ensure dim-sub-row (second row) has proper height - COMPACT 14px */
+  .table-container thead.has-dim-sub tr.dim-sub-row th {
+      height: 14px !important;
+      padding: 1px 2px !important;
+      font-size: 11px !important;
+  }
+
+  /* CRITICAL: Force ALL thead heights to be exactly the same - COMPACT 40px */
+  #section-brick .table-container thead,
+  #section-sand .table-container thead,
+  #section-cat .table-container thead,
+  #section-cement .table-container thead,
+  #section-ceramic .table-container thead {
+      height: 40px !important;
+  }
+
+  /* Single header rows should fill the full 40px - COMPACT */
+  #section-cat .table-container thead.single-header tr th,
+  #section-cement .table-container thead.single-header tr th {
+      height: 40px !important;
+      line-height: 1.2 !important;
+      vertical-align: top !important;
+      padding: 8px 12px !important;
+  }
+
+  /* Double header rows should total 40px (26px + 14px) - COMPACT */
+  #section-brick .table-container thead.has-dim-sub tr.dim-group-row th,
+  #section-sand .table-container thead.has-dim-sub tr.dim-group-row th,
+  #section-ceramic .table-container thead.has-dim-sub tr.dim-group-row th {
+      height: 26px !important;
+      vertical-align: top !important;
+      padding: 6px 12px !important;
+  }
+
+  #section-brick .table-container thead.has-dim-sub tr.dim-sub-row th,
+  #section-sand .table-container thead.has-dim-sub tr.dim-sub-row th,
+  #section-ceramic .table-container thead.has-dim-sub tr.dim-sub-row th {
+      height: 14px !important;
+      padding: 1px 2px !important;
+      font-size: 11px !important;
+      vertical-align: top !important;
+  }
+
+  /* CRITICAL: Force ALL thead th to align top */
+  #section-brick .table-container thead th,
+  #section-sand .table-container thead th,
+  #section-cat .table-container thead th,
+  #section-cement .table-container thead th,
+  #section-ceramic .table-container thead th {
+      vertical-align: top !important;
+  }
+  /* Override global.css - make all tbody td consistent */
+  .table-container tbody td {
+      height: 20px !important;
+      padding: 0 6px !important;
+      line-height: 1.1 !important;
+      vertical-align: middle !important;
+  }
+
+  /* Specific overrides for dimension cells - SEMUA MATERIAL */
+  .table-container tbody td.dim-cell {
+      text-align: center !important;
+      font-size: 12px !important;
+      width: 40px !important;
+      padding: 0 2px !important;
+  }
+
+  /* Specific overrides for volume cells - SEMUA MATERIAL */
+  .table-container tbody td.volume-cell {
+      text-align: right !important;
+      font-size: 12px !important;
+      padding: 0 8px !important;
+      width: auto !important;
+  }
+
+  /* CRITICAL: Force consistent cell heights across ALL materials */
+  #section-brick .table-container tbody td,
+  #section-sand .table-container tbody td,
+  #section-cat .table-container tbody td,
+  #section-cement .table-container tbody td,
+  #section-ceramic .table-container tbody td {
+      height: 35px !important;
+      padding: 2px 8px !important;
+      font-size: 13px !important;
+      line-height: 1.3 !important;
+  }
+
+  /* Force dimension cells to be identical across ALL materials */
+  #section-brick .table-container tbody td.dim-cell,
+  #section-sand .table-container tbody td.dim-cell,
+  #section-ceramic .table-container tbody td.dim-cell {
+      text-align: center !important;
+      font-size: 12px !important;
+      width: 40px !important;
+      padding: 2px 2px !important;
+      height: 35px !important;
+  }
+
+  /* Force volume cells to be identical */
+  #section-brick .table-container tbody td.volume-cell,
+  #section-sand .table-container tbody td.volume-cell {
+      text-align: right !important;
+      font-size: 12px !important;
+      padding: 2px 8px !important;
+      height: 35px !important;
+  }
+
+  .btn-group-compact {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      overflow: hidden;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+  }
+  .btn-group-compact .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 22px;
+      width: 26px;
+      padding: 0;
+      margin: 0;
+      border-radius: 0 !important;
+      font-size: 12px;
+      line-height: 1;
+  }
+  .btn-group-compact .btn-action:first-child {
+      border-top-left-radius: 999px !important;
+      border-bottom-left-radius: 999px !important;
+  }
+  .btn-group-compact .btn-action:last-child {
+      border-top-right-radius: 999px !important;
+      border-bottom-right-radius: 999px !important;
+  }
+  .btn-group-compact .btn-action + .btn-action {
+      border-left: 1px solid rgba(255, 255, 255, 0.35);
+  }
 .material-row-outline {
     position: absolute;
     border: 2px solid #891313;
@@ -30,21 +196,38 @@
     animation: material-row-blink 1.2s ease-in-out 0s 2;
     z-index: 5;
 }
-.material-footer-sticky {
-    position: sticky;
-    bottom: 0;
-    margin-top: 20px;
-    margin-bottom: -20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 80px;
-    z-index: 6;
-    background: transparent;
-    border-top: none;
-    box-shadow: none;
-    padding: 0;
-}
+  .material-footer-sticky {
+      position: sticky;
+      bottom: 0;
+      margin-top: 20px;
+      margin-bottom: -20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 80px;
+      z-index: 6;
+      background: transparent;
+      border-top: none;
+      box-shadow: none;
+      padding: 0;
+  }
+  .material-footer-count {
+      display: inline-block;
+      transform: translateY(2px);
+      color: var(--special-text-color) !important;
+      -webkit-text-stroke: var(--special-text-stroke) !important;
+      font-weight: var(--special-font-weight) !important;
+      text-shadow: var(--special-text-shadow) !important;
+  }
+  .material-footer-label {
+      color: var(--special-text-color) !important;
+      -webkit-text-stroke: var(--special-text-stroke) !important;
+      font-weight: var(--special-font-weight) !important;
+      text-shadow: var(--special-text-shadow) !important;
+  }
+  .material-footer-left {
+      align-items: center;
+  }
 .material-footer-sticky::before {
     content: "";
     position: absolute;
@@ -61,8 +244,12 @@
     z-index: -1;
 }
 .material-footer-sticky.is-stuck {
+    position: fixed;
+    left: var(--footer-left, 0px);
+    width: var(--footer-width, 100%);
     min-height: 48px;
     padding: 2px 8px;
+    margin-top: 0;
     margin-bottom: 0;
     gap: 8px;
     justify-content: space-between;
@@ -74,7 +261,7 @@
     height: 48px !important;
 }
 .material-footer-sticky.is-stuck .kanggo-letters {
-    height: 34px !important;
+    height: 17px !important;
     margin-top: 0 !important;
 }
 .material-footer-sticky.is-stuck .kanggo-img {
@@ -113,9 +300,10 @@
     gap: 12px;
 }
 .material-tab-header .material-tabs {
-    position: static;
+    position: relative;
     flex: 1 1 67%;
     width: auto;
+    top: -1px;
 }
 .material-tab-header .material-settings-menu {
     left: 0;
@@ -151,15 +339,31 @@
     padding: 10px 12px 12px;
     margin-bottom: -1px;
     z-index: 6;
-    overflow: visible;
+    overflow: visible !important;
     min-height: 48px;
     max-height: 48px;
 }
-.material-tab-action.active::before {
-    content: "";
+.material-tab-actions {
+    overflow: visible !important;
+}
+.material-tab-header {
+    overflow: visible !important;
+}
+.material-tabs {
+    overflow: visible !important;
+}
+.material-tab-btn {
+    overflow: visible !important;
+}
+.material-tab-btn.active {
+    --tab-border-color: #91C6BC;
+}
+/* Kaki cekung untuk TAB MATERIAL (Bata, Cat, dll) - BENAR SEKARANG */
+.material-tab-btn.active::before {
+    content: "" !important;
     position: absolute;
-    bottom: 0;
-    right: 100%;
+    bottom: -2px;
+    right: calc(100% - 1px);
     width: var(--tab-foot-radius);
     height: var(--tab-foot-radius);
     background:
@@ -168,10 +372,65 @@
             transparent calc(var(--tab-foot-radius) - 2px),
             var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
             var(--tab-border-color) var(--tab-foot-radius),
-            #91C6BC var(--tab-foot-radius)
+            var(--tab-active-bg) var(--tab-foot-radius)
         );
     background-position: bottom right;
     pointer-events: none;
+    z-index: 5;
+}
+.material-tab-btn.active::after {
+    content: "" !important;
+    position: absolute;
+    bottom: -2px;
+    left: calc(100% - 1px);
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background:
+        radial-gradient(
+            circle at 100% 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            var(--tab-active-bg) var(--tab-foot-radius)
+        );
+    background-position: bottom left;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Tab PERTAMA yang visible - cuma kaki KANAN (hapus kaki kiri) */
+.material-tab-btn.active.first-visible::before {
+    content: none !important;
+}
+
+/* Tab TERAKHIR yang visible - cuma kaki KIRI (hapus kaki kanan) */
+.material-tab-btn.active.last-visible::after {
+    content: none !important;
+}
+
+/* Kaki cekung untuk SEARCH ACTION ROW - KIRI SAJA */
+.material-tab-action.active::before {
+    content: "";
+    position: absolute;
+    bottom: -2px;
+    right: calc(100% - 1px);
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background:
+        radial-gradient(
+            circle at 0 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            var(--tab-active-bg) var(--tab-foot-radius)
+        );
+    background-position: bottom right;
+    pointer-events: none;
+    z-index: 5;
+}
+/* Hapus kaki kanan untuk search action row */
+.material-tab-action.active::after {
+    content: none !important;
 }
 .material-search-form {
     display: flex;
@@ -202,6 +461,10 @@
     top: 50%;
     transform: translateY(-50%);
     font-size: 14px;
+    color: var(--text-color);
+    opacity: 0.8;
+    z-index: 2;
+    pointer-events: none;
 }
 .material-tab-action .btn {
     padding: 8px 10px;
@@ -229,19 +492,21 @@
     width: 40px !important;
     height: 40px !important;
 }
-.material-footer-sticky.is-stuck .material-footer-hex-inner {
-    width: 36px !important;
-}
-.material-footer-sticky.is-stuck .material-footer-count {
-    font-size: 20px !important;
-    -webkit-text-stroke: 1px #000 !important;
-}
-.material-footer-sticky.is-stuck .material-footer-label {
-    margin-top: 0 !important;
-    font-size: 8px !important;
-    line-height: 1 !important;
-    letter-spacing: 0.5px !important;
-}
+  .material-footer-sticky.is-stuck .material-footer-hex-inner {
+      width: 36px !important;
+  }
+  .material-footer-sticky.is-stuck .material-footer-count {
+      font-size: 20px !important;
+  }
+  .material-footer-sticky.is-stuck .material-footer-label {
+      margin-top: 0 !important;
+      font-size: 12px !important;
+      line-height: 1 !important;
+      color: var(--text-color) !important;
+      -webkit-text-stroke: 0 !important;
+      text-shadow: none !important;
+      font-weight: bold !important;
+  }
 .material-footer-sticky.is-stuck .material-footer-right .btn {
     padding: 6px 10px !important;
     font-size: 12px !important;
@@ -297,7 +562,7 @@
                             @endforeach
                         </div>
                         <div style="padding: 12px 16px; border-top: 1.5px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: center;">
-                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary" style="font-size: 12px;">
+                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary-glossy " style="font-size: 12px;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>
                         </div>
@@ -307,7 +572,7 @@
             <div class="material-tab-actions">
                 @foreach($materials as $material)
                     <div class="material-tab-action {{ $material['type'] === $activeTab ? 'active' : '' }}" data-tab="{{ $material['type'] }}">
-                        <form action="{{ route('materials.index') }}" method="GET" class="material-search-form">
+                        <form action="{{ route('materials.index') }}" method="GET" class="material-search-form manual-search" data-search-manual="true">
                             <input type="hidden" name="tab" value="{{ $material['type'] }}">
                             <div class="material-search-input">
                                 <i class="bi bi-search"></i>
@@ -320,7 +585,7 @@
                                 <i class="bi bi-search"></i> Cari
                             </button>
                             @if(request('search'))
-                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary">
+                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary-glossy ">
                                     <i class="bi bi-x-lg"></i>
                                 </a>
                             @endif
@@ -350,7 +615,7 @@
                     @if($material['data']->count() > 0)
                 <div class="table-container text-nowrap">
                     <table>
-                        <thead>
+                        <thead class="{{ in_array($material['type'], ['brick','sand','ceramic']) ? 'has-dim-sub' : 'single-header' }}">
                             @php                                   
                               if (!function_exists('getMaterialSortUrl')) {
                                     function getMaterialSortUrl($column, $currentSortBy, $currentDirection) {
@@ -551,7 +816,7 @@
                                                                             <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
                                                                         @endforeach
                                                                     </tr>
-                                                                        @elseif($material['type'] == 'cat')
+                                                                @elseif($material['type'] == 'cat')
                                                                     <tr>
                                                                         <th>No</th>
                                                                         @foreach(['type','brand','sub_brand'] as $col)
@@ -629,10 +894,10 @@
                                                                         <th class="action-cell">Aksi</th>
                                                                     </tr>
                                                                 @elseif($material['type'] == 'cement')
-                                                                    <tr class="dim-group-row">
-                                                                        <th rowspan="2">No</th>
+                                                                    <tr>
+                                                                        <th>No</th>
                                                                         @foreach(['type','brand','sub_brand'] as $col)
-                                                                            <th class="sortable" rowspan="2">
+                                                                            <th class="sortable">
                                                                                 <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                                                     <span>{{ $cementSortable[$col] }}</span>
@@ -644,7 +909,7 @@
                                                                                 </a>
                                                                             </th>
                                                                         @endforeach
-                                                                        <th class="sortable" rowspan="2">
+                                                                        <th class="sortable">
                                                                             <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
                                                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                                                 <span>{{ $cementSortable['code'] }}</span>
@@ -655,7 +920,7 @@
                                                                                 @endif
                                                                             </a>
                                                                         </th>
-                                        <th class="sortable" rowspan="2">
+                                        <th class="sortable">
                                             <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
                                             style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $cementSortable['color'] }}</span>
@@ -666,7 +931,7 @@
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" rowspan="2">
+                                        <th class="sortable">
                                             <a href="{{ getMaterialSortUrl('package_unit', request('sort_by'), request('sort_direction')) }}"
                                             style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $cementSortable['package_unit'] }}</span>
@@ -677,9 +942,9 @@
                                                 @endif
                                             </a>
                                         </th>
-                                        
+
                                         @foreach(['package_weight_net','store','address','package_price','comparison_price_per_kg'] as $col)
-                                        <th class="sortable" rowspan="2">
+                                        <th class="sortable">
                                             <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
                                             style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{!! $cementSortable[$col] !!}</span>
@@ -691,9 +956,8 @@
                                             </a>
                                         </th>
                                         @endforeach
-                                        <th rowspan="2" class="action-cell">Aksi</th>
+                                        <th class="action-cell">Aksi</th>
                                     </tr>
-                                    {{-- Removed dim-sub-row for cement --}}
                                 @elseif($material['type'] == 'ceramic')
                                     <tr class="dim-group-row">
                                         <th rowspan="2">No</th>
@@ -789,36 +1053,36 @@
                                         <td>{{ $item->type ?? '-' }}</td>
                                         <td>{{ $item->brand ?? '-' }}</td>
                                         <td>{{ $item->form ?? '-' }}</td>
-                                        <td class="dim-cell">
+                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell">
+                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell">
+                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_height))
-                                                {{ rtrim(rtrim(number_format($item->dimension_height, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_height)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="volume-cell">
+                                        <td class="volume-cell" style="text-align: right; font-size: 12px;">
                                             @if($item->package_volume)
-                                                {{ number_format($item->package_volume, 6, ',', '.') }} M3
+                                                @format($item->package_volume) M3
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
-                                        <td>{{ $item->store ?? '-' }}</td>
-                                        <td>{{ $item->address ?? '-' }}</td>
+                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
+                                        <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
                                         <td>
                                             @if($item->price_per_piece)
                                                 <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->price_per_piece, 0, ',', '.') }}</span></div>
@@ -848,14 +1112,14 @@
                                         </td>
                                         <td>
                                             @if($item->volume)
-                                                {{ rtrim(rtrim(number_format($item->volume, 2, ',', '.'), '0'), ',') }} {{ $item->volume_unit }}
+                                                @format($item->volume) {{ $item->volume_unit }}
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
                                         <td>
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
-                                                {{ rtrim(rtrim(number_format($item->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
+                                                @format($item->package_weight_net) Kg
                                             @else
                                                 <span>—</span>
                                             @endif
@@ -893,7 +1157,7 @@
                                         
                                         <td style="text-align: right; font-size: 13px;">
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
-                                                {{ rtrim(rtrim(number_format($item->package_weight_net, 2, ',', '.'), '0'), ',') }} Kg
+                                                @format($item->package_weight_net) Kg
                                             @else
                                                 <span>—</span>
                                             @endif
@@ -926,28 +1190,28 @@
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 2, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width, 2, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_height))
-                                                {{ rtrim(rtrim(number_format($item->dimension_height, 2, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_height)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="volume-cell" style="text-align: right; font-size: 12px;">
                                             @if($item->package_volume)
-                                                {{ number_format($item->package_volume, 6, ',', '.') }} M3
+                                                @format($item->package_volume) M3
                                             @else
                                                 <span>—</span>
                                             @endif
@@ -985,28 +1249,28 @@
                                         </td>
                                         <td style="text-align: right; font-size: 12px;">
                                             @if($item->area_per_piece)
-                                                {{ number_format($item->area_per_piece, 4, ',', '.') }} M²
+                                                @format($item->area_per_piece) M²
                                             @else
                                                 <span>—</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
-                                                {{ rtrim(rtrim(number_format($item->dimension_length, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
-                                                {{ rtrim(rtrim(number_format($item->dimension_width, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_thickness))
-                                                {{ rtrim(rtrim(number_format($item->dimension_thickness, 1, ',', '.'), '0'), ',') }}
+                                                @format($item->dimension_thickness)
                                             @else
                                                 <span>-</span>
                                             @endif
@@ -1065,13 +1329,13 @@
                                         style="width: 74px; height: 74px;">
 
                                     <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span class="material-footer-count" style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
                                             {{ number_format($material['db_count'], 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
                                 
-                                <span class="material-footer-label" style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important;">
+                                <span class="material-footer-label">
                                     {{ $material['label'] }}
                                 </span>
                             </div>
@@ -1086,14 +1350,14 @@
                                         style="width: 74px; height: 74px;">
 
                                     <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span class="material-footer-count" style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
                                             {{ number_format($grandTotal, 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
 
-                                <span class="material-footer-label" style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important; text-align: center; line-height: 1.2;">
-                                    SEMUA MATERIAL
+                                <span class="material-footer-label">
+                                    Total Material
                                 </span>
                             </div>
 
@@ -1152,7 +1416,7 @@
                             @endif
                         </p>
                         @if(request('search'))
-                            <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary">
+                            <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary-glossy ">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Pencarian
                             </a>
                         @else
@@ -1222,10 +1486,10 @@
 <!-- Floating Modal -->
 <div id="floatingModal" class="floating-modal">
     <div class="floating-modal-backdrop"></div>
-    <div class="floating-modal-content">
+        <div class="floating-modal-content">
         <div class="floating-modal-header">
             <h2 id="modalTitle">Detail Material</h2>
-            <button class="floating-modal-close" id="globalCloseModal">&times;</button>
+            <button class="floating-modal-close" id="floatingCloseModal">&times;</button>
         </div>
         <div class="floating-modal-body" id="modalBody">
             <div style="text-align: center; padding: 60px; color: #94a3b8;">
@@ -1308,6 +1572,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const isParentOverflowing = parentRect.bottom > viewportHeight + 1;
             const isStuck = isParentOverflowing && Math.abs(rect.bottom - viewportHeight) <= 2;
             footer.classList.toggle('is-stuck', isStuck);
+            if (isStuck) {
+                footer.style.setProperty('--footer-left', `${Math.round(parentRect.left)}px`);
+                footer.style.setProperty('--footer-width', `${Math.round(parentRect.width)}px`);
+            } else {
+                footer.style.removeProperty('--footer-left');
+                footer.style.removeProperty('--footer-width');
+            }
         });
     }
 
@@ -1552,19 +1823,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('floatingModal');
     const modalBody = document.getElementById('modalBody');
     const modalTitle = document.getElementById('modalTitle');
-    const closeBtn = document.getElementById('globalCloseModal');
+    const closeBtn = modal ? modal.querySelector('.floating-modal-close') : null;
     const backdrop = modal ? modal.querySelector('.floating-modal-backdrop') : null;
 
     function interceptFormSubmit() {
         if (!modalBody) return;
         const form = modalBody.querySelector('form');
         if (form) {
-            // Add hidden input to tell controller to redirect to materials.index
-            const redirectInput = document.createElement('input');
-            redirectInput.type = 'hidden';
-            redirectInput.name = '_redirect_to_materials';
-            redirectInput.value = '1';
-            form.appendChild(redirectInput);
+            // Add hidden input to redirect back to the current page after submit
+            let redirectInput = form.querySelector('input[name="_redirect_url"]');
+            if (!redirectInput) {
+                redirectInput = document.createElement('input');
+                redirectInput.type = 'hidden';
+                redirectInput.name = '_redirect_url';
+                form.appendChild(redirectInput);
+            }
+            redirectInput.value = window.location.href;
 
             form.addEventListener('submit', function(e) {
                 // Show loading state before submit
@@ -1574,7 +1848,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const originalHtml = submitBtn.innerHTML;
                     submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
                 }
-                // Let form submit normally, controller will redirect to materials.index
+                // Let form submit normally, controller will redirect back
             });
         }
     }
@@ -1651,13 +1925,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update title based on action
             if (action === 'create') {
                 modalTitle.textContent = `Tambah ${materialLabel} Baru`;
-                closeBtn.style.display = 'none'; // Hide close button
+                closeBtn.style.display = 'flex';
             } else if (action === 'edit') {
                 modalTitle.textContent = `Edit ${materialLabel}`;
-                closeBtn.style.display = 'none'; // Hide close button
+                closeBtn.style.display = 'flex';
             } else if (action === 'show') {
                 modalTitle.textContent = `Detail ${materialLabel}`;
-                closeBtn.style.display = 'flex'; // Show close button
+                closeBtn.style.display = 'flex';
             } else {
                 modalTitle.textContent = materialLabel;
                 closeBtn.style.display = 'flex';
@@ -1698,7 +1972,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Expose closeModal as global function for form cancel buttons
-    window.closeFloatingModal = closeModal;
+    window.closeFloatingModalLocal = closeModal;
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
@@ -1830,25 +2104,36 @@ document.addEventListener('DOMContentLoaded', function() {
         const endpoint = endpointMap[type];
         const label = labelMap[type] || 'material';
         if (!endpoint) {
-            alert('Tipe material tidak dikenal.');
+            const message = 'Tipe material tidak dikenal.';
+            window.showToast(message, 'error');
             return;
         }
 
-        if (!confirm(`Yakin ingin menghapus data ${label} ini?`)) {
-            return;
-        }
+        const confirmed = await window.showConfirm({
+            message: `Yakin ingin menghapus data ${label} ini?`,
+            confirmText: 'Hapus',
+            cancelText: 'Batal',
+            type: 'danger'
+        });
+        if (!confirmed) return;
 
         try {
             const result = await api.delete(`/${endpoint}/${id}`);
             if (result.success) {
                 localStorage.setItem('materialActiveTab', type);
+                sessionStorage.setItem('pendingToast', JSON.stringify({
+                    type: 'success',
+                    message: `Data ${label} berhasil dihapus.`
+                }));
                 window.location.reload();
             } else {
-                alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+                const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+                window.showToast(message, 'error');
             }
         } catch (error) {
             console.error('Delete error:', error);
-            alert('Gagal menghapus data. Silakan coba lagi.');
+            const message = 'Gagal menghapus data. Silakan coba lagi.';
+            window.showToast(message, 'error');
         }
     };
 

@@ -133,7 +133,7 @@
                         <span class="badge bg-light border">PANJANG</span>
                     </label>
                     <div class="input-group">
-                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format($materialCalculation->wall_length, 2, '.', '') }}</div>
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($materialCalculation->wall_length)</div>
                         <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
                     </div>
                 </div>
@@ -146,7 +146,7 @@
                         </span>
                     </label>
                     <div class="input-group">
-                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">{{ number_format($materialCalculation->wall_height, 2, '.', '') }}</div>
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($materialCalculation->wall_height)</div>
                         <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
                     </div>
                 </div>
@@ -196,7 +196,7 @@
                         <span class="badge bg-primary text-white border">LUAS</span>
                     </label>
                     <div class="input-group">
-                        <div class="form-control fw-bold text-center px-1" style="background-color: #dbeafe; border-color: #3b82f6;">{{ number_format($materialCalculation->wall_area, 2, '.', '') }}</div>
+                        <div class="form-control fw-bold text-center px-1" style="background-color: #dbeafe; border-color: #3b82f6;">@format($materialCalculation->wall_area)</div>
                         <span class="input-group-text bg-primary text-white small px-1" style="font-size: 0.7rem;">M2</span>
                     </div>
                 </div>
@@ -408,7 +408,7 @@
                     {{-- ROW 2: SEMEN --}}
                     @if($hasCement)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->cement_quantity_sak, 2, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->cement_quantity_sak)</td>
                         <td class="text-center sticky-col-2">Sak</td>
                         <td class="fw-bold sticky-col-3">Semen</td>
                         <td class="text-muted">{{ $materialCalculation->cement->type ?? '-' }}</td>
@@ -461,7 +461,7 @@
                     {{-- ROW 3: PASIR --}}
                     @if($hasSand)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->sand_m3, 3, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->sand_m3)</td>
                         <td class="text-center sticky-col-2">M3</td>
                         <td class="fw-bold sticky-col-3">Pasir</td>
                         <td class="text-muted">{{ $materialCalculation->sand->type ?? '-' }}</td>
@@ -514,7 +514,7 @@
                     {{-- ROW 4: CAT (NEW) --}}
                     @if($hasCat)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->cat_quantity, 2, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->cat_quantity)</td>
                         <td class="text-center sticky-col-2">{{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
                         <td class="fw-bold sticky-col-3">Cat</td>
                         <td class="text-muted">{{ $materialCalculation->cat->type ?? '-' }}</td>
@@ -631,7 +631,7 @@
                     {{-- ROW NAT (NEW) --}}
                     @if($hasNat)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->nat_quantity, 2, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->nat_quantity)</td>
                         <td class="text-center sticky-col-2">Bks</td>
                         <td class="fw-bold sticky-col-3">Nat</td>
                         <td class="text-muted">{{ $materialCalculation->nat->type ?? 'Nat' }}</td>
@@ -683,7 +683,7 @@
 
                     {{-- ROW 5: AIR (ALWAYS LAST) --}}
                     <tr class="group-end">
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->water_liters, 2, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->water_liters)</td>
                         <td class="text-center sticky-col-2">L</td>
                         <td class="fw-bold sticky-col-3">Air</td>
                         <td class="text-muted">Bersih</td>

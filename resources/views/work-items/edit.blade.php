@@ -93,7 +93,7 @@
         <!-- Action Buttons -->
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
             <button type="button" 
-                    class="btn btn-secondary" 
+                    class="btn btn-secondary-glossy " 
                     onclick="if(document.getElementById('closeModal')){ document.getElementById('closeModal').click(); } else { window.history.back(); }">
                 <i class="bi bi-x-lg"></i> Batal
             </button>

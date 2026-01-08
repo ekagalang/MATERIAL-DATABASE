@@ -2,6 +2,8 @@
 
 namespace App\Services\Formula;
 
+use App\Helpers\NumberHelper;
+
 use App\Models\Cat;
 
 /**
@@ -107,7 +109,7 @@ class PaintingFormula implements FormulaInterface
             'formula' => 'Panjang × Tinggi',
             'calculations' => [
                 'Perhitungan' => "$panjang × $tinggi",
-                'Hasil' => number_format($luasBidang, 4) . ' M2',
+                'Hasil' => NumberHelper::format($luasBidang) . ' M2',
             ],
         ];
 
@@ -121,9 +123,9 @@ class PaintingFormula implements FormulaInterface
             'formula' => 'Berat bersih cat + (berat bersih cat × 5%)',
             'info' => 'Total berat cat + air per kemasan',
             'calculations' => [
-                'Berat Cat' => number_format($beratBersihCat, 4) . ' kg',
-                'Berat Air (5%)' => number_format($beratBersihCat * $ratioAir, 4) . ' kg',
-                'Total Volume Adukan' => number_format($volumeAdukanPerKemasan, 4) . ' kg',
+                'Berat Cat' => NumberHelper::format($beratBersihCat) . ' kg',
+                'Berat Air (5%)' => NumberHelper::format($beratBersihCat * $ratioAir) . ' kg',
+                'Total Volume Adukan' => NumberHelper::format($volumeAdukanPerKemasan) . ' kg',
             ],
         ];
 
@@ -137,8 +139,8 @@ class PaintingFormula implements FormulaInterface
             'formula' => '7.5 M2/kg/lapis × Volume adukan per kemasan',
             'info' => 'Berapa M2 yang bisa dicat dengan 1 kemasan untuk 1 lapis',
             'calculations' => [
-                'Perhitungan' => "$coverageRate × " . number_format($volumeAdukanPerKemasan, 4),
-                'Hasil' => number_format($luasPengecatanPerLapisPerKemasan, 4) . ' M2',
+                'Perhitungan' => "$coverageRate × " . NumberHelper::format($volumeAdukanPerKemasan),
+                'Hasil' => NumberHelper::format($luasPengecatanPerLapisPerKemasan) . ' M2',
             ],
         ];
 
@@ -152,10 +154,10 @@ class PaintingFormula implements FormulaInterface
             'formula' => 'Volume adukan per kemasan / Luas pengecatan per lapis per kemasan',
             'calculations' => [
                 'Perhitungan' =>
-                    number_format($volumeAdukanPerKemasan, 4) .
+                    NumberHelper::format($volumeAdukanPerKemasan) .
                     ' / ' .
-                    number_format($luasPengecatanPerLapisPerKemasan, 4),
-                'Hasil' => number_format($volumeAdukanPer1M2, 6) . ' kg',
+                    NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                'Hasil' => NumberHelper::format($volumeAdukanPer1M2) . ' kg',
             ],
         ];
 
@@ -168,8 +170,8 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Galon (Kemasan) Per 1M2',
             'formula' => '1 / Luas pengecatan per lapis per kemasan',
             'calculations' => [
-                'Perhitungan' => '1 / ' . number_format($luasPengecatanPerLapisPerKemasan, 4),
-                'Hasil' => number_format($galonPer1M2, 6) . ' kemasan',
+                'Perhitungan' => '1 / ' . NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                'Hasil' => NumberHelper::format($galonPer1M2) . ' kemasan',
             ],
         ];
 
@@ -189,8 +191,8 @@ class PaintingFormula implements FormulaInterface
                 'info' => 'Volume kemasan cat: ' . $volumeKemasan . ' ' . ($cat->volume_unit ?? 'liter'),
                 'calculations' => [
                     'Perhitungan' =>
-                        number_format($volumeKemasan, 2) . ' / ' . number_format($luasPengecatanPerLapisPerKemasan, 4),
-                    'Hasil' => number_format($literPer1M2, 6) . ' liter',
+                        NumberHelper::format($volumeKemasan) . ' / ' . NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                    'Hasil' => NumberHelper::format($literPer1M2) . ' liter',
                 ],
             ];
         }
@@ -205,8 +207,8 @@ class PaintingFormula implements FormulaInterface
             'formula' => 'Berat bersih / Luas pengecatan per lapis per kemasan',
             'calculations' => [
                 'Perhitungan' =>
-                    number_format($beratBersihCat, 4) . ' / ' . number_format($luasPengecatanPerLapisPerKemasan, 4),
-                'Hasil' => number_format($kgCatPer1M2, 6) . ' kg',
+                    NumberHelper::format($beratBersihCat) . ' / ' . NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                'Hasil' => NumberHelper::format($kgCatPer1M2) . ' kg',
             ],
         ];
 
@@ -220,10 +222,10 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Liter Air Per 1M2',
             'formula' => '(Berat bersih × 5%) / Luas pengecatan per lapis per kemasan',
             'calculations' => [
-                'Berat Air' => number_format($beratAir, 4) . ' kg',
+                'Berat Air' => NumberHelper::format($beratAir) . ' kg',
                 'Perhitungan' =>
-                    number_format($beratAir, 4) . ' / ' . number_format($luasPengecatanPerLapisPerKemasan, 4),
-                'Hasil' => number_format($literAirPer1M2, 6) . ' liter',
+                    NumberHelper::format($beratAir) . ' / ' . NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                'Hasil' => NumberHelper::format($literAirPer1M2) . ' liter',
             ],
         ];
 
@@ -236,8 +238,8 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Volume Adukan Cat Per Pekerjaan (1 Lapis)',
             'formula' => 'Volume adukan Per 1M2 × Luas Bidang',
             'calculations' => [
-                'Perhitungan' => number_format($volumeAdukanPer1M2, 6) . ' × ' . number_format($luasBidang, 4),
-                'Hasil' => number_format($volumeAdukanPerPekerjaanPerLapis, 4) . ' kg',
+                'Perhitungan' => NumberHelper::format($volumeAdukanPer1M2) . ' × ' . NumberHelper::format($luasBidang),
+                'Hasil' => NumberHelper::format($volumeAdukanPerPekerjaanPerLapis) . ' kg',
             ],
         ];
 
@@ -250,8 +252,8 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Galon (Kemasan) Per Pekerjaan (1 Lapis)',
             'formula' => 'Galon per 1M2 × Luas bidang',
             'calculations' => [
-                'Perhitungan' => number_format($galonPer1M2, 6) . ' × ' . number_format($luasBidang, 4),
-                'Hasil' => number_format($galonPerPekerjaanPerLapis, 4) . ' kemasan',
+                'Perhitungan' => NumberHelper::format($galonPer1M2) . ' × ' . NumberHelper::format($luasBidang),
+                'Hasil' => NumberHelper::format($galonPerPekerjaanPerLapis) . ' kemasan',
             ],
         ];
 
@@ -267,8 +269,8 @@ class PaintingFormula implements FormulaInterface
                 'title' => 'Liter Cat Per Pekerjaan (1 Lapis)',
                 'formula' => 'Liter per 1M2 × Luas bidang',
                 'calculations' => [
-                    'Perhitungan' => number_format($literPer1M2, 6) . ' × ' . number_format($luasBidang, 4),
-                    'Hasil' => number_format($literCatPerPekerjaanPerLapis, 4) . ' liter',
+                    'Perhitungan' => NumberHelper::format($literPer1M2) . ' × ' . NumberHelper::format($luasBidang),
+                    'Hasil' => NumberHelper::format($literCatPerPekerjaanPerLapis) . ' liter',
                 ],
             ];
         }
@@ -282,8 +284,8 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Kg Cat Per Pekerjaan (1 Lapis)',
             'formula' => 'Kg per 1M2 × Luas bidang',
             'calculations' => [
-                'Perhitungan' => number_format($kgCatPer1M2, 6) . ' × ' . number_format($luasBidang, 4),
-                'Hasil' => number_format($kgCatPerPekerjaanPerLapis, 4) . ' kg',
+                'Perhitungan' => NumberHelper::format($kgCatPer1M2) . ' × ' . NumberHelper::format($luasBidang),
+                'Hasil' => NumberHelper::format($kgCatPerPekerjaanPerLapis) . ' kg',
             ],
         ];
 
@@ -296,8 +298,8 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Liter Air Per Pekerjaan (1 Lapis)',
             'formula' => 'Liter air per 1M2 × Luas bidang',
             'calculations' => [
-                'Perhitungan' => number_format($literAirPer1M2, 6) . ' × ' . number_format($luasBidang, 4),
-                'Hasil' => number_format($literAirPerPekerjaanPerLapis, 4) . ' liter',
+                'Perhitungan' => NumberHelper::format($literAirPer1M2) . ' × ' . NumberHelper::format($luasBidang),
+                'Hasil' => NumberHelper::format($literAirPerPekerjaanPerLapis) . ' liter',
             ],
         ];
 
@@ -313,15 +315,15 @@ class PaintingFormula implements FormulaInterface
         $grandLuasBidang = $luasBidang * $jumlahLapis;
 
         $calculations = [
-            'Volume Adukan Total' => number_format($volumeAdukanPekerjaan, 4) . ' kg',
-            'Kemasan' => number_format($kemasanPekerjaan, 4) . ' galon',
-            'Kg Cat' => number_format($kgCatPekerjaan, 4) . ' kg',
-            'Liter Air' => number_format($literAirPekerjaan, 4) . ' liter',
+            'Volume Adukan Total' => NumberHelper::format($volumeAdukanPekerjaan) . ' kg',
+            'Kemasan' => NumberHelper::format($kemasanPekerjaan) . ' galon',
+            'Kg Cat' => NumberHelper::format($kgCatPekerjaan) . ' kg',
+            'Liter Air' => NumberHelper::format($literAirPekerjaan) . ' liter',
         ];
 
         // Tambahkan Liter Cat hanya jika ada datanya
         if ($literCatPekerjaan !== null) {
-            $calculations['Liter Cat'] = number_format($literCatPekerjaan, 4) . ' liter';
+            $calculations['Liter Cat'] = NumberHelper::format($literCatPekerjaan) . ' liter';
         }
 
         $trace['steps'][] = [
@@ -332,7 +334,7 @@ class PaintingFormula implements FormulaInterface
                 'Total ' .
                 $jumlahLapis .
                 ' lapis × ' .
-                number_format($luasBidang, 4) .
+                NumberHelper::format($luasBidang) .
                 ' M2 = ' .
                 $grandLuasBidang .
                 ' M2',

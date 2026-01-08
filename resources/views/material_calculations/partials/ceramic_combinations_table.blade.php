@@ -580,7 +580,7 @@
                                 $isLastMaterial = $matIndex === count($visibleMaterials);
                             @endphp
                             <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
-                                <td class="text-end fw-bold sticky-col-1">{{ $mat['unit'] === 'M3' ? number_format($mat['qty'], 3, ',', '.') : number_format($mat['qty'], 2, ',', '.') }}</td>
+                                <td class="text-end fw-bold sticky-col-1">@format($mat['qty'])</td>
                                 <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
                                 <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 

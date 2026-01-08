@@ -44,6 +44,13 @@
                 console.warn('Search input found without form:', input);
                 return;
             }
+            if (
+                input.dataset.searchManual === 'true' ||
+                (form && form.dataset.searchManual === 'true') ||
+                (form && form.classList.contains('manual-search'))
+            ) {
+                return;
+            }
 
             // Store original submit handler if exists
             const originalSubmit = form.onsubmit;

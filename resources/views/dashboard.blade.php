@@ -306,6 +306,27 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('materialChart').getContext('2d');
+
+    function formatSmartDecimalPlain(value, maxDecimals = 8) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (Math.floor(num) === num) return num.toString();
+
+        const str = num.toFixed(10);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return num.toString();
+
+        const precision = Math.min(firstNonZero + 2, maxDecimals);
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
     
     // Gradient for chart
     let gradient = ctx.createLinearGradient(0, 0, 0, 400);
@@ -356,7 +377,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             let label = context.label || '';
                             let value = context.parsed || 0;
                             let total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            let percentage = ((value / total) * 100).toFixed(1) + '%';
+                            const pct = (value / total) * 100;
+                            const percentage = formatSmartDecimalPlain(pct) + '%';
                             return label + ': ' + value + ' (' + percentage + ')';
                         }
                     }

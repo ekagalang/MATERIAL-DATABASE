@@ -15,8 +15,12 @@
     <link rel="stylesheet" href="{{ asset('css/global.css') }}">
 </head>
 <body>
-    <div class="container">
-        <div class="nav ">
+    <button type="button" id="navToggle" class="nav-toggle-btn" aria-label="Buka menu">
+        <i class="bi bi-caret-right-fill"></i>
+    </button>
+    <div class="nav-overlay" id="navOverlay"></div>
+    <aside class="sidebar-nav" id="sidebarNav">
+        <div class="nav">
             <a href="{{ url('/') }}" class="{{ request()->is('/') || request()->routeIs('material-calculator.dashboard') || request()->routeIs('material-calculations.*') ? 'active' : '' }}">
                 Dashboard
             </a>
@@ -24,7 +28,7 @@
             <!-- Material Dropdown (Modified for Return & Hover) -->
             <div class="nav-dropdown-wrapper material-wrapper">
                 <a href="{{ route('materials.index') }}" class="nav-link-btn {{ request()->routeIs('materials.*') || request()->routeIs('bricks.*') || request()->routeIs('cements.*') || request()->routeIs('sands.*') || request()->routeIs('cats.*') ? 'active' : '' }}" id="materialNavLink">
-                    Material <i class="bi bi-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
+                    Material <i class="bi bi-caret-right-fill" style="font-size: 10px; opacity: 0.7;"></i>
                 </a>
                 
                 <div class="nav-dropdown-menu" id="materialDropdownMenu">
@@ -33,7 +37,7 @@
                         <div class="dropdown-item-parent">
                             <div class="dropdown-item-trigger" tabindex="0" role="button">
                                 Lihat Material
-                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </div>
                             
                             <!-- Nested Sub-Menu: Filter -->
@@ -56,7 +60,7 @@
                         <div class="dropdown-item-parent">
                             <div class="dropdown-item-trigger" tabindex="0" role="button">
                                 Tambah Material
-                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </div>
 
                             <!-- Nested Sub-Menu: Add Buttons -->
@@ -78,11 +82,18 @@
             <style>
                 /* Hover Logic for Navbar Dropdowns */
                 .material-wrapper:hover .nav-dropdown-menu,
-                .work-item-wrapper:hover .nav-dropdown-menu {
+                .work-item-wrapper:hover .nav-dropdown-menu,
+                .settings-wrapper:hover .nav-dropdown-menu {
                     opacity: 1;
                     visibility: visible;
                     transform: translateY(0);
                     pointer-events: auto;
+                }
+
+                .sidebar-nav .material-wrapper:hover .nav-dropdown-menu,
+                .sidebar-nav .work-item-wrapper:hover .nav-dropdown-menu,
+                .sidebar-nav .settings-wrapper:hover .nav-dropdown-menu {
+                    transform: translateX(0);
                 }
                 
                 /* Ensure Link looks like button */
@@ -112,7 +123,7 @@
             <!-- Item Pekerjaan Dropdown -->
             <div class="nav-dropdown-wrapper work-item-wrapper">
                 <button type="button" class="nav-link-btn {{ request()->routeIs('work-items.*') ? 'active' : '' }}" id="workItemDropdownToggle">
-                    Item Pekerjaan <i class="bi bi-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
+                    Item Pekerjaan <i class="bi bi-caret-right-fill" style="font-size: 10px; opacity: 0.7;"></i>
                 </button>
 
                 <div class="nav-dropdown-menu" id="workItemDropdownMenu">
@@ -123,7 +134,7 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Lihat Item Pekerjaan
-                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
 
@@ -133,7 +144,7 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Hitung Item Pekerjaan
-                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
 
@@ -143,7 +154,7 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Tambah Item Pekerjaan
-                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
                     </div>
@@ -163,9 +174,9 @@
             </a>
 
             <!-- Settings Dropdown -->
-            <div class="nav-dropdown-wrapper" style="margin-left: auto;">
+            <div class="nav-dropdown-wrapper settings-wrapper" style="margin-left: auto;">
                 <button type="button" class="nav-link-btn {{ request()->routeIs('settings.*') ? 'active' : '' }}" id="settingsDropdownToggle">
-                    <i class="bi bi-gear"></i> <i class="bi bi-chevron-down" style="font-size: 10px; opacity: 0.7;"></i>
+                    Pengaturan<i class="bi bi-caret-right-fill" style="font-size: 10px; opacity: 0.7;"></i>
                 </button>
 
                 <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
@@ -176,25 +187,45 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Rekomendasi TerBAIK
-                                <i class="bi bi-chevron-right ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </aside>
 
-        @if(session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
-        @endif
+    <div class="container page-content">
 
-        @if(session('error'))
-            <div class="alert alert-danger">
-                {{ session('error') }}
+        <div id="toast-container" class="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div id="confirm-modal" class="confirm-modal" aria-hidden="true">
+            <div class="confirm-backdrop" data-confirm-close></div>
+            <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+                <div class="confirm-header">
+                    <div class="confirm-title" id="confirm-title">Konfirmasi</div>
+                    <button type="button" class="confirm-close" data-confirm-close aria-label="Tutup">&times;</button>
+                </div>
+                <div class="confirm-message" id="confirm-message">Apakah Anda yakin?</div>
+                <div class="confirm-actions">
+                    <button type="button" class="confirm-btn cancel" id="confirm-cancel">Batal</button>
+                    <button type="button" class="confirm-btn confirm" id="confirm-ok">Hapus</button>
+                </div>
             </div>
-        @endif
+        </div>
+
+        @php
+            $toasts = [];
+            if (session('success')) {
+                $toasts[] = ['type' => 'success', 'message' => session('success')];
+            }
+            if (session('error')) {
+                $toasts[] = ['type' => 'error', 'message' => session('error')];
+            }
+        @endphp
+        <script>
+            window.__TOASTS__ = @json($toasts);
+        </script>
 
         @yield('content')
     </div>
@@ -227,6 +258,29 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.getElementById('navToggle');
+            const navOverlay = document.getElementById('navOverlay');
+
+            function closeNav() {
+                document.body.classList.remove('nav-open');
+            }
+
+            if (navToggle) {
+                navToggle.addEventListener('click', function() {
+                    document.body.classList.toggle('nav-open');
+                });
+            }
+
+            if (navOverlay) {
+                navOverlay.addEventListener('click', closeNav);
+            }
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeNav();
+                }
+            });
+
             // --- Navbar Dropdown Logic (Reusable Function) ---
             // Track all active dropdowns globally
             const activeDropdowns = new Set();
@@ -513,8 +567,15 @@
                 }, 300);
             }
 
-            // Expose closeGlobalModal as global function for form cancel buttons
-            window.closeFloatingModal = closeGlobalModal;
+            // Expose close handler for form cancel buttons (prefers local modal if open)
+            window.closeFloatingModal = function() {
+                const localModal = document.getElementById('floatingModal');
+                if (localModal && localModal.classList.contains('active') && typeof window.closeFloatingModalLocal === 'function') {
+                    window.closeFloatingModalLocal();
+                    return;
+                }
+                closeGlobalModal();
+            };
 
             if (globalModal && globalModalBody && globalModalTitle && globalCloseBtn && globalBackdrop) {
                 // Listen specifically for .global-open-modal class
@@ -713,6 +774,184 @@
                 }
             });
         });
+    </script>
+
+    <script>
+        (function() {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const titles = {
+                success: 'Sukses',
+                error: 'Gagal',
+                info: 'Info',
+                warning: 'Peringatan'
+            };
+
+            function createToast(message, type = 'success', options = {}) {
+                if (!message) return;
+                const duration = Number(options.duration) || 4200;
+                const title = options.title || titles[type] || 'Notifikasi';
+
+                const toast = document.createElement('div');
+                toast.className = 'toast';
+                toast.dataset.type = type;
+                toast.style.setProperty('--toast-duration', `${duration}ms`);
+
+                const icon = document.createElement('span');
+                icon.className = 'toast-icon';
+                icon.setAttribute('aria-hidden', 'true');
+
+                const content = document.createElement('div');
+                content.className = 'toast-content';
+
+                const titleEl = document.createElement('div');
+                titleEl.className = 'toast-title';
+                titleEl.textContent = title;
+
+                const messageEl = document.createElement('div');
+                messageEl.className = 'toast-message';
+                messageEl.textContent = message;
+
+                content.appendChild(titleEl);
+                content.appendChild(messageEl);
+
+                const close = document.createElement('button');
+                close.type = 'button';
+                close.className = 'toast-close';
+                close.setAttribute('aria-label', 'Tutup');
+                close.textContent = '';
+
+                const progress = document.createElement('div');
+                progress.className = 'toast-progress';
+
+                toast.appendChild(icon);
+                toast.appendChild(content);
+                toast.appendChild(close);
+                toast.appendChild(progress);
+                container.appendChild(toast);
+
+                requestAnimationFrame(() => toast.classList.add('show'));
+
+                let removed = false;
+                const removeToast = () => {
+                    if (removed) return;
+                    removed = true;
+                    toast.classList.add('hide');
+                    window.setTimeout(() => {
+                        toast.remove();
+                    }, 250);
+                };
+
+                const timeoutId = window.setTimeout(removeToast, duration);
+
+                close.addEventListener('click', () => {
+                    window.clearTimeout(timeoutId);
+                    removeToast();
+                });
+            }
+
+            window.showToast = function(message, type = 'success', options = {}) {
+                createToast(message, type, options);
+            };
+
+            const initialToasts = Array.isArray(window.__TOASTS__) ? window.__TOASTS__ : [];
+            initialToasts.forEach((toast) => {
+                if (toast && toast.message) {
+                    createToast(toast.message, toast.type || 'success');
+                }
+            });
+
+            const pending = sessionStorage.getItem('pendingToast');
+            if (pending) {
+                try {
+                    const parsed = JSON.parse(pending);
+                    if (parsed && parsed.message) {
+                        createToast(parsed.message, parsed.type || 'success', parsed.options || {});
+                    }
+                } catch (e) {
+                    console.error('Failed to parse pending toast', e);
+                }
+                sessionStorage.removeItem('pendingToast');
+            }
+        })();
+    </script>
+
+    <script>
+        (function() {
+            const modal = document.getElementById('confirm-modal');
+            if (!modal) return;
+
+            const titleEl = modal.querySelector('#confirm-title');
+            const messageEl = modal.querySelector('#confirm-message');
+            const okBtn = modal.querySelector('#confirm-ok');
+            const cancelBtn = modal.querySelector('#confirm-cancel');
+            const closeTargets = modal.querySelectorAll('[data-confirm-close]');
+
+            let resolver = null;
+
+            function closeConfirm(result) {
+                if (!resolver) return;
+                const resolve = resolver;
+                resolver = null;
+                modal.classList.remove('active');
+                modal.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('confirm-open');
+                resolve(result);
+            }
+
+            function openConfirm(options) {
+                const opts = options || {};
+                titleEl.textContent = opts.title || 'Konfirmasi';
+                messageEl.textContent = opts.message || 'Apakah Anda yakin?';
+                okBtn.textContent = opts.confirmText || 'Hapus';
+                cancelBtn.textContent = opts.cancelText || 'Batal';
+                modal.dataset.type = opts.type || 'danger';
+
+                modal.classList.add('active');
+                modal.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('confirm-open');
+            }
+
+            window.showConfirm = function(options) {
+                return new Promise((resolve) => {
+                    if (resolver) {
+                        resolver(false);
+                    }
+                    resolver = resolve;
+                    openConfirm(options);
+                });
+            };
+
+            okBtn.addEventListener('click', () => closeConfirm(true));
+            cancelBtn.addEventListener('click', () => closeConfirm(false));
+            closeTargets.forEach((el) => el.addEventListener('click', () => closeConfirm(false)));
+
+            document.addEventListener('keydown', (e) => {
+                if (!modal.classList.contains('active')) return;
+                if (e.key === 'Escape') {
+                    closeConfirm(false);
+                }
+            });
+
+            document.addEventListener('submit', async (e) => {
+                const form = e.target;
+                if (!(form instanceof HTMLFormElement)) return;
+                const message = form.getAttribute('data-confirm');
+                if (!message) return;
+                e.preventDefault();
+                const confirmed = await window.showConfirm({
+                    title: form.dataset.confirmTitle || 'Konfirmasi',
+                    message,
+                    confirmText: form.dataset.confirmOk || 'Hapus',
+                    cancelText: form.dataset.confirmCancel || 'Batal',
+                    type: form.dataset.confirmType || 'danger'
+                });
+                if (confirmed) {
+                    form.submit();
+                }
+            });
+        })();
     </script>
 
     <!-- Performance Optimization Scripts -->

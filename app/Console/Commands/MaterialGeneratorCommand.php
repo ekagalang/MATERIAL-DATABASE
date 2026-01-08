@@ -961,7 +961,7 @@ class MaterialGeneratorCommand extends Command
 
             if (Str::startsWith($type, 'decimal')) {
                 // Numeric formatting for decimals
-                $tableCells .= "                    <td style=\"text-align: right;\">{{ number_format(\$item->{$name}, 2, ',', '.') }}</td>\n";
+                $tableCells .= "                    <td style=\"text-align: right;\">@format(\$item->{$name})</td>\n";
             } elseif ($type === 'integer') {
                 // Numeric formatting for integers
                 $tableCells .= "                    <td style=\"text-align: right;\">{{ number_format(\$item->{$name}, 0, ',', '.') }}</td>\n";
@@ -1098,7 +1098,7 @@ class MaterialGeneratorCommand extends Command
                                 <div class="row mt-4">
                                     <div class="col-12">
                                         <button type="submit" class="btn btn-primary-glossy ">Simpan</button>
-                                        <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary">Batal</a>
+                                        <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary-glossy ">Batal</a>
                                     </div>
                                 </div>
                             </form>
@@ -1149,7 +1149,7 @@ class MaterialGeneratorCommand extends Command
                                 <div class="row mt-4">
                                     <div class="col-12">
                                         <button type="submit" class="btn btn-primary-glossy ">Update</button>
-                                        <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary">Batal</a>
+                                        <a href="{{ route('{$this->materialNamePlural}.index') }}" class="btn btn-secondary-glossy ">Batal</a>
                                     </div>
                                 </div>
                             </form>

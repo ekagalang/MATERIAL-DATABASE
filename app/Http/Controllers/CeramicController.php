@@ -95,7 +95,11 @@ class CeramicController extends Controller
 
         $this->service->create($data, $request->file('photo'));
 
-        // Return redirect ke index agar halaman refresh
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data berhasil disimpan');
+        }
+
         return redirect()->route('ceramics.index')->with('success', 'Data berhasil disimpan');
     }
 
@@ -133,6 +137,11 @@ class CeramicController extends Controller
         ]);
 
         $this->service->update($ceramic->id, $data, $request->file('photo'));
+
+        // Redirect back to the originating page if requested
+        if ($request->filled('_redirect_url')) {
+            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data berhasil diperbarui');
+        }
 
         return redirect()->route('ceramics.index')->with('success', 'Data berhasil diperbarui');
     }

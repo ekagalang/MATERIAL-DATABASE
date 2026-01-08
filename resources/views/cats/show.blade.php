@@ -108,7 +108,7 @@
                                    color: #1e293b;">
                             @if($cat->volume)
                                 <span style="font-weight: 600;">
-                                    {{ rtrim(rtrim(number_format($cat->volume, 2, ',', '.'), '0'), ',') }}
+                                    @format($cat->volume)
                                 </span>
                                 <span style="color: #64748b; margin-left: 4px;">{{ $cat->volume_unit }}</span>
                             @else
@@ -141,7 +141,7 @@
                                 </span>
                                 @if($cat->package_weight_gross)
                                     <span style="color: #64748b; margin-left: 8px; font-size: 12.5px;">
-                                        {{ rtrim(rtrim(number_format($cat->package_weight_gross, 2, ',', '.'), '0'), ',') }} Kg (Kotor)
+                                        @format($cat->package_weight_gross) Kg (Kotor)
                                     </span>
                                 @endif
                             @else
@@ -168,7 +168,7 @@
                                             border: 1.5px solid #86efac; 
                                             border-radius: 8px;">
                                     <span style="font-weight: 700; color: #15803d;">
-                                        {{ rtrim(rtrim(number_format($cat->package_weight_net, 2, ',', '.'), '0'), ',') }}
+                                        @format($cat->package_weight_net)
                                     </span>
                                     <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> Kg</span>
                                 </div>
@@ -340,7 +340,7 @@
             padding-top: 24px; 
             border-top: 1px solid #f1f5f9;">
     <button type="button" 
-            class="btn btn-secondary" 
+            class="btn btn-secondary-glossy " 
             onclick="window.parent.document.getElementById('closeModal').click()"
             style="background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%); 
                    color: #ffffff; 

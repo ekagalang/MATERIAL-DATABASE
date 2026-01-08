@@ -133,7 +133,7 @@
             <button type="submit" class="btn btn-primary-glossy ">
                 <i class="bi bi-search"></i> Cari
             </button>
-            <button type="button" id="reset-search" class="btn btn-secondary" style="display: none;">
+            <button type="button" id="reset-search" class="btn btn-secondary-glossy " style="display: none;">
                 <i class="bi bi-x-lg"></i> Reset
             </button>
         </form>
@@ -572,7 +572,7 @@ function renderPagination(pagination) {
     const nextDisabled = pagination.current_page === pagination.last_page;
 
     const html = `
-        <button class="btn btn-secondary btn-sm"
+        <button class="btn btn-secondary-glossy  btn-sm"
                 ${prevDisabled ? 'disabled' : ''}
                 onclick="loadCements(${pagination.current_page - 1}, currentSearch, currentSortBy, currentSortDirection)">
             <i class="bi bi-chevron-left"></i> Sebelumnya
@@ -580,7 +580,7 @@ function renderPagination(pagination) {
         <span style="padding: 0 16px; font-weight: 500; color: #475569;">
             Halaman ${pagination.current_page} dari ${pagination.last_page}
         </span>
-        <button class="btn btn-secondary btn-sm"
+        <button class="btn btn-secondary-glossy  btn-sm"
                 ${nextDisabled ? 'disabled' : ''}
                 onclick="loadCements(${pagination.current_page + 1}, currentSearch, currentSortBy, currentSortDirection)">
             Selanjutnya <i class="bi bi-chevron-right"></i>
@@ -608,21 +608,28 @@ function showEmptyState(search) {
 }
 
 async function deleteCement(id) {
-    if (!confirm('Yakin ingin menghapus data semen ini?')) {
-        return;
-    }
+    const confirmed = await window.showConfirm({
+        message: 'Yakin ingin menghapus data semen ini?',
+        confirmText: 'Hapus',
+        cancelText: 'Batal',
+        type: 'danger'
+    });
+    if (!confirmed) return;
 
     try {
         const result = await api.delete(`/cements/${id}`);
 
         if (result.success) {
+            window.showToast('Data semen berhasil dihapus.', 'success');
             loadCements(currentPage, currentSearch, currentSortBy, currentSortDirection);
         } else {
-            alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+            const message = 'Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan');
+            window.showToast(message, 'error');
         }
     } catch (error) {
         console.error('Delete error:', error);
-        alert('Gagal menghapus data. Silakan coba lagi.');
+        const message = 'Gagal menghapus data. Silakan coba lagi.';
+        window.showToast(message, 'error');
     }
 }
 

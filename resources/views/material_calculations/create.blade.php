@@ -3,9 +3,21 @@
 @php
     $formulaDescriptions = [];
     $formulas = $availableFormulas ?? $formulas ?? [];
+    $formulaNames = [];
+    $formulaOptions = [];
     foreach ($formulas as $formula) {
         $formulaDescriptions[$formula['code']] = $formula['description'] ?? '';
+        $formulaNames[$formula['code']] = $formula['name'] ?? $formula['code'];
+        $formulaOptions[] = [
+            'code' => $formula['code'] ?? '',
+            'name' => $formula['name'] ?? '',
+        ];
     }
+
+    $selectedWorkType = old('work_type') ?? old('work_type_select') ?? request('formula_code');
+    $selectedWorkTypeLabel = $selectedWorkType
+        ? ($formulaNames[$selectedWorkType] ?? $selectedWorkType)
+        : '';
     
     // Cek Single Brick (Carry Over)
     $isSingleCarryOver = request()->has('brick_id');
@@ -64,19 +76,24 @@
             {{-- LEFT COLUMN: FORM INPUTS --}}
             <div class="left-column">
                 {{-- WORK TYPE --}}
-                <div class="form-group-fullwidth">
+                <div class="form-group work-type-group">
                     <label>Item Pekerjaan</label>
-                    <select id="workTypeSelector" name="work_type_select" required {{ request('formula_code') ? 'disabled' : '' }}>
-                        <option value="">-- Pilih Item Pekerjaan --</option>
-                        @foreach($formulas as $formula)
-                            <option value="{{ $formula['code'] }}" {{ request('formula_code') == $formula['code'] ? 'selected' : '' }}>
-                                {{ $formula['name'] }}
-                            </option>
-                        @endforeach
-                    </select>
-                    @if(request('formula_code'))
-                        <input type="hidden" name="work_type" value="{{ request('formula_code') }}">
-                    @endif
+                    <div class="input-wrapper">
+                        <div class="work-type-autocomplete">
+                            <div class="work-type-input">
+                                <input type="text"
+                                       id="workTypeDisplay"
+                                       class="autocomplete-input"
+                                       placeholder="Pilih atau ketik item pekerjaan..."
+                                       autocomplete="off"
+                                       value="{{ $selectedWorkTypeLabel }}"
+                                       {{ request('formula_code') ? 'readonly' : '' }}
+                                       required>
+                            </div>
+                            <div class="autocomplete-list" id="workType-list"></div>
+                        </div>
+                        <input type="hidden" id="workTypeSelector" name="work_type_select" value="{{ $selectedWorkType }}">
+                    </div>
                 </div>
 
                 <div id="inputFormContainer">
@@ -105,9 +122,9 @@
                             <div class="dimension-item" id="mortarThicknessGroup">
                                 <label>Tebal</label>
                                 <div class="input-with-unit">
-                                    <input type="number" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1"
+                                    <input type="number" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
                                         value="{{ request('mortar_thickness', 2) }}">
-                                    <span class="unit">cm</span>
+                                    <span class="unit" id="mortarThicknessUnit">cm</span>
                                 </div>
                             </div>
 
@@ -131,7 +148,7 @@
 
                             {{-- INPUT SISI ACI UNTUK SKIM COATING --}}
                             <div class="dimension-item" id="skimSidesGroup" style="display: none;">
-                                <label>Sisi Aci</label>
+                                <label>Sisi Acian</label>
                                 <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
                                     <input type="number" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
                                     <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
@@ -173,38 +190,42 @@
 
                         {{-- Jenis Keramik - Dynamic from Database --}}
                         @if(isset($ceramicTypes) && $ceramicTypes->count() > 0)
-                        <div class="mb-3">
-                            <label class="fw-semibold mb-2" style="font-size: 0.9rem; color: #f59e0b;">
+                        <div class="form-group ceramic-filter-row">
+                            <label class="ceramic-filter-label">
                                 <i class="bi bi-grid-3x3-gap-fill"></i> Jenis Keramik
                             </label>
-                            <div class="filter-tickbox-list">
-                                @foreach($ceramicTypes as $type)
-                                <div class="tickbox-item">
-                                    <input type="checkbox" name="ceramic_types[]" id="ceramic_type_{{ Str::slug($type) }}" value="{{ $type }}">
-                                    <label for="ceramic_type_{{ Str::slug($type) }}">
-                                        <span class="tickbox-title">{{ $type }}</span>
-                                    </label>
+                            <div class="input-wrapper">
+                                <div class="filter-tickbox-list ceramic-tickbox-grid">
+                                    @foreach($ceramicTypes as $type)
+                                    <div class="tickbox-item">
+                                        <input type="checkbox" name="ceramic_types[]" id="ceramic_type_{{ Str::slug($type) }}" value="{{ $type }}">
+                                        <label for="ceramic_type_{{ Str::slug($type) }}">
+                                            <span class="tickbox-title">{{ $type }}</span>
+                                        </label>
+                                    </div>
+                                    @endforeach
                                 </div>
-                                @endforeach
                             </div>
                         </div>
                         @endif
 
                         {{-- Ukuran Keramik - Dynamic from Database --}}
                         @if(isset($ceramicSizes) && $ceramicSizes->count() > 0)
-                        <div>
-                            <label class="fw-semibold mb-2" style="font-size: 0.9rem; color: #f59e0b;">
+                        <div class="form-group ceramic-filter-row">
+                            <label class="ceramic-filter-label">
                                 <i class="bi bi-rulers"></i> Ukuran Keramik
                             </label>
-                            <div class="filter-tickbox-list">
-                                @foreach($ceramicSizes as $size)
-                                <div class="tickbox-item">
-                                    <input type="checkbox" name="ceramic_sizes[]" id="ceramic_size_{{ str_replace('x', '_', $size) }}" value="{{ $size }}">
-                                    <label for="ceramic_size_{{ str_replace('x', '_', $size) }}">
-                                        <span class="tickbox-title">{{ str_replace('x', ' x ', $size) }} cm</span>
-                                    </label>
+                            <div class="input-wrapper">
+                                <div class="filter-tickbox-list ceramic-tickbox-grid">
+                                    @foreach($ceramicSizes as $size)
+                                    <div class="tickbox-item">
+                                        <input type="checkbox" name="ceramic_sizes[]" id="ceramic_size_{{ str_replace('x', '_', $size) }}" value="{{ $size }}">
+                                        <label for="ceramic_size_{{ str_replace('x', '_', $size) }}">
+                                            <span class="tickbox-title">{{ str_replace('x', ' x ', $size) }} cm</span>
+                                        </label>
+                                    </div>
+                                    @endforeach
                                 </div>
-                                @endforeach
                             </div>
                         </div>
                         @endif
@@ -235,7 +256,7 @@
                                     </span>
                                     <span class="tickbox-desc">3 kombinasi Most Recommended (Custom Setting)</span>
                                 </label>
-                                <a href="{{ route('settings.recommendations.index') }}" class="global-open-modal btn btn-sm btn-link text-muted position-absolute top-0 end-0 mt-1 me-1 p-1" style="z-index: 5;" title="Setting Rekomendasi">
+                                <a href="{{ route('settings.recommendations.index') }}" class="global-open-modal position-absolute top-0 end-0 mt-1 me-1 p-1" style="z-index: 5; color: #000000 !important;" title="Setting Rekomendasi">
                                     <i class="bi bi-gear-fill"></i>
                                 </a>
                             </div>
@@ -1052,10 +1073,8 @@
 {{-- Load JS Asli --}}
 <script type="application/json" id="materialCalculationFormData">
 {!! json_encode([
-    'formulaDescriptions' => [
-        'brick_quarter' => 'Menghitung pemasangan Bata 1/4 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.',
-        'brick_rollag' => 'Menghitung pemasangan Bata Rollag dengan input tingkat adukan dan tingkat bata.'
-    ],
+    'formulaDescriptions' => $formulaDescriptions,
+    'formulas' => $formulaOptions,
     'bricks' => $bricks,
     'cements' => $cements,
     'nats' => $nats ?? [],
@@ -1139,6 +1158,38 @@
         const ceramicWidthGroup = document.getElementById('ceramicWidthGroup');
         const wallHeightLabel = document.getElementById('wallHeightLabel');
         const ceramicFilterSection = document.getElementById('ceramicFilterSection');
+        const mortarThicknessInput = document.getElementById('mortarThickness');
+        const mortarThicknessUnit = document.getElementById('mortarThicknessUnit');
+
+        function formatThicknessValue(value) {
+            const num = Number(value);
+            if (!isFinite(num)) return '';
+            if (Math.floor(num) === num) return num.toString();
+            return num.toFixed(2).replace(/\.?0+$/, '');
+        }
+
+        function setMortarThicknessUnit(unit) {
+            if (!mortarThicknessInput || !mortarThicknessUnit) return;
+
+            const currentUnit = mortarThicknessInput.dataset.unit || 'cm';
+            if (unit !== currentUnit) {
+                const currentValue = parseFloat(mortarThicknessInput.value);
+                if (!isNaN(currentValue)) {
+                    const converted = unit === 'mm' ? currentValue * 10 : currentValue / 10;
+                    mortarThicknessInput.value = formatThicknessValue(converted);
+                }
+            }
+
+            mortarThicknessInput.dataset.unit = unit;
+            mortarThicknessUnit.textContent = unit;
+            if (unit === 'mm') {
+                mortarThicknessInput.step = '1';
+                mortarThicknessInput.min = '1';
+            } else {
+                mortarThicknessInput.step = '0.1';
+                mortarThicknessInput.min = '0.1';
+            }
+        }
 
         function toggleLayerInputs() {
             const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
@@ -1146,13 +1197,18 @@
             const layerCountUnit = document.getElementById('layerCountUnit');
             const layerCountInputWrapper = document.getElementById('layerCountInputWrapper');
 
+            if (wallHeightLabel) {
+                wallHeightLabel.textContent = 'Tinggi';
+            }
+
             if (workTypeSelector && layerCountGroup && plasterSidesGroup && skimSidesGroup) {
                 if (workTypeSelector.value === 'brick_rollag') {
-                    layerCountGroup.style.display = 'block';
+                    layerCountGroup.style.display = 'flex';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -1174,10 +1230,11 @@
                     }
                 } else if (workTypeSelector.value === 'wall_plastering') {
                     layerCountGroup.style.display = 'none';
-                    plasterSidesGroup.style.display = 'block';
+                    plasterSidesGroup.style.display = 'flex';
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -1188,9 +1245,10 @@
                 } else if (workTypeSelector.value === 'skim_coating') {
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
-                    skimSidesGroup.style.display = 'block';
+                    skimSidesGroup.style.display = 'flex';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('mm');
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -1199,7 +1257,7 @@
                         wallHeightLabel.textContent = 'Tinggi';
                     }
                 } else if (workTypeSelector.value === 'painting') {
-                    layerCountGroup.style.display = 'block';
+                    layerCountGroup.style.display = 'flex';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
@@ -1228,7 +1286,12 @@
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
-                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    if (workTypeSelector.value === 'coating_floor') {
+                        setMortarThicknessUnit('mm');
+                    } else {
+                        setMortarThicknessUnit('cm');
+                    }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -1241,30 +1304,31 @@
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
-                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
-                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'block';
-                    // Restore label to "Tinggi"
+                    // Change label to "Lebar" for tile installation
                     if (wallHeightLabel) {
-                        wallHeightLabel.textContent = 'Tinggi';
+                        wallHeightLabel.textContent = 'Lebar';
                     }
                 } else if (workTypeSelector.value === 'grout_tile') {
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
-                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
 
                     // Show ceramic dimension inputs for grout_tile
-                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
-                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'flex';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'flex';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
 
-                    // Restore label to "Tinggi"
+                    // Change label to "Lebar" for grout tile
                     if (wallHeightLabel) {
-                        wallHeightLabel.textContent = 'Tinggi';
+                        wallHeightLabel.textContent = 'Lebar';
                     }
                 } else {
                     layerCountGroup.style.display = 'none';
@@ -1274,7 +1338,8 @@
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
-                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
                     // Restore label to "Tinggi" for other formulas
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -1424,22 +1489,10 @@
             }
         });
 
-        // Initialize on page load if formula_code exists or work type is selected
-        @if(request('formula_code'))
-            const workTypeSelect = document.getElementById('workTypeSelector');
-            if(workTypeSelect) {
-                // Set the value first
-                workTypeSelect.value = '{{ request('formula_code') }}';
-                // Then trigger change
-                const event = new Event('change');
-                workTypeSelect.dispatchEvent(event);
-            }
-        @else
-            // Force initial check even without formula_code
-            if (workTypeSelector && workTypeSelector.value) {
-                handleWorkTypeChange();
-            }
-        @endif
+        // Initialize on page load if work type is selected
+        if (workTypeSelector && workTypeSelector.value) {
+            handleWorkTypeChange();
+        }
 
         // Loading State Handler with Real Progress Simulation
         const form = document.getElementById('calculationForm');
@@ -1504,6 +1557,19 @@
         if (form) {
             form.addEventListener('submit', function(e) {
                 if (this.checkValidity()) {
+                    if (mortarThicknessInput && mortarThicknessInput.dataset.unit === 'mm') {
+                        const mmValue = parseFloat(mortarThicknessInput.value);
+                        if (!isNaN(mmValue)) {
+                            mortarThicknessInput.value = formatThicknessValue(mmValue / 10);
+                        }
+                        mortarThicknessInput.dataset.unit = 'cm';
+                        if (mortarThicknessUnit) {
+                            mortarThicknessUnit.textContent = 'cm';
+                        }
+                        mortarThicknessInput.step = '0.1';
+                        mortarThicknessInput.min = '0.1';
+                    }
+
                     // Save original button text if not saved
                     const btn = this.querySelector('button[type="submit"]');
                     if (btn && !btn.getAttribute('data-original-text')) {

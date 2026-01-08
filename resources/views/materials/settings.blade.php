@@ -6,7 +6,7 @@
 <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
         <h2 style="margin-bottom: 0;">Pengaturan Tampilan Material</h2>
-        <a href="{{ route('materials.index') }}" class="btn btn-secondary">
+        <a href="{{ route('materials.index') }}" class="btn btn-secondary-glossy ">
             <i class="bi bi-arrow-left"></i> Kembali
         </a>
     </div>
@@ -61,10 +61,10 @@
                             <input type="hidden" name="settings[{{ $index }}][is_visible]" value="0">
                         </td>
                         <td style="text-align: center;">
-                            <button type="button" class="btn btn-sm btn-secondary move-up" title="Pindah ke atas">
+                            <button type="button" class="btn btn-sm btn-secondary-glossy  move-up" title="Pindah ke atas">
                                 <i class="bi bi-arrow-up"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-secondary move-down" title="Pindah ke bawah">
+                            <button type="button" class="btn btn-sm btn-secondary-glossy  move-down" title="Pindah ke bawah">
                                 <i class="bi bi-arrow-down"></i>
                             </button>
                         </td>
@@ -75,7 +75,7 @@
         </div>
 
         <div style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 12px;">
-            <a href="{{ route('materials.index') }}" class="btn btn-secondary">
+            <a href="{{ route('materials.index') }}" class="btn btn-secondary-glossy ">
                 Batal
             </a>
             <button type="submit" class="btn btn-primary-glossy ">

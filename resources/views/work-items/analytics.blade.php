@@ -35,7 +35,7 @@
                 <div class="col-md-3">
                     <div class="card" style="background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); color: white; border: none; padding: 20px; border-radius: 12px;">
                         <div style="font-size: 13px; opacity: 0.9; margin-bottom: 8px;">Total Luas</div>
-                        <div style="font-size: 32px; font-weight: 700;">{{ number_format($analytics['total_area'], 2) }}</div>
+                        <div style="font-size: 32px; font-weight: 700;">@format($analytics['total_area'])</div>
                         <div style="font-size: 11px; opacity: 0.8; margin-top: 4px;">M2</div>
                     </div>
                 </div>
