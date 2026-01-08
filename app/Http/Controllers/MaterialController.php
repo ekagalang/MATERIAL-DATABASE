@@ -50,27 +50,16 @@ class MaterialController extends Controller
             // Get active letters for this material type
             $activeLetters = $this->getActiveLetters($type);
 
-            // Determine active letter independently for each tab
-            // Use query param like 'brick_letter', 'cat_letter'
-            $letterParam = $type . '_letter';
-
-            if ($request->has($letterParam)) {
-                $currentLetter = $request->get($letterParam);
-            } else {
-                $currentLetter = !empty($activeLetters) ? $activeLetters[0] : 'A';
-            }
-
-            $data = $this->getMaterialData($type, $request, $currentLetter);
+            $data = $this->getMaterialData($type, $request);
 
             if ($data) {
                 $materials[] = [
                     'type' => $type,
                     'label' => MaterialSetting::getMaterialLabel($type),
                     'data' => $data,
-                    'count' => $data->total(), // Filtered count
+                    'count' => $data->count(), // Filtered count
                     'db_count' => $dbCount, // Absolute total for this type
                     'active_letters' => $activeLetters,
-                    'current_letter' => $currentLetter,
                 ];
             }
         }
@@ -113,7 +102,7 @@ class MaterialController extends Controller
             ->toArray();
     }
 
-    private function getMaterialData($type, $request, $letter = 'A')
+    private function getMaterialData($type, $request)
     {
         $search = $request->get('search');
 
@@ -164,11 +153,11 @@ class MaterialController extends Controller
                     $q->orWhere('material_name', 'like', "%{$search}%");
                 }
             });
-        } else {
-            // Apply Letter Filter (Default 'A')
-            $query->where('brand', 'like', $letter . '%');
         }
 
-        return $query->orderBy('created_at', 'desc')->paginate(10, ['*'], $type . '_page');
+        return $query
+            ->orderBy('created_at', 'desc')
+            ->orderBy('brand')
+            ->get();
     }
 }

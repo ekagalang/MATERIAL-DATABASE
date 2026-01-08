@@ -94,7 +94,7 @@
             <i class="bi bi-tools"></i>
         </div>
         <div class="card-content">
-            <p class="card-label text-shadow-bottom">Keterampilan</p>
+            <p class="card-label text-shadow-bottom">Keahlian</p>
             <h2 class="card-value text-shadow-bottom">--</h2>
         </div>
         <div class="card-overlay purple"></div>

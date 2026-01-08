@@ -13,6 +13,240 @@
     }
 })();
 </script>
+<style>
+@keyframes material-row-blink {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+}
+.table-container {
+    position: relative;
+}
+.material-row-outline {
+    position: absolute;
+    border: 2px solid #891313;
+    border-radius: 6px;
+    box-sizing: border-box;
+    pointer-events: none;
+    animation: material-row-blink 1.2s ease-in-out 0s 2;
+    z-index: 5;
+}
+.material-footer-sticky {
+    position: sticky;
+    bottom: 0;
+    margin-top: 20px;
+    margin-bottom: -20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
+    z-index: 6;
+    background: transparent;
+    border-top: none;
+    box-shadow: none;
+    padding: 0;
+}
+.material-footer-sticky::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 100vw;
+    transform: translateX(-50%);
+    background: rgba(248, 250, 252, 0.98);
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.08);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: -1;
+}
+.material-footer-sticky.is-stuck {
+    min-height: 48px;
+    padding: 2px 8px;
+    margin-bottom: 0;
+    gap: 8px;
+    justify-content: space-between;
+}
+.material-footer-sticky.is-stuck::before {
+    opacity: 1;
+}
+.material-footer-sticky.is-stuck .kanggo-logo img {
+    height: 48px !important;
+}
+.material-footer-sticky.is-stuck .kanggo-letters {
+    height: 34px !important;
+    margin-top: 0 !important;
+}
+.material-footer-sticky.is-stuck .kanggo-img {
+    height: 18px !important;
+    width: auto !important;
+}
+.material-footer-sticky.is-stuck img[alt="Hexagon"] {
+    width: 40px !important;
+    height: 40px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-left,
+.material-footer-sticky.is-stuck .material-footer-center,
+.material-footer-sticky.is-stuck .material-footer-right {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+.material-footer-sticky.is-stuck .material-footer-left {
+    align-items: center;
+}
+.material-footer-sticky.is-stuck .material-footer-center {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.material-footer-sticky.is-stuck .kanggo-container {
+    transform: translateX(-110px);
+}
+.material-footer-sticky.is-stuck .material-footer-right {
+    align-items: center;
+}
+.material-tab-header {
+    gap: 12px;
+}
+.material-tab-header .material-tabs {
+    position: static;
+    flex: 1 1 67%;
+    width: auto;
+}
+.material-tab-header .material-settings-menu {
+    left: 0;
+    right: 0;
+    width: 100%;
+}
+.material-tabs.only-filter .material-settings-btn.active::before {
+    content: none;
+}
+.material-tab-actions {
+    flex: 0 0 33%;
+    max-width: 33%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    margin-left: auto;
+}
+.material-tab-action {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+    width: 100%;
+}
+.material-tab-action.active {
+    display: flex;
+    --tab-border-color: #91C6BC;
+    position: relative;
+    background: #91C6BC;
+    border: 2px solid #91C6BC;
+    border-bottom: none;
+    border-radius: 12px 12px 0 0;
+    padding: 10px 12px 12px;
+    margin-bottom: -1px;
+    z-index: 6;
+    overflow: visible;
+    min-height: 48px;
+    max-height: 48px;
+}
+.material-tab-action.active::before {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 100%;
+    width: var(--tab-foot-radius);
+    height: var(--tab-foot-radius);
+    background:
+        radial-gradient(
+            circle at 0 0,
+            transparent calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-foot-radius),
+            #91C6BC var(--tab-foot-radius)
+        );
+    background-position: bottom right;
+    pointer-events: none;
+}
+.material-search-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+.material-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    position: relative;
+    padding: 2px 0;
+}
+.material-search-input input {
+    width: 100%;
+    height: 32px;
+    padding: 4px 10px 4px 30px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: all 0.2s ease;
+}
+.material-search-input i {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+}
+.material-tab-action .btn {
+    padding: 8px 10px;
+    font-size: 12px;
+}
+@media (max-width: 1200px) {
+    .material-tab-header {
+        flex-wrap: wrap;
+    }
+    .material-tab-header .material-tabs,
+    .material-tab-actions {
+        flex: 1 1 100%;
+        max-width: 100%;
+    }
+    .material-tab-actions {
+        margin-top: 8px;
+    }
+}
+.material-footer-sticky.is-stuck .material-footer-hex-block {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-hex {
+    width: 40px !important;
+    height: 40px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-hex-inner {
+    width: 36px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-count {
+    font-size: 20px !important;
+    -webkit-text-stroke: 1px #000 !important;
+}
+.material-footer-sticky.is-stuck .material-footer-label {
+    margin-top: 0 !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+    letter-spacing: 0.5px !important;
+}
+.material-footer-sticky.is-stuck .material-footer-right .btn {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+}
+</style>
 
 <div class="card">
     @php
@@ -70,6 +304,34 @@
                     </div>
                 </div>
             </div>
+            <div class="material-tab-actions">
+                @foreach($materials as $material)
+                    <div class="material-tab-action {{ $material['type'] === $activeTab ? 'active' : '' }}" data-tab="{{ $material['type'] }}">
+                        <form action="{{ route('materials.index') }}" method="GET" class="material-search-form">
+                            <input type="hidden" name="tab" value="{{ $material['type'] }}">
+                            <div class="material-search-input">
+                                <i class="bi bi-search"></i>
+                                <input type="text"
+                                    name="search"
+                                    value="{{ request('search') }}"
+                                    placeholder="Cari {{ strtolower($material['label']) }}...">
+                            </div>
+                            <button type="submit" class="btn btn-primary-glossy">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                            @if(request('search'))
+                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary">
+                                    <i class="bi bi-x-lg"></i>
+                                </a>
+                            @endif
+                        </form>
+                        <a href="{{ route($material['type'] . 's.create') }}"
+                           class="btn btn-glossy open-modal">
+                            <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
+                        </a>
+                    </div>
+                @endforeach
+            </div>
         </div>
 
         <!-- Empty state when no materials selected -->
@@ -85,38 +347,6 @@
                 <div class="material-tab-panel {{ $material['type'] === $activeTab ? 'active' : 'hidden' }}" data-tab="{{ $material['type'] }}" id="section-{{ $material['type'] }}" style="margin-bottom: 24px;">
                     <div class="material-tab-card">
                     
-                    {{-- Search Bar - Always Visible --}}
-                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <form action="{{ route('materials.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
-                            {{-- Preserve current tab when searching --}}
-                            <input type="hidden" name="tab" value="{{ $material['type'] }}">
-                            
-                            <div style="flex: 1; position: relative;">
-                                <i class="bi bi-search" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 16px;"></i>
-                                <input type="text"
-                                    name="search"
-                                    value="{{ request('search') }}"
-                                    placeholder="Cari {{ strtolower($material['label']) }}..."
-                                    style="width: 100%; padding: 11px 14px 11px 36px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: all 0.2s ease;">
-                            </div>
-                            <button type="submit" class="btn btn-primary-glossy">
-                                <i class="bi bi-search"></i> Cari
-                            </button>
-                            @if(request('search'))
-                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary">
-                                    <i class="bi bi-x-lg"></i> Reset
-                                </a>
-                            @endif
-                        </form>
-
-                        <div style="display: flex; gap: 12px; flex-shrink: 0;">
-                            <a href="{{ route($material['type'] . 's.create') }}"
-                            class="btn btn-glossy open-modal">
-                                <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
-                            </a>
-                        </div>
-                    </div>
-
                     @if($material['data']->count() > 0)
                 <div class="table-container text-nowrap">
                     <table>
@@ -526,11 +756,34 @@
                                     </tr>
                                 @endif
                             </thead>
+                            @php
+                                $letterGroups = $material['data']->groupBy(function ($item) {
+                                    $brand = trim($item->brand ?? '');
+                                    return $brand !== '' ? strtoupper(substr($brand, 0, 1)) : '#';
+                                });
+                                $orderedGroups = collect();
+                                foreach ($material['active_letters'] as $letter) {
+                                    if ($letterGroups->has($letter)) {
+                                        $orderedGroups[$letter] = $letterGroups[$letter];
+                                    }
+                                }
+                                if ($letterGroups->has('#')) {
+                                    $orderedGroups['#'] = $letterGroups['#'];
+                                }
+                                $rowNumber = 1;
+                            @endphp
                             <tbody>
-                                @foreach($material['data'] as $index => $item)
+                                @foreach($orderedGroups as $letter => $items)
+                                    @php
+                                        $anchorId = $letter === '#' ? 'other' : $letter;
+                                    @endphp
+                                    @foreach($items as $item)
+                                        @php
+                                            $rowAnchorId = $loop->first ? $material['type'] . '-letter-' . $anchorId : null;
+                                        @endphp
                                 <tr>
-                                    <td>
-                                        {{ $material['data']->firstItem() + $index }}
+                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" style="scroll-margin-top: 120px;" @endif>
+                                        {{ $rowNumber++ }}
                                     </td>
                                     @if($material['type'] == 'brick')
                                         <td>{{ $item->type ?? '-' }}</td>
@@ -783,56 +1036,63 @@
                                             <a href="{{ route($material['type'] . 's.edit', $item->id) }}" class="btn btn-warning btn-action open-modal" title="Edit">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
+                                            <button type="button"
+                                                class="btn btn-danger btn-action"
+                                                title="Hapus"
+                                                onclick="deleteMaterial('{{ $material['type'] }}', {{ $item->id }})">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <div style="position: relative; margin-top: 20px; margin-bottom: -20px; display: flex; align-items: center; justify-content: center; min-height: 80px;">
+                    <div class="material-footer-sticky">
                         
                         <!-- Left Area: Stats Info (Absolute Positioned) -->
-                        <div style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row; gap: 8px;">
+                        <div class="material-footer-left" style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row; gap: 8px;">
 
                             <!-- HEXAGON PER MATERIAL -->
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total {{ $material['label'] }}">
                                 
-                                <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                <div class="material-footer-hex" style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
                                     <img src="./assets/hex1.png"
                                         alt="Hexagon"
                                         style="width: 74px; height: 74px;">
 
-                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span class="material-footer-count" style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
                                             {{ number_format($material['db_count'], 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
                                 
-                                <span style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important;">
+                                <span class="material-footer-label" style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important;">
                                     {{ $material['label'] }}
                                 </span>
                             </div>
 
                             <!-- HEXAGON TOTAL -->
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total Semua Material">
                                 
-                                <div style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                <div class="material-footer-hex" style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
                                     <img src="./assets/hex2.png"
                                         alt="Hexagon"
                                         style="width: 74px; height: 74px;">
 
-                                    <div style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
+                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span class="material-footer-count" style="font-size: 32px; font-weight: 800; line-height: 1; color: #ffffff !important; -webkit-text-stroke: 1.5px #000; text-shadow: 2px 2px 0 #000;">
                                             {{ number_format($grandTotal, 0, ',', '.') }}
                                         </span>
                                     </div>
                                 </div>
 
-                                <span style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important; text-align: center; line-height: 1.2;">
+                                <span class="material-footer-label" style="font-size: 10px; font-weight: 700 !important; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px; color: #000 !important; text-align: center; line-height: 1.2;">
                                     SEMUA MATERIAL
                                 </span>
                             </div>
@@ -840,7 +1100,7 @@
                         </div>
 
                         <!-- Center Area: Pagination & Kanggo Logo -->
-                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; top: -10px;">
+                        <div class="material-footer-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; top: -10px;">
 
 
 
@@ -852,93 +1112,19 @@
                                 </div>
                                 <div class="kanggo-letters" style="justify-content: center; margin-top: 5px; height: 80px;">
                                     @php
-                                        // Get active letters and find current position
                                         $activeLetters = $material['active_letters'];
-                                        $currentLetter = $material['current_letter'];
-                                        $currentPosition = array_search($currentLetter, $activeLetters);
-                                        if ($currentPosition === false) $currentPosition = -1;
-                                        
-                                        // Pagination Logic variables
-                                        $paginator = $material['data'];
-                                        $pageName = $material['type'] . '_page';
-                                        $currentPage = $paginator->currentPage();
-                                        $lastPage = $paginator->lastPage();
-                                        
-                                        // Helper to build page URL
-                                        $getPageUrl = function($page) use ($pageName) {
-                                            $params = request()->query();
-                                            $params[$pageName] = $page;
-                                            return route('materials.index', $params);
-                                        };
                                     @endphp
 
                                     @foreach(range('A', 'Z') as $index => $char)
                                         @php
                                             $isActive = in_array($char, $activeLetters);
-                                            $isCurrent = $char === $currentLetter;
-                                            $imgIndex = $index + 1; // 0-based index to 1-based (1.png for A, etc)
-
-                                            // Calculate gradient for buttons before current
-                                            $gradientClass = '';
-                                            $gradientStyle = '';
-
-                                            if ($isActive && !$isCurrent) {
-                                                $letterPosition = array_search($char, $activeLetters);
-
-                                                if ($letterPosition !== false && $currentPosition !== false && $letterPosition < $currentPosition) {
-                                                    // This button is before current - apply gradient
-                                                    $gradientClass = 'gradient-active';
-                                                    $totalSteps = $currentPosition; // Total buttons before current
-                                                    $positionIndex = $letterPosition; // 0-based position
-
-                                                    // Calculate intensity
-                                                    $intensity = $totalSteps > 0 ? ($positionIndex / $totalSteps) : 0;
-
-                                                    // Approach baru: Sepia full + saturate tinggi + brightness untuk gradasi
-                                                    $sepia = 1.0;
-                                                    $saturate = 3.5 + ($intensity * 1.0); 
-                                                    $hueRotate = -35;
-                                                    $brightness = 2.5 - ($intensity * 1.2); 
-                                                    $contrast = 1.3;
-
-                                                    $gradientStyle = "filter: grayscale(0%) sepia({$sepia}) saturate({$saturate}) hue-rotate({$hueRotate}deg) brightness({$brightness}) contrast({$contrast});";
-                                                }
-                                            }
+                                            $imgIndex = $index + 1;
                                         @endphp
 
                                         @if($isActive)
-                                            @if($isCurrent)
-                                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0 0 0 2px;">
-                                                    <!-- Up Arrow (Prev Page) -->
-                                                    <a href="{{ $currentPage > 1 ? $getPageUrl($currentPage - 1) : '#' }}" 
-                                                       class="page-arrow-btn {{ $currentPage <= 1 ? 'disabled' : '' }}"
-                                                       title="{{ $currentPage > 1 ? 'Halaman Sebelumnya' : '' }}"
-                                                       style="color: {{ $currentPage > 1 ? '#0046FF' : '#cbd5e1' }} !important;">
-                                                        <i class="bi bi-chevron-up"></i>
-                                                    </a>
-
-                                                    <!-- Active Letter Image -->
-                                                    <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
-                                                       class="kanggo-img-link current"
-                                                       style="margin: 2px 0;">
-                                                        <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
-                                                    </a>
-
-                                                    <!-- Down Arrow (Next Page) -->
-                                                    <a href="{{ $currentPage < $lastPage ? $getPageUrl($currentPage + 1) : '#' }}" 
-                                                       class="page-arrow-btn {{ $currentPage >= $lastPage ? 'disabled' : '' }}"
-                                                       title="{{ $currentPage < $lastPage ? 'Halaman Selanjutnya' : '' }}"
-                                                       style="color: {{ $currentPage < $lastPage ? '#0046FF' : '#cbd5e1' }} !important;">
-                                                        <i class="bi bi-chevron-down"></i>
-                                                    </a>
-                                                </div>
-                                            @else
-                                                <a href="{{ route('materials.index', array_merge(request()->query(), ['tab' => $material['type'], $material['type'] . '_letter' => $char])) }}"
-                                                   class="kanggo-img-link {{ $gradientClass }}"
-                                                   style="{{ $gradientStyle }}">
-                                                    <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
-                                                </a>
-                                            @endif
+                                            <a href="#{{ $material['type'] }}-letter-{{ $char }}" class="kanggo-img-link">
+                                                <img src="/Pagination/{{ $imgIndex }}.png" alt="{{ $char }}" class="kanggo-img">
+                                            </a>
                                         @endif
                                     @endforeach
                                 </div>
@@ -946,12 +1132,13 @@
                             @endif
                         </div>
 
-                        <!-- Right Area: Button (Absolute Positioned) -->
-                        <div style="position: absolute; right: 0; top: 50%; transform: translateY(calc(-50% - 10px));">
+                        <!-- Right Area: Button (Absolute Positioned) 
+                        <div class="material-footer-right" style="position: absolute; right: 0; top: 50%; transform: translateY(calc(-50% - 10px));">
                             <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary-glossy">
                                 Lihat Semua <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
                             </a>
                         </div>
+                        -->
                     </div>
                 @else
                     <div style="padding: 60px 40px; text-align: center; color: #64748b; background: #fff; border-radius: 12px; border: 1px dashed #e2e8f0; margin-top: 20px;">
@@ -1051,6 +1238,7 @@
 
 
 
+<script src="{{ asset('js/api-helper.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Safety check: Unlock scroll on load
@@ -1103,10 +1291,35 @@ document.addEventListener('DOMContentLoaded', function() {
     const toggleCheckboxes = document.querySelectorAll('.material-toggle-checkbox');
     const allTabButtons = document.querySelectorAll('.material-tab-btn');
     const allTabPanels = document.querySelectorAll('.material-tab-panel');
+    const allTabActions = document.querySelectorAll('.material-tab-action');
 
     // Tab switching function (declared early to avoid reference errors)
     const tabButtons = Array.from(allTabButtons);
     const tabPanels = Array.from(allTabPanels);
+    let stickyTicking = false;
+
+    function updateFooterStickyState() {
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        document.querySelectorAll('.material-footer-sticky').forEach(footer => {
+            const rect = footer.getBoundingClientRect();
+            const parent = footer.closest('.material-tab-card');
+            if (!parent) return;
+            const parentRect = parent.getBoundingClientRect();
+            const isParentOverflowing = parentRect.bottom > viewportHeight + 1;
+            const isStuck = isParentOverflowing && Math.abs(rect.bottom - viewportHeight) <= 2;
+            footer.classList.toggle('is-stuck', isStuck);
+        });
+    }
+
+    function requestStickyUpdate() {
+        if (stickyTicking) return;
+        stickyTicking = true;
+        window.requestAnimationFrame(() => {
+            updateFooterStickyState();
+            stickyTicking = false;
+        });
+    }
+
     const setActiveTab = (tab) => {
         tabButtons.forEach(btn => {
             const isActive = btn.dataset.tab === tab;
@@ -1123,9 +1336,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 panel.setAttribute('aria-hidden', 'true');
             }
         });
+        allTabActions.forEach(action => {
+            const isActive = action.dataset.tab === tab;
+            action.classList.toggle('active', isActive);
+        });
 
         // Save active tab to localStorage
         localStorage.setItem('materialActiveTab', tab);
+        requestStickyUpdate();
     };
 
     // Function to save filter preferences to localStorage
@@ -1238,10 +1456,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 panel.style.display = 'none';
             }
         });
+        allTabActions.forEach(action => {
+            const actionType = action.getAttribute('data-tab');
+            if (checkedMaterials.includes(actionType)) {
+                action.style.display = '';
+            } else {
+                action.classList.remove('active');
+                action.style.display = 'none';
+            }
+        });
 
         // Ensure tab container is always visible so Filter button remains accessible
         if (tabContainer) {
             tabContainer.style.display = 'flex';
+            tabContainer.classList.toggle('only-filter', checkedMaterials.length === 0);
+        }
+        const tabActionsContainer = document.querySelector('.material-tab-actions');
+        if (tabActionsContainer) {
+            tabActionsContainer.style.display = checkedMaterials.length > 0 ? 'flex' : 'none';
         }
 
         // Auto-activate tab (prefer saved tab, fallback to first visible)
@@ -1258,6 +1490,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save to localStorage
         saveFilterToLocalStorage(checkedMaterials, materialOrder);
+        requestStickyUpdate();
     }
 
     // Listen to checkbox changes FIRST (before restore)
@@ -1548,6 +1781,77 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    function highlightMaterialRow(targetId) {
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const row = target.closest('tr');
+        if (!row) return;
+
+        const container = row.closest('.table-container');
+        if (!container) return;
+
+        const existing = container.querySelector('.material-row-outline');
+        if (existing) {
+            existing.remove();
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        const outline = document.createElement('div');
+        outline.className = 'material-row-outline';
+        outline.style.left = `${rowRect.left - containerRect.left + container.scrollLeft}px`;
+        outline.style.top = `${rowRect.top - containerRect.top + container.scrollTop}px`;
+        outline.style.width = `${rowRect.width}px`;
+        outline.style.height = `${rowRect.height}px`;
+
+        container.appendChild(outline);
+        window.setTimeout(() => {
+            outline.remove();
+        }, 2600);
+    }
+
+    window.deleteMaterial = async function(type, id) {
+        const endpointMap = {
+            brick: 'bricks',
+            cat: 'cats',
+            cement: 'cements',
+            sand: 'sands',
+            ceramic: 'ceramics',
+        };
+        const labelMap = {
+            brick: 'bata',
+            cat: 'cat',
+            cement: 'semen',
+            sand: 'pasir',
+            ceramic: 'keramik',
+        };
+
+        const endpoint = endpointMap[type];
+        const label = labelMap[type] || 'material';
+        if (!endpoint) {
+            alert('Tipe material tidak dikenal.');
+            return;
+        }
+
+        if (!confirm(`Yakin ingin menghapus data ${label} ini?`)) {
+            return;
+        }
+
+        try {
+            const result = await api.delete(`/${endpoint}/${id}`);
+            if (result.success) {
+                localStorage.setItem('materialActiveTab', type);
+                window.location.reload();
+            } else {
+                alert('Gagal menghapus data: ' + (result.message || 'Terjadi kesalahan'));
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            alert('Gagal menghapus data. Silakan coba lagi.');
+        }
+    };
+
     // Add click handlers to pagination links to preserve current tab
     document.querySelectorAll('.kanggo-img-link').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -1557,8 +1861,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 const currentTab = activeTab.dataset.tab;
                 localStorage.setItem('materialActiveTab', currentTab);
             }
+
+            const href = link.getAttribute('href');
+            if (href && href.startsWith('#')) {
+                const targetId = href.slice(1);
+                window.setTimeout(() => highlightMaterialRow(targetId), 120);
+            }
         });
     });
+
+    if (window.location.hash) {
+        window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
+    }
+
+    window.addEventListener('hashchange', () => {
+        window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
+    });
+
+    requestStickyUpdate();
+    window.addEventListener('scroll', requestStickyUpdate, { passive: true });
+    window.addEventListener('resize', requestStickyUpdate);
 
 });
 </script>

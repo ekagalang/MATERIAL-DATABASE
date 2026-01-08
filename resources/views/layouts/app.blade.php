@@ -155,7 +155,7 @@
             </a>
 
             <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
-                Keterampilan
+                Keahlian
             </a>
 
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
