@@ -20,6 +20,13 @@ interface FormulaInterface
     public static function getDescription(): string;
 
     /**
+     * Get material types required by this formula
+     *
+     * @return array
+     */
+    public static function getMaterialRequirements(): array;
+
+    /**
      * Calculate materials needed based on input parameters
      *
      * @param  array  $params  Input parameters

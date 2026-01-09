@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\RecommendedCombination;
+use App\Services\FormulaRegistry;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,7 @@ class RecommendationRepository
     public function getRecommendationsGroupedByWorkType(): SupportCollection
     {
         return RecommendedCombination::where('type', 'best')
-            ->with(['brick', 'cement', 'sand'])
+            ->with(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'])
             ->orderBy('work_type')
             ->get()
             ->groupBy('work_type');
@@ -37,7 +38,7 @@ class RecommendationRepository
     public function getAllRecommendations(): Collection
     {
         return RecommendedCombination::where('type', 'best')
-            ->with(['brick', 'cement', 'sand'])
+            ->with(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'])
             ->orderBy('work_type')
             ->get();
     }
@@ -65,21 +66,34 @@ class RecommendationRepository
             $dataToInsert = [];
 
             foreach ($recommendations as $rec) {
-                // Skip if work_type, brick_id, cement_id, or sand_id are empty
-                if (
-                    empty($rec['work_type']) ||
-                    empty($rec['brick_id']) ||
-                    empty($rec['cement_id']) ||
-                    empty($rec['sand_id'])
-                ) {
+                $workType = $rec['work_type'] ?? null;
+                $requiredMaterials = $workType ? FormulaRegistry::materialsFor($workType) : [];
+
+                if (!$workType || empty($requiredMaterials)) {
+                    continue;
+                }
+
+                $missingRequired = false;
+                foreach ($requiredMaterials as $material) {
+                    $key = $material . '_id';
+                    if (empty($rec[$key])) {
+                        $missingRequired = true;
+                        break;
+                    }
+                }
+
+                if ($missingRequired) {
                     continue;
                 }
 
                 $dataToInsert[] = [
-                    'work_type' => $rec['work_type'],
-                    'brick_id' => $rec['brick_id'],
-                    'cement_id' => $rec['cement_id'],
-                    'sand_id' => $rec['sand_id'],
+                    'work_type' => $workType,
+                    'brick_id' => $rec['brick_id'] ?? null,
+                    'cement_id' => $rec['cement_id'] ?? null,
+                    'sand_id' => $rec['sand_id'] ?? null,
+                    'cat_id' => $rec['cat_id'] ?? null,
+                    'ceramic_id' => $rec['ceramic_id'] ?? null,
+                    'nat_id' => $rec['nat_id'] ?? null,
                     'type' => 'best',
                     'created_at' => now(),
                     'updated_at' => now(),

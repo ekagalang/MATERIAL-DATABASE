@@ -31,6 +31,11 @@ class BrickFullFormula implements FormulaInterface
         return 'Menghitung pemasangan Bata 1 dengan metode Volume Mortar, termasuk strip adukan di sisi kiri dan bawah.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['brick', 'cement', 'sand'];
+    }
+
     public function validate(array $params): bool
     {
         $required = ['wall_length', 'wall_height', 'installation_type_id', 'mortar_formula_id'];

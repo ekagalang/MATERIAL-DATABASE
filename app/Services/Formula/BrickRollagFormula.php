@@ -31,6 +31,11 @@ class BrickRollagFormula implements FormulaInterface
         return 'Menghitung pemasangan Bata Rollag dengan input tingkat adukan dan tingkat bata.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['brick', 'cement', 'sand'];
+    }
+
     public function validate(array $params): bool
     {
         // Validasi input standar + input baru

@@ -25,6 +25,9 @@ Route::get('/test-error/{code}', function ($code) {
 Route::resource('units', UnitController::class);
 Route::resource('cats', CatController::class);
 Route::resource('bricks', BrickController::class);
+Route::get('/materials/type-suggestions', [MaterialController::class, 'typeSuggestions'])->name(
+    'materials.type-suggestions',
+);
 Route::resource('materials', MaterialController::class);
 Route::resource('cements', CementController::class);
 Route::resource('sands', SandController::class);
@@ -134,5 +137,3 @@ Route::prefix('settings/recommendations')
         Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
     });
-
-Route::resource('nats', NatController::class);

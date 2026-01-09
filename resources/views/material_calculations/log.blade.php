@@ -5,16 +5,6 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 <style>
-    /* Global Text Styling */
-    h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td, i, strong,
-    .text-muted, .text-dark, .text-secondary, .small, .fw-bold, .badge {
-        font-family: 'League Spartan', sans-serif !important;
-        color: #ffffff !important;
-        -webkit-text-stroke: 0.2px black !important;
-        text-shadow: 0 1.1px 0 #000000 !important;
-        font-weight: 700 !important;
-    }
-
     /* Override for form controls to keep them readable */
     .form-control, .form-select, .input-group-text {
         color: #1e293b !important;
@@ -25,8 +15,8 @@
     /* Exception for Total Biaya - keep green */
     .text-success, .text-success strong {
         color: #059669 !important;
-        -webkit-text-stroke: 0.2px black !important;
-        text-shadow: 0 1.1px 0 #000000 !important;
+        -webkit-text-stroke: 0 !important;
+        text-shadow: 0 !important;
     }
 
     .flatpickr-calendar {
@@ -35,12 +25,12 @@
         border: 1px solid #e2e8f0;
     }
     .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange {
-        background: #3b82f6;
-        border-color: #3b82f6;
+        background: #891313;
+        border-color: #f3abae;
     }
     .flatpickr-day.inRange {
-        background: #dbeafe;
-        border-color: #dbeafe;
+        background: #FDACAC;
+        border-color: #FDACAC;
         box-shadow: none;
     }
 
@@ -49,12 +39,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 2px;
-        padding: 0;
+        padding: 8px 0;
     }
 
     .kanggo-logo img {
-        height: 55px;
+        height: 62px;
         width: auto;
         filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
         transition: transform 0.3s ease;
@@ -65,7 +54,7 @@
     .kanggo-pages {
         display: flex;
         align-items: center;
-        gap: 4px;
+        gap: 2px;
         padding: 4px 2px;
      }
 
@@ -156,21 +145,26 @@
         font-weight: 700;
         margin: 0 4px;
     }
+
+    .log-style
+    {
+        color: var(--special-text-color);
+        font-weight: var(--special-font-weight);
+        -webkit-text-stroke: var(--special-text-stroke);
+        font-size: 32px;
+    }
 </style>
 @endpush
 
 @section('content')
-<div class="card mb-1">
-    <!-- Header -->
-    <div class="row mb-4">
+<!-- Header -->
+<div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <h2 class="mb-1">
-                        <i class="bi bi-clock-history text-primary"></i> 
+                    <h2 class="mb-1 log-style">
                         Riwayat Perhitungan 
                     </h2>
-                    <p class="text-muted mb-0">Daftar semua perhitungan yang pernah dibuat</p>
                 </div>
                 <div class="d-flex gap-2">
                     <a href="{{ route('work-items.index') }}" class="btn-cancel" style="border: 1px solid #64748b; background-color: transparent; color: #64748b; padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
@@ -190,7 +184,7 @@
             $hasFilter = request('search') || request('work_type') || request('date_from') || request('date_to');
         @endphp
 
-        <div class="d-flex flex-wrap align-items-end gap-3 mb-4">
+        <div class="d-flex flex-wrap align-items-end gap-3">
             {{-- Search Input (Flexible Width) --}}
             <div class="flex-grow-1" style="min-width: 250px;">
                 <label class="form-label fw-bold text-dark small mb-1">Pencarian</label>
@@ -217,7 +211,7 @@
 
             {{-- Date Range (Fixed Width) --}}
             <div style="flex: 0 0 200px;">
-                <label class="form-label fw-bold text-dark small mb-1" style="-webkit-text-stroke: 0 !important; text-shadow: none !important;">Rentang Tanggal</label>
+                <label>Rentang Tanggal</label>
                 <input type="text"
                     class="form-control"
                     id="dateRangePicker"
@@ -266,9 +260,9 @@
                             color: #ffffff !important;
                             text-align: center;
                             font-weight: 900;
-                            padding: 14px 16px;
+                            padding: 10px 16px;
                             border: none;
-                            font-size: 12px;
+                            font-size: 16px;
                             letter-spacing: 0.3px;
                             white-space: nowrap;
                         }
@@ -281,14 +275,6 @@
                             text-shadow: none !important;
                         }
                         /* Restore Spartan for specific elements in TD */
-                        .table-preview td strong, 
-                        .table-preview td .badge,
-                        .table-preview td .text-success {
-                            font-family: 'League Spartan', sans-serif !important;
-                            -webkit-text-stroke: 0.2px black !important;
-                            text-shadow: 0 1.1px 0 #000000 !important;
-                            color: #ffffff !important;
-                        }
                         .table-preview td .text-success strong {
                             color: #059669 !important;
                         }
@@ -313,7 +299,7 @@
                             @foreach($calculations as $calc)
                             <tr>
                                 <td class="text-start">
-                                    <div class="fw-bold">{{ $calc->created_at->format('d M Y') }} {{ $calc->created_at->format('H:i') }} WIB</div>
+                                    <div>{{ $calc->created_at->format('d M Y') }} {{ $calc->created_at->format('H:i') }} WIB</div>
                                 </td>
                                 <td class="text-center">
                                     <span class="text-dark">
@@ -411,7 +397,6 @@
             </div>
         @endif
     </div>
-</div>
 
 <!-- Floating Modal Container -->
 <div id="floatingModal" class="floating-modal">

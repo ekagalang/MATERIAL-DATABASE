@@ -29,6 +29,11 @@ class TileInstallationFormula implements FormulaInterface
         return 'Menghitung kebutuhan keramik, adukan semen, dan nat untuk pemasangan keramik.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['cement', 'sand', 'ceramic', 'nat'];
+    }
+
     public function validate(array $params): bool
     {
         $required = ['wall_length', 'wall_height', 'mortar_thickness', 'grout_thickness'];

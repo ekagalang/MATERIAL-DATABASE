@@ -42,6 +42,17 @@ class FormulaRegistry
     }
 
     /**
+     * Get required materials by formula code
+     */
+    public static function materialsFor(string $code): array
+    {
+        $formula = self::find($code);
+        $materials = $formula['materials'] ?? [];
+
+        return is_array($materials) ? $materials : [];
+    }
+
+    /**
      * Get formula instance by code
      */
     public static function instance(string $code): ?FormulaInterface
@@ -93,6 +104,7 @@ class FormulaRegistry
                         'code' => $className::getCode(),
                         'name' => $className::getName(),
                         'description' => $className::getDescription(),
+                        'materials' => $className::getMaterialRequirements(),
                         'class' => $className,
                     ];
                 }

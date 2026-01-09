@@ -3,7 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Database Material')</title>
+    @php
+        $explicitTitle = trim($__env->yieldContent('title', ''));
+        $topbarTitle = $explicitTitle !== '' ? $explicitTitle : 'Database Material';
+        $routeTitleMap = [
+            'dashboard' => 'Dashboard',
+            'material-calculations.*' => 'Kalkulator Material',
+            'material-calculator.*' => 'Kalkulator Material',
+            'materials.*' => 'Database Material',
+            'bricks.*' => 'Database Material',
+            'cements.*' => 'Database Material',
+            'sands.*' => 'Database Material',
+            'cats.*' => 'Database Material',
+            'ceramics.*' => 'Database Material',
+            'stores.*' => 'Mitra Toko',
+            'work-items.*' => 'Item Pekerjaan',
+            'workers.*' => 'Tenaga Kerja    ',
+            'skills.*' => 'Keahlian',
+            'units.*' => 'Satuan Unit',
+            'settings.*' => 'Pengaturan',
+        ];
+        foreach ($routeTitleMap as $pattern => $title) {
+            if (request()->routeIs($pattern)) {
+                $topbarTitle = $title;
+                break;
+            }
+        }
+    @endphp
+    <title>{{ $topbarTitle }}</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <!-- Google Fonts: League Spartan -->
@@ -15,20 +42,29 @@
     <link rel="stylesheet" href="{{ asset('css/global.css') }}">
 </head>
 <body>
-    <button type="button" id="navToggle" class="nav-toggle-btn" aria-label="Buka menu">
-        <i class="bi bi-caret-right-fill"></i>
-    </button>
+    <div class="global-topbar" id="globalTopbar">
+        <button type="button" class="topbar-logo-btn" id="navLogoToggle" aria-label="Buka menu">
+            <img src="/kanggo.png" alt="Kanggo">
+        </button>
+        <div class="topbar-title"><i class="bi bi-caret-right-fill"></i> {{ $topbarTitle }}</div>
+        <div class="topbar-account">
+            <span class="topbar-role">Admin</span>
+            <span class="topbar-avatar" aria-hidden="true">
+                <i class="bi bi-person-fill"></i>
+            </span>
+        </div>
+    </div>
     <div class="nav-overlay" id="navOverlay"></div>
     <aside class="sidebar-nav" id="sidebarNav">
         <div class="nav">
             <a href="{{ url('/') }}" class="{{ request()->is('/') || request()->routeIs('material-calculator.dashboard') || request()->routeIs('material-calculations.*') ? 'active' : '' }}">
-                Dashboard
+                <i class="bi bi-houses"></i></i> Dashboard
             </a>
             
             <!-- Material Dropdown (Modified for Return & Hover) -->
             <div class="nav-dropdown-wrapper material-wrapper">
                 <a href="{{ route('materials.index') }}" class="nav-link-btn {{ request()->routeIs('materials.*') || request()->routeIs('bricks.*') || request()->routeIs('cements.*') || request()->routeIs('sands.*') || request()->routeIs('cats.*') ? 'active' : '' }}" id="materialNavLink">
-                    Material <i class="bi bi-caret-right-fill" style="font-size: 10px; opacity: 0.7;"></i>
+                    <i class="bi bi-box-seam"></i> Material <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                 </a>
                 
                 <div class="nav-dropdown-menu" id="materialDropdownMenu">
@@ -43,6 +79,12 @@
                             <!-- Nested Sub-Menu: Filter -->
                             <div class="dropdown-sub-menu">
                                 <div class="dropdown-header">Pilih Material</div>
+                                <div class="work-type-autocomplete nav-material-autocomplete">
+                                    <div class="work-type-input nav-material-input">
+                                        <input type="text" id="navMaterialSearchInput" class="autocomplete-input" placeholder="Cari jenis material..." autocomplete="off" aria-label="Cari jenis material">
+                                    </div>
+                                    <div class="autocomplete-list" id="navMaterialSearchList"></div>
+                                </div>
                                 <div class="dropdown-grid">
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
@@ -50,8 +92,9 @@
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
                                 </div>
-                                <div style="padding: 12px 16px; border-top: 1px solid #e2e8f0;">
-                                    <button type="button" id="applyMaterialFilter" class="btn btn-primary-glossy  btn-sm" style="width: 100%; justify-content: center;">Terapkan Filter</button>
+                                <div class="nav-material-actions">
+                                    <button type="button" id="applyMaterialFilter" class="btn btn-primary-glossy btn-sm nav-material-apply">Terapkan Filter</button>
+                                    <button type="button" id="resetMaterialFilterNav" class="btn btn-outline-danger btn-sm nav-material-reset">Reset</button>
                                 </div>
                             </div>
                         </div>
@@ -66,6 +109,12 @@
                             <!-- Nested Sub-Menu: Add Buttons -->
                             <div class="dropdown-sub-menu">
                                 <div class="dropdown-header">Pilih Material</div>
+                                <div class="work-type-autocomplete nav-material-autocomplete">
+                                    <div class="work-type-input nav-material-input">
+                                        <input type="text" id="navAddMaterialSearchInput" class="autocomplete-input" placeholder="Cari jenis untuk tambah..." autocomplete="off" aria-label="Cari jenis untuk tambah">
+                                    </div>
+                                    <div class="autocomplete-list" id="navAddMaterialSearchList"></div>
+                                </div>
                                 <div class="dropdown-grid">
                                     <a href="{{ route('bricks.create') }}" class="dropdown-item global-open-modal">Bata</a>
                                     <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
@@ -117,13 +166,13 @@
             </script>
 
             <a href="{{ route('stores.index') }}" class="{{ request()->routeIs('stores.*') ? 'active' : '' }}">
-                Toko
+                <i class="bi bi-shop"></i> Toko
             </a>
 
             <!-- Item Pekerjaan Dropdown -->
             <div class="nav-dropdown-wrapper work-item-wrapper">
                 <button type="button" class="nav-link-btn {{ request()->routeIs('work-items.*') ? 'active' : '' }}" id="workItemDropdownToggle">
-                    Item Pekerjaan <i class="bi bi-caret-right-fill" style="font-size: 10px; opacity: 0.7;"></i>
+                    <i class="bi bi-building-gear"></i> Item Pekerjaan <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                 </button>
 
                 <div class="nav-dropdown-menu" id="workItemDropdownMenu">
@@ -134,7 +183,6 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Lihat Item Pekerjaan
-                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
 
@@ -144,7 +192,6 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Hitung Item Pekerjaan
-                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
 
@@ -154,7 +201,6 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Tambah Item Pekerjaan
-                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
                     </div>
@@ -162,21 +208,21 @@
             </div>
 
             <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
-                Tukang
+                <i class="bi bi-people"></i> Tukang
             </a>
 
             <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
-                Keahlian
+                <i class="bi bi-tools"></i> Keahlian
             </a>
 
             <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
-                Satuan
+                <i class="bi bi-rulers"></i> Satuan
             </a>
 
             <!-- Settings Dropdown -->
             <div class="nav-dropdown-wrapper settings-wrapper" style="margin-left: auto;">
                 <button type="button" class="nav-link-btn {{ request()->routeIs('settings.*') ? 'active' : '' }}" id="settingsDropdownToggle">
-                    Pengaturan<i class="bi bi-caret-right-fill" style="font-size: 10px; opacity: 0.7;"></i>
+                    <i class="bi bi-gear"></i> Pengaturan<i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                 </button>
 
                 <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
@@ -187,7 +233,6 @@
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Rekomendasi TerBAIK
-                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                             </a>
                         </div>
                     </div>
@@ -247,6 +292,8 @@
         </div>
     </div>
 
+    @yield('modals')
+
     <!-- Custom styles per halaman -->
     @stack('styles')
 
@@ -260,15 +307,22 @@
         document.addEventListener('DOMContentLoaded', function() {
             const navToggle = document.getElementById('navToggle');
             const navOverlay = document.getElementById('navOverlay');
+            const navLogoToggle = document.getElementById('navLogoToggle');
 
             function closeNav() {
                 document.body.classList.remove('nav-open');
             }
 
+            function toggleNav() {
+                document.body.classList.toggle('nav-open');
+            }
+
             if (navToggle) {
-                navToggle.addEventListener('click', function() {
-                    document.body.classList.toggle('nav-open');
-                });
+                navToggle.addEventListener('click', toggleNav);
+            }
+
+            if (navLogoToggle) {
+                navLogoToggle.addEventListener('click', toggleNav);
             }
 
             if (navOverlay) {
@@ -423,7 +477,228 @@
             // --- Navbar Material Filter Logic (Tick & Go) ---
             const navToggles = document.querySelectorAll('.nav-material-toggle');
             const applyFilterBtn = document.getElementById('applyMaterialFilter');
+            const resetFilterBtn = document.getElementById('resetMaterialFilterNav');
             const STORAGE_KEY = 'material_filter_preferences';
+            const materialTypeSuggestionState = {
+                loaded: false,
+                items: []
+            };
+
+            function normalizeMaterialType(text) {
+                return (text || '').toLowerCase().trim();
+            }
+
+            function filterMaterialTypeOptions(term, options) {
+                const query = normalizeMaterialType(term);
+                if (!query) return options;
+                return options.filter(option => {
+                    const label = normalizeMaterialType(option.type);
+                    return label.includes(query);
+                });
+            }
+
+            function renderMaterialTypeList(listEl, items, onSelect) {
+                if (!listEl) return;
+                listEl.innerHTML = '';
+                items.forEach(option => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = option.type;
+                    item.addEventListener('click', function() {
+                        onSelect(option);
+                    });
+                    listEl.appendChild(item);
+                });
+                listEl.style.display = items.length ? 'block' : 'none';
+            }
+
+            function loadMaterialTypeSuggestions() {
+                if (materialTypeSuggestionState.loaded) {
+                    return Promise.resolve(materialTypeSuggestionState.items);
+                }
+
+                return fetch('{{ route("materials.type-suggestions") }}', {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                    .then(response => response.ok ? response.json() : null)
+                    .then(data => {
+                        const items = Array.isArray(data && data.items) ? data.items : [];
+                        materialTypeSuggestionState.items = items
+                            .map(item => ({
+                                materialType: item.material_type,
+                                type: item.type
+                            }))
+                            .filter(item => item.materialType && item.type);
+                        materialTypeSuggestionState.loaded = true;
+                        return materialTypeSuggestionState.items;
+                    })
+                    .catch(() => {
+                        materialTypeSuggestionState.loaded = true;
+                        materialTypeSuggestionState.items = [];
+                        return materialTypeSuggestionState.items;
+                    });
+            }
+
+            const navMaterialSearchInput = document.getElementById('navMaterialSearchInput');
+            const navMaterialSearchList = document.getElementById('navMaterialSearchList');
+            const navAddMaterialSearchInput = document.getElementById('navAddMaterialSearchInput');
+            const navAddMaterialSearchList = document.getElementById('navAddMaterialSearchList');
+
+            if (navMaterialSearchInput && navMaterialSearchList) {
+                function closeNavMaterialList() {
+                    navMaterialSearchList.style.display = 'none';
+                }
+
+                function buildSearchFilter(materialType) {
+                    let currentFilter = { selected: [], order: [] };
+                    try {
+                        const stored = localStorage.getItem(STORAGE_KEY);
+                        currentFilter = stored ? JSON.parse(stored) : currentFilter;
+                    } catch (e) {
+                        currentFilter = { selected: [], order: [] };
+                    }
+
+                    const selected = Array.isArray(currentFilter.selected) ? currentFilter.selected.slice() : [];
+                    const order = Array.isArray(currentFilter.order) ? currentFilter.order.slice() : [];
+
+                    if (!selected.includes(materialType)) {
+                        selected.push(materialType);
+                    }
+
+                    const nextOrder = [materialType, ...order.filter(item => item !== materialType)];
+                    return { selected: selected, order: nextOrder };
+                }
+
+                function navigateToMaterialType(materialType, materialValue) {
+                    if (!materialType) return;
+                    const updatedFilter = buildSearchFilter(materialType);
+
+                    try {
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedFilter));
+                        localStorage.setItem('materialActiveTab', materialType);
+                        localStorage.setItem('materialNavSearchBlink', materialType);
+                        if (materialValue) {
+                            localStorage.setItem('materialNavSearchType', materialValue);
+                        } else {
+                            localStorage.removeItem('materialNavSearchType');
+                        }
+                    } catch (e) {
+                        // Ignore storage errors
+                    }
+
+                    window.location.href = '{{ route("materials.index") }}' + '?tab=' + encodeURIComponent(materialType);
+                }
+
+                function findExactNavMaterial(term, items) {
+                    const query = normalizeMaterialType(term);
+                    if (!query) return null;
+                    return items.find(option => {
+                        return normalizeMaterialType(option.type) === query;
+                    }) || null;
+                }
+
+                function applyNavMaterialSelection(option) {
+                    navMaterialSearchInput.value = option.type;
+                    closeNavMaterialList();
+                    navigateToMaterialType(option.materialType, option.type);
+                }
+
+                navMaterialSearchInput.addEventListener('focus', function() {
+                    loadMaterialTypeSuggestions().then(options => {
+                        renderMaterialTypeList(navMaterialSearchList, filterMaterialTypeOptions(navMaterialSearchInput.value, options), applyNavMaterialSelection);
+                    });
+                });
+
+                navMaterialSearchInput.addEventListener('input', function() {
+                    const term = navMaterialSearchInput.value || '';
+                    loadMaterialTypeSuggestions().then(options => {
+                        renderMaterialTypeList(navMaterialSearchList, filterMaterialTypeOptions(term, options), applyNavMaterialSelection);
+                    });
+                });
+
+                navMaterialSearchInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        const term = navMaterialSearchInput.value || '';
+                        loadMaterialTypeSuggestions().then(options => {
+                            const items = filterMaterialTypeOptions(term, options);
+                            if (!items.length) return;
+                            const exact = findExactNavMaterial(term, items);
+                            applyNavMaterialSelection(exact || items[0]);
+                        });
+                    } else if (event.key === 'Escape') {
+                        closeNavMaterialList();
+                    }
+                });
+
+                navMaterialSearchInput.addEventListener('blur', function() {
+                    setTimeout(closeNavMaterialList, 150);
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (event.target === navMaterialSearchInput || navMaterialSearchList.contains(event.target)) return;
+                    closeNavMaterialList();
+                });
+            }
+
+            if (navAddMaterialSearchInput && navAddMaterialSearchList) {
+                function closeAddMaterialList() {
+                    navAddMaterialSearchList.style.display = 'none';
+                }
+
+                function applyAddMaterialSelection(option) {
+                    navAddMaterialSearchInput.value = option.type;
+                    closeAddMaterialList();
+                    const createUrlMap = {
+                        brick: '{{ route("bricks.create") }}',
+                        cement: '{{ route("cements.create") }}',
+                        sand: '{{ route("sands.create") }}',
+                        cat: '{{ route("cats.create") }}',
+                        ceramic: '{{ route("ceramics.create") }}'
+                    };
+                    const targetUrl = createUrlMap[option.materialType];
+                    if (targetUrl && typeof openGlobalMaterialModal === 'function') {
+                        openGlobalMaterialModal(targetUrl, option.type);
+                    }
+                }
+
+                navAddMaterialSearchInput.addEventListener('focus', function() {
+                    loadMaterialTypeSuggestions().then(options => {
+                        renderMaterialTypeList(navAddMaterialSearchList, filterMaterialTypeOptions(navAddMaterialSearchInput.value, options), applyAddMaterialSelection);
+                    });
+                });
+
+                navAddMaterialSearchInput.addEventListener('input', function() {
+                    const term = navAddMaterialSearchInput.value || '';
+                    loadMaterialTypeSuggestions().then(options => {
+                        renderMaterialTypeList(navAddMaterialSearchList, filterMaterialTypeOptions(term, options), applyAddMaterialSelection);
+                    });
+                });
+
+                navAddMaterialSearchInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        const term = navAddMaterialSearchInput.value || '';
+                        loadMaterialTypeSuggestions().then(options => {
+                            const items = filterMaterialTypeOptions(term, options);
+                            if (!items.length) return;
+                            const exact = items.find(option => normalizeMaterialType(option.type) === normalizeMaterialType(term)) || null;
+                            applyAddMaterialSelection(exact || items[0]);
+                        });
+                    } else if (event.key === 'Escape') {
+                        closeAddMaterialList();
+                    }
+                });
+
+                navAddMaterialSearchInput.addEventListener('blur', function() {
+                    setTimeout(closeAddMaterialList, 150);
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (event.target === navAddMaterialSearchInput || navAddMaterialSearchList.contains(event.target)) return;
+                    closeAddMaterialList();
+                });
+            }
 
             // 1. Load initial state (Visual Only)
             let savedFilter;
@@ -476,6 +751,27 @@
 
                     // Redirect logic
                     window.location.href = '{{ route("materials.index") }}';
+                });
+            }
+
+            if (resetFilterBtn) {
+                resetFilterBtn.addEventListener('click', function() {
+                    navToggles.forEach(toggle => {
+                        toggle.checked = false;
+                        toggle.closest('.dropdown-item').classList.remove('checked');
+                    });
+                    try {
+                        localStorage.removeItem(STORAGE_KEY);
+                    } catch (e) {
+                        // Ignore storage errors
+                    }
+                    if (navMaterialSearchInput) {
+                        navMaterialSearchInput.value = '';
+                    }
+                    if (navMaterialSearchList) {
+                        navMaterialSearchList.innerHTML = '';
+                        navMaterialSearchList.style.display = 'none';
+                    }
                 });
             }
 
@@ -544,6 +840,19 @@
                 }
             }
 
+            let pendingGlobalTypePrefill = null;
+
+            function applyGlobalTypePrefill(modalBodyEl) {
+                if (!pendingGlobalTypePrefill || !modalBodyEl) return;
+                const typeInput = modalBodyEl.querySelector('input[name="type"], input#type');
+                if (typeInput) {
+                    typeInput.value = pendingGlobalTypePrefill;
+                    typeInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    typeInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                pendingGlobalTypePrefill = null;
+            }
+
             function initializeForm(initFunctionName, modalBodyEl) {
                 console.log('[Init] Initializing form with function:', initFunctionName);
 
@@ -554,6 +863,7 @@
                     } else {
                         console.error('[Init] Function not found:', initFunctionName);
                     }
+                    applyGlobalTypePrefill(modalBodyEl);
                     interceptGlobalFormSubmit();
                 }, 150); // Increased timeout slightly for safety
             }
@@ -577,118 +887,125 @@
                 closeGlobalModal();
             };
 
+            function openGlobalMaterialModal(url, prefillType = null) {
+                if (!globalModal || !globalModalBody || !globalModalTitle || !globalCloseBtn || !globalBackdrop) return;
+
+                const { materialType, action, materialLabel } = getGlobalMaterialInfo(url);
+                pendingGlobalTypePrefill = prefillType || null;
+
+                globalModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+
+                // Close dropdown menu if exists
+                const dropdownMenu = document.querySelector('.dropdown-menu.show');
+                if (dropdownMenu) dropdownMenu.classList.remove('show');
+
+                if (action === 'create') {
+                    globalModalTitle.textContent = `Tambah ${materialLabel} Baru`;
+                    globalCloseBtn.style.display = 'none'; 
+                } else if (action === 'edit') {
+                    globalModalTitle.textContent = `Edit ${materialLabel}`;
+                    globalCloseBtn.style.display = 'none'; 
+                } else {
+                    globalModalTitle.textContent = materialLabel;
+                    globalCloseBtn.style.display = 'flex';
+                }
+
+                console.log('[Modal] Opening URL:', url);
+                console.log('[Modal] Material Info:', { materialType, action, materialLabel });
+
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(response => {
+                        console.log('[Modal] Response status:', response.status);
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.text();
+                    })
+                    .then(html => {
+                        console.log('[Modal] Response received, parsing HTML...');
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+
+                        // Strategy: Find the main content container first
+                        // In layouts.app, content is usually in .container
+                        // We look for the main .card (which usually wraps forms) or the specific form
+
+                        let contentElement = null;
+
+                        // Priority 0: Special wrapper for recommendations
+                        contentElement = doc.querySelector('#recommendations-content-wrapper');
+                        if (contentElement) console.log('[Modal] Found content via #recommendations-content-wrapper');
+
+                        // Priority 1: A form inside a card (standard create/edit view)
+                        if (!contentElement) {
+                            contentElement = doc.querySelector('.container .card form');
+                            if (contentElement) console.log('[Modal] Found content via .container .card form');
+                        }
+
+                        // Priority 2: Just the card itself
+                        if (!contentElement) {
+                            contentElement = doc.querySelector('.container .card');
+                            if (contentElement) console.log('[Modal] Found content via .container .card');
+                        }
+
+                        // Priority 3: A form directly in container
+                        if (!contentElement) {
+                            contentElement = doc.querySelector('.container form');
+                            if (contentElement) console.log('[Modal] Found content via .container form');
+                        }
+
+                        // Priority 4: Fallback to any form (risky, but better than nothing)
+                        if (!contentElement) {
+                            contentElement = doc.querySelector('form');
+                            if (contentElement) console.log('[Modal] Found content via form');
+                        }
+
+                        if (contentElement) {
+                            console.log('[Modal] Content element found, inserting into modal...');
+                            // If we found a form inside a card (and not using special wrapper), we might want the whole card for styling
+                            if (contentElement.id !== 'recommendations-content-wrapper') {
+                                const wrapperCard = contentElement.closest('.card');
+                                if (wrapperCard) {
+                                    globalModalBody.innerHTML = wrapperCard.outerHTML;
+                                } else {
+                                    globalModalBody.innerHTML = contentElement.outerHTML;
+                                }
+                            } else {
+                                // For special wrapper, take innerHTML to avoid double wrapping or issues?
+                                // Actually outerHTML is fine, or innerHTML. Let's use outerHTML to keep the ID wrapper.
+                                globalModalBody.innerHTML = contentElement.outerHTML;
+                            }
+
+                            console.log('[Modal] Content inserted, loading scripts...');
+                            if (materialType && (action === 'create' || action === 'edit' || materialType === 'recommendations')) {
+                                console.log('[Modal] Loading material form script for:', materialType);
+                                loadGlobalMaterialFormScript(materialType, globalModalBody);
+                            } else {
+                                console.log('[Modal] Intercepting form submit (no specific material type)');
+                                applyGlobalTypePrefill(globalModalBody);
+                                interceptGlobalFormSubmit();
+                            }
+                        } else {
+                            throw new Error('Could not find form content in response');
+                        }
+                    })
+                    .catch(err => {
+                        globalModalBody.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: #ef4444;">
+                                <i class="bi bi-exclamation-triangle" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
+                                <div style="font-weight: 600;">Gagal memuat form</div>
+                                <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">${err.message}</div>
+                            </div>`;
+                        console.error('[Modal] Error:', err);
+                    });
+            }
+
             if (globalModal && globalModalBody && globalModalTitle && globalCloseBtn && globalBackdrop) {
                 // Listen specifically for .global-open-modal class
                 document.addEventListener('click', function(e) {
                     const link = e.target.closest('.global-open-modal');
                     if (link) {
                         e.preventDefault();
-                        const url = link.href;
-                        const { materialType, action, materialLabel } = getGlobalMaterialInfo(url);
-
-                        globalModal.classList.add('active');
-                        document.body.style.overflow = 'hidden';
-
-                        // Close dropdown menu if exists
-                        const dropdownMenu = document.querySelector('.dropdown-menu.show');
-                        if(dropdownMenu) dropdownMenu.classList.remove('show');
-
-                        if (action === 'create') {
-                            globalModalTitle.textContent = `Tambah ${materialLabel} Baru`;
-                            globalCloseBtn.style.display = 'none'; 
-                        } else if (action === 'edit') {
-                            globalModalTitle.textContent = `Edit ${materialLabel}`;
-                            globalCloseBtn.style.display = 'none'; 
-                        } else {
-                            globalModalTitle.textContent = materialLabel;
-                            globalCloseBtn.style.display = 'flex';
-                        }
-
-                        console.log('[Modal] Opening URL:', url);
-                        console.log('[Modal] Material Info:', { materialType, action, materialLabel });
-
-                        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(response => {
-                            console.log('[Modal] Response status:', response.status);
-                            if (!response.ok) throw new Error('Network response was not ok');
-                            return response.text();
-                        })
-                        .then(html => {
-                            console.log('[Modal] Response received, parsing HTML...');
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(html, 'text/html');
-
-                            // Strategy: Find the main content container first
-                            // In layouts.app, content is usually in .container
-                            // We look for the main .card (which usually wraps forms) or the specific form
-
-                            let contentElement = null;
-
-                            // Priority 0: Special wrapper for recommendations
-                            contentElement = doc.querySelector('#recommendations-content-wrapper');
-                            if (contentElement) console.log('[Modal] Found content via #recommendations-content-wrapper');
-
-                            // Priority 1: A form inside a card (standard create/edit view)
-                            if (!contentElement) {
-                                contentElement = doc.querySelector('.container .card form');
-                                if (contentElement) console.log('[Modal] Found content via .container .card form');
-                            }
-
-                            // Priority 2: Just the card itself
-                            if (!contentElement) {
-                                contentElement = doc.querySelector('.container .card');
-                                if (contentElement) console.log('[Modal] Found content via .container .card');
-                            }
-
-                            // Priority 3: A form directly in container
-                            if (!contentElement) {
-                                contentElement = doc.querySelector('.container form');
-                                if (contentElement) console.log('[Modal] Found content via .container form');
-                            }
-
-                            // Priority 4: Fallback to any form (risky, but better than nothing)
-                            if (!contentElement) {
-                                contentElement = doc.querySelector('form');
-                                if (contentElement) console.log('[Modal] Found content via form');
-                            }
-
-                            if (contentElement) {
-                                console.log('[Modal] Content element found, inserting into modal...');
-                                // If we found a form inside a card (and not using special wrapper), we might want the whole card for styling
-                                if (contentElement.id !== 'recommendations-content-wrapper') {
-                                    const wrapperCard = contentElement.closest('.card');
-                                    if (wrapperCard) {
-                                        globalModalBody.innerHTML = wrapperCard.outerHTML;
-                                    } else {
-                                        globalModalBody.innerHTML = contentElement.outerHTML;
-                                    }
-                                } else {
-                                    // For special wrapper, take innerHTML to avoid double wrapping or issues?
-                                    // Actually outerHTML is fine, or innerHTML. Let's use outerHTML to keep the ID wrapper.
-                                    globalModalBody.innerHTML = contentElement.outerHTML;
-                                }
-
-                                console.log('[Modal] Content inserted, loading scripts...');
-                                if (materialType && (action === 'create' || action === 'edit' || materialType === 'recommendations')) {
-                                    console.log('[Modal] Loading material form script for:', materialType);
-                                    loadGlobalMaterialFormScript(materialType, globalModalBody);
-                                } else {
-                                    console.log('[Modal] Intercepting form submit (no specific material type)');
-                                    interceptGlobalFormSubmit();
-                                }
-                            } else {
-                                throw new Error('Could not find form content in response');
-                            }
-                        })
-                        .catch(err => {
-                            globalModalBody.innerHTML = `
-                                <div style="text-align: center; padding: 40px; color: #ef4444;">
-                                    <i class="bi bi-exclamation-triangle" style="font-size: 32px; display: block; margin-bottom: 10px;"></i>
-                                    <div style="font-weight: 600;">Gagal memuat form</div>
-                                    <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">${err.message}</div>
-                                </div>`;
-                            console.error('[Modal] Error:', err);
-                        });
+                        openGlobalMaterialModal(link.href);
                     }
                 });
 

@@ -28,6 +28,11 @@ class WallPlasteringFormula implements FormulaInterface
         return 'Menghitung Plester Dinding dengan input panjang, tinggi, tebal adukan dan jumlah sisi.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['cement', 'sand'];
+    }
+
     public function validate(array $params): bool
     {
         $required = ['wall_length', 'wall_height', 'mortar_thickness', 'plaster_sides', 'cement_id', 'sand_id'];

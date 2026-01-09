@@ -6,21 +6,43 @@
 <!-- Inline script to restore tab ASAP before page render -->
 <script>
 (function() {
+    document.documentElement.classList.add('materials-booting');
+})();
+(function() {
     const savedTab = localStorage.getItem('materialActiveTab');
     if (savedTab) {
         // Set a flag that will be checked by main script
         window.__materialSavedTab = savedTab;
     }
 })();
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.classList.add('materials-lock');
+});
 </script>
 <style>
 :root {
     --tab-foot-radius: 18px;
     --tab-active-bg: #91C6BC;
+    overflow: hidden;
+}
+html.materials-booting .material-tab-panel,
+html.materials-booting .material-tab-action,
+html.materials-booting #emptyMaterialState,
+html.materials-booting .material-tabs,
+html.materials-booting .material-tab-actions {
+    opacity: 0;
+    visibility: hidden;
 }
 @keyframes material-row-blink {
     0%, 100% { opacity: 0; }
     50% { opacity: 1; }
+}
+@keyframes material-tab-blink {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(137, 19, 19, 0); }
+    50% { box-shadow: 0 0 0 6px rgba(137, 19, 19, 0.35); }
+}
+.material-tab-btn.material-tab-blink {
+    animation: material-tab-blink 1.2s ease-in-out 2;
 }
   .table-container {
       position: relative;
@@ -197,19 +219,16 @@
     z-index: 5;
 }
   .material-footer-sticky {
-      position: sticky;
-      bottom: 0;
-      margin-top: 20px;
-      margin-bottom: -20px;
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      min-height: 80px;
-      z-index: 6;
+      min-height: 72px;
+      z-index: 1;
       background: transparent;
       border-top: none;
       box-shadow: none;
-      padding: 0;
+      padding: 6px 0 10px;
   }
   .material-footer-count {
       display: inline-block;
@@ -220,95 +239,115 @@
       text-shadow: var(--special-text-shadow) !important;
   }
   .material-footer-label {
-      color: var(--special-text-color) !important;
-      -webkit-text-stroke: var(--special-text-stroke) !important;
+      color: var(--text-color) !important;
       font-weight: var(--special-font-weight) !important;
-      text-shadow: var(--special-text-shadow) !important;
   }
   .material-footer-left {
       align-items: center;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      gap: 6px !important;
+      height: 100% !important;
   }
-.material-footer-sticky::before {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: 0;
-    bottom: 0;
-    width: 100vw;
-    transform: translateX(-50%);
-    background: rgba(248, 250, 252, 0.98);
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.08);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    z-index: -1;
-}
-.material-footer-sticky.is-stuck {
-    position: fixed;
-    left: var(--footer-left, 0px);
-    width: var(--footer-width, 100%);
-    min-height: 48px;
-    padding: 2px 8px;
-    margin-top: 0;
-    margin-bottom: 0;
-    gap: 8px;
-    justify-content: space-between;
-}
-.material-footer-sticky.is-stuck::before {
-    opacity: 1;
-}
-.material-footer-sticky.is-stuck .kanggo-logo img {
-    height: 48px !important;
-}
-.material-footer-sticky.is-stuck .kanggo-letters {
-    height: 17px !important;
-    margin-top: 0 !important;
-}
-.material-footer-sticky.is-stuck .kanggo-img {
-    height: 18px !important;
-    width: auto !important;
-}
-.material-footer-sticky.is-stuck img[alt="Hexagon"] {
-    width: 40px !important;
-    height: 40px !important;
-}
-.material-footer-sticky.is-stuck .material-footer-left,
-.material-footer-sticky.is-stuck .material-footer-center,
-.material-footer-sticky.is-stuck .material-footer-right {
-    position: static !important;
-    top: auto !important;
-    left: auto !important;
-    right: auto !important;
-    transform: none !important;
-}
-.material-footer-sticky.is-stuck .material-footer-left {
-    align-items: center;
-}
-.material-footer-sticky.is-stuck .material-footer-center {
-    flex: 1 1 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.material-footer-sticky.is-stuck .kanggo-container {
-    transform: translateX(-110px);
-}
-.material-footer-sticky.is-stuck .material-footer-right {
-    align-items: center;
-}
+  .material-footer-hex {
+      width: 44px !important;
+      height: 44px !important;
+  }
+  .material-footer-hex-inner {
+      width: 36px !important;
+  }
+  .material-footer-count {
+      font-size: 16px !important;
+  }
+  .material-footer-label {
+      font-size: 10px;
+      line-height: 1.2;
+      margin-top: 2px;
+      text-align: center;
+  }
+  .material-footer-hex img {
+      width: 44px !important;
+      height: 44px !important;
+  }
+  .material-footer-hex-block {
+      justify-content: center !important;
+      gap: 2px;
+  }
+  .material-footer-center {
+      top: 0 !important;
+  }
+  .material-footer-sticky .kanggo-logo img {
+      height: 48px !important;
+  }
+  .material-footer-sticky .kanggo-letters {
+      height: 50px !important;
+      margin-top: 0 !important;
+  }
+  .material-footer-sticky .kanggo-img-link img {
+      height: 17px !important;
+  }
+  body.materials-lock {
+      overflow: hidden;
+  }
+  body.materials-lock .page-content {
+      height: calc(100vh - 70px);
+      overflow: hidden;
+  }
+  body.materials-lock .material-tab-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 90px);
+  }
+  body.materials-lock .material-tab-panel {
+      flex: 1 1 auto;
+      height: auto;
+  }
+  body.materials-lock .material-tab-card {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+  }
+  body.materials-lock .material-tab-card .table-container {
+      flex: 1 1 auto;
+      overflow-y: auto;
+  }
+  @media (max-width: 992px) {
+      body.materials-lock .material-tab-wrapper {
+          height: calc(100vh - 170px);
+      }
+  }
+/* Sticky footer styles removed - footer is now static */
 .material-tab-header {
     gap: 12px;
+    padding-top: 10px;
+    padding-bottom: 2px;
+    margin-bottom: 0;
+}
+.material-tab-header::after {
+    border-bottom: 0;
 }
 .material-tab-header .material-tabs {
     position: relative;
     flex: 1 1 67%;
     width: auto;
-    top: -1px;
+    top: 0;
+    bottom: 0;
+    padding-top: 2px;
 }
 .material-tab-header .material-settings-menu {
     left: 0;
-    right: 0;
+    right: auto;
     width: 100%;
+    max-width: 400px;
+}
+.material-tab-header .material-settings-dropdown {
+    position: relative;
+    flex: 1 1 auto;
+    align-items: flex-end;
+    justify-content: flex-start;
+}
+.material-tab-header .material-settings-btn.active::before {
+    content: none !important;
 }
 .material-tabs.only-filter .material-settings-btn.active::before {
     content: none;
@@ -336,12 +375,14 @@
     border: 2px solid #91C6BC;
     border-bottom: none;
     border-radius: 12px 12px 0 0;
-    padding: 10px 12px 12px;
+    padding: 8px 12px 4px;
     margin-bottom: -1px;
     z-index: 6;
     overflow: visible !important;
     min-height: 48px;
-    max-height: 48px;
+    box-sizing: border-box;
+    align-items: flex-end;
+    transform: translateY(4px);
 }
 .material-tab-actions {
     overflow: visible !important;
@@ -412,8 +453,8 @@
 .material-tab-action.active::before {
     content: "";
     position: absolute;
-    bottom: -2px;
-    right: calc(100% - 1px);
+    bottom: 2px;
+    right: calc(100%);
     width: var(--tab-foot-radius);
     height: var(--tab-foot-radius);
     background:
@@ -444,11 +485,11 @@
     flex: 1 1 auto;
     min-width: 0;
     position: relative;
-    padding: 2px 0;
+    padding: 0;
 }
 .material-search-input input {
     width: 100%;
-    height: 32px;
+    height: 34px;
     padding: 4px 10px 4px 30px;
     border: 1.5px solid #e2e8f0;
     border-radius: 8px;
@@ -467,8 +508,11 @@
     pointer-events: none;
 }
 .material-tab-action .btn {
-    padding: 8px 10px;
+    height: 34px;
+    padding: 6px 10px;
     font-size: 12px;
+    display: inline-flex;
+    align-items: center;
 }
 @media (max-width: 1200px) {
     .material-tab-header {
@@ -483,37 +527,41 @@
         margin-top: 8px;
     }
 }
-.material-footer-sticky.is-stuck .material-footer-hex-block {
-    flex-direction: row !important;
-    align-items: center !important;
-    gap: 6px !important;
-}
-.material-footer-sticky.is-stuck .material-footer-hex {
-    width: 40px !important;
-    height: 40px !important;
-}
-  .material-footer-sticky.is-stuck .material-footer-hex-inner {
-      width: 36px !important;
+/* Make table scrollable with sticky header */
+  .table-container {
+      overflow-y: auto;
+      overflow-x: auto;
   }
-  .material-footer-sticky.is-stuck .material-footer-count {
-      font-size: 20px !important;
+
+  .table-container thead {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: white;
   }
-  .material-footer-sticky.is-stuck .material-footer-label {
-      margin-top: 0 !important;
-      font-size: 12px !important;
-      line-height: 1 !important;
-      color: var(--text-color) !important;
-      -webkit-text-stroke: 0 !important;
-      text-shadow: none !important;
-      font-weight: bold !important;
+
+  /* Ensure the entire page fits the screen */
+  .material-tab-wrapper {
+      display: flex;
+      flex-direction: column;
   }
-.material-footer-sticky.is-stuck .material-footer-right .btn {
-    padding: 6px 10px !important;
-    font-size: 12px !important;
-}
+
+  .material-tab-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+  }
+
+  .material-tab-card {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+  }
 </style>
 
-<div class="card">
+
     @php
         $availableTypes = collect($materials)->pluck('type')->toArray();
         // Check if there's a saved tab from localStorage (set by inline script)
@@ -527,7 +575,6 @@
         }
     @endphp
     <div class="material-tab-wrapper">
-        
         <div class="material-tab-header">
             <div class="material-tabs">
                 @foreach($materials as $material)
@@ -545,8 +592,8 @@
                         <span>Filter</span>
                     </button>
                     <div class="material-settings-menu" id="materialSettingsMenu">
-                        <div style="padding: 12px 16px; border-bottom: 1.5px solid #e2e8f0; background: #f8fafc;">
-                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #0f172a;">Pilih Material yang Ditampilkan</h4>
+                        <div style="padding: 8px 16px; border-bottom: 1.5px solid #f6f3c2; background: #f6f3c2;">
+                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #000000;">Pilih Material yang Ditampilkan</h4>
                         </div>
                         <div class="material-settings-grid">
                             @foreach($allSettings as $setting)
@@ -561,7 +608,7 @@
                                 </label>
                             @endforeach
                         </div>
-                        <div style="padding: 12px 16px; border-top: 1.5px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: center;">
+                        <div style="padding: 8px 16px; border-top: 1.5px solid #e2e8f0; background: #f6f3c2; display: flex; justify-content: center;">
                             <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary-glossy " style="font-size: 12px;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>
@@ -1045,7 +1092,7 @@
                                         @php
                                             $rowAnchorId = $loop->first ? $material['type'] . '-letter-' . $anchorId : null;
                                         @endphp
-                                <tr>
+                                <tr data-material-tab="{{ $material['type'] }}" data-material-kind="{{ $item->type ?? '' }}">
                                     <td @if($rowAnchorId) id="{{ $rowAnchorId }}" style="scroll-margin-top: 120px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
@@ -1323,10 +1370,10 @@
                             <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total {{ $material['label'] }}">
                                 
-                                <div class="material-footer-hex" style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
                                     <img src="./assets/hex1.png"
                                         alt="Hexagon"
-                                        style="width: 74px; height: 74px;">
+                                        style="width: 50px; height: 50px;">
 
                                     <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
                                         <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
@@ -1344,10 +1391,10 @@
                             <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                                 title="Total Semua Material">
                                 
-                                <div class="material-footer-hex" style="position: relative; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;">
+                                <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
                                     <img src="./assets/hex2.png"
                                         alt="Hexagon"
-                                        style="width: 74px; height: 74px;">
+                                        style="width: 50px; height: 50px;">
 
                                     <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
                                         <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
@@ -1432,16 +1479,14 @@
     @else
         <div class="empty-state">
             <div class="empty-state-icon">📦</div>
-            <p>Belum ada material yang ditampilkan</p>
-            <p style="font-size: 14px; color: #94a3b8;">Atur material yang ingin ditampilkan di pengaturan</p>
-            <a href="{{ route('materials.settings') }}" class="btn btn-primary-glossy" style="margin-top: 16px;">
-                <i class="bi bi-gear"></i> Pengaturan Filter
-            </a>
+            <p>Tidak Ada Material yang Ditampilkan</p>
+            <p style="font-size: 14px; color: #94a3b8;">Pilih material yang ingin ditampilkan dari dropdown <strong>"Filter"</strong> di atas.</p>
         </div>
     @endif
     </div>
-</div>
+@endsection
 
+@section('modals')
 <!-- Material Choice Modal -->
 <div id="materialChoiceModal" class="floating-modal">
     <div class="floating-modal-backdrop"></div>
@@ -1499,9 +1544,9 @@
         </div>
     </div>
 </div>
+@endsection
 
-
-
+@push('scripts')
 <script src="{{ asset('js/api-helper.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1518,6 +1563,22 @@ document.addEventListener('DOMContentLoaded', function() {
         savedFilter = { selected: [], order: [] };
     }
     let materialOrder = savedFilter.order || [];
+    const navBlinkMaterial = localStorage.getItem('materialNavSearchBlink');
+    const navSearchType = localStorage.getItem('materialNavSearchType');
+
+    if (navBlinkMaterial) {
+        if (!Array.isArray(savedFilter.selected)) {
+            savedFilter.selected = [];
+        }
+        if (!savedFilter.selected.includes(navBlinkMaterial)) {
+            savedFilter.selected.push(navBlinkMaterial);
+        }
+        if (!Array.isArray(materialOrder)) {
+            materialOrder = [];
+        }
+        materialOrder = materialOrder.filter(type => type !== navBlinkMaterial);
+        materialOrder.unshift(navBlinkMaterial);
+    }
 
     // Material Settings Dropdown
     const settingsToggle = document.getElementById('materialSettingsToggle');
@@ -1560,36 +1621,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Tab switching function (declared early to avoid reference errors)
     const tabButtons = Array.from(allTabButtons);
     const tabPanels = Array.from(allTabPanels);
-    let stickyTicking = false;
 
-    function updateFooterStickyState() {
-        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
-        document.querySelectorAll('.material-footer-sticky').forEach(footer => {
-            const rect = footer.getBoundingClientRect();
-            const parent = footer.closest('.material-tab-card');
-            if (!parent) return;
-            const parentRect = parent.getBoundingClientRect();
-            const isParentOverflowing = parentRect.bottom > viewportHeight + 1;
-            const isStuck = isParentOverflowing && Math.abs(rect.bottom - viewportHeight) <= 2;
-            footer.classList.toggle('is-stuck', isStuck);
-            if (isStuck) {
-                footer.style.setProperty('--footer-left', `${Math.round(parentRect.left)}px`);
-                footer.style.setProperty('--footer-width', `${Math.round(parentRect.width)}px`);
-            } else {
-                footer.style.removeProperty('--footer-left');
-                footer.style.removeProperty('--footer-width');
-            }
-        });
-    }
-
-    function requestStickyUpdate() {
-        if (stickyTicking) return;
-        stickyTicking = true;
-        window.requestAnimationFrame(() => {
-            updateFooterStickyState();
-            stickyTicking = false;
-        });
-    }
+    // Sticky footer functionality removed - footer is now static
+    // let stickyTicking = false;
+    // function updateFooterStickyState() { ... }
+    // function requestStickyUpdate() { ... }
 
     const setActiveTab = (tab) => {
         tabButtons.forEach(btn => {
@@ -1614,7 +1650,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save active tab to localStorage
         localStorage.setItem('materialActiveTab', tab);
-        requestStickyUpdate();
+        // requestStickyUpdate(); // Removed - sticky footer functionality disabled
     };
 
     // Function to save filter preferences to localStorage
@@ -1761,7 +1797,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save to localStorage
         saveFilterToLocalStorage(checkedMaterials, materialOrder);
-        requestStickyUpdate();
+        // requestStickyUpdate(); // Removed - sticky footer functionality disabled
     }
 
     // Listen to checkbox changes FIRST (before restore)
@@ -1795,6 +1831,34 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[Restore] Calling updateTabVisibility');
     const savedTab = window.__materialSavedTab || localStorage.getItem('materialActiveTab');
     updateTabVisibility(savedTab);
+    document.documentElement.classList.remove('materials-booting');
+
+    if (navSearchType) {
+        const searchTab = navBlinkMaterial || savedTab;
+        window.setTimeout(() => {
+            highlightMaterialRowByType(searchTab, navSearchType);
+        }, 150);
+        try {
+            localStorage.removeItem('materialNavSearchType');
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+
+    if (navBlinkMaterial) {
+        const blinkTarget = document.querySelector(`.material-tab-btn[data-tab="${navBlinkMaterial}"]`);
+        if (blinkTarget) {
+            blinkTarget.classList.add('material-tab-blink');
+            window.setTimeout(() => {
+                blinkTarget.classList.remove('material-tab-blink');
+            }, 2400);
+        }
+        try {
+            localStorage.removeItem('materialNavSearchBlink');
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
 
     // Reset Material Filter Button
     const resetFilterBtn = document.getElementById('resetMaterialFilter');
@@ -2055,13 +2119,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function highlightMaterialRow(targetId) {
-        if (!targetId) return;
-        const target = document.getElementById(targetId);
-        if (!target) return;
-        const row = target.closest('tr');
+    function highlightMaterialRowElement(row) {
         if (!row) return;
-
         const container = row.closest('.table-container');
         if (!container) return;
 
@@ -2083,6 +2142,38 @@ document.addEventListener('DOMContentLoaded', function() {
         window.setTimeout(() => {
             outline.remove();
         }, 2600);
+    }
+
+    function highlightMaterialRow(targetId) {
+        if (!targetId) return;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const row = target.closest('tr');
+        if (!row) return;
+        highlightMaterialRowElement(row);
+    }
+
+    function highlightMaterialRowByType(materialTab, typeValue) {
+        if (!materialTab || !typeValue) return;
+        const panel = document.querySelector(`.material-tab-panel[data-tab="${materialTab}"]`);
+        if (!panel) return;
+
+        const normalized = (typeValue || '').toLowerCase().trim();
+        if (!normalized) return;
+
+        const rows = panel.querySelectorAll('tbody tr[data-material-kind]');
+        let match = null;
+        rows.forEach(row => {
+            if (match) return;
+            const rowType = (row.dataset.materialKind || '').toLowerCase().trim();
+            if (rowType && rowType === normalized) {
+                match = row;
+            }
+        });
+
+        if (!match) return;
+        match.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        highlightMaterialRowElement(match);
     }
 
     window.deleteMaterial = async function(type, id) {
@@ -2163,10 +2254,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
     });
 
-    requestStickyUpdate();
-    window.addEventListener('scroll', requestStickyUpdate, { passive: true });
-    window.addEventListener('resize', requestStickyUpdate);
+    // requestStickyUpdate(); // Removed - sticky footer functionality disabled
+    // window.addEventListener('scroll', requestStickyUpdate, { passive: true });
+    // window.addEventListener('resize', requestStickyUpdate);
 
 });
 </script>
-@endsection
+@endpush
