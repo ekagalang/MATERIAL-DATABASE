@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Brick;
+use App\Models\Cat;
 use App\Models\Cement;
+use App\Models\Ceramic;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
 use App\Services\FormulaRegistry;
@@ -15,7 +17,7 @@ class RecommendedCombinationController extends Controller
     public function index()
     {
         // Get existing recommendations grouped by work_type with eager loaded relationships
-        $recommendations = RecommendedCombination::with(['brick', 'cement', 'sand'])
+        $recommendations = RecommendedCombination::with(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'])
             ->where('type', 'best')
             ->orderBy('work_type')
             ->get();
@@ -25,15 +27,18 @@ class RecommendedCombinationController extends Controller
 
         // Get options for dropdowns
         $bricks = Brick::orderBy('brand')->get();
-        $cements = Cement::orderBy('brand')->get();
+        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('brand')->get();
+        $nats = Cement::where('type', 'Nat')->orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
+        $cats = Cat::orderBy('brand')->get();
+        $ceramics = Ceramic::orderBy('brand')->get();
 
         // Get available formulas (work types)
         $formulas = FormulaRegistry::all();
 
         return view(
             'settings.recommendations.index',
-            compact('groupedRecommendations', 'bricks', 'cements', 'sands', 'formulas'),
+            compact('groupedRecommendations', 'bricks', 'cements', 'nats', 'sands', 'cats', 'ceramics', 'formulas'),
         );
     }
 
@@ -47,6 +52,9 @@ class RecommendedCombinationController extends Controller
             'recommendations.*.brick_id' => 'nullable|exists:bricks,id',
             'recommendations.*.cement_id' => 'nullable|exists:cements,id',
             'recommendations.*.sand_id' => 'nullable|exists:sands,id',
+            'recommendations.*.cat_id' => 'nullable|exists:cats,id',
+            'recommendations.*.ceramic_id' => 'nullable|exists:ceramics,id',
+            'recommendations.*.nat_id' => 'nullable|exists:cements,id',
         ]);
 
         try {
@@ -62,21 +70,34 @@ class RecommendedCombinationController extends Controller
             $submittedRecommendations = $request->recommendations ?? [];
 
             foreach ($submittedRecommendations as $rec) {
-                // Skip if work_type, brick_id, cement_id, or sand_id are empty
-                if (
-                    empty($rec['work_type']) ||
-                    empty($rec['brick_id']) ||
-                    empty($rec['cement_id']) ||
-                    empty($rec['sand_id'])
-                ) {
+                $workType = $rec['work_type'] ?? null;
+                $requiredMaterials = $workType ? FormulaRegistry::materialsFor($workType) : [];
+
+                if (!$workType || empty($requiredMaterials)) {
+                    continue;
+                }
+
+                $missingRequired = false;
+                foreach ($requiredMaterials as $material) {
+                    $key = $material . '_id';
+                    if (empty($rec[$key])) {
+                        $missingRequired = true;
+                        break;
+                    }
+                }
+
+                if ($missingRequired) {
                     continue;
                 }
 
                 $dataToInsert[] = [
-                    'work_type' => $rec['work_type'],
-                    'brick_id' => $rec['brick_id'],
-                    'cement_id' => $rec['cement_id'],
-                    'sand_id' => $rec['sand_id'],
+                    'work_type' => $workType,
+                    'brick_id' => $rec['brick_id'] ?? null,
+                    'cement_id' => $rec['cement_id'] ?? null,
+                    'sand_id' => $rec['sand_id'] ?? null,
+                    'cat_id' => $rec['cat_id'] ?? null,
+                    'ceramic_id' => $rec['ceramic_id'] ?? null,
+                    'nat_id' => $rec['nat_id'] ?? null,
                     'type' => 'best',
                     'created_at' => now(),
                     'updated_at' => now(),

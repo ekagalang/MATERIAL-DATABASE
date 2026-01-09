@@ -28,6 +28,11 @@ class GroutTileFormula implements FormulaInterface
         return 'Menghitung kebutuhan nat (grout) berdasarkan luas bidang dan ukuran keramik.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['ceramic', 'nat'];
+    }
+
     public function validate(array $params): bool
     {
         $required = ['wall_length', 'wall_height', 'grout_thickness'];

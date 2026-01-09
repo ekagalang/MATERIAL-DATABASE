@@ -131,25 +131,93 @@
         /* Navigation - Sidebar */
         .sidebar-nav {
             position: fixed;
-            top: 0;
+            top: 50px;
             left: 0;
-            height: 100vh;
-            width: 280px;
+            height: calc(100vh - 50px);
+            width: 240px;
             background: #ffffff;
             box-shadow: 6px 0 20px rgba(15, 23, 42, 0.12);
-            transform: translateX(-100%);
-            transition: transform 0.25s ease;
+            transform: translateY(-100%);
+            transition: transform 0.35s ease;
             z-index: 1000;
         }
 
         body.nav-open .sidebar-nav {
-            transform: translateX(0);
+            transform: translateY(0);
+        }
+
+        .global-topbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            z-index: 9999;
+        }
+
+        .topbar-logo-btn {
+            border: none;
+            background: transparent;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .topbar-logo-btn img {
+            height: 45px;
+            width: auto;
+            display: block;
+        }
+
+        .topbar-title {
+            margin-left: 30px;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: #891313;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topbar-account {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .topbar-role {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .topbar-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 16px;
         }
 
         .nav-toggle-btn {
             position: fixed;
-            top: 14px;
-            left: 0;
+            top: 3px;
+            left: 8px;
             width: 20px;
             height: 44px;
             border: none;
@@ -163,6 +231,8 @@
             box-shadow: 0 8px 16px rgba(15, 23, 42, 0.18);
             cursor: pointer;
             transition: transform 0.2s ease, left 0.25s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+            opacity: 0;
+            pointer-events: none;
         }
 
         .nav-toggle-btn i {
@@ -177,11 +247,14 @@
             transform: rotate(180deg);
         }
         body.nav-open .nav-toggle-btn {
-            left: 280px;
+            top: 3px;
+            left: 8px;
             background: #ffffff;
             color: #891313;
             box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
             border: 1px solid #e2e8f0;
+            opacity: 1;
+            pointer-events: auto;
         }
 
         .nav-overlay {
@@ -203,6 +276,7 @@
         .page-content {
             position: relative;
             z-index: 0;
+            margin-top: 65px;
         }
 
         body.nav-open .page-content {
@@ -211,7 +285,7 @@
 
         .sidebar-nav .nav {
             background: #ffffff;
-            padding: 20px 16px;
+            padding: 28px 16px;
             border-radius: 0;
             margin-bottom: 0;
             box-shadow: none;
@@ -258,7 +332,6 @@
         /* Card - Clean & Modern */
         .card {
             background: #ffffff;
-            padding: 32px;
             border-radius: 16px;
             margin-bottom: 24px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
@@ -628,7 +701,7 @@
             /* layout */
             padding: 10px 20px;
             border: none;
-            border-radius: 12px;
+            border-radius: 8px !important;
             cursor: pointer;
             font-size: 16px;
             text-decoration: none;
@@ -1071,7 +1144,11 @@
 
         .sidebar-nav .nav-link-btn {
             width: 100%;
-            justify-content: space-between;
+            justify-content: flex-start;
+        }
+
+        .sidebar-nav .nav-link-btn .nav-caret {
+            margin-left: auto;
         }
 
         .nav-link-btn:hover,
@@ -1083,7 +1160,9 @@
 
         .sidebar-nav .nav-link-btn:hover,
         .sidebar-nav .nav-link-btn:focus {
+            background: #f8fafc;
             transform: translateX(4px);
+            color: #891313 !important;
         }
 
         .nav-link-btn:focus {
@@ -1144,6 +1223,70 @@
 
         .nav-dropdown-content {
             padding: 8px 0;
+        }
+
+        .nav-material-autocomplete {
+            position: relative;
+            margin: 0 0 10px;
+            padding: 0 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .nav-material-autocomplete .nav-material-input {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 0;
+        }
+
+        .nav-material-autocomplete .autocomplete-input:focus {
+            border: none !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .nav-material-autocomplete .autocomplete-list {
+            border-radius: 10px !important;
+            max-height: 180px !important;
+            top: 0 !important;
+            left: calc(100% - 20px) !important;
+            right: auto !important;
+            width: 220px !important;
+        }
+
+        .nav-material-actions {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 8px;
+        }
+
+        .nav-material-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .nav-material-actions .nav-material-apply {
+            flex: 7;
+        }
+
+        .nav-material-actions .nav-material-reset {
+            flex: 3;
+        }
+
+        .nav-material-autocomplete .autocomplete-item {
+            font-size: 12.5px !important;
+        }
+
+        @media (max-width: 768px) {
+            .nav-material-autocomplete .autocomplete-list {
+                top: 100% !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+            }
         }
 
         /* Nested Dropdown Styling */
@@ -1220,10 +1363,10 @@
 
         .dropdown-sub-menu .dropdown-item:hover,
         .dropdown-sub-menu .dropdown-item:focus {
-            background: rgba(137, 19, 19, 0.2) !important;
+            background: rgb(137, 19, 19) !important;
             color: #ffffff !important;
             transform: translateX(4px);
-            box-shadow: 0 2px 8px rgba(137, 19, 19, 0.15);
+            box-shadow: 0 2px 8px rgb(137, 19, 19);
         }
 
         .dropdown-sub-menu .dropdown-header {
@@ -1391,7 +1534,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 9999;
+            z-index: 10000;
             animation: fadeIn 0.2s ease;
         }
 
@@ -1603,7 +1746,7 @@
                 overflow-x: auto; /* Enable horizontal scroll */
                 overflow-y: hidden; /* Hide vertical scroll if not needed */
                 margin-top: 15px; /* Space for shadow */
-                margin-bottom: 30px; /* Space for shadow */
+                
                 background: #fff;
                 border: 1px solid rgba(0,0,0,0.08);
                 -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
@@ -1710,7 +1853,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 9999;
+    z-index: 10000;
     animation: fadeIn 0.2s ease;
 }
 
@@ -2071,7 +2214,7 @@
 .material-tab-card {
     border-radius: 0 0 12px 12px;
     background: #91C6BC;
-    padding: 20px;
+    padding: 0 20px;
     margin-top: 0;
     position: relative;
     z-index: 3;
@@ -2191,7 +2334,6 @@ input[type="text"]:focus {
     border-width: 2px;
     border-bottom: none;
     font-weight: 700;
-    padding-bottom: 14px;
     z-index: 5;
 }
 

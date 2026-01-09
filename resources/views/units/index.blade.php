@@ -3,17 +3,11 @@
 @section('title', 'Database Satuan')
 
 @section('content')
-<div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px;">
-        <h2 style="margin-bottom: 0;">Database Satuan</h2>
-        <a href="{{ route('units.create') }}" class="btn btn-success open-modal">
-            <i class="bi bi-plus-lg"></i> Tambah Satuan
-        </a>
-    </div>
+    <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+        <h2 style="margin: 0; flex-shrink: 0;" class="unit-style">Database Satuan</h2>
 
-    <!-- Filter Form -->
-    <form action="{{ route('units.index') }}" method="GET" style="margin-bottom: 24px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
+        <!-- Filter Form -->
+        <form action="{{ route('units.index') }}" method="GET" style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 320px; margin: 0;">
             <div style="flex: 1;">
                 <select name="material_type" 
                         style="width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 14px; font-family: inherit;">
@@ -33,8 +27,12 @@
                     <i class="bi bi-x-lg"></i> Reset
                 </a>
             @endif
-        </div>
-    </form>
+        </form>
+
+        <a href="{{ route('units.create') }}" class="btn btn-success open-modal" style="flex-shrink: 0;">
+            <i class="bi bi-plus-lg"></i> Tambah Satuan
+        </a>
+    </div>
 
     @if($units->count() > 0)
         <!-- Grid 2 Kolom Tabel -->
@@ -249,7 +247,6 @@
             <p>Belum ada satuan yang terdaftar</p>
         </div>
     @endif
-</div>
 
 <!-- Floating Modal -->
 <div id="floatingModal" class="floating-modal">
@@ -425,6 +422,15 @@ th.sortable:hover i {
 th.sortable i {
     transition: opacity 0.2s ease;
 }
+
+.unit-style {
+    color: var(--special-text-color);
+    font-weight: var(--special-font-weight);
+    -webkit-text-stroke: var(--special-text-stroke);
+    text-shadow: var(--special-text-shadow);
+    font-size: 32px;
+}
+
 </style>
 
 <script>

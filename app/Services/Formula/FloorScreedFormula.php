@@ -28,6 +28,11 @@ class FloorScreedFormula implements FormulaInterface
         return 'Menghitung Screed Lantai dengan input panjang, lebar, dan tebal adukan.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['cement', 'sand'];
+    }
+
     public function validate(array $params): bool
     {
         $required = ['wall_length', 'wall_height', 'mortar_thickness'];

@@ -16,7 +16,9 @@ class MaterialController extends Controller
     {
         // Load ALL materials data (not filtered)
         // JavaScript will handle showing/hiding tabs based on checkbox
-        $allSettings = MaterialSetting::orderBy('display_order')->get();
+        $allSettings = MaterialSetting::orderBy('display_order')
+            ->where('material_type', '!=', 'nat')
+            ->get();
 
         $materials = [];
         $grandTotal = 0;
@@ -65,6 +67,44 @@ class MaterialController extends Controller
         }
 
         return view('materials.index', compact('materials', 'allSettings', 'grandTotal'));
+    }
+
+    public function typeSuggestions(Request $request)
+    {
+        $search = trim((string) $request->query('q', ''));
+        $models = [
+            'brick' => Brick::class,
+            'cat' => Cat::class,
+            'cement' => Cement::class,
+            'sand' => Sand::class,
+            'ceramic' => Ceramic::class,
+        ];
+
+        $items = collect();
+        foreach ($models as $materialType => $model) {
+            $query = $model::query()
+                ->select('type')
+                ->whereNotNull('type')
+                ->where('type', '!=', '');
+
+            if ($search !== '') {
+                $query->where('type', 'like', '%' . $search . '%');
+            }
+
+            $types = $query->distinct()->orderBy('type')->pluck('type');
+            foreach ($types as $type) {
+                $items->push([
+                    'material_type' => $materialType,
+                    'type' => $type,
+                ]);
+            }
+        }
+
+        $items = $items->sortBy('type')->values();
+
+        return response()->json([
+            'items' => $items,
+        ]);
     }
 
     private function getActiveLetters($type)

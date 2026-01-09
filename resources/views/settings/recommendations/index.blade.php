@@ -3,11 +3,19 @@
 @section('title', 'Setting Rekomendasi Material')
 
 @section('content')
+<style>
+    .unit-style {
+        color: var(--special-text-color);
+        font-weight: var(--special-font-weight);
+        -webkit-text-stroke: var(--special-text-stroke);
+        font-size: 32px;
+    }
+</style>
+
 <div id="recommendations-content-wrapper">
-    <div class="card">
-        <div class="card-header-actions">
-            <h3 class="form-title"><i class="bi bi-bookmark-star-fill text-warning me-2"></i>Setting Rekomendasi Material</h3>
-            <button type="button" class="recommendation-save-btn" id="btnSaveRecommendations">
+    <div class="card-header-actions">
+            <h3 class="unit-style">Setting Rekomendasi Material</h3>
+            <button type="button" class="btn btn-primary-glossy" id="btnSaveRecommendations">
                 <i class="bi bi-save me-1"></i> Simpan
             </button>
         </div>
@@ -95,7 +103,6 @@
                 @endforeach
             </div>
         </form>
-    </div>
 
     {{-- TEMPLATE ROW (Hidden) --}}
     <div id="rowTemplate" style="display: none;">
@@ -107,7 +114,10 @@
     {!! json_encode([
         'bricks' => $bricks,
         'cements' => $cements,
+        'nats' => $nats,
         'sands' => $sands,
+        'cats' => $cats,
+        'ceramics' => $ceramics,
         'formulas' => $formulas
     ]) !!}
     </script>

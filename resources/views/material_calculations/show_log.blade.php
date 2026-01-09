@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('content')
-<div class="container-fluid py-4">
+@section('content') 
+<div class="show-log-scope">
     <!-- Header -->
     <div class="container mb-4">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h2 class="fw-bold mb-1" style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
-                    <i class="bi bi-file-text text-primary me-2"></i>Detail Perhitungan
+                <h2 style="color: var(--special-text-color); font-weight: var(--special-font-weight); -webkit-text-stroke: var(--special-text-stroke); font-size: 32px;" class="mb-1">
+                    Detail Perhitungan
                 </h2>
             </div>
             <div class="d-flex gap-2">
@@ -208,9 +208,32 @@
     <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden;">
         <div class="table-responsive">
             <style>
-                /* Global Text Styling for All Elements */
-                h1, h2, h3, h4, h5, h6, p, span, div, a, label, input, select, textarea, button, th, td, i, strong,
-                .text-muted, .text-dark, .text-secondary, .small, .fw-bold, .badge {
+                /* Global Text Styling for All Elements (scoped) */
+                .show-log-scope h1,
+                .show-log-scope h2,
+                .show-log-scope h3,
+                .show-log-scope h4,
+                .show-log-scope h5,
+                .show-log-scope h6,
+                .show-log-scope p,
+                .show-log-scope span,
+                .show-log-scope div,
+                .show-log-scope a,
+                .show-log-scope label,
+                .show-log-scope input,
+                .show-log-scope select,
+                .show-log-scope textarea,
+                .show-log-scope button,
+                .show-log-scope th,
+                .show-log-scope td,
+                .show-log-scope i,
+                .show-log-scope strong,
+                .show-log-scope .text-muted,
+                .show-log-scope .text-dark,
+                .show-log-scope .text-secondary,
+                .show-log-scope .small,
+                .show-log-scope .fw-bold,
+                .show-log-scope .badge {
                     font-family: 'League Spartan', sans-serif !important;
                     color: #ffffff !important;
                     -webkit-text-stroke: 0.2px black !important;
@@ -218,8 +241,17 @@
                     font-weight: 700 !important;
                 }
 
+                /* Text styling override for table body to black */
+                #show_log td,
+                #show_log td * {
+                    color: #000000 !important;
+                    -webkit-text-stroke: 0 !important;
+                    text-shadow: none !important;
+                }
+
                 /* Override for input/form controls */
-                .form-control, .input-group-text {
+                .show-log-scope .form-control,
+                .show-log-scope .input-group-text {
                     color: #1e293b !important;
                     -webkit-text-stroke: 0 !important;
                     text-shadow: none !important;
@@ -350,7 +382,7 @@
                         <th colspan="2">Harga Satuan Beli</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="show_log">
 
                     {{-- ROW 1: BATA --}}
                     @if($hasBrick)
@@ -707,7 +739,7 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
+    </div>
     </div>
     </div>
 </div>

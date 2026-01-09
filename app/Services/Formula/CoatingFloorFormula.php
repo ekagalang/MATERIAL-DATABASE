@@ -27,6 +27,11 @@ class CoatingFloorFormula implements FormulaInterface
         return 'Menghitung Aci Lantai dengan input panjang, tinggi, dan tebal adukan.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['cement'];
+    }
+
     public function validate(array $params): bool
     {
         $required = ['wall_length', 'wall_height', 'mortar_thickness'];

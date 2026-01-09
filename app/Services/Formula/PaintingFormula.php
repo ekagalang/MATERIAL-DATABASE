@@ -27,6 +27,11 @@ class PaintingFormula implements FormulaInterface
         return 'Menghitung Pengecatan Dinding dengan input panjang, tinggi, dan jumlah lapis.';
     }
 
+    public static function getMaterialRequirements(): array
+    {
+        return ['cat'];
+    }
+
     public function validate(array $params): bool
     {
         // Check wall dimensions and layer count

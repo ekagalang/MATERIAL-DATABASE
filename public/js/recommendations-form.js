@@ -219,90 +219,133 @@
                 }
             });
 
-            const populateSelect = (selectEl, values, selectedValue, placeholder = '-- Pilih --') => {
+            const formulaMaterials = {};
+            (rawData.formulas || []).forEach(formula => {
+                if (formula && formula.code) {
+                    formulaMaterials[formula.code] = Array.isArray(formula.materials) ? formula.materials : [];
+                }
+            });
+
+            const materialCollections = {
+                brick: rawData.bricks || [],
+                cement: rawData.cements || [],
+                sand: rawData.sands || [],
+                cat: rawData.cats || [],
+                ceramic: rawData.ceramics || [],
+                nat: rawData.nats || []
+            };
+
+            const formatCurrency = (value) => {
+                const numberValue = Number(value);
+                if (!Number.isFinite(numberValue) || numberValue <= 0) return null;
+                return `Rp ${numberValue.toLocaleString('id-ID')}`;
+            };
+
+            const isPositiveNumber = (value) => Number(value) > 0;
+
+            const formatters = {
+                brick: (item) => {
+                    const name = [item.brand, item.type].filter(Boolean).join(' ') || 'Bata';
+                    const hasDims = isPositiveNumber(item.dimension_length) &&
+                        isPositiveNumber(item.dimension_width) &&
+                        isPositiveNumber(item.dimension_height);
+                    const dims = hasDims
+                        ? `${item.dimension_length}x${item.dimension_width}x${item.dimension_height} cm`
+                        : null;
+                    const price = formatCurrency(item.price_per_piece);
+                    return `${name}${dims ? ` (${dims})` : ''}${price ? ` - ${price}` : ''}`;
+                },
+                cement: (item) => {
+                    const name = [item.cement_name, item.brand].filter(Boolean).join(' - ') || 'Semen';
+                    const weight = isPositiveNumber(item.package_weight_net) ? `${item.package_weight_net} kg` : null;
+                    const price = formatCurrency(item.package_price);
+                    return `${name}${weight ? ` (${weight})` : ''}${price ? ` - ${price}` : ''}`;
+                },
+                sand: (item) => {
+                    const name = [item.sand_name, item.brand].filter(Boolean).join(' - ') || 'Pasir';
+                    const volume = isPositiveNumber(item.package_volume)
+                        ? `${item.package_volume} M3`
+                        : (isPositiveNumber(item.package_weight_net) ? `${item.package_weight_net} kg` : null);
+                    const price = formatCurrency(item.comparison_price_per_m3 || item.package_price);
+                    return `${name}${volume ? ` (${volume})` : ''}${price ? ` - ${price}` : ''}`;
+                },
+                cat: (item) => {
+                    const name = [item.brand, item.cat_name].filter(Boolean).join(' - ') || 'Cat';
+                    const volume = isPositiveNumber(item.volume)
+                        ? `${item.volume} ${item.volume_unit || 'L'}`
+                        : (isPositiveNumber(item.package_weight_net) ? `${item.package_weight_net} kg` : null);
+                    const price = formatCurrency(item.purchase_price);
+                    return `${name}${volume ? ` (${volume})` : ''}${price ? ` - ${price}` : ''}`;
+                },
+                ceramic: (item) => {
+                    const name = [item.brand, item.type].filter(Boolean).join(' - ') || 'Keramik';
+                    const hasDims = isPositiveNumber(item.dimension_length) && isPositiveNumber(item.dimension_width);
+                    const dims = hasDims ? `${item.dimension_length}x${item.dimension_width} cm` : null;
+                    const pieces = isPositiveNumber(item.pieces_per_package) ? `${item.pieces_per_package} pcs` : null;
+                    const price = formatCurrency(item.price_per_package);
+                    const details = [dims, pieces].filter(Boolean).join(', ');
+                    return `${name}${details ? ` (${details})` : ''}${price ? ` - ${price}` : ''}`;
+                },
+                nat: (item) => {
+                    const name = [item.brand, item.cement_name].filter(Boolean).join(' - ') || 'Nat';
+                    const weight = isPositiveNumber(item.package_weight_net) ? `${item.package_weight_net} kg` : null;
+                    const price = formatCurrency(item.package_price);
+                    return `${name}${weight ? ` (${weight})` : ''}${price ? ` - ${price}` : ''}`;
+                }
+            };
+
+            const populateMaterialSelect = (selectEl, materialType) => {
                 if (!selectEl) return;
+                const items = materialCollections[materialType] || [];
+                const selectedValue = selectEl.dataset.selected;
+                const placeholder =
+                    selectEl.querySelector('option')?.textContent ||
+                    '-- Pilih --';
+
                 selectEl.innerHTML = `<option value="">${placeholder}</option>`;
-                values.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v;
-                    opt.textContent = v;
-                    if (String(v) === String(selectedValue)) opt.selected = true;
-                    selectEl.appendChild(opt);
+
+                const formatItem = formatters[materialType];
+                const options = items.map(item => ({
+                    id: item.id,
+                    label: formatItem ? formatItem(item) : (item.name || item.brand || String(item.id))
+                })).filter(opt => opt.label);
+
+                options.sort((a, b) => a.label.localeCompare(b.label, 'id-ID'));
+
+                options.forEach(opt => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = opt.id;
+                    optionEl.textContent = opt.label;
+                    if (String(opt.id) === String(selectedValue)) optionEl.selected = true;
+                    selectEl.appendChild(optionEl);
+                });
+            };
+
+            const applyMaterialVisibility = (card, workType) => {
+                const required = (formulaMaterials[workType] || []);
+                const showAll = required.length === 0;
+
+                card.querySelectorAll('.material-section').forEach(section => {
+                    const type = section.dataset.materialType;
+                    const shouldShow = showAll || required.includes(type);
+                    section.style.display = shouldShow ? '' : 'none';
+                    const select = section.querySelector('select');
+                    if (select) {
+                        select.disabled = !shouldShow;
+                    }
                 });
             };
 
             const initializeRow = (card) => {
-                const brickBrandSelect = card.querySelector('.brick-brand-select');
-                const brickDimSelect = card.querySelector('.brick-dim-select');
-                if (brickBrandSelect && brickDimSelect && rawData.bricks) {
-                    const uniqueBrickBrands = [...new Set(rawData.bricks.map(b => b.brand))].sort();
-                    populateSelect(brickBrandSelect, uniqueBrickBrands, brickBrandSelect.dataset.selected, '-- Pilih Merk --');
-                    brickBrandSelect.addEventListener('change', () => {
-                        const brand = brickBrandSelect.value;
-                        const filtered = rawData.bricks.filter(b => b.brand === brand);
-                        brickDimSelect.innerHTML = '<option value="">-- Pilih Dimensi --</option>';
-                        filtered.forEach(b => {
-                            const opt = document.createElement('option');
-                            opt.value = b.id;
-                            opt.textContent = `${b.type} (${b.dimension_length}x${b.dimension_width}x${b.dimension_height}) - Rp ${Number(b.price_per_piece).toLocaleString('id-ID')}`;
-                            if (String(b.id) === brickDimSelect.dataset.selected) opt.selected = true;
-                            brickDimSelect.appendChild(opt);
-                        });
-                    });
-                    if (brickBrandSelect.dataset.selected) brickBrandSelect.dispatchEvent(new Event('change'));
-                }
+                const panel = card.closest('.recommendation-tab-panel');
+                const workType = panel ? panel.dataset.workType : null;
 
-                const cementTypeSelect = card.querySelector('.cement-type-select');
-                const cementBrandSelect = card.querySelector('.cement-brand-select');
-                if (cementTypeSelect && cementBrandSelect && rawData.cements) {
-                    const uniqueCementTypes = [...new Set(rawData.cements.map(c => c.cement_name))].sort();
-                    populateSelect(cementTypeSelect, uniqueCementTypes, cementTypeSelect.dataset.selected, '-- Pilih Jenis --');
-                    cementTypeSelect.addEventListener('change', () => {
-                        const type = cementTypeSelect.value;
-                        const filtered = rawData.cements.filter(c => c.cement_name === type);
-                        cementBrandSelect.innerHTML = '<option value="">-- Pilih Produk --</option>';
-                        filtered.forEach(c => {
-                            const opt = document.createElement('option');
-                            opt.value = c.id;
-                            opt.textContent = `${c.brand} (${c.package_weight_net} kg) - Rp ${Number(c.package_price).toLocaleString('id-ID')}`;
-                            if (String(c.id) === cementBrandSelect.dataset.selected) opt.selected = true;
-                            cementBrandSelect.appendChild(opt);
-                        });
-                    });
-                    if (cementTypeSelect.dataset.selected) cementTypeSelect.dispatchEvent(new Event('change'));
-                }
+                card.querySelectorAll('select.material-select').forEach(selectEl => {
+                    populateMaterialSelect(selectEl, selectEl.dataset.materialType);
+                });
 
-                const sandTypeSelect = card.querySelector('.sand-type-select');
-                const sandBrandSelect = card.querySelector('.sand-brand-select');
-                const sandPkgSelect = card.querySelector('.sand-pkg-select');
-                if (sandTypeSelect && sandBrandSelect && sandPkgSelect && rawData.sands) {
-                    const uniqueSandTypes = [...new Set(rawData.sands.map(s => s.sand_name))].sort();
-                    populateSelect(sandTypeSelect, uniqueSandTypes, sandTypeSelect.dataset.selected, '-- Pilih Jenis --');
-                    sandTypeSelect.addEventListener('change', () => {
-                        const type = sandTypeSelect.value;
-                        const filtered = rawData.sands.filter(s => s.sand_name === type);
-                        const brands = [...new Set(filtered.map(s => s.brand))].sort();
-                        populateSelect(sandBrandSelect, brands, sandBrandSelect.dataset.selected, '-- Pilih Merk --');
-                        sandPkgSelect.innerHTML = '<option value="">-- Pilih Kemasan --</option>';
-                    });
-                    sandBrandSelect.addEventListener('change', () => {
-                        const type = sandTypeSelect.value;
-                        const brand = sandBrandSelect.value;
-                        const filtered = rawData.sands.filter(s => s.sand_name === type && s.brand === brand);
-                        sandPkgSelect.innerHTML = '<option value="">-- Pilih Kemasan --</option>';
-                        filtered.forEach(s => {
-                            const opt = document.createElement('option');
-                            opt.value = s.id;
-                            const vol = s.package_volume > 0 ? `${s.package_volume} M3` : `${s.package_weight_net} kg`;
-                            opt.textContent = `${vol} - Rp ${Number(s.package_price).toLocaleString('id-ID')}`;
-                            if (String(s.id) === sandPkgSelect.dataset.selected) opt.selected = true;
-                            sandPkgSelect.appendChild(opt);
-                        });
-                    });
-                    if (sandTypeSelect.dataset.selected) {
-                        sandTypeSelect.dispatchEvent(new Event('change'));
-                        if (sandBrandSelect.dataset.selected) sandBrandSelect.dispatchEvent(new Event('change'));
-                    }
+                if (workType) {
+                    applyMaterialVisibility(card, workType);
                 }
             };
 

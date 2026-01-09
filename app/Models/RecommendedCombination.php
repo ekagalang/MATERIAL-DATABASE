@@ -10,7 +10,18 @@ class RecommendedCombination extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['brick_id', 'cement_id', 'sand_id', 'type', 'work_type', 'is_active', 'sort_order'];
+    protected $fillable = [
+        'brick_id',
+        'cement_id',
+        'sand_id',
+        'cat_id',
+        'ceramic_id',
+        'nat_id',
+        'type',
+        'work_type',
+        'is_active',
+        'sort_order',
+    ];
 
     public function brick(): BelongsTo
     {
@@ -25,5 +36,20 @@ class RecommendedCombination extends Model
     public function sand(): BelongsTo
     {
         return $this->belongsTo(Sand::class);
+    }
+
+    public function cat(): BelongsTo
+    {
+        return $this->belongsTo(Cat::class);
+    }
+
+    public function ceramic(): BelongsTo
+    {
+        return $this->belongsTo(Ceramic::class);
+    }
+
+    public function nat(): BelongsTo
+    {
+        return $this->belongsTo(Cement::class, 'nat_id');
     }
 }
