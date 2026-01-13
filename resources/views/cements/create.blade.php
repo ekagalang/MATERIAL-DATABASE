@@ -111,7 +111,7 @@
                             <select name="package_unit"
                                     id="package_unit"
                                     style="width: 100%; height: 100%;">
-                                <option value="">Sak, Karung</option>
+                                <option value="">-- Sak, Karung --</option>
                                 @foreach($units as $unit)
                                     <option value="{{ $unit->code }}"
                                             data-weight="{{ $unit->package_weight }}"
@@ -152,7 +152,7 @@
                             <input type="hidden" name="package_price" id="package_price" value="{{ old('package_price') }}">
                             <input type="hidden" name="price_unit" id="price_unit" value="{{ old('price_unit') }}">
                             <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
                                 <input type="text"
                                        id="package_price_display"
                                        value="{{ old('package_price') }}"
@@ -162,7 +162,7 @@
                                        placeholder="0"
                                        autocomplete="off"
                                        style="width: 100%; height: 100%; padding: 10px 70px 10px 38px; font-size: 14px;">
-                                <span id="price_unit_display_inline" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ -</span>
+                                <span id="price_unit_display_inline" class="price-suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ -</span>
                             </div>
                             <div class="autocomplete-list" id="package_price-list"></div>
                         </div>
@@ -173,7 +173,7 @@
                             <div style="display: flex; align-items: center; position: relative;">
                                 <input type="hidden" name="comparison_price_per_kg" id="comparison_price_per_kg" value="{{ old('comparison_price_per_kg') }}">
                                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
+                                    <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: #64748b; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
                                            class="autocomplete-input"
@@ -182,7 +182,7 @@
                                            placeholder="0"
                                            autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
-                                    <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Kg</span>
+                                    <span class="price-suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ Kg</span>
                                 </div>
                                 <div class="autocomplete-list" id="comparison_price_per_kg-list"></div>
                             </div>

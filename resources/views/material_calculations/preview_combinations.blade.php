@@ -959,30 +959,6 @@
                         </div>
                     </div>
 
-                    {{-- Panjang --}}
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light border">PANJANG</span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_length'])</div>
-                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
-                        </div>
-                    </div>
-
-                    {{-- Tinggi / Lebar (untuk Rollag) --}}
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-ligh border">
-                                {{ isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
-                            </span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_height'])</div>
-                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
-                        </div>
-                    </div>
-
                     {{-- Tingkat (hanya untuk Rollag) --}}
                     @if(isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag')
                     <div style="flex: 0 0 auto; width: 100px;">
@@ -1073,6 +1049,30 @@
                         </div>
                     </div>
                     @endif
+
+                    {{-- Panjang --}}
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">PANJANG</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_length'])</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                        </div>
+                    </div>
+
+                    {{-- Tinggi / Lebar (untuk Rollag) --}}
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-ligh border">
+                                {{ isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
+                            </span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_height'])</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                        </div>
+                    </div>
 
                     {{-- Luas --}}
                     <div style="flex: 0 0 auto; width: 120px;">

@@ -77,11 +77,13 @@ class WorkItemController extends Controller
             'brick_counts' => $analyticsData['brick_counts'],
             'cement_counts' => $analyticsData['cement_counts'],
             'sand_counts' => $analyticsData['sand_counts'],
+            'monthly_trends' => $analyticsData['monthly_trends'],
+            'cost_breakdown_labels' => $analyticsData['cost_breakdown_labels'],
+            'cost_breakdown_data' => $analyticsData['cost_breakdown_data'],
+            'area_distribution' => $analyticsData['area_distribution'],
         ];
 
-        $calculations = $analyticsData['calculations'];
-
-        return view('work-items.analytics', compact('formula', 'analytics', 'calculations'));
+        return view('work-items.analytics', compact('formula', 'analytics'));
     }
 
     /**

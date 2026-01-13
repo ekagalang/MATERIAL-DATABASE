@@ -136,6 +136,31 @@ class WorkItemAnalyticsService
 
         $totalCalculations = $calculations->count();
 
+        // Return empty analytics if no data
+        if ($totalCalculations === 0) {
+            return [
+                'calculations' => $calculations,
+                'total_calculations' => 0,
+                'total_brick_cost' => 0,
+                'total_cement_cost' => 0,
+                'total_sand_cost' => 0,
+                'total_area' => 0,
+                'avg_cost_per_m2' => 0,
+                'brick_counts' => [],
+                'cement_counts' => [],
+                'sand_counts' => [],
+                'monthly_trends' => [
+                    'labels' => [],
+                    'calculations' => [],
+                    'costs' => [],
+                    'areas' => [],
+                ],
+                'cost_breakdown_labels' => ['Bata', 'Semen', 'Pasir'],
+                'cost_breakdown_data' => [0, 0, 0],
+                'area_distribution' => [],
+            ];
+        }
+
         // Initialize counters with full material objects
         $brickCounts = [];
         $cementCounts = [];
@@ -146,6 +171,7 @@ class WorkItemAnalyticsService
         $totalCementCost = 0;
         $totalSandCost = 0;
         $totalArea = 0;
+        $monthlyData = [];
 
         foreach ($calculations as $calc) {
             // Count Bricks with full object
@@ -189,12 +215,50 @@ class WorkItemAnalyticsService
             $totalCementCost += $calc->cement_total_cost ?? 0;
             $totalSandCost += $calc->sand_total_cost ?? 0;
             $totalArea += $calc->wall_area ?? 0;
+
+            // Monthly trend data
+            if ($calc->created_at) {
+                $monthKey = $calc->created_at->format('Y-m');
+                if (!isset($monthlyData[$monthKey])) {
+                    $monthlyData[$monthKey] = [
+                        'count' => 0,
+                        'total_cost' => 0,
+                        'total_area' => 0,
+                    ];
+                }
+                $monthlyData[$monthKey]['count']++;
+                $monthlyData[$monthKey]['total_cost'] += ($calc->brick_total_cost ?? 0) + ($calc->cement_total_cost ?? 0) + ($calc->sand_total_cost ?? 0);
+                $monthlyData[$monthKey]['total_area'] += $calc->wall_area ?? 0;
+            }
         }
 
         // Sort by count descending
         uasort($brickCounts, fn($a, $b) => $b['count'] <=> $a['count']);
         uasort($cementCounts, fn($a, $b) => $b['count'] <=> $a['count']);
         uasort($sandCounts, fn($a, $b) => $b['count'] <=> $a['count']);
+
+        // Sort monthly data by date
+        ksort($monthlyData);
+
+        // Prepare chart data
+        $monthlyTrends = [
+            'labels' => array_keys($monthlyData),
+            'calculations' => array_column($monthlyData, 'count'),
+            'costs' => array_column($monthlyData, 'total_cost'),
+            'areas' => array_column($monthlyData, 'total_area'),
+        ];
+
+        // Cost breakdown for pie chart
+        $costBreakdownLabels = ['Bata', 'Semen', 'Pasir'];
+        $costBreakdownData = [$totalBrickCost, $totalCementCost, $totalSandCost];
+
+        // Area distribution (top calculations)
+        $areaDistribution = $calculations->sortByDesc('wall_area')->take(10)->map(function ($calc) {
+            return [
+                'label' => 'Calc #' . $calc->id,
+                'area' => $calc->wall_area ?? 0,
+            ];
+        })->values()->toArray();
 
             return [
                 'calculations' => $calculations,
@@ -208,6 +272,10 @@ class WorkItemAnalyticsService
                 'brick_counts' => $brickCounts,
                 'cement_counts' => $cementCounts,
                 'sand_counts' => $sandCounts,
+                'monthly_trends' => $monthlyTrends,
+                'cost_breakdown_labels' => $costBreakdownLabels,
+                'cost_breakdown_data' => $costBreakdownData,
+                'area_distribution' => $areaDistribution,
             ];
         });
     }

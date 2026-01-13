@@ -247,7 +247,7 @@ class MaterialController extends Controller
             return [];
         }
 
-        $letterColumn = $type === 'ceramic' ? 'type' : 'brand';
+        $letterColumn = in_array($type, ['ceramic','brick','sand','cat','cement'], true) ? 'type' : 'brand';
 
         // Get distinct first letters, uppercase
         return $model
@@ -312,7 +312,7 @@ class MaterialController extends Controller
             });
         }
 
-        if ($type === 'ceramic') {
+        if (in_array($type, ['ceramic', 'brick', 'sand', 'cat', 'cement'], true)) {
             return $query->orderBy('type')->orderBy('brand')->get();
         }
 
