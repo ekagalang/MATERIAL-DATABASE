@@ -51,7 +51,6 @@ class SandController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'package_price' => 'nullable|numeric|min:0',
         ]);
 
@@ -81,7 +80,6 @@ class SandController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'package_price' => 'nullable|numeric|min:0',
         ]);
 

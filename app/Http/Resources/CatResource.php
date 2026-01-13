@@ -25,7 +25,6 @@ class CatResource extends JsonResource
             'volume_unit' => $this->volume_unit,
             'store' => $this->store,
             'address' => $this->address,
-            'short_address' => $this->short_address,
             'purchase_price' => $this->purchase_price,
             'price_unit' => $this->price_unit,
             'comparison_price_per_kg' => $this->comparison_price_per_kg,

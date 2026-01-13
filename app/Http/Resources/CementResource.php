@@ -32,7 +32,6 @@ class CementResource extends JsonResource
             // Location
             'store' => $this->store,
             'address' => $this->address,
-            'short_address' => $this->short_address,
 
             // Pricing
             'package_price' => $this->package_price,

@@ -35,7 +35,6 @@ class BrickResource extends JsonResource
             // Location
             'store' => $this->store,
             'address' => $this->address,
-            'short_address' => $this->short_address,
 
             // Pricing
             'price_per_piece' => $this->price_per_piece,

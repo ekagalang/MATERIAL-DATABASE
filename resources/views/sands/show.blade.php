@@ -137,7 +137,36 @@
                                    color: #475569; 
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;">
-                            Harga
+                            Toko
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $sand->store ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Alamat Lengkap
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;
+                                   line-height: 1.6;">
+                            {{ $sand->address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;">
+                            Harga Beli
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -158,7 +187,7 @@
                                    font-weight: 600; 
                                    color: #475569;
                                    font-size: 13px;">
-                            Harga / M3
+                            Harga Komparasi
                         </td>
                         <td style="padding: 14px 20px;
                                    color: #1e293b;">
@@ -177,49 +206,6 @@
                             @else
                                 -
                             @endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Toko
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $sand->store ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Alamat Singkat
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $sand->short_address ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;">
-                            Alamat Lengkap
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;
-                                   line-height: 1.6;">
-                            {{ $sand->address ?? '-' }}
                         </td>
                     </tr>
                 </table>

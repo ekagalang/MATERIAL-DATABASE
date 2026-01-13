@@ -37,139 +37,6 @@
                     </div>
                 </div>
 
-                <!-- Merek -->
-                <div class="row">
-                    <label>Merek</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="brand"
-                               id="brand"
-                               value="{{ old('brand', $ceramic->brand) }}"
-                               class="autocomplete-input"
-                               data-field="brand"
-                               autocomplete="off"
-                               placeholder="Pilih atau ketik merek..."
-                               required>
-                        <div class="autocomplete-list" id="brand-list"></div>
-                    </div>
-                </div>
-
-                <!-- Sub Merek -->
-                <div class="row">
-                    <label>Sub Merek</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="sub_brand"
-                               id="sub_brand"
-                               value="{{ old('sub_brand', $ceramic->sub_brand) }}"
-                               class="autocomplete-input"
-                               data-field="sub_brand"
-                               autocomplete="off"
-                               placeholder="Sub merek / seri">
-                        <div class="autocomplete-list" id="sub_brand-list"></div>
-                    </div>
-                </div>
-
-                <!-- Kode & Warna (dalam satu baris) -->
-                <div class="row" style="align-items: flex-start;">
-                    <label style="padding-top: 10px;">Kode / Warna</label>
-                    <div style="flex: 1; display: flex; gap: 10px;">
-                        <!-- Kode -->
-                        <div style="flex: 1; position: relative;">
-                            <input type="text"
-                                   name="code"
-                                   id="code"
-                                   value="{{ old('code', $ceramic->code) }}"
-                                   class="autocomplete-input"
-                                   data-field="code"
-                                   autocomplete="off"
-                                   placeholder="Kode produk">
-                            <div class="autocomplete-list" id="code-list"></div>
-                        </div>
-                        <!-- Warna -->
-                        <div style="flex: 1; position: relative;">
-                            <input type="text"
-                                   name="color"
-                                   id="color"
-                                   value="{{ old('color', $ceramic->color) }}"
-                                   class="autocomplete-input"
-                                   data-field="color"
-                                   autocomplete="off"
-                                   placeholder="Warna / motif">
-                            <div class="autocomplete-list" id="color-list"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bentuk -->
-                <div class="row">
-                    <label>Bentuk</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="form"
-                               id="form"
-                               value="{{ old('form', $ceramic->form) }}"
-                               class="autocomplete-input"
-                               data-field="form"
-                               autocomplete="off"
-                               placeholder="Persegi, Hexagon...">
-                        <div class="autocomplete-list" id="form-list"></div>
-                    </div>
-                </div>
-
-                <!-- Permukaan -->
-                <div class="row">
-                    <label>Permukaan</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="surface"
-                               id="surface"
-                               value="{{ old('surface', $ceramic->surface) }}"
-                               class="autocomplete-input"
-                               data-field="surface"
-                               autocomplete="off"
-                               placeholder="Glossy, Matte, dll...">
-                        <div class="autocomplete-list" id="surface-list"></div>
-                    </div>
-                </div>
-
-                <!-- Kemasan (Packaging + Volume) -->
-                <div class="row" style="align-items: flex-start; margin-top: 15px;">
-                    <label style="padding-top: 10px;">Kemasan</label>
-                    <div style="flex: 1; display: flex; gap: 10px;">
-                        <!-- Packaging Type -->
-                        <div style="flex: 1; display: flex; align-items: stretch;">
-                            <select name="packaging" id="packaging" style="width: 100%; height: 100%;">
-                                <option value="" selected>-- Pilih --</option>
-                                @foreach($units as $unit)
-                                    <option value="{{ $unit->name }}" {{ old('packaging', $ceramic->packaging ?? 'Dus') == $unit->name ? 'selected' : '' }}>
-                                        {{ $unit->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Volume (Pieces per Package) -->
-                        <div style="flex: 2; display: flex; flex-direction: column;">
-                            <span style="font-size: 13px; font-style: italic; margin-bottom: 4px;">Isi per Kemasan</span>
-                            <div style="position: relative;">
-                                <input type="number"
-                                       name="pieces_per_package"
-                                       id="pieces_per_package"
-                                       class="autocomplete-input"
-                                       data-field="pieces_per_package"
-                                       value="{{ old('pieces_per_package', $ceramic->pieces_per_package) }}"
-                                       placeholder="0"
-                                       min="1"
-                                       required
-                                       style="width: 100%; padding-right: 85px; text-align: right;">
-                                <span id="volume_suffix" class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none; white-space: nowrap;">Lbr / -</span>
-                                <div class="autocomplete-list" id="pieces_per_package-list"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Dimensi (Panjang × Lebar grouped, Tebal, Luas) -->
                 <div class="row" style="align-items: flex-start; margin-top: 15px;">
                     <label style="padding-top: 18px;">Dimensi</label>
@@ -287,6 +154,171 @@
                     <input type="hidden" name="dimension_width" id="dimension_width" value="{{ old('dimension_width', $ceramic->dimension_width) }}">
                 </div>
 
+                <!-- Merek -->
+                <div class="row">
+                    <label>Merek</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="brand"
+                               id="brand"
+                               value="{{ old('brand', $ceramic->brand) }}"
+                               class="autocomplete-input"
+                               data-field="brand"
+                               autocomplete="off"
+                               placeholder="Pilih atau ketik merek..."
+                               required>
+                        <div class="autocomplete-list" id="brand-list"></div>
+                    </div>
+                </div>
+
+                <!-- Sub Merek -->
+                <div class="row">
+                    <label>Sub Merek</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="sub_brand"
+                               id="sub_brand"
+                               value="{{ old('sub_brand', $ceramic->sub_brand) }}"
+                               class="autocomplete-input"
+                               data-field="sub_brand"
+                               autocomplete="off"
+                               placeholder="Sub merek / seri">
+                        <div class="autocomplete-list" id="sub_brand-list"></div>
+                    </div>
+                </div>
+
+                <!-- Permukaan -->
+                <div class="row">
+                    <label>Permukaan</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="surface"
+                               id="surface"
+                               value="{{ old('surface', $ceramic->surface) }}"
+                               class="autocomplete-input"
+                               data-field="surface"
+                               autocomplete="off"
+                               placeholder="Glossy, Matte, dll...">
+                        <div class="autocomplete-list" id="surface-list"></div>
+                    </div>
+                </div>
+
+                <!-- Kode & Warna (dalam satu baris) -->
+                <div class="row" style="align-items: flex-start;">
+                    <label style="padding-top: 10px;">Nomor Seri / Corak</label>
+                    <div style="flex: 1; display: flex; gap: 10px;">
+                        <!-- Kode -->
+                        <div style="flex: 1; position: relative;">
+                            <input type="text"
+                                   name="code"
+                                   id="code"
+                                   value="{{ old('code', $ceramic->code) }}"
+                                   class="autocomplete-input"
+                                   data-field="code"
+                                   autocomplete="off"
+                                   placeholder="Kode produk">
+                            <div class="autocomplete-list" id="code-list"></div>
+                        </div>
+                        <!-- Warna -->
+                        <div style="flex: 1; position: relative;">
+                            <input type="text"
+                                   name="color"
+                                   id="color"
+                                   value="{{ old('color', $ceramic->color) }}"
+                                   class="autocomplete-input"
+                                   data-field="color"
+                                   autocomplete="off"
+                                   placeholder="Warna / motif">
+                            <div class="autocomplete-list" id="color-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bentuk -->
+                <div class="row">
+                    <label>Bentuk</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="form"
+                               id="form"
+                               value="{{ old('form', $ceramic->form) }}"
+                               class="autocomplete-input"
+                               data-field="form"
+                               autocomplete="off"
+                               placeholder="Persegi, Hexagon...">
+                        <div class="autocomplete-list" id="form-list"></div>
+                    </div>
+                </div>
+
+                <!-- Kemasan (Packaging + Volume) -->
+                <div class="row" style="align-items: flex-start; margin-top: 15px;">
+                    <label style="padding-top: 10px;">Kemasan</label>
+                    <div style="flex: 1; display: flex; gap: 10px;">
+                        <!-- Packaging Type -->
+                        <div style="flex: 1; display: flex; align-items: stretch;">
+                            <select name="packaging" id="packaging" style="width: 100%; height: 100%;">
+                                <option value="" selected>-- Pilih --</option>
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit->name }}" {{ old('packaging', $ceramic->packaging ?? 'Dus') == $unit->name ? 'selected' : '' }}>
+                                        {{ $unit->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Volume (Pieces per Package) -->
+                        <div style="flex: 2; display: flex; flex-direction: column;">
+                            <span style="font-size: 13px; font-style: italic; margin-bottom: 4px;">Isi per Kemasan</span>
+                            <div style="position: relative;">
+                                <input type="number"
+                                       name="pieces_per_package"
+                                       id="pieces_per_package"
+                                       class="autocomplete-input"
+                                       data-field="pieces_per_package"
+                                       value="{{ old('pieces_per_package', $ceramic->pieces_per_package) }}"
+                                       placeholder="0"
+                                       min="1"
+                                       required
+                                       style="width: 100%; padding-right: 85px; text-align: right;">
+                                <span id="volume_suffix" class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none; white-space: nowrap;">Lbr / -</span>
+                                <div class="autocomplete-list" id="pieces_per_package-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toko -->
+                <div class="row">
+                    <label>Toko</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="store"
+                               id="store"
+                               value="{{ old('store', $ceramic->store) }}"
+                               class="autocomplete-input"
+                               data-field="store"
+                               autocomplete="off"
+                               placeholder="Pilih atau ketik nama toko...">
+                        <div class="autocomplete-list" id="store-list"></div>
+                    </div>
+                </div>
+
+                <!-- Alamat Lengkap -->
+                <div class="row">
+                    <label>Alamat</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="address"
+                               id="address"
+                               value="{{ old('address', $ceramic->address) }}"
+                               class="autocomplete-input"
+                               data-field="address"
+                               autocomplete="off"
+                               placeholder="Alamat lengkap toko...">
+                        <div class="autocomplete-list" id="address-list"></div>
+                    </div>
+                </div>
+
                 <!-- Harga (Harga per Dus + Harga Komparasi) -->
                 <div class="row" style="align-items: stretch; margin-top: 15px;">
                     <label style="padding-top: 10px;">Harga</label>
@@ -332,38 +364,6 @@
                                 <div class="autocomplete-list" id="comparison_price_per_m2-list"></div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Toko -->
-                <div class="row">
-                    <label>Toko</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="store"
-                               id="store"
-                               value="{{ old('store', $ceramic->store) }}"
-                               class="autocomplete-input"
-                               data-field="store"
-                               autocomplete="off"
-                               placeholder="Pilih atau ketik nama toko...">
-                        <div class="autocomplete-list" id="store-list"></div>
-                    </div>
-                </div>
-
-                <!-- Alamat Lengkap -->
-                <div class="row">
-                    <label>Alamat</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="address"
-                               id="address"
-                               value="{{ old('address', $ceramic->address) }}"
-                               class="autocomplete-input"
-                               data-field="address"
-                               autocomplete="off"
-                               placeholder="Alamat lengkap toko...">
-                        <div class="autocomplete-list" id="address-list"></div>
                     </div>
                 </div>
 

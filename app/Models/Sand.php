@@ -29,7 +29,6 @@ class Sand extends Model
         'package_volume',
         'store',
         'address',
-        'short_address',
         'package_price',
         'comparison_price_per_m3',
     ];

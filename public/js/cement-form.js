@@ -116,7 +116,7 @@ function initCementForm(root) {
                 const materialType = (term === '' || term.length === 0) ? 'cement' : 'all';
                 url = `/api/cements/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
             }
-            else if (field === 'address' || field === 'short_address') {
+            else if (field === 'address') {
                 const storeInput = getEl('store');
                 const storeVal = storeInput ? storeInput.value : '';
                 if (storeVal) {

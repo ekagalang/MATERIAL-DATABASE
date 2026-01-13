@@ -28,17 +28,16 @@ class UnitSeeder extends Seeder
 
             'sand' => [
                 ['code' => 'Krg', 'name' => 'Karung', 'package_weight' => 0],
-                ['code' => 'M3', 'name' => 'Meter Kubik', 'package_weight' => 0],
+                ['code' => 'Sak', 'name' => 'Sak', 'package_weight' => 0],
                 ['code' => 'Kg', 'name' => 'Kilogram', 'package_weight' => 0],
             ],
 
             'brick' => [
-                ['code' => 'Buah', 'name' => 'Buah', 'package_weight' => 0],
+                ['code' => 'Bh', 'name' => 'Buah', 'package_weight' => 0],
                 ['code' => 'Unit', 'name' => 'Unit', 'package_weight' => 0],
-                ['code' => 'M3', 'name' => 'Meter Kubik', 'package_weight' => 0],
-                ['code' => 'M2', 'name' => 'Meter Kuadrat', 'package_weight' => 0],
+                ['code' => 'Pcs', 'name' => 'Piece', 'package_weight' => 0],
             ],
-            
+
             'ceramic' => [
                 ['code' => 'Dus', 'name' => 'Dus', 'package_weight' => 0],
                 ['code' => 'Lbr', 'name' => 'Lembar', 'package_weight' => 0],
@@ -56,13 +55,13 @@ class UnitSeeder extends Seeder
                         'name' => $unitData['name'],
                         'package_weight' => $unitData['package_weight'],
                         'description' => 'Satuan Umum', // Default description
-                    ]
+                    ],
                 );
 
                 // 2. Attach Material Type if not exists
                 UnitMaterialType::firstOrCreate([
                     'unit_id' => $unit->id,
-                    'material_type' => $materialType
+                    'material_type' => $materialType,
                 ]);
             }
         }

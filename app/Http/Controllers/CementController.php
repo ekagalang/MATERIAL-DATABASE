@@ -22,7 +22,8 @@ class CementController extends Controller
                     ->orWhere('sub_brand', 'like', "%{$search}%")
                     ->orWhere('code', 'like', "%{$search}%")
                     ->orWhere('color', 'like', "%{$search}%")
-                    ->orWhere('store', 'like', "%{$search}%");
+                    ->orWhere('store', 'like', "%{$search}%")
+                    ->orWhere('address', 'like', "%{$search}%");
             });
         }
 
@@ -42,7 +43,7 @@ class CementController extends Controller
             'package_weight_gross',
             'package_weight_net',
             'store',
-            'short_address',
+            'address',
             'package_price',
             'comparison_price_per_kg',
             'created_at',
@@ -86,7 +87,7 @@ class CementController extends Controller
             'package_volume' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'package_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
         ]);
@@ -182,7 +183,7 @@ class CementController extends Controller
             'package_volume' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'package_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
         ]);
@@ -280,7 +281,6 @@ class CementController extends Controller
             'code',
             'color',
             'store',
-            'short_address',
             'address',
             'price_unit',
             'package_weight_gross',
@@ -443,37 +443,37 @@ class CementController extends Controller
 
         $addresses = collect();
 
-        // Ambil short_address dari cement yang sesuai dengan toko
+        // Ambil address dari cement yang sesuai dengan toko
         $cementAddresses = Cement::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
-        // Ambil short_address dari cat
+        // Ambil address dari cat
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
-        // Ambil short_address dari brick
+        // Ambil address dari brick
         $brickAddresses = \App\Models\Brick::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
-        // Ambil short_address dari sand
+        // Ambil address dari sand
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
         // Gabungkan semua addresses dan ambil unique values
         $allAddresses = $addresses

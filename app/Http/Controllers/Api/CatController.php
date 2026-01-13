@@ -54,7 +54,6 @@ class CatController extends Controller
             'volume_unit' => 'nullable|string|max:20',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'purchase_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
         ]);
@@ -88,7 +87,6 @@ class CatController extends Controller
             'volume_unit' => 'nullable|string|max:20',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'purchase_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
         ]);

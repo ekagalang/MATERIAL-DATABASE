@@ -30,7 +30,6 @@ class BrickFactory extends Factory
             'package_volume' => $volumeM3,
             'store' => $this->faker->company(),
             'address' => $this->faker->address(),
-            'short_address' => $this->faker->randomElement(['Roxy', 'CitraLand', 'Tanjung Duren', 'Glodok']),
             'price_per_piece' => $pricePerPiece,
             'comparison_price_per_m3' => $comparisonPrice,
         ];

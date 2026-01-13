@@ -23,7 +23,6 @@ class SandResource extends JsonResource
             'package_volume' => $this->package_volume,
             'store' => $this->store,
             'address' => $this->address,
-            'short_address' => $this->short_address,
             'package_price' => $this->package_price,
             'comparison_price_per_m3' => $this->comparison_price_per_m3,
             'photo' => $this->photo,

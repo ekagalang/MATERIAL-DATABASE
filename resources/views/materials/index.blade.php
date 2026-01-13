@@ -311,9 +311,10 @@ html.materials-booting .page-content {
   .btn-group-compact {
       display: inline-flex;
       align-items: center;
-      border-radius: 999px;
-      overflow: hidden;
-      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+      border-radius: 0;
+      overflow: visible;
+      box-shadow: none;
+      background: transparent;
   }
   .btn-group-compact .btn-action {
       display: inline-flex;
@@ -329,6 +330,25 @@ html.materials-booting .page-content {
       font-weight: normal !important;
       -webkit-text-stroke: 0 !important;
       text-shadow: none !important;
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+  }
+  .btn-group-compact .btn-action:hover {
+      background: transparent !important;
+      box-shadow: none !important;
+  }
+  .btn-group-compact .btn-action {
+      color: #0f172a !important;
+  }
+  .btn-group-compact .btn-action.btn-primary-glossy {
+      color: #0f172a !important;
+  }
+  .btn-group-compact .btn-action.btn-warning {
+      color: #b45309 !important;
+  }
+  .btn-group-compact .btn-action.btn-danger {
+      color: #b91c1c !important;
   }
   .btn-group-compact .btn-action i::before {
       -webkit-text-stroke: 0 !important;
@@ -623,6 +643,9 @@ html.materials-booting .page-content {
     min-width: 0;
     margin: 0;
 }
+.material-tab-action > .btn {
+    flex: 0 0 auto;
+}
 .material-search-input {
     flex: 1 1 auto;
     min-width: 0;
@@ -661,7 +684,32 @@ html.materials-booting .page-content {
         flex-wrap: wrap;
     }
     .material-tab-header .material-tabs,
-    .material-tab-actions {
+    .material-search-input {
+      position: relative;
+  }
+  .material-search-input input {
+      padding-right: 36px;
+  }
+  .material-search-reset {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      color: #64748b;
+      text-decoration: none;
+      background: rgba(148, 163, 184, 0.15);
+  }
+  .material-search-reset:hover {
+      color: #0f172a;
+      background: rgba(148, 163, 184, 0.25);
+  }
+  .material-tab-actions {
         flex: 1 1 100%;
         max-width: 100%;
     }
@@ -736,15 +784,15 @@ html.materials-booting .page-content {
                         <span>Filter</span>
                     </button>
                     <div class="material-settings-menu" id="materialSettingsMenu">
-                        <div style="padding: 8px 16px; border-bottom: 1.5px solid #f6f3c2; background: #f6f3c2;">
-                            <h4 style="margin: 0; font-size: 14px; font-weight: 700; color: #000000;">Pilih Material yang Ditampilkan</h4>
+                        <div style="padding: 12px 16px; border-bottom: 1px solid rgba(0, 0, 0, 0.05);">
+                            <div class="dropdown-header" style="margin-bottom: 0;">Pilih Material yang Ditampilkan</div>
                         </div>
                         <div class="material-settings-grid">
                             @foreach($allSettings as $setting)
                                 <label class="material-setting-item" for="material-checkbox-{{ $setting->material_type }}">
                                     <input type="checkbox"
                                            id="material-checkbox-{{ $setting->material_type }}"
-                                           class="material-toggle-checkbox"
+                                           class="material-setting-input"
                                            data-material="{{ $setting->material_type }}"
                                            autocomplete="off">
                                     <span class="material-setting-checkbox"></span>
@@ -752,8 +800,8 @@ html.materials-booting .page-content {
                                 </label>
                             @endforeach
                         </div>
-                        <div style="padding: 8px 16px; border-top: 1.5px solid #e2e8f0; background: #f6f3c2; display: flex; justify-content: center;">
-                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary-glossy" style="font-size: 12px;">
+                        <div class="nav-material-actions" style="border-top: 1px solid rgba(0, 0, 0, 0.05); margin-top: 0;">
+                            <button type="button" id="resetMaterialFilter" class="btn btn-sm nav-material-reset" style="width: 100%;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>
                         </div>
@@ -776,8 +824,8 @@ html.materials-booting .page-content {
                                 <i class="bi bi-search"></i> Cari
                             </button>
                             @if(request('search'))
-                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary-glossy ">
-                                    <i class="bi bi-x-lg"></i>
+                                <a href="{{ route('materials.index', ['tab' => $material['type']]) }}" class="btn btn-secondary-glossy material-search-reset-btn">
+                                    <i class="bi bi-x-lg"></i> Reset
                                 </a>
                             @endif
                         </form>
@@ -816,6 +864,11 @@ html.materials-booting .page-content {
                                             if ($currentDirection === 'asc') {
                                                 $params['sort_by'] = $column;
                                                 $params['sort_direction'] = 'desc';
+                                            } elseif ($currentDirection === 'desc') {
+                                                unset($params['sort_by'], $params['sort_direction']);
+                                            } else {
+                                                $params['sort_by'] = $column;
+                                                $params['sort_direction'] = 'asc';
                                             }
                                         } else {
                                             $params['sort_by'] = $column;
@@ -950,7 +1003,7 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 150px; min-width: 150px;">
                                                 <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['store'] }}</span>
@@ -1060,7 +1113,7 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 150px; min-width: 150px;">
                                                 <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $sandSortable['store'] }}</span>
@@ -1203,7 +1256,7 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" style="text-align: left; width: 100px; min-width: 100px;">
+                                            <th class="sortable" style="text-align: left; width: 150px; min-width: 150px;">
                                                 <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['store'] }}</span>
@@ -1330,7 +1383,7 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 150px; min-width: 15s0px;">
                                                 <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['store'] }}</span>
@@ -1438,7 +1491,7 @@ html.materials-booting .page-content {
                                         <th class="sortable" rowspan="2" style="text-align: right;">
                                             <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Kode Lengkap<br>(No. Seri / Kode Pembakaran)</span>
+                                                <span>Nomor Seri<br>(   Kode Pembakaran)</span>
                                                 @if(request('sort_by') == 'code')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
@@ -1490,7 +1543,7 @@ html.materials-booting .page-content {
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                        <th class="sortable" rowspan="2" style="text-align: left; width: 150px; min-width: 150px;">
                                             <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['store'] }}</span>
@@ -1550,24 +1603,29 @@ html.materials-booting .page-content {
                                     return $groupValue !== '' ? strtoupper(substr($groupValue, 0, 1)) : '#';
                                 });
                                 $orderedGroups = collect();
-                                foreach ($material['active_letters'] as $letter) {
-                                    if ($letterGroups->has($letter)) {
-                                        $orderedGroups[$letter] = $letterGroups[$letter];
+                                $isSorting = request()->filled('sort_by');
+                                if ($isSorting) {
+                                    $orderedGroups['*'] = $material['data'];
+                                } else {
+                                    foreach ($material['active_letters'] as $letter) {
+                                        if ($letterGroups->has($letter)) {
+                                            $orderedGroups[$letter] = $letterGroups[$letter];
+                                        }
                                     }
-                                }
-                                if ($letterGroups->has('#')) {
-                                    $orderedGroups['#'] = $letterGroups['#'];
+                                    if ($letterGroups->has('#')) {
+                                        $orderedGroups['#'] = $letterGroups['#'];
+                                    }
                                 }
                                 $rowNumber = 1;
                             @endphp
                             <tbody>
                                 @foreach($orderedGroups as $letter => $items)
                                     @php
-                                        $anchorId = $letter === '#' ? 'other' : $letter;
+                                        $anchorId = $isSorting ? null : ($letter === '#' ? 'other' : $letter);
                                     @endphp
                                     @foreach($items as $item)
                                         @php
-                                            $rowAnchorId = $loop->first ? $material['type'] . '-letter-' . $anchorId : null;
+                                            $rowAnchorId = (!$isSorting && $loop->first) ? $material['type'] . '-letter-' . $anchorId : null;
                                             $searchParts = array_filter([
                                                 $item->type ?? null,
                                                 $item->material_name ?? null,
@@ -1590,7 +1648,7 @@ html.materials-booting .page-content {
                                     <td @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 50px; min-width: 50px;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
-                                                                        @if($material['type'] == 'brick')
+                                     @if($material['type'] == 'brick')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
@@ -1623,13 +1681,13 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 40px; min-width: 40px;">M3</td>
-                                        <td class="brick-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
-                                            <div class="brick-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        <td class="brick-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
+                                            <div class="brick-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="brick-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="brick-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
                                         </td>
-                                        <td style="text-align: right; width: 30px; min-width: 30px;">Rp</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
                                         <td style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->price_per_piece)
                                                 {{ number_format($item->price_per_piece, 0, ',', '.') }}
@@ -1647,6 +1705,7 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
+
                                     @elseif($material['type'] == 'cat')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
@@ -1684,8 +1743,8 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 30px; min-width: 30px;">Kg</td>
-                                        <td class="cat-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
-                                            <div class="cat-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        <td class="cat-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
+                                            <div class="cat-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="cat-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="cat-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
@@ -1728,8 +1787,8 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 40px; min-width: 40px;">Kg</td>
-                                        <td class="cement-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
-                                            <div class="cement-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        <td class="cement-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
+                                            <div class="cement-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="cement-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="cement-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
@@ -1751,8 +1810,9 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
+
                                         <td style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>
-                                                                        @elseif($material['type'] == 'sand')
+                                    @elseif($material['type'] == 'sand')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: center; font-size: 13px;">
@@ -1791,8 +1851,8 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 30px; min-width: 30px;">M3</td>
-                                        <td class="sand-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
-                                            <div class="sand-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        <td class="sand-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
+                                            <div class="sand-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="sand-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="sand-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
@@ -1861,8 +1921,8 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 30px; min-width: 30px;">M2</td>
-                                        <td class="ceramic-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
-                                            <div class="ceramic-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        <td class="ceramic-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
+                                            <div class="ceramic-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="ceramic-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="ceramic-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
@@ -1884,7 +1944,7 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packaging ?? '-' }}</td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ M2</td>
                                     @endif
                                     <td class="text-center action-cell">
                                         <div class="btn-group-compact">
@@ -2147,10 +2207,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Material Toggle Checkboxes - Save to localStorage
-    const toggleCheckboxes = document.querySelectorAll('.material-toggle-checkbox');
+    const toggleCheckboxes = document.querySelectorAll('.material-setting-input');
     const allTabButtons = document.querySelectorAll('.material-tab-btn');
     const allTabPanels = document.querySelectorAll('.material-tab-panel');
     const allTabActions = document.querySelectorAll('.material-tab-action');
+
+    // Handle Checkbox UI state (add/remove checked class)
+    function updateCheckboxUI(checkbox) {
+        const parent = checkbox.closest('.material-setting-item');
+        if (parent) {
+            if (checkbox.checked) {
+                parent.classList.add('checked');
+            } else {
+                parent.classList.remove('checked');
+            }
+        }
+    }
 
     // Tab switching function (declared early to avoid reference errors)
     const tabButtons = Array.from(allTabButtons);
@@ -2338,6 +2410,7 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleCheckboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function(e) {
             console.log('[Checkbox Change] Material:', checkbox.getAttribute('data-material'), 'Checked:', checkbox.checked);
+            updateCheckboxUI(this);
             updateTabVisibility();
         });
     });
@@ -2351,12 +2424,14 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleCheckboxes.forEach(checkbox => {
             const materialType = checkbox.getAttribute('data-material');
             checkbox.checked = savedFilter.selected.includes(materialType);
+            updateCheckboxUI(checkbox);
         });
     } else {
         console.log('[Restore] No saved filter, unchecking all');
         // Force uncheck all checkboxes if no saved filter
         toggleCheckboxes.forEach(checkbox => {
             checkbox.checked = false;
+            updateCheckboxUI(checkbox);
         });
         materialOrder = [];
     }
@@ -2401,6 +2476,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Uncheck all checkboxes
             toggleCheckboxes.forEach(checkbox => {
                 checkbox.checked = false;
+                updateCheckboxUI(checkbox);
             });
 
             // Clear materialOrder
@@ -2789,7 +2865,16 @@ document.addEventListener('DOMContentLoaded', function() {
             const matchingLink = document.querySelector(`.kanggo-img-link[href="${hash}"]`);
             if (matchingLink) {
                 matchingLink.classList.add('current');
+                return;
             }
+        }
+
+        // Default: mark first available letter in the active tab
+        const activePanel = document.querySelector('.material-tab-panel.active') || document.querySelector('.material-tab-panel');
+        if (!activePanel) return;
+        const firstLink = activePanel.querySelector('.kanggo-img-link');
+        if (firstLink) {
+            firstLink.classList.add('current');
         }
     }
 

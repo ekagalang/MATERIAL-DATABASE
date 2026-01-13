@@ -76,7 +76,6 @@ class BrickController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'price_per_piece' => 'nullable|numeric|min:0',
         ]);
 
@@ -128,7 +127,6 @@ class BrickController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'price_per_piece' => 'nullable|numeric|min:0',
         ]);
 

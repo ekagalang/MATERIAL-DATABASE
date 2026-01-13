@@ -28,7 +28,6 @@ class Cat extends Model
         'volume_unit',
         'store',
         'address',
-        'short_address',
         'purchase_price',
         'price_unit',
         'comparison_price_per_kg',

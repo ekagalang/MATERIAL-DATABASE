@@ -195,8 +195,7 @@ class CeramicRepository extends BaseRepository
         $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
         $addresses = collect();
 
-        // Daftar Model yang punya kolom 'store' dan 'address' (Note: di Brick/Cat namanya 'short_address', di Ceramic 'address')
-        // Kita perlu handle perbedaan nama kolom ini
+        // Daftar Model yang punya kolom 'store' dan 'address'
 
         // 1. Ambil dari Ceramic (kolom: address)
         $ceramicAddresses = $this->model
@@ -208,7 +207,7 @@ class CeramicRepository extends BaseRepository
             ->pluck('address');
         $addresses = $addresses->merge($ceramicAddresses);
 
-        // 2. Ambil dari Material Lain (kolom: short_address atau address tergantung model)
+        // 2. Ambil dari Material Lain (kolom: address)
         // Helper function kecil untuk fetch
         $fetchOther = function ($modelClass, $colName) use ($store, $search) {
             return $modelClass
@@ -220,10 +219,10 @@ class CeramicRepository extends BaseRepository
                 ->pluck($colName);
         };
 
-        $addresses = $addresses->merge($fetchOther(Brick::class, 'short_address'));
-        $addresses = $addresses->merge($fetchOther(Cat::class, 'short_address'));
-        $addresses = $addresses->merge($fetchOther(Cement::class, 'short_address'));
-        $addresses = $addresses->merge($fetchOther(Sand::class, 'short_address'));
+        $addresses = $addresses->merge($fetchOther(Brick::class, 'address'));
+        $addresses = $addresses->merge($fetchOther(Cat::class, 'address'));
+        $addresses = $addresses->merge($fetchOther(Cement::class, 'address'));
+        $addresses = $addresses->merge($fetchOther(Sand::class, 'address'));
 
         return $addresses->unique()->sort()->values()->take($limit);
     }

@@ -6,8 +6,8 @@
 
             /* Special Text Styling (Buttons, Card Titles, Navbar) */
             --special-text-color: #ffffff;
-            --special-text-stroke: 0.5px rgb(0, 0, 0);
-            --special-font-weight: 700;
+            /* --special-text-stroke: 0.5px rgb(0, 0, 0); */
+            /* --special-font-weight: 700; */
             /* --special-text-shadow: 1.5px 1.5px 0 rgba(0, 0, 0); */
         }
 
@@ -2409,124 +2409,123 @@ input[type="text"]:focus {
 
 .material-settings-menu {
     position: absolute;
-    top: calc(100% - 1px); /* Align perfectly with the bottom border */
+    top: calc(100% + 10px);
     left: 0;
-    right: 0;
+    right: auto;
     background: #ffffff;
-    border: 2px solid #f6f3c2;
-    box-shadow: 0 8px 24px rgba(137, 19, 19, 0.15);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    min-width: 240px;
+    width: max-content;
+    max-width: 560px;
+    padding: 0;
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     z-index: 1000;
-}
-
-.material-settings-grid {
-    max-height: 280px;
-    overflow-y: auto;
-    display: grid;
-    grid-template-rows: repeat(5, min-content);
-    grid-auto-flow: column;
-}
-
-.material-setting-item {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 10px;
-}
-
-.material-settings-grid::-webkit-scrollbar {
-    width: 8px;
-}
-
-.material-settings-grid::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 4px;
-}
-
-.material-settings-grid::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.material-settings-grid::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-@media (max-width: 992px) {
-    .material-settings-grid {
-        grid-template-rows: repeat(5, min-content);
-        grid-auto-flow: column;
-    }
-}
-
-@media (max-width: 576px) {
-    .material-settings-grid {
-        grid-template-rows: auto;
-        grid-auto-flow: row;
-    }
 }
 
 .material-settings-menu.active {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
+    border: 1px solid #891313;
+}
+
+.material-settings-grid {
+    padding: 12px 16px;
+    max-height: 280px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-rows: repeat(5, min-content);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(140px, max-content);
+    gap: 4px 24px;
 }
 
 .material-setting-item {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: 1px solid transparent;
     cursor: pointer;
-    transition: background 0.15s ease;
     user-select: none;
     position: relative;
+    color: var(--text-color) !important;
 }
 
-.material-setting-item:hover {
-    background: #f8fafc;
+.material-setting-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
 }
 
-.material-setting-item:active {
-    background: #f1f5f9;
+.material-setting-item:hover,
+.material-setting-item:focus-within {
+    background: rgba(137, 19, 19, 0.2);
+    border-color: #891313;
+    transform: translateY(-2px);
+    outline: none;
+    box-shadow: 0 4px 12px rgba(137, 19, 19, 0.1);
 }
 
-.material-toggle-checkbox {
-    display: none;
+.material-setting-item.checked {
+    background: rgba(137, 19, 19, 0.2);
+    border-color: #891313;
 }
 
 .material-setting-checkbox {
-    width: 20px;
-    height: 20px;
+    width: 16px;
+    height: 16px;
     border: 2px solid #cbd5e1;
-    border-radius: 6px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     flex-shrink: 0;
-    background: #ffffff;
+    background: transparent;
 }
 
-.material-toggle-checkbox:checked + .material-setting-checkbox {
-    background: #891313;
+.material-setting-item.checked .material-setting-checkbox {
+    background: #ffffff;
     border-color: #891313;
 }
 
-.material-toggle-checkbox:checked + .material-setting-checkbox::after {
-    content: '\F26B';
+.material-setting-item.checked .material-setting-checkbox::after {
+    content: '\F272'; /* Bootstrap check2 icon */
     font-family: 'bootstrap-icons';
-    color: #ffffff;
+    color: #198754; /* Green check icon */
     font-size: 12px;
     font-weight: bold;
+    -webkit-text-stroke: 1px #198754;
+}
+
+.material-settings-menu .dropdown-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #891313 !important;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    opacity: 0.8;
 }
 
 .material-setting-label {
     flex: 1;
-    font-size: 14px;
+    font-size: 13.5px;
     font-weight: 500;
-    color: #0f172a;
+    color: var(--text-color);
 }
 
 /* Kanggo Pagination Styles */

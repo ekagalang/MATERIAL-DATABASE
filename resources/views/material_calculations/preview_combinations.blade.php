@@ -1330,9 +1330,7 @@
                                     .table-preview label,
                                     .table-preview button {
                                         font-family: 'Nunito', sans-serif !important;
-                                        color: #ffffff !important;
-                                        -webkit-text-stroke: 0.2px black !important;
-                                        text-shadow: 0 1.1px 0 #000000 !important;
+                                        color: #000000 !important;
                                         font-weight: 700 !important;
                                     }
 
@@ -1942,9 +1940,7 @@
     .preview-combinations-page i,
     .preview-combinations-page strong {
         font-family: 'Nunito', sans-serif !important;
-        color: #ffffff !important;
-        -webkit-text-stroke: 0.2px black !important;
-        text-shadow: 0 1.1px 0 #000000 !important;
+        color: #000000 !important;
         font-weight: 700 !important;
     }
 
@@ -1987,16 +1983,10 @@
 
     /* Table Styling (shared for normal + multi-ceramic) */
     .table-preview th,
-    .table-preview td,
-    .table-preview span,
-    .table-preview div,
-    .table-preview a,
     .table-preview label,
     .table-preview button {
         font-family: 'Nunito', sans-serif !important;
         color: #ffffff !important;
-        -webkit-text-stroke: 0.2px black !important;
-        text-shadow: 0 1.1px 0 #000000 !important;
         font-weight: 700 !important;
     }
     .table-preview {

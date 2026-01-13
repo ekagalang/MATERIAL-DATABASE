@@ -24,7 +24,6 @@ class SandSeeder extends Seeder
                 'package_volume' => 1.5, // sekitar 25 liter per karung
                 'store' => 'Pasir Merapi',
                 'address' => 'Jl. Raya Merapi No. 45, Bogor',
-                'short_address' => 'Bogor',
                 'package_price' => 700000,
                 'comparison_price_per_m3' => 466666.67, // 700000 / 1.5
             ],
@@ -43,7 +42,6 @@ class SandSeeder extends Seeder
                 'package_volume' => 0.025, // sekitar 25 liter per karung
                 'store' => 'Bangunan Sentosa',
                 'address' => 'Jl. Raya Cilebut No. 22, Bogor',
-                'short_address' => 'Cilebut, Bogor',
                 'package_price' => 28000,
                 'comparison_price_per_m3' => 1120000, // 28000 / 0.025
             ],
@@ -60,7 +58,6 @@ class SandSeeder extends Seeder
                 'package_volume' => 1.0,
                 'store' => 'Bangunan Sentosa',
                 'address' => 'Jl. Raya Cilebut No. 22, Bogor',
-                'short_address' => 'Cilebut, Bogor',
                 'package_price' => 280000,
                 'comparison_price_per_m3' => 280000, // 280000 / 1
             ],
@@ -79,7 +76,6 @@ class SandSeeder extends Seeder
                 'package_volume' => 1.0,
                 'store' => 'Pasir Sentosa',
                 'address' => 'Jl. Raya Cibinong KM 10, Bogor',
-                'short_address' => 'Cibinong, Bogor',
                 'package_price' => 150000,
                 'comparison_price_per_m3' => 150000, // 150000 / 1
             ],
@@ -98,7 +94,6 @@ class SandSeeder extends Seeder
                 'package_volume' => 0.025,
                 'store' => 'Material Prima',
                 'address' => 'Jl. Raya Tajur No. 15, Bogor',
-                'short_address' => 'Tajur, Bogor',
                 'package_price' => 32000,
                 'comparison_price_per_m3' => 1280000, // 32000 / 0.025
             ],
