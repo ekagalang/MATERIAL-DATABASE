@@ -20,7 +20,7 @@ class BrickController extends Controller
                     ->orWhere('brand', 'like', "%{$search}%")
                     ->orWhere('form', 'like', "%{$search}%")
                     ->orWhere('store', 'like', "%{$search}%")
-                    ->orWhere('short_address', 'like', "%{$search}%");
+                    ->orWhere('address', 'like', "%{$search}%");
             });
         }
 
@@ -39,7 +39,7 @@ class BrickController extends Controller
             'dimension_height',
             'package_volume',
             'store',
-            'short_address',
+            'address',
             'price_per_piece',
             'comparison_price_per_m3',
             'created_at',
@@ -78,7 +78,7 @@ class BrickController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'price_per_piece' => 'nullable|numeric|min:0',
         ]);
 
@@ -151,7 +151,7 @@ class BrickController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
+            'address' => 'nullable|string',
             'price_per_piece' => 'nullable|numeric|min:0',
         ]);
 
@@ -232,7 +232,6 @@ class BrickController extends Controller
             'brand',
             'form',
             'store',
-            'short_address',
             'address',
             'dimension_length',
             'dimension_width',
@@ -266,7 +265,7 @@ class BrickController extends Controller
         }
 
         // Alamat: filter by toko
-        if (in_array($field, ['address', 'short_address']) && $request->has('store') && $request->store !== '') {
+        if ($field === 'address' && $request->has('store') && $request->store !== '') {
             $query->where('store', $request->store);
         }
 
@@ -373,37 +372,37 @@ class BrickController extends Controller
 
         $addresses = collect();
 
-        // Ambil short_address dari brick yang sesuai dengan toko
+        // Ambil address dari brick yang sesuai dengan toko
         $brickAddresses = Brick::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
-        // Ambil short_address dari cat
+        // Ambil address dari cat
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
-        // Ambil short_address dari cement
+        // Ambil address dari cement
         $cementAddresses = \App\Models\Cement::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
-        // Ambil short_address dari sand
+        // Ambil address dari sand
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
         // Gabungkan semua addresses dan ambil unique values
         $allAddresses = $addresses

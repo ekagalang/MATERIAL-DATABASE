@@ -105,6 +105,45 @@
                     </div>
                 </div>
 
+                <!-- Kemasan -->
+                <div class="row" style="display: flex; margin-bottom: 15px; align-items: stretch; margin-top: 15px;">
+                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0; padding-top: 10px;">Kemasan</label>
+                    <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%;">
+                        <div style="flex: 1; min-width: 0;">
+                            <select name="package_unit"
+                                    id="package_unit"
+                                    style="height: 100%; width: 100%;">
+                                <option value="">-- Galon, Pail, Kaleng --</option>
+                                @foreach($units as $unit)
+                                    <option value="{{ $unit->code }}"
+                                            data-weight="{{ $unit->package_weight }}"
+                                            {{ old('package_unit') == $unit->code ? 'selected' : '' }}>
+                                        {{ $unit->code }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="mini-input-wrapper" style="display: flex; flex-direction: column; width: 100%; flex: 1; min-width: 0; position: relative;">
+                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; white-space: nowrap;">Berat Kotor (Kg)</span>
+                            <div style="position: relative;">
+                                <input type="text"
+                                       name="package_weight_gross"
+                                       id="package_weight_gross"
+                                       value="{{ old('package_weight_gross') }}"
+                                       class="autocomplete-input"
+                                       data-field="package_weight_gross"
+                                       inputmode="decimal"
+                                       placeholder="0.00"
+                                       autocomplete="off"
+                                       style="width: 100%; padding-right: 35px; text-align: right;">
+                                <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: inherit; pointer-events: none;">Kg</span>
+                            </div>
+                            <div class="autocomplete-list" id="package_weight_gross-list"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Isi Bersih -->
                 <div class="row" style="display: flex; margin-bottom: 15px; align-items: flex-start; margin-top: 15px;">
                     <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0; padding-top: 18px;">Isi Bersih</label>
@@ -148,48 +187,43 @@
                     </div>
                 </div>
 
-                <!-- Kemasan -->
-                <div class="row" style="display: flex; margin-bottom: 15px; align-items: stretch; margin-top: 15px;">
-                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0; padding-top: 10px;">Kemasan</label>
-                    <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%;">
-                        <div style="flex: 1; min-width: 0;">
-                            <select name="package_unit"
-                                    id="package_unit"
-                                    style="height: 100%; width: 100%;">
-                                <option value="">-- Galon, Pail, Kaleng --</option>
-                                @foreach($units as $unit)
-                                    <option value="{{ $unit->code }}"
-                                            data-weight="{{ $unit->package_weight }}"
-                                            {{ old('package_unit') == $unit->code ? 'selected' : '' }}>
-                                        {{ $unit->code }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                <!-- Toko -->
+                <div class="row" style="display: flex; margin-bottom: 15px; align-items: center;">
+                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0;">Toko</label>
+                    <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%; position: relative;">
+                        <input type="text"
+                               name="store"
+                               id="store"
+                               value="{{ old('store') }}"
+                               class="autocomplete-input"
+                               data-field="store"
+                               autocomplete="off"
+                               placeholder="Pilih atau ketik nama toko..."
+                               style="width: 100%;">
+                        <div class="autocomplete-list" id="store-list"></div>
+                    </div>
+                </div>
 
-                        <div class="mini-input-wrapper" style="display: flex; flex-direction: column; width: 100%; flex: 1; min-width: 0; position: relative;">
-                            <span class="mini-label" style="font-size: 13px; font-style: italic; margin-bottom: 4px; white-space: nowrap;">Berat Kotor (Kg)</span>
-                            <div style="position: relative;">
-                                <input type="text"
-                                       name="package_weight_gross"
-                                       id="package_weight_gross"
-                                       value="{{ old('package_weight_gross') }}"
-                                       class="autocomplete-input"
-                                       data-field="package_weight_gross"
-                                       inputmode="decimal"
-                                       placeholder="0.00"
-                                       autocomplete="off"
-                                       style="width: 100%; padding-right: 35px; text-align: right;">
-                                <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: inherit; pointer-events: none;">Kg</span>
-                            </div>
-                            <div class="autocomplete-list" id="package_weight_gross-list"></div>
-                        </div>
+                <!-- Alamat Lengkap -->
+                <div class="row" style="display: flex; margin-bottom: 15px; align-items: center;">
+                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0;">Alamat</label>
+                    <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%; position: relative;">
+                        <input type="text"
+                               name="address"
+                               id="address"
+                               value="{{ old('address') }}"
+                               class="autocomplete-input"
+                               data-field="address"
+                               autocomplete="off"
+                               placeholder="Alamat lengkap toko..."
+                               style="width: 100%;">
+                        <div class="autocomplete-list" id="address-list"></div>
                     </div>
                 </div>
 
                 <!-- Harga -->
                 <div class="row" style="display: flex; margin-bottom: 15px; align-items: stretch; margin-top: 15px;">
-                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0; padding-top: 10px;">Harga</label>
+                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0; padding-top: 10px;">Harga Beli</label>
                     <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%; align-items: stretch;">
                         <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative;">
                             <input type="hidden" name="purchase_price" id="purchase_price" value="{{ old('purchase_price') }}">
@@ -229,40 +263,6 @@
                                 <div class="autocomplete-list" id="comparison_price_per_kg-list"></div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Toko -->
-                <div class="row" style="display: flex; margin-bottom: 15px; align-items: center;">
-                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0;">Toko</label>
-                    <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%; position: relative;">
-                        <input type="text"
-                               name="store"
-                               id="store"
-                               value="{{ old('store') }}"
-                               class="autocomplete-input"
-                               data-field="store"
-                               autocomplete="off"
-                               placeholder="Pilih atau ketik nama toko..."
-                               style="width: 100%;">
-                        <div class="autocomplete-list" id="store-list"></div>
-                    </div>
-                </div>
-
-                <!-- Alamat Singkat -->
-                <div class="row" style="display: flex; margin-bottom: 15px; align-items: center;">
-                    <label style="width: 140px; font-weight: bold; font-size: 15px; flex-shrink: 0;">Alamat</label>
-                    <div class="input-group" style="flex-grow: 1; display: flex; gap: 15px; width: 100%; position: relative;">
-                        <input type="text"
-                               name="short_address"
-                               id="short_address"
-                               value="{{ old('short_address') }}"
-                               class="autocomplete-input"
-                               data-field="short_address"
-                               autocomplete="off"
-                               placeholder="Contoh: Roxy, CitraLand, Taman Semanggi"
-                               style="width: 100%;">
-                        <div class="autocomplete-list" id="short_address-list"></div>
                     </div>
                 </div>
 

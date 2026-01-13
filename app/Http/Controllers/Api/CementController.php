@@ -55,7 +55,6 @@ class CementController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'package_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
         ]);
@@ -97,7 +96,6 @@ class CementController extends Controller
             'dimension_height' => 'nullable|numeric|min:0',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
-            'short_address' => 'nullable|string|max:255',
             'package_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
         ]);

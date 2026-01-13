@@ -159,7 +159,7 @@ function initBrickForm(root) {
                 url = `/api/bricks/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
             }
             // Special case: address field menggunakan endpoint addresses-by-store
-            else if (['address', 'short_address'].includes(field)) {
+            else if (field === 'address') {
                 const storeInput = getElement('store');
                 if (storeInput && storeInput.value) {
                     url = `/api/bricks/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeInput.value)}`;

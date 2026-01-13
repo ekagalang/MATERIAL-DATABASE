@@ -164,9 +164,41 @@
                     </div>
                 </div>
 
+                <!-- Toko -->
+                <div class="row">
+                    <label>Toko</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="store"
+                               id="store"
+                               value="{{ old('store') }}"
+                               class="autocomplete-input"
+                               data-field="store"
+                               autocomplete="off"
+                               placeholder="Pilih atau ketik nama toko...">
+                        <div class="autocomplete-list" id="store-list"></div>
+                    </div>
+                </div>
+
+                <!-- Alamat Lengkap -->
+                <div class="row">
+                    <label>Alamat</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="address"
+                               id="address"
+                               value="{{ old('address') }}"
+                               class="autocomplete-input"
+                               data-field="address"
+                               autocomplete="off"
+                               placeholder="Alamat lengkap toko...">
+                        <div class="autocomplete-list" id="address-list"></div>
+                    </div>
+                </div>
+
                 <!-- Harga (Harga per Buah + Harga Komparasi dalam satu baris) -->
                 <div class="row" style="align-items: stretch; margin-top: 15px;">
-                    <label style="padding-top: 10px;">Harga</label>
+                    <label style="padding-top: 10px;">Harga Beli</label>
                     <div style="flex: 1; display: flex; gap: 15px; align-items: stretch;">
                         <!-- Harga per Buah -->
                         <div class="flex-fill" style="flex: 1; display: flex; align-items: stretch; position: relative;">
@@ -207,38 +239,6 @@
                                 <div class="autocomplete-list" id="comparison_price_per_m3-list"></div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- Toko -->
-                <div class="row">
-                    <label>Toko</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="store"
-                               id="store"
-                               value="{{ old('store') }}"
-                               class="autocomplete-input"
-                               data-field="store"
-                               autocomplete="off"
-                               placeholder="Pilih atau ketik nama toko...">
-                        <div class="autocomplete-list" id="store-list"></div>
-                    </div>
-                </div>
-
-                <!-- Alamat Lengkap -->
-                <div class="row">
-                    <label>Alamat</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="address"
-                               id="address"
-                               value="{{ old('address') }}"
-                               class="autocomplete-input"
-                               data-field="address"
-                               autocomplete="off"
-                               placeholder="Alamat lengkap toko...">
-                        <div class="autocomplete-list" id="address-list"></div>
                     </div>
                 </div>
 

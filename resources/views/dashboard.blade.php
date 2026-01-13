@@ -170,20 +170,18 @@
     .card-label {
         font-size: 14px;
         font-weight: 600;
-        color: #ffffff;
+        color: #000000;
         margin-bottom: 4px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        -webkit-text-stroke: 0.5px black;
     }
 
     .card-value {
         font-size: 32px;
-        font-weight: 800;
-        color: #ffffff;
+        font-weight: 700;
+        color: #000000;
         margin-bottom: 0;
         line-height: 1;
-        -webkit-text-stroke: 0.5px black;
     }
 
     .card-meta {
@@ -245,7 +243,7 @@
             <div class="card-header bg-white border-0 pt-3 px-3 pb-0 d-flex justify-content-between align-items-center">
                 <h6 class="fw-bold mb-0">Distribusi Material</h6>
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-light rounded-pill px-2 py-0" type="button" style="font-size: 0.75rem;">
+                    <button class="btn btn-sm btn-light rounded-pill px-2 py-0" type="button" style="font-size: 0.75rem; color: #000000 !important;">
                         <i class="bi bi-filter"></i> Filter
                     </button>
                 </div>
@@ -294,7 +292,7 @@
             </div>
             @if($recentActivities->count() > 0)
             <div class="card-footer bg-white border-0 px-3 pb-3 pt-0">
-                <a href="{{ route('materials.index') }}" class="btn btn-light btn-sm w-100 fw-medium text-shadow-bottom rounded-3" style="font-size: 0.8rem;">Lihat Semua</a>
+                <a href="{{ route('materials.index') }}" class="btn btn-light btn-sm w-100 fw-medium text-shadow-bottom rounded-3" style="font-size: 0.8rem; color: #000000 !important">Lihat Semua</a>
             </div>
             @endif
         </div>
@@ -412,9 +410,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     .sub-welcome-card {
-        color: var(--special-text-color);
+        color: #ffffff;
         -webkit-text-stroke: var(--special-text-stroke);
-        font-weight: var(--special-font-weight);
+        font-weight: 700;
         text-shadow: var(--special-text-shadow);
     }
     

@@ -66,8 +66,8 @@
                             <span>Toko</span>
                             <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                         </th>
-                        <th class="sortable text-nowrap" rowspan="2" data-column="short_address">
-                            <span>Alamat Singkat</span>
+                        <th class="sortable text-nowrap" rowspan="2" data-column="address">
+                            <span>Alamat</span>
                             <i class="bi bi-arrow-down-up" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                         </th>
                         <th class="sortable text-nowrap" rowspan="2" data-column="package_price">
@@ -495,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </span>
                     </td>
                     <td style="color: #64748b; font-size: 12px; line-height: 1.5;">
-                        ${sand.short_address || '-'}
+                        ${sand.address || '-'}
                     </td>
                     <td>
                         ${sand.package_price ? `

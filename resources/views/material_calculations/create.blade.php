@@ -45,7 +45,7 @@
             <span id="loadingTime"><i class="bi bi-clock me-1"></i>Est. 3-8 detik</span>
         </div>
 
-        <button type="button" id="cancelCalculation" class="btn btn-sm btn-outline-danger mt-4 px-4 rounded-pill">
+        <button type="button" id="cancelCalculation" class="btn btn-sm btn-primary-glossy mt-4 px-4 rounded-pill">
             <i class="bi bi-x-circle me-1"></i> Batalkan
         </button>
     </div>
@@ -523,7 +523,7 @@
 
 <style>
     .calc-style {
-        color: var(--special-text-color);
+        color: var(--text-color);
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         font-size: 32px;

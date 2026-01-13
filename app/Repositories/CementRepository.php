@@ -28,7 +28,8 @@ class CementRepository extends BaseRepository
                 $q->where('cement_name', 'like', "%{$query}%")
                     ->orWhere('brand', 'like', "%{$query}%")
                     ->orWhere('type', 'like', "%{$query}%")
-                    ->orWhere('store', 'like', "%{$query}%");
+                    ->orWhere('store', 'like', "%{$query}%")
+                    ->orWhere('address', 'like', "%{$query}%");
             })
             ->orderBy($sortBy, $sortDirection)
             ->paginate($perPage);
@@ -59,7 +60,6 @@ class CementRepository extends BaseRepository
             'code',
             'color',
             'store',
-            'short_address',
             'address',
             'price_unit',
             'dimension_length',
@@ -167,31 +167,31 @@ class CementRepository extends BaseRepository
         // Merge addresses dari SEMUA materials
         $cementAddresses = $this->model->query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
         $brickAddresses = \App\Models\Brick::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
-            ->whereNotNull('short_address')
-            ->where('short_address', '!=', '')
-            ->when($search, fn($q) => $q->where('short_address', 'like', "%{$search}%"))
-            ->pluck('short_address');
+            ->whereNotNull('address')
+            ->where('address', '!=', '')
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->pluck('address');
 
         return $addresses
             ->merge($brickAddresses)

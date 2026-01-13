@@ -95,7 +95,7 @@
     }
 
     h2 {
-        color: var(--special-text-color);
+        color: var(--text-color);
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         text-shadow: var(--special-text-shadow);

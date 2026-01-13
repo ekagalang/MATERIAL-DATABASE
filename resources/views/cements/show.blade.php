@@ -137,7 +137,7 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Berat
+                            Berat Bersih
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -165,7 +165,36 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Harga
+                            Toko
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $cement->store ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Alamat
+                        </td>
+                        <td style="padding: 14px 20px;
+                                   color: #1e293b;
+                                   line-height: 1.6;">
+                            {{ $cement->address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Harga Beli
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -188,7 +217,7 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Harga / Kg
+                            Harga Komparasi
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -208,50 +237,6 @@
                             @else
                                 -
                             @endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;
-                                   text-align: left;">
-                            Toko
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $cement->store ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;
-                                   text-align: left;">
-                            Alamat Singkat
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $cement->short_address ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569;
-                                   font-size: 13px;
-                                   text-align: left;">
-                            Alamat Lengkap
-                        </td>
-                        <td style="padding: 14px 20px;
-                                   color: #1e293b;
-                                   line-height: 1.6;">
-                            {{ $cement->address ?? '-' }}
                         </td>
                     </tr>
                 </table>

@@ -262,6 +262,9 @@ class MaterialController extends Controller
     private function getMaterialData($type, $request)
     {
         $search = $request->get('search');
+        $sortBy = $request->get('sort_by');
+        $sortDirection = strtolower((string) $request->get('sort_direction', 'asc'));
+        $sortDirection = in_array($sortDirection, ['asc', 'desc'], true) ? $sortDirection : 'asc';
 
         $query = null;
 
@@ -287,29 +290,111 @@ class MaterialController extends Controller
             return null;
         }
 
-        // Apply Search (Overrides Letter filter usually, or combines? Standard is Search OR Letter.
-        // If Search is present, ignore letter. If no search, use Letter.)
+        // Apply Search across all table fields
         if ($search) {
-            $query->where(function ($q) use ($search, $type) {
-                $q->where('brand', 'like', "%{$search}%")->orWhere('store', 'like', "%{$search}%");
+            $searchColumns = match ($type) {
+                'brick' => [
+                    'type', 'brand', 'form',
+                    'dimension_length', 'dimension_width', 'dimension_height',
+                    'package_volume', 'store', 'address',
+                    'price_per_piece', 'comparison_price_per_m3',
+                ],
+                'sand' => [
+                    'type', 'brand', 'package_unit',
+                    'dimension_length', 'dimension_width', 'dimension_height',
+                    'package_volume', 'store', 'address',
+                    'package_price', 'comparison_price_per_m3',
+                    'sand_name',
+                ],
+                'cat' => [
+                    'type', 'brand', 'sub_brand',
+                    'color_code', 'color_name',
+                    'package_unit', 'volume',
+                    'package_weight_gross', 'package_weight_net',
+                    'store', 'address',
+                    'purchase_price', 'comparison_price_per_kg',
+                    'cat_name',
+                ],
+                'cement' => [
+                    'type', 'brand', 'sub_brand',
+                    'code', 'color',
+                    'package_unit', 'package_weight_net',
+                    'store', 'address',
+                    'package_price', 'comparison_price_per_kg',
+                    'cement_name',
+                ],
+                'ceramic' => [
+                    'type', 'brand', 'sub_brand',
+                    'code', 'color', 'form', 'surface',
+                    'packaging', 'pieces_per_package', 'coverage_per_package',
+                    'dimension_length', 'dimension_width', 'dimension_thickness',
+                    'store', 'address',
+                    'price_per_package', 'comparison_price_per_m2',
+                    'material_name',
+                ],
+                default => ['brand', 'store'],
+            };
 
-                // Add specific fields based on type
-                if ($type == 'brick') {
-                    $q->orWhere('type', 'like', "%{$search}%");
-                }
-                if ($type == 'cat') {
-                    $q->orWhere('cat_name', 'like', "%{$search}%");
-                }
-                if ($type == 'cement') {
-                    $q->orWhere('cement_name', 'like', "%{$search}%");
-                }
-                if ($type == 'sand') {
-                    $q->orWhere('sand_name', 'like', "%{$search}%");
-                }
-                if ($type == 'ceramic') {
-                    $q->orWhere('material_name', 'like', "%{$search}%");
+            $query->where(function ($q) use ($search, $searchColumns) {
+                foreach ($searchColumns as $column) {
+                    $q->orWhere($column, 'like', "%{$search}%");
                 }
             });
+        }
+
+        $allowedSortBy = match ($type) {
+            'brick' => [
+                'type', 'brand', 'form',
+                'dimension_length', 'dimension_width', 'dimension_height',
+                'package_volume', 'store', 'address',
+                'price_per_piece', 'comparison_price_per_m3',
+            ],
+            'sand' => [
+                'type', 'brand', 'package_unit',
+                'dimension_length', 'dimension_width', 'dimension_height',
+                'package_volume', 'store', 'address',
+                'package_price', 'comparison_price_per_m3',
+            ],
+            'cat' => [
+                'type', 'brand', 'sub_brand',
+                'color_code', 'color_name',
+                'package_unit', 'volume', 'package_weight_net',
+                'store', 'address', 'purchase_price', 'comparison_price_per_kg',
+            ],
+            'cement' => [
+                'type', 'brand', 'sub_brand', 'code', 'color',
+                'package_unit', 'package_weight_net',
+                'store', 'address', 'package_price', 'comparison_price_per_kg',
+            ],
+            'ceramic' => [
+                'type', 'brand', 'sub_brand', 'code', 'color', 'form', 'surface',
+                'packaging', 'pieces_per_package', 'coverage_per_package',
+                'dimension_length', 'dimension_width', 'dimension_thickness',
+                'store', 'address', 'price_per_package', 'comparison_price_per_m2',
+            ],
+            default => [],
+        };
+
+        if ($sortBy && !in_array($sortBy, $allowedSortBy, true)) {
+            $sortBy = null;
+        }
+
+        if ($sortBy) {
+            // Mapping for special columns if needed
+            $sortColumn = $sortBy;
+            if ($type == 'ceramic' && $sortBy == 'dimension_length') {
+                $query->orderBy('dimension_length', $sortDirection)
+                      ->orderBy('dimension_width', $sortDirection)
+                      ->orderBy('dimension_thickness', $sortDirection);
+            } elseif (in_array($type, ['brick', 'sand']) && $sortBy == 'dimension_length') {
+                $query->orderBy('dimension_length', $sortDirection)
+                      ->orderBy('dimension_width', $sortDirection)
+                      ->orderBy('dimension_height', $sortDirection);
+            } else {
+                $query->orderBy($sortColumn, $sortDirection);
+            }
+
+            return $query->get();
         }
 
         if (in_array($type, ['ceramic', 'brick', 'sand', 'cat', 'cement'], true)) {

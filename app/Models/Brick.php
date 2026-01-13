@@ -25,7 +25,6 @@ class Brick extends Model
         'package_volume',
         'store',
         'address',
-        'short_address',
         'price_per_piece',
         'comparison_price_per_m3',
     ];

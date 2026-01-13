@@ -113,7 +113,7 @@ function initSandForm(root) {
                 url = `/api/sands/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
             }
             // Special case: address field menggunakan endpoint addresses-by-store
-            else if (field === 'address' || field === 'short_address') {
+            else if (field === 'address') {
                 if (currentStore) {
                     url = `/api/sands/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(currentStore)}`;
                 } else {

@@ -44,7 +44,6 @@ class CeramicResource extends JsonResource
             'store' => [
                 'name' => $this->store,
                 'address' => $this->address,
-                'short_address' => $this->address, // Fallback jika short_address belum ada
             ],
 
             // Harga

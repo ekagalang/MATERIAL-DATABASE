@@ -28,7 +28,6 @@ class Cement extends Model
         'package_volume',
         'store',
         'address',
-        'short_address',
         'package_price',
         'price_unit',
         'comparison_price_per_kg',

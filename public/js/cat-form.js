@@ -51,8 +51,8 @@ function initCatForm() {
             }
         }
 
-        // short_address bergantung pada store
-        if (field === 'short_address') {
+        // address bergantung pada store
+        if (field === 'address') {
             const storeInput = document.getElementById('store');
             if (storeInput && storeInput.value) {
                 params.append('store', storeInput.value);
@@ -161,8 +161,8 @@ function initCatForm() {
                 }
                 url = `/api/cats/all-stores?${filterParams.toString()}`;
             }
-            // Untuk field short_address, gunakan endpoint getAddressesByStore
-            else if (field === 'short_address') {
+            // Untuk field address, gunakan endpoint getAddressesByStore
+            else if (field === 'address') {
                 const storeInput = document.getElementById('store');
                 if (storeInput && storeInput.value) {
                     filterParams.append('store', storeInput.value);
@@ -231,9 +231,9 @@ function initCatForm() {
             }
         }
 
-        // Jika store berubah, clear dan reload short_address
+        // Jika store berubah, clear dan reload address
         if (changedField === 'store') {
-            const addressInput = document.getElementById('short_address');
+            const addressInput = document.getElementById('address');
             if (addressInput && addressInput.classList.contains('autocomplete-input')) {
                 // Clear existing value jika tidak cocok dengan filter baru
             }

@@ -23,7 +23,6 @@ class NatSeeder extends Seeder
                 'package_weight_net' => 1.0,
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
-                'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
                 'comparison_price_per_kg' => 31000, // 31000 / 1
@@ -40,7 +39,6 @@ class NatSeeder extends Seeder
                 'package_weight_net' => 1.0,
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
-                'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 16000,
                 'price_unit' => 'Bks',
                 'comparison_price_per_kg' => 16000, // 16000 / 1
@@ -57,7 +55,6 @@ class NatSeeder extends Seeder
                 'package_weight_net' => 1.0,
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
-                'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
                 'comparison_price_per_kg' => 31000, // 31000 / 1
@@ -74,7 +71,6 @@ class NatSeeder extends Seeder
                 'package_weight_net' => 1.0,
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
-                'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
                 'comparison_price_per_kg' => 31000, // 31000 / 1
@@ -91,7 +87,6 @@ class NatSeeder extends Seeder
                 'package_weight_net' => 1.0,
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
-                'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
                 'comparison_price_per_kg' => 31000, // 31000 / 1
@@ -108,7 +103,6 @@ class NatSeeder extends Seeder
                 'package_weight_net' => 1.0,
                 'store' => 'TB Jaya Gumilang',
                 'address' => 'Gading Serpong',
-                'short_address' => 'Pasar Minggu, Jakarta Selatan',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
                 'comparison_price_per_kg' => 31000, // 31000 / 1

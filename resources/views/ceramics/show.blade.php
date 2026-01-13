@@ -50,6 +50,33 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
+                            Dimensi (P x L x T)
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($ceramic->dimension_length && $ceramic->dimension_width)
+                                <span style="font-weight: 600;">
+                                    @format($ceramic->dimension_length) cm 
+                                    <span style="color: #cbd5e1; font-weight: 300;">×</span>
+                                    @format($ceramic->dimension_width) cm
+                                    @if($ceramic->dimension_thickness)
+                                        <span style="color: #cbd5e1; font-weight: 300;">×</span>
+                                        @format($ceramic->dimension_thickness * 10) mm
+                                    @endif
+                                </span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
                             Merek
                         </td>
                         <td style="padding: 14px 20px; 
@@ -81,7 +108,22 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Kode
+                            Permukaan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $ceramic->surface ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Kode Lengkap
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -96,7 +138,7 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Warna
+                            Warna (Corak)
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -126,48 +168,6 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Permukaan
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            {{ $ceramic->surface ?? '-' }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;
-                                   text-align: left;">
-                            Dimensi (P x L x T)
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            @if($ceramic->dimension_length && $ceramic->dimension_width)
-                                <span style="font-weight: 600;">
-                                    @format($ceramic->dimension_length) cm 
-                                    <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                    @format($ceramic->dimension_width) cm
-                                    @if($ceramic->dimension_thickness)
-                                        <span style="color: #cbd5e1; font-weight: 300;">×</span>
-                                        @format($ceramic->dimension_thickness * 10) mm
-                                    @endif
-                                </span>
-                            @else
-                                -
-                            @endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;
-                                   text-align: left;">
                             Isi
                         </td>
                         <td style="padding: 14px 20px; 
@@ -187,7 +187,7 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
-                            Luas
+                            Luas / {{ $ceramic->packaging ?? 'Dus' }}
                         </td>
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
@@ -204,55 +204,6 @@
                                     <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> M2</span>
                                 </div>
                             </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   font-size: 13px;
-                                   text-align: left;">
-                            Harga / {{ $ceramic->packaging ?? 'Dus' }}
-                        </td>
-                        <td style="padding: 14px 20px; 
-                                   border-bottom: 1px solid #f1f5f9;
-                                   color: #1e293b;">
-                            @if($ceramic->price_per_package)
-                                <span style="font-weight: 600; color: #64748b;">Rp</span>
-                                <span style="font-weight: 700; color: #0f172a;">
-                                    {{ number_format($ceramic->price_per_package, 0, ',', '.') }}
-                                </span>
-                            @else
-                                -
-                            @endif
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="padding: 14px 20px; 
-                                   font-weight: 600; 
-                                   color: #475569;
-                                   font-size: 13px;
-                                   text-align: left;">
-                            Harga / M2
-                        </td>
-                        <td style="padding: 14px 20px;
-                                   color: #1e293b;">
-                            @if($ceramic->comparison_price_per_m2)
-                                <div style="display: inline-block; 
-                                            padding: 8px 16px; 
-                                            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); 
-                                            border: 1.5px solid #fca5a5; 
-                                            border-radius: 10px;">
-                                    <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
-                                    <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
-                                        {{ number_format($ceramic->comparison_price_per_m2, 0, ',', '.') }}
-                                    </span>
-                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ M2</span>
-                                </div>
-                            @else
-                                -
-                            @endif
                         </td>
                     </tr>
                     <tr>
@@ -285,6 +236,55 @@
                                    color: #1e293b;
                                    line-height: 1.6;">
                             {{ $ceramic->address ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Harga Beli
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            @if($ceramic->price_per_package)
+                                <span style="font-weight: 600; color: #64748b;">Rp</span>
+                                <span style="font-weight: 700; color: #0f172a;">
+                                    {{ number_format($ceramic->price_per_package, 0, ',', '.') }}
+                                </span>
+                            @else
+                                -
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569;
+                                   font-size: 13px;
+                                   text-align: left;">
+                            Harga Komparasi
+                        </td>
+                        <td style="padding: 14px 20px;
+                                   color: #1e293b;">
+                            @if($ceramic->comparison_price_per_m2)
+                                <div style="display: inline-block; 
+                                            padding: 8px 16px; 
+                                            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); 
+                                            border: 1.5px solid #fca5a5; 
+                                            border-radius: 10px;">
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
+                                    <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
+                                        {{ number_format($ceramic->comparison_price_per_m2, 0, ',', '.') }}
+                                    </span>
+                                    <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ M2</span>
+                                </div>
+                            @else
+                                -
+                            @endif
                         </td>
                     </tr>
                 </table>
