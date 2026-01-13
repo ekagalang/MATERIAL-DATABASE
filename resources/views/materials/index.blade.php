@@ -2704,6 +2704,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tabButtons.forEach(btn => {
             btn.addEventListener('click', () => {
                 setActiveTab(btn.dataset.tab);
+                updateActivePaginationLetter();
                 // Also update the stored URL when tab changes to ensure we return to this tab
                 // We construct a new URL with the updated 'tab' parameter
                 const url = new URL(window.location.href);
@@ -2860,18 +2861,19 @@ document.addEventListener('DOMContentLoaded', function() {
             link.classList.remove('current');
         });
 
-        // If hash exists and matches pattern, add 'current' to matching link
+        // Default: mark first available letter in the active tab
+        const activePanel = document.querySelector('.material-tab-panel.active') || document.querySelector('.material-tab-panel');
+        if (!activePanel) return;
+
+        // If hash exists and matches a link inside active tab, use it
         if (hash) {
-            const matchingLink = document.querySelector(`.kanggo-img-link[href="${hash}"]`);
+            const matchingLink = activePanel.querySelector(`.kanggo-img-link[href="${hash}"]`);
             if (matchingLink) {
                 matchingLink.classList.add('current');
                 return;
             }
         }
 
-        // Default: mark first available letter in the active tab
-        const activePanel = document.querySelector('.material-tab-panel.active') || document.querySelector('.material-tab-panel');
-        if (!activePanel) return;
         const firstLink = activePanel.querySelector('.kanggo-img-link');
         if (firstLink) {
             firstLink.classList.add('current');
