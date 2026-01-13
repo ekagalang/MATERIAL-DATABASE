@@ -1202,7 +1202,7 @@ html.materials-booting .page-content {
                                         <th class="sortable" rowspan="2" style="text-align: left;">
                                             <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>{{ $ceramicSortable['color'] }}</span>
+                                                <span>Corak ({{ $ceramicSortable['color'] }})</span>
                                                 @if(request('sort_by') == 'color')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
@@ -1235,7 +1235,7 @@ html.materials-booting .page-content {
                                         <th class="sortable" colspan="2" rowspan="2" style="text-align: center;">
                                             <a href="{{ getMaterialSortUrl('coverage_per_package', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Luas (/ Dus)</span>
+                                                <span>Luas<br>(/ Dus)</span>
                                                 @if(request('sort_by') == 'coverage_per_package')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
