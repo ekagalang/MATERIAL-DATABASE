@@ -205,6 +205,7 @@ class CeramicController extends Controller
             'color',
             'code',
             'form',
+            'surface',
             'pieces_per_package',
             'dimension_length',
             'dimension_width',

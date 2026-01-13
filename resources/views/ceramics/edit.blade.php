@@ -125,8 +125,11 @@
                                name="surface"
                                id="surface"
                                value="{{ old('surface', $ceramic->surface) }}"
+                               class="autocomplete-input"
+                               data-field="surface"
                                autocomplete="off"
                                placeholder="Glossy, Matte, dll...">
+                        <div class="autocomplete-list" id="surface-list"></div>
                     </div>
                 </div>
 
