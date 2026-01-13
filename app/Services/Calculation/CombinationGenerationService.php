@@ -3,7 +3,9 @@
 namespace App\Services\Calculation;
 
 use App\Models\Brick;
+use App\Models\Cat;
 use App\Models\Cement;
+use App\Models\Ceramic;
 use App\Models\Sand;
 use App\Repositories\CalculationRepository;
 use App\Services\FormulaRegistry;
@@ -44,6 +46,9 @@ class CombinationGenerationService
      * @param array $request Request parameters
      * @param EloquentCollection $cements
      * @param EloquentCollection $sands
+     * @param EloquentCollection|null $cats
+     * @param EloquentCollection|null $ceramics
+     * @param EloquentCollection|null $nats
      * @param string $groupLabel Label for this group (e.g., 'TerBAIK', 'TerMURAH')
      * @param int|null $limit Limit number of results
      * @return array
@@ -53,6 +58,9 @@ class CombinationGenerationService
         array $request,
         EloquentCollection $cements,
         EloquentCollection $sands,
+        ?EloquentCollection $cats = null,
+        ?EloquentCollection $ceramics = null,
+        ?EloquentCollection $nats = null,
         string $groupLabel = 'Kombinasi',
         ?int $limit = null
     ): array {
@@ -69,68 +77,162 @@ class CombinationGenerationService
             'skim_sides' => $request['skim_sides'] ?? 1, // For Skim Coating
         ];
 
+        $cats = $cats ?? collect();
+        $ceramics = $ceramics ?? collect();
+        $nats = $nats ?? collect();
+
+        $workType = $paramsBase['work_type'] ?? 'brick_half';
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+
+        if ($workType === 'tile_installation') {
+            return $this->processGeneratorResults(
+                $this->yieldTileInstallationCombinations($paramsBase, $ceramics, $nats, $cements, $sands, $groupLabel),
+                $limit
+            );
+        }
+
         $results = [];
 
-        foreach ($cements as $cement) {
-            // VALIDASI DATA SEMEN
-            // Skip jika berat bersih 0 atau kosong (menyebabkan division by zero di formula)
-            if ($cement->package_weight_net <= 0) {
-                continue;
+        if (in_array('cat', $requiredMaterials, true)) {
+            foreach ($cats as $cat) {
+                if ($cat->purchase_price <= 0) {
+                    continue;
+                }
+
+                $params = array_merge($paramsBase, [
+                    'cat_id' => $cat->id,
+                ]);
+
+                try {
+                    $formula = FormulaRegistry::instance($workType);
+                    if (!$formula) {
+                        throw new \Exception("Formula '{$workType}' tidak ditemukan");
+                    }
+
+                    $result = $formula->calculate($params);
+
+                    $results[] = [
+                        'cat' => $cat,
+                        'result' => $result,
+                        'total_cost' => $result['grand_total'],
+                    ];
+                } catch (\Exception $e) {
+                    Log::error('Preview Calculation Error:', [
+                        'cat_id' => $cat->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    continue;
+                }
             }
+        } elseif (
+            in_array('ceramic', $requiredMaterials, true) &&
+            in_array('nat', $requiredMaterials, true) &&
+            !in_array('cement', $requiredMaterials, true) &&
+            !in_array('sand', $requiredMaterials, true)
+        ) {
+            foreach ($ceramics as $ceramic) {
+                foreach ($nats as $nat) {
+                    $params = array_merge($paramsBase, [
+                        'ceramic_id' => $ceramic->id,
+                        'nat_id' => $nat->id,
+                    ]);
 
-            foreach ($sands as $sand) {
-                // VALIDASI DATA PASIR
-                // Skip jika tidak ada harga per m3 DAN (volume 0 atau harga 0)
-                // Ini untuk mencegah error kalkulasi harga pasir
-                $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
-                $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
+                    try {
+                        $formula = FormulaRegistry::instance($workType);
+                        if (!$formula) {
+                            throw new \Exception("Formula '{$workType}' tidak ditemukan");
+                        }
 
-                if (!$hasPricePerM3 && !$hasPackageData) {
+                        $result = $formula->calculate($params);
+
+                        $results[] = [
+                            'ceramic' => $ceramic,
+                            'nat' => $nat,
+                            'result' => $result,
+                            'total_cost' => $result['grand_total'],
+                        ];
+                    } catch (\Exception $e) {
+                        Log::error('Preview Calculation Error:', [
+                            'ceramic_id' => $ceramic->id,
+                            'nat_id' => $nat->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        continue;
+                    }
+                }
+            }
+        } elseif (in_array('cement', $requiredMaterials, true) && !in_array('sand', $requiredMaterials, true)) {
+            foreach ($cements as $cement) {
+                if ($cement->package_weight_net <= 0) {
                     continue;
                 }
 
                 $params = array_merge($paramsBase, [
                     'cement_id' => $cement->id,
-                    'sand_id' => $sand->id,
                 ]);
 
                 try {
-                    // Use the same calculation method as save for consistency
-                    $formulaCode = $params['work_type'] ?? 'brick_half';
-                    $formula = FormulaRegistry::instance($formulaCode);
-
+                    $formula = FormulaRegistry::instance($workType);
                     if (!$formula) {
-                        throw new \Exception("Formula '{$formulaCode}' tidak ditemukan");
+                        throw new \Exception("Formula '{$workType}' tidak ditemukan");
                     }
 
                     $result = $formula->calculate($params);
 
-                    // Debug logging untuk preview
-                    Log::info('Preview Calculation:', [
-                        'formula_code' => $formulaCode,
-                        'cement_id' => $cement->id,
-                        'cement_brand' => $cement->brand,
-                        'cement_price' => $cement->package_price,
-                        'sand_id' => $sand->id,
-                        'sand_brand' => $sand->brand,
-                        'total_cost' => $result['grand_total'],
-                        'params' => $params,
-                    ]);
-
                     $results[] = [
                         'cement' => $cement,
-                        'sand' => $sand,
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
                     ];
                 } catch (\Exception $e) {
                     Log::error('Preview Calculation Error:', [
                         'cement_id' => $cement->id,
-                        'sand_id' => $sand->id,
                         'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString(),
                     ]);
                     continue;
+                }
+            }
+        } else {
+            foreach ($cements as $cement) {
+                if ($cement->package_weight_net <= 0) {
+                    continue;
+                }
+
+                foreach ($sands as $sand) {
+                    $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
+                    $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
+
+                    if (!$hasPricePerM3 && !$hasPackageData) {
+                        continue;
+                    }
+
+                    $params = array_merge($paramsBase, [
+                        'cement_id' => $cement->id,
+                        'sand_id' => $sand->id,
+                    ]);
+
+                    try {
+                        $formula = FormulaRegistry::instance($workType);
+                        if (!$formula) {
+                            throw new \Exception("Formula '{$workType}' tidak ditemukan");
+                        }
+
+                        $result = $formula->calculate($params);
+
+                        $results[] = [
+                            'cement' => $cement,
+                            'sand' => $sand,
+                            'result' => $result,
+                            'total_cost' => $result['grand_total'],
+                        ];
+                    } catch (\Exception $e) {
+                        Log::error('Preview Calculation Error:', [
+                            'cement_id' => $cement->id,
+                            'sand_id' => $sand->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        continue;
+                    }
                 }
             }
         }
@@ -162,7 +264,18 @@ class CombinationGenerationService
         $duplicateMap = [];
 
         foreach ($combinations as $combo) {
-            $key = $combo['cement']->id . '-' . $combo['sand']->id;
+            if (isset($combo['cat'])) {
+                $key = 'cat-' . $combo['cat']->id;
+            } elseif (isset($combo['ceramic'])) {
+                $key = 'cer-' . ($combo['ceramic']->id ?? 0) .
+                    '-nat-' . ($combo['nat']->id ?? 0) .
+                    '-cem-' . ($combo['cement']->id ?? 0) .
+                    '-snd-' . ($combo['sand']->id ?? 0);
+            } elseif (isset($combo['cement']) && !isset($combo['sand'])) {
+                $key = 'cement-' . ($combo['cement']->id ?? 0);
+            } else {
+                $key = ($combo['cement']->id ?? 0) . '-' . ($combo['sand']->id ?? 0);
+            }
 
             // Ensure source_filters is initialized
             if (!isset($combo['source_filters'])) {
@@ -228,12 +341,17 @@ class CombinationGenerationService
     {
         // Get work_type from request
         $workType = $request['work_type'] ?? 'brick_half';
-        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating']);
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+        $isBrickless = !in_array('brick', $requiredMaterials, true);
 
-        // 1. Check for Admin Recommendations - filtered by work_type
-        $recommendations = $this->repository->getRecommendedCombinations($workType);
-        $recommendations = $recommendations->where('brick_id', $brick->id)
+        $recommendations = $this->repository->getRecommendedCombinations($workType)
             ->where('type', 'best');
+
+        if (in_array('brick', $requiredMaterials, true)) {
+            $recommendations = $recommendations->filter(function ($rec) use ($brick) {
+                return empty($rec->brick_id) || $rec->brick_id === $brick->id;
+            });
+        }
 
         Log::info(
             'GetBestCombinations: Found ' .
@@ -247,34 +365,94 @@ class CombinationGenerationService
         $allRecommendedResults = [];
 
         foreach ($recommendations as $rec) {
-            $cements = $this->repository->getCementsByIds([$rec->cement_id]);
-            $sands = $this->repository->getSandsByIds([$rec->sand_id]);
+            $missingRequired = false;
+            $cements = collect();
+            $sands = collect();
+            $cats = collect();
+            $ceramics = collect();
+            $nats = collect();
 
-            Log::info("Processing recommendation: Cement ID {$rec->cement_id}, Sand ID {$rec->sand_id}");
+            if (in_array('cement', $requiredMaterials, true)) {
+                if (empty($rec->cement_id)) {
+                    $missingRequired = true;
+                } else {
+                    $cements = $this->repository->getCementsByIds([$rec->cement_id]);
+                }
+            }
 
-            // Calculate for this specific pair
-            $results = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerBAIK', 1);
+            if (in_array('sand', $requiredMaterials, true)) {
+                if (empty($rec->sand_id)) {
+                    $missingRequired = true;
+                } else {
+                    $sands = $this->repository->getSandsByIds([$rec->sand_id]);
+                }
+            }
+
+            if (in_array('cat', $requiredMaterials, true)) {
+                if (empty($rec->cat_id)) {
+                    $missingRequired = true;
+                } else {
+                    $cats = Cat::where('id', $rec->cat_id)->get();
+                }
+            }
+
+            if (in_array('ceramic', $requiredMaterials, true)) {
+                if (empty($rec->ceramic_id)) {
+                    $missingRequired = true;
+                } else {
+                    $ceramics = Ceramic::where('id', $rec->ceramic_id)->get();
+                }
+            }
+
+            if (in_array('nat', $requiredMaterials, true)) {
+                if (empty($rec->nat_id)) {
+                    $missingRequired = true;
+                } else {
+                    $nats = Cement::where('id', $rec->nat_id)->get();
+                }
+            }
+
+            if ($missingRequired) {
+                continue;
+            }
+
+            $results = $this->calculateCombinationsFromMaterials(
+                $brick,
+                $request,
+                $cements,
+                $sands,
+                $cats,
+                $ceramics,
+                $nats,
+                'TerBAIK',
+                1
+            );
 
             Log::info('Calculation result count: ' . count($results));
 
-            // Mark as 'best' source and add to collection
             foreach ($results as &$res) {
                 $res['source_filter'] = 'best';
                 $allRecommendedResults[] = $res;
             }
         }
 
-        // If there are admin recommendations, return them
         if (!empty($allRecommendedResults)) {
             Log::info('Returning ' . count($allRecommendedResults) . " admin-defined 'best' combinations.");
             return $allRecommendedResults;
         }
 
-        // FALLBACK FOR BRICKLESS: If no recommendations, use Cheapest
         if ($isBrickless) {
             Log::info('No admin recommendations for brickless work. Falling back to cheapest.');
+            if ($workType === 'grout_tile') {
+                $medium = $this->getMediumCombinations($brick, $request);
+                $medium = array_slice($medium, 0, 3);
+                return array_map(function ($combo) {
+                    $combo['source_filter'] = 'best';
+                    return $combo;
+                }, $medium);
+            }
+
             $cheapest = $this->getCheapestCombinations($brick, $request);
-            // Limit to 3 and mark as best
             $cheapest = array_slice($cheapest, 0, 3);
             return array_map(function ($combo) {
                 $combo['source_filter'] = 'best';
@@ -282,7 +460,6 @@ class CombinationGenerationService
             }, $cheapest);
         }
 
-        // 2. No recommendations found
         Log::info('No admin recommendations found.');
         return [];
     }
@@ -299,10 +476,57 @@ class CombinationGenerationService
     public function getCommonCombinations(Brick $brick, array $request): array
     {
         $workType = $request['work_type'] ?? 'brick_half';
-        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating']);
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+        $isBrickless = !in_array('brick', $requiredMaterials, true);
 
         if ($isBrickless) {
-            // Fallback to cheapest for brickless work (since history tracking is complex without brick_id)
+            if ($workType === 'grout_tile') {
+                $materialLimit = $this->resolveMaterialLimit($workType);
+                $ceramics = $this->resolveCeramicsForCalculation(
+                    $request,
+                    $workType,
+                    'price_per_package',
+                    'asc',
+                    $materialLimit,
+                    3
+                );
+                $nats = Cement::where('type', 'Nat')
+                    ->orderBy('package_price')
+                    ->skip(2)
+                    ->limit($materialLimit)
+                    ->get();
+
+                if ($ceramics->isEmpty() && empty($request['ceramic_id'])) {
+                    $ceramics = $this->resolveCeramicsForCalculation(
+                        $request,
+                        $workType,
+                        'price_per_package',
+                        'asc',
+                        $materialLimit
+                    );
+                }
+                if ($nats->isEmpty()) {
+                    $nats = $this->resolveNatsByPrice('asc', $materialLimit);
+                }
+
+                $results = $this->calculateCombinationsFromMaterials(
+                    $brick,
+                    $request,
+                    collect(),
+                    collect(),
+                    collect(),
+                    $ceramics,
+                    $nats,
+                    'TerUMUM',
+                    3
+                );
+
+                return array_map(function ($combo) {
+                    $combo['source_filter'] = 'common';
+                    return $combo;
+                }, $results);
+            }
+
             $cheapest = $this->getCheapestCombinations($brick, $request);
             return array_map(function ($combo) {
                 $combo['source_filter'] = 'common';
@@ -340,7 +564,17 @@ class CombinationGenerationService
             // Create Eloquent Collections instead of Support Collections
             $cements = Cement::whereIn('id', [$cement->id])->get();
             $sands = Sand::whereIn('id', [$sand->id])->get();
-            $calculated = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerUMUM', 1);
+            $calculated = $this->calculateCombinationsFromMaterials(
+                $brick,
+                $request,
+                $cements,
+                $sands,
+                collect(),
+                collect(),
+                collect(),
+                'TerUMUM',
+                1
+            );
 
             if (!empty($calculated)) {
                 $results[] = $calculated[0];
@@ -362,10 +596,26 @@ class CombinationGenerationService
      */
     public function getCheapestCombinations(Brick $brick, array $request): array
     {
-        $cements = $this->repository->getCementsByPrice('asc');
-        $sands = $this->repository->getSandsByPrice('asc');
+        $workType = $request['work_type'] ?? 'brick_half';
+        $materialLimit = $this->resolveMaterialLimit($workType);
 
-        return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerMURAH', 3);
+        $cements = $this->resolveCementsByPrice('asc', $materialLimit);
+        $sands = $this->resolveSandsByPrice('asc', $materialLimit);
+        $cats = $this->resolveCatsByPrice('asc', $materialLimit);
+        $ceramics = $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'asc', $materialLimit);
+        $nats = $this->resolveNatsByPrice('asc', $materialLimit);
+
+        return $this->calculateCombinationsFromMaterials(
+            $brick,
+            $request,
+            $cements,
+            $sands,
+            $cats,
+            $ceramics,
+            $nats,
+            'TerMURAH',
+            3
+        );
     }
 
     /**
@@ -379,10 +629,25 @@ class CombinationGenerationService
      */
     public function getMediumCombinations(Brick $brick, array $request): array
     {
-        $cements = $this->repository->getCementsByPrice('asc');
-        $sands = $this->repository->getSandsByPrice('asc');
+        $workType = $request['work_type'] ?? 'brick_half';
+        $materialLimit = $this->resolveMaterialLimit($workType);
 
-        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerSEDANG');
+        $cements = $this->resolveCementsByPrice('asc', $materialLimit);
+        $sands = $this->resolveSandsByPrice('asc', $materialLimit);
+        $cats = $this->resolveCatsByPrice('asc', $materialLimit);
+        $ceramics = $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'asc', $materialLimit);
+        $nats = $this->resolveNatsByPrice('asc', $materialLimit);
+
+        $allResults = $this->calculateCombinationsFromMaterials(
+            $brick,
+            $request,
+            $cements,
+            $sands,
+            $cats,
+            $ceramics,
+            $nats,
+            'TerSEDANG'
+        );
 
         // Get middle 3 combinations
         $total = count($allResults);
@@ -405,10 +670,25 @@ class CombinationGenerationService
      */
     public function getExpensiveCombinations(Brick $brick, array $request): array
     {
-        $cements = $this->repository->getCementsByPrice('desc');
-        $sands = $this->repository->getSandsByPrice('desc');
+        $workType = $request['work_type'] ?? 'brick_half';
+        $materialLimit = $this->resolveMaterialLimit($workType);
 
-        $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'TerMAHAL');
+        $cements = $this->resolveCementsByPrice('desc', $materialLimit);
+        $sands = $this->resolveSandsByPrice('desc', $materialLimit);
+        $cats = $this->resolveCatsByPrice('desc', $materialLimit);
+        $ceramics = $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'desc', $materialLimit);
+        $nats = $this->resolveNatsByPrice('desc', $materialLimit);
+
+        $allResults = $this->calculateCombinationsFromMaterials(
+            $brick,
+            $request,
+            $cements,
+            $sands,
+            $cats,
+            $ceramics,
+            $nats,
+            'TerMAHAL'
+        );
 
         // Get top 3 most expensive
         return array_slice(array_reverse($allResults), 0, 3);
@@ -425,15 +705,59 @@ class CombinationGenerationService
      */
     public function getCustomCombinations(Brick $brick, array $request): array
     {
-        if (!empty($request['cement_id']) && !empty($request['sand_id'])) {
-            // Specific materials selected
+        $workType = $request['work_type'] ?? 'brick_half';
+
+        if ($workType === 'painting') {
+            if (!empty($request['cat_id'])) {
+                $cats = Cat::where('id', $request['cat_id'])->get();
+                return $this->calculateCombinationsFromMaterials($brick, $request, collect(), collect(), $cats, collect(), collect(), 'Custom', 1);
+            }
+        } elseif ($workType === 'grout_tile') {
+            if (!empty($request['ceramic_id']) && !empty($request['nat_id'])) {
+                $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
+                $nats = Cement::where('id', $request['nat_id'])->get();
+                return $this->calculateCombinationsFromMaterials($brick, $request, collect(), collect(), collect(), $ceramics, $nats, 'Custom', 1);
+            }
+        } elseif ($workType === 'tile_installation') {
+            if (
+                !empty($request['ceramic_id']) &&
+                !empty($request['nat_id']) &&
+                !empty($request['cement_id']) &&
+                !empty($request['sand_id'])
+            ) {
+                $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
+                $nats = Cement::where('id', $request['nat_id'])->get();
+                $cements = $this->repository->getCementsByIds([$request['cement_id']]);
+                $sands = $this->repository->getSandsByIds([$request['sand_id']]);
+                return $this->calculateCombinationsFromMaterials(
+                    $brick,
+                    $request,
+                    $cements,
+                    $sands,
+                    collect(),
+                    $ceramics,
+                    $nats,
+                    'Custom',
+                    1
+                );
+            }
+        } elseif (!empty($request['cement_id']) && !empty($request['sand_id'])) {
             $cements = $this->repository->getCementsByIds([$request['cement_id']]);
             $sands = $this->repository->getSandsByIds([$request['sand_id']]);
-            return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'Custom', 1);
-        } else {
-            // Show all combinations
-            return $this->getAllCombinations($brick, $request);
+            return $this->calculateCombinationsFromMaterials(
+                $brick,
+                $request,
+                $cements,
+                $sands,
+                collect(),
+                collect(),
+                collect(),
+                'Custom',
+                1
+            );
         }
+
+        return $this->getAllCombinations($brick, $request);
     }
 
     /**
@@ -445,10 +769,35 @@ class CombinationGenerationService
      */
     public function getAllCombinations(Brick $brick, array $request): array
     {
-        $cements = $this->repository->getCementsForCombination();
-        $sands = $this->repository->getSandsForCombination();
+        $workType = $request['work_type'] ?? 'brick_half';
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
 
-        return $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, 'Semua');
+        $cements = in_array('cement', $requiredMaterials, true)
+            ? $this->repository->getCementsForCombination()
+            : collect();
+        $sands = in_array('sand', $requiredMaterials, true)
+            ? $this->repository->getSandsForCombination()
+            : collect();
+        $cats = in_array('cat', $requiredMaterials, true)
+            ? Cat::where('purchase_price', '>', 0)->orderBy('brand')->get()
+            : collect();
+        $ceramics = in_array('ceramic', $requiredMaterials, true)
+            ? $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'asc', null)
+            : collect();
+        $nats = in_array('nat', $requiredMaterials, true)
+            ? Cement::where('type', 'Nat')->orderBy('brand')->get()
+            : collect();
+
+        return $this->calculateCombinationsFromMaterials(
+            $brick,
+            $request,
+            $cements,
+            $sands,
+            $cats,
+            $ceramics,
+            $nats,
+            'Semua'
+        );
     }
 
     /**
@@ -469,5 +818,160 @@ class CombinationGenerationService
             'all' => 'Semua',
             default => ucfirst($filter),
         };
+    }
+
+    protected function resolveRequiredMaterials(string $workType): array
+    {
+        $materials = FormulaRegistry::materialsFor($workType);
+        return !empty($materials) ? $materials : ['brick', 'cement', 'sand'];
+    }
+
+    protected function resolveMaterialLimit(string $workType): int
+    {
+        return $workType === 'tile_installation' ? 10 : 5;
+    }
+
+    protected function resolveCementsByPrice(string $direction, int $limit): EloquentCollection
+    {
+        return Cement::where(function ($q) {
+                $q->where('type', '!=', 'Nat')->orWhereNull('type');
+            })
+            ->where('package_price', '>', 0)
+            ->where('package_weight_net', '>', 0)
+            ->orderBy('package_price', $direction)
+            ->limit($limit)
+            ->get();
+    }
+
+    protected function resolveNatsByPrice(string $direction, int $limit): EloquentCollection
+    {
+        return Cement::where('type', 'Nat')
+            ->where('package_price', '>', 0)
+            ->orderBy('package_price', $direction)
+            ->limit($limit)
+            ->get();
+    }
+
+    protected function resolveSandsByPrice(string $direction, int $limit): EloquentCollection
+    {
+        return Sand::where('package_price', '>', 0)
+            ->orderBy('package_price', $direction)
+            ->limit($limit)
+            ->get();
+    }
+
+    protected function resolveCatsByPrice(string $direction, int $limit): EloquentCollection
+    {
+        return Cat::where('purchase_price', '>', 0)
+            ->orderBy('purchase_price', $direction)
+            ->limit($limit)
+            ->get();
+    }
+
+    protected function resolveCeramicsForCalculation(
+        array $request,
+        string $workType,
+        string $orderBy,
+        string $direction,
+        ?int $limit,
+        int $skip = 0
+    ): EloquentCollection {
+        if (!empty($request['ceramic_id'])) {
+            $ceramic = Ceramic::find($request['ceramic_id']);
+            return $ceramic ? collect([$ceramic]) : collect();
+        }
+
+        $query = Ceramic::query();
+
+        if ($workType === 'grout_tile') {
+            $query->whereNotNull('dimension_thickness')
+                ->where('dimension_thickness', '>', 0);
+        }
+
+        $query = $query->whereNotNull($orderBy)
+            ->orderBy($orderBy, $direction)
+            ->skip($skip);
+
+        if ($limit !== null) {
+            $query->limit($limit);
+        }
+
+        return $query->get();
+    }
+
+    protected function yieldTileInstallationCombinations(
+        array $paramsBase,
+        EloquentCollection $ceramics,
+        EloquentCollection $nats,
+        EloquentCollection $cements,
+        EloquentCollection $sands,
+        string $groupLabel
+    ) {
+        foreach ($ceramics as $ceramic) {
+            foreach ($nats as $nat) {
+                foreach ($cements as $cement) {
+                    if ($cement->package_weight_net <= 0) {
+                        continue;
+                    }
+
+                    foreach ($sands as $sand) {
+                        $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
+                        $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
+                        if (!$hasPricePerM3 && !$hasPackageData) {
+                            continue;
+                        }
+
+                        $params = array_merge($paramsBase, [
+                            'ceramic_id' => $ceramic->id,
+                            'nat_id' => $nat->id,
+                            'cement_id' => $cement->id,
+                            'sand_id' => $sand->id,
+                        ]);
+
+                        try {
+                            $formula = FormulaRegistry::instance('tile_installation');
+                            $result = $formula->calculate($params);
+
+                            yield [
+                                'ceramic' => $ceramic,
+                                'nat' => $nat,
+                                'cement' => $cement,
+                                'sand' => $sand,
+                                'result' => $result,
+                                'total_cost' => $result['grand_total'],
+                                'filter_type' => $groupLabel,
+                            ];
+                        } catch (\Exception $e) {
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    protected function processGeneratorResults($generator, ?int $limit = null): array
+    {
+        $results = [];
+        $batchSize = 100;
+        $targetSize = $limit ?? 10;
+        $keepSize = max($targetSize * 3, 30);
+
+        foreach ($generator as $combination) {
+            $results[] = $combination;
+
+            if (count($results) >= $batchSize) {
+                usort($results, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+                $results = array_slice($results, 0, $keepSize);
+            }
+        }
+
+        usort($results, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+
+        if ($limit) {
+            $results = array_slice($results, 0, $limit);
+        }
+
+        return $results;
     }
 }

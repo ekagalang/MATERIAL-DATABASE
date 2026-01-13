@@ -236,7 +236,7 @@ class CalculationApiController extends Controller
             ]);
 
             $calculation = $this->orchestrationService->store($validated);
-            $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
+            $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
 
             return response()->json([
                 'success' => true,
@@ -615,7 +615,7 @@ class CalculationApiController extends Controller
             // Update existing record
             $existingCalculation->fill($newCalculation->toArray());
             $existingCalculation->save();
-            $existingCalculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
+            $existingCalculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
 
             return response()->json([
                 'success' => true,

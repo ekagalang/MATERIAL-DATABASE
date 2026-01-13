@@ -65,7 +65,7 @@
                         </a>
                     </th>
 
-                    <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;" data-column="dimension_length">
+                    <th class="sortable" colspan="3" style="text-align: center;" data-column="dimension_length">
                         <a href="#" style="color: inherit; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                             <span>Dimensi (cm)</span>
                             <i class="bi bi-arrow-down-up sort-icon" style="font-size: 12px; opacity: 0.3;"></i>
@@ -110,9 +110,9 @@
                     <th rowspan="2" style="text-align: center">Aksi</th>
                 </tr>
                 <tr class="dim-sub-row">
-                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
-                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
-                    <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
+                    <th style="text-align: center; padding: 0 2px; width: 40px;">P</th>
+                    <th style="text-align: center; padding: 0 2px; width: 40px;">L</th>
+                    <th style="text-align: center; padding: 0 2px; width: 40px;">T</th>
                 </tr>
             </thead>
             <tbody id="brick-list">

@@ -362,6 +362,40 @@ function initCeramicForm(root) {
     setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width');
     setupDimensionInput('dimension_thickness_input', 'dimension_thickness_unit', 'dimension_thickness');
 
+    // Ensure hidden fields are synced before submit
+    function syncDimensionHidden(inputId, unitId, hiddenId) {
+        const inputElement = getElement(inputId);
+        const unitElement = getElement(unitId);
+        const hiddenElement = getElement(hiddenId);
+        if (!inputElement || !hiddenElement) return;
+
+        const rawValue = (inputElement.value || '').trim();
+        if (!rawValue) return;
+
+        const cmValue = unitElement ? convertToCm(rawValue, unitElement.value) : parseFloat(rawValue);
+        if (cmValue !== null && !isNaN(cmValue)) {
+            hiddenElement.value = cmValue.toFixed(2);
+        }
+    }
+
+    const ceramicForm = marker.matches && marker.matches('form') ? marker : marker.querySelector('#ceramicForm');
+    if (ceramicForm) {
+        ceramicForm.addEventListener('submit', function() {
+            syncDimensionHidden('dimension_length_input', 'dimension_length_unit', 'dimension_length');
+            syncDimensionHidden('dimension_width_input', 'dimension_width_unit', 'dimension_width');
+            syncDimensionHidden('dimension_thickness_input', 'dimension_thickness_unit', 'dimension_thickness');
+            calculateCoverage();
+
+            const priceDisplayValue = (pricePerPackageDisplay?.value || '').trim();
+            const comparisonDisplayValue = (comparisonPriceDisplay?.value || '').trim();
+            if (!priceDisplayValue && comparisonDisplayValue) {
+                syncComparisonFromDisplay();
+            } else {
+                syncPriceFromDisplay();
+            }
+        });
+    }
+
     // ========== AUTO-SUGGEST ==========
 
     const autosuggestInputs = (scope && scope.querySelectorAll) ? scope.querySelectorAll('.autocomplete-input') : document.querySelectorAll('.autocomplete-input');
@@ -430,6 +464,8 @@ function initCeramicForm(root) {
         function loadSuggestions(term = '') {
             let url;
 
+            const typeInput = getElement('type');
+            const typeValue = (typeInput?.value || '').trim();
             const brandInput = getElement('brand');
             const brandValue = (brandInput?.value || '').trim();
             const packagingInput = getElement('packaging');
@@ -476,6 +512,11 @@ function initCeramicForm(root) {
                 }
             } else {
                 url = `/api/ceramics/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+
+                // Filter brand by selected type (rule-based)
+                if (field === 'brand' && typeValue) {
+                    url += `&type=${encodeURIComponent(typeValue)}`;
+                }
 
                 // Filter by brand (rule-based)
                 if (brandFilteredFields.has(field) && brandValue) {

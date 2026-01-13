@@ -126,6 +126,21 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
+                            Permukaan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            {{ $ceramic->surface ?? '-' }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
                             Dimensi (P x L x T)
                         </td>
                         <td style="padding: 14px 20px; 

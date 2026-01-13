@@ -19,6 +19,7 @@ class Ceramic extends Model
         'code',
         'color',
         'form',
+        'surface',
         'dimension_length',
         'dimension_width',
         'dimension_thickness',

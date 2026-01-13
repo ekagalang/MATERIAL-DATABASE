@@ -7,6 +7,7 @@
 <script>
 (function() {
     document.documentElement.classList.add('materials-booting');
+    document.documentElement.classList.add('materials-lock');
 })();
 (function() {
     const savedTab = localStorage.getItem('materialActiveTab');
@@ -15,9 +16,65 @@
         window.__materialSavedTab = savedTab;
     }
 })();
+(function() {
+    if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+    }
+    if (window.location.hash) {
+        window.__materialHash = window.location.hash;
+        history.replaceState(null, null, window.location.pathname + window.location.search);
+    }
+})();
+(function() {
+    window.addEventListener('load', function() {
+        document.documentElement.classList.remove('materials-booting');
+    });
+    window.setTimeout(() => {
+        document.documentElement.classList.remove('materials-booting');
+    }, 2000);
+})();
 document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.add('materials-lock');
 });
+
+(function() {
+    function updateCeramicScrollIndicators() {
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td');
+        cells.forEach(td => {
+            const scroller = td.querySelector('.ceramic-scroll-cell');
+            if (!scroller) return;
+            const isScrollable = scroller.scrollWidth > scroller.clientWidth + 1;
+            td.classList.toggle('is-scrollable', isScrollable);
+            const atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
+            td.classList.toggle('is-scrolled-end', isScrollable && atEnd);
+        });
+    }
+
+    function bindCeramicScrollHandlers() {
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td');
+        cells.forEach(td => {
+            const scroller = td.querySelector('.ceramic-scroll-cell');
+            if (!scroller || scroller.__ceramicScrollBound) return;
+            scroller.__ceramicScrollBound = true;
+            scroller.addEventListener('scroll', updateCeramicScrollIndicators, { passive: true });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        updateCeramicScrollIndicators();
+        bindCeramicScrollHandlers();
+        requestAnimationFrame(updateCeramicScrollIndicators);
+        setTimeout(updateCeramicScrollIndicators, 60);
+    });
+    window.addEventListener('resize', function() {
+        updateCeramicScrollIndicators();
+        bindCeramicScrollHandlers();
+        requestAnimationFrame(updateCeramicScrollIndicators);
+    });
+    window.addEventListener('load', function() {
+        updateCeramicScrollIndicators();
+    });
+})();
 </script>
 <style>
 :root {
@@ -25,11 +82,22 @@ document.addEventListener('DOMContentLoaded', function() {
     --tab-active-bg: #91C6BC;
     overflow: hidden;
 }
+
+/* Global scroll offset untuk fixed topbar */
+html {
+    scroll-padding-top: 80px;
+    scroll-behavior: smooth;
+}
+
 html.materials-booting .material-tab-panel,
 html.materials-booting .material-tab-action,
 html.materials-booting #emptyMaterialState,
 html.materials-booting .material-tabs,
 html.materials-booting .material-tab-actions {
+    opacity: 0;
+    visibility: hidden;
+}
+html.materials-booting .page-content {
     opacity: 0;
     visibility: hidden;
 }
@@ -122,6 +190,7 @@ html.materials-booting .material-tab-actions {
   #section-cement .table-container thead th,
   #section-ceramic .table-container thead th {
       vertical-align: top !important;
+      font-size: 14px !important;
   }
   /* Override global.css - make all tbody td consistent */
   .table-container tbody td {
@@ -129,6 +198,7 @@ html.materials-booting .material-tab-actions {
       padding: 0 6px !important;
       line-height: 1.1 !important;
       vertical-align: middle !important;
+      font-size: 12px !important;
   }
 
   /* Specific overrides for dimension cells - SEMUA MATERIAL */
@@ -155,19 +225,58 @@ html.materials-booting .material-tab-actions {
   #section-ceramic .table-container tbody td {
       height: 35px !important;
       padding: 2px 8px !important;
-      font-size: 13px !important;
+      font-size: 12px !important;
       line-height: 1.3 !important;
   }
 
   /* Force dimension cells to be identical across ALL materials */
   #section-brick .table-container tbody td.dim-cell,
-  #section-sand .table-container tbody td.dim-cell,
-  #section-ceramic .table-container tbody td.dim-cell {
+  #section-sand .table-container tbody td.dim-cell {
       text-align: center !important;
       font-size: 12px !important;
       width: 40px !important;
       padding: 2px 2px !important;
       height: 35px !important;
+  }
+  #section-ceramic .table-container tbody td.dim-cell {
+      text-align: center !important;
+      font-size: 12px !important;
+      width: 50px !important;
+      padding: 2px 2px !important;
+      height: 35px !important;
+  }
+
+
+  /* Ceramic scroll cells: keep text inside cell */
+  #section-ceramic .ceramic-scroll-td {
+      position: relative;
+      overflow: hidden;
+  }
+  #section-ceramic .ceramic-scroll-td.is-scrollable::after {
+      content: '...';
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(15, 23, 42, 0.85);
+      background: linear-gradient(90deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.95) 40%, rgba(248, 250, 252, 1) 100%);
+      padding-left: 8px;
+      pointer-events: none;
+  }
+  #section-ceramic .ceramic-scroll-td.is-scrolled-end::after {
+      opacity: 0;
+  }
+  #section-ceramic .ceramic-scroll-cell {
+      display: block;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      scrollbar-color: transparent transparent;
+  }
+  #section-ceramic .ceramic-scroll-cell::-webkit-scrollbar {
+      height: 0;
   }
 
   /* Force volume cells to be identical */
@@ -197,6 +306,12 @@ html.materials-booting .material-tab-actions {
       border-radius: 0 !important;
       font-size: 12px;
       line-height: 1;
+      font-weight: normal !important;
+      -webkit-text-stroke: 0 !important;
+      text-shadow: none !important;
+  }
+  .btn-group-compact .btn-action i::before {
+      -webkit-text-stroke: 0 !important;
   }
   .btn-group-compact .btn-action:first-child {
       border-top-left-radius: 999px !important;
@@ -222,7 +337,7 @@ html.materials-booting .material-tab-actions {
       position: relative;
       display: flex;
       align-items: center;
-      justify-content: center;
+      justify-content: space-between;
       min-height: 72px;
       z-index: 1;
       background: transparent;
@@ -243,11 +358,14 @@ html.materials-booting .material-tab-actions {
       font-weight: var(--special-font-weight) !important;
   }
   .material-footer-left {
+      display: flex;
       align-items: center;
-      top: 50% !important;
-      transform: translateY(-50%) !important;
-      gap: 6px !important;
-      height: 100% !important;
+      gap: 6px;
+  }
+  .material-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
   }
   .material-footer-hex {
       width: 44px !important;
@@ -273,9 +391,6 @@ html.materials-booting .material-tab-actions {
       justify-content: center !important;
       gap: 2px;
   }
-  .material-footer-center {
-      top: 0 !important;
-  }
   .material-footer-sticky .kanggo-logo img {
       height: 48px !important;
   }
@@ -286,32 +401,39 @@ html.materials-booting .material-tab-actions {
   .material-footer-sticky .kanggo-img-link img {
       height: 17px !important;
   }
+  html.materials-lock body,
   body.materials-lock {
       overflow: hidden;
   }
+  html.materials-lock .page-content,
   body.materials-lock .page-content {
       height: calc(100vh - 70px);
       overflow: hidden;
   }
+  html.materials-lock .material-tab-wrapper,
   body.materials-lock .material-tab-wrapper {
       display: flex;
       flex-direction: column;
       height: calc(100vh - 90px);
   }
+  html.materials-lock .material-tab-panel,
   body.materials-lock .material-tab-panel {
       flex: 1 1 auto;
       height: auto;
   }
+  html.materials-lock .material-tab-card,
   body.materials-lock .material-tab-card {
       display: flex;
       flex-direction: column;
       height: 100%;
   }
+  html.materials-lock .material-tab-card .table-container,
   body.materials-lock .material-tab-card .table-container {
       flex: 1 1 auto;
       overflow-y: auto;
   }
   @media (max-width: 992px) {
+      html.materials-lock .material-tab-wrapper,
       body.materials-lock .material-tab-wrapper {
           height: calc(100vh - 170px);
       }
@@ -531,6 +653,8 @@ html.materials-booting .material-tab-actions {
   .table-container {
       overflow-y: auto;
       overflow-x: auto;
+      scroll-padding-top: 80px;
+      scroll-behavior: smooth;
   }
 
   .table-container thead {
@@ -737,14 +861,15 @@ html.materials-booting .material-tab-actions {
                                     'code' => 'Kode',
                                     'color' => 'Warna',
                                     'form' => 'Bentuk',
+                                    'surface' => 'Permukaan',
                                     'packaging' => 'Kemasan',
                                     'pieces_per_package' => 'Volume',
-                                    'area_per_piece' => 'Luas (M² / Lbr)',
+                                    'coverage_per_package' => 'Luas (M2 / Dus)',
                                     'dimension_length' => 'Dimensi (cm)',
                                     'store' => 'Toko',
                                     'address' => 'Alamat',
                                     'price_per_package' => 'Harga / Kemasan',
-                                    'comparison_price_per_m2' => 'Harga Komparasi <br> (/ M²)',
+                                    'comparison_price_per_m2' => 'Harga Komparasi <br> (/ M2)',
                                 ];
                                 @endphp
                                     @if($material['type'] == 'brick')
@@ -1005,36 +1130,21 @@ html.materials-booting .material-tab-actions {
                                         @endforeach
                                         <th class="action-cell">Aksi</th>
                                     </tr>
-                                @elseif($material['type'] == 'ceramic')
+                                    @elseif($material['type'] == 'ceramic')
                                     <tr class="dim-group-row">
-                                        <th rowspan="2">No</th>
-                                        @foreach(['type','brand','sub_brand','code','color','form'] as $col)
-                                            <th class="sortable" rowspan="2">
-                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                    <span>{{ $ceramicSortable[$col] }}</span>
-                                                    @if(request('sort_by') == $col)
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                    @else
-                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                    @endif
-                                                </a>
-                                            </th>
-                                        @endforeach
-                                        <th rowspan="2">Kemasan</th>
-                                        <th class="sortable" rowspan="2">
-                                            <a href="{{ getMaterialSortUrl('pieces_per_package', request('sort_by'), request('sort_direction')) }}"
+                                        <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                        <th class="sortable" rowspan="2" style="text-align: left;">
+                                            <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>{{ $ceramicSortable['pieces_per_package'] }}</span>
-                                                @if(request('sort_by') == 'pieces_per_package')
+                                                <span>{{ $ceramicSortable['type'] }}</span>
+                                                @if(request('sort_by') == 'type')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
                                             </a>
                                         </th>
-                                        <th rowspan="2">{{ $ceramicSortable['area_per_piece'] }}</th>
-                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
+                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 120px; min-width: 120px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Dimensi (cm)</span>
@@ -1045,32 +1155,152 @@ html.materials-booting .material-tab-actions {
                                                 @endif
                                             </a>
                                         </th>
-                                        @foreach(['store','address','price_per_package','comparison_price_per_m2'] as $col)
-                                            <th class="sortable" rowspan="2">
-                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                    <span>{!! $ceramicSortable[$col] !!}</span>
-                                                    @if(request('sort_by') == $col)
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                    @else
-                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                    @endif
-                                                </a>
-                                            </th>
-                                        @endforeach
+                                        <th class="sortable" rowspan="2" style="text-align: center;">
+                                            <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['brand'] }}</span>
+                                                @if(request('sort_by') == 'brand')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: left;">
+                                            <a href="{{ getMaterialSortUrl('sub_brand', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['sub_brand'] }}</span>
+                                                @if(request('sort_by') == 'sub_brand')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: left;">
+                                            <a href="{{ getMaterialSortUrl('surface', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['surface'] }}</span>
+                                                @if(request('sort_by') == 'surface')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: right;">
+                                            <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>Kode Lengkap<br>(No. Seri / Kode Pembakaran)</span>
+                                                @if(request('sort_by') == 'code')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: left;">
+                                            <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['color'] }}</span>
+                                                @if(request('sort_by') == 'color')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: center;">
+                                            <a href="{{ getMaterialSortUrl('form', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['form'] }}</span>
+                                                @if(request('sort_by') == 'form')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                            <a href="{{ getMaterialSortUrl('packaging', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['packaging'] }}</span>
+                                                @if(request('sort_by') == 'packaging')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" colspan="2" rowspan="2" style="text-align: center;">
+                                            <a href="{{ getMaterialSortUrl('coverage_per_package', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>Luas (/ Dus)</span>
+                                                @if(request('sort_by') == 'coverage_per_package')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                            <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['store'] }}</span>
+                                                @if(request('sort_by') == 'store')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" rowspan="2" style="text-align: left; width: 200px; min-width: 200px;">
+                                            <a href="{{ getMaterialSortUrl('address', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>{{ $ceramicSortable['address'] }}</span>
+                                                @if(request('sort_by') == 'address')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                            <a href="{{ getMaterialSortUrl('price_per_package', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>Harga Beli</span>
+                                                @if(request('sort_by') == 'price_per_package')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
+                                        <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                            <a href="{{ getMaterialSortUrl('comparison_price_per_m2', request('sort_by'), request('sort_direction')) }}"
+                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                <span>Harga Komparasi</span>
+                                                @if(request('sort_by') == 'comparison_price_per_m2')
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                @else
+                                                    <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                @endif
+                                            </a>
+                                        </th>
                                         <th rowspan="2" class="action-cell">Aksi</th>
                                     </tr>
                                     <tr class="dim-sub-row">
-                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">P</th>
-                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">L</th>
-                                        <th style="text-align: center; font-size: 12px; width: 40px; padding: 2px;">T</th>
+                                        <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
+                                        <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
+                                        <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
                                     </tr>
                                 @endif
                             </thead>
                             @php
-                                $letterGroups = $material['data']->groupBy(function ($item) {
-                                    $brand = trim($item->brand ?? '');
-                                    return $brand !== '' ? strtoupper(substr($brand, 0, 1)) : '#';
+                                $letterGroups = $material['data']->groupBy(function ($item) use ($material) {
+                                    $groupValue = $material['type'] === 'ceramic' ? ($item->type ?? '') : ($item->brand ?? '');
+                                    $groupValue = trim((string) $groupValue);
+                                    return $groupValue !== '' ? strtoupper(substr($groupValue, 0, 1)) : '#';
                                 });
                                 $orderedGroups = collect();
                                 foreach ($material['active_letters'] as $letter) {
@@ -1091,9 +1321,26 @@ html.materials-booting .material-tab-actions {
                                     @foreach($items as $item)
                                         @php
                                             $rowAnchorId = $loop->first ? $material['type'] . '-letter-' . $anchorId : null;
+                                            $searchParts = array_filter([
+                                                $item->type ?? null,
+                                                $item->material_name ?? null,
+                                                $item->cat_name ?? null,
+                                                $item->cement_name ?? null,
+                                                $item->sand_name ?? null,
+                                                $item->brand ?? null,
+                                                $item->sub_brand ?? null,
+                                                $item->code ?? null,
+                                                $item->color ?? null,
+                                                $item->color_name ?? null,
+                                                $item->form ?? null,
+                                                $item->surface ?? null,
+                                            ], function ($value) {
+                                                return !is_null($value) && trim((string) $value) !== '';
+                                            });
+                                            $searchValue = strtolower(trim(preg_replace('/\s+/', ' ', implode(' ', $searchParts))));
                                         @endphp
-                                <tr data-material-tab="{{ $material['type'] }}" data-material-kind="{{ $item->type ?? '' }}">
-                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" style="scroll-margin-top: 120px;" @endif>
+                                <tr data-material-tab="{{ $material['type'] }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
+                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 40px; min-width: 40px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
                                     @if($material['type'] == 'brick')
@@ -1280,64 +1527,75 @@ html.materials-booting .material-tab-actions {
                                             @endif
                                         </td>
                                     @elseif($material['type'] == 'ceramic')
-                                        <td>{{ $item->type ?? '-' }}</td>
-                                        <td>{{ $item->brand ?? '-' }}</td>
-                                        <td>{{ $item->sub_brand ?? '-' }}</td>
-                                        <td style="font-size: 12px;">{{ $item->code ?? '-' }}</td>
-                                        <td>{{ $item->color ?? '-' }}</td>
-                                        <td>{{ $item->form ?? '-' }}</td>
-                                        <td style="font-size: 13px;">{{ $item->packaging ?? '-' }}</td>
-                                        <td style="text-align: right; font-size: 13px;">
-                                            @if($item->pieces_per_package)
-                                                {{ number_format($item->pieces_per_package, 0, ',', '.') }} Lbr
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                        <td style="text-align: right; font-size: 12px;">
-                                            @if($item->area_per_piece)
-                                                @format($item->area_per_piece) M²
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
                                                 @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_thickness))
                                                 @format($item->dimension_thickness)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
-                                        <td>
+                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
+                                        <td style="text-align: left;">{{ $item->surface ?? '-' }}</td>
+                                        <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
+                                        <td style="text-align: left;">{{ $item->color ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">{{ $item->packaging ?? '-' }}</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">
+                                            @if($item->pieces_per_package)
+                                                {{ number_format($item->pieces_per_package, 0, ',', '.') }}
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">Lbr</td>
+                                        <td style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
+                                            @if($item->coverage_per_package)
+                                                @format($item->coverage_per_package)
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 30px; min-width: 30px;">M2</td>
+                                        <td class="ceramic-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
+                                            <div class="ceramic-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        </td>
+                                        <td class="ceramic-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
+                                            <div class="ceramic-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
+                                        </td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->price_per_package)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->price_per_package, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->price_per_package, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packaging ?? '-' }}</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_m2)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->comparison_price_per_m2, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->comparison_price_per_m2, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packaging ?? '-' }}</td>
                                     @endif
                                     <td class="text-center action-cell">
                                         <div class="btn-group-compact">
@@ -1362,59 +1620,9 @@ html.materials-booting .material-tab-actions {
                         </table>
                     </div>
                     <div class="material-footer-sticky">
-                        
-                        <!-- Left Area: Stats Info (Absolute Positioned) -->
-                        <div class="material-footer-left" style="position: absolute; left: 0; top: 38%; transform: translateY(-50%); display: flex; flex-direction: row; gap: 8px;">
 
-                            <!-- HEXAGON PER MATERIAL -->
-                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
-                                title="Total {{ $material['label'] }}">
-                                
-                                <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
-                                    <img src="./assets/hex1.png"
-                                        alt="Hexagon"
-                                        style="width: 50px; height: 50px;">
-
-                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
-                                            {{ number_format($material['db_count'], 0, ',', '.') }}
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <span class="material-footer-label">
-                                    {{ $material['label'] }}
-                                </span>
-                            </div>
-
-                            <!-- HEXAGON TOTAL -->
-                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
-                                title="Total Semua Material">
-                                
-                                <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
-                                    <img src="./assets/hex2.png"
-                                        alt="Hexagon"
-                                        style="width: 50px; height: 50px;">
-
-                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
-                                            {{ number_format($grandTotal, 0, ',', '.') }}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <span class="material-footer-label">
-                                    Total Material
-                                </span>
-                            </div>
-
-                        </div>
-
-                        <!-- Center Area: Pagination & Kanggo Logo -->
-                        <div class="material-footer-center" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; top: -10px;">
-
-
-
+                        <!-- Left Area: Pagination & Kanggo Logo -->
+                        <div class="material-footer-left">
                             <!-- Kanggo A-Z Pagination (Logo & Letters) -->
                             @if(!request('search'))
                             <div class="kanggo-container" style="padding-top: 0;">
@@ -1443,13 +1651,50 @@ html.materials-booting .material-tab-actions {
                             @endif
                         </div>
 
-                        <!-- Right Area: Button (Absolute Positioned) 
-                        <div class="material-footer-right" style="position: absolute; right: 0; top: 50%; transform: translateY(calc(-50% - 10px));">
-                            <a href="{{ route($material['type'] . 's.index', request()->query()) }}" class="btn btn-primary-glossy">
-                                Lihat Semua <i class="bi bi-arrow-right" style="margin-left: 6px;"></i>
-                            </a>
+                        <!-- Right Area: Hexagon Stats -->
+                        <div class="material-footer-right">
+                            <!-- HEXAGON PER MATERIAL -->
+                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                                title="Total {{ $material['label'] }}">
+
+                                <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <img src="./assets/hex1.png"
+                                        alt="Hexagon"
+                                        style="width: 50px; height: 50px;">
+
+                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
+                                            {{ number_format($material['db_count'], 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <span class="material-footer-label">
+                                    {{ $material['label'] }}
+                                </span>
+                            </div>
+
+                            <!-- HEXAGON TOTAL -->
+                            <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                                title="Total Semua Material">
+
+                                <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
+                                    <img src="./assets/hex2.png"
+                                        alt="Hexagon"
+                                        style="width: 50px; height: 50px;">
+
+                                    <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                        <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
+                                            {{ number_format($grandTotal, 0, ',', '.') }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <span class="material-footer-label">
+                                    Total Material
+                                </span>
+                            </div>
                         </div>
-                        -->
                     </div>
                 @else
                     <div style="padding: 60px 40px; text-align: center; color: #64748b; background: #fff; border-radius: 12px; border: 1px dashed #e2e8f0; margin-top: 20px;">
@@ -1935,6 +2180,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (url.includes('/sands/')) {
             materialType = 'sand';
             materialLabel = 'Pasir';
+        } else if (url.includes('/ceramics/')) {
+            materialType = 'ceramic';
+            materialLabel = 'Keramik';
         }
 
         if (url.includes('/create')) {
@@ -2153,19 +2401,29 @@ document.addEventListener('DOMContentLoaded', function() {
         highlightMaterialRowElement(row);
     }
 
+    function normalizeMaterialSearchValue(value) {
+        return (value || '').toLowerCase().trim();
+    }
+
     function highlightMaterialRowByType(materialTab, typeValue) {
         if (!materialTab || !typeValue) return;
         const panel = document.querySelector(`.material-tab-panel[data-tab="${materialTab}"]`);
         if (!panel) return;
 
-        const normalized = (typeValue || '').toLowerCase().trim();
+        const normalized = normalizeMaterialSearchValue(typeValue);
         if (!normalized) return;
 
         const rows = panel.querySelectorAll('tbody tr[data-material-kind]');
         let match = null;
         rows.forEach(row => {
             if (match) return;
-            const rowType = (row.dataset.materialKind || '').toLowerCase().trim();
+            const rowSearch = normalizeMaterialSearchValue(row.dataset.materialSearch || '');
+            if (rowSearch && rowSearch.includes(normalized)) {
+                match = row;
+                return;
+            }
+
+            const rowType = normalizeMaterialSearchValue(row.dataset.materialKind || '');
             if (rowType && rowType === normalized) {
                 match = row;
             }
@@ -2228,9 +2486,56 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    // Helper function to update active pagination letter
+    function updateActivePaginationLetter() {
+        const hash = window.location.hash; // e.g., #brick-letter-A
+
+        // Remove 'current' class from all pagination links
+        document.querySelectorAll('.kanggo-img-link').forEach(link => {
+            link.classList.remove('current');
+        });
+
+        // If hash exists and matches pattern, add 'current' to matching link
+        if (hash) {
+            const matchingLink = document.querySelector(`.kanggo-img-link[href="${hash}"]`);
+            if (matchingLink) {
+                matchingLink.classList.add('current');
+            }
+        }
+    }
+
+    // Helper function to scroll container to target element with offset
+    function scrollToTargetInContainer(targetId) {
+        const targetElement = document.getElementById(targetId);
+        if (!targetElement) return;
+
+        // Find the scrollable container (.table-container)
+        const container = targetElement.closest('.table-container');
+        if (!container) return;
+
+        // Calculate offset: position of target relative to container top
+        const containerRect = container.getBoundingClientRect();
+        const targetRect = targetElement.getBoundingClientRect();
+        const relativeTop = targetRect.top - containerRect.top;
+        const currentScroll = container.scrollTop;
+
+        const header = container.querySelector('thead');
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const offset = headerHeight + 12;
+        const scrollTarget = currentScroll + relativeTop - offset;
+
+        // Smooth scroll the container
+        container.scrollTo({
+            top: scrollTarget,
+            behavior: 'smooth'
+        });
+    }
+
     // Add click handlers to pagination links to preserve current tab
     document.querySelectorAll('.kanggo-img-link').forEach(link => {
         link.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default anchor behavior
+
             // Save current active tab before navigation
             const activeTab = document.querySelector('.material-tab-btn.active');
             if (activeTab) {
@@ -2241,18 +2546,58 @@ document.addEventListener('DOMContentLoaded', function() {
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
                 const targetId = href.slice(1);
-                window.setTimeout(() => highlightMaterialRow(targetId), 120);
+
+                // Update URL
+                history.replaceState(null, null, href);
+
+                // Update active pagination letter
+                updateActivePaginationLetter();
+
+                // Scroll to target in container with offset
+                scrollToTargetInContainer(targetId);
+
+                // Highlight after scroll
+                window.setTimeout(() => highlightMaterialRow(targetId), 400);
             }
         });
     });
 
-    if (window.location.hash) {
-        window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
+    // Handle page load with hash (prevent native jump)
+    const initialHash = window.__materialHash || window.location.hash;
+    if (initialHash) {
+        window.scrollTo(0, 0);
+        window.setTimeout(() => {
+            const targetId = initialHash.slice(1);
+
+            // Update active pagination letter
+            updateActivePaginationLetter();
+
+            // Scroll to target
+            scrollToTargetInContainer(targetId);
+
+            // Highlight row
+            window.setTimeout(() => highlightMaterialRow(targetId), 400);
+
+            history.replaceState(null, null, initialHash);
+        }, 500);
     }
 
+    // Handle hash change events
     window.addEventListener('hashchange', () => {
-        window.setTimeout(() => highlightMaterialRow(window.location.hash.slice(1)), 120);
+        const targetId = window.location.hash.slice(1);
+
+        // Update active pagination letter
+        updateActivePaginationLetter();
+
+        // Scroll to target
+        scrollToTargetInContainer(targetId);
+
+        // Highlight row
+        window.setTimeout(() => highlightMaterialRow(targetId), 400);
     });
+
+    // Initial update of active pagination letter on page load
+    updateActivePaginationLetter();
 
     // requestStickyUpdate(); // Removed - sticky footer functionality disabled
     // window.addEventListener('scroll', requestStickyUpdate, { passive: true });
@@ -2261,3 +2606,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
+
+
+

@@ -116,6 +116,19 @@
                     </div>
                 </div>
 
+                <!-- Permukaan -->
+                <div class="row">
+                    <label>Permukaan</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="surface"
+                               id="surface"
+                               value="{{ old('surface') }}"
+                               autocomplete="off"
+                               placeholder="Glossy, Matte, dll...">
+                    </div>
+                </div>
+
                 <!-- Kemasan (Packaging + Volume) -->
                 <div class="row" style="align-items: flex-start; margin-top: 15px;">
                     <label style="padding-top: 10px;">Kemasan</label>
@@ -125,7 +138,7 @@
                             <select name="packaging" id="packaging" style="width: 100%; height: 100%;">
                                 <option value="" selected>-- Pilih --</option>
                                 @foreach($units as $unit)
-                                    <option value="{{ $unit->name }}" {{ old('packaging', 'Dus') == $unit->name ? : '' }}>
+                                    <option value="{{ $unit->name }}" {{ old('packaging', 'Dus') == $unit->name ? 'selected' : '' }}>
                                         {{ $unit->name }}
                                     </option>
                                 @endforeach

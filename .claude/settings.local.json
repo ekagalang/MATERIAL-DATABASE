@@ -30,9 +30,11 @@
       "Bash(if not exist \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\app\\\\Traits\" mkdir \"C:\\\\Users\\\\ekaga\\\\OneDrive\\\\Documents\\\\Code\\\\MATERIAL-DATABASE\\\\app\\\\Traits\")",
       "Bash(curl:*)",
       "Bash(del:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(python clean_css.py:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "default"
 }

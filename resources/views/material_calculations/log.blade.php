@@ -66,7 +66,7 @@
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         background: transparent;
         border: none;
-        font-family: 'League Spartan', sans-serif !important;
+        font-family: 'Nunito', sans-serif !important;
         font-weight: 800;
     }
 

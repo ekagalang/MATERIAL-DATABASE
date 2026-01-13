@@ -11,6 +11,7 @@
         $formulaOptions[] = [
             'code' => $formula['code'] ?? '',
             'name' => $formula['name'] ?? '',
+            'materials' => $formula['materials'] ?? [],
         ];
     }
 
@@ -318,7 +319,7 @@
                     <div id="customMaterialForm" style="display:none; margin-top:16px;">
 
                         {{-- 1. BATA SECTION --}}
-                        <div class="material-section">
+                        <div class="material-section" data-material="brick">
                             <h4 class="section-header">Bata</h4>
 
                             @if($isMultiBrick)
@@ -361,7 +362,7 @@
                         </div>
 
                         {{-- 2. SEMEN SECTION (RESTORED DROPDOWNS) --}}
-                        <div class="material-section">
+                        <div class="material-section" data-material="cement">
                             <h4 class="section-header">Semen</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Semen
@@ -389,7 +390,7 @@
                         </div>
 
                         {{-- 3. PASIR SECTION (RESTORED DROPDOWNS) --}}
-                        <div class="material-section">
+                        <div class="material-section" data-material="sand">
                             <h4 class="section-header">Pasir</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Pasir
@@ -425,7 +426,7 @@
                         </div>
 
                         {{-- 4. CAT SECTION --}}
-                        <div class="material-section" id="catSection" style="display: none;">
+                        <div class="material-section" id="catSection" data-material="cat" style="display: none;">
                             <h4 class="section-header">Cat</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Cat
@@ -463,7 +464,7 @@
                         </div>
 
                         {{-- 5. KERAMIK SECTION --}}
-                        <div class="material-section" id="ceramicSection" style="display: none;">
+                        <div class="material-section" id="ceramicSection" data-material="ceramic" style="display: none;">
                             <h4 class="section-header">Keramik</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Keramik
@@ -486,7 +487,7 @@
                         </div>
 
                         {{-- 6. NAT SECTION --}}
-                        <div class="material-section" id="natSection" style="display: none;">
+                        <div class="material-section" id="natSection" data-material="nat" style="display: none;">
                             <h4 class="section-header">Nat</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Nat
@@ -551,6 +552,14 @@
     (function() {
         const dataScript = document.getElementById('materialCalculationFormData');
         const payload = dataScript ? JSON.parse(dataScript.textContent) : null;
+        const formulaMaterials = {};
+        if (payload && Array.isArray(payload.formulas)) {
+            payload.formulas.forEach(formula => {
+                if (formula && formula.code) {
+                    formulaMaterials[formula.code] = Array.isArray(formula.materials) ? formula.materials : [];
+                }
+            });
+        }
         if (typeof initMaterialCalculationForm === 'function') {
             initMaterialCalculationForm(document, payload);
         }
@@ -571,18 +580,32 @@
         }
 
         // Function to handle "Semua" checkbox
+        function shouldIncludeBest() {
+            const selectedWorkType = workTypeSelector ? workTypeSelector.value : null;
+            return selectedWorkType && Array.isArray(availableBestRecommendations)
+                ? availableBestRecommendations.includes(selectedWorkType)
+                : false;
+        }
+
         function handleAllCheckbox() {
             if (filterAll) {
                 if (filterAll.checked) {
-                    // Check all other checkboxes except custom AND best
+                    const includeBest = shouldIncludeBest();
+                    // Check all other checkboxes except custom, best only if available
                     filterCheckboxes.forEach(checkbox => {
                         if (checkbox === filterAll) return;
 
-                        if (checkbox.value === 'custom' || checkbox.value === 'best') {
+                        if (checkbox.value === 'custom') {
                             checkbox.checked = false;
-                        } else {
-                            checkbox.checked = true;
+                            return;
                         }
+
+                        if (checkbox.value === 'best') {
+                            checkbox.checked = includeBest;
+                            return;
+                        }
+
+                        checkbox.checked = true;
                     });
                 } else {
                     // Uncheck ALL checkboxes
@@ -596,8 +619,12 @@
 
         // Function to uncheck "Semua" if any other checkbox is unchecked
         function handleOtherCheckboxes() {
+            const includeBest = shouldIncludeBest();
             const allOthersChecked = Array.from(filterCheckboxes).every(checkbox => {
-                return checkbox === filterAll || checkbox.checked;
+                if (checkbox === filterAll) return true;
+                if (checkbox === filterCustom) return true;
+                if (checkbox.value === 'best' && !includeBest) return true;
+                return checkbox.checked;
             });
 
             if (filterAll && !allOthersChecked) {
@@ -828,101 +855,18 @@
                 // Toggle special inputs (layer count, plaster sides, skim sides)
                 toggleLayerInputs();
 
-                // Show/hide material sections based on work type in custom form
+                // Show/hide material sections based on formula materials in custom form
                 setTimeout(() => {
-                    const allSections = document.querySelectorAll('#customMaterialForm .material-section');
-                    let brickSec = null;
-                    let cementSec = null;
-                    let sandSec = null;
-                    let catSec = null;
-                    let ceramicSec = null;
-                    let natSec = null;
+                    const sections = document.querySelectorAll('#customMaterialForm .material-section');
+                    const requiredMaterials = Array.isArray(formulaMaterials[selectedWorkType]) && formulaMaterials[selectedWorkType].length > 0
+                        ? formulaMaterials[selectedWorkType]
+                        : ['brick', 'cement', 'sand'];
 
-                    allSections.forEach(section => {
-                        const header = section.querySelector('h4.section-header');
-                        if (header) {
-                            const headerText = header.textContent.trim();
-                            if (headerText === 'Bata') {
-                                brickSec = section;
-                            } else if (headerText === 'Semen') {
-                                cementSec = section;
-                            } else if (headerText === 'Pasir') {
-                                sandSec = section;
-                            } else if (headerText === 'Cat') {
-                                catSec = section;
-                            } else if (headerText === 'Keramik') {
-                                ceramicSec = section;
-                            } else if (headerText === 'Nat') {
-                                natSec = section;
-                            }
-                        }
+                    sections.forEach(section => {
+                        const materialKey = section.dataset.material;
+                        if (!materialKey) return;
+                        section.style.display = requiredMaterials.includes(materialKey) ? 'block' : 'none';
                     });
-
-                    if (selectedWorkType === 'wall_plastering') {
-                        // Wall plastering: hide brick, show cement and sand
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'block';
-                        if (sandSec) sandSec.style.display = 'block';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'none';
-                        if (natSec) natSec.style.display = 'none';
-                    } else if (selectedWorkType === 'skim_coating') {
-                        // Skim coating: hide brick and sand, show cement
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'block';
-                        if (sandSec) sandSec.style.display = 'none';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'none';
-                        if (natSec) natSec.style.display = 'none';
-                    } else if (selectedWorkType === 'painting') {
-                        // Painting: hide brick, cement, sand, show cat
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'none';
-                        if (sandSec) sandSec.style.display = 'none';
-                        if (catSec) catSec.style.display = 'block';
-                        if (ceramicSec) ceramicSec.style.display = 'none';
-                        if (natSec) natSec.style.display = 'none';
-                    } else if (selectedWorkType === 'floor_screed') {
-                        // Floor Screed: hide brick and cat, show cement and sand
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'block';
-                        if (sandSec) sandSec.style.display = 'block';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'none';
-                        if (natSec) natSec.style.display = 'none';
-                    } else if (selectedWorkType === 'coating_floor') {
-                        // Coating Floor: hide brick, sand and cat, show cement
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'block';
-                        if (sandSec) sandSec.style.display = 'none';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'none';
-                        if (natSec) natSec.style.display = 'none';
-                    } else if (selectedWorkType === 'tile_installation') {
-                        // Tile Installation: show cement, sand, ceramic, nat
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'block';
-                        if (sandSec) sandSec.style.display = 'block';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'block';
-                        if (natSec) natSec.style.display = 'block';
-                    } else if (selectedWorkType === 'grout_tile') {
-                        // Grout Tile: show ceramic, nat only
-                        if (brickSec) brickSec.style.display = 'none';
-                        if (cementSec) cementSec.style.display = 'none';
-                        if (sandSec) sandSec.style.display = 'none';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'block';
-                        if (natSec) natSec.style.display = 'block';
-                    } else {
-                        // Brick formulas: show brick, cement, sand, hide cat
-                        if (brickSec) brickSec.style.display = 'block';
-                        if (cementSec) cementSec.style.display = 'block';
-                        if (sandSec) sandSec.style.display = 'block';
-                        if (catSec) catSec.style.display = 'none';
-                        if (ceramicSec) ceramicSec.style.display = 'none';
-                        if (natSec) natSec.style.display = 'none';
-                    }
                 }, 100);
             };
 

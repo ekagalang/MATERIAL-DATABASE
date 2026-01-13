@@ -5,6 +5,7 @@
     $isGroupMode = $isGroupMode ?? false;
 @endphp
 
+<div id="preview-top"></div>
 <div class="ceramic-combinations-content">
     @if($isGroupMode)
         <h5 class="fw-bold mb-1" style="color: #f59e0b;">
@@ -27,11 +28,16 @@
 
     @if(!empty($combinations))
         @php
-            $filterCategories = ['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            $requestedFilters = $requestData['price_filters'] ?? [];
+            $filterCategories = ['TerBAIK', 'TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            if (in_array('custom', $requestedFilters, true)) {
+                $filterCategories[] = 'Custom';
+            }
             $rekapRows = [];
 
             foreach ($filterCategories as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     $matchItem = null;
 
@@ -45,22 +51,23 @@
                         }
                     }
 
-                    if ($matchItem) {
-                        $rekapRows[$key] = [
-                            'key' => $key,
-                            'item' => $matchItem,
-                        ];
-                    }
+                    $rekapRows[$key] = [
+                        'key' => $key,
+                        'item' => $matchItem,
+                    ];
                 }
             }
 
             $flatCombinations = array_values($rekapRows);
+            $detailCombinations = array_values(array_filter($rekapRows, function ($row) {
+                return !empty($row['item']);
+            }));
             $hasCement = false;
             $hasSand = false;
             $hasCeramic = false;
             $hasNat = false;
 
-            foreach ($flatCombinations as $combo) {
+            foreach ($detailCombinations as $combo) {
                 $item = $combo['item'];
                 if (isset($item['cement'])) $hasCement = true;
                 if (isset($item['sand'])) $hasSand = true;
@@ -153,6 +160,9 @@
             $signatureCount = [];
             foreach ($rekapRows as $row) {
                 $item = $row['item'];
+                if (empty($item)) {
+                    continue;
+                }
                 $signature = ($item['ceramic']->id ?? '0') . '-' .
                     ($item['nat']->id ?? '0') . '-' .
                     ($item['cement']->id ?? '0') . '-' .
@@ -169,6 +179,10 @@
 
             foreach ($rekapRows as $key => $row) {
                 $item = $row['item'];
+                if (empty($item)) {
+                    $globalColorMap[$key] = '#ffffff';
+                    continue;
+                }
                 $signature = ($item['ceramic']->id ?? '0') . '-' .
                     ($item['nat']->id ?? '0') . '-' .
                     ($item['cement']->id ?? '0') . '-' .
@@ -339,8 +353,9 @@
                         @php
                             $label = $combo['key'];
                             $item = $combo['item'];
-                            $res = $item['result'] ?? [];
-                            $grandTotal = $res['grand_total'] ?? ($item['total_cost'] ?? 0);
+                            $hasItem = !empty($item);
+                            $res = $hasItem ? ($item['result'] ?? []) : [];
+                            $grandTotal = $hasItem ? ($res['grand_total'] ?? ($item['total_cost'] ?? 0)) : null;
                             $primaryLabel = $label;
                             $labelPrefix = preg_replace('/\s+\d+.*$/', '', $primaryLabel);
                             $labelPrefix = trim($labelPrefix);
@@ -363,39 +378,39 @@
                             <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $bgColor }}; padding: 4px 8px; vertical-align: middle; width: 140px; min-width: 140px;">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>{{ number_format($grandTotal, 0, ',', '.') }}</span>
+                                    <span>{{ $grandTotal !== null ? number_format($grandTotal, 0, ',', '.') : '-' }}</span>
                                 </div>
                             </td>
                             @if($hasCement)
                             <td style="background: {{ $cementBgColor }}; vertical-align: middle;">
-                                {{ isset($item['cement']) ? $item['cement']->brand : '-' }}
+                                {{ $hasItem && isset($item['cement']) ? $item['cement']->brand : '-' }}
                             </td>
                             <td class="text-muted small" style="background: {{ $cementBgColor }}; vertical-align: middle; {{ $lastMaterial !== 'cement' ? 'border-right: 2px solid #891313;' : '' }}">
-                                {{ isset($item['cement']) ? (($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg') : '-' }}
+                                {{ $hasItem && isset($item['cement']) ? (($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg') : '-' }}
                             </td>
                             @endif
                             @if($hasSand)
                             <td style="background: {{ $sandBgColor }}; vertical-align: middle;">
-                                {{ isset($item['sand']) ? $item['sand']->brand : '-' }}
+                                {{ $hasItem && isset($item['sand']) ? $item['sand']->brand : '-' }}
                             </td>
                             <td class="text-muted small" style="background: {{ $sandBgColor }}; vertical-align: middle; {{ $lastMaterial !== 'sand' ? 'border-right: 2px solid #891313;' : '' }}">
-                                {{ isset($item['sand']) ? (($item['sand']->package_unit ?? '-') . ' - ' . ($item['sand']->package_volume ? (($item['sand']->package_volume + 0) . ' M3') : '-')) : '-' }}
+                                {{ $hasItem && isset($item['sand']) ? (($item['sand']->package_unit ?? '-') . ' - ' . ($item['sand']->package_volume ? (($item['sand']->package_volume + 0) . ' M3') : '-')) : '-' }}
                             </td>
                             @endif
                             @if($hasCeramic)
                             <td style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
-                                {{ isset($item['ceramic']) ? $item['ceramic']->brand : '-' }}
+                                {{ $hasItem && isset($item['ceramic']) ? $item['ceramic']->brand : '-' }}
                             </td>
                             <td class="text-muted small" style="background: {{ $ceramicBgColor }}; vertical-align: middle; {{ $lastMaterial !== 'ceramic' ? 'border-right: 2px solid #891313;' : '' }}">
-                                {{ isset($item['ceramic']) ? (($item['ceramic']->color ?? '-') . ' (' . ($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ')') : '-' }}
+                                {{ $hasItem && isset($item['ceramic']) ? (($item['ceramic']->color ?? '-') . ' (' . ($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ')') : '-' }}
                             </td>
                             @endif
                             @if($hasNat)
                             <td style="background: {{ $natBgColor }}; vertical-align: middle;">
-                                {{ isset($item['nat']) ? $item['nat']->brand : '-' }}
+                                {{ $hasItem && isset($item['nat']) ? $item['nat']->brand : '-' }}
                             </td>
                             <td class="text-muted small" style="background: {{ $natBgColor }}; vertical-align: middle;">
-                                {{ isset($item['nat']) ? (($item['nat']->color ?? 'Nat') . ' (' . ($item['nat']->package_weight_net + 0) . ' Kg)') : '-' }}
+                                {{ $hasItem && isset($item['nat']) ? (($item['nat']->color ?? 'Nat') . ' (' . ($item['nat']->package_weight_net + 0) . ' Kg)') : '-' }}
                             </td>
                             @endif
                         </tr>
@@ -426,7 +441,7 @@
                 </thead>
                 <tbody>
                     @php $comboIndex = 0; @endphp
-                    @foreach($flatCombinations as $combo)
+                    @foreach($detailCombinations as $combo)
                         @php
                             $comboIndex++;
                             $label = $combo['key'];
@@ -560,9 +575,11 @@
                                             ];
                                             $color = $colorSet[$number];
                                         @endphp
-                                        <span class="badge" style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: {{ $color['text'] }}; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
-                                            {{ $singleLabel }}
-                                        </span>
+                                        <a href="#preview-top" style="text-decoration: none; color: inherit; display: inline-block;">
+                                            <span class="badge" style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: {{ $color['text'] }}; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
+                                                {{ $singleLabel }}
+                                            </span>
+                                        </a>
                                         @if($index < count($labelParts) - 1)
                                             <span style="color: #94a3b8; font-size: 10px; font-weight: 600;">=</span>
                                         @endif
@@ -671,7 +688,6 @@
                                             @if(isset($item['nat']))
                                                 <input type="hidden" name="nat_id" value="{{ $item['nat']->id }}">
                                             @endif
-                                            <input type="hidden" name="price_filters[]" value="custom">
                                             <input type="hidden" name="confirm_save" value="1">
                                             <button type="submit" class="btn-select">
                                                 <i class="bi bi-check-circle me-1"></i> Pilih

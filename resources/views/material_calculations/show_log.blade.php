@@ -234,7 +234,7 @@
                 .show-log-scope .small,
                 .show-log-scope .fw-bold,
                 .show-log-scope .badge {
-                    font-family: 'League Spartan', sans-serif !important;
+                    font-family: 'Nunito', sans-serif !important;
                     color: #ffffff !important;
                     -webkit-text-stroke: 0.2px black !important;
                     text-shadow: 0 1.1px 0 #000000 !important;

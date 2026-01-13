@@ -95,6 +95,7 @@ class CeramicRepository extends BaseRepository
             'code',
             'color',
             'form',
+            'surface',
             'store',
             'address',
             'dimension_length',

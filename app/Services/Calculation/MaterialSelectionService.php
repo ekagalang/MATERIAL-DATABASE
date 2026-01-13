@@ -73,7 +73,7 @@ class MaterialSelectionService
 
         // If 'best' filter, get bricks with recommendations
         if (in_array('best', $priceFilters)) {
-            $recommendedBrickIds = $this->repository->getRecommendedBrickIds('best')
+            $recommendedBrickIds = $this->repository->getRecommendedBrickIds('best', $workType)
                 ->filter(function ($brickId) use ($workType) {
                     // Additional filtering by work_type could be added here
                     return true;
@@ -102,7 +102,7 @@ class MaterialSelectionService
     protected function selectBricksForBestFilter(array $request, string $workType): EloquentCollection
     {
         // Try to get recommended bricks first
-        $recommendedBrickIds = $this->repository->getRecommendedBrickIds('best');
+        $recommendedBrickIds = $this->repository->getRecommendedBrickIds('best', $workType);
 
         if ($recommendedBrickIds->isNotEmpty()) {
             return $this->repository->getBricksByIds($recommendedBrickIds->toArray());

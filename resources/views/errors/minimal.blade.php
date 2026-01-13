@@ -28,6 +28,11 @@
                         @yield('message')
                     </div>
                 </div>
+                <div class="mt-4 text-center">
+                    <button onclick="history.back()" style="cursor: pointer; padding: 8px 16px; background: transparent; border: 1px solid #cbd5e0; border-radius: 4px; color: #4a5568;">
+                        KEMBALI
+                    </button>
+                </div>
             </div>
         </div>
     </body>

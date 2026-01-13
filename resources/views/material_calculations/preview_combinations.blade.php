@@ -3,6 +3,7 @@
 @section('title', 'Pilih Kombinasi Material')
 
 @section('content')
+<div id="preview-top"></div>
 <div class="container-fluid py-4 preview-combinations-page">
     <div class="container mb-4">
         <div class="d-flex justify-content-between align-items-center">
@@ -361,7 +362,11 @@
         {{-- TABEL REKAP GLOBAL (untuk semua bata) --}}
         @php
             // Prepare rekap data global untuk semua bata
-            $filterCategories = ['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            $requestedFilters = $requestData['price_filters'] ?? [];
+            $filterCategories = ['TerBAIK', 'TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            if (in_array('custom', $requestedFilters, true)) {
+                $filterCategories[] = 'Custom';
+            }
             $globalRekapData = [];
             $hasBrick = false;
             $hasCement = false;
@@ -382,6 +387,11 @@
 
             // Definisi warna label untuk kolom Rekap (sama dengan yang di tabel utama)
             $rekapLabelColors = [
+                'TerBAIK' => [
+                    1 => ['bg' => '#fca5a5', 'text' => '#991b1b'],
+                    2 => ['bg' => '#fecaca', 'text' => '#dc2626'],
+                    3 => ['bg' => '#fee2e2', 'text' => '#ef4444'],
+                ],
                 'TerUMUM' => [
                     1 => ['bg' => '#93c5fd', 'text' => '#1e40af'],
                     2 => ['bg' => '#bfdbfe', 'text' => '#2563eb'],
@@ -401,6 +411,11 @@
                     1 => ['bg' => '#d8b4fe', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
+                ],
+                'Custom' => [
+                    1 => ['bg' => '#f8fafc', 'text' => '#64748b'],
+                    2 => ['bg' => '#f8fafc', 'text' => '#64748b'],
+                    3 => ['bg' => '#f8fafc', 'text' => '#64748b'],
                 ],
             ];
 
@@ -693,8 +708,9 @@
             $colorIndex = 0;
             $brickDataColorMap = []; // Track colors by complete brick data
 
-            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+            foreach ($filterCategories as $filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     if (isset($globalRekapData[$key])) {
                         $project = null;
@@ -739,8 +755,9 @@
             $colorIndex = 0;
             $cementDataColorMap = []; // Track colors by complete cement data
 
-            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+            foreach ($filterCategories as $filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     if (isset($globalRekapData[$key])) {
                         $cement = null;
@@ -784,8 +801,9 @@
             $colorIndex = 0;
             $sandDataColorMap = []; // Track colors by complete sand data
 
-            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+            foreach ($filterCategories as $filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     if (isset($globalRekapData[$key])) {
                         $sand = null;
@@ -829,8 +847,9 @@
             $catDataColorMap = [];
             $catColorMap = [];
 
-            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+            foreach ($filterCategories as $filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_id'])) {
                         // Create signature
@@ -855,8 +874,9 @@
             $ceramicDataColorMap = [];
             $ceramicColorMap = [];
 
-            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+            foreach ($filterCategories as $filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_id'])) {
                         $ceramicId = $globalRekapData[$key]['ceramic_id'];
@@ -880,8 +900,9 @@
             $natDataColorMap = [];
             $natColorMap = [];
 
-            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                for ($i = 1; $i <= 3; $i++) {
+            foreach ($filterCategories as $filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                for ($i = 1; $i <= $maxCount; $i++) {
                     $key = $filterType . ' ' . $i;
                     if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_id'])) {
                         $natId = $globalRekapData[$key]['nat_id'];
@@ -1129,8 +1150,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach(['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType)
-                                @for($i = 1; $i <= 3; $i++)
+                            @foreach($filterCategories as $filterType)
+                                @php $maxCount = $filterType === 'Custom' ? 1 : 3; @endphp
+                                @for($i = 1; $i <= $maxCount; $i++)
                                     @php
                                         $key = $filterType . ' ' . $i;
                                         $bgColor = $globalColorMap[$key] ?? '#ffffff';
@@ -1307,7 +1329,7 @@
                                     .table-preview a,
                                     .table-preview label,
                                     .table-preview button {
-                                        font-family: 'League Spartan', sans-serif !important;
+                                        font-family: 'Nunito', sans-serif !important;
                                         color: #ffffff !important;
                                         -webkit-text-stroke: 0.2px black !important;
                                         text-shadow: 0 1.1px 0 #000000 !important;
@@ -1470,8 +1492,9 @@
                                             // Display them in the order of the recap table
                                             $allFilteredCombinations = [];
 
-                                            foreach (['TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'] as $filterType) {
-                                                for ($i = 1; $i <= 3; $i++) {
+                                            foreach ($filterCategories as $filterType) {
+                                                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                                                for ($i = 1; $i <= $maxCount; $i++) {
                                                     $key = $filterType . ' ' . $i;
 
                                                     // Check if this filter exists in global recap
@@ -1747,9 +1770,11 @@
                                                                     ];
                                                                     $color = $colorSet[$number];
                                                                 @endphp
-                                                                <span class="badge" style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: {{ $color['text'] }}; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
-                                                                    {{ $singleLabel }}
-                                                                </span>
+                                                                <a href="#preview-top" class="filter-back-top">
+                                                                    <span class="badge" style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: {{ $color['text'] }}; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
+                                                                        {{ $singleLabel }}
+                                                                    </span>
+                                                                </a>
                                                                 @if($index < count($labelParts) - 1)
                                                                     <span style="color: #94a3b8; font-size: 10px; font-weight: 600;">=</span>
                                                                 @endif
@@ -1916,7 +1941,7 @@
     .preview-combinations-page td,
     .preview-combinations-page i,
     .preview-combinations-page strong {
-        font-family: 'League Spartan', sans-serif !important;
+        font-family: 'Nunito', sans-serif !important;
         color: #ffffff !important;
         -webkit-text-stroke: 0.2px black !important;
         text-shadow: 0 1.1px 0 #000000 !important;
@@ -1926,6 +1951,11 @@
     /* Smooth scroll untuk seluruh halaman */
     html {
         scroll-behavior: smooth;
+        scroll-padding-top: 70px;
+    }
+
+    .preview-combinations-page [id^="detail-"] {
+        scroll-margin-top: 70px;
     }
 
     /* Hover effect untuk button cancel */
@@ -1941,10 +1971,15 @@
         text-decoration: underline !important;
         opacity: 0.8;
     }
+    .preview-combinations-page .filter-back-top {
+        text-decoration: none;
+        color: inherit;
+        display: inline-block;
+    }
 
     .table-rekap-global th {
         padding: 8px 10px !important;
-        font-size: 13px !important;
+        font-size: 14px !important;
     }
     .table-rekap-global td {
         padding: 8px 10px !important;
@@ -1958,7 +1993,7 @@
     .table-preview a,
     .table-preview label,
     .table-preview button {
-        font-family: 'League Spartan', sans-serif !important;
+        font-family: 'Nunito', sans-serif !important;
         color: #ffffff !important;
         -webkit-text-stroke: 0.2px black !important;
         text-shadow: 0 1.1px 0 #000000 !important;
@@ -1968,7 +2003,7 @@
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
-        font-size: 13px;
+        font-size: 12px;
         margin: 0;
     }
     .table-preview th {
