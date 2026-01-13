@@ -33,8 +33,9 @@
     <title>{{ $topbarTitle }}</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    <!-- Google Fonts: League Spartan -->
-    <link href="https://fonts.googleapis.com/css2?family=Anton&family=League+Spartan:wght@100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
@@ -87,10 +88,10 @@
                                 </div>
                                 <div class="dropdown-grid">
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
+                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
+                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
                                 </div>
                                 <div class="nav-material-actions">
                                     <button type="button" id="applyMaterialFilter" class="btn btn-primary-glossy btn-sm nav-material-apply">Terapkan Filter</button>
@@ -117,10 +118,10 @@
                                 </div>
                                 <div class="dropdown-grid">
                                     <a href="{{ route('bricks.create') }}" class="dropdown-item global-open-modal">Bata</a>
-                                    <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
-                                    <a href="{{ route('sands.create') }}" class="dropdown-item global-open-modal">Pasir</a>
                                     <a href="{{ route('cats.create') }}" class="dropdown-item global-open-modal">Cat</a>
                                     <a href="{{ route('ceramics.create') }}" class="dropdown-item global-open-modal">Keramik</a>
+                                    <a href="{{ route('sands.create') }}" class="dropdown-item global-open-modal">Pasir</a>
+                                    <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
                                 </div>
                             </div>
                         </div>
@@ -481,7 +482,8 @@
             const STORAGE_KEY = 'material_filter_preferences';
             const materialTypeSuggestionState = {
                 loaded: false,
-                items: []
+                items: [],
+                cache: {}
             };
 
             function normalizeMaterialType(text) {
@@ -492,7 +494,7 @@
                 const query = normalizeMaterialType(term);
                 if (!query) return options;
                 return options.filter(option => {
-                    const label = normalizeMaterialType(option.type);
+                    const label = normalizeMaterialType(option.label);
                     return label.includes(query);
                 });
             }
@@ -503,7 +505,7 @@
                 items.forEach(option => {
                     const item = document.createElement('div');
                     item.className = 'autocomplete-item';
-                    item.textContent = option.type;
+                    item.textContent = option.label;
                     item.addEventListener('click', function() {
                         onSelect(option);
                     });
@@ -512,30 +514,47 @@
                 listEl.style.display = items.length ? 'block' : 'none';
             }
 
-            function loadMaterialTypeSuggestions() {
-                if (materialTypeSuggestionState.loaded) {
+            function loadMaterialTypeSuggestions(term = '') {
+                const query = (term || '').trim();
+                if (!query && materialTypeSuggestionState.loaded) {
                     return Promise.resolve(materialTypeSuggestionState.items);
                 }
+                if (materialTypeSuggestionState.cache[query]) {
+                    return Promise.resolve(materialTypeSuggestionState.cache[query]);
+                }
 
-                return fetch('{{ route("materials.type-suggestions") }}', {
+                const url = new URL('{{ route("materials.type-suggestions") }}', window.location.origin);
+                if (query) {
+                    url.searchParams.set('q', query);
+                }
+
+                return fetch(url.toString(), {
                     headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 })
                     .then(response => response.ok ? response.json() : null)
                     .then(data => {
                         const items = Array.isArray(data && data.items) ? data.items : [];
-                        materialTypeSuggestionState.items = items
+                        const mappedItems = items
                             .map(item => ({
                                 materialType: item.material_type,
-                                type: item.type
+                                type: item.type,
+                                label: item.label || item.type
                             }))
                             .filter(item => item.materialType && item.type);
-                        materialTypeSuggestionState.loaded = true;
-                        return materialTypeSuggestionState.items;
+                        materialTypeSuggestionState.cache[query] = mappedItems;
+                        if (!query) {
+                            materialTypeSuggestionState.items = mappedItems;
+                            materialTypeSuggestionState.loaded = true;
+                        }
+                        return mappedItems;
                     })
                     .catch(() => {
-                        materialTypeSuggestionState.loaded = true;
-                        materialTypeSuggestionState.items = [];
-                        return materialTypeSuggestionState.items;
+                        if (!query) {
+                            materialTypeSuggestionState.loaded = true;
+                            materialTypeSuggestionState.items = [];
+                        }
+                        materialTypeSuggestionState.cache[query] = [];
+                        return materialTypeSuggestionState.cache[query];
                     });
             }
 
@@ -543,6 +562,17 @@
             const navMaterialSearchList = document.getElementById('navMaterialSearchList');
             const navAddMaterialSearchInput = document.getElementById('navAddMaterialSearchInput');
             const navAddMaterialSearchList = document.getElementById('navAddMaterialSearchList');
+
+            function showMaterialSuggestions(term, listEl, onSelect) {
+                const query = (term || '').trim();
+                if (!query && materialTypeSuggestionState.loaded) {
+                    renderMaterialTypeList(listEl, materialTypeSuggestionState.items, onSelect);
+                    return;
+                }
+                loadMaterialTypeSuggestions(query).then(options => {
+                    renderMaterialTypeList(listEl, options, onSelect);
+                });
+            }
 
             if (navMaterialSearchInput && navMaterialSearchList) {
                 function closeNavMaterialList() {
@@ -593,35 +623,31 @@
                     const query = normalizeMaterialType(term);
                     if (!query) return null;
                     return items.find(option => {
-                        return normalizeMaterialType(option.type) === query;
+                        return normalizeMaterialType(option.label) === query;
                     }) || null;
                 }
 
                 function applyNavMaterialSelection(option) {
-                    navMaterialSearchInput.value = option.type;
+                    navMaterialSearchInput.value = option.label;
                     closeNavMaterialList();
-                    navigateToMaterialType(option.materialType, option.type);
+                    navigateToMaterialType(option.materialType, option.label);
                 }
 
                 navMaterialSearchInput.addEventListener('focus', function() {
-                    loadMaterialTypeSuggestions().then(options => {
-                        renderMaterialTypeList(navMaterialSearchList, filterMaterialTypeOptions(navMaterialSearchInput.value, options), applyNavMaterialSelection);
-                    });
+                    showMaterialSuggestions(navMaterialSearchInput.value, navMaterialSearchList, applyNavMaterialSelection);
                 });
 
                 navMaterialSearchInput.addEventListener('input', function() {
                     const term = navMaterialSearchInput.value || '';
-                    loadMaterialTypeSuggestions().then(options => {
-                        renderMaterialTypeList(navMaterialSearchList, filterMaterialTypeOptions(term, options), applyNavMaterialSelection);
-                    });
+                    showMaterialSuggestions(term, navMaterialSearchList, applyNavMaterialSelection);
                 });
 
                 navMaterialSearchInput.addEventListener('keydown', function(event) {
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         const term = navMaterialSearchInput.value || '';
-                        loadMaterialTypeSuggestions().then(options => {
-                            const items = filterMaterialTypeOptions(term, options);
+                        loadMaterialTypeSuggestions(term).then(options => {
+                            const items = options;
                             if (!items.length) return;
                             const exact = findExactNavMaterial(term, items);
                             applyNavMaterialSelection(exact || items[0]);
@@ -647,7 +673,7 @@
                 }
 
                 function applyAddMaterialSelection(option) {
-                    navAddMaterialSearchInput.value = option.type;
+                    navAddMaterialSearchInput.value = option.label;
                     closeAddMaterialList();
                     const createUrlMap = {
                         brick: '{{ route("bricks.create") }}',
@@ -658,31 +684,27 @@
                     };
                     const targetUrl = createUrlMap[option.materialType];
                     if (targetUrl && typeof openGlobalMaterialModal === 'function') {
-                        openGlobalMaterialModal(targetUrl, option.type);
+                        openGlobalMaterialModal(targetUrl);
                     }
                 }
 
                 navAddMaterialSearchInput.addEventListener('focus', function() {
-                    loadMaterialTypeSuggestions().then(options => {
-                        renderMaterialTypeList(navAddMaterialSearchList, filterMaterialTypeOptions(navAddMaterialSearchInput.value, options), applyAddMaterialSelection);
-                    });
+                    showMaterialSuggestions(navAddMaterialSearchInput.value, navAddMaterialSearchList, applyAddMaterialSelection);
                 });
 
                 navAddMaterialSearchInput.addEventListener('input', function() {
                     const term = navAddMaterialSearchInput.value || '';
-                    loadMaterialTypeSuggestions().then(options => {
-                        renderMaterialTypeList(navAddMaterialSearchList, filterMaterialTypeOptions(term, options), applyAddMaterialSelection);
-                    });
+                    showMaterialSuggestions(term, navAddMaterialSearchList, applyAddMaterialSelection);
                 });
 
                 navAddMaterialSearchInput.addEventListener('keydown', function(event) {
                     if (event.key === 'Enter') {
                         event.preventDefault();
                         const term = navAddMaterialSearchInput.value || '';
-                        loadMaterialTypeSuggestions().then(options => {
-                            const items = filterMaterialTypeOptions(term, options);
+                        loadMaterialTypeSuggestions(term).then(options => {
+                            const items = options;
                             if (!items.length) return;
-                            const exact = items.find(option => normalizeMaterialType(option.type) === normalizeMaterialType(term)) || null;
+                            const exact = items.find(option => normalizeMaterialType(option.label) === normalizeMaterialType(term)) || null;
                             applyAddMaterialSelection(exact || items[0]);
                         });
                     } else if (event.key === 'Escape') {
@@ -699,6 +721,8 @@
                     closeAddMaterialList();
                 });
             }
+
+            loadMaterialTypeSuggestions('').catch(() => {});
 
             // 1. Load initial state (Visual Only)
             let savedFilter;
@@ -802,6 +826,7 @@
                 else if (url.includes('/cats/')) { materialType = 'cat'; materialLabel = 'Cat'; } 
                 else if (url.includes('/cements/')) { materialType = 'cement'; materialLabel = 'Semen'; } 
                 else if (url.includes('/sands/')) { materialType = 'sand'; materialLabel = 'Pasir'; }
+                else if (url.includes('/ceramics/')) { materialType = 'ceramic'; materialLabel = 'Keramik'; }
                 else if (url.includes('/settings/recommendations')) { materialType = 'recommendations'; materialLabel = 'Setting Rekomendasi'; }
 
                 if (url.includes('/create')) action = 'create';

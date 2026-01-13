@@ -117,6 +117,19 @@
                     </div>
                 </div>
 
+                <!-- Permukaan -->
+                <div class="row">
+                    <label>Permukaan</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="surface"
+                               id="surface"
+                               value="{{ old('surface', $ceramic->surface) }}"
+                               autocomplete="off"
+                               placeholder="Glossy, Matte, dll...">
+                    </div>
+                </div>
+
                 <!-- Kemasan (Packaging + Volume) -->
                 <div class="row" style="align-items: flex-start; margin-top: 15px;">
                     <label style="padding-top: 10px;">Kemasan</label>
@@ -126,7 +139,7 @@
                             <select name="packaging" id="packaging" style="width: 100%; height: 100%;">
                                 <option value="" selected>-- Pilih --</option>
                                 @foreach($units as $unit)
-                                    <option value="{{ $unit->name }}" {{ old('packaging', $ceramic->packaging ?? 'Dus') == $unit->name ? : '' }}>
+                                    <option value="{{ $unit->name }}" {{ old('packaging', $ceramic->packaging ?? 'Dus') == $unit->name ? 'selected' : '' }}>
                                         {{ $unit->name }}
                                     </option>
                                 @endforeach
@@ -157,6 +170,19 @@
                 <!-- Dimensi (Panjang × Lebar grouped, Tebal, Luas) -->
                 <div class="row" style="align-items: flex-start; margin-top: 15px;">
                     <label style="padding-top: 18px;">Dimensi</label>
+                    @php
+                        $lengthValue = old('dimension_length', $ceramic->dimension_length);
+                        $lengthValue = ($lengthValue === null || $lengthValue === '') ? '' : (string) $lengthValue;
+                        if ($lengthValue !== '' && strpos($lengthValue, '.') !== false) {
+                            $lengthValue = rtrim(rtrim($lengthValue, '0'), '.');
+                        }
+
+                        $widthValue = old('dimension_width', $ceramic->dimension_width);
+                        $widthValue = ($widthValue === null || $widthValue === '') ? '' : (string) $widthValue;
+                        if ($widthValue !== '' && strpos($widthValue, '.') !== false) {
+                            $widthValue = rtrim(rtrim($widthValue, '0'), '.');
+                        }
+                    @endphp
                     <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 15px; width: 100%;">
                         <!-- Group: Panjang × Lebar -->
                         <div style="display: flex; align-items: flex-end; gap: 5px; flex: 2;">
@@ -169,7 +195,7 @@
                                            class="autocomplete-input"
                                            data-field="dimension_length"
                                            step="0.01"
-                                           value="{{ old('dimension_length', $ceramic->dimension_length) }}"
+                                           value="{{ $lengthValue }}"
                                            placeholder="0"
                                            autocomplete="off"
                                            required
@@ -194,7 +220,7 @@
                                            class="autocomplete-input"
                                            data-field="dimension_width"
                                            step="0.01"
-                                           value="{{ old('dimension_width', $ceramic->dimension_width) }}"
+                                           value="{{ $widthValue }}"
                                            placeholder="0"
                                            autocomplete="off"
                                            required
@@ -215,6 +241,10 @@
                             @php
                                 $thicknessCm = old('dimension_thickness', $ceramic->dimension_thickness);
                                 $thicknessMm = ($thicknessCm !== null && $thicknessCm !== '') ? ((float) $thicknessCm * 10) : '';
+                                $thicknessMm = ($thicknessMm === '' || $thicknessMm === null) ? '' : (string) $thicknessMm;
+                                if ($thicknessMm !== '' && strpos($thicknessMm, '.') !== false) {
+                                    $thicknessMm = rtrim(rtrim($thicknessMm, '0'), '.');
+                                }
                             @endphp
                             <div class="dimensi-input-with-unit">
                                 <input type="number"
@@ -291,6 +321,7 @@
                                            data-field="comparison_price_per_m2"
                                            inputmode="numeric"
                                            placeholder="0"
+                                           value="{{ old('comparison_price_per_m2', $ceramic->comparison_price_per_m2) }}"
                                            autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
                                     <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ M2</span>

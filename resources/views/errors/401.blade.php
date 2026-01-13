@@ -13,7 +13,7 @@
             margin: 0px;
             overflow: hidden;
             background: linear-gradient(135deg, #450a0a 0%, #891313 100%);
-            font-family: 'League Spartan', sans-serif;
+            font-family: 'Nunito', sans-serif;
         }
 
         body::before {
@@ -74,7 +74,7 @@
             transition: 0.2s;
             font-size: 1em;
             font-weight: 700;
-            font-family: 'League Spartan', sans-serif;
+            font-family: 'Nunito', sans-serif;
             text-decoration: none;
             display: inline-block;
             margin-right: 15px;
@@ -176,6 +176,7 @@
             Maaf, Anda tidak memiliki akses ke area proyek ini. Harap tunjukkan ID Card atau hubungi keamanan.
         </div>
         <a href="/login" class="error__button error__button--active">LOGIN SEKARANG</a>
+        <button onclick="history.back()" class="error__button">KEMBALI</button>
         <a href="/" class="error__button">KEMBALI KE POS</a>
     </div>
 

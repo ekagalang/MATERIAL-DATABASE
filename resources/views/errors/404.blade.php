@@ -7,7 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         /* BASE STYLES */
-        html, body { height: 100%; width: 100%; margin: 0px; overflow: hidden; background: linear-gradient(135deg, #450a0a 0%, #891313 100%); font-family: 'League Spartan', sans-serif; }
+        html, body { height: 100%; width: 100%; margin: 0px; overflow: hidden; background: linear-gradient(135deg, #450a0a 0%, #891313 100%); font-family: 'Nunito', sans-serif; }
         body::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px); background-size: 50px 50px; pointer-events: none; }
         
         /* TEXT */
@@ -15,7 +15,7 @@
         .error__title { font-size: 8em; font-weight: 900; line-height: 1; text-shadow: 4px 4px 0px #2a0404; color: #fca5a5; margin: 0; }
         .error__subtitle { font-size: 2.5em; font-weight: 700; margin-bottom: 20px; color: #fbbf24; }
         .error__description { opacity: 0.9; font-size: 1.2em; line-height: 1.5; color: #e2e8f0; margin-bottom: 40px; }
-        .error__button { padding: 12px 30px; border: 2px solid #fbbf24; background-color: transparent; border-radius: 8px; color: #fbbf24; cursor: pointer; transition: 0.2s; font-size: 1em; font-weight: 700; font-family: 'League Spartan', sans-serif; text-decoration: none; display: inline-block; margin-right: 15px; }
+        .error__button { padding: 12px 30px; border: 2px solid #fbbf24; background-color: transparent; border-radius: 8px; color: #fbbf24; cursor: pointer; transition: 0.2s; font-size: 1em; font-weight: 700; font-family: 'Nunito', sans-serif; text-decoration: none; display: inline-block; margin-right: 15px; }
         .error__button:hover { background-color: rgba(251, 191, 36, 0.1); }
         .error__button--active { background-color: #fbbf24; border: 2px solid #fbbf24; color: #450a0a; }
         .error__button--active:hover { box-shadow: 0px 0px 15px 0px rgba(251, 191, 36, 0.5); background-color: #f59e0b; }

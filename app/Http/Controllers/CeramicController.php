@@ -82,12 +82,15 @@ class CeramicController extends Controller
             'code' => 'nullable|string',
             'color' => 'nullable|string',
             'form' => 'nullable|string',
+            'surface' => 'nullable|string|max:255',
             'dimension_length' => 'required|numeric',
             'dimension_width' => 'required|numeric',
             'dimension_thickness' => 'nullable|numeric',
             'pieces_per_package' => 'required|integer',
             'coverage_per_package' => 'nullable|numeric',
             'price_per_package' => 'required|numeric',
+            'comparison_price_per_m2' => 'nullable|numeric',
+            'packaging' => 'nullable|string|max:255',
             'store' => 'nullable|string',
             'address' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
@@ -125,12 +128,15 @@ class CeramicController extends Controller
             'code' => 'nullable|string',
             'color' => 'nullable|string',
             'form' => 'nullable|string',
+            'surface' => 'nullable|string|max:255',
             'dimension_length' => 'required|numeric',
             'dimension_width' => 'required|numeric',
             'dimension_thickness' => 'nullable|numeric',
             'pieces_per_package' => 'required|integer',
             'coverage_per_package' => 'nullable|numeric',
             'price_per_package' => 'required|numeric',
+            'comparison_price_per_m2' => 'nullable|numeric',
+            'packaging' => 'nullable|string|max:255',
             'store' => 'nullable|string',
             'address' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
@@ -166,6 +172,7 @@ class CeramicController extends Controller
             'code',
             'color',
             'form',
+            'surface',
             'packaging',
             'pieces_per_package',
             'dimension_length',
@@ -186,6 +193,11 @@ class CeramicController extends Controller
         $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
         $filters = [];
+
+        // Rule: filter brand by selected type
+        if ($field === 'brand' && $request->filled('type')) {
+            $filters['type'] = (string) $request->query('type');
+        }
 
         // Rule: filter by selected brand
         $brandFilteredFields = [

@@ -336,13 +336,13 @@
     text-align: center !important;
     white-space: nowrap;
     padding: 10px 8px !important;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .table-container table td {
     vertical-align: middle !important;
     padding: 10px 8px !important;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 .table-container thead .dim-sub-row th {

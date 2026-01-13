@@ -68,6 +68,7 @@ class RecommendationRepository
             foreach ($recommendations as $rec) {
                 $workType = $rec['work_type'] ?? null;
                 $requiredMaterials = $workType ? FormulaRegistry::materialsFor($workType) : [];
+                $requiredMaterials = array_values(array_diff($requiredMaterials, ['brick']));
 
                 if (!$workType || empty($requiredMaterials)) {
                     continue;

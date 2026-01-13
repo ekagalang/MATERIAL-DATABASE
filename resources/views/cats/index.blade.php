@@ -10,7 +10,7 @@
     .table-container table td {
         display: table-cell !important;
         padding: 0 6px !important;
-        font-size: 15px !important;
+        font-size: 12px !important;
         height: 20px !important;
         line-height: 20px !important;
         vertical-align: middle !important;
@@ -61,7 +61,7 @@
 
     .table-container thead th {
         padding: 4px 6px !important;
-        font-size: 15px !important;
+        font-size: 14px !important;
         position: sticky;
         top: 0;
         z-index: 10;

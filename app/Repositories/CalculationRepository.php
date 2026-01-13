@@ -153,11 +153,16 @@ class CalculationRepository
      * @param string $type 'best', 'common', etc.
      * @return Collection
      */
-    public function getRecommendedBrickIds(string $type): Collection
+    public function getRecommendedBrickIds(string $type, ?string $workType = null): Collection
     {
-        return RecommendedCombination::where('type', $type)
-            ->where('is_active', true)
-            ->pluck('brick_id')
+        $query = RecommendedCombination::where('type', $type)
+            ->where('is_active', true);
+
+        if ($workType) {
+            $query->where('work_type', $workType);
+        }
+
+        return $query->pluck('brick_id')
             ->unique()
             ->filter();
     }

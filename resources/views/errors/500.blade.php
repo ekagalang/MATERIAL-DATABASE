@@ -6,7 +6,7 @@
     <title>500 - Server Error</title>
     <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; background: linear-gradient(135deg, #450a0a 0%, #891313 100%); font-family: 'League Spartan', sans-serif; }
+        html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; background: linear-gradient(135deg, #450a0a 0%, #891313 100%); font-family: 'Nunito', sans-serif; }
         body::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px); background-size: 50px 50px; pointer-events: none; }
         .error { position: absolute; left: 10%; top: 50%; transform: translateY(-50%); color: #ffffff; z-index: 10; max-width: 500px; }
         .error__title { font-size: 8em; font-weight: 900; line-height: 1; text-shadow: 4px 4px 0px #2a0404; color: #fca5a5; margin: 0; }
@@ -106,6 +106,7 @@
         <div class="error__subtitle">Kecelakaan Server</div>
         <div class="error__description">Oops! Terjadi keruntuhan struktur pada server kami. Tim teknisi sedang berusaha mengevakuasi data.</div>
         <a href="/" class="error__button error__button--active">REFRESH HALAMAN</a>
+        <button onclick="history.back()" class="error__button">KEMBALI</button>
         <a href="/" class="error__button">LAPORKAN INSIDEN</a>
     </div>
 

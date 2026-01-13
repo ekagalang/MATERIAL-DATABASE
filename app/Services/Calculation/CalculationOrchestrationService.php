@@ -50,8 +50,8 @@ class CalculationOrchestrationService
         $priceFilters = $request['price_filters'] ?? [];
         $workType = $request['work_type'] ?? 'brick_half';
 
-        // Check if formula is brickless (Plastering / Skim Coating)
-        $isBrickless = in_array($workType, ['wall_plastering', 'skim_coating']);
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+        $isBrickless = !in_array('brick', $requiredMaterials, true);
 
         if ($isBrickless) {
             // Use dummy brick placeholder to maintain data structure
@@ -357,7 +357,13 @@ class CalculationOrchestrationService
     public function preview(array $params): BrickCalculation
     {
         $calculation = $this->calculateSingle($params, false);
-        $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand']);
+        $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
         return $calculation;
+    }
+
+    protected function resolveRequiredMaterials(string $workType): array
+    {
+        $materials = FormulaRegistry::materialsFor($workType);
+        return !empty($materials) ? $materials : ['brick', 'cement', 'sand'];
     }
 }
