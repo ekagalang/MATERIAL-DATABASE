@@ -29,7 +29,7 @@
                     </div>
                 </div>
                 <div class="mt-4 text-center">
-                    <button onclick="history.back()" style="cursor: pointer; padding: 8px 16px; background: transparent; border: 1px solid #cbd5e0; border-radius: 4px; color: #4a5568;">
+                    <button onclick="history.back()" style="cursor: pointer; padding: 10px 24px; background: transparent; border: 1.5px solid #cbd5e0; border-radius: 8px; color: #4a5568; font-weight: 600; transition: all 0.2s; font-family: inherit;">
                         KEMBALI
                     </button>
                 </div>

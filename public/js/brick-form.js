@@ -91,6 +91,7 @@ function initBrickForm(root) {
         const field = input.dataset.field;
         const suggestList = getElement(`${field}-list`);
         let debounceTimer;
+        let isSelectingFromAutosuggest = false;
 
         function populate(values) {
             if (suggestList) {
@@ -107,6 +108,7 @@ function initBrickForm(root) {
 
                     item.textContent = displayValue;
                     item.addEventListener('click', function() {
+                        isSelectingFromAutosuggest = true;
                         // Handle special fields dengan kalkulasi
                         if (field === 'price_per_piece') {
                             // Update display field dengan format Rupiah
@@ -136,6 +138,9 @@ function initBrickForm(root) {
                             input.value = v;
                         }
                         suggestList.style.display = 'none';
+                        setTimeout(() => {
+                            isSelectingFromAutosuggest = false;
+                        }, 300);
                     });
                     suggestList.appendChild(item);
                 });
@@ -207,8 +212,15 @@ function initBrickForm(root) {
                 .catch(() => {});
         }
 
-        input.addEventListener('focus', () => loadSuggestions(''));
+        input.addEventListener('focus', () => {
+            if (!isSelectingFromAutosuggest) {
+                loadSuggestions('');
+            }
+        });
         input.addEventListener('input', function () {
+            if (isSelectingFromAutosuggest) {
+                return;
+            }
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);

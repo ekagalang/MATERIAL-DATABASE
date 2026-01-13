@@ -39,6 +39,26 @@
                 font-size: 36px;
                 padding: 20px;
             }
+
+            .btn-back {
+                margin-top: 20px;
+                cursor: pointer;
+                padding: 10px 24px;
+                background: transparent;
+                border: 1.5px solid #636b6f;
+                border-radius: 8px;
+                color: #636b6f;
+                font-weight: 600;
+                text-decoration: none;
+                display: inline-block;
+                transition: all 0.2s;
+                font-family: inherit;
+            }
+            .btn-back:hover {
+                background-color: #f3f4f6;
+                color: #1f2937;
+                border-color: #1f2937;
+            }
         </style>
     </head>
     <body>
@@ -46,6 +66,11 @@
             <div class="content">
                 <div class="title">
                     @yield('message')
+                </div>
+                <div>
+                    <button onclick="history.back()" class="btn-back">
+                        KEMBALI
+                    </button>
                 </div>
             </div>
         </div>

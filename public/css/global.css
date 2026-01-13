@@ -77,6 +77,12 @@
             z-index: 5; /* Ensure it floats above nearby elements */
         }
 
+        .floating-modal .price-prefix,
+        .floating-modal .price-suffix,
+        .floating-modal .unit-inside {
+            z-index: 6 !important;
+        }
+
         /* Dropdown list items MUST stay black on white for system readability */
         option {
             color: #000000 !important;

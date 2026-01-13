@@ -259,7 +259,7 @@ function initSandForm(root) {
         const selectedOption = unitSelect.selectedOptions[0];
         const unitName = selectedOption?.dataset?.name || selectedOption?.text || '';
 
-        if (unitName && unitName !== 'Pick up, Meter Kubik, Karung') {
+        if (unitName && unitName !== '-- Pick up, Meter Kubik, Karung --') {
             if (priceUnitInput) priceUnitInput.value = unitName;
             if (priceUnitDisplayInline) priceUnitDisplayInline.textContent = '/ ' + unitName;
         } else {

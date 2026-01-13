@@ -270,7 +270,7 @@
                         <div class="flex-fill" style="flex: 1; display: flex; align-items: stretch; position: relative;">
                             <input type="hidden" name="price_per_package" id="price_per_package" value="{{ old('price_per_package') }}">
                             <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; pointer-events: none; z-index: 1;">Rp</span>
+                                <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; pointer-events: none; z-index: 1;">Rp</span>
                                 <input type="text"
                                        id="price_per_package_display"
                                        value="{{ old('price_per_package') }}"
@@ -281,7 +281,7 @@
                                        autocomplete="off"
                                        required
                                        style="width: 100%; height: 100%; padding: 10px 60px 10px 38px; font-size: 14px;">
-                                <span id="price_unit_display_inline" class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ -</span>
+                                <span id="price_unit_display_inline" class="unit-inside price-suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none;">/ -</span>
                             </div>
                             <div class="autocomplete-list" id="price_per_package-list"></div>
                         </div>
@@ -292,7 +292,7 @@
                             <div style="display: flex; align-items: center; position: relative;">
                                 <input type="hidden" name="comparison_price_per_m2" id="comparison_price_per_m2" value="{{ old('comparison_price_per_m2') }}">
                                 <div style="flex: 1; display: flex; align-items: center; position: relative;">
-                                    <span style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; pointer-events: none; z-index: 1;">Rp</span>
+                                    <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
                                            class="autocomplete-input"
@@ -301,7 +301,7 @@
                                            placeholder="0"
                                            autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
-                                    <span style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ M2</span>
+                                    <span class="price-suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ M2</span>
                                 </div>
                                 <div class="autocomplete-list" id="comparison_price_per_m2-list"></div>
                             </div>

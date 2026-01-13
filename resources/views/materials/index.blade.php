@@ -39,9 +39,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 (function() {
     function updateCeramicScrollIndicators() {
-        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td');
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
         cells.forEach(td => {
-            const scroller = td.querySelector('.ceramic-scroll-cell');
+            const scroller = td.querySelector('.ceramic-scroll-cell, .cement-scroll-cell, .sand-scroll-cell, .cat-scroll-cell, .brick-scroll-cell');
             if (!scroller) return;
             const isScrollable = scroller.scrollWidth > scroller.clientWidth + 1;
             td.classList.toggle('is-scrollable', isScrollable);
@@ -51,9 +51,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function bindCeramicScrollHandlers() {
-        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td');
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
         cells.forEach(td => {
-            const scroller = td.querySelector('.ceramic-scroll-cell');
+            const scroller = td.querySelector('.ceramic-scroll-cell, .cement-scroll-cell, .sand-scroll-cell, .cat-scroll-cell, .brick-scroll-cell');
             if (!scroller || scroller.__ceramicScrollBound) return;
             scroller.__ceramicScrollBound = true;
             scroller.addEventListener('scroll', updateCeramicScrollIndicators, { passive: true });
@@ -248,11 +248,19 @@ html.materials-booting .page-content {
 
 
   /* Ceramic scroll cells: keep text inside cell */
-  #section-ceramic .ceramic-scroll-td {
+  #section-ceramic .ceramic-scroll-td,
+  #section-cement .cement-scroll-td,
+  #section-sand .sand-scroll-td,
+  #section-cat .cat-scroll-td,
+  #section-brick .brick-scroll-td {
       position: relative;
       overflow: hidden;
   }
-  #section-ceramic .ceramic-scroll-td.is-scrollable::after {
+  #section-ceramic .ceramic-scroll-td.is-scrollable::after,
+  #section-cement .cement-scroll-td.is-scrollable::after,
+  #section-sand .sand-scroll-td.is-scrollable::after,
+  #section-cat .cat-scroll-td.is-scrollable::after,
+  #section-brick .brick-scroll-td.is-scrollable::after {
       content: '...';
       position: absolute;
       right: 6px;
@@ -265,17 +273,29 @@ html.materials-booting .page-content {
       padding-left: 8px;
       pointer-events: none;
   }
-  #section-ceramic .ceramic-scroll-td.is-scrolled-end::after {
+  #section-ceramic .ceramic-scroll-td.is-scrolled-end::after,
+  #section-cement .cement-scroll-td.is-scrolled-end::after,
+  #section-sand .sand-scroll-td.is-scrolled-end::after,
+  #section-cat .cat-scroll-td.is-scrolled-end::after,
+  #section-brick .brick-scroll-td.is-scrolled-end::after {
       opacity: 0;
   }
-  #section-ceramic .ceramic-scroll-cell {
+  #section-ceramic .ceramic-scroll-cell,
+  #section-cement .cement-scroll-cell,
+  #section-sand .sand-scroll-cell,
+  #section-cat .cat-scroll-cell,
+  #section-brick .brick-scroll-cell {
       display: block;
       overflow-x: auto;
       overflow-y: hidden;
       scrollbar-width: none;
       scrollbar-color: transparent transparent;
   }
-  #section-ceramic .ceramic-scroll-cell::-webkit-scrollbar {
+  #section-ceramic .ceramic-scroll-cell::-webkit-scrollbar,
+  #section-cement .cement-scroll-cell::-webkit-scrollbar,
+  #section-sand .sand-scroll-cell::-webkit-scrollbar,
+  #section-cat .cat-scroll-cell::-webkit-scrollbar,
+  #section-brick .brick-scroll-cell::-webkit-scrollbar {
       height: 0;
   }
 
@@ -733,7 +753,7 @@ html.materials-booting .page-content {
                             @endforeach
                         </div>
                         <div style="padding: 8px 16px; border-top: 1.5px solid #e2e8f0; background: #f6f3c2; display: flex; justify-content: center;">
-                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary-glossy " style="font-size: 12px;">
+                            <button type="button" id="resetMaterialFilter" class="btn btn-sm btn-secondary-glossy" style="font-size: 12px;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>
                         </div>
@@ -786,7 +806,7 @@ html.materials-booting .page-content {
                     @if($material['data']->count() > 0)
                 <div class="table-container text-nowrap">
                     <table>
-                        <thead class="{{ in_array($material['type'], ['brick','sand','ceramic']) ? 'has-dim-sub' : 'single-header' }}">
+                        <thead class="{{ in_array($material['type'], ['brick','sand','ceramic','cement','cat']) ? 'has-dim-sub' : 'single-header' }}">
                             @php                                   
                               if (!function_exists('getMaterialSortUrl')) {
                                     function getMaterialSortUrl($column, $currentSortBy, $currentDirection) {
@@ -874,8 +894,8 @@ html.materials-booting .page-content {
                                 @endphp
                                     @if($material['type'] == 'brick')
                                         <tr class="dim-group-row">
-                                            <th rowspan="2">No</th>
-                                            <th class="sortable" rowspan="2">
+                                            <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                            <th class="sortable" rowspan="2" style="text-align: left;">
                                                 <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['type'] }}</span>
@@ -886,20 +906,29 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            @foreach(['brand','form'] as $col)
-                                            <th class="sortable" rowspan="2">
-                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
+                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                    <span>{{ $brickSortable[$col] }}</span>
-                                                    @if(request('sort_by') == $col)
+                                                    <span>{{ $brickSortable['brand'] }}</span>
+                                                    @if(request('sort_by') == 'brand')
                                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
                                                 </a>
                                             </th>
-                                            @endforeach
-                                            <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
+                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('form', request('sort_by'), request('sort_direction')) }}"
+                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $brickSortable['form'] }}</span>
+                                                    @if(request('sort_by') == 'form')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 120px; min-width: 120px;">
                                                 <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                     style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Dimensi (cm)</span>
@@ -910,229 +939,447 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            @foreach(['package_volume','store','address','price_per_piece','comparison_price_per_m3'] as $col)
-                                                <th class="sortable" rowspan="2">
-                                                    <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                        style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                        <span>{!! $brickSortable[$col] !!}</span>
-                                                        @if(request('sort_by') == $col)
-                                                            <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                        @else
-                                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                        @endif
-                                                    </a>
-                                                </th>
-                                            @endforeach
+                                            <th class="sortable" colspan="2" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_volume', request('sort_by'), request('sort_direction')) }}"
+                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Volume</span>
+                                                    @if(request('sort_by') == 'package_volume')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                                <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
+                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $brickSortable['store'] }}</span>
+                                                    @if(request('sort_by') == 'store')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 200px; min-width: 200px;">
+                                                <a href="{{ getMaterialSortUrl('address', request('sort_by'), request('sort_direction')) }}"
+                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $brickSortable['address'] }}</span>
+                                                    @if(request('sort_by') == 'address')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('price_per_piece', request('sort_by'), request('sort_direction')) }}"
+                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Beli</span>
+                                                    @if(request('sort_by') == 'price_per_piece')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('comparison_price_per_m3', request('sort_by'), request('sort_direction')) }}"
+                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Komparasi</span>
+                                                    @if(request('sort_by') == 'comparison_price_per_m3')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
                                             <th rowspan="2" class="action-cell">Aksi</th>
                                         </tr>
                                         <tr class="dim-sub-row">
-                                            @foreach(['P', 'L', 'T'] as $label)
-                                                <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">{{ $label }}</th>
-                                            @endforeach
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
                                         </tr>
-                                            @elseif($material['type'] == 'sand')
-                                                                    <tr class="dim-group-row">
-                                                                        <th rowspan="2">No</th>
-                                                                        <th class="sortable" rowspan="2">
-                                                                            <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
-                                                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                <span>{{ $sandSortable['type'] }}</span>
-                                                                                @if(request('sort_by') == 'type')
-                                                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                @else
-                                                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                @endif
-                                                                            </a>
-                                                                        </th>
-                                                                        @foreach(['brand','package_unit'] as $col)
-                                                                            <th class="sortable" rowspan="2">
-                                                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                    <span>{{ $sandSortable[$col] }}</span>
-                                                                                    @if(request('sort_by') == $col)
-                                                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                    @else
-                                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                    @endif
-                                                                                </a>
-                                                                            </th>
-                                                                        @endforeach
-                                                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px;">
-                                                                            <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
-                                                                               style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                <span>Dimensi Kemasan (M)</span>
-                                                                                @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
-                                                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
-                                                                                @else
-                                                                                    <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
-                                                                                @endif
-                                                                            </a>
-                                                                        </th>
-                                                                            @foreach(['package_volume','store','address','package_price','comparison_price_per_m3'] as $col)
-                                                                                <th class="sortable" rowspan="2">
-                                                                                    <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                                                        style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                    <span>{!! $sandSortable[$col] !!}</span>
-                                                                                    @if(request('sort_by') == $col)
-                                                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                    @else
-                                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                    @endif
-                                                                                    </a>
-                                                                                </th>
-                                                                            @endforeach
-                                                                        <th rowspan="2" class="action-cell">Aksi</th>
-                                                                    </tr>
-                                                                    <tr class="dim-sub-row">
-                                                                        @foreach(['P', 'L', 'T'] as $label)
-                                                                            <th style="text-align: center; font-size: 12px; padding: 1px 2px; width: 40px;">{{ $label }}</th>
-                                                                        @endforeach
-                                                                    </tr>
-                                                                @elseif($material['type'] == 'cat')
-                                                                    <tr>
-                                                                        <th>No</th>
-                                                                        @foreach(['type','brand','sub_brand'] as $col)
-                                                                            <th class="sortable">
-                                                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                    <span>{{ $catSortable[$col] }}</span>
-                                                                                    @if(request('sort_by') == $col)
-                                                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                    @else
-                                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                    @endif
-                                                                                </a>
-                                                                            </th>
-                                                                        @endforeach
-                                                                        <th class="sortable">
-                                                                            <a href="{{ getMaterialSortUrl('color_code', request('sort_by'), request('sort_direction')) }}"
-                                                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                <span>{{ $catSortable['color_code'] }}</span>
-                                                                                @if(request('sort_by') == 'color_code')
-                                                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                @else
-                                                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                @endif
-                                                                            </a>
-                                                                        </th>
-                                                                        <th class="sortable">
-                                                                            <a href="{{ getMaterialSortUrl('color_name', request('sort_by'), request('sort_direction')) }}"
-                                                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                <span>{{ $catSortable['color_name'] }}</span>
-                                                                                @if(request('sort_by') == 'color_name')
-                                                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                @else
-                                                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                @endif
-                                                                            </a>
-                                                                        </th>
-                                                                        @foreach(['package_unit','volume'] as $col)
-                                                                            <th class="sortable">
-                                                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                    <span>{{ $catSortable[$col] }}</span>
-                                                                                    @if(request('sort_by') == $col)
-                                                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                    @else
-                                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                    @endif
-                                                                                </a>
-                                                                            </th>
-                                                                        @endforeach
-                                                                        <th class="sortable">
-                                                                            <a href="{{ getMaterialSortUrl('package_weight_net', request('sort_by'), request('sort_direction')) }}"
-                                                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                <span>{{ $catSortable['package_weight_net'] }}</span>
-                                                                                @if(request('sort_by') == 'package_weight_net')
-                                                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                @else
-                                                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                @endif
-                                                                            </a>
-                                                                        </th>
-                                                                        @foreach(['store','address','purchase_price','comparison_price_per_kg'] as $col)
-                                                                            <th class="sortable">
-                                                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                    <span>{!! $catSortable[$col] !!}</span>
-                                                                                    @if(request('sort_by') == $col)
-                                                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                    @else
-                                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                    @endif
-                                                                                </a>
-                                                                            </th>
-                                                                        @endforeach
-                                                                        <th class="action-cell">Aksi</th>
-                                                                    </tr>
-                                                                @elseif($material['type'] == 'cement')
-                                                                    <tr>
-                                                                        <th>No</th>
-                                                                        @foreach(['type','brand','sub_brand'] as $col)
-                                                                            <th class="sortable">
-                                                                                <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                    <span>{{ $cementSortable[$col] }}</span>
-                                                                                    @if(request('sort_by') == $col)
-                                                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                    @else
-                                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                    @endif
-                                                                                </a>
-                                                                            </th>
-                                                                        @endforeach
-                                                                        <th class="sortable">
-                                                                            <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
-                                                                               style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                                                <span>{{ $cementSortable['code'] }}</span>
-                                                                                @if(request('sort_by') == 'code')
-                                                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                                                @else
-                                                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                                                @endif
-                                                                            </a>
-                                                                        </th>
-                                        <th class="sortable">
-                                            <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
-                                            style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>{{ $cementSortable['color'] }}</span>
-                                                @if(request('sort_by') == 'color')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                @else
-                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                @endif
-                                            </a>
-                                        </th>
-                                        <th class="sortable">
-                                            <a href="{{ getMaterialSortUrl('package_unit', request('sort_by'), request('sort_direction')) }}"
-                                            style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>{{ $cementSortable['package_unit'] }}</span>
-                                                @if(request('sort_by') == 'package_unit')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                @else
-                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                @endif
-                                            </a>
-                                        </th>
 
-                                        @foreach(['package_weight_net','store','address','package_price','comparison_price_per_kg'] as $col)
-                                        <th class="sortable">
-                                            <a href="{{ getMaterialSortUrl($col, request('sort_by'), request('sort_direction')) }}"
-                                            style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>{!! $cementSortable[$col] !!}</span>
-                                                @if(request('sort_by') == $col)
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
-                                                @else
-                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
-                                                @endif
-                                            </a>
-                                        </th>
-                                        @endforeach
-                                        <th class="action-cell">Aksi</th>
-                                    </tr>
+                                    @elseif($material['type'] == 'sand')
+                                        <tr class="dim-group-row">
+                                            <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                            <th class="sortable" rowspan="2" style="text-align: left;">
+                                                <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $sandSortable['type'] }}</span>
+                                                    @if(request('sort_by') == 'type')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $sandSortable['brand'] }}</span>
+                                                    @if(request('sort_by') == 'brand')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_unit', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $sandSortable['package_unit'] }}</span>
+                                                    @if(request('sort_by') == 'package_unit')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 120px; min-width: 120px;">
+                                                <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Dimensi (cm)</span>
+                                                    @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="2" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_volume', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Volume</span>
+                                                    @if(request('sort_by') == 'package_volume')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                                <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $sandSortable['store'] }}</span>
+                                                    @if(request('sort_by') == 'store')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 200px; min-width: 200px;">
+                                                <a href="{{ getMaterialSortUrl('address', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $sandSortable['address'] }}</span>
+                                                    @if(request('sort_by') == 'address')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_price', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Beli</span>
+                                                    @if(request('sort_by') == 'package_price')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('comparison_price_per_m3', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Komparasi</span>
+                                                    @if(request('sort_by') == 'comparison_price_per_m3')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th rowspan="2" class="action-cell">Aksi</th>
+                                        </tr>
+                                        <tr class="dim-sub-row">
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
+                                        </tr>
+
+                                    @elseif($material['type'] == 'cat')
+                                        <tr class="dim-group-row">
+                                            <th style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                            <th class="sortable" style="text-align: left;">
+                                                <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['type'] }}</span>
+                                                    @if(request('sort_by') == 'type')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['brand'] }}</span>
+                                                    @if(request('sort_by') == 'brand')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('sub_brand', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['sub_brand'] }}</span>
+                                                    @if(request('sort_by') == 'sub_brand')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" style="text-align: right;">
+                                                <a href="{{ getMaterialSortUrl('color_code', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['color_code'] }}</span>
+                                                    @if(request('sort_by') == 'color_code')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" style="text-align: left;">
+                                                <a href="{{ getMaterialSortUrl('color_name', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['color_name'] }}</span>
+                                                    @if(request('sort_by') == 'color_name')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_unit', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['package_unit'] }}</span>
+                                                    @if(request('sort_by') == 'package_unit')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('volume', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['volume'] }}</span>
+                                                    @if(request('sort_by') == 'volume')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_weight_net', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Berat<br>Bersih</span>
+                                                    @if(request('sort_by') == 'package_weight_net')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" style="text-align: left; width: 100px; min-width: 100px;">
+                                                <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['store'] }}</span>
+                                                    @if(request('sort_by') == 'store')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" style="text-align: left; width: 200px; min-width: 200px;">
+                                                <a href="{{ getMaterialSortUrl('address', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $catSortable['address'] }}</span>
+                                                    @if(request('sort_by') == 'address')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('purchase_price', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Beli</span>
+                                                    @if(request('sort_by') == 'purchase_price')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('comparison_price_per_kg', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Komparasi</span>
+                                                    @if(request('sort_by') == 'comparison_price_per_kg')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="action-cell">Aksi</th>
+                                        </tr>
+                                        
+                                    @elseif($material['type'] == 'cement')
+                                        <tr class="dim-group-row">
+                                            <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                            <th class="sortable" rowspan="2" style="text-align: left;">
+                                                <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['type'] }}</span>
+                                                    @if(request('sort_by') == 'type')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['brand'] }}</span>
+                                                    @if(request('sort_by') == 'brand')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left;">
+                                                <a href="{{ getMaterialSortUrl('sub_brand', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['sub_brand'] }}</span>
+                                                    @if(request('sort_by') == 'sub_brand')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: right;">
+                                                <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['code'] }}</span>
+                                                    @if(request('sort_by') == 'code')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left;">
+                                                <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['color'] }}</span>
+                                                    @if(request('sort_by') == 'color')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_unit', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['package_unit'] }}</span>
+                                                    @if(request('sort_by') == 'package_unit')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="2" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_weight_net', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Berat<br>Bersih</span>
+                                                    @if(request('sort_by') == 'package_weight_net')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 100px; min-width: 100px;">
+                                                <a href="{{ getMaterialSortUrl('store', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['store'] }}</span>
+                                                    @if(request('sort_by') == 'store')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" rowspan="2" style="text-align: left; width: 200px; min-width: 200px;">
+                                                <a href="{{ getMaterialSortUrl('address', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>{{ $cementSortable['address'] }}</span>
+                                                    @if(request('sort_by') == 'address')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('package_price', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Beli</span>
+                                                    @if(request('sort_by') == 'package_price')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th class="sortable" colspan="3" style="text-align: center;">
+                                                <a href="{{ getMaterialSortUrl('comparison_price_per_kg', request('sort_by'), request('sort_direction')) }}"
+                                                   style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
+                                                    <span>Harga Komparasi</span>
+                                                    @if(request('sort_by') == 'comparison_price_per_kg')
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    @else
+                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                    @endif
+                                                </a>
+                                            </th>
+                                            <th rowspan="2" class="action-cell">Aksi</th>
+                                        </tr>
+
                                     @elseif($material['type'] == 'ceramic')
                                     <tr class="dim-group-row">
-                                        <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                        <th rowspan="2" style="text-align: center; width: 50px; min-width: 50px;">No</th>
                                         <th class="sortable" rowspan="2" style="text-align: left;">
                                             <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
@@ -1144,7 +1391,7 @@ html.materials-booting .page-content {
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 120px; min-width: 120px;">
+                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 150px; min-width: 150px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Dimensi (cm)</span>
@@ -1298,7 +1545,7 @@ html.materials-booting .page-content {
                             </thead>
                             @php
                                 $letterGroups = $material['data']->groupBy(function ($item) use ($material) {
-                                    $groupValue = $material['type'] === 'ceramic' ? ($item->type ?? '') : ($item->brand ?? '');
+                                    $groupValue = in_array($material['type'], ['ceramic','brick','sand','cat','cement'], true) ? ($item->type ?? '') : ($item->brand ?? '');
                                     $groupValue = trim((string) $groupValue);
                                     return $groupValue !== '' ? strtoupper(substr($groupValue, 0, 1)) : '#';
                                 });
@@ -1340,13 +1587,13 @@ html.materials-booting .page-content {
                                             $searchValue = strtolower(trim(preg_replace('/\s+/', ' ', implode(' ', $searchParts))));
                                         @endphp
                                 <tr data-material-tab="{{ $material['type'] }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
-                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 40px; min-width: 40px;" @endif>
+                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 50px; min-width: 50px;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
-                                    @if($material['type'] == 'brick')
-                                        <td>{{ $item->type ?? '-' }}</td>
-                                        <td>{{ $item->brand ?? '-' }}</td>
-                                        <td>{{ $item->form ?? '-' }}</td>
+                                                                        @if($material['type'] == 'brick')
+                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
@@ -1368,118 +1615,151 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="volume-cell" style="text-align: right; font-size: 12px;">
+                                        <td style="text-align: right; width: 80px; min-width: 80px; font-size: 12px;">
                                             @if($item->package_volume)
-                                                @format($item->package_volume) M3
+                                                @format($item->package_volume)
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
-                                        <td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">M3</td>
+                                        <td class="brick-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
+                                            <div class="brick-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        </td>
+                                        <td class="brick-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
+                                            <div class="brick-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
+                                        </td>
+                                        <td style="text-align: right; width: 30px; min-width: 30px;">Rp</td>
+                                        <td style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->price_per_piece)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->price_per_piece, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->price_per_piece, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td style="text-align: left; width: 60px; min-width: 60px;">/ Bh</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_m3)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->comparison_price_per_m3, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->comparison_price_per_m3, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
                                     @elseif($material['type'] == 'cat')
-                                        <td>{{ $item->type ?? '-' }}</td>
-                                        <td>{{ $item->brand ?? '-' }}</td>
-                                        <td>{{ $item->sub_brand ?? '-' }}</td>
-                                        <td class="dim-cell">{{ $item->color_code ?? '-' }}</td>
-                                        <td class="dim-cell">{{ $item->color_name ?? '-' }}</td>
-                                        <td class="dim-cell">
-                                            @if($item->package_unit)
-                                                {{ $item->packageUnit?->name ?? $item->package_unit }} ({{ $item->package_weight_gross }} Kg)
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($item->volume)
-                                                @format($item->volume) {{ $item->volume_unit }}
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($item->package_weight_net && $item->package_weight_net > 0)
-                                                @format($item->package_weight_net) Kg
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
-                                        <td>
-                                            @if($item->purchase_price)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->purchase_price, 0, ',', '.') }}</span></div>
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($item->comparison_price_per_kg)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->comparison_price_per_kg, 0, ',', '.') }}</span></div>
-                                            @else
-                                                <span>—</span>
-                                            @endif
-                                        </td>
-                                    @elseif($material['type'] == 'cement')
-                                        <td>{{ $item->type ?? '-' }}</td>
-                                        <td>{{ $item->brand ?? '-' }}</td>
-                                        <td>{{ $item->sub_brand ?? '-' }}</td>
-                                        <td class="dim-cell" style="font-size: 12px; text-align:right;">{{ $item->code ?? '-' }}</td>
-                                        <td class="dim-cell" style="text-align:left;">{{ $item->color ?? '-' }}</td>
-                                        <td class="dim-cell" style="font-size: 13px;">
+                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->sub_brand ?? '-' }}</td>
+                                        <td style="text-align: right; font-size: 12px;">{{ $item->color_code ?? '-' }}</td>
+                                        <td style="text-align: left;">{{ $item->color_name ?? '-' }}</td>
+                                        <td style="text-align: right; width: 50px; min-width: 50px;">
                                             @if($item->package_unit)
                                                 {{ $item->packageUnit?->name ?? $item->package_unit }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <!-- Dimensi Data Removed -->
-                                        
-                                        <td style="text-align: right; font-size: 13px;">
+                                        <td style="text-align: right; width: 50px; min-width: 50px;">
+                                            @if($item->package_weight_gross)
+                                                @format($item->package_weight_gross)
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 50px; min-width: 50px;">Kg</td>
+                                        <td style="text-align: right; width: 60px; min-width: 60px;">
+                                            @if($item->volume)
+                                                @format($item->volume)
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 30px; min-width: 30px;">L</td>
+                                        <td style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
-                                                @format($item->package_weight_net) Kg
+                                                @format($item->package_weight_net)
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
-                                        <td>
-                                            @if($item->package_price)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->package_price, 0, ',', '.') }}</span></div>
+                                        <td style="text-align: left; width: 30px; min-width: 30px;">Kg</td>
+                                        <td class="cat-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
+                                            <div class="cat-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        </td>
+                                        <td class="cat-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
+                                            <div class="cat-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
+                                        </td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                            @if($item->purchase_price)
+                                                {{ number_format($item->purchase_price, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td style="text-align: left; width: 80px; min-width: 80px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_kg)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->comparison_price_per_kg, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->comparison_price_per_kg, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                    @elseif($material['type'] == 'sand')
-                                        <td>{{ $item->type ?? '-' }}</td>
-                                        <td>{{ $item->brand ?? '-' }}</td>
-                                        <td style="font-size: 13px;">
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>@elseif($material['type'] == 'cement')
+                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
+                                        <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
+                                        <td style="text-align: left;">{{ $item->color ?? '-' }}</td>
+                                        <td style="text-align: center; font-size: 13px;">
                                             @if($item->package_unit)
-                                                {{ $item->packageUnit?->name ?? $item->package_unit }} ({{ $item->package_weight_gross }} Kg)
+                                                {{ $item->packageUnit?->name ?? $item->package_unit }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px; font-size: 12px;">
+                                            @if($item->package_weight_net && $item->package_weight_net > 0)
+                                                @format($item->package_weight_net)
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">Kg</td>
+                                        <td class="cement-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
+                                            <div class="cement-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        </td>
+                                        <td class="cement-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
+                                            <div class="cement-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
+                                        </td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                            @if($item->package_price)
+                                                {{ number_format($item->package_price, 0, ',', '.') }}
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                            @if($item->comparison_price_per_kg)
+                                                {{ number_format($item->comparison_price_per_kg, 0, ',', '.') }}
+                                            @else
+                                                <span>-</span>
+                                            @endif
+                                        </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>
+                                                                        @elseif($material['type'] == 'sand')
+                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td style="text-align: center; font-size: 13px;">
+                                            @if($item->package_unit)
+                                                {{ $item->packageUnit?->name ?? $item->package_unit }}
+                                            @else
+                                                <span>-</span>
                                             @endif
                                         </td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
@@ -1503,29 +1783,38 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="volume-cell" style="text-align: right; font-size: 12px;">
+                                        <td style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
                                             @if($item->package_volume)
-                                                @format($item->package_volume) M3
+                                                @format($item->package_volume)
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td><span style="display: inline-block; padding: 2px 6px; background: rgba(255, 255, 255, 0.1); border-radius: 6px; font-size: 12px; font-weight: 500;">{{ $item->store ?? '-' }}</span></td>
-                                        <td style="font-size: 12px; line-height: 1.5;">{{ $item->address ?? '-' }}</td>
-                                        <td>
+                                        <td style="text-align: left; width: 30px; min-width: 30px;">M3</td>
+                                        <td class="sand-scroll-td" style="text-align: left; width: 100px; min-width: 100px; max-width: 100px;">
+                                            <div class="sand-scroll-cell" style="max-width: 100px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
+                                        </td>
+                                        <td class="sand-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
+                                            <div class="sand-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
+                                        </td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->package_price)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->package_price, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->package_price, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
-                                        <td>
+                                        <td style="text-align: left; width: 80px; min-width: 80px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
+                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_m3)
-                                                <div style="display: flex; width: 100%; font-size: 13px;"><span>Rp</span><span style="font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">{{ number_format($item->comparison_price_per_m3, 0, ',', '.') }}</span></div>
+                                                {{ number_format($item->comparison_price_per_m3, 0, ',', '.') }}
                                             @else
-                                                <span>—</span>
+                                                <span>-</span>
                                             @endif
                                         </td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
                                     @elseif($material['type'] == 'ceramic')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
