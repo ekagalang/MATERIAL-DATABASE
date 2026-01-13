@@ -478,6 +478,7 @@ function initCeramicForm(root) {
                 'color',
                 'code',
                 'form',
+                'surface',
                 'pieces_per_package',
                 'dimension_length',
                 'dimension_width',
