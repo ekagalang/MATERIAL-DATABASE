@@ -910,7 +910,8 @@
                 setTimeout(() => {
                     if (typeof window[initFunctionName] === 'function') {
                         console.log('[Init] Function exists, calling it...');
-                        window[initFunctionName](modalBodyEl); // Pass scope
+                        // Pass pendingGlobalTypePrefill as the second argument
+                        window[initFunctionName](modalBodyEl, pendingGlobalTypePrefill); 
                     } else {
                         console.error('[Init] Function not found:', initFunctionName);
                     }
@@ -938,7 +939,7 @@
                 closeGlobalModal();
             };
 
-            function openGlobalMaterialModal(url, prefillType = null) {
+            window.openGlobalMaterialModal = function(url, prefillType = null) {
                 if (!globalModal || !globalModalBody || !globalModalTitle || !globalCloseBtn || !globalBackdrop) return;
 
                 const { materialType, action, materialLabel } = getGlobalMaterialInfo(url);
@@ -1325,5 +1326,38 @@
     <!-- Performance Optimization Scripts -->
     <script src="{{ asset('js/search-debounce.js') }}"></script>
     <script src="{{ asset('js/lazy-loading.js') }}"></script>
+
+    <!-- Skip History Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body.classList.contains('skip-history')) {
+                // Intercept links to replace history
+                document.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        const href = link.getAttribute('href');
+                        // Ignore internal anchors, JS links, or links without href
+                        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                        // Ignore open in new tab
+                        if (link.target === '_blank') return;
+
+                        e.preventDefault();
+                        window.location.replace(href);
+                    });
+                });
+
+                // Intercept forms to fix back button behavior
+                document.querySelectorAll('form').forEach(form => {
+                    form.addEventListener('submit', () => {
+                        // When submitting a form that leads to a new page,
+                        // we want the 'Back' button on the destination page to skip THIS page.
+                        // We replace the current history entry (this page) with the PREVIOUS page's URL.
+                        if(document.referrer) {
+                            history.replaceState(null, '', document.referrer);
+                        }
+                    });
+                });
+            }
+        });
+    </script>
 </body>
 </html>

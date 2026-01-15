@@ -4,7 +4,7 @@
 
 @section('content')
     <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h2>Daftar Item Pekerjaan</h2>
+        <h2 >Daftar Item Pekerjaan</h2>
 
         <a href="{{ route('material-calculations.log') }}"
             class="btn btn-primary-glossy btn-sm">
@@ -95,7 +95,7 @@
     }
 
     h2 {
-        color: var(--special-text-color);
+        color: var(--text-color);
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         text-shadow: var(--special-text-shadow);

@@ -5,7 +5,7 @@
 @section('content')
 <style>
     .unit-style {
-        color: var(--special-text-color);
+        color: var(--text-color);
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         font-size: 32px;

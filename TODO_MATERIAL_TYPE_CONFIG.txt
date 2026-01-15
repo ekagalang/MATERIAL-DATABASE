@@ -1,0 +1,231 @@
+================================================================================
+        TODO LIST: MATERIAL TYPE CONFIG SYSTEM
+================================================================================
+
+Tujuan: Membuat sistem konfigurasi jenis material yang fleksibel untuk
+        menentukan material apa saja yang bisa digunakan per item pekerjaan.
+
+Konsep:
+- Type baru yang diinput user otomatis terdeteksi dan menjadi GLOBAL
+- Admin bisa mengatur type mana untuk work item apa via Settings
+- Jika type belum diatur (NULL) = GLOBAL (bisa untuk semua work item)
+- Jika type sudah diatur = hanya untuk work item tertentu
+
+================================================================================
+PHASE 1: DATABASE & BACKEND FOUNDATION
+================================================================================
+
+[ ] 1. Migration `material_type_configs`
+       - Buat tabel untuk menyimpan konfigurasi type material
+       - Struktur:
+         * id (primary)
+         * material (enum: cement, sand, brick, cat, ceramic)
+         * type_name (string: PCC, OPC, NAT, dll)
+         * work_types (JSON nullable: ["brick_wall", "grout_tile"] atau NULL)
+         * created_at, updated_at
+       - NULL pada work_types = GLOBAL (bisa dipakai semua work item)
+
+[ ] 2. Model `MaterialTypeConfig`
+       - Buat model dengan fillable fields
+       - Cast work_types sebagai array/JSON
+       - Helper methods:
+         * isGlobal() - cek apakah type ini global
+         * scopeForMaterial($query, $material) - filter by material
+         * scopeAllowedFor($query, $workType) - get types yang diizinkan
+         * static getAllowedTypesFor($material, $workType) - get allowed types
+
+[ ] 3. Seeder Initial Data
+       - Scan semua DISTINCT type dari:
+         * cements.type
+         * sands.type
+         * bricks.type
+         * cats.type
+         * ceramics.type (jika ada)
+       - Insert ke material_type_configs dengan work_types = NULL (global)
+       - Hindari duplikat
+
+================================================================================
+PHASE 2: AUTO-DETECTION SYSTEM (OBSERVERS)
+================================================================================
+
+[ ] 4. Buat MaterialTypeObserver (single observer untuk semua material)
+       - Atau buat trait yang bisa dipakai di semua model
+       - Logic:
+         * Saat created/updated, cek apakah type sudah ada di config
+         * Jika belum ada, auto-insert dengan work_types = NULL (global)
+
+[ ] 5. Register Observer untuk Cement Model
+       - Boot method di model atau di AppServiceProvider
+
+[ ] 6. Register Observer untuk Sand Model
+
+[ ] 7. Register Observer untuk Brick Model
+
+[ ] 8. Register Observer untuk Cat Model
+
+[ ] 9. Register Observer untuk Ceramic Model (jika ada type field)
+
+================================================================================
+PHASE 3: SETTINGS UI
+================================================================================
+
+[ ] 10. Controller `MaterialTypeConfigController`
+        - index() - tampilkan semua type grouped by material
+        - update() - update work_types assignment
+        - destroy() - hapus type config (opsional)
+        - sync() - re-scan semua type dari database (refresh)
+
+[ ] 11. Tambah Route Settings
+        - GET  /settings/material-types          -> index
+        - POST /settings/material-types/{id}     -> update
+        - DELETE /settings/material-types/{id}   -> destroy
+        - POST /settings/material-types/sync     -> sync
+
+[ ] 12. View Settings Page (resources/views/settings/material-types/index.blade.php)
+        - Grouped by material (tabs atau accordion):
+          * Tab Semen
+          * Tab Pasir
+          * Tab Bata
+          * Tab Cat
+          * Tab Keramik
+        - Setiap type menampilkan:
+          * Nama type
+          * Status (Global / Assigned)
+          * Work items yang di-assign (badges/tags)
+          * Action buttons
+
+[ ] 13. UI Component: Assign Work Items
+        - Modal atau inline edit
+        - Checkbox list semua work items:
+          [ ] Pasangan Bata (brick_wall)
+          [ ] Plester Dinding (wall_plastering)
+          [ ] Aci Dinding (skim_coating)
+          [ ] Pasang Keramik (tile_installation)
+          [ ] Pasang Nat (grout_tile)
+          [ ] dll...
+        - Tombol "Set sebagai Global" (clear all assignments)
+
+[ ] 14. UI: Tombol Sync/Refresh
+        - Scan ulang semua type dari database
+        - Berguna jika ada type yang di-input langsung ke DB
+
+================================================================================
+PHASE 4: INTEGRATION DENGAN KALKULASI
+================================================================================
+
+[ ] 15. Service `MaterialTypeFilterService`
+        - Method: getFilteredMaterials($materialTable, $workType)
+        - Logic:
+          1. Get semua type yang allowed untuk workType ini:
+             - Type dengan work_types = NULL (global), ATAU
+             - Type dengan work_types CONTAINS workType
+          2. Query material WHERE type IN (allowed_types)
+          3. Return filtered materials
+
+[ ] 16. Update `CombinationGenerationService`
+        - Inject MaterialTypeFilterService
+        - Saat generate kombinasi, filter materials pakai service
+        - Contoh: untuk brick_wall, hanya ambil cement dengan type PCC/OPC
+
+[ ] 17. Update Form Kalkulasi (material_calculations/create.blade.php)
+        - Saat work type dipilih, filter material checkboxes/dropdowns
+        - Bisa pakai:
+          * Server-side: pass filtered data ke view
+          * Client-side: AJAX call saat work type berubah
+
+[ ] 18. API Endpoint untuk Dynamic Filtering
+        - GET /api/materials/filtered?work_type=brick_wall&material=cement
+        - Return: materials yang sesuai dengan type config
+        - Dipakai untuk AJAX filtering di form
+
+================================================================================
+PHASE 5: TESTING & POLISH
+================================================================================
+
+[ ] 19. Test: Auto-detect Type Baru
+        - Create material dengan type baru
+        - Cek apakah otomatis masuk ke material_type_configs
+        - Cek apakah default work_types = NULL (global)
+
+[ ] 20. Test: Settings UI
+        - Buka halaman settings
+        - Assign type ke work items tertentu
+        - Cek apakah tersimpan dengan benar
+        - Set kembali ke global, cek apakah work_types = NULL
+
+[ ] 21. Test: Filter Kalkulasi
+        - Pilih work type "Pasangan Bata"
+        - Pastikan hanya cement PCC, OPC yang muncul (bukan NAT)
+        - Pilih work type "Pasang Nat"
+        - Pastikan hanya cement NAT yang muncul
+
+[ ] 22. Test: Backward Compatibility
+        - Jalankan kalkulasi yang sudah ada
+        - Pastikan tidak error
+        - Pastikan hasil tetap sama
+
+[ ] 23. Polish: Loading States & UX
+        - Loading indicator saat AJAX filtering
+        - Toast/notification saat save settings
+        - Konfirmasi sebelum delete type config
+
+================================================================================
+STRUKTUR FILE YANG AKAN DIBUAT/DIMODIFIKASI
+================================================================================
+
+BARU:
+- database/migrations/xxxx_create_material_type_configs_table.php
+- app/Models/MaterialTypeConfig.php
+- app/Observers/MaterialTypeObserver.php
+- app/Services/MaterialTypeFilterService.php
+- app/Http/Controllers/MaterialTypeConfigController.php
+- resources/views/settings/material-types/index.blade.php
+- database/seeders/MaterialTypeConfigSeeder.php
+
+MODIFIKASI:
+- app/Providers/AppServiceProvider.php (register observer)
+- app/Models/Cement.php (attach observer)
+- app/Models/Sand.php (attach observer)
+- app/Models/Brick.php (attach observer)
+- app/Models/Cat.php (attach observer)
+- app/Models/Ceramic.php (attach observer)
+- app/Services/Calculation/CombinationGenerationService.php
+- resources/views/material_calculations/create.blade.php
+- routes/web.php (tambah routes)
+
+================================================================================
+CONTOH DATA
+================================================================================
+
+material_type_configs:
++----+----------+-----------+------------------------------------------+
+| id | material | type_name | work_types                               |
++----+----------+-----------+------------------------------------------+
+| 1  | cement   | PCC       | ["brick_wall","wall_plastering","skim"]  |
+| 2  | cement   | OPC       | ["brick_wall","wall_plastering"]         |
+| 3  | cement   | NAT       | ["grout_tile"]                           |
+| 4  | cement   | MU-400    | NULL  <-- GLOBAL                         |
+| 5  | sand     | Pasang    | ["brick_wall","wall_plastering"]         |
+| 6  | sand     | Urug      | NULL  <-- GLOBAL                         |
+| 7  | brick    | Press     | NULL  <-- GLOBAL                         |
+| 8  | brick    | Ekspos    | NULL  <-- GLOBAL                         |
++----+----------+-----------+------------------------------------------+
+
+================================================================================
+CATATAN PENTING
+================================================================================
+
+1. Type baru SELALU masuk sebagai GLOBAL (work_types = NULL)
+   - User tidak perlu setting dulu untuk bisa pakai
+   - Admin bisa restrict nanti jika diperlukan
+
+2. Query filter logic:
+   WHERE work_types IS NULL
+      OR JSON_CONTAINS(work_types, '"brick_wall"')
+
+3. Jika semua type di-unassign, otomatis jadi global lagi
+
+4. Pertimbangkan case-sensitivity untuk type_name
+   - Sebaiknya normalize (lowercase/uppercase) saat simpan
+
+================================================================================
