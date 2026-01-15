@@ -121,15 +121,13 @@
                                     @endforeach
                                 </div>
                             </td>
-                            <td style="text-align: center">
-                                <div class="btn-group" style="display: flex; justify-content: center;">
+                            <td class="text-center">
+                                <div class="btn-group-compact">
                                     <a href="{{ route('units.edit', $unit->id) }}"
-                                       class="btn btn-warning btn-sm open-modal"
-                                       title="Edit"
-                                       style="padding: 6px 10px;">
+                                       class="btn btn-warning btn-action open-modal"
+                                       title="Edit">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-
                                     <form action="{{ route('units.destroy', $unit->id) }}"
                                           method="POST"
                                           data-confirm="Yakin ingin menghapus satuan ini?"
@@ -138,10 +136,9 @@
                                           style="display: inline; margin: 0;">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" 
-                                                class="btn btn-danger btn-sm"
-                                                title="Hapus"
-                                                style="padding: 6px 10px;">
+                                        <button type="submit"
+                                                class="btn btn-danger btn-action"
+                                                title="Hapus">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
@@ -204,15 +201,13 @@
                                     @endforeach
                                 </div>
                             </td>
-                            <td style="text-align: center">
-                                <div class="btn-group" style="display: flex; justify-content: center;">
+                            <td class="text-center">
+                                <div class="btn-group-compact">
                                     <a href="{{ route('units.edit', $unit->id) }}"
-                                       class="btn btn-warning btn-sm open-modal"
-                                       title="Edit"
-                                       style="padding: 6px 10px;">
+                                       class="btn btn-warning btn-action open-modal"
+                                       title="Edit">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-
                                     <form action="{{ route('units.destroy', $unit->id) }}"
                                           method="POST"
                                           data-confirm="Yakin ingin menghapus satuan ini?"
@@ -221,10 +216,9 @@
                                           style="display: inline; margin: 0;">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" 
-                                                class="btn btn-danger btn-sm"
-                                                title="Hapus"
-                                                style="padding: 6px 10px;">
+                                        <button type="submit"
+                                                class="btn btn-danger btn-action"
+                                                title="Hapus">
                                             <i class="bi bi-trash"></i>
                                         </button>
                                     </form>
@@ -270,6 +264,58 @@
 </div>
 
 <style>
+/* Button Group Compact - sama seperti materials.index */
+.btn-group-compact {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0;
+    overflow: visible;
+    box-shadow: none;
+    background: transparent;
+}
+.btn-group-compact .btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    width: 26px;
+    padding: 0;
+    margin: 0;
+    border-radius: 0 !important;
+    font-size: 12px;
+    line-height: 1;
+    font-weight: normal !important;
+    -webkit-text-stroke: 0 !important;
+    text-shadow: none !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+.btn-group-compact .btn-action:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.btn-group-compact .btn-action.btn-warning {
+    color: #b45309 !important;
+}
+.btn-group-compact .btn-action.btn-danger {
+    color: #b91c1c !important;
+}
+.btn-group-compact .btn-action i::before {
+    -webkit-text-stroke: 0 !important;
+}
+.btn-group-compact .btn-action:first-child {
+    border-top-left-radius: 999px !important;
+    border-bottom-left-radius: 999px !important;
+}
+.btn-group-compact .btn-action:last-child {
+    border-top-right-radius: 999px !important;
+    border-bottom-right-radius: 999px !important;
+}
+.btn-group-compact .btn-action + .btn-action {
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+}
+
 /* Responsive untuk layar kecil */
 @media (max-width: 1024px) {
     .card > div[style*="grid-template-columns"] {
@@ -424,7 +470,7 @@ th.sortable i {
 }
 
 .unit-style {
-    color: var(--special-text-color);
+    color: var(--text-color);
     font-weight: var(--special-font-weight);
     -webkit-text-stroke: var(--special-text-stroke);
     text-shadow: var(--special-text-shadow);
@@ -491,8 +537,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Close modal function - Global
-    window.closeFloatingModal = function() {
+    // Close modal function - Local
+    window.closeFloatingModalLocal = function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
@@ -500,13 +546,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
 
-    closeBtn.addEventListener('click', window.closeFloatingModal);
-    backdrop.addEventListener('click', window.closeFloatingModal);
+    closeBtn.addEventListener('click', window.closeFloatingModalLocal);
+    backdrop.addEventListener('click', window.closeFloatingModalLocal);
 
     // Close on ESC key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
-            window.closeFloatingModal();
+            window.closeFloatingModalLocal();
         }
     });
 });

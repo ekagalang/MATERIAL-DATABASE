@@ -66,6 +66,9 @@
 
     <form action="{{ route('material-calculations.store') }}" method="POST" id="calculationForm">
         @csrf
+        
+        {{-- Capture Referrer for History Skip Logic --}}
+        <input type="hidden" name="referrer" value="{{ request()->url() }}">
 
         {{-- Hidden fields for default values --}}
         <input type="hidden" name="installation_type_id" value="{{ $defaultInstallationType->id ?? '' }}">
@@ -256,7 +259,11 @@
                                     </span>
                                     <span class="tickbox-desc">3 kombinasi Most Recommended (Custom Setting)</span>
                                 </label>
-                                <a href="{{ route('settings.recommendations.index') }}" class="global-open-modal position-absolute top-0 end-0 mt-1 me-1 p-1" style="z-index: 5; color: #000000 !important;" title="Setting Rekomendasi">
+                                <a href="{{ route('settings.recommendations.index') }}" 
+                                   class="position-absolute top-0 end-0 mt-1 me-1 p-1" 
+                                   style="z-index: 5; color: #000000 !important;" 
+                                   title="Setting Rekomendasi"
+                                   onclick="event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
                                     <i class="bi bi-gear-fill"></i>
                                 </a>
                             </div>

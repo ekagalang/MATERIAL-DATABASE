@@ -1,8 +1,45 @@
 (function() {
     'use strict';
 
-    window.initRecommendationsForm = function(scope) {
-        if (!scope || scope.getAttribute('data-recommendations-form-initialized') === 'true') {
+    window.initRecommendationsForm = function(scope, prefillType = null) {
+        if (!scope) return;
+
+        // Helper to apply prefill logic
+        const applyPrefill = (selector, type) => {
+            if (typeof type === 'string' && type) {
+                console.log('[Recommendations] Prefilling work type:', type);
+                
+                const options = Array.from(selector.options);
+                
+                // Try exact match
+                let match = options.find(opt => opt.value === type);
+                
+                // Try loose match if exact fails
+                if (!match) {
+                    const normalizedPrefill = type.trim().toLowerCase();
+                    match = options.find(opt => opt.value.trim().toLowerCase() === normalizedPrefill);
+                }
+
+                if (match) {
+                    console.log('[Recommendations] Found match:', match.value);
+                    selector.value = match.value;
+                    // Manually trigger change to update UI
+                    selector.dispatchEvent(new Event('change'));
+                } else {
+                    console.warn('[Recommendations] Prefill type not found in options:', type);
+                }
+            }
+        };
+
+        const isInitialized = scope.getAttribute('data-recommendations-form-initialized') === 'true';
+        const workTypeSelector = scope.querySelector('#workTypeSelector');
+
+        // If already initialized, just apply prefill and exit
+        if (isInitialized) {
+            console.log('[Recommendations] Form already initialized.');
+            if (prefillType && workTypeSelector) {
+                applyPrefill(workTypeSelector, prefillType);
+            }
             return;
         }
 
@@ -89,6 +126,11 @@
             if (workTypeSelector) {
                 console.log('[Recommendations] Initializing work type selector...');
 
+                // Apply prefill if available (using helper from closure)
+                if (prefillType) {
+                    applyPrefill(workTypeSelector, prefillType);
+                }
+
                 const showWorkTypeContent = (workType) => {
                     console.log('[Recommendations] Switching to work type:', workType);
                     scope.querySelectorAll('.work-type-content').forEach(content => {
@@ -96,7 +138,8 @@
                     });
                 };
 
-                // Set initial state
+                // Set initial state (if not prefilled, it will use default/first option)
+                // If prefilled, the change event in applyPrefill handles this, but calling it again is safe.
                 showWorkTypeContent(workTypeSelector.value);
 
                 // Add change listener

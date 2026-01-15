@@ -187,6 +187,14 @@ html.materials-booting .page-content {
       vertical-align: top !important;
   }
 
+  /* Only the leftmost and rightmost borders for the dimension group */
+  .table-container thead.has-dim-sub tr.dim-sub-row th:first-child {
+      border-left: 1px solid #cbd5e1 !important;
+  }
+  .table-container thead.has-dim-sub tr.dim-sub-row th:last-child {
+      border-right: 1px solid #cbd5e1 !important;
+  }
+
   /* CRITICAL: Force ALL thead th to align top */
   #section-brick .table-container thead th,
   #section-sand .table-container thead th,
@@ -197,12 +205,31 @@ html.materials-booting .page-content {
       font-size: 14px !important;
   }
   /* Override global.css - make all tbody td consistent */
+  .table-container table {
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+  }
+  .table-container thead th {
+      border: 1px solid #cbd5e1 !important;
+      z-index: 20; /* Ensure borders sit above content */
+  }
   .table-container tbody td {
-      height: 20px !important;
-      padding: 0 6px !important;
-      line-height: 1.1 !important;
+      border: 1px solid #f1f5f9 !important;
+      padding: 14px 16px !important;
       vertical-align: middle !important;
-      font-size: 12px !important;
+      font-size: 13px !important;
+      color: #1e293b !important;
+      text-shadow: none !important;
+      -webkit-text-stroke: 0 !important;
+  }
+
+  /* Force Aksi column width */
+  .table-container thead th:last-child,
+  .table-container tbody td:last-child {
+      width: 90px !important;
+      min-width: 90px !important;
+      max-width: 90px !important;
+      text-align: center !important;
   }
 
   /* Specific overrides for dimension cells - SEMUA MATERIAL */
@@ -476,7 +503,6 @@ html.materials-booting .page-content {
   }
   .material-footer-sticky .kanggo-letters {
       height: 50px !important;
-      margin-top: 0 !important;
   }
   .material-footer-sticky .kanggo-img-link img {
       height: 17px !important;
@@ -2294,36 +2320,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // function updateFooterStickyState() { ... }
     // function requestStickyUpdate() { ... }
 
-    const setActiveTab = (tab) => {
-        tabButtons.forEach(btn => {
-            const isActive = btn.dataset.tab === tab;
-            btn.classList.toggle('active', isActive);
-            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-        });
-        tabPanels.forEach(panel => {
-            const isActive = panel.dataset.tab === tab;
-            panel.classList.toggle('hidden', !isActive);
-            panel.classList.toggle('active', isActive);
-            if (isActive) {
-                panel.removeAttribute('aria-hidden');
-            } else {
-                panel.setAttribute('aria-hidden', 'true');
-            }
-        });
-        allTabActions.forEach(action => {
-            const isActive = action.dataset.tab === tab;
-            action.classList.toggle('active', isActive);
+    function setActiveTab(materialType) {
+        console.log('[Tab] Setting active tab:', materialType);
+        
+        // Deactivate all
+        document.querySelectorAll('.material-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.material-tab-panel').forEach(panel => {
+            panel.classList.remove('active');
+            panel.classList.add('hidden'); // Ensure hidden class is added
         });
 
-        // Save active tab to localStorage
-        localStorage.setItem('materialActiveTab', tab);
-        if (tab === 'ceramic') {
-            window.requestAnimationFrame(() => {
-                applyCeramicStickyOffsets();
-            });
+        // Activate target
+        const btn = document.querySelector(`.material-tab-btn[data-tab="${materialType}"]`);
+        const panel = document.getElementById(`section-${materialType}`);
+
+        if (btn && panel) {
+            btn.classList.remove('hidden');
+            btn.classList.add('active');
+            
+            panel.classList.remove('hidden'); // Remove hidden first
+            // Small delay to allow display:block to apply before adding active class (for transitions if any)
+            // But for simple visibility switch, direct add is fine.
+            panel.classList.add('active'); 
+
+            // FIX: Reset scroll position to prevent sticky column flicker
+            const tableContainer = panel.querySelector('.table-container');
+            if (tableContainer) {
+                tableContainer.scrollLeft = 0;
+            }
+
+            try {
+                localStorage.setItem('materialActiveTab', materialType);
+            } catch (e) {
+                // Ignore
+            }
         }
-        // requestStickyUpdate(); // Removed - sticky footer functionality disabled
-    };
+    }
 
     // Function to save filter preferences to localStorage
     function saveFilterToLocalStorage(selected, order) {

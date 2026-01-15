@@ -6,17 +6,19 @@
 <div id="preview-top"></div>
 <div class="container-fluid py-4 preview-combinations-page">
     <div class="container mb-4">
-        <div class="position-relative d-flex align-items-center">
-            <a href="javascript:history.back()"
-            class="btn-cancel"
-            style="border: 1px solid #891313; background-color: transparent; color: #891313; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
-                <i class="bi bi-arrow-left"></i> Kembali Filter
-            </a>
-
-            <h2 class="fw-bold mb-1 position-absolute start-50 translate-middle-x"
-                style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
-                Pilih Kombinasi Material
-            </h2>
+        <div class="d-flex position-relative align-items-center">
+            <div>
+                <h2 class="fw-bold mb-1 position-absolute start-50 translate-middle-x"
+                    style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
+                    Pilih Kombinasi Material
+                </h2>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="button" id="btnResetSession" class="btn-cancel" style="border: 1px solid #891313; background-color: transparent; color: #891313; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+                    <i class="bi bi-arrow-left"></i> Batal Perhitungan
+                </button>
+            </div>
         </div>
     </div>
 
@@ -2498,6 +2500,42 @@
 @endsection
 
 @push('scripts')
+<script>
+    // Mark this page as a "Skip Page" for history navigation
+    document.body.classList.add('skip-history');
+
+    // Robust "Skip" Logic:
+    // When submitting the form (moving forward to Result), replace the CURRENT history entry (Preview)
+    // with the URL of the Create page. This ensures that hitting "Back" from Result goes straight to Create.
+    document.addEventListener('DOMContentLoaded', () => {
+        const createPageUrl = "{{ request('referrer') ?? route('material-calculations.create') }}";
+        
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                history.replaceState(null, '', createPageUrl);
+            });
+        });
+
+        // Handle Reset Session Button
+        const btnReset = document.getElementById('btnResetSession');
+        if (btnReset) {
+            btnReset.addEventListener('click', async function() {
+                const confirmed = await window.showConfirm({
+                    title: 'Reset Perhitungan',
+                    message: 'Apakah Anda yakin ingin mereset semua data perhitungan?',
+                    confirmText: 'Reset',
+                    cancelText: 'Batal',
+                    type: 'danger'
+                });
+
+                if (confirmed) {
+                    localStorage.removeItem('materialCalculationSession');
+                    window.location.href = "{{ route('material-calculations.create') }}";
+                }
+            });
+        }
+    });
+</script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>

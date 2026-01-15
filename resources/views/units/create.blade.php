@@ -149,91 +149,40 @@
         </div>
 
         <!-- Action Buttons -->
-        <div style="display: flex; 
-                    justify-content: flex-end; 
-                    gap: 12px; 
-                    margin-top: 32px; 
-                    padding-top: 24px; 
-                    border-top: 1px solid #f1f5f9;">
-            <button type="button" 
-                    class="btn btn-secondary-glossy " 
-                    onclick="if(typeof window.closeFloatingModal === 'function'){ window.closeFloatingModal(); } else { window.history.back(); }"
-                    style="background: transparent; 
-                           color: #64748b; 
-                           border: 1.5px solid #e2e8f0; 
-                           box-shadow: none;
-                           padding: 10px 20px;
-                           border-radius: 10px;
-                           cursor: pointer;
-                           font-size: 13.5px;
-                           font-weight: 600;
-                           display: inline-flex;
-                           align-items: center;
-                           gap: 6px;
-                           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-                <i class="bi bi-x-lg"></i> Batalkan
-            </button>
-            <button type="submit" 
-                    class="btn btn-success"
-                    style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-                           color: #fff;
-                           border: none;
-                           padding: 10px 20px;
-                           border-radius: 10px;
-                           cursor: pointer;
-                           font-size: 13.5px;
-                           font-weight: 600;
-                           display: inline-flex;
-                           align-items: center;
-                           gap: 6px;
-                           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-                           transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-                <i class="bi bi-check-lg"></i> Simpan Data
-            </button>
+        <div style="display: flex; justify-content: center; gap: 20px; margin-top: 32px; padding-top: 24px; border-top: 1px solid #f1f5f9;">
+            <button type="button" class="btn-cancel"
+                    onclick="if(typeof window.closeFloatingModalLocal === 'function'){ window.closeFloatingModalLocal(); } else if(typeof window.closeFloatingModal === 'function'){ window.closeFloatingModal(); }">Batal</button>
+            <button type="submit" class="btn-save">Simpan</button>
         </div>
 
     </form>
 </div>
 
 <style>
-    .row { 
-        display: flex; 
-        margin-bottom: 18px; 
+    .row {
+        display: flex;
+        margin-bottom: 18px;
         align-items: flex-start;
         gap: 16px;
     }
-    
-    label { 
-        width: 180px; 
-        padding-top: 10px; 
-        font-size: 13.5px; 
+
+    label {
+        width: 180px;
+        padding-top: 10px;
+        font-size: 13.5px;
         font-weight: 600;
         color: inherit;
         flex-shrink: 0;
     }
-    
+
     input:focus, select:focus, textarea:focus {
         outline: none;
         border-color: #891313 !important;
         box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.08) !important;
         background: #fffbfb !important;
     }
-    
+
     input::placeholder, textarea::placeholder {
         color: #94a3b8;
-    }
-    
-    .btn:hover {
-        transform: translateY(-2px);
-    }
-    
-    .btn-secondary-glossy :hover {
-        background: #f8fafc !important;
-        border-color: #cbd5e1 !important;
-    }
-    
-    .btn-success:hover {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3) !important;
     }
 </style>
