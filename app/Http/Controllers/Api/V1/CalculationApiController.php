@@ -73,7 +73,7 @@ class CalculationApiController extends Controller
             $validated = $request->validate([
                 'work_type' => 'required|string',
                 'wall_length' => 'required|numeric|min:0.01',
-                'wall_height' => 'required|numeric|min:0.01',
+                'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01|max:10',
                 'installation_type_id' => 'required|exists:brick_installation_types,id',
                 'mortar_formula_id' => 'required|exists:mortar_formulas,id',
@@ -145,7 +145,7 @@ class CalculationApiController extends Controller
             $validated = $request->validate([
                 'work_type' => 'required|string',
                 'wall_length' => 'required|numeric|min:0.01',
-                'wall_height' => 'required|numeric|min:0.01',
+                'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01|max:10',
                 'installation_type_id' => 'required|exists:brick_installation_types,id',
                 'mortar_formula_id' => 'required|exists:mortar_formulas,id',
@@ -221,7 +221,7 @@ class CalculationApiController extends Controller
             $validated = $request->validate([
                 'work_type' => 'required|string',
                 'wall_length' => 'required|numeric|min:0.01',
-                'wall_height' => 'required|numeric|min:0.01',
+                'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01|max:10',
                 'installation_type_id' => 'required|exists:brick_installation_types,id',
                 'mortar_formula_id' => 'required|exists:mortar_formulas,id',
@@ -304,7 +304,7 @@ class CalculationApiController extends Controller
                 'brick_ids' => 'required|array|min:2',
                 'brick_ids.*' => 'exists:bricks,id',
                 'wall_length' => 'required|numeric|min:0.01',
-                'wall_height' => 'required|numeric|min:0.01',
+                'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01|max:10',
                 'installation_type_id' => 'required|exists:brick_installation_types,id',
                 'work_type' => 'nullable|string',
@@ -370,7 +370,7 @@ class CalculationApiController extends Controller
             $validated = $request->validate([
                 'formula_code' => 'required|string',
                 'wall_length' => 'required|numeric|min:0.01',
-                'wall_height' => 'required|numeric|min:0.01',
+                'wall_height' => 'required_unless:formula_code,brick_rollag|numeric|min:0.01',
                 'installation_type_id' => 'required|exists:brick_installation_types,id',
                 'mortar_thickness' => 'required|numeric|min:0.01|max:10',
                 'mortar_formula_id' => 'required|exists:mortar_formulas,id',

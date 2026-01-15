@@ -144,11 +144,17 @@ class CementController extends Controller
 
         // Redirect back to the originating page if requested
         if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Semen berhasil ditambahkan!');
+            return redirect()
+                ->to($request->input('_redirect_url'))
+                ->with('success', 'Semen berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
         }
         // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Semen berhasil ditambahkan!');
+            return redirect()
+                ->route('materials.index')
+                ->with('success', 'Semen berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
         }
 
         return redirect()->route('cements.index')->with('success', 'Semen berhasil ditambahkan!');

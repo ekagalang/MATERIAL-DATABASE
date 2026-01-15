@@ -61,9 +61,9 @@
                             <span class="unit">M</span>
                         </div>
                     </div>
-                    <span class="operator">x</span>
-                    <div class="dimension-group">
-                        <label>Tinggi</label>
+                    <span class="operator" id="wallHeightOperator">x</span>
+                    <div class="dimension-group" id="wallHeightGroup">
+                        <label id="wallHeightLabel">Tinggi</label>
                         <div class="input-with-unit">
                             <input type="number" name="wall_height" step="0.01" min="0.01" 
                                 value="{{ old('wall_height', $materialCalculation->wall_height) }}">
@@ -752,6 +752,11 @@
         const layerCountGroup = document.getElementById('layerCountGroup');
         const plasterSidesGroup = document.getElementById('plasterSidesGroup');
         const skimSidesGroup = document.getElementById('skimSidesGroup');
+        const wallHeightGroup = document.getElementById('wallHeightGroup');
+        const wallHeightOperator = document.getElementById('wallHeightOperator');
+        const wallHeightInput = document.querySelector('input[name="wall_height"]');
+        const wallHeightDefaultDisplay = wallHeightGroup ? getComputedStyle(wallHeightGroup).display : 'flex';
+        const wallHeightOperatorDisplay = wallHeightOperator ? getComputedStyle(wallHeightOperator).display : 'inline-block';
         // Note: Label element might need an ID in HTML first, but we can try to find it relative to input if not.
         // Assuming label is generic for now or finding by text content logic is complex without IDs.
         
@@ -759,12 +764,19 @@
             if (!workTypeSelect) return;
             
             const val = workTypeSelect.value;
+            const isRollag = val === 'brick_rollag';
             if (workTypeHidden) workTypeHidden.value = val;
 
             // Hide all first
             if(layerCountGroup) layerCountGroup.style.display = 'none';
             if(plasterSidesGroup) plasterSidesGroup.style.display = 'none';
             if(skimSidesGroup) skimSidesGroup.style.display = 'none';
+            if (wallHeightGroup) wallHeightGroup.style.display = isRollag ? 'none' : wallHeightDefaultDisplay;
+            if (wallHeightOperator) wallHeightOperator.style.display = isRollag ? 'none' : wallHeightOperatorDisplay;
+            if (wallHeightInput) {
+                wallHeightInput.required = !isRollag;
+                wallHeightInput.disabled = isRollag;
+            }
 
             if (val === 'brick_rollag') {
                 if(layerCountGroup) layerCountGroup.style.display = 'flex'; // dimension-group is flex column or flex

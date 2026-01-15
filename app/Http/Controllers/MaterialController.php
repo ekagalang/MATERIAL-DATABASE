@@ -16,8 +16,9 @@ class MaterialController extends Controller
     {
         // Load ALL materials data (not filtered)
         // JavaScript will handle showing/hiding tabs based on checkbox
-        $allSettings = MaterialSetting::where('material_type', '!=', 'nat')->get()
-            ->sortBy(function($setting) {
+        $allSettings = MaterialSetting::where('material_type', '!=', 'nat')
+            ->get()
+            ->sortBy(function ($setting) {
                 return MaterialSetting::getMaterialLabel($setting->material_type);
             })
             ->values();
@@ -84,7 +85,8 @@ class MaterialController extends Controller
         if ($search === '') {
             $items = collect();
             foreach ($models as $materialType => $model) {
-                $types = $model::query()
+                $types = $model
+                    ::query()
                     ->select('type')
                     ->whereNotNull('type')
                     ->where('type', '!=', '')
@@ -129,7 +131,9 @@ class MaterialController extends Controller
         $items = collect();
         foreach ($models as $materialType => $model) {
             $materialLabel = $materialLabels[$materialType] ?? ucfirst($materialType);
-            $columns = array_unique(array_merge(['type'], $labelColumns[$materialType] ?? [], $searchColumns[$materialType] ?? []));
+            $columns = array_unique(
+                array_merge(['type'], $labelColumns[$materialType] ?? [], $searchColumns[$materialType] ?? []),
+            );
             $query = $model::query()->select($columns)->whereNotNull('type')->where('type', '!=', '');
 
             $like = '%' . $search . '%';
@@ -163,7 +167,8 @@ class MaterialController extends Controller
                     ]);
                 }
 
-                $typeMatches = $model::query()
+                $typeMatches = $model
+                    ::query()
                     ->select('type')
                     ->whereNotNull('type')
                     ->where('type', '!=', '')
@@ -200,19 +205,25 @@ class MaterialController extends Controller
         $label = '';
         switch ($materialType) {
             case 'brick':
-                $label = $row->material_name ?? $row->brand ?? $row->form ?? $row->type ?? '';
+                $label = $row->material_name ?? ($row->brand ?? ($row->form ?? ($row->type ?? '')));
                 break;
             case 'cat':
-                $label = $row->cat_name ?? $row->brand ?? $row->sub_brand ?? $row->color_name ?? $row->type ?? '';
+                $label =
+                    $row->cat_name ?? ($row->brand ?? ($row->sub_brand ?? ($row->color_name ?? ($row->type ?? ''))));
                 break;
             case 'cement':
-                $label = $row->cement_name ?? $row->brand ?? $row->sub_brand ?? $row->code ?? $row->color ?? $row->type ?? '';
+                $label =
+                    $row->cement_name ??
+                    ($row->brand ?? ($row->sub_brand ?? ($row->code ?? ($row->color ?? ($row->type ?? '')))));
                 break;
             case 'sand':
-                $label = $row->sand_name ?? $row->brand ?? $row->type ?? '';
+                $label = $row->sand_name ?? ($row->brand ?? ($row->type ?? ''));
                 break;
             case 'ceramic':
-                $label = $row->material_name ?? $row->brand ?? $row->sub_brand ?? $row->code ?? $row->color ?? $row->form ?? $row->type ?? '';
+                $label =
+                    $row->material_name ??
+                    ($row->brand ??
+                        ($row->sub_brand ?? ($row->code ?? ($row->color ?? ($row->form ?? ($row->type ?? ''))))));
                 break;
             default:
                 $label = $row->type ?? '';
@@ -247,7 +258,7 @@ class MaterialController extends Controller
             return [];
         }
 
-        $letterColumn = in_array($type, ['ceramic','brick','sand','cat','cement'], true) ? 'type' : 'brand';
+        $letterColumn = in_array($type, ['ceramic', 'brick', 'sand', 'cat', 'cement'], true) ? 'type' : 'brand';
 
         // Get distinct first letters, uppercase
         return $model
@@ -294,42 +305,80 @@ class MaterialController extends Controller
         if ($search) {
             $searchColumns = match ($type) {
                 'brick' => [
-                    'type', 'brand', 'form',
-                    'dimension_length', 'dimension_width', 'dimension_height',
-                    'package_volume', 'store', 'address',
-                    'price_per_piece', 'comparison_price_per_m3',
+                    'type',
+                    'brand',
+                    'form',
+                    'dimension_length',
+                    'dimension_width',
+                    'dimension_height',
+                    'package_volume',
+                    'store',
+                    'address',
+                    'price_per_piece',
+                    'comparison_price_per_m3',
                 ],
                 'sand' => [
-                    'type', 'brand', 'package_unit',
-                    'dimension_length', 'dimension_width', 'dimension_height',
-                    'package_volume', 'store', 'address',
-                    'package_price', 'comparison_price_per_m3',
+                    'type',
+                    'brand',
+                    'package_unit',
+                    'dimension_length',
+                    'dimension_width',
+                    'dimension_height',
+                    'package_volume',
+                    'store',
+                    'address',
+                    'package_price',
+                    'comparison_price_per_m3',
                     'sand_name',
                 ],
                 'cat' => [
-                    'type', 'brand', 'sub_brand',
-                    'color_code', 'color_name',
-                    'package_unit', 'volume',
-                    'package_weight_gross', 'package_weight_net',
-                    'store', 'address',
-                    'purchase_price', 'comparison_price_per_kg',
+                    'type',
+                    'brand',
+                    'sub_brand',
+                    'color_code',
+                    'color_name',
+                    'package_unit',
+                    'volume',
+                    'package_weight_gross',
+                    'package_weight_net',
+                    'store',
+                    'address',
+                    'purchase_price',
+                    'comparison_price_per_kg',
                     'cat_name',
                 ],
                 'cement' => [
-                    'type', 'brand', 'sub_brand',
-                    'code', 'color',
-                    'package_unit', 'package_weight_net',
-                    'store', 'address',
-                    'package_price', 'comparison_price_per_kg',
+                    'type',
+                    'brand',
+                    'sub_brand',
+                    'code',
+                    'color',
+                    'package_unit',
+                    'package_weight_net',
+                    'store',
+                    'address',
+                    'package_price',
+                    'comparison_price_per_kg',
                     'cement_name',
                 ],
                 'ceramic' => [
-                    'type', 'brand', 'sub_brand',
-                    'code', 'color', 'form', 'surface',
-                    'packaging', 'pieces_per_package', 'coverage_per_package',
-                    'dimension_length', 'dimension_width', 'dimension_thickness',
-                    'store', 'address',
-                    'price_per_package', 'comparison_price_per_m2',
+                    'type',
+                    'brand',
+                    'sub_brand',
+                    'code',
+                    'color',
+                    'form',
+                    'surface',
+                    'packaging',
+                    'pieces_per_package',
+                    'coverage_per_package',
+                    'dimension_length',
+                    'dimension_width',
+                    'dimension_thickness',
+                    'store',
+                    'address',
+                    'price_per_package',
+                    'comparison_price_per_m2',
                     'material_name',
                 ],
                 default => ['brand', 'store'],
@@ -344,33 +393,76 @@ class MaterialController extends Controller
 
         $allowedSortBy = match ($type) {
             'brick' => [
-                'type', 'brand', 'form',
-                'dimension_length', 'dimension_width', 'dimension_height',
-                'package_volume', 'store', 'address',
-                'price_per_piece', 'comparison_price_per_m3',
+                'type',
+                'brand',
+                'form',
+                'dimension_length',
+                'dimension_width',
+                'dimension_height',
+                'package_volume',
+                'store',
+                'address',
+                'price_per_piece',
+                'comparison_price_per_m3',
             ],
             'sand' => [
-                'type', 'brand', 'package_unit',
-                'dimension_length', 'dimension_width', 'dimension_height',
-                'package_volume', 'store', 'address',
-                'package_price', 'comparison_price_per_m3',
+                'type',
+                'brand',
+                'package_unit',
+                'dimension_length',
+                'dimension_width',
+                'dimension_height',
+                'package_volume',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_m3',
             ],
             'cat' => [
-                'type', 'brand', 'sub_brand',
-                'color_code', 'color_name',
-                'package_unit', 'volume', 'package_weight_net',
-                'store', 'address', 'purchase_price', 'comparison_price_per_kg',
+                'type',
+                'brand',
+                'sub_brand',
+                'color_code',
+                'color_name',
+                'package_unit',
+                'volume',
+                'package_weight_net',
+                'store',
+                'address',
+                'purchase_price',
+                'comparison_price_per_kg',
             ],
             'cement' => [
-                'type', 'brand', 'sub_brand', 'code', 'color',
-                'package_unit', 'package_weight_net',
-                'store', 'address', 'package_price', 'comparison_price_per_kg',
+                'type',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'package_unit',
+                'package_weight_net',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_kg',
             ],
             'ceramic' => [
-                'type', 'brand', 'sub_brand', 'code', 'color', 'form', 'surface',
-                'packaging', 'pieces_per_package', 'coverage_per_package',
-                'dimension_length', 'dimension_width', 'dimension_thickness',
-                'store', 'address', 'price_per_package', 'comparison_price_per_m2',
+                'type',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'form',
+                'surface',
+                'packaging',
+                'pieces_per_package',
+                'coverage_per_package',
+                'dimension_length',
+                'dimension_width',
+                'dimension_thickness',
+                'store',
+                'address',
+                'price_per_package',
+                'comparison_price_per_m2',
             ],
             default => [],
         };
@@ -383,13 +475,15 @@ class MaterialController extends Controller
             // Mapping for special columns if needed
             $sortColumn = $sortBy;
             if ($type == 'ceramic' && $sortBy == 'dimension_length') {
-                $query->orderBy('dimension_length', $sortDirection)
-                      ->orderBy('dimension_width', $sortDirection)
-                      ->orderBy('dimension_thickness', $sortDirection);
+                $query
+                    ->orderBy('dimension_length', $sortDirection)
+                    ->orderBy('dimension_width', $sortDirection)
+                    ->orderBy('dimension_thickness', $sortDirection);
             } elseif (in_array($type, ['brick', 'sand']) && $sortBy == 'dimension_length') {
-                $query->orderBy('dimension_length', $sortDirection)
-                      ->orderBy('dimension_width', $sortDirection)
-                      ->orderBy('dimension_height', $sortDirection);
+                $query
+                    ->orderBy('dimension_length', $sortDirection)
+                    ->orderBy('dimension_width', $sortDirection)
+                    ->orderBy('dimension_height', $sortDirection);
             } else {
                 $query->orderBy($sortColumn, $sortDirection);
             }
@@ -397,10 +491,96 @@ class MaterialController extends Controller
             return $query->get();
         }
 
-        if (in_array($type, ['ceramic', 'brick', 'sand', 'cat', 'cement'], true)) {
-            return $query->orderBy('type')->orderBy('brand')->get();
+        $defaultOrderBy = match ($type) {
+            'brick' => [
+                'type',
+                'brand',
+                'form',
+                'dimension_length',
+                'dimension_width',
+                'dimension_height',
+                'package_volume',
+                'store',
+                'address',
+                'price_per_piece',
+                'comparison_price_per_m3',
+                'id',
+            ],
+            'sand' => [
+                'type',
+                'brand',
+                'package_unit',
+                'dimension_length',
+                'dimension_width',
+                'dimension_height',
+                'package_volume',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_m3',
+                'id',
+            ],
+            'cat' => [
+                'type',
+                'brand',
+                'sub_brand',
+                'color_code',
+                'color_name',
+                'package_unit',
+                'package_weight_gross',
+                'volume',
+                'package_weight_net',
+                'store',
+                'address',
+                'purchase_price',
+                'comparison_price_per_kg',
+                'id',
+            ],
+            'cement' => [
+                'type',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'package_unit',
+                'package_weight_net',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_kg',
+                'id',
+            ],
+            'ceramic' => [
+                'type',
+                'dimension_length',
+                'dimension_width',
+                'dimension_thickness',
+                'brand',
+                'sub_brand',
+                'surface',
+                'code',
+                'color',
+                'form',
+                'packaging',
+                'pieces_per_package',
+                'coverage_per_package',
+                'store',
+                'address',
+                'price_per_package',
+                'comparison_price_per_m2',
+                'id',
+            ],
+            default => [
+                'created_at',
+                'brand',
+                'id',
+            ],
+        };
+
+        foreach ($defaultOrderBy as $column) {
+            $query->orderBy($column, 'asc');
         }
 
-        return $query->orderBy('created_at', 'desc')->orderBy('brand')->get();
+        return $query->get();
     }
 }

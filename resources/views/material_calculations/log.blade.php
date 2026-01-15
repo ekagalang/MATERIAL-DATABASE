@@ -310,18 +310,9 @@
                                     <span class="badge bg-primary w-100 py-2">
                                         @php
                                             $workType = $calc->calculation_params['work_type'] ?? null;
-                                            $workTypeNames = [
-                                                'brick_full' => 'Pasangan 1 Bata',
-                                                'brick_half' => 'Pasangan 1/2 Bata',
-                                                'brick_quarter' => 'Pasangan 1/4 Bata',
-                                                'brick_rollag' => 'Pasangan Rollag',
-                                                'wall_plastering' => 'Plesteran Dinding',
-                                                'skim_coating' => 'Aci Dinding',
-                                                'painting' => 'Pengecatan',
-                                                'tile_installation' => 'Pasang Keramik',
-                                                'grout_tile' => 'Pekerjaan Nat Keramik',
-                                            ];
-                                            $displayName = $workTypeNames[$workType] ?? ($calc->installationType->name ?? '-');
+                                            // Use FormulaRegistry to get dynamic names
+                                            $formulaNames = \App\Services\FormulaRegistry::options();
+                                            $displayName = $formulaNames[$workType] ?? ($calc->installationType->name ?? '-');
                                         @endphp
                                         {{ $displayName }}
                                     </span>

@@ -110,7 +110,7 @@
                                 </div>
                             </div>
 
-                            <div class="dimension-item">
+                            <div class="dimension-item" id="wallHeightGroup">
                                 <label id="wallHeightLabel">Tinggi</label>
                                 <div class="input-with-unit">
                                     <input type="number" name="wall_height" id="wallHeight" step="0.01" min="0.01"
@@ -120,7 +120,7 @@
                             </div>
 
                             <div class="dimension-item" id="mortarThicknessGroup">
-                                <label>Tebal</label>
+                                <label>Tebal Adukan</label>
                                 <div class="input-with-unit">
                                     <input type="number" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
                                         value="{{ request('mortar_thickness', 2) }}">
@@ -644,9 +644,12 @@
         const ceramicLengthGroup = document.getElementById('ceramicLengthGroup');
         const ceramicWidthGroup = document.getElementById('ceramicWidthGroup');
         const wallHeightLabel = document.getElementById('wallHeightLabel');
+        const wallHeightGroup = document.getElementById('wallHeightGroup');
+        const wallHeightInput = document.getElementById('wallHeight');
         const ceramicFilterSection = document.getElementById('ceramicFilterSection');
         const mortarThicknessInput = document.getElementById('mortarThickness');
         const mortarThicknessUnit = document.getElementById('mortarThicknessUnit');
+        const wallHeightDefaultDisplay = wallHeightGroup ? getComputedStyle(wallHeightGroup).display : 'flex';
 
         function formatThicknessValue(value) {
             const num = Number(value);
@@ -678,11 +681,23 @@
             }
         }
 
+        function setWallHeightVisibility(isVisible) {
+            if (!wallHeightGroup) return;
+            wallHeightGroup.style.display = isVisible ? wallHeightDefaultDisplay : 'none';
+            if (wallHeightInput) {
+                wallHeightInput.required = isVisible;
+                wallHeightInput.disabled = !isVisible;
+            }
+        }
+
         function toggleLayerInputs() {
             const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
             const layerCountLabel = document.getElementById('layerCountLabel');
             const layerCountUnit = document.getElementById('layerCountUnit');
             const layerCountInputWrapper = document.getElementById('layerCountInputWrapper');
+            const isRollag = workTypeSelector && workTypeSelector.value === 'brick_rollag';
+
+            setWallHeightVisibility(!isRollag);
 
             if (wallHeightLabel) {
                 wallHeightLabel.textContent = 'Tinggi';
@@ -709,11 +724,6 @@
                     if (layerCountInputWrapper) {
                         layerCountInputWrapper.style.backgroundColor = '#fffbeb';
                         layerCountInputWrapper.style.borderColor = '#fcd34d';
-                    }
-
-                    // Change label from "Tinggi" to "Lebar" for Rollag
-                    if (wallHeightLabel) {
-                        wallHeightLabel.textContent = 'Lebar';
                     }
                 } else if (workTypeSelector.value === 'wall_plastering') {
                     layerCountGroup.style.display = 'none';
@@ -901,6 +911,125 @@
         // Loading State Handler with Real Progress Simulation
         const form = document.getElementById('calculationForm');
         let loadingInterval = null;
+        const calcSessionKey = 'materialCalculationSession';
+        let saveSessionTimer = null;
+
+        function serializeCalculationSession(formEl) {
+            if (!formEl) return null;
+            const data = {};
+            const formData = new FormData(formEl);
+            formData.forEach((value, key) => {
+                const normalizedKey = key.endsWith('[]') ? key.slice(0, -2) : key;
+                if (normalizedKey === '_token' || normalizedKey === 'confirm_save') {
+                    return;
+                }
+                if (data[normalizedKey] === undefined) {
+                    data[normalizedKey] = value;
+                } else if (Array.isArray(data[normalizedKey])) {
+                    data[normalizedKey].push(value);
+                } else {
+                    data[normalizedKey] = [data[normalizedKey], value];
+                }
+            });
+            return data;
+        }
+
+        function saveCalculationSession() {
+            if (!form) return;
+            const payload = serializeCalculationSession(form);
+            if (!payload) return;
+            try {
+                localStorage.setItem(calcSessionKey, JSON.stringify({
+                    updatedAt: Date.now(),
+                    data: payload,
+                    autoSubmit: false,
+                }));
+            } catch (error) {
+                console.warn('Failed to save calculation session', error);
+            }
+        }
+
+        function shouldRestoreCalculationSession() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('resume') !== '1') return false;
+            params.delete('resume');
+            params.delete('auto_submit');
+            return !params.toString();
+        }
+
+        function applyCalculationSession(state) {
+            if (!form || !state || typeof state !== 'object') return;
+
+            const workTypeInput = form.querySelector('#workTypeSelector');
+            const workTypeValue = state.work_type_select || state.work_type || '';
+            if (workTypeInput && workTypeValue) {
+                workTypeInput.value = workTypeValue;
+                workTypeInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            form.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(field => {
+                field.checked = false;
+            });
+
+            Object.entries(state).forEach(([key, value]) => {
+                if (key === 'work_type_select' || key === 'work_type') return;
+                const selector = `[name="${key}"], [name="${key}[]"]`;
+                const fields = form.querySelectorAll(selector);
+                if (!fields.length) return;
+
+                const values = Array.isArray(value) ? value.map(String) : [String(value)];
+                fields.forEach(field => {
+                    if (field.type === 'checkbox' || field.type === 'radio') {
+                        field.checked = values.includes(String(field.value));
+                    } else if (field.multiple && field.options) {
+                        Array.from(field.options).forEach(option => {
+                            option.selected = values.includes(String(option.value));
+                        });
+                    } else {
+                        field.value = values[0];
+                    }
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (field.type !== 'checkbox' && field.type !== 'radio') {
+                        field.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                });
+            });
+        }
+
+        function restoreCalculationSession() {
+            if (!form || !shouldRestoreCalculationSession()) return;
+            const params = new URLSearchParams(window.location.search);
+            const autoSubmitRequested = params.get('auto_submit') === '1';
+            const raw = localStorage.getItem(calcSessionKey);
+            if (!raw) return;
+
+            let parsed = null;
+            try {
+                parsed = JSON.parse(raw);
+            } catch (error) {
+                localStorage.removeItem(calcSessionKey);
+                return;
+            }
+
+            const state = parsed && typeof parsed === 'object' && parsed.data ? parsed.data : parsed;
+            applyCalculationSession(state);
+
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('resume');
+            cleanUrl.searchParams.delete('auto_submit');
+            window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
+
+            if (autoSubmitRequested) {
+                setTimeout(() => {
+                    if (!form.checkValidity()) return;
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
+                }, 50);
+            }
+        }
 
         // Function to Reset UI
         function resetLoadingState() {
@@ -959,8 +1088,19 @@
         }
 
         if (form) {
+            form.addEventListener('input', function() {
+                if (saveSessionTimer) clearTimeout(saveSessionTimer);
+                saveSessionTimer = setTimeout(saveCalculationSession, 250);
+            });
+
+            form.addEventListener('change', function() {
+                if (saveSessionTimer) clearTimeout(saveSessionTimer);
+                saveSessionTimer = setTimeout(saveCalculationSession, 250);
+            });
+
             form.addEventListener('submit', function(e) {
                 if (this.checkValidity()) {
+                    saveCalculationSession();
                     if (mortarThicknessInput && mortarThicknessInput.dataset.unit === 'mm') {
                         const mmValue = parseFloat(mortarThicknessInput.value);
                         if (!isNaN(mmValue)) {
@@ -1070,6 +1210,8 @@
                 if (subtitle) subtitle.textContent = 'Memuat hasil perhitungan...';
             }
         });
+
+        restoreCalculationSession();
     })();
 </script>
 @endpush

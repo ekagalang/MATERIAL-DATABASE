@@ -692,7 +692,7 @@ function updateSortIcons(sortBy, sortDirection) {
 
         if (column === sortBy) {
             if (sortDirection === 'asc') {
-                icon.className = 'bi bi-sort-up sort-icon';
+                icon.className = 'bi bi-sort-up-alt sort-icon';
                 icon.style.opacity = '1';
             } else if (sortDirection === 'desc') {
                 icon.className = 'bi bi-sort-down-alt sort-icon';

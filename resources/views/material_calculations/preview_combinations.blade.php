@@ -6,16 +6,17 @@
 <div id="preview-top"></div>
 <div class="container-fluid py-4 preview-combinations-page">
     <div class="container mb-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="fw-bold mb-1" style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
-                    Pilih Kombinasi Material
-                </h2>
-            </div>
-            
-            <a href="javascript:history.back()" class="btn-cancel" style="border: 1px solid #891313; background-color: transparent; color: #891313; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+        <div class="position-relative d-flex align-items-center">
+            <a href="javascript:history.back()"
+            class="btn-cancel"
+            style="border: 1px solid #891313; background-color: transparent; color: #891313; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
                 <i class="bi bi-arrow-left"></i> Kembali Filter
             </a>
+
+            <h2 class="fw-bold mb-1 position-absolute start-50 translate-middle-x"
+                style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
+                Pilih Kombinasi Material
+            </h2>
         </div>
     </div>
 
@@ -28,26 +29,27 @@
     @elseif(isset($isMultiCeramic) && $isMultiCeramic && isset($groupedCeramics))
         @php
             $workType = $requestData['work_type'] ?? '';
-            $heightLabel = in_array($workType, ['brick_rollag', 'tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'], true) ? 'LEBAR' : 'TINGGI';
+            $isRollag = $workType === 'brick_rollag';
+            $heightLabel = in_array($workType, ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'], true) ? 'LEBAR' : 'TINGGI';
             $lengthValue = $requestData['wall_length'] ?? null;
-            $heightValue = $requestData['wall_height'] ?? null;
+            $heightValue = $isRollag ? null : ($requestData['wall_height'] ?? null);
             $groutValue = $requestData['grout_thickness'] ?? null;
-            $areaValue = $requestData['area'] ?? null;
-            if (!$areaValue && $lengthValue !== null && $heightValue !== null) {
+            $areaValue = $isRollag ? null : ($requestData['area'] ?? null);
+            if (!$isRollag && !$areaValue && $lengthValue !== null && $heightValue !== null) {
                 $areaValue = $lengthValue * $heightValue;
             }
             $formulaDisplay = $formulaName ?? ($requestData['formula_name'] ?? null);
             $mortarValue = $requestData['mortar_thickness'] ?? null;
             $isPainting = (isset($requestData['work_type']) && $requestData['work_type'] === 'painting');
-            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL';
+            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL ADUKAN';
             $paramUnit = $isPainting ? 'Lapis' : 'cm';
             $paramValue = $isPainting ? ($requestData['painting_layers'] ?? 2) : $mortarValue;
         @endphp
 
         @if($formulaDisplay || $paramValue || $lengthValue || $heightValue || $groutValue || $areaValue)
         <div class="container mb-3">
-            <div class="card p-3 shadow-sm border-0 ceramic-info-card" style="background-color: #fdfdfd; border-radius: 12px;">
-                <div class="d-flex flex-wrap align-items-end gap-3 justify-content-between">
+            <div class="card p-3 shadow-sm border-0 ceramic-info-card preview-params-sticky" style="background-color: #fdfdfd; border-radius: 12px;">
+                <div class="d-flex flex-wrap align-items-end gap-3 justify-content-start preview-param-row">
                     @if($formulaDisplay)
                     <div style="flex: 1; min-width: 250px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
@@ -925,12 +927,18 @@
         @if(count($globalRekapData) > 0)
         <div class="container mb-4">
             @php
+                $isRollag = isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag';
                 if (!isset($area)) {
-                    $area = ($requestData['wall_length'] ?? 0) * ($requestData['wall_height'] ?? 0);
+                    $area = $isRollag ? 0 : (($requestData['wall_length'] ?? 0) * ($requestData['wall_height'] ?? 0));
                 }
             @endphp
-            <div class="card p-3 shadow-sm border-0" style="background-color: #fdfdfd; border-radius: 12px;">
-                <div class="d-flex flex-wrap align-items-end gap-3 justify-content-between">
+            @php
+                $heightLabel = in_array($requestData['work_type'] ?? '', ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'], true) ? 'LEBAR' : 'TINGGI';
+            @endphp
+            <div class="card p-3 shadow-sm border-0 preview-params-sticky" style="background-color: #fdfdfd; border-radius: 12px;">
+                <div class="d-flex flex-wrap align-items-end gap-3 justify-content-start preview-param-row">
+                    {{-- ===== GRUP UTAMA: Item Pekerjaan + Dimensi ===== --}}
+
                     {{-- Jenis Item Pekerjaan --}}
                     <div style="flex: 1; min-width: 250px;">
                         <label class="fw-bold mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px;">
@@ -941,11 +949,51 @@
                         </div>
                     </div>
 
+                    {{-- Panjang --}}
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">PANJANG</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_length'])</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                        </div>
+                    </div>
+
+                    @if(!$isRollag)
+                    {{-- Tinggi/Lebar --}}
+                    <div style="flex: 0 0 auto; width: 100px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-light border">{{ $heightLabel }}</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_height'])</div>
+                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
+                        </div>
+                    </div>
+
+                    {{-- Luas --}}
+                    <div style="flex: 0 0 auto; width: 120px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge bg-danger text-white border border-danger">LUAS</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center bg-white text-danger px-1" style="border-color: #dc3545;">@format($area)</div>
+                            <span class="input-group-text bg-danger text-white small px-1" style="font-size: 0.7rem; border-color: #dc3545;">M2</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- ===== SEPARATOR / GAP ===== --}}
+                    <div style="flex: 0 0 auto; width: 10px;"></div>
+
+                    {{-- ===== GRUP TAMBAHAN: Parameter Lainnya ===== --}}
+
                     {{-- Tebal Spesi / Lapis Cat --}}
                     <div style="flex: 0 0 auto; width: 100px;">
                         @php
                             $isPainting = (isset($requestData['work_type']) && $requestData['work_type'] === 'painting');
-                            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL';
+                            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL ADUKAN';
                             $paramUnit = $isPainting ? 'Lapis' : 'cm';
                             $paramValue = $isPainting ? ($requestData['painting_layers'] ?? 2) : ($requestData['mortar_thickness'] ?? 2.0);
                             $badgeClass = $isPainting ? 'bg-primary text-white' : 'bg-light';
@@ -1049,41 +1097,6 @@
                         </div>
                     </div>
                     @endif
-
-                    {{-- Panjang --}}
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-light border">PANJANG</span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_length'])</div>
-                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
-                        </div>
-                    </div>
-
-                    {{-- Tinggi / Lebar (untuk Rollag) --}}
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-ligh border">
-                                {{ isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag' ? 'LEBAR' : 'TINGGI' }}
-                            </span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #e9ecef;">@format($requestData['wall_height'])</div>
-                            <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">M</span>
-                        </div>
-                    </div>
-
-                    {{-- Luas --}}
-                    <div style="flex: 0 0 auto; width: 120px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
-                            <span class="badge bg-danger text-white border border-danger">LUAS</span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center bg-white text-danger px-1" style="border-color: #dc3545;">@format($area)</div>
-                            <span class="input-group-text bg-danger text-white small px-1" style="font-size: 0.7rem; border-color: #dc3545;">M2</span>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1096,6 +1109,7 @@
                         }
                         .table-rekap-global td {
                             padding: 8px 10px !important;
+                            border: 1px solid #f1f5f9;
                         }
                     </style>
                     <table class="table-preview table-rekap-global" style="margin: 0;">
@@ -1348,24 +1362,70 @@
                                         text-align: center;
                                         font-weight: 900;
                                         padding: 14px 16px;
-                                        border: none;
+                                        border: 1px solid #d1d5db;
                                         font-size: 14px;
                                         letter-spacing: 0.3px;
                                         white-space: nowrap;
                                     }
                                     .table-preview td {
                                         padding: 14px 16px;
-                                        border-bottom: 1px solid #f1f5f9;
+                                        border: 1px solid #f1f5f9;
                                         vertical-align: top;
                                         white-space: nowrap;
                                     }
-                                    .table-preview td.store-cell,
-                                    .table-preview td.address-cell {
-                                        white-space: normal;
-                                        word-wrap: break-word;
-                                        word-break: break-word;
-                                        max-width: 200px;
+                                    .table-preview td.preview-scroll-td {
+                                        position: relative;
+                                        overflow: hidden;
+                                        white-space: nowrap;
+                                        text-align: left;
+                                    }
+                                    .table-preview td.preview-store-cell {
+                                        width: 150px;
                                         min-width: 150px;
+                                        max-width: 150px;
+                                    }
+                                    .table-preview td.preview-address-cell {
+                                        width: 200px;
+                                        min-width: 200px;
+                                        max-width: 200px;
+                                    }
+                                    .table-preview th.preview-store-cell {
+                                        width: 150px;
+                                        min-width: 150px;
+                                        max-width: 150px;
+                                    }
+                                    .table-preview th.preview-address-cell {
+                                        width: 200px;
+                                        min-width: 200px;
+                                        max-width: 200px;
+                                    }
+                                    .table-preview td.preview-scroll-td.is-scrollable::after {
+                                        content: '...';
+                                        position: absolute;
+                                        right: 6px;
+                                        top: 50%;
+                                        transform: translateY(-50%);
+                                        font-size: 12px;
+                                        font-weight: 600;
+                                        color: rgba(15, 23, 42, 0.85);
+                                        background: linear-gradient(90deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.95) 40%, rgba(248, 250, 252, 1) 100%);
+                                        padding-left: 8px;
+                                        pointer-events: none;
+                                    }
+                                    .table-preview td.preview-scroll-td.is-scrolled-end::after {
+                                        opacity: 0;
+                                    }
+                                    .table-preview .preview-scroll-cell {
+                                        display: block;
+                                        width: 100%;
+                                        overflow-x: auto;
+                                        overflow-y: hidden;
+                                        scrollbar-width: none;
+                                        scrollbar-color: transparent transparent;
+                                        white-space: nowrap;
+                                    }
+                                    .table-preview .preview-scroll-cell::-webkit-scrollbar {
+                                        height: 0;
                                     }
                                     .table-preview tbody tr:last-child td {
                                         border-bottom: none;
@@ -1473,13 +1533,13 @@
                                             <th class="sticky-col-2">Satuan</th>
                                             <th class="sticky-col-3">Material</th>
                                             <th colspan="4">Detail</th>
-                                            <th>Toko</th>
-                                            <th>Alamat</th>
+                                            <th class="preview-store-cell">Toko</th>
+                                            <th class="preview-address-cell">Alamat</th>
                                             <th colspan="2">Harga / Kemasan</th>
                                             <th>Harga Komparasi</br> / Pekerjaan</th>
                                             <th>Total Biaya</br> Material / Pekerjaan</th>
                                             <th colspan="2">Harga Satuan</br> Material / Pekerjaan</th>
-                                            <th colspan="2">Harga Satuan Beli</th>
+                                            <th colspan="2">Harga Beli Aktual<br>/ Satuan Komparasi</th>
                                             <th>Aksi</th>
                                         </tr>
                                     </thead>
@@ -1517,9 +1577,12 @@
                                                                             if ($item['ceramic']->id === $rekapData['ceramic_id'] && $item['nat']->id === $rekapData['nat_id']) {
                                                                                 $match = true;
                                                                             }
-                                                                        } elseif (isset($rekapData['cement_id']) && isset($rekapData['sand_id']) && isset($item['cement']) && isset($item['sand'])) {
-                                                                            // Match by Cement & Sand ID (for masonry work)
-                                                                            if ($item['cement']->id === $rekapData['cement_id'] && $item['sand']->id === $rekapData['sand_id']) {
+                                                                        } elseif (isset($rekapData['cement_id']) && isset($item['cement'])) {
+                                                                            // Match by Cement (and Sand if applicable)
+                                                                            $rekapSandId = $rekapData['sand_id'] ?? null;
+                                                                            $itemSandId = isset($item['sand']) ? $item['sand']->id : null;
+
+                                                                            if ($item['cement']->id === $rekapData['cement_id'] && $rekapSandId === $itemSandId) {
                                                                                 $match = true;
                                                                             }
                                                                         }
@@ -1549,7 +1612,48 @@
                                                 $brick = $combo['brick'];
                                                 $res = $item['result'];
                                                 $isFirstOption = ($globalIndex === 1);
-                                                $costPerM2 = $area > 0 ? $res['grand_total'] / $area : 0;
+                                                $areaForCost = $area;
+                                                if ($isRollag) {
+                                                    $wallLength = (float)($requestData['wall_length'] ?? 0);
+                                                    $brickLength = (float)($brick->dimension_length ?? 0);
+                                                    if ($brickLength <= 0) {
+                                                        $brickLength = 19.2;
+                                                    }
+                                                    $areaForCost = ($wallLength > 0 && $brickLength > 0)
+                                                        ? $wallLength * ($brickLength / 100)
+                                                        : 0;
+                                                }
+                                                $costPerM2 = $areaForCost > 0 ? $res['grand_total'] / $areaForCost : 0;
+                                                $brickVolume = 0;
+                                                if ($brick && $brick->dimension_length && $brick->dimension_width && $brick->dimension_height) {
+                                                    $brickVolume = ($brick->dimension_length * $brick->dimension_width * $brick->dimension_height) / 1000000;
+                                                }
+                                                if ($brickVolume <= 0) {
+                                                    $brickVolume = $brick->package_volume ?? 0;
+                                                }
+                                                $brickVolumeDisplay = $brickVolume > 0 ? $brickVolume : null;
+                                                if ($brickVolume <= 0) {
+                                                    $brickVolume = 1;
+                                                }
+                                                $cementWeight = isset($item['cement']) ? ($item['cement']->package_weight_net ?? 0) : 0;
+                                                if ($cementWeight <= 0) {
+                                                    $cementWeight = 1;
+                                                }
+                                                $catWeight = isset($item['cat']) ? ($item['cat']->package_weight_net ?? 0) : 0;
+                                                if ($catWeight <= 0) {
+                                                    $catWeight = 1;
+                                                }
+                                                $ceramicArea = 0;
+                                                if (isset($item['ceramic']) && $item['ceramic']->dimension_length && $item['ceramic']->dimension_width) {
+                                                    $ceramicArea = ($item['ceramic']->dimension_length / 100) * ($item['ceramic']->dimension_width / 100);
+                                                }
+                                                if ($ceramicArea <= 0) {
+                                                    $ceramicArea = 1;
+                                                }
+                                                $natWeight = isset($item['nat']) ? ($item['nat']->package_weight_net ?? 0) : 0;
+                                                if ($natWeight <= 0) {
+                                                    $natWeight = 1;
+                                                }
 
                                                 // ========================================
                                                 // DYNAMIC MATERIAL CONFIGURATION
@@ -1561,10 +1665,13 @@
                                                         'check_field' => 'total_bricks',
                                                         'qty' => $res['total_bricks'] ?? 0,
                                                         'unit' => 'Bh',
+                                                        'comparison_unit' => 'M3',
+                                                        'detail_value' => $brickVolume,
                                                         'object' => $brick,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
-                                                        'detail_display' => ($brick->dimension_length + 0) . ' x ' . ($brick->dimension_width + 0) . ' x ' . ($brick->dimension_height + 0) . ' cm',
+                                                        'detail_display' => ($brick->dimension_length + 0) . 'cm x ' . ($brick->dimension_width + 0) . 'cm x ' . ($brick->dimension_height + 0) . ' cm',
+                                                        'detail_extra' => $brickVolumeDisplay ? (number_format($brickVolumeDisplay, 6, ',', '.') . ' M3') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => $brick->price_per_piece ?? 0,
@@ -1578,6 +1685,8 @@
                                                         'check_field' => 'cement_sak',
                                                         'qty' => $res['cement_sak'] ?? 0,
                                                         'unit' => 'Sak',
+                                                        'comparison_unit' => 'Kg',
+                                                        'detail_value' => $cementWeight,
                                                         'object' => $item['cement'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
@@ -1596,6 +1705,8 @@
                                                         'check_field' => 'sand_m3',
                                                         'qty' => $res['sand_m3'] ?? 0,
                                                         'unit' => 'M3',
+                                                        'comparison_unit' => 'M3',
+                                                        'detail_value' => isset($item['sand']) && $item['sand']->package_volume > 0 ? $item['sand']->package_volume : 1,
                                                         'object' => $item['sand'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
@@ -1614,6 +1725,8 @@
                                                         'check_field' => 'cat_packages',
                                                         'qty' => $res['cat_packages'] ?? 0,
                                                         'unit' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Kmsn') : 'Kmsn',
+                                                        'comparison_unit' => 'Kg',
+                                                        'detail_value' => $catWeight,
                                                         'object' => $item['cat'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
@@ -1632,6 +1745,8 @@
                                                         'check_field' => 'total_tiles',
                                                         'qty' => $res['total_tiles'] ?? 0,
                                                         'unit' => 'Bh',
+                                                        'comparison_unit' => 'M2',
+                                                        'detail_value' => $ceramicArea,
                                                         'object' => $item['ceramic'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
@@ -1650,6 +1765,8 @@
                                                         'check_field' => 'grout_packages',
                                                         'qty' => $res['grout_packages'] ?? 0,
                                                         'unit' => 'Bks',
+                                                        'comparison_unit' => 'Kg',
+                                                        'detail_value' => $natWeight,
                                                         'object' => $item['nat'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
@@ -1668,6 +1785,8 @@
                                                         'check_field' => 'total_water_liters',
                                                         'qty' => $res['total_water_liters'] ?? ($res['water_liters'] ?? 0),
                                                         'unit' => 'L',
+                                                        'comparison_unit' => 'L',
+                                                        'detail_value' => 1,
                                                         'object' => null,
                                                         'type_field' => null,
                                                         'type_display' => 'Bersih',
@@ -1800,9 +1919,13 @@
                                                         <td class="text-muted">{{ $mat['type_display'] ?? ($mat['object']->{$mat['type_field']} ?? '-') }}</td>
                                                         <td class="fw-bold">{{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}</td>
                                                         <td class="{{ $matKey === 'brick' ? 'text-center text-nowrap' : '' }}">{{ $mat['detail_display'] }}</td>
-                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' ? 'text-start text-nowrap fw-bold' : '' }}">{{ $mat['detail_extra'] ?? '' }}</td>
-                                                        <td class="store-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</td>
-                                                        <td class="small text-muted address-cell">{{ $mat['address_display'] ?? ($mat['object']->{$mat['address_field']} ?? '-') }}</td>
+                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }}">{{ $mat['detail_extra'] ?? '' }}</td>
+                                                        <td class="preview-scroll-td preview-store-cell">
+                                                            <div class="preview-scroll-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</div>
+                                                        </td>
+                                                        <td class="preview-scroll-td preview-address-cell small text-muted">
+                                                            <div class="preview-scroll-cell">{{ $mat['address_display'] ?? ($mat['object']->{$mat['address_field']} ?? '-') }}</div>
+                                                        </td>
 
                                                         {{-- Column 10-11: Package Price --}}
                                                         @if(isset($mat['is_special']) && $mat['is_special'])
@@ -1847,27 +1970,76 @@
                                                             <td rowspan="{{ $rowCount }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
                                                         @endif
 
-                                                        {{-- Column 16-17: Unit Price --}}
+                                                        {{-- Column 16-17: Harga Beli Aktual / Satuan Komparasi --}}
                                                         @if(isset($mat['is_special']) && $mat['is_special'])
                                                             <td class="text-center text-muted">-</td>
                                                             <td></td>
                                                         @else
-                                                            <td class="text-nowrap">
+                                                            @php
+                                                                $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
+                                                                $detailValue = $mat['detail_value'] ?? 1;
+                                                                $qtyValue = $mat['qty'] ?? 0;
+                                                                $totalPriceValue = $mat['total_price'] ?? 0;
+                                                                $actualBuyPrice = ($qtyValue > 0 && $detailValue > 0)
+                                                                    ? ($totalPriceValue / $qtyValue / $detailValue)
+                                                                    : 0;
+                                                            @endphp
+                                                            <td class="text-nowrap" title="Rumus: {{ number_format($totalPriceValue, 2, ',', '.') }} / {{ number_format($qtyValue, 6, ',', '.') }} / {{ number_format($detailValue, 6, ',', '.') }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span>Rp</span>
-                                                                    <span>{{ number_format($mat['unit_price'], 0, ',', '.') }}</span>
+                                                                    <span>{{ number_format($actualBuyPrice, 2, ',', '.') }}</span>
                                                                 </div>
                                                             </td>
-                                                            <td class="text-muted text-nowrap ps-1">/ {{ $mat['unit_price_label'] }}</td>
+                                                            <td class="text-muted text-nowrap ps-1">/ {{ $comparisonUnit }}</td>
                                                         @endif
 
                                                         {{-- Column 18: Action (Rowspan) --}}
                                                         @if($isFirstMaterial)
                                                             <td rowspan="{{ $rowCount }}" class="text-center align-top rowspan-cell">
-                                                                <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
+                                                                @php
+                                                                    $traceFormulaCode = $requestData['formula_code']
+                                                                        ?? $requestData['work_type']
+                                                                        ?? null;
+                                                                    $traceParams = [
+                                                                        'formula_code' => $traceFormulaCode,
+                                                                        'work_type' => $requestData['work_type'] ?? null,
+                                                                        'wall_length' => $requestData['wall_length'] ?? null,
+                                                                        'wall_height' => $requestData['wall_height'] ?? null,
+                                                                        'area' => $requestData['area'] ?? null,
+                                                                        'mortar_thickness' => $requestData['mortar_thickness'] ?? null,
+                                                                        'grout_thickness' => $requestData['grout_thickness'] ?? null,
+                                                                        'painting_layers' => $requestData['painting_layers'] ?? null,
+                                                                        'layer_count' => $requestData['layer_count'] ?? null,
+                                                                        'auto_trace' => 1,
+                                                                    ];
+                                                                    $traceParams['brick_id'] = $brick->id;
+                                                                    if (isset($item['cement'])) {
+                                                                        $traceParams['cement_id'] = $item['cement']->id;
+                                                                    }
+                                                                    if (isset($item['sand'])) {
+                                                                        $traceParams['sand_id'] = $item['sand']->id;
+                                                                    }
+                                                                    if (isset($item['cat'])) {
+                                                                        $traceParams['cat_id'] = $item['cat']->id;
+                                                                    }
+                                                                    if (isset($item['ceramic'])) {
+                                                                        $traceParams['ceramic_id'] = $item['ceramic']->id;
+                                                                    }
+                                                                    if (isset($item['nat'])) {
+                                                                        $traceParams['nat_id'] = $item['nat']->id;
+                                                                    }
+                                                                    $traceUrl = route('material-calculator.trace') . '?' . http_build_query(array_filter($traceParams, function ($value) {
+                                                                        return $value !== null && $value !== '';
+                                                                    }));
+                                                                @endphp
+                                                                <div class="d-flex flex-column gap-2 align-items-center">
+                                                                    <a href="{{ $traceUrl }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+                                                                        <i class="bi bi-diagram-3 me-1"></i> Trace
+                                                                    </a>
+                                                                    <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
                                                                     @csrf
                                                                     @foreach($requestData as $key => $value)
-                                                                        @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters')
+                                                                        @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters' && $key != 'work_type')
                                                                             @if(is_array($value))
                                                                                 @foreach($value as $v)
                                                                                     <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
@@ -1877,7 +2049,15 @@
                                                                             @endif
                                                                         @endif
                                                                     @endforeach
-                                                                    <input type="hidden" name="brick_id" value="{{ $brick->id }}">
+                                                                    
+                                                                    {{-- Explicitly pass work_type --}}
+                                                                    <input type="hidden" name="work_type" value="{{ $requestData['work_type'] ?? '' }}">
+
+                                                                    {{-- Only pass brick_id if NOT brickless --}}
+                                                                    @if(!($isBrickless ?? false))
+                                                                        <input type="hidden" name="brick_id" value="{{ $brick->id }}">
+                                                                    @endif
+
                                                                     @if(isset($item['cement']))
                                                                         <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
                                                                     @endif
@@ -1895,10 +2075,11 @@
                                                                     @endif
                                                                     <input type="hidden" name="price_filters[]" value="custom">
                                                                     <input type="hidden" name="confirm_save" value="1">
-                                                                    <button type="submit" class="btn-select">
-                                                                        <i class="bi bi-check-circle me-1"></i> Pilih
-                                                                    </button>
-                                                                </form>
+                                                                        <button type="submit" class="btn-select">
+                                                                            <i class="bi bi-check-circle me-1"></i> Pilih
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
                                                             </td>
                                                         @endif
                                                     </tr>
@@ -1947,11 +2128,11 @@
     /* Smooth scroll untuk seluruh halaman */
     html {
         scroll-behavior: smooth;
-        scroll-padding-top: 70px;
+        scroll-padding-top: var(--preview-scroll-offset, 60px);
     }
 
     .preview-combinations-page [id^="detail-"] {
-        scroll-margin-top: 70px;
+        scroll-margin-top: var(--preview-scroll-offset, 60px);
     }
 
     /* Hover effect untuk button cancel */
@@ -1972,6 +2153,96 @@
         color: inherit;
         display: inline-block;
     }
+    .preview-combinations-page .preview-param-row {
+        justify-content: flex-start;
+        min-width: 0;
+    }
+    .preview-combinations-page .preview-params-sticky {
+        position: sticky;
+        top: 60px;
+        z-index: 60;
+        background-color: #ffffff !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transition: transform 0.2s ease, padding 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, left 0.2s ease, right 0.2s ease, width 0.2s ease;
+        transform-origin: top center;
+        will-change: transform, opacity;
+    }
+    .preview-combinations-page .preview-params-sticky > * {
+        position: relative;
+        z-index: 1;
+    }
+    .preview-combinations-page .preview-params-sticky.is-sticky-enter,
+    .preview-combinations-page .preview-params-sticky.is-sticky-leave {
+        opacity: 0.98;
+        transform: translateY(-4px);
+    }
+    .preview-combinations-page .preview-params-fixed {
+        position: fixed;
+        top: 60px !important;
+        z-index: 80;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        padding: 0.45rem 0.9rem !important;
+        font-size: 0.9rem;
+        border-radius: 0 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        box-sizing: border-box;
+    }
+    .preview-combinations-page .preview-params-fixed .preview-param-row {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 6px !important;
+        overflow-x: auto;
+        width: 100%;
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 0 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+    @media (min-width: 576px) {
+        .preview-combinations-page .preview-params-fixed .preview-param-row {
+            max-width: 540px;
+        }
+    }
+    @media (min-width: 768px) {
+        .preview-combinations-page .preview-params-fixed .preview-param-row {
+            max-width: 720px;
+        }
+    }
+    @media (min-width: 992px) {
+        .preview-combinations-page .preview-params-fixed .preview-param-row {
+            max-width: 960px;
+        }
+    }
+    @media (min-width: 1200px) {
+        .preview-combinations-page .preview-params-fixed .preview-param-row {
+            max-width: 1140px;
+        }
+    }
+    @media (min-width: 1400px) {
+        .preview-combinations-page .preview-params-fixed .preview-param-row {
+            max-width: 1440px;
+        }
+    }
+    .preview-combinations-page .preview-params-fixed label {
+        font-size: 0.6rem !important;
+        margin-bottom: 2px !important;
+    }
+    .preview-combinations-page .preview-params-fixed .badge {
+        font-size: 0.58rem !important;
+        padding: 2px 5px !important;
+    }
+    .preview-combinations-page .preview-params-fixed .form-control {
+        font-size: 0.74rem !important;
+        padding: 2px 6px !important;
+        min-height: 0 !important;
+        height: auto !important;
+    }
+    .preview-combinations-page .preview-params-fixed .input-group-text {
+        font-size: 0.68rem !important;
+        padding: 2px 6px !important;
+    }
 
     .table-rekap-global th {
         padding: 8px 10px !important;
@@ -1979,6 +2250,7 @@
     }
     .table-rekap-global td {
         padding: 8px 10px !important;
+        border: 1px solid #f1f5f9;
     }
 
     /* Table Styling (shared for normal + multi-ceramic) */
@@ -2002,24 +2274,70 @@
         text-align: center;
         font-weight: 900;
         padding: 14px 16px;
-        border: none;
+        border: 1px solid #d1d5db;
         font-size: 14px;
         letter-spacing: 0.3px;
         white-space: nowrap;
     }
     .table-preview td {
         padding: 14px 16px;
-        border-bottom: 1px solid #f1f5f9;
+        border: 1px solid #f1f5f9;
         vertical-align: top;
         white-space: nowrap;
     }
-    .table-preview td.store-cell,
-    .table-preview td.address-cell {
-        white-space: normal;
-        word-wrap: break-word;
-        word-break: break-word;
-        max-width: 200px;
+    .table-preview td.preview-scroll-td {
+        position: relative;
+        overflow: hidden;
+        white-space: nowrap;
+        text-align: left;
+    }
+    .table-preview td.preview-store-cell {
+        width: 150px;
         min-width: 150px;
+        max-width: 150px;
+    }
+    .table-preview td.preview-address-cell {
+        width: 200px;
+        min-width: 200px;
+        max-width: 200px;
+    }
+    .table-preview th.preview-store-cell {
+        width: 150px;
+        min-width: 150px;
+        max-width: 150px;
+    }
+    .table-preview th.preview-address-cell {
+        width: 200px;
+        min-width: 200px;
+        max-width: 200px;
+    }
+    .table-preview td.preview-scroll-td.is-scrollable::after {
+        content: '...';
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(15, 23, 42, 0.85);
+        background: linear-gradient(90deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.95) 40%, rgba(248, 250, 252, 1) 100%);
+        padding-left: 8px;
+        pointer-events: none;
+    }
+    .table-preview td.preview-scroll-td.is-scrolled-end::after {
+        opacity: 0;
+    }
+    .table-preview .preview-scroll-cell {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        scrollbar-color: transparent transparent;
+        white-space: nowrap;
+    }
+    .table-preview .preview-scroll-cell::-webkit-scrollbar {
+        height: 0;
     }
     .table-preview tbody tr:last-child td {
         border-bottom: none;
@@ -2121,7 +2439,8 @@
 
     /* Highlight effect dengan blinking border untuk target row */
     /* Exclude sticky columns to preserve sticky behavior */
-    tr:target td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3):not(.sticky-col-label) {
+    tr:target td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3):not(.sticky-col-label),
+    tr.is-skip-target td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3):not(.sticky-col-label) {
         animation: border-blink 1.5s ease-in-out 3;
     }
 
@@ -2129,7 +2448,11 @@
     tr:target td.sticky-col-1,
     tr:target td.sticky-col-2,
     tr:target td.sticky-col-3,
-    tr:target td.sticky-col-label {
+    tr:target td.sticky-col-label,
+    tr.is-skip-target td.sticky-col-1,
+    tr.is-skip-target td.sticky-col-2,
+    tr.is-skip-target td.sticky-col-3,
+    tr.is-skip-target td.sticky-col-label {
         animation: border-blink-sticky 1.5s ease-in-out 3;
     }
 
@@ -2177,6 +2500,213 @@
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sessionData = @json(request()->except(['_token', 'confirm_save']));
+    try {
+        localStorage.setItem('materialCalculationSession', JSON.stringify({
+            updatedAt: Date.now(),
+            data: sessionData,
+            autoSubmit: true,
+        }));
+    } catch (error) {
+        console.warn('Failed to store calculation session', error);
+    }
+});
+</script>
+<script>
+(function() {
+    function getTopbarHeight() {
+        const topbar = document.querySelector('.global-topbar');
+        return topbar ? topbar.getBoundingClientRect().height : 0;
+    }
+
+    function getVisibleParamCard() {
+        const cards = document.querySelectorAll('.preview-params-sticky');
+        for (let i = 0; i < cards.length; i += 1) {
+            if (cards[i].offsetParent !== null) {
+                return cards[i];
+            }
+        }
+        return cards.length ? cards[0] : null;
+    }
+
+    function getOverlayHeight() {
+        const topbarHeight = getTopbarHeight();
+        let overlayHeight = topbarHeight;
+        const card = getVisibleParamCard();
+        if (!card) {
+            return overlayHeight;
+        }
+        const rect = card.getBoundingClientRect();
+        const isSticky = card.classList.contains('preview-params-fixed') || rect.top <= topbarHeight + 1;
+        if (isSticky) {
+            overlayHeight += rect.height;
+        }
+        return overlayHeight;
+    }
+
+    function updatePreviewScrollIndicators() {
+        const cells = document.querySelectorAll('.table-preview .preview-scroll-td');
+        cells.forEach(function(cell) {
+            const scroller = cell.querySelector('.preview-scroll-cell');
+            if (!scroller) return;
+            const isScrollable = scroller.scrollWidth > scroller.clientWidth + 1;
+            cell.classList.toggle('is-scrollable', isScrollable);
+            const atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
+            cell.classList.toggle('is-scrolled-end', isScrollable && atEnd);
+        });
+    }
+
+    function bindPreviewScrollHandlers() {
+        const cells = document.querySelectorAll('.table-preview .preview-scroll-td');
+        cells.forEach(function(cell) {
+            const scroller = cell.querySelector('.preview-scroll-cell');
+            if (!scroller || scroller.__previewScrollBound) return;
+            scroller.__previewScrollBound = true;
+            scroller.addEventListener('scroll', updatePreviewScrollIndicators, { passive: true });
+        });
+    }
+
+    window.updatePreviewScrollIndicators = function() {
+        updatePreviewScrollIndicators();
+        bindPreviewScrollHandlers();
+        requestAnimationFrame(updatePreviewScrollIndicators);
+        setTimeout(updatePreviewScrollIndicators, 60);
+    };
+
+    function triggerSkipHighlight(target) {
+        if (!target) return;
+        target.classList.remove('is-skip-target');
+        void target.offsetWidth;
+        target.classList.add('is-skip-target');
+        if (target.__skipHighlightTimer) {
+            clearTimeout(target.__skipHighlightTimer);
+        }
+        target.__skipHighlightTimer = window.setTimeout(function() {
+            target.classList.remove('is-skip-target');
+            target.__skipHighlightTimer = null;
+        }, 4800);
+    }
+
+    function scrollToTargetWithOffset(target, behavior) {
+        if (!target) return;
+        const overlay = getOverlayHeight();
+        const top = target.getBoundingClientRect().top + window.pageYOffset - overlay;
+        window.scrollTo({ top: Math.max(top, 0), behavior: behavior || 'auto' });
+        requestAnimationFrame(function() {
+            const overlayAfter = getOverlayHeight();
+            const rect = target.getBoundingClientRect();
+            if (rect.top < overlayAfter + 2) {
+                const adjust = overlayAfter + 2 - rect.top;
+                window.scrollTo({ top: Math.max(window.pageYOffset - adjust, 0), behavior: 'auto' });
+            }
+            triggerSkipHighlight(target);
+        });
+    }
+
+    function updatePreviewScrollOffset() {
+        const root = document.documentElement;
+        const topbarHeight = getTopbarHeight();
+        const offset = Math.ceil(topbarHeight);
+        root.style.setProperty('--preview-scroll-offset', `${offset}px`);
+    }
+
+    function initPreviewStickyCard() {
+        const cards = document.querySelectorAll('.preview-params-sticky');
+        cards.forEach(function(card) {
+            if (card.__stickyInited) return;
+            card.__stickyInited = true;
+
+            const placeholder = document.createElement('div');
+            placeholder.style.display = 'block';
+            placeholder.style.width = '100%';
+            placeholder.style.height = '0px';
+            card.parentNode.insertBefore(placeholder, card);
+
+            function updateSticky() {
+                const styleTop = window.getComputedStyle(card).getPropertyValue('--sticky-top') || '60px';
+                const topValue = parseInt(styleTop, 10) || 60;
+                const placeholderRect = placeholder.getBoundingClientRect();
+                const shouldFix = placeholderRect.top <= topValue;
+
+                if (shouldFix) {
+                    if (card.__stickyLeaveTimer) {
+                        clearTimeout(card.__stickyLeaveTimer);
+                        card.__stickyLeaveTimer = null;
+                    }
+                    card.__stickyLeaving = false;
+                    card.classList.remove('is-sticky-leave');
+                    if (!card.classList.contains('preview-params-fixed')) {
+                        card.classList.add('preview-params-fixed');
+                        card.classList.add('is-sticky-enter');
+                        requestAnimationFrame(function() {
+                            card.classList.remove('is-sticky-enter');
+                        });
+                    }
+                    card.style.left = '0px';
+                    card.style.right = '0px';
+                    card.style.width = '100%';
+                    const fixedHeight = card.getBoundingClientRect().height;
+                    placeholder.style.height = fixedHeight + 'px';
+                } else {
+                    if (card.classList.contains('preview-params-fixed') && !card.__stickyLeaving) {
+                        card.__stickyLeaving = true;
+                        card.classList.add('is-sticky-leave');
+                        card.__stickyLeaveTimer = window.setTimeout(function() {
+                            card.classList.remove('preview-params-fixed');
+                            card.classList.remove('is-sticky-leave');
+                            card.style.left = '';
+                            card.style.right = '';
+                            card.style.width = '';
+                            placeholder.style.height = '0px';
+                            card.__stickyLeaving = false;
+                            card.__stickyLeaveTimer = null;
+                        }, 180);
+                    } else if (!card.classList.contains('preview-params-fixed')) {
+                        card.style.left = '';
+                        card.style.right = '';
+                        card.style.width = '';
+                        placeholder.style.height = '0px';
+                    }
+                }
+                updatePreviewScrollOffset();
+            }
+
+            updateSticky();
+            window.addEventListener('scroll', updateSticky, { passive: true });
+            window.addEventListener('resize', updateSticky);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initPreviewStickyCard();
+        updatePreviewScrollOffset();
+        window.updatePreviewScrollIndicators();
+        window.addEventListener('resize', updatePreviewScrollOffset);
+        window.addEventListener('resize', window.updatePreviewScrollIndicators);
+        if (window.location.hash) {
+            requestAnimationFrame(function() {
+                updatePreviewScrollOffset();
+                const target = document.querySelector(window.location.hash);
+                scrollToTargetWithOffset(target, 'auto');
+            });
+        }
+    });
+
+    document.addEventListener('click', function(event) {
+        const link = event.target.closest('a[href^="#detail-"]');
+        if (!link) return;
+        const href = link.getAttribute('href');
+        const target = href ? document.querySelector(href) : null;
+        if (!target) return;
+        event.preventDefault();
+        updatePreviewScrollOffset();
+        scrollToTargetWithOffset(target, 'smooth');
+        history.replaceState(null, '', href);
+    });
+})();
+</script>
 
 @if(isset($isMultiCeramic) && $isMultiCeramic && isset($isLazyLoad) && $isLazyLoad)
 <script>
@@ -2262,6 +2792,9 @@ $(document).ready(function() {
                         $ceramicProject.find('.loading-placeholder').hide();
                         $ceramicProject.find('.combinations-content').html(response.html).show();
                         $ceramicProject.data('loaded', 'true');
+                        if (typeof window.updatePreviewScrollIndicators === 'function') {
+                            window.updatePreviewScrollIndicators();
+                        }
                     } else {
                         showError($ceramicProject, response.message || 'Gagal memuat kombinasi');
                         $ceramicProject.data('loaded', 'false');

@@ -272,7 +272,8 @@ class CalculationOrchestrationService
      */
     public function compareBricks(array $request): array
     {
-        $wallArea = $request['wall_length'] * $request['wall_height'];
+        $wallLength = $request['wall_length'];
+        $workType = $request['work_type'] ?? 'brick_half';
         $bricks = $this->repository->getBricksByIds($request['brick_ids']);
 
         // Auto-select cheapest mortar materials for fair comparison
@@ -284,13 +285,23 @@ class CalculationOrchestrationService
         $comparisons = [];
 
         foreach ($bricks as $brick) {
+            $wallHeight = $request['wall_height'] ?? null;
+            if ($workType === 'brick_rollag') {
+                $brickLength = $brick->dimension_length ?? 0;
+                if ($brickLength <= 0) {
+                    $brickLength = 19.2;
+                }
+                $wallHeight = $brickLength / 100;
+            }
+            $wallArea = $wallHeight ? $wallLength * $wallHeight : 0;
+
             $params = [
-                'wall_length' => $request['wall_length'],
-                'wall_height' => $request['wall_height'],
+                'wall_length' => $wallLength,
+                'wall_height' => $wallHeight,
                 'mortar_thickness' => $request['mortar_thickness'],
                 'installation_type_id' => $request['installation_type_id'],
                 'mortar_formula_id' => $defaultMortar?->id,
-                'work_type' => $request['work_type'] ?? 'brick_half',
+                'work_type' => $workType,
                 'brick_id' => $brick->id,
                 'cement_id' => $materials['cement_id'],
                 'sand_id' => $materials['sand_id'],
