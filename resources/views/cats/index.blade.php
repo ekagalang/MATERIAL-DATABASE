@@ -706,7 +706,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (activeHeader) {
                 activeHeader.style.opacity = '1';
                 if (currentSortDirection === 'asc') {
-                    activeHeader.className = 'bi bi-sort-up';
+                    activeHeader.className = 'bi bi-sort-up-alt';
                 } else {
                     activeHeader.className = 'bi bi-sort-down-alt';
                 }

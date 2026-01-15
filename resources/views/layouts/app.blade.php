@@ -163,6 +163,32 @@
                     if (materialLink && lastUrl) {
                         materialLink.href = lastUrl;
                     }
+
+                    const calcLink = document.getElementById('calcNavLink');
+                    const calcSessionRaw = localStorage.getItem('materialCalculationSession');
+                    let calcSession = null;
+                    try {
+                        calcSession = calcSessionRaw ? JSON.parse(calcSessionRaw) : null;
+                    } catch (error) {
+                        calcSession = null;
+                    }
+                    if (calcLink) {
+                        if (calcSession) {
+                            const resumeUrl = new URL(calcLink.href, window.location.origin);
+                            resumeUrl.searchParams.set('resume', '1');
+                            if (calcSession.autoSubmit) {
+                                resumeUrl.searchParams.set('auto_submit', '1');
+                            } else {
+                                resumeUrl.searchParams.delete('auto_submit');
+                            }
+                            calcLink.href = resumeUrl.toString();
+                        } else {
+                            const cleanUrl = new URL(calcLink.href, window.location.origin);
+                            cleanUrl.searchParams.delete('resume');
+                            cleanUrl.searchParams.delete('auto_submit');
+                            calcLink.href = cleanUrl.toString();
+                        }
+                    }
                 });
             </script>
 
@@ -189,7 +215,7 @@
 
                         <!-- Menu Item 2 -->
                         <div class="dropdown-item-parent">
-                            <a href="{{ route('material-calculations.create') }}"
+                            <a href="{{ route('material-calculations.create') }}" id="calcNavLink"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
                                 Hitung Item Pekerjaan

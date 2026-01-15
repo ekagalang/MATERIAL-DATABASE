@@ -134,11 +134,17 @@ class SandController extends Controller
 
         // Redirect back to the originating page if requested
         if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data Pasir berhasil ditambahkan!');
+            return redirect()
+                ->to($request->input('_redirect_url'))
+                ->with('success', 'Data Pasir berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
         }
         // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Data Pasir berhasil ditambahkan!');
+            return redirect()
+                ->route('materials.index')
+                ->with('success', 'Data Pasir berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
         }
 
         return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil ditambahkan!');

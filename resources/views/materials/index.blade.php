@@ -105,6 +105,10 @@ html.materials-booting .page-content {
     0%, 100% { opacity: 0; }
     50% { opacity: 1; }
 }
+@keyframes material-row-flash {
+    0%, 100% { opacity: 0.35; }
+    50% { opacity: 0.75; }
+}
 @keyframes material-tab-blink {
     0%, 100% { box-shadow: 0 0 0 0 rgba(137, 19, 19, 0); }
     50% { box-shadow: 0 0 0 6px rgba(137, 19, 19, 0.35); }
@@ -372,6 +376,42 @@ html.materials-booting .page-content {
     pointer-events: none;
     animation: material-row-blink 1.2s ease-in-out 0s 2;
     z-index: 5;
+}
+.material-row-sweep {
+    position: absolute;
+    border-radius: 6px;
+    pointer-events: none;
+    background: rgba(37, 99, 235, 0.28);
+    opacity: 0.35;
+    animation: material-row-flash 0.9s ease-in-out 0s 2 forwards;
+    z-index: 4;
+}
+.material-row-new td {
+    background-color: rgba(37, 99, 235, 0.08);
+    transition: background-color 0.2s ease;
+}
+#section-ceramic .ceramic-sticky-col {
+    position: sticky;
+    left: 0;
+    background: #ffffff;
+    z-index: 3;
+}
+#section-ceramic thead .ceramic-sticky-col {
+    z-index: 7;
+}
+#section-ceramic .ceramic-sticky-edge {
+    box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
+}
+.material-search-hit {
+    color: #2563eb;
+}
+.material-search-jump,
+.material-search-jump a {
+    cursor: pointer;
+}
+.material-search-jump a {
+    text-decoration: underline dotted;
+    text-underline-offset: 4px;
 }
   .material-footer-sticky {
       position: relative;
@@ -773,6 +813,7 @@ html.materials-booting .page-content {
                     <button type="button"
                             class="material-tab-btn {{ $material['type'] === $activeTab ? 'active' : '' }}"
                             data-tab="{{ $material['type'] }}"
+                            data-search-count="{{ $material['count'] }}"
                             aria-selected="{{ $material['type'] === $activeTab ? 'true' : 'false' }}">
                         <span>{{ $material['label'] }}</span>
                     </button>
@@ -953,7 +994,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['type'] }}</span>
                                                     @if(request('sort_by') == 'type')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -964,7 +1005,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['brand'] }}</span>
                                                     @if(request('sort_by') == 'brand')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -975,7 +1016,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['form'] }}</span>
                                                     @if(request('sort_by') == 'form')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -986,7 +1027,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Dimensi (cm)</span>
                                                     @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -997,7 +1038,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Volume</span>
                                                     @if(request('sort_by') == 'package_volume')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1008,7 +1049,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['store'] }}</span>
                                                     @if(request('sort_by') == 'store')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1019,7 +1060,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $brickSortable['address'] }}</span>
                                                     @if(request('sort_by') == 'address')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1030,7 +1071,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Beli</span>
                                                     @if(request('sort_by') == 'price_per_piece')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1041,7 +1082,7 @@ html.materials-booting .page-content {
                                                     style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Komparasi</span>
                                                     @if(request('sort_by') == 'comparison_price_per_m3')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1063,7 +1104,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $sandSortable['type'] }}</span>
                                                     @if(request('sort_by') == 'type')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1074,7 +1115,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $sandSortable['brand'] }}</span>
                                                     @if(request('sort_by') == 'brand')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1085,7 +1126,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $sandSortable['package_unit'] }}</span>
                                                     @if(request('sort_by') == 'package_unit')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1096,7 +1137,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Dimensi (cm)</span>
                                                     @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1107,7 +1148,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Volume</span>
                                                     @if(request('sort_by') == 'package_volume')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1118,7 +1159,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $sandSortable['store'] }}</span>
                                                     @if(request('sort_by') == 'store')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1129,7 +1170,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $sandSortable['address'] }}</span>
                                                     @if(request('sort_by') == 'address')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1140,7 +1181,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Beli</span>
                                                     @if(request('sort_by') == 'package_price')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1151,7 +1192,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Komparasi</span>
                                                     @if(request('sort_by') == 'comparison_price_per_m3')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1173,7 +1214,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['type'] }}</span>
                                                     @if(request('sort_by') == 'type')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1184,18 +1225,18 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['brand'] }}</span>
                                                     @if(request('sort_by') == 'brand')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" style="text-align: center;">
+                                            <th class="sortable" style="text-align: start;">
                                                 <a href="{{ getMaterialSortUrl('sub_brand', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['sub_brand'] }}</span>
                                                     @if(request('sort_by') == 'sub_brand')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1206,7 +1247,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['color_code'] }}</span>
                                                     @if(request('sort_by') == 'color_code')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1217,7 +1258,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['color_name'] }}</span>
                                                     @if(request('sort_by') == 'color_name')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1228,7 +1269,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['package_unit'] }}</span>
                                                     @if(request('sort_by') == 'package_unit')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1239,7 +1280,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['volume'] }}</span>
                                                     @if(request('sort_by') == 'volume')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1250,7 +1291,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Berat<br>Bersih</span>
                                                     @if(request('sort_by') == 'package_weight_net')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1261,7 +1302,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['store'] }}</span>
                                                     @if(request('sort_by') == 'store')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1272,7 +1313,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['address'] }}</span>
                                                     @if(request('sort_by') == 'address')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1283,7 +1324,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Beli</span>
                                                     @if(request('sort_by') == 'purchase_price')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1294,7 +1335,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Komparasi</span>
                                                     @if(request('sort_by') == 'comparison_price_per_kg')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1311,7 +1352,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['type'] }}</span>
                                                     @if(request('sort_by') == 'type')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1322,7 +1363,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['brand'] }}</span>
                                                     @if(request('sort_by') == 'brand')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1333,7 +1374,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['sub_brand'] }}</span>
                                                     @if(request('sort_by') == 'sub_brand')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1344,7 +1385,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['code'] }}</span>
                                                     @if(request('sort_by') == 'code')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1355,7 +1396,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['color'] }}</span>
                                                     @if(request('sort_by') == 'color')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1366,7 +1407,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['package_unit'] }}</span>
                                                     @if(request('sort_by') == 'package_unit')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1377,7 +1418,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Berat<br>Bersih</span>
                                                     @if(request('sort_by') == 'package_weight_net')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1388,7 +1429,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['store'] }}</span>
                                                     @if(request('sort_by') == 'store')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1399,7 +1440,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['address'] }}</span>
                                                     @if(request('sort_by') == 'address')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1410,7 +1451,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Beli</span>
                                                     @if(request('sort_by') == 'package_price')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1421,7 +1462,7 @@ html.materials-booting .page-content {
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>Harga Komparasi</span>
                                                     @if(request('sort_by') == 'comparison_price_per_kg')
-                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                        <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
                                                         <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                     @endif
@@ -1432,35 +1473,35 @@ html.materials-booting .page-content {
 
                                     @elseif($material['type'] == 'ceramic')
                                     <tr class="dim-group-row">
-                                        <th rowspan="2" style="text-align: center; width: 50px; min-width: 50px;">No</th>
-                                        <th class="sortable" rowspan="2" style="text-align: left;">
+                                        <th class="ceramic-sticky-col" rowspan="2" style="text-align: center; width: 50px; min-width: 50px;">No</th>
+                                        <th class="sortable ceramic-sticky-col" rowspan="2" style="text-align: left;">
                                             <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['type'] }}</span>
                                                 @if(request('sort_by') == 'type')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 150px; min-width: 150px;">
+                                        <th class="sortable ceramic-sticky-col" colspan="3" style="text-align: center; font-size: 13px; width: 150px; min-width: 150px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Dimensi (cm)</span>
                                                 @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_thickness']))
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable" rowspan="2" style="text-align: center;">
+                                        <th class="sortable ceramic-sticky-col ceramic-sticky-edge" rowspan="2" style="text-align: center;">
                                             <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['brand'] }}</span>
                                                 @if(request('sort_by') == 'brand')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1471,7 +1512,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['sub_brand'] }}</span>
                                                 @if(request('sort_by') == 'sub_brand')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1482,7 +1523,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['surface'] }}</span>
                                                 @if(request('sort_by') == 'surface')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1493,7 +1534,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Nomor Seri<br>(   Kode Pembakaran)</span>
                                                 @if(request('sort_by') == 'code')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1504,7 +1545,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Corak ({{ $ceramicSortable['color'] }})</span>
                                                 @if(request('sort_by') == 'color')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1515,7 +1556,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['form'] }}</span>
                                                 @if(request('sort_by') == 'form')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1526,7 +1567,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['packaging'] }}</span>
                                                 @if(request('sort_by') == 'packaging')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1537,7 +1578,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Luas<br>(/ Dus)</span>
                                                 @if(request('sort_by') == 'coverage_per_package')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1548,7 +1589,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['store'] }}</span>
                                                 @if(request('sort_by') == 'store')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1559,7 +1600,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['address'] }}</span>
                                                 @if(request('sort_by') == 'address')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1570,7 +1611,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Harga Beli</span>
                                                 @if(request('sort_by') == 'price_per_package')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1581,7 +1622,7 @@ html.materials-booting .page-content {
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Harga Komparasi</span>
                                                 @if(request('sort_by') == 'comparison_price_per_m2')
-                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up' : 'sort-down-alt sort-style' }}" style="font-size: 12px;"></i>
+                                                    <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
                                                     <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
@@ -1590,9 +1631,9 @@ html.materials-booting .page-content {
                                         <th rowspan="2" class="action-cell">Aksi</th>
                                     </tr>
                                     <tr class="dim-sub-row">
-                                        <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
-                                        <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
-                                        <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
+                                        <th class="ceramic-sticky-col" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
+                                        <th class="ceramic-sticky-col" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
+                                        <th class="ceramic-sticky-col" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
                                     </tr>
                                 @endif
                             </thead>
@@ -1644,8 +1685,8 @@ html.materials-booting .page-content {
                                             });
                                             $searchValue = strtolower(trim(preg_replace('/\s+/', ' ', implode(' ', $searchParts))));
                                         @endphp
-                                <tr data-material-tab="{{ $material['type'] }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
-                                    <td @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 50px; min-width: 50px;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
+                                <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
+                                    <td class="{{ $material['type'] == 'ceramic' ? 'ceramic-sticky-col' : '' }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 50px; min-width: 50px;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
                                      @if($material['type'] == 'brick')
@@ -1709,7 +1750,7 @@ html.materials-booting .page-content {
                                     @elseif($material['type'] == 'cat')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
-                                        <td style="text-align: center;">{{ $item->sub_brand ?? '-' }}</td>
+                                        <td style="text-align: start;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="text-align: right; font-size: 12px;">{{ $item->color_code ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->color_name ?? '-' }}</td>
                                         <td style="text-align: right; width: 50px; min-width: 50px;">
@@ -1721,12 +1762,12 @@ html.materials-booting .page-content {
                                         </td>
                                         <td style="text-align: right; width: 50px; min-width: 50px;">
                                             @if($item->package_weight_gross)
-                                                @format($item->package_weight_gross)
+                                                (@format($item->package_weight_gross)
                                             @else
-                                                <span>-</span>
+                                                <span>(-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 50px; min-width: 50px;">Kg</td>
+                                        <td style="text-align: left; width: 50px; min-width: 50px;">Kg)</td>
                                         <td style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->volume)
                                                 @format($item->volume)
@@ -1875,30 +1916,31 @@ html.materials-booting .page-content {
                                             @endif
                                         </td>
                                         <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
+
                                     @elseif($material['type'] == 'ceramic')
-                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
+                                        <td class="ceramic-sticky-col" style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td class="dim-cell ceramic-sticky-col" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
                                                 @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_thickness))
                                                 @format($item->dimension_thickness)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td class="ceramic-sticky-col ceramic-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->surface ?? '-' }}</td>
                                         <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
@@ -1907,12 +1949,12 @@ html.materials-booting .page-content {
                                         <td style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">{{ $item->packaging ?? '-' }}</td>
                                         <td style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">
                                             @if($item->pieces_per_package)
-                                                {{ number_format($item->pieces_per_package, 0, ',', '.') }}
+                                                ({{ number_format($item->pieces_per_package, 0, ',', '.') }}
                                             @else
-                                                <span>-</span>
+                                                <span>(-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">Lbr</td>
+                                        <td style="text-align: left; width: 40px; min-width: 40px;">Lbr)</td>
                                         <td style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
                                             @if($item->coverage_per_package)
                                                 @format($item->coverage_per_package)
@@ -2156,6 +2198,11 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {
         savedFilter = { selected: [], order: [] };
     }
+    const searchQuery = @json(request('search'));
+    const searchQueryRaw = typeof searchQuery === 'string' ? searchQuery.trim() : '';
+    const normalizedSearchQuery = searchQueryRaw.toLowerCase();
+    const hasSearchQuery = normalizedSearchQuery.length > 0;
+    const newMaterialData = @json(session('new_material'));
     let materialOrder = savedFilter.order || [];
     const navBlinkMaterial = localStorage.getItem('materialNavSearchBlink');
     const navSearchType = localStorage.getItem('materialNavSearchType');
@@ -2172,6 +2219,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         materialOrder = materialOrder.filter(type => type !== navBlinkMaterial);
         materialOrder.unshift(navBlinkMaterial);
+    }
+
+    if (newMaterialData && newMaterialData.type) {
+        if (!Array.isArray(savedFilter.selected)) {
+            savedFilter.selected = [];
+        }
+        if (!savedFilter.selected.includes(newMaterialData.type)) {
+            savedFilter.selected.push(newMaterialData.type);
+        }
+        if (!Array.isArray(materialOrder)) {
+            materialOrder = [];
+        }
+        materialOrder = materialOrder.filter(type => type !== newMaterialData.type);
+        materialOrder.unshift(newMaterialData.type);
     }
 
     // Material Settings Dropdown
@@ -2256,6 +2317,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Save active tab to localStorage
         localStorage.setItem('materialActiveTab', tab);
+        if (tab === 'ceramic') {
+            window.requestAnimationFrame(() => {
+                applyCeramicStickyOffsets();
+            });
+        }
         // requestStickyUpdate(); // Removed - sticky footer functionality disabled
     };
 
@@ -2272,11 +2338,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Function to reorder tabs based on materialOrder
-    function reorderTabs() {
+    function reorderTabs(orderOverride = null) {
         const tabContainer = document.querySelector('.material-tabs');
         if (!tabContainer) return;
         
         const settingsDropdown = tabContainer.querySelector('.material-settings-dropdown');
+        const order = Array.isArray(orderOverride) && orderOverride.length ? orderOverride : materialOrder;
 
         // Create a map of current tab buttons
         const tabButtons = {};
@@ -2289,9 +2356,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Only reorder and add classes if materialOrder has items
-        if (materialOrder.length > 0) {
-            // Reorder based on materialOrder
-            materialOrder.forEach((type, index) => {
+        if (order.length > 0) {
+            // Reorder based on order
+            order.forEach((type, index) => {
                 if (tabButtons[type]) {
                     tabContainer.appendChild(tabButtons[type]);
 
@@ -2299,7 +2366,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (index === 0) {
                         tabButtons[type].classList.add('first-visible');
                     }
-                    if (index === materialOrder.length - 1) {
+                    if (index === order.length - 1) {
                         tabButtons[type].classList.add('last-visible');
                     }
                 }
@@ -2310,6 +2377,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 tabContainer.appendChild(settingsDropdown);
             }
         }
+    }
+
+    function getTabSearchCounts() {
+        const counts = {};
+        allTabButtons.forEach(btn => {
+            const type = btn.getAttribute('data-tab');
+            const rawCount = btn.getAttribute('data-search-count');
+            const count = Number.parseInt(rawCount, 10);
+            counts[type] = Number.isNaN(count) ? 0 : count;
+        });
+        return counts;
+    }
+
+    function getSearchOrderedTabs(checkedMaterials, counts) {
+        const baseOrder = materialOrder.length ? materialOrder.slice() : checkedMaterials.slice();
+        const filtered = baseOrder.filter(type => checkedMaterials.includes(type));
+        const orderIndex = new Map(filtered.map((type, index) => [type, index]));
+        return filtered.slice().sort((a, b) => {
+            const diff = (counts[b] || 0) - (counts[a] || 0);
+            if (diff !== 0) return diff;
+            return (orderIndex.get(a) ?? 0) - (orderIndex.get(b) ?? 0);
+        });
     }
 
     // Function to update tab visibility based on checkboxes
@@ -2348,8 +2437,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
+        const searchCounts = hasSearchQuery ? getTabSearchCounts() : null;
+        const visibleOrder = hasSearchQuery ? getSearchOrderedTabs(checkedMaterials, searchCounts) : materialOrder;
+
         // Reorder tabs based on tick order
-        reorderTabs();
+        reorderTabs(visibleOrder);
 
         // Show/hide tabs and panels based on checked materials (in order)
         allTabButtons.forEach(btn => {
@@ -2390,12 +2482,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Auto-activate tab (prefer saved tab, fallback to first visible)
-        if (materialOrder.length > 0) {
-            let tabToActivate = materialOrder[0];
+        if (visibleOrder.length > 0) {
+            let tabToActivate = visibleOrder[0];
 
-            // If there's a preferred tab and it exists in checked materials, use it
-            if (preferredTab && checkedMaterials.includes(preferredTab)) {
+            const hasPreferredTab = preferredTab && checkedMaterials.includes(preferredTab);
+
+            if (hasPreferredTab) {
                 tabToActivate = preferredTab;
+            } else if (hasSearchQuery && searchCounts) {
+                const firstWithResults = visibleOrder.find(type => (searchCounts[type] || 0) > 0);
+                if (firstWithResults) {
+                    tabToActivate = firstWithResults;
+                }
             }
 
             setActiveTab(tabToActivate);
@@ -2800,6 +2898,75 @@ document.addEventListener('DOMContentLoaded', function() {
         highlightMaterialRowElement(match);
     }
 
+    let newMaterialHandled = false;
+    let newMaterialRow = null;
+
+    function createMaterialRowSweep(row) {
+        const container = row.closest('.table-container');
+        if (!container) return null;
+
+        const existing = container.querySelector('.material-row-sweep');
+        if (existing) {
+            existing.remove();
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        const sweep = document.createElement('div');
+        sweep.className = 'material-row-sweep';
+        sweep.style.left = `${rowRect.left - containerRect.left + container.scrollLeft}px`;
+        sweep.style.top = `${rowRect.top - containerRect.top + container.scrollTop}px`;
+        sweep.style.width = `${rowRect.width}px`;
+        sweep.style.height = `${rowRect.height}px`;
+
+        container.appendChild(sweep);
+        return sweep;
+    }
+
+    function clearNewMaterialHighlight() {
+        if (!newMaterialRow) return;
+        newMaterialRow.classList.remove('material-row-new');
+        if (newMaterialRow.__materialRowSweep) {
+            newMaterialRow.__materialRowSweep.remove();
+            newMaterialRow.__materialRowSweep = null;
+        }
+        newMaterialRow = null;
+    }
+
+    function bindNewMaterialClear(row) {
+        const clear = () => clearNewMaterialHighlight();
+        document.addEventListener('pointerdown', clear, { once: true });
+        document.addEventListener('keydown', clear, { once: true });
+        window.addEventListener('scroll', clear, { once: true, passive: true });
+        const container = row.closest('.table-container');
+        if (container) {
+            container.addEventListener('scroll', clear, { once: true, passive: true });
+        }
+    }
+
+    function focusNewMaterialRow() {
+        if (newMaterialHandled) return;
+        if (!newMaterialData || !newMaterialData.type || !newMaterialData.id) return;
+        newMaterialHandled = true;
+
+        const panel = document.querySelector(`.material-tab-panel[data-tab="${newMaterialData.type}"]`);
+        if (panel) {
+            setActiveTab(newMaterialData.type);
+        }
+
+        const row = panel ? panel.querySelector(`tbody tr[data-material-id="${newMaterialData.id}"]`) : null;
+        if (!row) return;
+
+        newMaterialRow = row;
+        row.classList.add('material-row-new');
+        scrollRowIntoContainer(row);
+        window.setTimeout(() => {
+            if (!newMaterialRow) return;
+            newMaterialRow.__materialRowSweep = createMaterialRowSweep(newMaterialRow);
+        }, 260);
+        bindNewMaterialClear(row);
+    }
+
     window.deleteMaterial = async function(type, id) {
         const endpointMap = {
             brick: 'bricks',
@@ -2907,6 +3074,268 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function escapeRegExp(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function highlightSearchMatchesInCell(cell, queryLower, escapedQuery) {
+        if (!cell || !queryLower) return false;
+        const cellText = cell.textContent || '';
+        if (!cellText.toLowerCase().includes(queryLower)) return false;
+
+        const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT, {
+            acceptNode: node => {
+                if (!node.nodeValue || !node.nodeValue.trim()) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                const parent = node.parentElement;
+                if (parent && parent.classList.contains('material-search-hit')) {
+                    return NodeFilter.FILTER_REJECT;
+                }
+                return NodeFilter.FILTER_ACCEPT;
+            }
+        });
+
+        const nodes = [];
+        while (walker.nextNode()) {
+            nodes.push(walker.currentNode);
+        }
+
+        let matched = false;
+        nodes.forEach(node => {
+            const text = node.nodeValue || '';
+            if (!text.toLowerCase().includes(queryLower)) return;
+
+            const regex = new RegExp(escapedQuery, 'gi');
+            let match = null;
+            let lastIndex = 0;
+            let nodeHasMatch = false;
+            const fragment = document.createDocumentFragment();
+
+            while ((match = regex.exec(text)) !== null) {
+                nodeHasMatch = true;
+                const start = match.index;
+                if (start > lastIndex) {
+                    fragment.appendChild(document.createTextNode(text.slice(lastIndex, start)));
+                }
+                const span = document.createElement('span');
+                span.className = 'material-search-hit';
+                span.textContent = text.slice(start, start + match[0].length);
+                fragment.appendChild(span);
+                lastIndex = start + match[0].length;
+            }
+
+            if (!nodeHasMatch) return;
+            if (lastIndex < text.length) {
+                fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+            }
+            node.parentNode.replaceChild(fragment, node);
+            matched = true;
+        });
+
+        return matched;
+    }
+
+    function highlightSearchMatches() {
+        if (!hasSearchQuery) return;
+        const escapedQuery = escapeRegExp(searchQueryRaw);
+        if (!escapedQuery) return;
+
+        document.querySelectorAll('.material-tab-panel table').forEach(table => {
+            const tbody = table.tBodies[0];
+            if (!tbody) return;
+            Array.from(tbody.rows).forEach(row => {
+                Array.from(row.cells).forEach(cell => {
+                    if (cell.cellIndex === 0 || cell.classList.contains('action-cell')) return;
+                    highlightSearchMatchesInCell(cell, normalizedSearchQuery, escapedQuery);
+                });
+            });
+        });
+    }
+
+    function updateRowNumbers(tbody) {
+        if (!tbody) return;
+        Array.from(tbody.rows).forEach((row, index) => {
+            const firstCell = row.cells[0];
+            if (firstCell) {
+                firstCell.textContent = index + 1;
+            }
+        });
+    }
+
+    function sortRowsBySearchMatch(table, queryLower) {
+        if (!table || !queryLower) return;
+        const tbody = table.tBodies[0];
+        if (!tbody) return;
+        const rows = Array.from(tbody.rows);
+        const rankedRows = rows.map((row, index) => {
+            let firstMatchIndex = Number.POSITIVE_INFINITY;
+            const cells = Array.from(row.cells);
+            for (let i = 1; i < cells.length; i += 1) {
+                const cell = cells[i];
+                if (!cell || cell.classList.contains('action-cell')) continue;
+                const text = (cell.textContent || '').toLowerCase();
+                if (text.includes(queryLower)) {
+                    firstMatchIndex = i;
+                    break;
+                }
+            }
+            return { row, index, firstMatchIndex };
+        });
+
+        rankedRows.sort((a, b) => {
+            if (a.firstMatchIndex === b.firstMatchIndex) {
+                return a.index - b.index;
+            }
+            return a.firstMatchIndex - b.firstMatchIndex;
+        });
+
+        const fragment = document.createDocumentFragment();
+        rankedRows.forEach(item => fragment.appendChild(item.row));
+        tbody.appendChild(fragment);
+        updateRowNumbers(tbody);
+    }
+
+    function buildHeaderIndexMap(table) {
+        const header = table.tHead;
+        if (!header) return;
+        const rows = Array.from(header.rows);
+        const occupied = [];
+
+        rows.forEach((row, rowIndex) => {
+            if (!occupied[rowIndex]) {
+                occupied[rowIndex] = [];
+            }
+            let colIndex = 0;
+            Array.from(row.cells).forEach(cell => {
+                while (occupied[rowIndex][colIndex]) {
+                    colIndex += 1;
+                }
+                const colspan = cell.colSpan || 1;
+                const rowspan = cell.rowSpan || 1;
+                cell.dataset.colStart = colIndex;
+                cell.dataset.colEnd = colIndex + colspan - 1;
+                for (let r = 0; r < rowspan; r += 1) {
+                    if (!occupied[rowIndex + r]) {
+                        occupied[rowIndex + r] = [];
+                    }
+                    for (let c = 0; c < colspan; c += 1) {
+                        occupied[rowIndex + r][colIndex + c] = true;
+                    }
+                }
+                colIndex += colspan;
+            });
+        });
+    }
+
+    function scrollRowIntoContainer(row) {
+        if (!row) return;
+        const container = row.closest('.table-container');
+        if (!container) return;
+
+        const containerRect = container.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        const header = container.querySelector('thead');
+        const headerHeight = header ? header.getBoundingClientRect().height : 0;
+        const offset = headerHeight + 12;
+        const scrollTarget = container.scrollTop + (rowRect.top - containerRect.top) - offset;
+
+        container.scrollTo({
+            top: scrollTarget,
+            behavior: 'smooth'
+        });
+    }
+
+    function findMatchingRowForColumns(table, queryLower, colStart, colEnd) {
+        if (!table || !queryLower) return null;
+        const tbody = table.tBodies[0];
+        if (!tbody) return null;
+        const rows = Array.from(tbody.rows);
+        for (const row of rows) {
+            const cells = Array.from(row.cells);
+            for (let colIndex = colStart; colIndex <= colEnd; colIndex += 1) {
+                const cell = cells[colIndex];
+                if (!cell) continue;
+                const text = (cell.textContent || '').toLowerCase();
+                if (text.includes(queryLower)) {
+                    return row;
+                }
+            }
+        }
+        return null;
+    }
+
+    function isSearchableColumnRange(table, colStart, colEnd) {
+        const tbody = table.tBodies[0];
+        if (!tbody || !tbody.rows.length) return false;
+        const sampleCells = Array.from(tbody.rows[0].cells);
+        for (let colIndex = colStart; colIndex <= colEnd; colIndex += 1) {
+            const cell = sampleCells[colIndex];
+            if (!cell) continue;
+            if (colIndex === 0) continue;
+            if (cell.classList.contains('action-cell')) continue;
+            return true;
+        }
+        return false;
+    }
+
+    function showSearchJumpToast(message) {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message, 'info');
+        }
+    }
+
+    function bindHeaderSearchJump(table, queryLower) {
+        if (!table || !queryLower) return;
+        const headerCells = table.querySelectorAll('thead th');
+        headerCells.forEach(th => {
+            if (th.dataset.searchJumpBound === 'true') return;
+            const colStart = Number.parseInt(th.dataset.colStart, 10);
+            const colEnd = Number.parseInt(th.dataset.colEnd, 10);
+            if (Number.isNaN(colStart) || Number.isNaN(colEnd)) return;
+            if (!isSearchableColumnRange(table, colStart, colEnd)) return;
+            const clickTarget = th.querySelector('a') || th;
+            const headerLabel = (th.textContent || '').replace(/\s+/g, ' ').trim();
+
+            th.classList.add('material-search-jump');
+            clickTarget.addEventListener('click', event => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                const matchRow = findMatchingRowForColumns(table, queryLower, colStart, colEnd);
+                event.preventDefault();
+                if (!matchRow) {
+                    const labelText = headerLabel ? ` di kolom ${headerLabel}` : '';
+                    showSearchJumpToast(`Tidak ada hasil pencarian${labelText}.`);
+                    return;
+                }
+                scrollRowIntoContainer(matchRow);
+                window.setTimeout(() => highlightMaterialRowElement(matchRow), 250);
+            });
+            th.dataset.searchJumpBound = 'true';
+        });
+    }
+
+    function setupSearchEnhancements() {
+        if (!hasSearchQuery) return;
+        document.querySelectorAll('.material-tab-panel table').forEach(table => {
+            sortRowsBySearchMatch(table, normalizedSearchQuery);
+            buildHeaderIndexMap(table);
+            bindHeaderSearchJump(table, normalizedSearchQuery);
+        });
+        highlightSearchMatches();
+    }
+
+    function applyCeramicStickyOffsets() {
+        const panel = document.getElementById('section-ceramic');
+        if (!panel || panel.offsetParent === null) return;
+        const tables = panel.querySelectorAll('table');
+        tables.forEach(table => {
+            const stickyCells = table.querySelectorAll('.ceramic-sticky-col');
+            stickyCells.forEach(cell => {
+                cell.style.left = `${cell.offsetLeft}px`;
+            });
+        });
+    }
+
     // Add click handlers to pagination links to preserve current tab
     document.querySelectorAll('.kanggo-img-link').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -2974,6 +3403,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial update of active pagination letter on page load
     updateActivePaginationLetter();
+    setupSearchEnhancements();
+    applyCeramicStickyOffsets();
+    window.setTimeout(() => {
+        focusNewMaterialRow();
+    }, 200);
+
+    window.addEventListener('resize', () => {
+        window.requestAnimationFrame(() => {
+            applyCeramicStickyOffsets();
+        });
+    });
 
     // requestStickyUpdate(); // Removed - sticky footer functionality disabled
     // window.addEventListener('scroll', requestStickyUpdate, { passive: true });

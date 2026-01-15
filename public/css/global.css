@@ -1279,7 +1279,7 @@
             flex: 7;
             background: #00F7FF !important;
             border-color: #00F7FF !important;
-            color: #ffffff !important;
+            color: #000000 !important;
             transition: all 0.2s ease;
         }
 
@@ -1293,7 +1293,7 @@
             flex: 3;
             background: #FF0087 !important;
             border-color: #FF0087 !important;
-            color: #ffffff !important;
+            color: #000000 !important;
             transition: all 0.2s ease;
         }
 
@@ -2903,8 +2903,8 @@ input[type="text"]:focus {
         font-size: 12px; 
         font-weight: 600;
         border-left: 1px solid #cbd5e1;
-        width: 50px;
-        min-width: 50px;
+        width: 70px;
+        min-width: 70px;
         text-align: left;
         flex: 0 0 50px;
     }

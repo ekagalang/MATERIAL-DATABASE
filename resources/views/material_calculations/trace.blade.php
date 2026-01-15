@@ -64,7 +64,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="col-lg-3 col-md-6">
+                                <div class="col-lg-3 col-md-6" id="wallHeightGroup">
                                     <label class="form-label fw-semibold">Tinggi Dinding</label>
                                     <div class="position-relative">
                                         <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
@@ -262,10 +262,7 @@
 
                     <!-- Hidden inputs -->
                     <input type="hidden" name="installation_type_id" value="{{ $installationTypes->first()->id ?? 1 }}">
-                    @php
-                        $defaultMortarFormula = $mortarFormulas->where('cement_ratio', 1)->where('sand_ratio', 3)->first() ?? $mortarFormulas->first();
-                    @endphp
-                    <input type="hidden" name="mortar_formula_id" value="{{ $defaultMortarFormula->id ?? 1 }}">
+                    <input type="hidden" name="mortar_formula_id" value="{{ $defaultMortarFormula->id ?? ($mortarFormulas->first()->id ?? 1) }}">
 
                     <!-- Submit Button -->
                     <div class="text-center pt-4 mt-5 border-top border-secondary">
@@ -367,13 +364,35 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     const catSection = document.getElementById('catSection');
     const ceramicSection = document.getElementById('ceramicSection');
     const natSection = document.getElementById('natSection');
+    const wallHeightGroup = document.getElementById('wallHeightGroup');
+    const wallHeightInput = document.querySelector('input[name="wall_height"]');
+    const wallHeightDefaultDisplay = wallHeightGroup ? getComputedStyle(wallHeightGroup).display : 'block';
 
     // Get material sections
-    const brickSection = document.querySelector('select[name="brick_id"]')?.closest('.col-12');
+    const brickSelect = document.querySelector('select[name="brick_id"]');
+    const brickSection = brickSelect?.closest('.col-12');
+    const brickSectionDefaultDisplay = brickSection ? getComputedStyle(brickSection).display : 'block';
     const cementSection = document.querySelector('select[name="cement_id"]')?.closest('.col-md-6');
     const sandSection = document.querySelector('select[name="sand_id"]')?.closest('.col-md-6');
 
+    function setBrickSection(isVisible) {
+        if (brickSection) {
+            brickSection.style.display = isVisible ? brickSectionDefaultDisplay : 'none';
+        }
+        if (brickSelect) {
+            brickSelect.disabled = !isVisible;
+            if (!isVisible) {
+                brickSelect.value = '';
+            }
+        }
+    }
+
     if (this.value === 'brick_rollag') {
+        if (wallHeightGroup) wallHeightGroup.style.display = 'none';
+        if (wallHeightInput) {
+            wallHeightInput.required = false;
+            wallHeightInput.disabled = true;
+        }
         layerCountGroup.style.display = 'block';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
@@ -381,13 +400,18 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        if (brickSection) brickSection.style.display = 'block';
+        setBrickSection(true);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
         if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'wall_plastering') {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'block';
         skimSidesGroup.style.display = 'none';
@@ -395,13 +419,18 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        if (brickSection) brickSection.style.display = 'none';
+        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
         if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'skim_coating') {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'block';
@@ -409,13 +438,18 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        if (brickSection) brickSection.style.display = 'none';
+        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'none';
         if (ceramicSection) ceramicSection.style.display = 'none';
         if (natSection) natSection.style.display = 'none';
     } else if (this.value === 'painting') {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
         layerCountGroup.style.display = 'block';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
@@ -423,41 +457,18 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
-        if (brickSection) brickSection.style.display = 'none';
+        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'none';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'block';
         if (ceramicSection) ceramicSection.style.display = 'none';
         if (natSection) natSection.style.display = 'none';
-    } else if (this.value === 'tile_installation') {
-        layerCountGroup.style.display = 'none';
-        plasterSidesGroup.style.display = 'none';
-        skimSidesGroup.style.display = 'none';
-        if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
-        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
-        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
-        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        if (brickSection) brickSection.style.display = 'none';
-        if (cementSection) cementSection.style.display = 'block';
-        if (sandSection) sandSection.style.display = 'block';
-        if (catSection) catSection.style.display = 'none';
-        if (ceramicSection) ceramicSection.style.display = 'block';
-        if (natSection) natSection.style.display = 'block';
-    } else if (this.value === 'grout_tile') {
-        layerCountGroup.style.display = 'none';
-        plasterSidesGroup.style.display = 'none';
-        skimSidesGroup.style.display = 'none';
-        if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
-        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
-        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
-        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
-        if (brickSection) brickSection.style.display = 'none';
-        if (cementSection) cementSection.style.display = 'none';
-        if (sandSection) sandSection.style.display = 'none';
-        if (catSection) catSection.style.display = 'none';
-        if (ceramicSection) ceramicSection.style.display = 'block';
-        if (natSection) natSection.style.display = 'block';
-    } else {
+    } else if (this.value === 'floor_screed' || this.value === 'coating_floor') {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
@@ -465,7 +476,64 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        if (brickSection) brickSection.style.display = 'block';
+        setBrickSection(false);
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'block';
+        if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'none';
+        if (natSection) natSection.style.display = 'none';
+    } else if (this.value === 'tile_installation') {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        setBrickSection(false);
+        if (cementSection) cementSection.style.display = 'block';
+        if (sandSection) sandSection.style.display = 'block';
+        if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'block';
+        if (natSection) natSection.style.display = 'block';
+    } else if (this.value === 'grout_tile') {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+        setBrickSection(false);
+        if (cementSection) cementSection.style.display = 'none';
+        if (sandSection) sandSection.style.display = 'none';
+        if (catSection) catSection.style.display = 'none';
+        if (ceramicSection) ceramicSection.style.display = 'block';
+        if (natSection) natSection.style.display = 'block';
+    } else {
+        if (wallHeightGroup) wallHeightGroup.style.display = wallHeightDefaultDisplay;
+        if (wallHeightInput) {
+            wallHeightInput.required = true;
+            wallHeightInput.disabled = false;
+        }
+        layerCountGroup.style.display = 'none';
+        plasterSidesGroup.style.display = 'none';
+        skimSidesGroup.style.display = 'none';
+        if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
+        if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+        if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+        if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
+        setBrickSection(true);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
@@ -476,6 +544,49 @@ document.getElementById('formulaSelector').addEventListener('change', function()
 
 // Initial check in case the default selection is brick_rollag
 document.getElementById('formulaSelector').dispatchEvent(new Event('change'));
+
+function applyQueryParamsToTraceForm() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.size) {
+        return;
+    }
+
+    const form = document.getElementById('traceForm');
+    if (!form) {
+        return;
+    }
+
+    const formulaSelector = document.getElementById('formulaSelector');
+    const formulaCode = params.get('formula_code');
+    if (formulaSelector && formulaCode) {
+        formulaSelector.value = formulaCode;
+        formulaSelector.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    params.forEach((value, key) => {
+        if (key === 'formula_code' || key === 'auto_trace') {
+            return;
+        }
+        const field = form.querySelector(`[name="${key}"]`);
+        if (!field) {
+            return;
+        }
+        field.value = value;
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    if (formulaSelector) {
+        formulaSelector.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    if (params.get('auto_trace') === '1') {
+        setTimeout(() => {
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }, 50);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', applyQueryParamsToTraceForm);
 
 function renderTrace(trace, containerId) {
     let html = `

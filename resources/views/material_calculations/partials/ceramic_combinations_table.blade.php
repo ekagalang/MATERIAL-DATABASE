@@ -43,11 +43,13 @@
 
                     foreach ($combinations as $label => $items) {
                         $labelParts = array_map('trim', explode('=', $label));
-                        foreach ($labelParts as $part) {
-                            if ($part === $key) {
-                                $matchItem = $items[0] ?? null;
-                                break 2;
-                            }
+                        // Check if this group of items corresponds to the current key (e.g. "TerBAIK 1")
+                        if (in_array($key, $labelParts)) {
+                            // Found the group! Now we need the specific item for this key if possible.
+                            // In most cases, $items has 1 element or they are identical for this label.
+                            // Just take the first one.
+                            $matchItem = $items[0] ?? null;
+                            break; 
                         }
                     }
 
@@ -429,13 +431,13 @@
                         <th class="sticky-col-2">Satuan</th>
                         <th class="sticky-col-3">Material</th>
                         <th colspan="4">Detail</th>
-                        <th>Toko</th>
-                        <th>Alamat</th>
+                        <th class="preview-store-cell">Toko</th>
+                        <th class="preview-address-cell">Alamat</th>
                         <th colspan="2">Harga / Kemasan</th>
                         <th>Harga Komparasi</br> / Pekerjaan</th>
                         <th>Total Biaya</br> Material / Pekerjaan</th>
                         <th colspan="2">Harga Satuan</br> Material / Pekerjaan</th>
-                        <th colspan="2">Harga Satuan Beli</th>
+                        <th colspan="2">Harga Beli Aktual<br>/ Satuan Komparasi</th>
                         <th>Aksi</th>
                     </tr>
                 </thead>
@@ -448,6 +450,21 @@
                             $item = $combo['item'];
                             $res = $item['result'];
                             $costPerM2 = $area > 0 ? $res['grand_total'] / $area : 0;
+                            $cementWeight = isset($item['cement']) ? ($item['cement']->package_weight_net ?? 0) : 0;
+                            if ($cementWeight <= 0) {
+                                $cementWeight = 1;
+                            }
+                            $ceramicArea = 0;
+                            if (isset($item['ceramic']) && $item['ceramic']->dimension_length && $item['ceramic']->dimension_width) {
+                                $ceramicArea = ($item['ceramic']->dimension_length / 100) * ($item['ceramic']->dimension_width / 100);
+                            }
+                            if ($ceramicArea <= 0) {
+                                $ceramicArea = 1;
+                            }
+                            $natWeight = isset($item['nat']) ? ($item['nat']->package_weight_net ?? 0) : 0;
+                            if ($natWeight <= 0) {
+                                $natWeight = 1;
+                            }
 
                             $materialConfig = [
                                 'cement' => [
@@ -455,6 +472,8 @@
                                     'check_field' => 'cement_sak',
                                     'qty' => $res['cement_sak'] ?? 0,
                                     'unit' => 'Sak',
+                                    'comparison_unit' => 'Kg',
+                                    'detail_value' => $cementWeight,
                                     'object' => $item['cement'] ?? null,
                                     'type_field' => 'type',
                                     'brand_field' => 'brand',
@@ -473,6 +492,8 @@
                                     'check_field' => 'sand_m3',
                                     'qty' => $res['sand_m3'] ?? 0,
                                     'unit' => 'M3',
+                                    'comparison_unit' => 'M3',
+                                    'detail_value' => 1,
                                     'object' => $item['sand'] ?? null,
                                     'type_field' => 'type',
                                     'brand_field' => 'brand',
@@ -491,6 +512,8 @@
                                     'check_field' => 'total_tiles',
                                     'qty' => $res['total_tiles'] ?? 0,
                                     'unit' => 'Bh',
+                                    'comparison_unit' => 'M2',
+                                    'detail_value' => $ceramicArea,
                                     'object' => $item['ceramic'] ?? null,
                                     'type_field' => 'type',
                                     'brand_field' => 'brand',
@@ -509,6 +532,8 @@
                                     'check_field' => 'grout_packages',
                                     'qty' => $res['grout_packages'] ?? 0,
                                     'unit' => 'Bks',
+                                    'comparison_unit' => 'Kg',
+                                    'detail_value' => $natWeight,
                                     'object' => $item['nat'] ?? null,
                                     'type_field' => 'type',
                                     'brand_field' => 'brand',
@@ -527,6 +552,8 @@
                                     'check_field' => 'total_water_liters',
                                     'qty' => $res['total_water_liters'] ?? ($res['water_liters'] ?? 0),
                                     'unit' => 'L',
+                                    'comparison_unit' => 'L',
+                                    'detail_value' => 1,
                                     'object' => null,
                                     'type_field' => null,
                                     'type_display' => 'Bersih',
@@ -605,8 +632,12 @@
                                 <td class="fw-bold">{{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}</td>
                                 <td class="{{ $matKey === 'brick' ? 'text-center text-nowrap' : '' }}">{{ $mat['detail_display'] }}</td>
                                 <td class="{{ $matKey === 'cement' || $matKey === 'sand' ? 'text-start text-nowrap fw-bold' : '' }}">{{ $mat['detail_extra'] ?? '' }}</td>
-                                <td class="store-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</td>
-                                <td class="small text-muted address-cell">{{ $mat['address_display'] ?? ($mat['object']->{$mat['address_field']} ?? '-') }}</td>
+                                <td class="preview-scroll-td preview-store-cell">
+                                    <div class="preview-scroll-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</div>
+                                </td>
+                                <td class="preview-scroll-td preview-address-cell small text-muted">
+                                    <div class="preview-scroll-cell">{{ $mat['address_display'] ?? ($mat['object']->{$mat['address_field']} ?? '-') }}</div>
+                                </td>
 
                                 @if(isset($mat['is_special']) && $mat['is_special'])
                                     <td class="text-center text-muted">-</td>
@@ -652,47 +683,94 @@
                                     <td class="text-center text-muted">-</td>
                                     <td></td>
                                 @else
+                                    @php
+                                        $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
+                                        $detailValue = $mat['detail_value'] ?? 1;
+                                        $qtyValue = $mat['qty'] ?? 0;
+                                        $totalPriceValue = $mat['total_price'] ?? 0;
+                                        $actualBuyPrice = ($qtyValue > 0 && $detailValue > 0)
+                                            ? ($totalPriceValue / $qtyValue / $detailValue)
+                                            : 0;
+                                    @endphp
                                     <td class="text-nowrap">
                                         <div class="d-flex justify-content-between w-100">
                                             <span>Rp</span>
-                                            <span>{{ number_format($mat['unit_price'], 0, ',', '.') }}</span>
+                                            <span>{{ number_format($actualBuyPrice, 0, ',', '.') }}</span>
                                         </div>
                                     </td>
-                                    <td class="text-muted text-nowrap ps-1">/ {{ $mat['unit_price_label'] }}</td>
+                                    <td class="text-muted text-nowrap ps-1">/ {{ $comparisonUnit }}</td>
                                 @endif
 
                                 @if($isFirstMaterial)
                                     <td rowspan="{{ $rowCount }}" class="text-center align-top rowspan-cell">
-                                        <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
-                                            @csrf
-                                            @foreach($requestData as $key => $value)
-                                                @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters')
-                                                    @if(is_array($value))
-                                                        @foreach($value as $v)
-                                                            <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
-                                                        @endforeach
-                                                    @else
-                                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                        @php
+                                            $traceFormulaCode = $requestData['formula_code']
+                                                ?? $requestData['work_type']
+                                                ?? null;
+                                            $traceParams = [
+                                                'formula_code' => $traceFormulaCode,
+                                                'work_type' => $requestData['work_type'] ?? null,
+                                                'wall_length' => $requestData['wall_length'] ?? null,
+                                                'wall_height' => $requestData['wall_height'] ?? null,
+                                                'area' => $requestData['area'] ?? null,
+                                                'mortar_thickness' => $requestData['mortar_thickness'] ?? null,
+                                                'grout_thickness' => $requestData['grout_thickness'] ?? null,
+                                                'painting_layers' => $requestData['painting_layers'] ?? null,
+                                                'layer_count' => $requestData['layer_count'] ?? null,
+                                                'auto_trace' => 1,
+                                            ];
+                                            
+                                            if (isset($item['cement'])) {
+                                                $traceParams['cement_id'] = $item['cement']->id;
+                                            }
+                                            if (isset($item['sand'])) {
+                                                $traceParams['sand_id'] = $item['sand']->id;
+                                            }
+                                            if (isset($item['ceramic'])) {
+                                                $traceParams['ceramic_id'] = $item['ceramic']->id;
+                                            }
+                                            if (isset($item['nat'])) {
+                                                $traceParams['nat_id'] = $item['nat']->id;
+                                            }
+                                            $traceUrl = route('material-calculator.trace') . '?' . http_build_query(array_filter($traceParams, function ($value) {
+                                                return $value !== null && $value !== '';
+                                            }));
+                                        @endphp
+                                        <div class="d-flex flex-column gap-2 align-items-center">
+                                            <a href="{{ $traceUrl }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+                                                <i class="bi bi-diagram-3 me-1"></i> Trace
+                                            </a>
+                                            <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
+                                                @csrf
+                                                @foreach($requestData as $key => $value)
+                                                    @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters')
+                                                        @if(is_array($value))
+                                                            @foreach($value as $v)
+                                                                <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
+                                                            @endforeach
+                                                        @else
+                                                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                                                        @endif
                                                     @endif
+                                                @endforeach
+                                                @if(isset($item['cement']))
+                                                    <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
                                                 @endif
-                                            @endforeach
-                                            @if(isset($item['cement']))
-                                                <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">
-                                            @endif
-                                            @if(isset($item['sand']))
-                                                <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
-                                            @endif
-                                            @if(isset($item['ceramic']))
-                                                <input type="hidden" name="ceramic_id" value="{{ $item['ceramic']->id }}">
-                                            @endif
-                                            @if(isset($item['nat']))
-                                                <input type="hidden" name="nat_id" value="{{ $item['nat']->id }}">
-                                            @endif
-                                            <input type="hidden" name="confirm_save" value="1">
-                                            <button type="submit" class="btn-select">
-                                                <i class="bi bi-check-circle me-1"></i> Pilih
-                                            </button>
-                                        </form>
+                                                @if(isset($item['sand']))
+                                                    <input type="hidden" name="sand_id" value="{{ $item['sand']->id }}">
+                                                @endif
+                                                @if(isset($item['ceramic']))
+                                                    <input type="hidden" name="ceramic_id" value="{{ $item['ceramic']->id }}">
+                                                @endif
+                                                @if(isset($item['nat']))
+                                                    <input type="hidden" name="nat_id" value="{{ $item['nat']->id }}">
+                                                @endif
+                                                <input type="hidden" name="confirm_save" value="1">
+                                                <button type="submit" class="btn-select">
+                                                    <i class="bi bi-check-circle me-1"></i> Pilih
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 @endif
                             </tr>

@@ -119,11 +119,17 @@ class BrickController extends Controller
 
         // Redirect back to the originating page if requested
         if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data Bata berhasil ditambahkan!');
+            return redirect()
+                ->to($request->input('_redirect_url'))
+                ->with('success', 'Data Bata berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
         }
         // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Data Bata berhasil ditambahkan!');
+            return redirect()
+                ->route('materials.index')
+                ->with('success', 'Data Bata berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
         }
 
         return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil ditambahkan!');

@@ -41,7 +41,6 @@ class BrickRollagFormula implements FormulaInterface
         // Validasi input standar + input baru
         $required = [
             'wall_length',
-            'wall_height',
             'installation_type_id',
             'mortar_formula_id',
             'layer_count', // Input tunggal untuk tingkat
@@ -96,7 +95,7 @@ class BrickRollagFormula implements FormulaInterface
         $lebarBata = $brick->dimension_width ?? 9;
         $tinggiBata = $brick->dimension_height ?? 8;
 
-        // Lebar Rollag diasumsikan sama dengan Lebar Bata
+        // Lebar rollag mengikuti panjang bata
         $lebarRollag = $panjangBata; // cm
 
         $beratSemenPerSak = $cement && $cement->package_weight_net > 0 ? $cement->package_weight_net : 50;

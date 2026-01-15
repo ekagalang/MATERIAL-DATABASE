@@ -64,13 +64,23 @@ class CombinationGenerationService
         string $groupLabel = 'Kombinasi',
         ?int $limit = null
     ): array {
+        $workType = $request['work_type'] ?? 'brick_half';
+        $wallHeight = $request['wall_height'] ?? null;
+        if ($workType === 'brick_rollag') {
+            $brickLength = $brick->dimension_length ?? 0;
+            if ($brickLength <= 0) {
+                $brickLength = 19.2;
+            }
+            $wallHeight = $brickLength / 100;
+        }
+
         $paramsBase = [
             'wall_length' => $request['wall_length'],
-            'wall_height' => $request['wall_height'],
+            'wall_height' => $wallHeight,
             'mortar_thickness' => $request['mortar_thickness'],
             'installation_type_id' => $request['installation_type_id'],
             'mortar_formula_id' => $request['mortar_formula_id'],
-            'work_type' => $request['work_type'] ?? 'brick_half',
+            'work_type' => $workType,
             'brick_id' => $brick->id,
             'layer_count' => $request['layer_count'] ?? 1, // For Rollag formula
             'plaster_sides' => $request['plaster_sides'] ?? 1, // For Wall Plastering

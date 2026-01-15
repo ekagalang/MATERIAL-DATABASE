@@ -183,6 +183,13 @@ class BrickCalculation extends Model
         $sand = isset($params['sand_id']) ? Sand::find($params['sand_id']) : Sand::first();
 
         $workType = $params['work_type'] ?? $formulaCode;
+        if ($workType === 'brick_rollag') {
+            $brickLength = $brick?->dimension_length ?? 0;
+            if ($brickLength <= 0) {
+                $brickLength = 19.2;
+            }
+            $params['wall_height'] = $brickLength / 100;
+        }
         $ceramic = null;
         if (
             in_array($workType, ['tile_installation', 'grout_tile'], true) ||
@@ -195,7 +202,7 @@ class BrickCalculation extends Model
 
         // Extract values from formula result
         $wallLength = $params['wall_length'];
-        $wallHeight = $params['wall_height'];
+        $wallHeight = $params['wall_height'] ?? 0;
         $wallArea = $wallLength * $wallHeight;
         $mortarThickness = $params['mortar_thickness'] ?? 1.0;
         $useCustomRatio = isset($params['use_custom_ratio']) && $params['use_custom_ratio'] == '1';

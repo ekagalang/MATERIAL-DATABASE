@@ -146,11 +146,17 @@ class CatController extends Controller
 
         // Redirect back to the originating page if requested
         if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Cat berhasil ditambahkan!');
+            return redirect()
+                ->to($request->input('_redirect_url'))
+                ->with('success', 'Cat berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
         }
         // Backward compatibility for older forms
         if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Cat berhasil ditambahkan!');
+            return redirect()
+                ->route('materials.index')
+                ->with('success', 'Cat berhasil ditambahkan!')
+                ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
         }
 
         return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');

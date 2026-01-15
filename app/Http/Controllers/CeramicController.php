@@ -96,11 +96,14 @@ class CeramicController extends Controller
             'photo' => 'nullable|image|max:2048',
         ]);
 
-        $this->service->create($data, $request->file('photo'));
+        $ceramic = $this->service->create($data, $request->file('photo'));
 
         // Redirect back to the originating page if requested
         if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data berhasil disimpan');
+            return redirect()
+                ->to($request->input('_redirect_url'))
+                ->with('success', 'Data berhasil disimpan')
+                ->with('new_material', ['type' => 'ceramic', 'id' => $ceramic->id]);
         }
 
         return redirect()->route('ceramics.index')->with('success', 'Data berhasil disimpan');
