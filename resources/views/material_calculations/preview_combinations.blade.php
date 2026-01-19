@@ -1657,6 +1657,31 @@
                                                     $natWeight = 1;
                                                 }
 
+                                                $brickPricePerPiece = $res['brick_price_per_piece'] ?? ($brick->price_per_piece ?? 0);
+                                                $cementPricePerSak = $res['cement_price_per_sak'] ?? (isset($item['cement']) ? ($item['cement']->package_price ?? 0) : 0);
+                                                $catPricePerPackage = $res['cat_price_per_package'] ?? (isset($item['cat']) ? ($item['cat']->purchase_price ?? 0) : 0);
+                                                $ceramicPricePerPackage = $res['ceramic_price_per_package'] ?? (isset($item['ceramic']) ? ($item['ceramic']->price_per_package ?? 0) : 0);
+                                                $groutPricePerPackage = $res['grout_price_per_package'] ?? (isset($item['nat']) ? ($item['nat']->package_price ?? 0) : 0);
+
+                                                $sandPricePerM3 = $res['sand_price_per_m3'] ?? 0;
+                                                if ($sandPricePerM3 <= 0 && isset($item['sand'])) {
+                                                    $sandPricePerM3 = $item['sand']->comparison_price_per_m3 ?? 0;
+                                                    if ($sandPricePerM3 <= 0 && ($item['sand']->package_price ?? 0) > 0 && ($item['sand']->package_volume ?? 0) > 0) {
+                                                        $sandPricePerM3 = $item['sand']->package_price / $item['sand']->package_volume;
+                                                    }
+                                                }
+
+                                                $tilesPerPackage = $res['tiles_per_package'] ?? (isset($item['ceramic']) ? ($item['ceramic']->pieces_per_package ?? 0) : 0);
+                                                $tilesPackages = $res['tiles_packages'] ?? (($tilesPerPackage > 0) ? ceil(($res['total_tiles'] ?? 0) / $tilesPerPackage) : 0);
+
+                                                // Helper function: format number without trailing zeros
+                                                $formatNum = function($num, $decimals = null) {
+                                                    return \App\Helpers\NumberHelper::format($num);
+                                                };
+                                                $formatMoney = function($num) {
+                                                    return \App\Helpers\NumberHelper::format($num, 0);
+                                                };
+
                                                 // ========================================
                                                 // DYNAMIC MATERIAL CONFIGURATION
                                                 // To add new material, just add to this array!
@@ -1666,126 +1691,164 @@
                                                         'name' => 'Bata',
                                                         'check_field' => 'total_bricks',
                                                         'qty' => $res['total_bricks'] ?? 0,
+                                                        'qty_debug' => 'Kebutuhan bata untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => 'Bh',
                                                         'comparison_unit' => 'M3',
                                                         'detail_value' => $brickVolume,
+                                                        'detail_value_debug' => 'Rumus: (' . $formatNum($brick->dimension_length) . ' x ' . $formatNum($brick->dimension_width) . ' x ' . $formatNum($brick->dimension_height) . ') / 1.000.000 = ' . $formatNum($brickVolume) . ' M3',
                                                         'object' => $brick,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
-                                                        'detail_display' => ($brick->dimension_length + 0) . 'cm x ' . ($brick->dimension_width + 0) . 'cm x ' . ($brick->dimension_height + 0) . ' cm',
-                                                        'detail_extra' => $brickVolumeDisplay ? (number_format($brickVolumeDisplay, 6, ',', '.') . ' M3') : '-',
+                                                        'detail_display' => $formatNum($brick->dimension_length) . ' x ' . $formatNum($brick->dimension_width) . ' x ' . $formatNum($brick->dimension_height) . ' cm',
+                                                        'detail_extra' => $brickVolumeDisplay ? ($formatNum($brickVolumeDisplay) . ' M3') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => $brick->price_per_piece ?? 0,
                                                         'package_unit' => 'bh',
+                                                        'price_per_unit' => $brickPricePerPiece,
+                                                        'price_unit_label' => 'bh',
+                                                        'price_calc_qty' => $res['total_bricks'] ?? 0,
+                                                        'price_calc_unit' => 'bh',
                                                         'total_price' => $res['total_brick_price'] ?? 0,
-                                                        'unit_price' => $brick->price_per_piece ?? 0,
+                                                        'unit_price' => $brickPricePerPiece,
                                                         'unit_price_label' => 'bh',
                                                     ],
                                                     'cement' => [
                                                         'name' => 'Semen',
                                                         'check_field' => 'cement_sak',
                                                         'qty' => $res['cement_sak'] ?? 0,
+                                                        'qty_debug' => 'Kebutuhan semen untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => 'Sak',
                                                         'comparison_unit' => 'Kg',
                                                         'detail_value' => $cementWeight,
+                                                        'detail_value_debug' => 'Berat per kemasan: ' . $formatNum($cementWeight) . ' Kg',
                                                         'object' => $item['cement'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
                                                         'detail_display' => isset($item['cement']) ? ($item['cement']->color ?? '-') : '-',
-                                                        'detail_extra' => isset($item['cement']) ? (($item['cement']->package_weight_net + 0) . ' Kg') : '-',
+                                                        'detail_extra' => isset($item['cement']) ? ($formatNum($item['cement']->package_weight_net) . ' Kg') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => isset($item['cement']) ? ($item['cement']->package_price ?? 0) : 0,
                                                         'package_unit' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
+                                                        'price_per_unit' => $cementPricePerSak,
+                                                        'price_unit_label' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
+                                                        'price_calc_qty' => $res['cement_sak'] ?? 0,
+                                                        'price_calc_unit' => 'Sak',
                                                         'total_price' => $res['total_cement_price'] ?? 0,
-                                                        'unit_price' => $res['total_cement_price'] ?? 0,
+                                                        'unit_price' => $cementPricePerSak,
                                                         'unit_price_label' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
                                                     ],
                                                     'sand' => [
                                                         'name' => 'Pasir',
                                                         'check_field' => 'sand_m3',
                                                         'qty' => $res['sand_m3'] ?? 0,
+                                                        'qty_debug' => 'Kebutuhan pasir untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => 'M3',
                                                         'comparison_unit' => 'M3',
                                                         'detail_value' => isset($item['sand']) && $item['sand']->package_volume > 0 ? $item['sand']->package_volume : 1,
+                                                        'detail_value_debug' => isset($item['sand']) ? ('Volume per kemasan: ' . $formatNum($item['sand']->package_volume ?? 0) . ' M3') : '-',
                                                         'object' => $item['sand'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
                                                         'detail_display' => isset($item['sand']) ? ($item['sand']->package_unit ?? '-') : '-',
-                                                        'detail_extra' => isset($item['sand']) ? ($item['sand']->package_volume ? (($item['sand']->package_volume + 0) . ' M3') : '-') : '-',
+                                                        'detail_extra' => isset($item['sand']) ? ($item['sand']->package_volume ? ($formatNum($item['sand']->package_volume) . ' M3') : '-') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => isset($item['sand']) ? ($item['sand']->package_price ?? 0) : 0,
                                                         'package_unit' => isset($item['sand']) ? ($item['sand']->package_unit ?? 'Karung') : 'Karung',
+                                                        'price_per_unit' => $sandPricePerM3,
+                                                        'price_unit_label' => 'M3',
+                                                        'price_calc_qty' => $res['sand_m3'] ?? 0,
+                                                        'price_calc_unit' => 'M3',
                                                         'total_price' => $res['total_sand_price'] ?? 0,
-                                                        'unit_price' => $res['total_sand_price'] ?? 0,
+                                                        'unit_price' => $sandPricePerM3,
                                                         'unit_price_label' => isset($item['sand']) ? ($item['sand']->package_unit ?? 'Karung') : 'Karung',
                                                     ],
                                                     'cat' => [
                                                         'name' => 'Cat',
                                                         'check_field' => 'cat_packages',
                                                         'qty' => $res['cat_packages'] ?? 0,
+                                                        'qty_debug' => 'Kebutuhan cat untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Kmsn') : 'Kmsn',
                                                         'comparison_unit' => 'Kg',
                                                         'detail_value' => $catWeight,
+                                                        'detail_value_debug' => 'Berat per kemasan: ' . $formatNum($catWeight) . ' Kg',
                                                         'object' => $item['cat'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
                                                         'detail_display' => isset($item['cat']) ? ($item['cat']->color_name ?? '-') : '-',
-                                                        'detail_extra' => isset($item['cat']) ? (($item['cat']->package_weight_net + 0) . ' Kg') : '-',
+                                                        'detail_extra' => isset($item['cat']) ? ($formatNum($item['cat']->package_weight_net) . ' Kg') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => isset($item['cat']) ? ($item['cat']->purchase_price ?? 0) : 0,
                                                         'package_unit' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
+                                                        'price_per_unit' => $catPricePerPackage,
+                                                        'price_unit_label' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
+                                                        'price_calc_qty' => $res['cat_packages'] ?? 0,
+                                                        'price_calc_unit' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
                                                         'total_price' => $res['total_cat_price'] ?? 0,
-                                                        'unit_price' => $res['cat_price_per_package'] ?? 0,
+                                                        'unit_price' => $catPricePerPackage,
                                                         'unit_price_label' => isset($item['cat']) ? ($item['cat']->package_unit ?? 'Galon') : 'Galon',
                                                     ],
                                                     'ceramic' => [
                                                         'name' => 'Keramik',
                                                         'check_field' => 'total_tiles',
                                                         'qty' => $res['total_tiles'] ?? 0,
+                                                        'qty_debug' => 'Kebutuhan keramik untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => 'Bh',
                                                         'comparison_unit' => 'M2',
                                                         'detail_value' => $ceramicArea,
+                                                        'detail_value_debug' => isset($item['ceramic']) ? ('Rumus: (' . $formatNum($item['ceramic']->dimension_length) . '/100) x (' . $formatNum($item['ceramic']->dimension_width) . '/100) = ' . $formatNum($ceramicArea) . ' M2') : '-',
                                                         'object' => $item['ceramic'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
                                                         'detail_display' => isset($item['ceramic']) ? ($item['ceramic']->color ?? '-') : '-',
-                                                        'detail_extra' => isset($item['ceramic']) ? (($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ' cm') : '-',
+                                                        'detail_extra' => isset($item['ceramic']) ? ($formatNum($item['ceramic']->dimension_length) . 'x' . $formatNum($item['ceramic']->dimension_width) . ' cm') : '-',
+                                                        'detail_extra_debug' => isset($item['ceramic']) ? ('Luas: ' . $formatNum($ceramicArea) . ' M2 per keping') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => isset($item['ceramic']) ? ($item['ceramic']->price_per_package ?? 0) : 0,
                                                         'package_unit' => 'Dus',
+                                                        'price_per_unit' => $ceramicPricePerPackage,
+                                                        'price_unit_label' => 'Dus',
+                                                        'price_calc_qty' => $tilesPackages,
+                                                        'price_calc_unit' => 'Dus',
                                                         'total_price' => $res['total_ceramic_price'] ?? 0,
-                                                        'unit_price' => isset($item['ceramic']) ? ($item['ceramic']->price_per_package ?? 0) : 0,
+                                                        'unit_price' => $ceramicPricePerPackage,
                                                         'unit_price_label' => 'Dus',
                                                     ],
                                                     'nat' => [
                                                         'name' => 'Nat',
                                                         'check_field' => 'grout_packages',
                                                         'qty' => $res['grout_packages'] ?? 0,
+                                                        'qty_debug' => 'Kebutuhan nat untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => 'Bks',
                                                         'comparison_unit' => 'Kg',
                                                         'detail_value' => $natWeight,
+                                                        'detail_value_debug' => 'Berat per kemasan: ' . $formatNum($natWeight) . ' Kg',
                                                         'object' => $item['nat'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
                                                         'detail_display' => isset($item['nat']) ? ($item['nat']->color ?? 'Nat') : 'Nat',
-                                                        'detail_extra' => isset($item['nat']) ? (($item['nat']->package_weight_net + 0) . ' Kg') : '-',
+                                                        'detail_extra' => isset($item['nat']) ? ($formatNum($item['nat']->package_weight_net) . ' Kg') : '-',
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => isset($item['nat']) ? ($item['nat']->package_price ?? 0) : 0,
                                                         'package_unit' => isset($item['nat']) ? ($item['nat']->package_unit ?? 'Bks') : 'Bks',
+                                                        'price_per_unit' => $groutPricePerPackage,
+                                                        'price_unit_label' => isset($item['nat']) ? ($item['nat']->package_unit ?? 'Bks') : 'Bks',
+                                                        'price_calc_qty' => $res['grout_packages'] ?? 0,
+                                                        'price_calc_unit' => 'Bks',
                                                         'total_price' => $res['total_grout_price'] ?? 0,
-                                                        'unit_price' => isset($item['nat']) ? ($item['nat']->package_price ?? 0) : 0,
+                                                        'unit_price' => $groutPricePerPackage,
                                                         'unit_price_label' => isset($item['nat']) ? ($item['nat']->package_unit ?? 'Bks') : 'Bks',
                                                     ],
                                                     'water' => [
                                                         'name' => 'Air',
                                                         'check_field' => 'total_water_liters',
                                                         'qty' => $res['total_water_liters'] ?? ($res['water_liters'] ?? 0),
+                                                        'qty_debug' => 'Kebutuhan air untuk area ' . $formatNum($areaForCost) . ' M2',
                                                         'unit' => 'L',
                                                         'comparison_unit' => 'L',
                                                         'detail_value' => 1,
@@ -1910,10 +1973,15 @@
                                                         $matIndex++;
                                                         $isFirstMaterial = $matIndex === 1;
                                                         $isLastMaterial = $matIndex === count($visibleMaterials);
+                                                        $pricePerUnit = $mat['price_per_unit'] ?? ($mat['package_price'] ?? 0);
+                                                        $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
+                                                        $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
+                                                        $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
+                                                        $hargaKomparasi = isset($mat['total_price']) ? $mat['total_price'] : ($pricePerUnit * $priceCalcQty);
                                                     @endphp
                                                     <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
                                                         {{-- Column 1-3: Qty, Unit, Material Name --}}
-                                                        <td class="text-end fw-bold sticky-col-1">@format($mat['qty'])</td>
+                                                        <td class="text-end fw-bold sticky-col-1" title="{{ $mat['qty_debug'] ?? '' }}">@format($mat['qty'])</td>
                                                         <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
                                                         <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 
@@ -1921,7 +1989,7 @@
                                                         <td class="text-muted">{{ $mat['type_display'] ?? ($mat['object']->{$mat['type_field']} ?? '-') }}</td>
                                                         <td class="fw-bold">{{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}</td>
                                                         <td class="{{ $matKey === 'brick' ? 'text-center text-nowrap' : '' }}">{{ $mat['detail_display'] }}</td>
-                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }}">{{ $mat['detail_extra'] ?? '' }}</td>
+                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }}" title="{{ $mat['detail_value_debug'] ?? ($mat['detail_extra_debug'] ?? '') }}">{{ $mat['detail_extra'] ?? '' }}</td>
                                                         <td class="preview-scroll-td preview-store-cell">
                                                             <div class="preview-scroll-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</div>
                                                         </td>
@@ -1934,10 +2002,10 @@
                                                             <td class="text-center text-muted">-</td>
                                                             <td></td>
                                                         @else
-                                                            <td class="text-nowrap fw-bold">
+                                                            <td class="text-nowrap fw-bold" title="Harga per {{ $mat['package_unit'] }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span>Rp</span>
-                                                                    <span>{{ number_format($mat['package_price'], 0, ',', '.') }}</span>
+                                                                    <span>{{ $formatMoney($mat['package_price']) }}</span>
                                                                 </div>
                                                             </td>
                                                             <td class="text-muted text-nowrap ps-1">/ {{ $mat['package_unit'] }}</td>
@@ -1947,26 +2015,52 @@
                                                         @if(isset($mat['is_special']) && $mat['is_special'])
                                                             <td class="text-center text-muted">-</td>
                                                         @else
-                                                            <td class="text-nowrap">
+                                                            @php
+                                                                // Hitung harga komparasi sesuai harga formula
+                                                                $hargaKomparasiDebug = "Rumus: " . $formatNum($priceCalcQty) . " " . $priceCalcUnit . " x Rp " . $formatMoney($pricePerUnit) . " / " . $priceUnitLabel;
+                                                            @endphp
+                                                            <td class="text-nowrap" title="{{ $hargaKomparasiDebug }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span>Rp</span>
-                                                                    <span>{{ number_format($mat['total_price'], 0, ',', '.') }}</span>
+                                                                    <span>{{ $formatMoney($hargaKomparasi) }}</span>
                                                                 </div>
                                                             </td>
                                                         @endif
 
                                                         {{-- Column 13-15: Rowspan columns (Grand Total, Cost per M2, Action) --}}
                                                         @if($isFirstMaterial)
-                                                            <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell">
+                                                            @php
+                                                                // Build debug breakdown for grand_total (menggunakan harga formula)
+                                                                $grandTotalParts = [];
+                                                                $calculatedGrandTotal = 0;
+                                                                foreach($visibleMaterials as $debugMatKey => $debugMat) {
+                                                                    if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
+                                                                        $debugPricePerUnit = $debugMat['price_per_unit'] ?? ($debugMat['package_price'] ?? 0);
+                                                                        $debugPriceCalcQty = $debugMat['price_calc_qty'] ?? ($debugMat['qty'] ?? 0);
+                                                                        $calcPrice = isset($debugMat['total_price'])
+                                                                            ? $debugMat['total_price']
+                                                                            : ($debugPricePerUnit * $debugPriceCalcQty);
+                                                                        $calculatedGrandTotal += $calcPrice;
+                                                                        $grandTotalParts[] = $debugMat['name'] . ": Rp " . $formatMoney($calcPrice);
+                                                                    }
+                                                                }
+                                                                $grandTotalValue = isset($res['grand_total']) ? $res['grand_total'] : $calculatedGrandTotal;
+                                                                $grandTotalDebug = "Rumus: " . implode(' + ', $grandTotalParts);
+
+                                                                // Build debug for costPerM2
+                                                                $calculatedCostPerM2 = $areaForCost > 0 ? $grandTotalValue / $areaForCost : 0;
+                                                                $costPerM2Debug = "Rumus: Rp " . $formatMoney($grandTotalValue) . " / " . $formatNum($areaForCost) . " M2";
+                                                            @endphp
+                                                            <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell" title="{{ $grandTotalDebug }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($res['grand_total'], 0, ',', '.') }}</span>
+                                                                    <span class="text-success-dark" style="font-size: 15px;">{{ $formatMoney($grandTotalValue) }}</span>
                                                                 </div>
                                                             </td>
-                                                            <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell">
+                                                            <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell" title="{{ $costPerM2Debug }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                                                    <span class="text-primary-dark" style="font-size: 14px;">{{ $formatMoney($calculatedCostPerM2) }}</span>
                                                                 </div>
                                                             </td>
                                                             <td rowspan="{{ $rowCount }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -1981,15 +2075,26 @@
                                                                 $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
                                                                 $detailValue = $mat['detail_value'] ?? 1;
                                                                 $qtyValue = $mat['qty'] ?? 0;
-                                                                $totalPriceValue = $mat['total_price'] ?? 0;
-                                                                $actualBuyPrice = ($qtyValue > 0 && $detailValue > 0)
-                                                                    ? ($totalPriceValue / $qtyValue / $detailValue)
-                                                                    : 0;
+                                                                // Gunakan harga komparasi yang sudah dihitung (sesuai formula)
+                                                                $totalPriceValue = $hargaKomparasi;
+
+                                                                // Untuk sand, hanya hitung total_price / qty (tanpa pembagian detail_value)
+                                                                if ($matKey === 'sand') {
+                                                                    $actualBuyPrice = ($qtyValue > 0)
+                                                                        ? ($totalPriceValue / $qtyValue)
+                                                                        : 0;
+                                                                    $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($qtyValue) . " " . $mat['unit'];
+                                                                } else {
+                                                                    $actualBuyPrice = ($qtyValue > 0 && $detailValue > 0)
+                                                                        ? ($totalPriceValue / $qtyValue / $detailValue)
+                                                                        : 0;
+                                                                    $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($qtyValue) . " " . $mat['unit'] . " / " . $formatNum($detailValue) . " " . $comparisonUnit;
+                                                                }
                                                             @endphp
-                                                            <td class="text-nowrap" title="Rumus: {{ number_format($totalPriceValue, 2, ',', '.') }} / {{ number_format($qtyValue, 6, ',', '.') }} / {{ number_format($detailValue, 6, ',', '.') }}">
+                                                            <td class="text-nowrap" title="{{ $hargaBeliAktualDebug }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span>Rp</span>
-                                                                    <span>{{ number_format($actualBuyPrice, 2, ',', '.') }}</span>
+                                                                    <span>{{ $formatMoney($actualBuyPrice) }}</span>
                                                                 </div>
                                                             </td>
                                                             <td class="text-muted text-nowrap ps-1">/ {{ $comparisonUnit }}</td>

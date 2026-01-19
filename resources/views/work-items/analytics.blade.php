@@ -120,21 +120,21 @@
                                     <div style="width: 8px; height: 8px; background: #3b82f6; border-radius: 50%;"></div>
                                     <span style="font-size: 13px; color: #475569; font-weight: 500;">Brick</span>
                                 </div>
-                                <span style="font-size: 13px; color: #0f172a; font-weight: 600;">{{ number_format(($analytics['total_brick_cost'] / max(1, $analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])) * 100, 1) }}%</span>
+                                <span style="font-size: 13px; color: #0f172a; font-weight: 600;">@format(($analytics['total_brick_cost'] / max(1, $analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])) * 100)%</span>
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8fafc; border-radius: 6px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <div style="width: 8px; height: 8px; background: #8b5cf6; border-radius: 50%;"></div>
                                     <span style="font-size: 13px; color: #475569; font-weight: 500;">Cement</span>
                                 </div>
-                                <span style="font-size: 13px; color: #0f172a; font-weight: 600;">{{ number_format(($analytics['total_cement_cost'] / max(1, $analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])) * 100, 1) }}%</span>
+                                <span style="font-size: 13px; color: #0f172a; font-weight: 600;">@format(($analytics['total_cement_cost'] / max(1, $analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])) * 100)%</span>
                             </div>
                             <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8fafc; border-radius: 6px;">
                                 <div style="display: flex; align-items: center; gap: 10px;">
                                     <div style="width: 8px; height: 8px; background: #06b6d4; border-radius: 50%;"></div>
                                     <span style="font-size: 13px; color: #475569; font-weight: 500;">Sand</span>
                                 </div>
-                                <span style="font-size: 13px; color: #0f172a; font-weight: 600;">{{ number_format(($analytics['total_sand_cost'] / max(1, $analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])) * 100, 1) }}%</span>
+                                <span style="font-size: 13px; color: #0f172a; font-weight: 600;">@format(($analytics['total_sand_cost'] / max(1, $analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])) * 100)%</span>
                             </div>
                         </div>
                     </div>
@@ -358,6 +358,44 @@
         text: '#475569'
     };
 
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
+
+        const str = num.toFixed(30);
+        const decimalPart = (str.split('.')[1] || '');
+        let firstNonZero = decimalPart.length;
+        for (let i = 0; i < decimalPart.length; i++) {
+            if (decimalPart[i] !== '0') {
+                firstNonZero = i;
+                break;
+            }
+        }
+
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
+
+    function formatSmartDecimalPlain(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
+        return num.toFixed(precision).replace(/\.?0+$/, '');
+    }
+
+    function formatSmartDecimalLocale(value) {
+        const plain = formatSmartDecimalPlain(value);
+        if (!plain) return '';
+        const parts = plain.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+        const sign = intPart.startsWith('-') ? '-' : '';
+        const digits = sign ? intPart.slice(1) : intPart;
+        const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return decPart ? `${sign}${withThousands},${decPart}` : `${sign}${withThousands}`;
+    }
+
     // Monthly Trends Line Chart
     const monthlyTrendsCtx = document.getElementById('monthlyTrendsChart').getContext('2d');
     new Chart(monthlyTrendsCtx, {
@@ -471,7 +509,7 @@
                     callbacks: {
                         label: function(context) {
                             let value = context.parsed || 0;
-                            return 'Rp ' + value.toLocaleString('id-ID');
+                            return 'Rp ' + Math.round(value).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                         }
                     }
                 }
@@ -506,7 +544,7 @@
                     borderColor: '#334155',
                     borderWidth: 1,
                     callbacks: {
-                        label: (context) => 'Area: ' + context.parsed.y.toFixed(2) + ' M²'
+                        label: (context) => 'Area: ' + formatSmartDecimalLocale(context.parsed.y) + ' M²'
                     }
                 }
             },
@@ -518,7 +556,7 @@
                     ticks: {
                         font: { size: 11 },
                         color: colors.text,
-                        callback: (value) => value.toFixed(0) + ' M²'
+                        callback: (value) => formatSmartDecimalLocale(value) + ' M²'
                     }
                 },
                 x: {
@@ -556,7 +594,7 @@
                     borderColor: '#334155',
                     borderWidth: 1,
                     callbacks: {
-                        label: (context) => 'Cost: Rp ' + context.parsed.y.toLocaleString('id-ID')
+                        label: (context) => 'Cost: Rp ' + Math.round(context.parsed.y).toLocaleString('id-ID', { maximumFractionDigits: 0 })
                     }
                 }
             },
@@ -568,7 +606,7 @@
                     ticks: {
                         font: { size: 11 },
                         color: colors.text,
-                        callback: (value) => 'Rp ' + (value / 1000000).toFixed(1) + 'M'
+                        callback: (value) => 'Rp ' + Math.round(value / 1000000).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + 'M'
                     }
                 },
                 x: {

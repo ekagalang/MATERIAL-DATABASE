@@ -32,12 +32,11 @@ function initMaterialCalculationEdit(root, config) {
     const resultPanel = scope.querySelector('#resultPanel') || document.getElementById('resultPanel');
     const resultContent = scope.querySelector('#resultContent') || document.getElementById('resultContent');
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -47,9 +46,22 @@ function initMaterialCalculationEdit(root, config) {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -106,7 +118,8 @@ function initMaterialCalculationEdit(root, config) {
         const height = wallHeightInput ? parseFloat(wallHeightInput.value) || 0 : 0;
         const area = length * height;
         if (wallAreaDisplay) {
-            wallAreaDisplay.textContent = area > 0 ? formatSmartDecimal(area) : '';
+            const normalizedArea = normalizeSmartDecimal(area);
+            wallAreaDisplay.textContent = normalizedArea > 0 ? formatSmartDecimal(normalizedArea) : '';
         }
     }
 

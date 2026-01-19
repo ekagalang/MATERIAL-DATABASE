@@ -154,8 +154,9 @@ class ApiHelper {
      * @returns {string} Formatted rupiah
      */
     formatRupiah(number) {
-        if (!number) return 'Rp 0';
-        return 'Rp ' + number.toLocaleString('id-ID');
+        const value = Number(number || 0);
+        if (!isFinite(value) || value === 0) return 'Rp 0';
+        return 'Rp ' + Math.round(value).toLocaleString('id-ID', { maximumFractionDigits: 0 });
     }
 
     /**

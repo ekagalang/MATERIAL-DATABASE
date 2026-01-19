@@ -281,7 +281,7 @@
             const formatCurrency = (value) => {
                 const numberValue = Number(value);
                 if (!Number.isFinite(numberValue) || numberValue <= 0) return null;
-                return `Rp ${numberValue.toLocaleString('id-ID')}`;
+                return `Rp ${Math.round(numberValue).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
             };
 
             const isPositiveNumber = (value) => Number(value) > 0;

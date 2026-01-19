@@ -896,11 +896,11 @@ function renderTrace(trace, containerId) {
     document.getElementById(containerId).innerHTML = html;
 }
 
-function getSmartDecimals(num, maxDecimals = 8) {
+function getSmartPrecision(num) {
     if (!isFinite(num)) return 0;
     if (Math.floor(num) === num) return 0;
 
-    const str = num.toFixed(10);
+    const str = num.toFixed(30);
     const decimalPart = (str.split('.')[1] || '');
     let firstNonZero = decimalPart.length;
     for (let i = 0; i < decimalPart.length; i++) {
@@ -911,18 +911,22 @@ function getSmartDecimals(num, maxDecimals = 8) {
     }
 
     if (firstNonZero === decimalPart.length) return 0;
-    return Math.min(firstNonZero + 2, maxDecimals);
+    return firstNonZero + 2;
 }
 
 function formatNumber(num) {
     if (num === null || num === undefined) return '0';
     const value = Number(num);
     if (!isFinite(value)) return '0';
-    const decimals = getSmartDecimals(value);
-    return value.toLocaleString('id-ID', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: decimals
-    });
+    const precision = getSmartPrecision(value);
+    const plain = precision ? value.toFixed(precision).replace(/\.?0+$/, '') : value.toString();
+    const parts = plain.split('.');
+    const intPart = parts[0] || '0';
+    const decPart = parts[1] || '';
+    const sign = intPart.startsWith('-') ? '-' : '';
+    const digits = sign ? intPart.slice(1) : intPart;
+    const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return decPart ? `${sign}${withThousands},${decPart}` : `${sign}${withThousands}`;
 }
 
 function formatCurrency(num) {

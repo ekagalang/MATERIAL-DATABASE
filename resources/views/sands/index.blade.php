@@ -411,11 +411,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function getSmartDecimals(num, maxDecimals = 8) {
+    function getSmartPrecision(num) {
         if (!isFinite(num)) return 0;
         if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -426,27 +426,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (firstNonZero === decimalPart.length) return 0;
-        return Math.min(firstNonZero + 2, maxDecimals);
+        return firstNonZero + 2;
     }
 
-    function formatSmartDecimalPlain(value, maxDecimals = 8) {
+    function formatSmartDecimalPlain(value) {
         const num = Number(value);
         if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
-
-        const precision = getSmartDecimals(num, maxDecimals);
+        const precision = getSmartPrecision(num);
         if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
-    function formatSmartDecimalLocale(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartDecimals(num, maxDecimals);
-        return num.toLocaleString('id-ID', {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: precision
-        });
+    function formatSmartDecimalLocale(value) {
+        const plain = formatSmartDecimalPlain(value);
+        if (!plain) return '';
+        const parts = plain.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+        const sign = intPart.startsWith('-') ? '-' : '';
+        const digits = sign ? intPart.slice(1) : intPart;
+        const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return decPart ? `${sign}${withThousands},${decPart}` : `${sign}${withThousands}`;
     }
 
     // Render sands table

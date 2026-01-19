@@ -6,12 +6,11 @@ function initCatForm() {
     }
     form.__catFormInited = true;
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -21,9 +20,22 @@ function initCatForm() {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -79,7 +91,7 @@ function initCatForm() {
                     let displayValue = v;
                     if (field === 'purchase_price') {
                         // Format angka sebagai Rupiah
-                        displayValue = 'Rp ' + Number(v).toLocaleString('id-ID');
+                        displayValue = 'Rp ' + Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                     }
 
                     item.textContent = displayValue;
@@ -99,7 +111,7 @@ function initCatForm() {
                             const purchasePriceInput = document.getElementById('purchase_price');
                             const purchasePriceDisplay = document.getElementById('purchase_price_display');
                             if (purchasePriceInput) purchasePriceInput.value = v;
-                            if (purchasePriceDisplay) purchasePriceDisplay.value = Number(v).toLocaleString('id-ID');
+                            if (purchasePriceDisplay) purchasePriceDisplay.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
                             // Trigger price calculation
                             if (typeof syncPriceFromDisplay === 'function') {
@@ -124,7 +136,7 @@ function initCatForm() {
                         } else if (field === 'comparison_price_per_kg') {
                             // Handle comparison price field
                             const comparisonPriceDisplay = document.getElementById('comparison_price_display');
-                            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Number(v).toLocaleString('id-ID');
+                            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncComparisonFromDisplay === 'function') {
                                 syncComparisonFromDisplay();
                             }
@@ -361,6 +373,7 @@ function initCatForm() {
         const gross = parseFloat(grossInput.value) || 0;
         const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
         const netCalc = Math.max(gross - tare, 0);
+        const normalizedNetCalc = normalizeSmartDecimal(netCalc);
 
         // Cek apakah user sedang mengetik di input berat bersih
         const isUserTyping = document.activeElement === netInput;
@@ -377,7 +390,7 @@ function initCatForm() {
                 netWeightLabel.textContent = 'Berat Bersih Kalkulasi (Kg)';
                 // Auto-fill nilai kalkulasi jika user tidak sedang mengetik
                 if (!isUserTyping) {
-                    netInput.value = formatSmartDecimal(netCalc);
+                    netInput.value = formatSmartDecimal(normalizedNetCalc);
                 }
             }
             // Default
@@ -404,7 +417,7 @@ function initCatForm() {
         }
 
         // Jika tidak, gunakan kalkulasi
-        return netCalc;
+        return normalizedNetCalc;
     }
 
     function getCurrentWeight() {
@@ -487,8 +500,9 @@ function initCatForm() {
     }
 
     function formatRupiah(num) {
-        const n = Number(num||0);
-        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+        const n = Number(num || 0);
+        if (!isFinite(n)) return '';
+        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
     }
 
     // Handle purchase price input

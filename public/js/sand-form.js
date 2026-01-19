@@ -9,12 +9,11 @@ function initSandForm(root) {
     let currentPackageUnit = '';
     let currentStore = '';
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -24,9 +23,22 @@ function initSandForm(root) {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -72,13 +84,13 @@ function initSandForm(root) {
                             // Note: calculateVolume() will be triggered by the input event above
                         } else if (field === 'package_price') {
                             // Handle package price field - format and trigger sync
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
                             }
                         } else if (field === 'comparison_price_per_m3') {
                             // Handle comparison price field - format and trigger sync
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncComparisonFromDisplay === 'function') {
                                 syncComparisonFromDisplay();
                             }
@@ -273,6 +285,32 @@ function initSandForm(root) {
         updatePriceUnitDisplay();
     }
 
+    // ========== KALKULASI VOLUME DAN HARGA ==========
+    // NOTE: These must be declared BEFORE setupDimensionInput because calculateVolume() uses them
+
+    const dimLength = scope.querySelector('#dimension_length') || document.getElementById('dimension_length');
+    const dimWidth = scope.querySelector('#dimension_width') || document.getElementById('dimension_width');
+    const dimHeight = scope.querySelector('#dimension_height') || document.getElementById('dimension_height');
+
+    const volumeDisplay = scope.querySelector('#volume_display') || document.getElementById('volume_display');
+    const packageVolume = scope.querySelector('#package_volume') || document.getElementById('package_volume');
+    const packagePrice = scope.querySelector('#package_price') || document.getElementById('package_price');
+    const packagePriceDisplay = scope.querySelector('#package_price_display') || document.getElementById('package_price_display');
+    const comparisonPrice = scope.querySelector('#comparison_price_per_m3') || document.getElementById('comparison_price_per_m3');
+    const comparisonPriceDisplay = scope.querySelector('#comparison_price_display') || document.getElementById('comparison_price_display');
+
+    // Debug: Log element detection
+    console.log('[SandForm] dimLength found:', !!dimLength);
+    console.log('[SandForm] dimWidth found:', !!dimWidth);
+    console.log('[SandForm] dimHeight found:', !!dimHeight);
+    console.log('[SandForm] packagePrice found:', !!packagePrice);
+    console.log('[SandForm] packagePriceDisplay found:', !!packagePriceDisplay);
+    console.log('[SandForm] comparisonPrice found:', !!comparisonPrice);
+    console.log('[SandForm] comparisonPriceDisplay found:', !!comparisonPriceDisplay);
+
+    let currentVolume = 0;
+    let isUpdatingPrice = false;
+
     // ========== VALIDASI DAN KONVERSI DIMENSI ==========
 
     function convertToMeters(value, unit) {
@@ -309,7 +347,8 @@ function initSandForm(root) {
             const metersValue = convertToMeters(rawValue, selectedUnit);
 
             if (metersValue !== null) {
-                hiddenElement.value = metersValue.toFixed(4);
+                const normalizedMeters = normalizeSmartDecimal(metersValue);
+                hiddenElement.value = isNaN(normalizedMeters) ? '' : normalizedMeters.toString();
                 inputElement.style.borderColor = '#e2e8f0';
             } else {
                 hiddenElement.value = '';
@@ -340,21 +379,6 @@ function initSandForm(root) {
     setupDimensionInput('dimension_width_input', 'dimension_width_unit', 'dimension_width');
     setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height');
 
-    // ========== KALKULASI VOLUME DAN HARGA ==========
-    
-    const dimLength = scope.querySelector('#dimension_length') || document.getElementById('dimension_length');
-    const dimWidth = scope.querySelector('#dimension_width') || document.getElementById('dimension_width');
-    const dimHeight = scope.querySelector('#dimension_height') || document.getElementById('dimension_height');
-
-    const volumeDisplay = scope.querySelector('#volume_display') || document.getElementById('volume_display');
-    const packagePrice = scope.querySelector('#package_price') || document.getElementById('package_price');
-    const packagePriceDisplay = scope.querySelector('#package_price_display') || document.getElementById('package_price_display');
-    const comparisonPrice = scope.querySelector('#comparison_price_per_m3') || document.getElementById('comparison_price_per_m3');
-    const comparisonPriceDisplay = scope.querySelector('#comparison_price_display') || document.getElementById('comparison_price_display');
-
-    let currentVolume = 0;
-    let isUpdatingPrice = false;
-
     function calculateVolume() {
         const lengthM = parseFloat(dimLength?.value) || 0;
         const widthM = parseFloat(dimWidth?.value) || 0;
@@ -363,9 +387,14 @@ function initSandForm(root) {
         if (lengthM > 0 && widthM > 0 && heightM > 0) {
             // Already in meters, just multiply to get M3
             const volumeM3 = lengthM * widthM * heightM;
-            currentVolume = volumeM3;
+            const normalizedVolume = normalizeSmartDecimal(volumeM3);
+            currentVolume = normalizedVolume;
             if (volumeDisplay) {
-                volumeDisplay.value = formatSmartDecimal(volumeM3);
+                volumeDisplay.value = formatSmartDecimal(normalizedVolume);
+            }
+            // Also update the hidden package_volume field
+            if (packageVolume) {
+                packageVolume.value = isNaN(normalizedVolume) ? '' : normalizedVolume.toString();
             }
             if (!isUpdatingPrice) {
                 recalculatePrices();
@@ -374,6 +403,9 @@ function initSandForm(root) {
             currentVolume = 0;
             if (volumeDisplay) {
                 volumeDisplay.value = '';
+            }
+            if (packageVolume) {
+                packageVolume.value = '';
             }
         }
     }
@@ -399,8 +431,9 @@ function initSandForm(root) {
     }
 
     function formatRupiah(num) {
-        const n = Number(num||0);
-        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+        const n = Number(num || 0);
+        if (!isFinite(n)) return '';
+        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
     }
 
     function syncPriceFromDisplay() {
@@ -440,11 +473,55 @@ function initSandForm(root) {
     packagePriceDisplay?.addEventListener('input', syncPriceFromDisplay);
     comparisonPriceDisplay?.addEventListener('input', syncComparisonFromDisplay);
 
+    // Also sync on blur to ensure value is saved when user clicks away
+    packagePriceDisplay?.addEventListener('blur', syncPriceFromDisplay);
+    comparisonPriceDisplay?.addEventListener('blur', syncComparisonFromDisplay);
+
     if (packagePriceDisplay && packagePrice && packagePrice.value) {
         packagePriceDisplay.value = formatRupiah(packagePrice.value);
+        console.log('[SandForm] Initial package price formatted:', packagePriceDisplay.value);
     }
     if (comparisonPriceDisplay && comparisonPrice && comparisonPrice.value) {
         comparisonPriceDisplay.value = formatRupiah(comparisonPrice.value);
+        console.log('[SandForm] Initial comparison price formatted:', comparisonPriceDisplay.value);
+    }
+
+    // Add form submit handler to sync all values before submission
+    const sandForm = scope.querySelector('#sandForm') || document.getElementById('sandForm');
+    if (sandForm && !sandForm.__sandFormSubmitHandled) {
+        sandForm.__sandFormSubmitHandled = true;
+        sandForm.addEventListener('submit', function(e) {
+            console.log('[SandForm] Form submitting, syncing values...');
+
+            // Sync price fields before submit
+            if (packagePriceDisplay && packagePrice) {
+                const rawPrice = unformatRupiah(packagePriceDisplay.value || '');
+                packagePrice.value = rawPrice || '';
+                console.log('[SandForm] Synced package_price:', packagePrice.value);
+            }
+
+            if (comparisonPriceDisplay && comparisonPrice) {
+                const rawComparison = unformatRupiah(comparisonPriceDisplay.value || '');
+                comparisonPrice.value = rawComparison || '';
+                console.log('[SandForm] Synced comparison_price:', comparisonPrice.value);
+            }
+
+            // Sync volume field before submit
+            if (volumeDisplay && packageVolume) {
+                const volumeVal = volumeDisplay.value || '';
+                packageVolume.value = volumeVal;
+                console.log('[SandForm] Synced package_volume:', packageVolume.value);
+            }
+
+            // Log all hidden field values
+            console.log('[SandForm] Final form values:');
+            console.log('  - package_price:', packagePrice?.value);
+            console.log('  - comparison_price_per_m3:', comparisonPrice?.value);
+            console.log('  - package_volume:', packageVolume?.value);
+            console.log('  - dimension_length:', dimLength?.value);
+            console.log('  - dimension_width:', dimWidth?.value);
+            console.log('  - dimension_height:', dimHeight?.value);
+        });
     }
 
     calculateVolume();

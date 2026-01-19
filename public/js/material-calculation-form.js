@@ -12,12 +12,11 @@ function initMaterialCalculationForm(root, formData) {
     const sandsData = formData?.sands || [];
     const catsData = formData?.cats || [];
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -27,9 +26,22 @@ function initMaterialCalculationForm(root, formData) {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -43,7 +55,8 @@ function initMaterialCalculationForm(root, formData) {
             const length = parseFloat(lengthEl.value) || 0;
             const height = parseFloat(heightEl.value) || 0;
             const area = length * height;
-            areaEl.value = area > 0 ? formatSmartDecimal(area) : '';
+            const normalizedArea = normalizeSmartDecimal(area);
+            areaEl.value = normalizedArea > 0 ? formatSmartDecimal(normalizedArea) : '';
         }
     }
 
@@ -272,7 +285,8 @@ function initMaterialCalculationForm(root, formData) {
                     filteredCements.forEach(cement => {
                         const option = document.createElement('option');
                         option.value = cement.id;
-                        option.textContent = `${cement.brand} (${cement.package_weight_net}kg) - Rp ${Number(cement.package_price).toLocaleString('id-ID')}`;
+                        const price = Math.round(Number(cement.package_price || 0));
+                        option.textContent = `${cement.brand} (${cement.package_weight_net}kg) - Rp ${price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
                         brandSelect.appendChild(option);
                     });
                 }
@@ -323,7 +337,8 @@ function initMaterialCalculationForm(root, formData) {
                         const option = document.createElement('option');
                         option.value = sand.id;
                         const pricePerM3 = sand.comparison_price_per_m3 || (sand.package_price / sand.package_volume);
-                        option.textContent = `${sand.package_volume} M3 - Rp ${Number(pricePerM3).toLocaleString('id-ID')}/M3`;
+                        const roundedPrice = Math.round(Number(pricePerM3 || 0));
+                        option.textContent = `${sand.package_volume} M3 - Rp ${roundedPrice.toLocaleString('id-ID', { maximumFractionDigits: 0 })}/M3`;
                         packageSelect.appendChild(option);
                     });
                 }
@@ -373,8 +388,8 @@ function initMaterialCalculationForm(root, formData) {
                     filteredCats.forEach(cat => {
                         const option = document.createElement('option');
                         option.value = cat.id;
-                        const price = cat.purchase_price || 0;
-                        option.textContent = `${cat.package_weight_net} kg - Rp ${Number(price).toLocaleString('id-ID')}`;
+                        const price = Math.round(Number(cat.purchase_price || 0));
+                        option.textContent = `${cat.package_weight_net} kg - Rp ${price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
                         packageSelect.appendChild(option);
                     });
                 }

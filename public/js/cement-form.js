@@ -16,12 +16,11 @@ function initCementForm(root) {
     let currentPackageUnit = '';
     let currentStore = '';
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -31,9 +30,22 @@ function initCementForm(root) {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -79,13 +91,13 @@ function initCementForm(root) {
                             // Note: calculateVolume() will be triggered by the input event above
                         } else if (field === 'package_price') {
                             // Handle package price field - format and trigger sync
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
                             }
                         } else if (field === 'comparison_price_per_kg') {
                             // Handle comparison price field - format and trigger sync
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncComparisonFromDisplay === 'function') {
                                 syncComparisonFromDisplay();
                             }
@@ -269,7 +281,7 @@ function initCementForm(root) {
     function getCurrentWeight() {
         const gross = parseFloat(grossInput?.value) || 0;
         const tare = parseFloat(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
-        return Math.max(gross - tare, 0);
+        return normalizeSmartDecimal(Math.max(gross - tare, 0));
     }
 
     function updateNetCalc() {
@@ -343,8 +355,9 @@ function initCementForm(root) {
     }
 
     function formatRupiah(num) {
-        const n = Number(num||0);
-        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+        const n = Number(num || 0);
+        if (!isFinite(n)) return '';
+        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
     }
 
     // Sync Handlers
@@ -443,7 +456,8 @@ function initCementForm(root) {
 
             const metersValue = convertToMeters(rawValue, selectedUnit);
             if (metersValue !== null) {
-                hiddenElement.value = metersValue.toFixed(4);
+                const normalizedMeters = normalizeSmartDecimal(metersValue);
+                hiddenElement.value = isNaN(normalizedMeters) ? '' : normalizedMeters.toString();
                 inputElement.style.borderColor = '#e2e8f0';
             } else {
                 hiddenElement.value = '';
@@ -478,7 +492,8 @@ function initCementForm(root) {
 
         if (lengthM > 0 && widthM > 0 && heightM > 0) {
             const volume = lengthM * widthM * heightM;
-            volumeDisplay.value = formatSmartDecimal(volume);
+            const normalizedVolume = normalizeSmartDecimal(volume);
+            volumeDisplay.value = formatSmartDecimal(normalizedVolume);
         } else {
             volumeDisplay.value = '';
         }
