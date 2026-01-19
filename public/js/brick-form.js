@@ -25,8 +25,9 @@ function initBrickForm(root) {
     }
 
     function formatRupiah(num) {
-        const n = Number(num||0);
-        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+        const n = Number(num || 0);
+        if (!isFinite(n)) return '';
+        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
     }
 
     // Handle price per piece input
@@ -103,7 +104,7 @@ function initBrickForm(root) {
                     // Format display untuk field tertentu
                     let displayValue = v;
                     if (field === 'price_per_piece') {
-                        displayValue = 'Rp ' + Number(v).toLocaleString('id-ID');
+                        displayValue = 'Rp ' + Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                     }
 
                     item.textContent = displayValue;
@@ -112,7 +113,7 @@ function initBrickForm(root) {
                         // Handle special fields dengan kalkulasi
                         if (field === 'price_per_piece') {
                             // Update display field dengan format Rupiah
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             // Trigger price sync
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
@@ -322,12 +323,11 @@ function initBrickForm(root) {
     const volumeCalculationDisplay = getElement('volume_calculation_display');
     const packageVolume = getElement('package_volume');
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -337,9 +337,22 @@ function initBrickForm(root) {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -360,21 +373,25 @@ function initBrickForm(root) {
             const rawWidth = parseFloat(dimWidthInput?.value);
             const rawHeight = parseFloat(dimHeightInput?.value);
 
-            if (dimLength) dimLength.value = (!isNaN(rawLength) && rawLength >= 0) ? rawLength.toFixed(2) : '';
-            if (dimWidth) dimWidth.value = (!isNaN(rawWidth) && rawWidth >= 0) ? rawWidth.toFixed(2) : '';
-            if (dimHeight) dimHeight.value = (!isNaN(rawHeight) && rawHeight >= 0) ? rawHeight.toFixed(2) : '';
+            const normalizedLength = normalizeSmartDecimal(rawLength);
+            const normalizedWidth = normalizeSmartDecimal(rawWidth);
+            const normalizedHeight = normalizeSmartDecimal(rawHeight);
 
-            length = (!isNaN(rawLength) && rawLength > 0) ? rawLength : 0;
-            width = (!isNaN(rawWidth) && rawWidth > 0) ? rawWidth : 0;
-            height = (!isNaN(rawHeight) && rawHeight > 0) ? rawHeight : 0;
+            if (dimLength) dimLength.value = (!isNaN(normalizedLength) && normalizedLength >= 0) ? normalizedLength.toString() : '';
+            if (dimWidth) dimWidth.value = (!isNaN(normalizedWidth) && normalizedWidth >= 0) ? normalizedWidth.toString() : '';
+            if (dimHeight) dimHeight.value = (!isNaN(normalizedHeight) && normalizedHeight >= 0) ? normalizedHeight.toString() : '';
+
+            length = (!isNaN(normalizedLength) && normalizedLength > 0) ? normalizedLength : 0;
+            width = (!isNaN(normalizedWidth) && normalizedWidth > 0) ? normalizedWidth : 0;
+            height = (!isNaN(normalizedHeight) && normalizedHeight > 0) ? normalizedHeight : 0;
         }
 
         if (length > 0 && width > 0 && height > 0) {
             const volumeCm3 = length * width * height;
             const volumeM3 = volumeCm3 / 1000000;
-            currentVolume = volumeM3;
-            const volumeText = formatSmartDecimal(volumeM3);
-            const volumeValue = volumeM3.toFixed(6);
+            const normalizedVolume = normalizeSmartDecimal(volumeM3);
+            currentVolume = normalizedVolume;
+            const volumeText = formatSmartDecimal(normalizedVolume);
             if (volumeDisplay) {
                 volumeDisplay.textContent = volumeText;
                 volumeDisplay.style.color = '#27ae60';
@@ -383,7 +400,7 @@ function initBrickForm(root) {
                 volumeDisplayInput.value = volumeText;
             }
             if (packageVolume) {
-                packageVolume.value = volumeValue;
+                packageVolume.value = isNaN(normalizedVolume) ? '' : normalizedVolume.toString();
             }
             if (volumeCalculationDisplay) {
                 volumeCalculationDisplay.textContent =
@@ -490,9 +507,10 @@ function initBrickForm(root) {
             const cmValue = convertToCm(rawValue, selectedUnit);
             
             if (cmValue !== null) {
-                hiddenElement.value = cmValue.toFixed(2);
+                const normalizedCm = normalizeSmartDecimal(cmValue);
+                hiddenElement.value = isNaN(normalizedCm) ? '' : normalizedCm.toString();
                 if (displayElement) {
-                    displayElement.textContent = formatSmartDecimal(cmValue);
+                    displayElement.textContent = formatSmartDecimal(normalizedCm);
                     displayElement.style.color = '#15803d';
                 }
                 inputElement.style.borderColor = '#e2e8f0';

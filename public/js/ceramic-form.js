@@ -19,16 +19,16 @@ function initCeramicForm(root) {
     }
 
     function formatRupiah(num) {
-        const n = Number(num||0);
-        return isNaN(n) ? '' : n.toLocaleString('id-ID');
+        const n = Number(num || 0);
+        if (!isFinite(n)) return '';
+        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
     }
 
-    function formatSmartDecimal(value, maxDecimals = 8) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        if (Math.floor(num) === num) return num.toString();
+    function getSmartPrecision(num) {
+        if (!isFinite(num)) return 0;
+        if (Math.floor(num) === num) return 0;
 
-        const str = num.toFixed(10);
+        const str = num.toFixed(30);
         const decimalPart = (str.split('.')[1] || '');
         let firstNonZero = decimalPart.length;
         for (let i = 0; i < decimalPart.length; i++) {
@@ -38,9 +38,22 @@ function initCeramicForm(root) {
             }
         }
 
-        if (firstNonZero === decimalPart.length) return num.toString();
+        if (firstNonZero === decimalPart.length) return 0;
+        return firstNonZero + 2;
+    }
 
-        const precision = Math.min(firstNonZero + 2, maxDecimals);
+    function normalizeSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const precision = getSmartPrecision(num);
+        return precision ? Number(num.toFixed(precision)) : num;
+    }
+
+    function formatSmartDecimal(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const precision = getSmartPrecision(num);
+        if (!precision) return num.toString();
         return num.toFixed(precision).replace(/\.?0+$/, '');
     }
 
@@ -98,8 +111,10 @@ function initCeramicForm(root) {
         if (usesUnitSelectors && !length && !width) {
             const rawLength = parseFloat(dimLengthInput?.value);
             const rawWidth = parseFloat(dimWidthInput?.value);
-            length = (!isNaN(rawLength) && rawLength > 0) ? rawLength : 0;
-            width = (!isNaN(rawWidth) && rawWidth > 0) ? rawWidth : 0;
+            const normalizedLength = normalizeSmartDecimal(rawLength);
+            const normalizedWidth = normalizeSmartDecimal(rawWidth);
+            length = (!isNaN(normalizedLength) && normalizedLength > 0) ? normalizedLength : 0;
+            width = (!isNaN(normalizedWidth) && normalizedWidth > 0) ? normalizedWidth : 0;
         }
 
         if (length > 0 && width > 0) {
@@ -109,9 +124,10 @@ function initCeramicForm(root) {
 
             // Calculate area per piece in M²
             const areaPerPiece = lengthM * widthM;
+            const normalizedArea = normalizeSmartDecimal(areaPerPiece);
 
             if (areaPerPieceDisplay) {
-                areaPerPieceDisplay.value = formatSmartDecimal(areaPerPiece);
+                areaPerPieceDisplay.value = formatSmartDecimal(normalizedArea);
             }
         } else {
             if (areaPerPieceDisplay) {
@@ -233,12 +249,14 @@ function initCeramicForm(root) {
         if (usesUnitSelectors && !length && !width) {
             const rawLength = parseFloat(dimLengthInput?.value);
             const rawWidth = parseFloat(dimWidthInput?.value);
+            const normalizedLength = normalizeSmartDecimal(rawLength);
+            const normalizedWidth = normalizeSmartDecimal(rawWidth);
 
-            if (dimLength) dimLength.value = (!isNaN(rawLength) && rawLength >= 0) ? rawLength.toFixed(2) : '';
-            if (dimWidth) dimWidth.value = (!isNaN(rawWidth) && rawWidth >= 0) ? rawWidth.toFixed(2) : '';
+            if (dimLength) dimLength.value = (!isNaN(normalizedLength) && normalizedLength >= 0) ? normalizedLength.toString() : '';
+            if (dimWidth) dimWidth.value = (!isNaN(normalizedWidth) && normalizedWidth >= 0) ? normalizedWidth.toString() : '';
 
-            length = (!isNaN(rawLength) && rawLength > 0) ? rawLength : 0;
-            width = (!isNaN(rawWidth) && rawWidth > 0) ? rawWidth : 0;
+            length = (!isNaN(normalizedLength) && normalizedLength > 0) ? normalizedLength : 0;
+            width = (!isNaN(normalizedWidth) && normalizedWidth > 0) ? normalizedWidth : 0;
         }
 
         // Calculate area per piece first
@@ -254,16 +272,16 @@ function initCeramicForm(root) {
 
             // Total coverage = area per piece × pieces
             const coverage = areaPerPiece * pieces;
-            currentCoverage = coverage;
+            const normalizedCoverage = normalizeSmartDecimal(coverage);
+            currentCoverage = normalizedCoverage;
 
-            const coverageText = formatSmartDecimal(coverage);
-            const coverageValue = coverage.toFixed(4);
+            const coverageText = formatSmartDecimal(normalizedCoverage);
             if (coverageDisplay) {
                 coverageDisplay.textContent = coverageText + ' M²';
                 coverageDisplay.style.color = '#27ae60';
             }
             if (coveragePerPackage) {
-                coveragePerPackage.value = coverageValue;
+                coveragePerPackage.value = isNaN(normalizedCoverage) ? '' : normalizedCoverage.toString();
             }
             if (coverageCalculationDisplay) {
                 coverageCalculationDisplay.textContent =
@@ -330,7 +348,8 @@ function initCeramicForm(root) {
             const cmValue = convertToCm(rawValue, selectedUnit);
 
             if (cmValue !== null) {
-                hiddenElement.value = cmValue.toFixed(2);
+                const normalizedCm = normalizeSmartDecimal(cmValue);
+                hiddenElement.value = isNaN(normalizedCm) ? '' : normalizedCm.toString();
                 inputElement.style.borderColor = '#e2e8f0';
             } else {
                 hiddenElement.value = '';
@@ -374,7 +393,8 @@ function initCeramicForm(root) {
 
         const cmValue = unitElement ? convertToCm(rawValue, unitElement.value) : parseFloat(rawValue);
         if (cmValue !== null && !isNaN(cmValue)) {
-            hiddenElement.value = cmValue.toFixed(2);
+            const normalizedCm = normalizeSmartDecimal(cmValue);
+            hiddenElement.value = isNaN(normalizedCm) ? '' : normalizedCm.toString();
         }
     }
 
@@ -416,7 +436,7 @@ function initCeramicForm(root) {
                     // Format display untuk field tertentu
                     let displayValue = v;
                     if (field === 'price_per_package' || field === 'comparison_price_per_m2') {
-                        displayValue = 'Rp ' + Number(v).toLocaleString('id-ID');
+                        displayValue = 'Rp ' + Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                     } else if (['dimension_length', 'dimension_width', 'dimension_thickness'].includes(field)) {
                         displayValue = formatSuggestionNumber(v);
                     }
@@ -426,12 +446,12 @@ function initCeramicForm(root) {
                         isSelectingFromAutosuggest = true;
                         // Handle special fields dengan kalkulasi
                         if (field === 'price_per_package') {
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
                             }
                         } else if (field === 'comparison_price_per_m2') {
-                            input.value = Number(v).toLocaleString('id-ID');
+                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
                             if (typeof syncComparisonFromDisplay === 'function') {
                                 syncComparisonFromDisplay();
                             }

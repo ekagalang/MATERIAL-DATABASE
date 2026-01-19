@@ -662,7 +662,20 @@
             const num = Number(value);
             if (!isFinite(num)) return '';
             if (Math.floor(num) === num) return num.toString();
-            return num.toFixed(2).replace(/\.?0+$/, '');
+
+            const str = num.toFixed(30);
+            const decimalPart = (str.split('.')[1] || '');
+            let firstNonZero = decimalPart.length;
+            for (let i = 0; i < decimalPart.length; i++) {
+                if (decimalPart[i] !== '0') {
+                    firstNonZero = i;
+                    break;
+                }
+            }
+
+            if (firstNonZero === decimalPart.length) return num.toString();
+            const precision = firstNonZero + 2;
+            return num.toFixed(precision).replace(/\.?0+$/, '');
         }
 
         function setMortarThicknessUnit(unit) {

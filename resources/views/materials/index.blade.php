@@ -419,7 +419,6 @@ html.materials-booting .page-content {
 }
 #section-ceramic .ceramic-sticky-col {
     position: sticky;
-    left: 0;
     background: #ffffff;
     z-index: 3;
 }
@@ -429,6 +428,15 @@ html.materials-booting .page-content {
 #section-ceramic .ceramic-sticky-edge {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
 }
+
+/* Column Widths and Positions for Ceramic Sticky Header */
+#section-ceramic .col-no { left: 0; width: 50px; min-width: 50px; }
+#section-ceramic .col-type { left: 50px; width: 140px; min-width: 140px; }
+#section-ceramic .col-dim-group { left: 190px; width: 150px; min-width: 150px; }
+#section-ceramic .col-dim-p { left: 190px; width: 50px; min-width: 50px; }
+#section-ceramic .col-dim-l { left: 240px; width: 50px; min-width: 50px; }
+#section-ceramic .col-dim-t { left: 290px; width: 50px; min-width: 50px; }
+#section-ceramic .col-brand { left: 340px; width: 120px; min-width: 120px; }
 .material-search-hit {
     color: #2563eb;
 }
@@ -1499,8 +1507,8 @@ html.materials-booting .page-content {
 
                                     @elseif($material['type'] == 'ceramic')
                                     <tr class="dim-group-row">
-                                        <th class="ceramic-sticky-col" rowspan="2" style="text-align: center; width: 50px; min-width: 50px;">No</th>
-                                        <th class="sortable ceramic-sticky-col" rowspan="2" style="text-align: left;">
+                                        <th class="ceramic-sticky-col col-no" rowspan="2" style="text-align: center;">No</th>
+                                        <th class="sortable ceramic-sticky-col col-type" rowspan="2" style="text-align: left;">
                                             <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['type'] }}</span>
@@ -1511,7 +1519,7 @@ html.materials-booting .page-content {
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable ceramic-sticky-col" colspan="3" style="text-align: center; font-size: 13px; width: 150px; min-width: 150px;">
+                                        <th class="sortable ceramic-sticky-col col-dim-group" colspan="3" style="text-align: center; font-size: 13px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>Dimensi (cm)</span>
@@ -1522,7 +1530,7 @@ html.materials-booting .page-content {
                                                 @endif
                                             </a>
                                         </th>
-                                        <th class="sortable ceramic-sticky-col ceramic-sticky-edge" rowspan="2" style="text-align: center;">
+                                        <th class="sortable ceramic-sticky-col col-brand ceramic-sticky-edge" rowspan="2" style="text-align: center;">
                                             <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                 <span>{{ $ceramicSortable['brand'] }}</span>
@@ -1657,9 +1665,9 @@ html.materials-booting .page-content {
                                         <th rowspan="2" class="action-cell">Aksi</th>
                                     </tr>
                                     <tr class="dim-sub-row">
-                                        <th class="ceramic-sticky-col" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
-                                        <th class="ceramic-sticky-col" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
-                                        <th class="ceramic-sticky-col" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
+                                        <th class="ceramic-sticky-col col-dim-p" style="text-align: center; font-size: 12px; padding: 0 2px;">P</th>
+                                        <th class="ceramic-sticky-col col-dim-l" style="text-align: center; font-size: 12px; padding: 0 2px;">L</th>
+                                        <th class="ceramic-sticky-col col-dim-t" style="text-align: center; font-size: 12px; padding: 0 2px;">T</th>
                                     </tr>
                                 @endif
                             </thead>
@@ -1712,7 +1720,7 @@ html.materials-booting .page-content {
                                             $searchValue = strtolower(trim(preg_replace('/\s+/', ' ', implode(' ', $searchParts))));
                                         @endphp
                                 <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
-                                    <td class="{{ $material['type'] == 'ceramic' ? 'ceramic-sticky-col' : '' }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center; width: 50px; min-width: 50px;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
+                                    <td class="{{ $material['type'] == 'ceramic' ? 'ceramic-sticky-col col-no' : '' }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
                                      @if($material['type'] == 'brick')
@@ -1944,29 +1952,29 @@ html.materials-booting .page-content {
                                         <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
 
                                     @elseif($material['type'] == 'ceramic')
-                                        <td class="ceramic-sticky-col" style="text-align: left;">{{ $item->type ?? '-' }}</td>
-                                        <td class="dim-cell ceramic-sticky-col" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
+                                        <td class="ceramic-sticky-col col-type" style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td class="dim-cell ceramic-sticky-col col-dim-p" style="text-align: center; font-size: 12px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell ceramic-sticky-col" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col col-dim-l" style="text-align: center; font-size: 12px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
                                                 @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell ceramic-sticky-col" style="text-align: center; font-size: 12px; width: 50px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col col-dim-t" style="text-align: center; font-size: 12px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_thickness))
                                                 @format($item->dimension_thickness)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="ceramic-sticky-col ceramic-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td class="ceramic-sticky-col col-brand ceramic-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->surface ?? '-' }}</td>
                                         <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
@@ -2322,26 +2330,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setActiveTab(materialType) {
         console.log('[Tab] Setting active tab:', materialType);
-        
+
         // Deactivate all
         document.querySelectorAll('.material-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.material-tab-panel').forEach(panel => {
             panel.classList.remove('active');
             panel.classList.add('hidden'); // Ensure hidden class is added
         });
+        // Deactivate all tab actions (search form + Tambah button)
+        document.querySelectorAll('.material-tab-action').forEach(action => action.classList.remove('active'));
 
         // Activate target
         const btn = document.querySelector(`.material-tab-btn[data-tab="${materialType}"]`);
         const panel = document.getElementById(`section-${materialType}`);
+        const tabAction = document.querySelector(`.material-tab-action[data-tab="${materialType}"]`);
 
         if (btn && panel) {
             btn.classList.remove('hidden');
             btn.classList.add('active');
-            
+
             panel.classList.remove('hidden'); // Remove hidden first
             // Small delay to allow display:block to apply before adding active class (for transitions if any)
             // But for simple visibility switch, direct add is fine.
-            panel.classList.add('active'); 
+            panel.classList.add('active');
+
+            // Activate corresponding tab action
+            if (tabAction) {
+                tabAction.classList.add('active');
+            }
 
             // FIX: Reset scroll position to prevent sticky column flicker
             const tableContainer = panel.querySelector('.table-container');
@@ -2631,9 +2647,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const backdrop = modal ? modal.querySelector('.floating-modal-backdrop') : null;
 
     function interceptFormSubmit() {
-        if (!modalBody) return;
+        if (!modalBody) {
+            console.error('[Modal] modalBody not found');
+            return;
+        }
         const form = modalBody.querySelector('form');
         if (form) {
+            console.log('[Modal] Form found:', form.id, 'Action:', form.action);
+
             // Add hidden input to redirect back to the current page after submit
             let redirectInput = form.querySelector('input[name="_redirect_url"]');
             if (!redirectInput) {
@@ -2642,18 +2663,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 redirectInput.name = '_redirect_url';
                 form.appendChild(redirectInput);
             }
+            // Always update the redirect URL to current page
             redirectInput.value = window.location.href;
+            console.log('[Modal] _redirect_url set to:', redirectInput.value);
 
-            form.addEventListener('submit', function(e) {
-                // Show loading state before submit
-                const submitBtn = form.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    const originalHtml = submitBtn.innerHTML;
-                    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
-                }
-                // Let form submit normally, controller will redirect back
-            });
+            // Also add _redirect_to_materials as backup
+            let redirectMaterialsInput = form.querySelector('input[name="_redirect_to_materials"]');
+            if (!redirectMaterialsInput) {
+                redirectMaterialsInput = document.createElement('input');
+                redirectMaterialsInput.type = 'hidden';
+                redirectMaterialsInput.name = '_redirect_to_materials';
+                redirectMaterialsInput.value = '1';
+                form.appendChild(redirectMaterialsInput);
+            }
+
+            // Prevent duplicate event listeners
+            if (!form.__submitIntercepted) {
+                form.__submitIntercepted = true;
+                form.addEventListener('submit', function(e) {
+                    console.log('[Modal] Form submitting to:', form.action);
+                    // Log all form data
+                    const formData = new FormData(form);
+                    for (let [key, value] of formData.entries()) {
+                        if (key !== 'photo') { // Don't log file content
+                            console.log('[Modal] Form data:', key, '=', value);
+                        }
+                    }
+                    // Show loading state before submit
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
+                    }
+                    // Let form submit normally, controller will redirect back
+                });
+            }
+        } else {
+            console.error('[Modal] No form found in modalBody');
         }
     }
 
@@ -2695,24 +2741,47 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadMaterialFormScript(materialType, modalBodyEl) {
         const scriptProperty = `${materialType}FormScriptLoaded`;
         const initFunctionName = `init${materialType.charAt(0).toUpperCase() + materialType.slice(1)}Form`;
+        console.log('[Modal] Loading script for:', materialType, 'Init function:', initFunctionName);
 
         if (!window[scriptProperty]) {
+            console.log('[Modal] Script not loaded yet, loading:', `/js/${materialType}-form.js`);
             const script = document.createElement('script');
             script.src = `/js/${materialType}-form.js`;
             script.onload = () => {
+                console.log('[Modal] Script loaded successfully');
                 window[scriptProperty] = true;
                 setTimeout(() => {
                     if (typeof window[initFunctionName] === 'function') {
-                        window[initFunctionName](modalBodyEl);
+                        console.log('[Modal] Calling', initFunctionName);
+                        try {
+                            window[initFunctionName](modalBodyEl);
+                            console.log('[Modal]', initFunctionName, 'completed successfully');
+                        } catch (e) {
+                            console.error('[Modal] Error in', initFunctionName, ':', e);
+                        }
+                    } else {
+                        console.error('[Modal] Init function not found:', initFunctionName);
                     }
                     interceptFormSubmit();
                 }, 100);
             };
+            script.onerror = (e) => {
+                console.error('[Modal] Failed to load script:', e);
+            };
             document.head.appendChild(script);
         } else {
+            console.log('[Modal] Script already loaded, reusing');
             setTimeout(() => {
                 if (typeof window[initFunctionName] === 'function') {
-                    window[initFunctionName](modalBodyEl);
+                    console.log('[Modal] Calling', initFunctionName);
+                    try {
+                        window[initFunctionName](modalBodyEl);
+                        console.log('[Modal]', initFunctionName, 'completed successfully');
+                    } catch (e) {
+                        console.error('[Modal] Error in', initFunctionName, ':', e);
+                    }
+                } else {
+                    console.error('[Modal] Init function not found:', initFunctionName);
                 }
                 interceptFormSubmit();
             }, 100);
@@ -2751,16 +2820,27 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.text())
             .then(html => {
+                console.log('[Modal] Received HTML length:', html.length);
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
+                console.log('[Modal] Content found:', content ? content.tagName : 'none');
+
+                if (content && content.tagName === 'FORM') {
+                    // Check if form has required hidden inputs
+                    const hasToken = content.querySelector('input[name="_token"]');
+                    const hasMethod = content.querySelector('input[name="_method"]');
+                    console.log('[Modal] Form has _token:', !!hasToken, '_method:', !!hasMethod);
+                }
+
                 modalBody.innerHTML = content ? content.outerHTML : html;
+
+                // Always intercept form submit first to add redirect URL
+                interceptFormSubmit();
 
                 // Load material-specific form script if needed
                 if (materialType && (action === 'create' || action === 'edit')) {
                     loadMaterialFormScript(materialType, modalBody);
-                } else {
-                    interceptFormSubmit();
                 }
             })
             .catch(err => {
@@ -2780,6 +2860,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Expose closeModal as global function for form cancel buttons
     window.closeFloatingModalLocal = closeModal;
+    window.closeFloatingModal = closeModal; // Alias for compatibility with edit forms
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);

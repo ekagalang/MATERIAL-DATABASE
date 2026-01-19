@@ -9,7 +9,6 @@ class NumberHelper
      * - Jika bulat: 10.00 -> 10
      * - Jika desimal standar: 0.22 -> 0,22 | 10.5 -> 10,5
      * - Jika desimal kecil: 0.000021 -> 0,000021 (tampilkan sampai 2 digit signifikan)
-     * - Max desimal: 8 digit
      *
      * @param float|null $number
      * @param int|null $decimals (Opsional: paksa jumlah desimal)
@@ -35,12 +34,12 @@ class NumberHelper
         // 2. Tentukan jumlah desimal secara otomatis jika tidak dipaksa
         if ($decimals === null) {
             // Konversi ke string dengan presisi tinggi untuk analisis (hindari E notation)
-            $str = number_format($number, 10, '.', '');
-            $parts = explode('.', $str);
+            $str = number_format($number, 30, '.', '');
+            $parts = explode('.', ltrim($str, '-'));
             $decimalPart = $parts[1] ?? '';
 
             // Cari posisi angka bukan nol pertama
-            $firstNonZeroPos = 0;
+            $firstNonZeroPos = null;
             for ($i = 0; $i < strlen($decimalPart); $i++) {
                 if ($decimalPart[$i] !== '0') {
                     $firstNonZeroPos = $i;
@@ -50,10 +49,7 @@ class NumberHelper
 
             // Logika: Ambil sampai ketemu angka, tambah 1 digit lagi (total 2 digit signifikan)
             // Contoh: 0.00123 -> Posisi 2 (angka 1). Precision = 2 + 2 = 4 (0.0012)
-            $calculatedPrecision = $firstNonZeroPos + 2;
-
-            // Batasi maks 8 digit
-            $decimals = min($calculatedPrecision, 8);
+            $decimals = $firstNonZeroPos === null ? 0 : ($firstNonZeroPos + 2);
         }
 
         // 3. Format angka
@@ -80,8 +76,7 @@ class NumberHelper
             return 'Rp 0';
         }
 
-        // Gunakan format smart (null) agar 10000 -> 10.000, bukan 10.000,00
-        return 'Rp ' . self::format($number, null, ',', '.');
+        return 'Rp ' . self::format($number, 0, ',', '.');
     }
 
     /**
