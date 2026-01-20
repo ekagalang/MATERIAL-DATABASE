@@ -484,30 +484,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function getSmartPrecision(num) {
-        if (!isFinite(num)) return 0;
-        if (Math.floor(num) === num) return 0;
+    function formatFixedPlain(value, decimals = 2) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const factor = 10 ** decimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const intPart = Math.floor(abs / factor).toString();
+        const decPart = (abs % factor).toString().padStart(decimals, '0');
+        return `${sign}${intPart}.${decPart}`;
+    }
 
-        const str = num.toFixed(30);
-        const decimalPart = (str.split('.')[1] || '');
-        let firstNonZero = decimalPart.length;
-        for (let i = 0; i < decimalPart.length; i++) {
-            if (decimalPart[i] !== '0') {
-                firstNonZero = i;
+    function formatDynamicPlain(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (num === 0) return '0';
+
+        const absValue = Math.abs(num);
+        const epsilon = Math.min(absValue * 1e-12, 1e-6);
+        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+        const sign = adjusted < 0 ? '-' : '';
+        const abs = Math.abs(adjusted);
+        const intPart = Math.trunc(abs);
+
+        if (intPart > 0) {
+            const scaled = Math.trunc(abs * 100);
+            const intDisplay = Math.trunc(scaled / 100).toString();
+            let decPart = String(scaled % 100).padStart(2, '0');
+            decPart = decPart.replace(/0+$/, '');
+            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        }
+
+        let fraction = abs;
+        let digits = '';
+        let firstNonZeroIndex = null;
+        const maxDigits = 30;
+
+        for (let i = 0; i < maxDigits; i++) {
+            fraction *= 10;
+            const digit = Math.floor(fraction + 1e-12);
+            fraction -= digit;
+            digits += String(digit);
+
+            if (digit !== 0 && firstNonZeroIndex === null) {
+                firstNonZeroIndex = i;
+            }
+
+            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
                 break;
             }
         }
 
-        if (firstNonZero === decimalPart.length) return 0;
-        return firstNonZero + 2;
+        digits = digits.replace(/0+$/, '');
+        if (!digits) return '0';
+        return `${sign}0.${digits}`;
     }
 
     function formatSmartDecimalPlain(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartPrecision(num);
-        if (!precision) return num.toString();
-        return num.toFixed(precision).replace(/\.?0+$/, '');
+        return formatDynamicPlain(value);
     }
 
     // Render cats table

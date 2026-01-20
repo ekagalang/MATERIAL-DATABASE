@@ -281,7 +281,11 @@
             const formatCurrency = (value) => {
                 const numberValue = Number(value);
                 if (!Number.isFinite(numberValue) || numberValue <= 0) return null;
-                return `Rp ${Math.round(numberValue).toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
+                const truncated = numberValue >= 0 ? Math.floor(numberValue) : Math.ceil(numberValue);
+                const sign = truncated < 0 ? '-' : '';
+                const abs = Math.abs(truncated);
+                const withThousands = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                return `Rp ${sign}${withThousands}`;
             };
 
             const isPositiveNumber = (value) => Number(value) > 0;

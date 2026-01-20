@@ -66,11 +66,12 @@ class BrickRollagFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
+        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
 
         // ============ STEP 1: Load Input Parameters ============
-        $panjangRollag = $params['wall_length'];
-        $tebalAdukan = $params['mortar_thickness'] ?? 1.0; // cm
-        $jumlahTingkat = $params['layer_count'] ?? 1;
+        $panjangRollag = $n($params['wall_length']);
+        $tebalAdukan = $n($params['mortar_thickness'] ?? 1.0); // cm
+        $jumlahTingkat = $n($params['layer_count'] ?? 1);
 
         $trace['steps'][] = [
             'step' => 1,
@@ -91,14 +92,14 @@ class BrickRollagFormula implements FormulaInterface
         $sand = isset($params['sand_id']) ? Sand::find($params['sand_id']) : Sand::first();
 
         // Dimensi dalam cm
-        $panjangBata = $brick->dimension_length ?? 19.2;
-        $lebarBata = $brick->dimension_width ?? 9;
-        $tinggiBata = $brick->dimension_height ?? 8;
+        $panjangBata = $n($brick->dimension_length ?? 19.2);
+        $lebarBata = $n($brick->dimension_width ?? 9);
+        $tinggiBata = $n($brick->dimension_height ?? 8);
 
         // Lebar rollag mengikuti panjang bata
-        $lebarRollag = $panjangBata; // cm
+        $lebarRollag = $n($panjangBata); // cm
 
-        $beratSemenPerSak = $cement && $cement->package_weight_net > 0 ? $cement->package_weight_net : 50;
+        $beratSemenPerSak = $n($cement && $cement->package_weight_net > 0 ? $cement->package_weight_net : 50);
 
         $trace['steps'][] = [
             'step' => 2,
@@ -114,12 +115,12 @@ class BrickRollagFormula implements FormulaInterface
         // ============ STEP 3: Hitung baris horizontal adukan ============
         // Rumus: (Panjang Rollag - (Tinggi bata / 100)) / ((Tinggi Bata + Tebal adukan) / 100) (jika desimal bulatkan keatas)
 
-        $pembilang = $panjangRollag - $tinggiBata / 100;
-        $penyebut = ($tinggiBata + $tebalAdukan) / 100;
+        $pembilang = $n($panjangRollag - $tinggiBata / 100);
+        $penyebut = $n(($tinggiBata + $tebalAdukan) / 100);
 
         $barisHorizontalAdukanRaw = 0;
         if ($penyebut > 0) {
-            $barisHorizontalAdukanRaw = $pembilang / $penyebut;
+            $barisHorizontalAdukanRaw = $n($pembilang / $penyebut);
         }
 
         $barisHorizontalAdukan = ceil($barisHorizontalAdukanRaw);
@@ -141,7 +142,7 @@ class BrickRollagFormula implements FormulaInterface
 
         $kolomVertikalBataRaw = 0;
         if ($penyebut > 0) {
-            $kolomVertikalBataRaw = $pembilang / $penyebut + 1;
+            $kolomVertikalBataRaw = $n($pembilang / $penyebut + 1);
         }
 
         $kolomVertikalBata = ceil($kolomVertikalBataRaw);
@@ -168,7 +169,7 @@ class BrickRollagFormula implements FormulaInterface
             'formula' => 'Jumlah tingkat * Kolom vertikal bata',
             'calculations' => [
                 'Perhitungan' => "$jumlahTingkat * $kolomVertikalBata",
-                'Hasil' => number_format($jumlahBata),
+                'Hasil' => NumberHelper::format($jumlahBata),
             ],
         ];
 
@@ -176,7 +177,7 @@ class BrickRollagFormula implements FormulaInterface
         // Rumus: Panjang bata * (baris horizontal adukan / 100) * jumlah tingkat adukan
         // Interpretasi: (Panjang bata * baris * tingkat) / 100 -> Meter
 
-        $panjangAdukan = $panjangBata * ($barisHorizontalAdukan / 100) * $jumlahTingkat;
+        $panjangAdukan = $n($panjangBata * ($barisHorizontalAdukan / 100) * $jumlahTingkat);
 
         $trace['steps'][] = [
             'step' => 6,
@@ -190,7 +191,7 @@ class BrickRollagFormula implements FormulaInterface
 
         // ============ STEP 7: Hitung Luas Adukan ============
         // Rumus: Panjang adukan * tebal adukan / 100
-        $luasAdukan = $panjangAdukan * ($tebalAdukan / 100);
+        $luasAdukan = $n($panjangAdukan * ($tebalAdukan / 100));
 
         $trace['steps'][] = [
             'step' => 7,
@@ -204,7 +205,7 @@ class BrickRollagFormula implements FormulaInterface
 
         // ============ STEP 8: Hitung Luas Rollag ============
         // Rumus: Panjang Rollag * lebar rollag
-        $luasRollag = $panjangRollag * ($lebarRollag / 100);
+        $luasRollag = $n($panjangRollag * ($lebarRollag / 100));
 
         $trace['steps'][] = [
             'step' => 8,
@@ -220,10 +221,10 @@ class BrickRollagFormula implements FormulaInterface
         // ============ STEP 9: Hitung Volume Adukan Pekerjaan ============
         // Rumus: (Luas Adukan * (lebar bata / 100)) + ((Luas Rollag * (tebal adukan / 100)) * Jumlah tingkat bata)
 
-        $part1 = $luasAdukan * ($lebarBata / 100);
-        $part2 = $luasRollag * ($tebalAdukan / 100) * $jumlahTingkat;
+        $part1 = $n($luasAdukan * ($lebarBata / 100));
+        $part2 = $n($luasRollag * ($tebalAdukan / 100) * $jumlahTingkat);
 
-        $volumeAdukanPekerjaan = $part1 + $part2;
+        $volumeAdukanPekerjaan = $n($part1 + $part2);
 
         $trace['steps'][] = [
             'step' => 9,
@@ -241,20 +242,20 @@ class BrickRollagFormula implements FormulaInterface
         $densitySemen = 1440;
 
         // kubik semen
-        $kubikSemenPerSak = $beratSemenPerSak * (1 / $densitySemen);
+        $kubikSemenPerSak = $n($beratSemenPerSak * (1 / $densitySemen));
 
         // kubik pasir
-        $ratioPasir = $mortarFormula->sand_ratio;
-        $kubikPasirPerSakSemen = $kubikSemenPerSak * $ratioPasir;
+        $ratioPasir = $n($mortarFormula->sand_ratio);
+        $kubikPasirPerSakSemen = $n($kubikSemenPerSak * $ratioPasir);
 
         // kubik air (asumsi 30% dari volume padat)
-        $kubikAirPerSakSemen = 0.3 * ($kubikSemenPerSak + $kubikPasirPerSakSemen);
+        $kubikAirPerSakSemen = $n(0.3 * ($kubikSemenPerSak + $kubikPasirPerSakSemen));
 
         // kebutuhan air
-        $kebutuhanAirLiterPerSakSemen = $kubikAirPerSakSemen * 1000;
+        $kebutuhanAirLiterPerSakSemen = $n($kubikAirPerSakSemen * 1000);
 
         // Volume adukan yield per sak
-        $volumeAdukanPerSakSemen = $kubikSemenPerSak + $kubikPasirPerSakSemen + $kubikAirPerSakSemen;
+        $volumeAdukanPerSakSemen = $n($kubikSemenPerSak + $kubikPasirPerSakSemen + $kubikAirPerSakSemen);
 
         $trace['steps'][] = [
             'step' => 10,
@@ -269,17 +270,17 @@ class BrickRollagFormula implements FormulaInterface
 
         // ============ STEP 11: Menghitung kebutuhan volume adukan untuk 1 M3 ============
         if ($volumeAdukanPerSakSemen > 0) {
-            $sakSemen1M3 = 1 / $volumeAdukanPerSakSemen;
+            $sakSemen1M3 = $n(1 / $volumeAdukanPerSakSemen);
         } else {
             $sakSemen1M3 = 0;
         }
 
-        $kgSemen1M3 = $beratSemenPerSak / $volumeAdukanPerSakSemen;
-        $kubikSemen1M3 = $kubikSemenPerSak / $volumeAdukanPerSakSemen;
-        $sakPasir1M3 = $ratioPasir / $volumeAdukanPerSakSemen; // Asumsi sak pasir mengikuti rasio semen
-        $kubikPasir1M3 = $kubikPasirPerSakSemen / $volumeAdukanPerSakSemen;
-        $literAir1M3 = $kebutuhanAirLiterPerSakSemen / $volumeAdukanPerSakSemen;
-        $kubikAir1M3 = $kubikAirPerSakSemen / $volumeAdukanPerSakSemen;
+        $kgSemen1M3 = $n($beratSemenPerSak / $volumeAdukanPerSakSemen);
+        $kubikSemen1M3 = $n($kubikSemenPerSak / $volumeAdukanPerSakSemen);
+        $sakPasir1M3 = $n($ratioPasir / $volumeAdukanPerSakSemen); // Asumsi sak pasir mengikuti rasio semen
+        $kubikPasir1M3 = $n($kubikPasirPerSakSemen / $volumeAdukanPerSakSemen);
+        $literAir1M3 = $n($kebutuhanAirLiterPerSakSemen / $volumeAdukanPerSakSemen);
+        $kubikAir1M3 = $n($kubikAirPerSakSemen / $volumeAdukanPerSakSemen);
 
         $trace['steps'][] = [
             'step' => 11,
@@ -293,15 +294,15 @@ class BrickRollagFormula implements FormulaInterface
         ];
 
         // ============ STEP 12: Menghitung kebutuhan volume adukan pekerjaan ============
-        $sakSemenPekerjaan = $sakSemen1M3 * $volumeAdukanPekerjaan;
-        $kgSemenPekerjaan = $kgSemen1M3 * $volumeAdukanPekerjaan;
-        $kubikSemenPekerjaan = $kubikSemen1M3 * $volumeAdukanPekerjaan;
+        $sakSemenPekerjaan = $n($sakSemen1M3 * $volumeAdukanPekerjaan);
+        $kgSemenPekerjaan = $n($kgSemen1M3 * $volumeAdukanPekerjaan);
+        $kubikSemenPekerjaan = $n($kubikSemen1M3 * $volumeAdukanPekerjaan);
 
-        $sakPasirPekerjaan = $sakPasir1M3 * $volumeAdukanPekerjaan;
-        $kubikPasirPekerjaan = $kubikPasir1M3 * $volumeAdukanPekerjaan;
+        $sakPasirPekerjaan = $n($sakPasir1M3 * $volumeAdukanPekerjaan);
+        $kubikPasirPekerjaan = $n($kubikPasir1M3 * $volumeAdukanPekerjaan);
 
-        $literAirPekerjaan = $literAir1M3 * $volumeAdukanPekerjaan;
-        $kubikAirPekerjaan = $kubikAir1M3 * $volumeAdukanPekerjaan;
+        $literAirPekerjaan = $n($literAir1M3 * $volumeAdukanPekerjaan);
+        $kubikAirPekerjaan = $n($kubikAir1M3 * $volumeAdukanPekerjaan);
 
         $trace['steps'][] = [
             'step' => 12,
@@ -318,19 +319,19 @@ class BrickRollagFormula implements FormulaInterface
         // ============ Final Result Calculation ============
 
         // Harga
-        $brickPrice = $brick->price_per_piece ?? 0;
-        $cementPrice = $cement->package_price ?? 0; // Harga per sak
+        $brickPrice = $n($brick->price_per_piece ?? 0, 0);
+        $cementPrice = $n($cement->package_price ?? 0, 0); // Harga per sak
 
-        $sandPricePerM3 = $sand->comparison_price_per_m3 ?? 0;
+        $sandPricePerM3 = $n($sand->comparison_price_per_m3 ?? 0, 0);
         if ($sandPricePerM3 == 0 && $sand->package_price && $sand->package_volume > 0) {
-            $sandPricePerM3 = $sand->package_price / $sand->package_volume;
+            $sandPricePerM3 = $n($sand->package_price / $sand->package_volume, 0);
         }
 
-        $totalBrickPrice = $jumlahBata * $brickPrice;
-        $totalCementPrice = $sakSemenPekerjaan * $cementPrice;
-        $totalSandPrice = $kubikPasirPekerjaan * $sandPricePerM3;
+        $totalBrickPrice = $n($jumlahBata * $brickPrice, 0);
+        $totalCementPrice = $n($sakSemenPekerjaan * $cementPrice, 0);
+        $totalSandPrice = $n($kubikPasirPekerjaan * $sandPricePerM3, 0);
 
-        $grandTotal = $totalBrickPrice + $totalCementPrice + $totalSandPrice;
+        $grandTotal = $n($totalBrickPrice + $totalCementPrice + $totalSandPrice, 0);
 
         $trace['final_result'] = [
             'total_bricks' => $jumlahBata,

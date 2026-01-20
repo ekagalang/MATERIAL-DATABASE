@@ -165,6 +165,7 @@
                     }
 
                     const calcLink = document.getElementById('calcNavLink');
+                    let calcResumeHref = null;
                     const calcSessionRaw = localStorage.getItem('materialCalculationSession');
                     let calcSession = null;
                     try {
@@ -173,21 +174,34 @@
                         calcSession = null;
                     }
                     if (calcLink) {
-                        if (calcSession) {
-                            const resumeUrl = new URL(calcLink.href, window.location.origin);
+                        const baseHref = calcLink.getAttribute('href') || calcLink.href;
+                        if (calcSession && baseHref) {
+                            const resumeUrl = new URL(baseHref, window.location.origin);
                             resumeUrl.searchParams.set('resume', '1');
                             if (calcSession.autoSubmit) {
                                 resumeUrl.searchParams.set('auto_submit', '1');
                             } else {
                                 resumeUrl.searchParams.delete('auto_submit');
                             }
-                            calcLink.href = resumeUrl.toString();
+                            calcResumeHref = resumeUrl.toString();
                         } else {
-                            const cleanUrl = new URL(calcLink.href, window.location.origin);
+                            calcResumeHref = baseHref;
+                        }
+                        if (baseHref) {
+                            const cleanUrl = new URL(baseHref, window.location.origin);
                             cleanUrl.searchParams.delete('resume');
                             cleanUrl.searchParams.delete('auto_submit');
                             calcLink.href = cleanUrl.toString();
                         }
+                    }
+
+                    const workItemToggle = document.getElementById('workItemDropdownToggle');
+                    if (workItemToggle && calcLink) {
+                        workItemToggle.addEventListener('click', function(e) {
+                            if (e.detail === 0) return;
+                            if (e.target && e.target.closest('.nav-caret')) return;
+                            window.location.href = calcResumeHref || calcLink.href;
+                        });
                     }
                 });
             </script>
@@ -271,20 +285,7 @@
     <div class="container page-content">
 
         <div id="toast-container" class="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
-        <div id="confirm-modal" class="confirm-modal" aria-hidden="true">
-            <div class="confirm-backdrop" data-confirm-close></div>
-            <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
-                <div class="confirm-header">
-                    <div class="confirm-title" id="confirm-title">Konfirmasi</div>
-                    <button type="button" class="confirm-close" data-confirm-close aria-label="Tutup">&times;</button>
-                </div>
-                <div class="confirm-message" id="confirm-message">Apakah Anda yakin?</div>
-                <div class="confirm-actions">
-                    <button type="button" class="confirm-btn cancel" id="confirm-cancel">Batal</button>
-                    <button type="button" class="confirm-btn confirm" id="confirm-ok">Hapus</button>
-                </div>
-            </div>
-        </div>
+        <!-- Confirm Modal moved outside to prevent z-index trapping -->
 
         @php
             $toasts = [];
@@ -300,6 +301,21 @@
         </script>
 
         @yield('content')
+    </div>
+
+    <div id="confirm-modal" class="confirm-modal" aria-hidden="true">
+        <div class="confirm-backdrop" data-confirm-close></div>
+        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+            <div class="confirm-header">
+                <div class="confirm-title" id="confirm-title">Konfirmasi</div>
+                <button type="button" class="confirm-close" data-confirm-close aria-label="Tutup">&times;</button>
+            </div>
+            <div class="confirm-message" id="confirm-message">Apakah Anda yakin?</div>
+            <div class="confirm-actions">
+                <button type="button" class="confirm-btn cancel" id="confirm-cancel">Batal</button>
+                <button type="button" class="confirm-btn confirm" id="confirm-ok">Hapus</button>
+            </div>
+        </div>
     </div>
 
     <!-- Floating Modal Global (Unique ID to avoid conflict) -->
@@ -832,14 +848,62 @@
             const globalModalTitle = document.getElementById('globalModalTitle');
             const globalCloseBtn = document.getElementById('globalCloseModal');
             const globalBackdrop = globalModal ? globalModal.querySelector('.floating-modal-backdrop') : null;
+            let isGlobalFormDirty = false;
 
             function interceptGlobalFormSubmit() {
-                if (!globalModalBody) return;
+                if (!globalModalBody) {
+                    console.error('[Global Modal] globalModalBody not found');
+                    return;
+                }
                 const form = globalModalBody.querySelector('form');
                 if (form) {
-                    form.addEventListener('submit', function() {
-                        // Let form submit normally
-                    });
+                    console.log('[Global Modal] Form found:', form.id, 'Action:', form.action);
+
+                    // Add hidden input to redirect back to the current page after submit
+                    let redirectInput = form.querySelector('input[name="_redirect_url"]');
+                    if (!redirectInput) {
+                        redirectInput = document.createElement('input');
+                        redirectInput.type = 'hidden';
+                        redirectInput.name = '_redirect_url';
+                        form.appendChild(redirectInput);
+                    }
+                    // Always update the redirect URL to materials index page for sidebar actions
+                    // This ensures we get the highlighting effect and see the new data
+                    redirectInput.value = '{{ route("materials.index") }}';
+                    console.log('[Global Modal] _redirect_url set to:', redirectInput.value);
+
+                    // Also add _redirect_to_materials as backup
+                    let redirectMaterialsInput = form.querySelector('input[name="_redirect_to_materials"]');
+                    if (!redirectMaterialsInput) {
+                        redirectMaterialsInput = document.createElement('input');
+                        redirectMaterialsInput.type = 'hidden';
+                        redirectMaterialsInput.name = '_redirect_to_materials';
+                        redirectMaterialsInput.value = '1';
+                        form.appendChild(redirectMaterialsInput);
+                    }
+
+                    // Prevent duplicate event listeners
+                    if (!form.__submitIntercepted) {
+                        form.__submitIntercepted = true;
+
+                        // Track dirty state
+                        form.addEventListener('input', () => { isGlobalFormDirty = true; });
+                        form.addEventListener('change', () => { isGlobalFormDirty = true; });
+
+                        form.addEventListener('submit', function(e) {
+                            console.log('[Global Modal] Form submitting to:', form.action);
+                            
+                            // Show loading state before submit
+                            const submitBtn = form.querySelector('button[type="submit"]');
+                            if (submitBtn) {
+                                submitBtn.disabled = true;
+                                submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
+                            }
+                            // Let form submit normally
+                        });
+                    }
+                } else {
+                    console.error('[Global Modal] No form found in modalBody');
                 }
             }
 
@@ -920,12 +984,24 @@
                 }, 150); // Increased timeout slightly for safety
             }
 
-            function closeGlobalModal() {
+            async function closeGlobalModal() {
+                if (isGlobalFormDirty) {
+                    const confirmed = await window.showConfirm({
+                        title: 'Batalkan Perubahan?',
+                        message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
+                        confirmText: 'Ya, Tutup',
+                        cancelText: 'Kembali',
+                        type: 'warning'
+                    });
+                    if (!confirmed) return;
+                }
+
                 if(!globalModal) return;
                 globalModal.classList.remove('active');
                 document.body.style.overflow = '';
                 setTimeout(() => {
                     globalModalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+                    isGlobalFormDirty = false;
                 }, 300);
             }
 
@@ -944,6 +1020,7 @@
 
                 const { materialType, action, materialLabel } = getGlobalMaterialInfo(url);
                 pendingGlobalTypePrefill = prefillType || null;
+                isGlobalFormDirty = false;
 
                 globalModal.classList.add('active');
                 document.body.style.overflow = 'hidden';
@@ -954,10 +1031,10 @@
 
                 if (action === 'create') {
                     globalModalTitle.textContent = `Tambah ${materialLabel} Baru`;
-                    globalCloseBtn.style.display = 'none'; 
+                    globalCloseBtn.style.display = 'flex'; 
                 } else if (action === 'edit') {
                     globalModalTitle.textContent = `Edit ${materialLabel}`;
-                    globalCloseBtn.style.display = 'none'; 
+                    globalCloseBtn.style.display = 'flex'; 
                 } else {
                     globalModalTitle.textContent = materialLabel;
                     globalCloseBtn.style.display = 'flex';
@@ -1013,19 +1090,10 @@
 
                         if (contentElement) {
                             console.log('[Modal] Content element found, inserting into modal...');
-                            // If we found a form inside a card (and not using special wrapper), we might want the whole card for styling
-                            if (contentElement.id !== 'recommendations-content-wrapper') {
-                                const wrapperCard = contentElement.closest('.card');
-                                if (wrapperCard) {
-                                    globalModalBody.innerHTML = wrapperCard.outerHTML;
-                                } else {
-                                    globalModalBody.innerHTML = contentElement.outerHTML;
-                                }
-                            } else {
-                                // For special wrapper, take innerHTML to avoid double wrapping or issues?
-                                // Actually outerHTML is fine, or innerHTML. Let's use outerHTML to keep the ID wrapper.
-                                globalModalBody.innerHTML = contentElement.outerHTML;
-                            }
+                            
+                            // Direct insertion (matching materials.index behavior)
+                            // We don't wrap in card to avoid double styling
+                            globalModalBody.innerHTML = contentElement.outerHTML;
 
                             console.log('[Modal] Content inserted, loading scripts...');
                             if (materialType && (action === 'create' || action === 'edit' || materialType === 'recommendations')) {
@@ -1051,22 +1119,37 @@
                     });
             }
 
-            if (globalModal && globalModalBody && globalModalTitle && globalCloseBtn && globalBackdrop) {
-                // Listen specifically for .global-open-modal class
-                document.addEventListener('click', function(e) {
-                    const link = e.target.closest('.global-open-modal');
-                    if (link) {
-                        e.preventDefault();
-                        openGlobalMaterialModal(link.href);
+            // Robust Global Modal Link Listener
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('.global-open-modal');
+                if (link) {
+                    e.preventDefault(); // Stop navigation immediately
+                    console.log('[Global Modal] Intercepted click for:', link.href);
+                    
+                    if (typeof window.openGlobalMaterialModal === 'function') {
+                        window.openGlobalMaterialModal(link.href);
+                    } else {
+                        console.error('[Global Modal] openGlobalMaterialModal function not found');
+                        window.location.href = link.href; // Fallback
                     }
-                });
+                }
+            });
 
+            if (globalModal && globalModalBody && globalModalTitle && globalCloseBtn && globalBackdrop) {
                 globalCloseBtn.addEventListener('click', closeGlobalModal);
                 globalBackdrop.addEventListener('click', closeGlobalModal);
                 document.addEventListener('keydown', function(e) {
                     if (e.key === 'Escape' && globalModal.classList.contains('active')) {
                         closeGlobalModal();
                     }
+                });
+            } else {
+                console.warn('[Global Modal] Some elements missing, modal might not work fully.', {
+                    modal: !!globalModal,
+                    body: !!globalModalBody,
+                    title: !!globalModalTitle,
+                    close: !!globalCloseBtn,
+                    backdrop: !!globalBackdrop
                 });
             }
         });

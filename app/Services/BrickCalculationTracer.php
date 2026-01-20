@@ -178,7 +178,7 @@ class BrickCalculationTracer
                 'Perhitungan' => NumberHelper::format($wallAreaForBricks) . ' × ' . NumberHelper::format($bricksPerSqm),
                 'Hasil (sebelum pembulatan)' => NumberHelper::format($totalBricksRaw) . ' buah',
                 'Desimal' => NumberHelper::format($decimal),
-                'Hasil (setelah pembulatan)' => number_format($totalBricks) . ' buah',
+                'Hasil (setelah pembulatan)' => NumberHelper::format($totalBricks) . ' buah',
             ],
         ];
 
@@ -387,7 +387,7 @@ class BrickCalculationTracer
                     NumberHelper::format($volumeForBricks) .
                     ' M3',
                 'Perhitungan' => NumberHelper::format($volumeForBricks) . ' / ' . NumberHelper::format($mortarVolumePerBrick),
-                'Jumlah Pasangan' => number_format($jumlahPasanganBata) . ' pasangan bata',
+                'Jumlah Pasangan' => NumberHelper::format($jumlahPasanganBata) . ' pasangan bata',
             ],
         ];
 
@@ -494,7 +494,7 @@ class BrickCalculationTracer
                     ' × ' .
                     $sandRatio .
                     ' = ' .
-                    number_format($totalSandSak) .
+                    NumberHelper::format($totalSandSak) .
                     ' sak',
                 'Pasir (M3)' =>
                     NumberHelper::format($totalSandSak) .
@@ -507,13 +507,13 @@ class BrickCalculationTracer
                     '(' .
                     NumberHelper::format($totalCementSak) .
                     ' + ' .
-                    number_format($totalSandSak) .
+                    NumberHelper::format($totalSandSak) .
                     ') × ' .
                     NumberHelper::format($volumeSakM3) .
                     ' × 30% × 1000 = ' .
                     NumberHelper::format($waterLitersRaw) .
                     ' liter',
-                'Air (liter setelah pembulatan)' => number_format($waterLiters) . ' liter',
+                'Air (liter setelah pembulatan)' => NumberHelper::format($waterLiters) . ' liter',
             ],
         ];
 

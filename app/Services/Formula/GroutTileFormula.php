@@ -57,11 +57,12 @@ class GroutTileFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
+        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
 
         // ============ STEP 1: Load Input Parameters ============
-        $panjangBidang = (float) $params['wall_length']; // m
-        $lebarBidang = (float) $params['wall_height']; // m
-        $tebalNat = (float) $params['grout_thickness']; // mm
+        $panjangBidang = $n($params['wall_length']); // m
+        $lebarBidang = $n($params['wall_height']); // m
+        $tebalNat = $n($params['grout_thickness']); // mm
 
         $trace['steps'][] = [
             'step' => 1,
@@ -94,15 +95,15 @@ class GroutTileFormula implements FormulaInterface
 
         // Use custom ceramic dimensions from input if provided, otherwise use from database
         $panjangKeramik = isset($params['ceramic_length']) && $params['ceramic_length'] > 0
-            ? (float) $params['ceramic_length']
-            : (float) $ceramic->dimension_length; // cm
+            ? $n($params['ceramic_length'])
+            : $n($ceramic->dimension_length); // cm
 
         $lebarKeramik = isset($params['ceramic_width']) && $params['ceramic_width'] > 0
-            ? (float) $params['ceramic_width']
-            : (float) $ceramic->dimension_width; // cm
+            ? $n($params['ceramic_width'])
+            : $n($ceramic->dimension_width); // cm
 
-        $tebalKeramikCm = (float) $ceramic->dimension_thickness; // cm
-        $tebalKeramikMm = $tebalKeramikCm * 10; // mm
+        $tebalKeramikCm = $n($ceramic->dimension_thickness); // cm
+        $tebalKeramikMm = $n($tebalKeramikCm * 10); // mm
 
         // Note: Isi per dus tidak krusial untuk hitungan nat murni, tapi dimensi sangat penting.
 
@@ -111,9 +112,9 @@ class GroutTileFormula implements FormulaInterface
         }
 
         // Grout parameters from database
-        $beratKemasanNat = $nat->package_weight_net > 0 ? $nat->package_weight_net : 1; // kg per bungkus
-        $volumePastaNatPerBungkus = $nat->package_volume > 0 ? $nat->package_volume : 0.00069444; // M3 per bungkus
-        $hargaNatPerBungkus = $nat->package_price ?? 0;
+        $beratKemasanNat = $n($nat->package_weight_net > 0 ? $nat->package_weight_net : 1); // kg per bungkus
+        $volumePastaNatPerBungkus = $n($nat->package_volume > 0 ? $nat->package_volume : 0.00069444); // M3 per bungkus
+        $hargaNatPerBungkus = $n($nat->package_price ?? 0, 0);
 
         $isCustomDimension = isset($params['ceramic_length']) && $params['ceramic_length'] > 0;
         $dimensionSource = $isCustomDimension ? ' (Custom Input)' : ' (Database)';
@@ -127,14 +128,14 @@ class GroutTileFormula implements FormulaInterface
                 'Nat' => $nat->brand . ' (' . $beratKemasanNat . ' kg)',
                 'Berat Kemasan Nat' => $beratKemasanNat . ' kg',
                 'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus) . ' M3',
-                'Harga Nat per Bungkus' => 'Rp ' . number_format($hargaNatPerBungkus, 0, ',', '.'),
+                'Harga Nat per Bungkus' => NumberHelper::currency($hargaNatPerBungkus),
                 'Densitas Nat' => $densityNat . ' kg/M3',
                 'Rasio Adukan Nat' => '1 : 33% (Nat : Air)',
             ],
         ];
 
         // ============ STEP 3: Hitung Luas Bidang ============
-        $luasBidang = $panjangBidang * $lebarBidang;
+        $luasBidang = $n($panjangBidang * $lebarBidang);
 
         $trace['steps'][] = [
             'step' => 3,
@@ -150,24 +151,24 @@ class GroutTileFormula implements FormulaInterface
 
         // ============ STEP 4: Jumlah Kolom dan Baris Nat ============
         // jumlah kolom nat per pekerjaan = (Panjang bidang / ((Panjang keramik + (tebal nat / 10)) / 100)) + 1
-        $jumlahKolomNat = ceil($panjangBidang / (($panjangKeramik + $tebalNat / 10) / 100)) + 1;
+        $jumlahKolomNat = (int) ceil($panjangBidang / (($panjangKeramik + $tebalNat / 10) / 100)) + 1;
 
         // jumlah baris nat per pekerjaan = (Lebar bidang / ((lebar keramik + (tebal nat / 10)) / 100)) + 1
-        $jumlahBarisNat = ceil($lebarBidang / (($lebarKeramik + $tebalNat / 10) / 100)) + 1;
+        $jumlahBarisNat = (int) ceil($lebarBidang / (($lebarKeramik + $tebalNat / 10) / 100)) + 1;
 
         $trace['steps'][] = [
             'step' => 4,
             'title' => 'Jumlah Kolom dan Baris Nat',
             'formula' => 'ceil(Bidang / ((Dimensi Keramik + Tebal Nat/10) / 100)) + 1',
             'calculations' => [
-                'Jumlah Kolom Nat' => number_format($jumlahKolomNat, 0) . ' garis',
-                'Jumlah Baris Nat' => number_format($jumlahBarisNat, 0) . ' garis',
+                'Jumlah Kolom Nat' => NumberHelper::format($jumlahKolomNat) . ' garis',
+                'Jumlah Baris Nat' => NumberHelper::format($jumlahBarisNat) . ' garis',
             ],
         ];
 
         // ============ STEP 5: Panjang Bentangan Nat ============
         // Panjang bentangan nat per pekerjaan = (jumlah kolom nat * lebar bidang) + (jumlah baris nat * Panjang bidang)
-        $panjangBentanganNat = $jumlahKolomNat * $lebarBidang + $jumlahBarisNat * $panjangBidang;
+        $panjangBentanganNat = $n($jumlahKolomNat * $lebarBidang + $jumlahBarisNat * $panjangBidang);
 
         $trace['steps'][] = [
             'step' => 5,
@@ -190,7 +191,7 @@ class GroutTileFormula implements FormulaInterface
 
         // ============ STEP 6: Volume Nat per Pekerjaan ============
         // Volume nat per pekerjaan = Panjang bentangan nat * tebal nat * tebal keramik / 1000000
-        $volumeNatPekerjaan = ($panjangBentanganNat * $tebalNat * $tebalKeramikMm) / 1000000;
+        $volumeNatPekerjaan = $n(($panjangBentanganNat * $tebalNat * $tebalKeramikMm) / 1000000);
 
         $trace['steps'][] = [
             'step' => 6,
@@ -206,10 +207,10 @@ class GroutTileFormula implements FormulaInterface
 
         // ============ STEP 7: Kebutuhan Bungkus Nat ============
         // jumlah kebutuhan bungkus kemasan nat per pekerjaan = volume nat per pekerjaan / Volume pasta nat per bungkus
-        $kebutuhanBungkusNat = $volumeNatPekerjaan / $volumePastaNatPerBungkus;
+        $kebutuhanBungkusNat = $n($volumeNatPekerjaan / $volumePastaNatPerBungkus);
 
         // jumlah kebutuhan kg nat per pekerjaan = setara dengan jumlah kebutuhan bungkus kemasan nat per pekerjaan
-        $kebutuhanKgNat = $kebutuhanBungkusNat * $beratKemasanNat;
+        $kebutuhanKgNat = $n($kebutuhanBungkusNat * $beratKemasanNat);
 
         $trace['steps'][] = [
             'step' => 7,
@@ -224,25 +225,25 @@ class GroutTileFormula implements FormulaInterface
 
         // ============ STEP 8: Volume Adukan Nat ============
         // Kubik nat per bungkus = (1 / 1440) * berat kemasan nat
-        $kubikNatPerBungkus = (1 / $densityNat) * $beratKemasanNat;
+        $kubikNatPerBungkus = $n((1 / $densityNat) * $beratKemasanNat);
 
         // kubik air per ratio = kubik nat per bungkus * 33%
-        $kubikAirNatPerBungkus = $kubikNatPerBungkus * 0.33;
+        $kubikAirNatPerBungkus = $n($kubikNatPerBungkus * 0.33);
 
         // Liter Air per ratio = Kubik air per ratio * 1000
-        $literAirNatPerBungkus = $kubikAirNatPerBungkus * 1000;
+        $literAirNatPerBungkus = $n($kubikAirNatPerBungkus * 1000);
 
         // Volume adukan nat = Kubik nat per bungkus + kubik air dari ratio 33%
-        $volumeAdukanNatPerBungkus = $kubikNatPerBungkus + $kubikAirNatPerBungkus;
+        $volumeAdukanNatPerBungkus = $n($kubikNatPerBungkus + $kubikAirNatPerBungkus);
 
         // Total untuk pekerjaan
-        $kubikNatPekerjaan = $kubikNatPerBungkus * $kebutuhanBungkusNat;
-        $kubikAirNatPekerjaan = $kubikAirNatPerBungkus * $kebutuhanBungkusNat;
+        $kubikNatPekerjaan = $n($kubikNatPerBungkus * $kebutuhanBungkusNat);
+        $kubikAirNatPekerjaan = $n($kubikAirNatPerBungkus * $kebutuhanBungkusNat);
 
         // Kebutuhan liter air per pekerjaan = Liter ratio air dari nat (33%)
-        $literAirNatPekerjaan = $literAirNatPerBungkus * $kebutuhanBungkusNat;
+        $literAirNatPekerjaan = $n($literAirNatPerBungkus * $kebutuhanBungkusNat);
 
-        $volumeAdukanNatPekerjaan = $volumeAdukanNatPerBungkus * $kebutuhanBungkusNat;
+        $volumeAdukanNatPekerjaan = $n($volumeAdukanNatPerBungkus * $kebutuhanBungkusNat);
 
         $trace['steps'][] = [
             'step' => 8,
@@ -263,16 +264,16 @@ class GroutTileFormula implements FormulaInterface
         ];
 
         // ============ STEP 9: Harga ============
-        $totalGroutPrice = $kebutuhanBungkusNat * $hargaNatPerBungkus;
-        $grandTotal = $totalGroutPrice;
+        $totalGroutPrice = $n($kebutuhanBungkusNat * $hargaNatPerBungkus, 0);
+        $grandTotal = $n($totalGroutPrice, 0);
 
         $trace['steps'][] = [
             'step' => 9,
             'title' => 'Perhitungan Harga',
             'calculations' => [
-                'Harga Nat per Bungkus' => 'Rp ' . number_format($hargaNatPerBungkus, 0, ',', '.'),
-                'Total Harga Nat' => 'Rp ' . number_format($totalGroutPrice, 0, ',', '.'),
-                'Grand Total' => 'Rp ' . number_format($grandTotal, 0, ',', '.'),
+                'Harga Nat per Bungkus' => NumberHelper::currency($hargaNatPerBungkus),
+                'Total Harga Nat' => NumberHelper::currency($totalGroutPrice),
+                'Grand Total' => NumberHelper::currency($grandTotal),
             ],
         ];
 

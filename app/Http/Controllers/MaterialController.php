@@ -258,7 +258,8 @@ class MaterialController extends Controller
             return [];
         }
 
-        $letterColumn = in_array($type, ['ceramic', 'brick', 'sand', 'cat', 'cement'], true) ? 'type' : 'brand';
+        // Changed to 'brand' based on user request to paginate by Brand instead of Type
+        $letterColumn = 'brand';
 
         // Get distinct first letters, uppercase
         return $model
@@ -493,8 +494,8 @@ class MaterialController extends Controller
 
         $defaultOrderBy = match ($type) {
             'brick' => [
-                'type',
                 'brand',
+                'type',
                 'form',
                 'dimension_length',
                 'dimension_width',
@@ -507,8 +508,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'sand' => [
-                'type',
                 'brand',
+                'type',
                 'package_unit',
                 'dimension_length',
                 'dimension_width',
@@ -521,8 +522,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'cat' => [
-                'type',
                 'brand',
+                'type',
                 'sub_brand',
                 'color_code',
                 'color_name',
@@ -537,8 +538,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'cement' => [
-                'type',
                 'brand',
+                'type',
                 'sub_brand',
                 'code',
                 'color',
@@ -551,11 +552,11 @@ class MaterialController extends Controller
                 'id',
             ],
             'ceramic' => [
+                'brand',
                 'type',
                 'dimension_length',
                 'dimension_width',
                 'dimension_thickness',
-                'brand',
                 'sub_brand',
                 'surface',
                 'code',

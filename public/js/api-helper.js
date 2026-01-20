@@ -149,14 +149,20 @@ class ApiHelper {
     }
 
     /**
-     * Format number to Indonesian Rupiah
+     * Format number to Indonesian rupiah number (without prefix)
      * @param {number} number - Number to format
-     * @returns {string} Formatted rupiah
+     * @returns {string} Formatted rupiah number
      */
     formatRupiah(number) {
-        const value = Number(number || 0);
-        if (!isFinite(value) || value === 0) return 'Rp 0';
-        return 'Rp ' + Math.round(value).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+        const value = Number(number);
+        if (!isFinite(value)) {
+            return '0';
+        }
+        const truncated = value >= 0 ? Math.floor(value) : Math.ceil(value);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const withThousands = abs.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return `${sign}${withThousands}`;
     }
 
     /**

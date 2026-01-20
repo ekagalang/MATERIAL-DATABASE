@@ -356,7 +356,7 @@
                                             <option value="">-- Semua Bata (Auto) --</option>
                                             @foreach($bricks as $brick)
                                                 <option value="{{ $brick->id }}">
-                                                    {{ $brick->brand }} - {{ $brick->type }} ({{ $brick->dimension_length }}x{{ $brick->dimension_width }}x{{ $brick->dimension_height }} cm) - Rp {{ number_format($brick->price_per_piece) }}
+                                                    {{ $brick->brand }} - {{ $brick->type }} ({{ $brick->dimension_length }}x{{ $brick->dimension_width }}x{{ $brick->dimension_height }} cm) - @currency($brick->price_per_piece)
                                                 </option>
                                             @endforeach
                                         </select>
@@ -658,24 +658,53 @@
         const mortarThicknessUnit = document.getElementById('mortarThicknessUnit');
         const wallHeightDefaultDisplay = wallHeightGroup ? getComputedStyle(wallHeightGroup).display : 'flex';
 
-        function formatThicknessValue(value) {
+        function formatFixedPlain(value, decimals = 2) {
             const num = Number(value);
             if (!isFinite(num)) return '';
-            if (Math.floor(num) === num) return num.toString();
+            if (num === 0) return '0';
 
-            const str = num.toFixed(30);
-            const decimalPart = (str.split('.')[1] || '');
-            let firstNonZero = decimalPart.length;
-            for (let i = 0; i < decimalPart.length; i++) {
-                if (decimalPart[i] !== '0') {
-                    firstNonZero = i;
+            const absValue = Math.abs(num);
+            const epsilon = Math.min(absValue * 1e-12, 1e-6);
+            const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+            const sign = adjusted < 0 ? '-' : '';
+            const abs = Math.abs(adjusted);
+            const intPart = Math.trunc(abs);
+
+            if (intPart > 0) {
+                const scaled = Math.trunc(abs * 100);
+                const intDisplay = Math.trunc(scaled / 100).toString();
+                let decPart = String(scaled % 100).padStart(2, '0');
+                decPart = decPart.replace(/0+$/, '');
+                return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+            }
+
+            let fraction = abs;
+            let digits = '';
+            let firstNonZeroIndex = null;
+            const maxDigits = 30;
+
+            for (let i = 0; i < maxDigits; i++) {
+                fraction *= 10;
+                const digit = Math.floor(fraction + 1e-12);
+                fraction -= digit;
+                digits += String(digit);
+
+                if (digit !== 0 && firstNonZeroIndex === null) {
+                    firstNonZeroIndex = i;
+                }
+
+                if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
                     break;
                 }
             }
 
-            if (firstNonZero === decimalPart.length) return num.toString();
-            const precision = firstNonZero + 2;
-            return num.toFixed(precision).replace(/\.?0+$/, '');
+            digits = digits.replace(/0+$/, '');
+            if (!digits) return '0';
+            return `${sign}0.${digits}`;
+        }
+
+        function formatThicknessValue(value) {
+            return formatFixedPlain(value, 2);
         }
 
         function setMortarThicknessUnit(unit) {
@@ -954,18 +983,50 @@
             return data;
         }
 
-        function saveCalculationSession() {
+        function saveCalculationSession(payload) {
             if (!form) return;
-            const payload = serializeCalculationSession(form);
-            if (!payload) return;
+            const sessionPayload = payload || serializeCalculationSession(form);
+            if (!sessionPayload) return;
             try {
                 localStorage.setItem(calcSessionKey, JSON.stringify({
                     updatedAt: Date.now(),
-                    data: payload,
+                    data: sessionPayload,
                     autoSubmit: false,
                 }));
             } catch (error) {
                 console.warn('Failed to save calculation session', error);
+            }
+        }
+
+        function normalizeSessionPayload(value) {
+            if (Array.isArray(value)) {
+                const normalizedList = value.map(normalizeSessionPayload);
+                normalizedList.sort();
+                return normalizedList;
+            }
+            if (value && typeof value === 'object') {
+                const normalized = {};
+                Object.keys(value).sort().forEach(key => {
+                    normalized[key] = normalizeSessionPayload(value[key]);
+                });
+                return normalized;
+            }
+            return value;
+        }
+
+        function buildSessionFingerprint(payload) {
+            return JSON.stringify(normalizeSessionPayload(payload));
+        }
+
+        function isSameAsLastSession(currentPayload) {
+            const raw = localStorage.getItem(calcSessionKey);
+            if (!raw) return false;
+            try {
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object' || !parsed.data) return false;
+                return buildSessionFingerprint(parsed.data) === buildSessionFingerprint(currentPayload);
+            } catch (error) {
+                return false;
             }
         }
 
@@ -1119,8 +1180,29 @@
             });
 
             form.addEventListener('submit', function(e) {
+                // Client-side validation for price filters
+                const filterCheckboxes = document.querySelectorAll('input[name="price_filters[]"]');
+                const isAnyFilterChecked = Array.from(filterCheckboxes).some(cb => cb.checked);
+
+                if (!isAnyFilterChecked) {
+                    e.preventDefault();
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Harap pilih minimal satu filter harga (contoh: TerBAIK, TerMURAH).', 'error');
+                    } else {
+                        alert('Harap pilih minimal satu filter harga.');
+                    }
+                    // Scroll to filter section
+                    const filterSection = document.querySelector('.filter-section');
+                    if (filterSection) {
+                        filterSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+
                 if (this.checkValidity()) {
-                    saveCalculationSession();
+                    const currentSession = serializeCalculationSession(form);
+                    const isFastCachePath = currentSession ? isSameAsLastSession(currentSession) : false;
+                    saveCalculationSession(currentSession);
                     if (mortarThicknessInput && mortarThicknessInput.dataset.unit === 'mm') {
                         const mmValue = parseFloat(mortarThicknessInput.value);
                         if (!isNaN(mmValue)) {
@@ -1156,7 +1238,11 @@
                     const percent = document.getElementById('loadingPercent');
                     
                     let progress = 0;
-                    const messages = [
+                    const messages = isFastCachePath ? [
+                        { p: 10, t: 'Memuat hasil tersimpan...', s: 'Mengambil data perhitungan sebelumnya.' },
+                        { p: 55, t: 'Menyiapkan tampilan...', s: 'Merapikan tabel dan ringkasan hasil.' },
+                        { p: 90, t: 'Finalisasi...', s: 'Sedang mengalihkan ke halaman hasil...' },
+                    ] : [
                         { p: 5, t: 'Menganalisis Permintaan...', s: 'Memvalidasi input dan preferensi filter.' },
                         { p: 20, t: 'Mengambil Data Material...', s: 'Memuat database harga bata, semen, dan pasir terbaru.' },
                         { p: 40, t: 'Menjalankan Algoritma...', s: 'Menghitung volume dan kebutuhan material presisi.' },
@@ -1169,28 +1255,40 @@
                     if (loadingInterval) clearInterval(loadingInterval);
 
                     // Start Animation Loop
+                    const intervalMs = isFastCachePath ? 35 : 50;
                     loadingInterval = setInterval(() => {
                         // REVISED LOGIC: Aggressive start for "Realtime" feel
                         let increment = 0;
                         
                         // Phase 1: Rapid Acceleration (0-60% in ~0.8s)
                         if (progress < 60) {
-                            increment = Math.random() * 4 + 1; // Adds 1-5% per tick (very fast)
+                            increment = isFastCachePath
+                                ? Math.random() * 6 + 4
+                                : Math.random() * 4 + 1;
                         } 
                         // Phase 2: Moderate Pace (60-85% in ~1s)
                         else if (progress < 85) {
-                            increment = Math.random() * 1.5 + 0.2; // Adds 0.2-1.7% per tick
+                            increment = isFastCachePath
+                                ? Math.random() * 2.5 + 0.5
+                                : Math.random() * 1.5 + 0.2;
                         } 
                         // Phase 3: Zeno's Paradox (85-98%) - crawl to wait for server
                         else if (progress < 98) {
-                            increment = 0.05; // Crawl
+                            increment = isFastCachePath ? 0.12 : 0.05;
                         }
                         
                         progress = Math.min(progress + increment, 98); // Cap at 98, jump to 100 on unload
                         
+                        const percentText = (() => {
+                            const scaled = Math.floor(progress * 100);
+                            const intPart = Math.floor(scaled / 100);
+                            const decPart = (scaled % 100).toString().padStart(2, '0');
+                            return `${intPart}.${decPart}%`;
+                        })();
+
                         // Update UI
                         bar.style.width = `${progress}%`;
-                        percent.textContent = `${Math.round(progress)}%`;
+                        percent.textContent = percentText;
 
                         // Update Text
                         let currentMsg = null;
@@ -1206,7 +1304,7 @@
                             subtitle.textContent = currentMsg.s;
                         }
 
-                    }, 50); // Faster tick (50ms) for smoother animation
+                    }, intervalMs);
                 }
             });
         }
@@ -1225,7 +1323,7 @@
                     bar.style.width = '100%';
                     bar.classList.remove('progress-bar-animated'); // Stop stripe animation
                 }
-                if (percent) percent.textContent = '100%';
+                if (percent) percent.textContent = '100.00%';
                 if (title) title.textContent = 'Selesai!';
                 if (subtitle) subtitle.textContent = 'Memuat hasil perhitungan...';
             }

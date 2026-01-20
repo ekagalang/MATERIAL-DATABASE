@@ -45,7 +45,7 @@
                             @if($totalCalcs > 0 && $avgCost > 0)
                                 <div style="color: #059669; line-height: 1.5; font-weight: 600;">
                                     <i class="bi bi-graph-up-arrow"></i>
-                                    Rata-rata: <strong>Rp {{ number_format($avgCost, 0, ',', '.') }} / M2</strong>
+                                    Rata-rata: <strong>@currency($avgCost) / M2</strong>
                                 </div>
                                 <div>
                                     Berdasarkan {{ $totalCalcs }} perhitungan

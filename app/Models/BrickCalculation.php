@@ -150,6 +150,8 @@ class BrickCalculation extends Model
      */
     public static function performCalculation(array $params): self
     {
+        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+
         // Get work_type from params (should match formula code)
         $formulaCode = $params['work_type'] ?? null;
 
@@ -184,11 +186,11 @@ class BrickCalculation extends Model
 
         $workType = $params['work_type'] ?? $formulaCode;
         if ($workType === 'brick_rollag') {
-            $brickLength = $brick?->dimension_length ?? 0;
+            $brickLength = $n($brick?->dimension_length ?? 0);
             if ($brickLength <= 0) {
                 $brickLength = 19.2;
             }
-            $params['wall_height'] = $brickLength / 100;
+            $params['wall_height'] = $n($brickLength / 100);
         }
         $ceramic = null;
         if (
@@ -201,34 +203,36 @@ class BrickCalculation extends Model
         }
 
         // Extract values from formula result
-        $wallLength = $params['wall_length'];
-        $wallHeight = $params['wall_height'] ?? 0;
-        $wallArea = $wallLength * $wallHeight;
-        $mortarThickness = $params['mortar_thickness'] ?? 1.0;
+        $wallLength = $n($params['wall_length']);
+        $wallHeight = $n($params['wall_height'] ?? 0);
+        $wallArea = $n($wallLength * $wallHeight);
+        $mortarThickness = $n($params['mortar_thickness'] ?? 1.0);
         $useCustomRatio = isset($params['use_custom_ratio']) && $params['use_custom_ratio'] == '1';
 
         // Get cement package weight for sak calculation
-        $cementPackageWeight = $cement ? $cement->package_weight_net : 50;
-        $cementQuantitySak = ($result['cement_kg'] ?? 0) / $cementPackageWeight;
+        $cementPackageWeight = $n($cement ? $cement->package_weight_net : 50);
+        $cementQuantitySak = $n(($result['cement_kg'] ?? 0) / $cementPackageWeight);
 
         // Calculate 40kg and 50kg quantities for backward compatibility
-        $cementQuantity40kg = ($result['cement_kg'] ?? 0) / 40;
-        $cementQuantity50kg = ($result['cement_kg'] ?? 0) / 50;
+        $cementQuantity40kg = $n(($result['cement_kg'] ?? 0) / 40);
+        $cementQuantity50kg = $n(($result['cement_kg'] ?? 0) / 50);
 
         // Mortar volume per brick
         $mortarVolumePerBrick =
-            ($result['total_bricks'] ?? 0) > 0 ? (($result['cement_m3'] ?? 0) + ($result['sand_m3'] ?? 0)) / $result['total_bricks'] : 0;
+            ($result['total_bricks'] ?? 0) > 0
+                ? $n((($result['cement_m3'] ?? 0) + ($result['sand_m3'] ?? 0)) / $result['total_bricks'])
+                : 0;
 
-        $ceramicLength = $ceramic ? $ceramic->dimension_length : null;
-        $ceramicWidth = $ceramic ? $ceramic->dimension_width : null;
+        $ceramicLength = $ceramic ? $n($ceramic->dimension_length) : null;
+        $ceramicWidth = $ceramic ? $n($ceramic->dimension_width) : null;
         if (isset($params['ceramic_length']) && $params['ceramic_length'] > 0) {
-            $ceramicLength = $params['ceramic_length'];
+            $ceramicLength = $n($params['ceramic_length']);
         }
         if (isset($params['ceramic_width']) && $params['ceramic_width'] > 0) {
-            $ceramicWidth = $params['ceramic_width'];
+            $ceramicWidth = $n($params['ceramic_width']);
         }
 
-        $groutThickness = isset($params['grout_thickness']) ? (float) $params['grout_thickness'] : null;
+        $groutThickness = isset($params['grout_thickness']) ? $n($params['grout_thickness']) : null;
 
         $calculationParams = [
             'formula_used' => $formulaCode,
@@ -284,7 +288,7 @@ class BrickCalculation extends Model
             'brick_total_cost' => $result['total_brick_price'] ?? 0,
 
             // Mortar volume
-            'mortar_volume' => ($result['cement_m3'] ?? 0) + ($result['sand_m3'] ?? 0),
+            'mortar_volume' => $n(($result['cement_m3'] ?? 0) + ($result['sand_m3'] ?? 0)),
             'mortar_volume_per_brick' => $mortarVolumePerBrick,
 
             // Cement results
@@ -300,7 +304,7 @@ class BrickCalculation extends Model
             // Sand results
             'sand_sak' => $result['sand_sak'] ?? 0,
             'sand_m3' => $result['sand_m3'] ?? 0,
-            'sand_kg' => ($result['sand_m3'] ?? 0) * 1600, // Sand density kg/M3
+            'sand_kg' => $n(($result['sand_m3'] ?? 0) * 1600), // Sand density kg/M3
             'sand_id' => $params['sand_id'] ?? null,
             'sand_price_per_m3' => $result['sand_price_per_m3'] ?? 0,
             'sand_total_cost' => $result['total_sand_price'] ?? 0,
@@ -329,7 +333,7 @@ class BrickCalculation extends Model
             'water_liters' => $result['total_water_liters'] ?? $result['water_liters'] ?? 0,
 
             // Total cost
-            'total_material_cost' => $result['grand_total'],
+            'total_material_cost' => $n($result['grand_total'] ?? 0, 0),
 
             // Store calculation params for reference
             'calculation_params' => $calculationParams,
@@ -473,7 +477,7 @@ class BrickCalculation extends Model
             'brick_info' => [
                 'quantity' => NumberHelper::format($this->brick_quantity) . ' buah',
                 'type' => $this->installationType->name ?? '-',
-                'cost' => 'Rp ' . number_format($this->brick_total_cost, 0, ',', '.'),
+                'cost' => NumberHelper::currency($this->brick_total_cost),
             ],
             'mortar_info' => [
                 'volume' => NumberHelper::format($this->mortar_volume) . ' M3',
@@ -488,35 +492,35 @@ class BrickCalculation extends Model
                     '40kg' => NumberHelper::format($this->cement_quantity_40kg) . ' sak',
                     '50kg' => NumberHelper::format($this->cement_quantity_50kg) . ' sak',
                     'kg' => NumberHelper::format($this->cement_kg) . ' kg',
-                    'cost' => 'Rp ' . number_format($this->cement_total_cost, 0, ',', '.'),
+                    'cost' => NumberHelper::currency($this->cement_total_cost),
                 ],
                 'sand' => [
                     'sak' => NumberHelper::format($this->sand_sak) . ' karung',
                     'kg' => NumberHelper::format($this->sand_kg) . ' kg',
                     'm3' => NumberHelper::format($this->sand_m3) . ' M3',
-                    'cost' => 'Rp ' . number_format($this->sand_total_cost, 0, ',', '.'),
+                    'cost' => NumberHelper::currency($this->sand_total_cost),
                 ],
                 'cat' => [
                     'quantity' => NumberHelper::format($this->cat_quantity) . ' kemasan',
                     'kg' => NumberHelper::format($this->cat_kg) . ' kg',
                     'liters' => NumberHelper::format($this->paint_liters) . ' liter',
-                    'cost' => 'Rp ' . number_format($this->cat_total_cost, 0, ',', '.'),
+                    'cost' => NumberHelper::currency($this->cat_total_cost),
                 ],
                 'ceramic' => [
-                    'quantity' => number_format($this->ceramic_quantity, 0) . ' pcs',
+                    'quantity' => NumberHelper::format($this->ceramic_quantity) . ' pcs',
                     'packages' => NumberHelper::format($this->ceramic_packages) . ' dus',
-                    'cost' => 'Rp ' . number_format($this->ceramic_total_cost, 0, ',', '.'),
+                    'cost' => NumberHelper::currency($this->ceramic_total_cost),
                 ],
                 'nat' => [
                     'quantity' => NumberHelper::format($this->nat_quantity) . ' bks',
                     'kg' => NumberHelper::format($this->nat_kg) . ' kg',
-                    'cost' => 'Rp ' . number_format($this->nat_total_cost, 0, ',', '.'),
+                    'cost' => NumberHelper::currency($this->nat_total_cost),
                 ],
                 'water' => [
                     'liters' => NumberHelper::format($this->water_liters) . ' liter',
                 ],
             ],
-            'total_cost' => 'Rp ' . number_format($this->total_material_cost, 0, ',', '.'),
+            'total_cost' => NumberHelper::currency($this->total_material_cost),
         ];
     }
 }

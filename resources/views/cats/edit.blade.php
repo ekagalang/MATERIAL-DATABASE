@@ -253,7 +253,7 @@
                                     <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: inherit; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
-                                           value="{{ $cat->comparison_price_per_kg ? number_format($cat->comparison_price_per_kg, 0, ',', '.') : '' }}"
+                                           value="{{ $cat->comparison_price_per_kg ? \App\Helpers\NumberHelper::format($cat->comparison_price_per_kg) : '' }}"
                                            class="autocomplete-input"
                                            data-field="comparison_price_per_kg"
                                            inputmode="numeric"

@@ -15,46 +15,105 @@ function initCeramicForm(root) {
     }
 
     function unformatRupiah(str) {
-        return (str || '').toString().replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
+        return (str || '').toString().replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
     }
 
-    function formatRupiah(num) {
-        const n = Number(num || 0);
-        if (!isFinite(n)) return '';
-        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+    function truncateNumber(value, decimals = 2) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const factor = 10 ** decimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        return truncated / factor;
     }
 
-    function getSmartPrecision(num) {
-        if (!isFinite(num)) return 0;
-        if (Math.floor(num) === num) return 0;
+    function formatPlainNumber(value, decimals = 2) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const resolvedDecimals = Math.max(0, decimals);
+        const factor = 10 ** resolvedDecimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const intPart = Math.floor(abs / factor).toString();
+        if (resolvedDecimals === 0) {
+            return `${sign}${intPart}`;
+        }
+        const decPart = (abs % factor).toString().padStart(resolvedDecimals, '0');
+        return `${sign}${intPart}.${decPart}`;
+    }
 
-        const str = num.toFixed(30);
-        const decimalPart = (str.split('.')[1] || '');
-        let firstNonZero = decimalPart.length;
-        for (let i = 0; i < decimalPart.length; i++) {
-            if (decimalPart[i] !== '0') {
-                firstNonZero = i;
+    function formatDynamicPlain(value) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (num === 0) return '0';
+
+        const absValue = Math.abs(num);
+        const epsilon = Math.min(absValue * 1e-12, 1e-6);
+        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+        const sign = adjusted < 0 ? '-' : '';
+        const abs = Math.abs(adjusted);
+        const intPart = Math.trunc(abs);
+
+        if (intPart > 0) {
+            const scaled = Math.trunc(abs * 100);
+            const intDisplay = Math.trunc(scaled / 100).toString();
+            let decPart = String(scaled % 100).padStart(2, '0');
+            decPart = decPart.replace(/0+$/, '');
+            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        }
+
+        let fraction = abs;
+        let digits = '';
+        let firstNonZeroIndex = null;
+        const maxDigits = 30;
+
+        for (let i = 0; i < maxDigits; i++) {
+            fraction *= 10;
+            const digit = Math.floor(fraction + 1e-12);
+            fraction -= digit;
+            digits += String(digit);
+
+            if (digit !== 0 && firstNonZeroIndex === null) {
+                firstNonZeroIndex = i;
+            }
+
+            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
                 break;
             }
         }
 
-        if (firstNonZero === decimalPart.length) return 0;
-        return firstNonZero + 2;
+        digits = digits.replace(/0+$/, '');
+        if (!digits) return '0';
+        return `${sign}0.${digits}`;
+    }
+
+    function formatRupiah(num) {
+        const plain = formatPlainNumber(num, 0);
+        if (!plain) return '';
+        const parts = plain.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+        const sign = intPart.startsWith('-') ? '-' : '';
+        const digits = sign ? intPart.slice(1) : intPart;
+        const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        if (!decPart || /^0+$/.test(decPart)) {
+            return `${sign}${withThousands}`;
+        }
+        return `${sign}${withThousands},${decPart}`;
     }
 
     function normalizeSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return NaN;
-        const precision = getSmartPrecision(num);
-        return precision ? Number(num.toFixed(precision)) : num;
+        const plain = formatDynamicPlain(value);
+        const num = plain ? Number(plain) : NaN;
+        return isFinite(num) ? num : NaN;
     }
 
     function formatSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartPrecision(num);
-        if (!precision) return num.toString();
-        return num.toFixed(precision).replace(/\.?0+$/, '');
+        const plain = formatDynamicPlain(value);
+        if (!plain) return '';
+        return plain.replace('.', ',');
     }
 
     function formatNumberTrim(value) {
@@ -149,8 +208,9 @@ function initCeramicForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(pricePerPackageDisplay?.value || '');
-        if (pricePerPackage) pricePerPackage.value = raw || '';
-        if (pricePerPackageDisplay) pricePerPackageDisplay.value = raw ? formatRupiah(raw) : '';
+        const normalized = raw ? formatPlainNumber(raw, 0) : '';
+        if (pricePerPackage) pricePerPackage.value = normalized || '';
+        if (pricePerPackageDisplay) pricePerPackageDisplay.value = normalized ? formatRupiah(normalized) : '';
 
         // Mark that price was edited last
         if (raw) {
@@ -158,11 +218,12 @@ function initCeramicForm(root) {
         }
 
         // Calculate comparison price from price per package
-        if (raw && currentCoverage > 0) {
-            const calcComparison = parseFloat(raw) / currentCoverage;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = formatRupiah(Math.round(calcComparison));
-        } else if (!raw) {
+        if (normalized && currentCoverage > 0) {
+            const calcComparison = Number(normalized) / currentCoverage;
+            const calcPlain = formatPlainNumber(calcComparison, 0);
+            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        } else if (!normalized) {
             // Clear comparison if price is cleared
             if (comparisonPrice) comparisonPrice.value = '';
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
@@ -177,8 +238,9 @@ function initCeramicForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
-        if (comparisonPrice) comparisonPrice.value = raw || '';
-        if (comparisonPriceDisplay) comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
+        const normalized = raw ? formatPlainNumber(raw, 0) : '';
+        if (comparisonPrice) comparisonPrice.value = normalized || '';
+        if (comparisonPriceDisplay) comparisonPriceDisplay.value = normalized ? formatRupiah(normalized) : '';
 
         // Mark that comparison was edited last
         if (raw) {
@@ -186,11 +248,12 @@ function initCeramicForm(root) {
         }
 
         // Calculate price per package from comparison price
-        if (raw && currentCoverage > 0) {
-            const calcPrice = parseFloat(raw) * currentCoverage;
-            if (pricePerPackage) pricePerPackage.value = Math.round(calcPrice);
-            if (pricePerPackageDisplay) pricePerPackageDisplay.value = formatRupiah(Math.round(calcPrice));
-        } else if (!raw) {
+        if (normalized && currentCoverage > 0) {
+            const calcPrice = Number(normalized) * currentCoverage;
+            const calcPlain = formatPlainNumber(calcPrice, 0);
+            if (pricePerPackage) pricePerPackage.value = calcPlain || '';
+            if (pricePerPackageDisplay) pricePerPackageDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        } else if (!normalized) {
             // Clear price if comparison is cleared
             if (pricePerPackage) pricePerPackage.value = '';
             if (pricePerPackageDisplay) pricePerPackageDisplay.value = '';
@@ -208,21 +271,25 @@ function initCeramicForm(root) {
         // Recalculate based on which field was edited last
         if (lastEditedPriceField === 'price' && priceValue > 0) {
             const calcComparison = priceValue / currentCoverage;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = formatRupiah(Math.round(calcComparison));
+            const calcPlain = formatPlainNumber(calcComparison, 0);
+            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
         } else if (lastEditedPriceField === 'comparison' && compValue > 0) {
             const calcPrice = compValue * currentCoverage;
-            if (pricePerPackage) pricePerPackage.value = Math.round(calcPrice);
-            if (pricePerPackageDisplay) pricePerPackageDisplay.value = formatRupiah(Math.round(calcPrice));
+            const calcPlain = formatPlainNumber(calcPrice, 0);
+            if (pricePerPackage) pricePerPackage.value = calcPlain || '';
+            if (pricePerPackageDisplay) pricePerPackageDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
         } else {
             if (priceValue > 0) {
                 const calcComparison = priceValue / currentCoverage;
-                if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-                if (comparisonPriceDisplay) comparisonPriceDisplay.value = formatRupiah(Math.round(calcComparison));
+                const calcPlain = formatPlainNumber(calcComparison, 0);
+                if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+                if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
             } else if (compValue > 0) {
                 const calcPrice = compValue * currentCoverage;
-                if (pricePerPackage) pricePerPackage.value = Math.round(calcPrice);
-                if (pricePerPackageDisplay) pricePerPackageDisplay.value = formatRupiah(Math.round(calcPrice));
+                const calcPlain = formatPlainNumber(calcPrice, 0);
+                if (pricePerPackage) pricePerPackage.value = calcPlain || '';
+                if (pricePerPackageDisplay) pricePerPackageDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
             }
         }
     }
@@ -436,7 +503,7 @@ function initCeramicForm(root) {
                     // Format display untuk field tertentu
                     let displayValue = v;
                     if (field === 'price_per_package' || field === 'comparison_price_per_m2') {
-                        displayValue = 'Rp ' + Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                        displayValue = 'Rp ' + formatRupiah(v);
                     } else if (['dimension_length', 'dimension_width', 'dimension_thickness'].includes(field)) {
                         displayValue = formatSuggestionNumber(v);
                     }
@@ -446,12 +513,12 @@ function initCeramicForm(root) {
                         isSelectingFromAutosuggest = true;
                         // Handle special fields dengan kalkulasi
                         if (field === 'price_per_package') {
-                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                            input.value = formatRupiah(v);
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
                             }
                         } else if (field === 'comparison_price_per_m2') {
-                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                            input.value = formatRupiah(v);
                             if (typeof syncComparisonFromDisplay === 'function') {
                                 syncComparisonFromDisplay();
                             }

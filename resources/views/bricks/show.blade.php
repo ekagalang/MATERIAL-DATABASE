@@ -171,7 +171,7 @@
                             @if($brick->price_per_piece)
                                 <span style="font-weight: 600; color: #64748b;">Rp</span>
                                 <span style="font-weight: 700; color: #0f172a;">
-                                    {{ number_format($brick->price_per_piece, 0, ',', '.') }}
+                                    @price($brick->price_per_piece)
                                 </span>
                                 <span style="color: #94a3b8; font-size: 12px;">/ Buah</span>
                             @else
@@ -197,7 +197,7 @@
                                             border-radius: 10px;">
                                     <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
-                                        {{ number_format($brick->comparison_price_per_m3, 0, ',', '.') }}
+                                        @price($brick->comparison_price_per_m3)
                                     </span>
                                     <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ M3</span>
                                 </div>

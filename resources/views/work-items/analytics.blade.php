@@ -31,7 +31,7 @@
                             Total Calculations
                         </div>
                         <div style="color: #0f172a; font-size: 32px; font-weight: 700; margin-bottom: 4px;">
-                            {{ number_format($analytics['total_calculations']) }}
+                            @format($analytics['total_calculations'])
                         </div>
                         <div style="color: #94a3b8; font-size: 13px;">
                             Recorded entries
@@ -57,7 +57,7 @@
                             Total Material Cost
                         </div>
                         <div style="color: #0f172a; font-size: 28px; font-weight: 700; margin-bottom: 4px;">
-                            Rp {{ number_format($analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'], 0, ',', '.') }}
+                            @currency($analytics['total_brick_cost'] + $analytics['total_cement_cost'] + $analytics['total_sand_cost'])
                         </div>
                         <div style="color: #94a3b8; font-size: 13px;">
                             Cumulative total
@@ -70,7 +70,7 @@
                             Average Cost per M²
                         </div>
                         <div style="color: #0f172a; font-size: 28px; font-weight: 700; margin-bottom: 4px;">
-                            Rp {{ number_format($analytics['avg_cost_per_m2'], 0, ',', '.') }}
+                            @currency($analytics['avg_cost_per_m2'])
                         </div>
                         <div style="color: #94a3b8; font-size: 13px;">
                             Per square meter
@@ -216,7 +216,7 @@
                                         <div style="font-size: 11px; color: #64748b; line-height: 1.5;">
                                             <div>{{ $data['brick']->type ?? '-' }}</div>
                                             <div>{{ $data['brick']->dimension_length }}×{{ $data['brick']->dimension_width }}×{{ $data['brick']->dimension_height }} cm</div>
-                                            <div style="font-weight: 600; color: #0f172a; margin-top: 4px;">Rp {{ number_format($data['brick']->price_per_piece, 0, ',', '.') }}/pc</div>
+                                            <div style="font-weight: 600; color: #0f172a; margin-top: 4px;">@currency($data['brick']->price_per_piece)/pc</div>
                                         </div>
                                     </div>
                                 @endforeach
@@ -252,7 +252,7 @@
                                         <div style="font-size: 11px; color: #64748b; line-height: 1.5;">
                                             <div>{{ $data['cement']->type ?? '-' }}</div>
                                             <div>{{ $data['cement']->package_weight_net }} Kg / {{ $data['cement']->package_unit }}</div>
-                                            <div style="font-weight: 600; color: #0f172a; margin-top: 4px;">Rp {{ number_format($data['cement']->package_price, 0, ',', '.') }}/{{ $data['cement']->package_unit }}</div>
+                                            <div style="font-weight: 600; color: #0f172a; margin-top: 4px;">@currency($data['cement']->package_price)/{{ $data['cement']->package_unit }}</div>
                                         </div>
                                     </div>
                                 @endforeach
@@ -288,7 +288,7 @@
                                         <div style="font-size: 11px; color: #64748b; line-height: 1.5;">
                                             <div>{{ $data['sand']->type ?? '-' }}</div>
                                             <div>{{ $data['sand']->sand_name ?? '-' }}</div>
-                                            <div style="font-weight: 600; color: #0f172a; margin-top: 4px;">Rp {{ number_format($data['sand']->package_price, 0, ',', '.') }}/{{ $data['sand']->package_unit }}</div>
+                                            <div style="font-weight: 600; color: #0f172a; margin-top: 4px;">@currency($data['sand']->package_price)/{{ $data['sand']->package_unit }}</div>
                                         </div>
                                     </div>
                                 @endforeach
@@ -358,34 +358,77 @@
         text: '#475569'
     };
 
-    function getSmartPrecision(num) {
-        if (!isFinite(num)) return 0;
-        if (Math.floor(num) === num) return 0;
+    function truncateFixedParts(value, decimals = 2) {
+        const num = Number(value);
+        const resolvedDecimals = Math.max(0, decimals);
+        if (!isFinite(num)) {
+            return { sign: '', intPart: '0', decPart: ''.padEnd(resolvedDecimals, '0') };
+        }
+        const factor = 10 ** resolvedDecimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const intPart = Math.floor(abs / factor).toString();
+        const decPart = (abs % factor).toString().padStart(resolvedDecimals, '0');
+        return { sign, intPart, decPart };
+    }
 
-        const str = num.toFixed(30);
-        const decimalPart = (str.split('.')[1] || '');
-        let firstNonZero = decimalPart.length;
-        for (let i = 0; i < decimalPart.length; i++) {
-            if (decimalPart[i] !== '0') {
-                firstNonZero = i;
+    function formatFixedLocale(value, decimals = 2) {
+        const parts = truncateFixedParts(value, decimals);
+        const withThousands = parts.intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        if (!parts.decPart || /^0+$/.test(parts.decPart)) {
+            return `${parts.sign}${withThousands}`;
+        }
+        return `${parts.sign}${withThousands},${parts.decPart}`;
+    }
+
+    function formatDynamicPlain(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (num === 0) return '0';
+
+        const absValue = Math.abs(num);
+        const epsilon = Math.min(absValue * 1e-12, 1e-6);
+        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+        const sign = adjusted < 0 ? '-' : '';
+        const abs = Math.abs(adjusted);
+        const intPart = Math.trunc(abs);
+
+        if (intPart > 0) {
+            const scaled = Math.trunc(abs * 100);
+            const intDisplay = Math.trunc(scaled / 100).toString();
+            let decPart = String(scaled % 100).padStart(2, '0');
+            decPart = decPart.replace(/0+$/, '');
+            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        }
+
+        let fraction = abs;
+        let digits = '';
+        let firstNonZeroIndex = null;
+        const maxDigits = 30;
+
+        for (let i = 0; i < maxDigits; i++) {
+            fraction *= 10;
+            const digit = Math.floor(fraction + 1e-12);
+            fraction -= digit;
+            digits += String(digit);
+
+            if (digit !== 0 && firstNonZeroIndex === null) {
+                firstNonZeroIndex = i;
+            }
+
+            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
                 break;
             }
         }
 
-        if (firstNonZero === decimalPart.length) return 0;
-        return firstNonZero + 2;
+        digits = digits.replace(/0+$/, '');
+        if (!digits) return '0';
+        return `${sign}0.${digits}`;
     }
 
-    function formatSmartDecimalPlain(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartPrecision(num);
-        if (!precision) return num.toString();
-        return num.toFixed(precision).replace(/\.?0+$/, '');
-    }
-
-    function formatSmartDecimalLocale(value) {
-        const plain = formatSmartDecimalPlain(value);
+    function formatDynamicLocale(value) {
+        const plain = formatDynamicPlain(value);
         if (!plain) return '';
         const parts = plain.split('.');
         const intPart = parts[0] || '0';
@@ -393,7 +436,10 @@
         const sign = intPart.startsWith('-') ? '-' : '';
         const digits = sign ? intPart.slice(1) : intPart;
         const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        return decPart ? `${sign}${withThousands},${decPart}` : `${sign}${withThousands}`;
+        if (!decPart) {
+            return `${sign}${withThousands}`;
+        }
+        return `${sign}${withThousands},${decPart}`;
     }
 
     // Monthly Trends Line Chart
@@ -509,7 +555,7 @@
                     callbacks: {
                         label: function(context) {
                             let value = context.parsed || 0;
-                            return 'Rp ' + Math.round(value).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                            return 'Rp ' + formatFixedLocale(value, 0);
                         }
                     }
                 }
@@ -544,7 +590,7 @@
                     borderColor: '#334155',
                     borderWidth: 1,
                     callbacks: {
-                        label: (context) => 'Area: ' + formatSmartDecimalLocale(context.parsed.y) + ' M²'
+                        label: (context) => 'Area: ' + formatDynamicLocale(context.parsed.y) + ' M²'
                     }
                 }
             },
@@ -556,7 +602,7 @@
                     ticks: {
                         font: { size: 11 },
                         color: colors.text,
-                        callback: (value) => formatSmartDecimalLocale(value) + ' M²'
+                        callback: (value) => formatDynamicLocale(value) + ' M²'
                     }
                 },
                 x: {
@@ -594,7 +640,7 @@
                     borderColor: '#334155',
                     borderWidth: 1,
                     callbacks: {
-                        label: (context) => 'Cost: Rp ' + Math.round(context.parsed.y).toLocaleString('id-ID', { maximumFractionDigits: 0 })
+                        label: (context) => 'Cost: Rp ' + formatFixedLocale(context.parsed.y, 0)
                     }
                 }
             },
@@ -606,7 +652,7 @@
                     ticks: {
                         font: { size: 11 },
                         color: colors.text,
-                        callback: (value) => 'Rp ' + Math.round(value / 1000000).toLocaleString('id-ID', { maximumFractionDigits: 0 }) + 'M'
+                        callback: (value) => 'Rp ' + formatFixedLocale(value, 0)
                     }
                 },
                 x: {

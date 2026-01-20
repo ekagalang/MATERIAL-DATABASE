@@ -486,13 +486,53 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalTitle = document.getElementById('modalTitle');
     const closeBtn = document.getElementById('closeModal');
     const backdrop = modal.querySelector('.floating-modal-backdrop');
+    let isFormDirty = false;
 
     // Intercept form submission in modal
     function interceptFormSubmit() {
         const form = modalBody.querySelector('form');
         if (form) {
+            // Track dirty state
+            form.addEventListener('input', () => { isFormDirty = true; });
+            form.addEventListener('change', () => { isFormDirty = true; });
+
             form.addEventListener('submit', function(e) {
-                // Let form submit normally - akan redirect
+                const methodInput = form.querySelector('input[name="_method"]');
+                const isUpdate = methodInput && (methodInput.value === 'PUT' || methodInput.value === 'PATCH');
+
+                if (isUpdate) {
+                    e.preventDefault();
+                    
+                    if (typeof window.showConfirm === 'function') {
+                        window.showConfirm({
+                            title: 'Simpan Perubahan?',
+                            message: 'Apakah Anda yakin ingin menyimpan perubahan data ini?',
+                            confirmText: 'Simpan',
+                            cancelText: 'Batal',
+                            type: 'primary'
+                        }).then(confirmed => {
+                            if (confirmed) {
+                                // Disable button to prevent double submit
+                                const btn = form.querySelector('button[type="submit"]');
+                                if (btn) {
+                                    btn.disabled = true;
+                                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+                                }
+                                HTMLFormElement.prototype.submit.call(form);
+                            }
+                        });
+                    } else if (confirm('Simpan perubahan data ini?')) {
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                    return;
+                }
+                
+                // For create, just show loading state
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Menyimpan...';
+                }
             });
         }
     }
@@ -502,6 +542,9 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const url = this.href;
+
+            // Reset dirty flag
+            isFormDirty = false;
 
             // Show modal
             modal.classList.add('active');
@@ -538,11 +581,23 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Close modal function - Local
-    window.closeFloatingModalLocal = function() {
+    window.closeFloatingModalLocal = async function() {
+        if (isFormDirty) {
+            const confirmed = await window.showConfirm({
+                title: 'Batalkan Perubahan?',
+                message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
+                confirmText: 'Ya, Tutup',
+                cancelText: 'Kembali',
+                type: 'warning'
+            });
+            if (!confirmed) return;
+        }
+
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
             modalBody.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="spinner-border" role="status"></div></div>';
+            isFormDirty = false;
         }, 300);
     }
 

@@ -12,37 +12,102 @@ function initMaterialCalculationForm(root, formData) {
     const sandsData = formData?.sands || [];
     const catsData = formData?.cats || [];
 
-    function getSmartPrecision(num) {
-        if (!isFinite(num)) return 0;
-        if (Math.floor(num) === num) return 0;
+    function truncateNumber(value, decimals = 2) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const factor = 10 ** decimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        return truncated / factor;
+    }
 
-        const str = num.toFixed(30);
-        const decimalPart = (str.split('.')[1] || '');
-        let firstNonZero = decimalPart.length;
-        for (let i = 0; i < decimalPart.length; i++) {
-            if (decimalPart[i] !== '0') {
-                firstNonZero = i;
+    function formatPlainNumber(value, decimals = 2) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const resolvedDecimals = Math.max(0, decimals);
+        const factor = 10 ** resolvedDecimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const intPart = Math.floor(abs / factor).toString();
+        if (resolvedDecimals === 0) {
+            return `${sign}${intPart}`;
+        }
+        const decPart = (abs % factor).toString().padStart(resolvedDecimals, '0');
+        return `${sign}${intPart}.${decPart}`;
+    }
+
+    function formatDynamicPlain(value) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (num === 0) return '0';
+
+        const absValue = Math.abs(num);
+        const epsilon = Math.min(absValue * 1e-12, 1e-6);
+        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+        const sign = adjusted < 0 ? '-' : '';
+        const abs = Math.abs(adjusted);
+        const intPart = Math.trunc(abs);
+
+        if (intPart > 0) {
+            const scaled = Math.trunc(abs * 100);
+            const intDisplay = Math.trunc(scaled / 100).toString();
+            let decPart = String(scaled % 100).padStart(2, '0');
+            decPart = decPart.replace(/0+$/, '');
+            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        }
+
+        let fraction = abs;
+        let digits = '';
+        let firstNonZeroIndex = null;
+        const maxDigits = 30;
+
+        for (let i = 0; i < maxDigits; i++) {
+            fraction *= 10;
+            const digit = Math.floor(fraction + 1e-12);
+            fraction -= digit;
+            digits += String(digit);
+
+            if (digit !== 0 && firstNonZeroIndex === null) {
+                firstNonZeroIndex = i;
+            }
+
+            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
                 break;
             }
         }
 
-        if (firstNonZero === decimalPart.length) return 0;
-        return firstNonZero + 2;
+        digits = digits.replace(/0+$/, '');
+        if (!digits) return '0';
+        return `${sign}0.${digits}`;
+    }
+
+    function formatFixedLocale(value, decimals = 2) {
+        const plain = formatPlainNumber(value, decimals);
+        if (!plain) return '';
+        const parts = plain.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+        const sign = intPart.startsWith('-') ? '-' : '';
+        const digits = sign ? intPart.slice(1) : intPart;
+        const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        if (!decPart || /^0+$/.test(decPart)) {
+            return `${sign}${withThousands}`;
+        }
+        return `${sign}${withThousands},${decPart}`;
     }
 
     function normalizeSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return NaN;
-        const precision = getSmartPrecision(num);
-        return precision ? Number(num.toFixed(precision)) : num;
+        const plain = formatDynamicPlain(value);
+        const num = plain ? Number(plain) : NaN;
+        return isFinite(num) ? num : NaN;
     }
 
     function formatSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartPrecision(num);
-        if (!precision) return num.toString();
-        return num.toFixed(precision).replace(/\.?0+$/, '');
+        const plain = formatDynamicPlain(value);
+        if (!plain) return '';
+        return plain.replace('.', ',');
     }
 
     // Helper function to calculate area
@@ -285,8 +350,8 @@ function initMaterialCalculationForm(root, formData) {
                     filteredCements.forEach(cement => {
                         const option = document.createElement('option');
                         option.value = cement.id;
-                        const price = Math.round(Number(cement.package_price || 0));
-                        option.textContent = `${cement.brand} (${cement.package_weight_net}kg) - Rp ${price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
+                        const price = formatFixedLocale(cement.package_price || 0, 0);
+                        option.textContent = `${cement.brand} (${cement.package_weight_net}kg) - Rp ${price}`;
                         brandSelect.appendChild(option);
                     });
                 }
@@ -337,8 +402,8 @@ function initMaterialCalculationForm(root, formData) {
                         const option = document.createElement('option');
                         option.value = sand.id;
                         const pricePerM3 = sand.comparison_price_per_m3 || (sand.package_price / sand.package_volume);
-                        const roundedPrice = Math.round(Number(pricePerM3 || 0));
-                        option.textContent = `${sand.package_volume} M3 - Rp ${roundedPrice.toLocaleString('id-ID', { maximumFractionDigits: 0 })}/M3`;
+                        const roundedPrice = formatFixedLocale(pricePerM3 || 0, 0);
+                        option.textContent = `${sand.package_volume} M3 - Rp ${roundedPrice}/M3`;
                         packageSelect.appendChild(option);
                     });
                 }
@@ -388,8 +453,8 @@ function initMaterialCalculationForm(root, formData) {
                     filteredCats.forEach(cat => {
                         const option = document.createElement('option');
                         option.value = cat.id;
-                        const price = Math.round(Number(cat.purchase_price || 0));
-                        option.textContent = `${cat.package_weight_net} kg - Rp ${price.toLocaleString('id-ID', { maximumFractionDigits: 0 })}`;
+                        const price = formatFixedLocale(cat.purchase_price || 0, 0);
+                        option.textContent = `${cat.package_weight_net} kg - Rp ${price}`;
                         packageSelect.appendChild(option);
                     });
                 }

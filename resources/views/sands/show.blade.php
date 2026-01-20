@@ -174,7 +174,7 @@
                             @if($sand->package_price)
                                 <span style="font-weight: 600; color: #64748b;">Rp</span>
                                 <span style="font-weight: 700; color: #0f172a;">
-                                    {{ number_format($sand->package_price, 0, ',', '.') }}
+                                    @price($sand->package_price)
                                 </span>
                                 <span style="color: #94a3b8; font-size: 12px;">/ {{ $sand->packageUnit->name ?? $sand->package_unit ?? 'Kemasan' }}</span>
                             @else
@@ -199,7 +199,7 @@
                                             border-radius: 10px;">
                                     <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
-                                        {{ number_format($sand->comparison_price_per_m3, 0, ',', '.') }}
+                                        @price($sand->comparison_price_per_m3)
                                     </span>
                                     <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ M3</span>
                                 </div>

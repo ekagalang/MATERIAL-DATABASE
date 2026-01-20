@@ -387,7 +387,7 @@
                     {{-- ROW 1: BATA --}}
                     @if($hasBrick)
                     <tr class="text-nowrap">
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->brick_quantity, 0, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->brick_quantity)</td>
                         <td class="text-center sticky-col-2">Bh</td>
                         <td class="fw-bold sticky-col-3">Bata</td>
                         <td class="text-muted">{{ $brickType }}</td>
@@ -399,14 +399,14 @@
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->brick_price_per_piece, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->brick_price_per_piece)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ bh</td>
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->brick_total_cost, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->brick_total_cost)</span>
                             </div>
                         </td>
                         
@@ -414,13 +414,13 @@
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">@price($materialCalculation->total_material_cost)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">@price($costPerM2)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -430,7 +430,7 @@
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->brick_price_per_piece, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->brick_price_per_piece)</span>
                             </div>
                         </td>
                         <td class="text-muted ps-1">/ bh</td>
@@ -452,14 +452,14 @@
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->cement_price_per_sak)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cement_total_cost, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->cement_total_cost)</span>
                             </div>
                         </td>
                         
@@ -467,13 +467,13 @@
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">@price($materialCalculation->total_material_cost)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">@price($costPerM2)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -483,7 +483,7 @@
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cement_price_per_sak, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->cement_price_per_sak)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cement->package_unit ?? 'Sak' }}</td>
@@ -505,14 +505,14 @@
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->sand_price_per_m3, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->sand_price_per_m3)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->sand_total_cost, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->sand_total_cost)</span>
                             </div>
                         </td>
                         
@@ -520,13 +520,13 @@
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">@price($materialCalculation->total_material_cost)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">@price($costPerM2)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -536,7 +536,7 @@
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->sand_price_per_m3, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->sand_price_per_m3)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->sand->package_unit ?? 'M3' }}</td>
@@ -558,14 +558,14 @@
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cat_price_per_package, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->cat_price_per_package)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cat_total_cost, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->cat_total_cost)</span>
                             </div>
                         </td>
                         
@@ -573,13 +573,13 @@
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">@price($materialCalculation->total_material_cost)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">@price($costPerM2)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -589,7 +589,7 @@
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->cat_price_per_package, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->cat_price_per_package)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ {{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
@@ -599,7 +599,7 @@
                     {{-- ROW CERAMIC (NEW) --}}
                     @if($showCeramicRow)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">{{ number_format($materialCalculation->ceramic_quantity, 0, ',', '.') }}</td>
+                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->ceramic_quantity)</td>
                         <td class="text-center sticky-col-2">Bh</td>
                         <td class="fw-bold sticky-col-3">Keramik</td>
                         <td class="text-muted">{{ optional($materialCalculation->ceramic)->type ?? ($isGroutOnly ? 'Referensi' : '-') }}</td>
@@ -612,14 +612,14 @@
                             <td class="text-nowrap fw-bold">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>{{ number_format(optional($materialCalculation->ceramic)->price_per_package ?? 0, 0, ',', '.') }}</span>
+                                    <span>@format(optional($materialCalculation->ceramic)->price_per_package ?? 0)</span>
                                 </div>
                             </td>
                             <td class="text-muted text-nowrap ps-1">/ Dus</td>
                             <td class="text-nowrap">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>{{ number_format($materialCalculation->ceramic_total_cost, 0, ',', '.') }}</span>
+                                    <span>@price($materialCalculation->ceramic_total_cost)</span>
                                 </div>
                             </td>
                         @else
@@ -632,13 +632,13 @@
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">@price($materialCalculation->total_material_cost)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">@price($costPerM2)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -649,7 +649,7 @@
                             <td class="text-nowrap">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>{{ number_format(optional($materialCalculation->ceramic)->price_per_package ?? 0, 0, ',', '.') }}</span>
+                                    <span>@format(optional($materialCalculation->ceramic)->price_per_package ?? 0)</span>
                                 </div>
                             </td>
                             <td class="text-muted text-nowrap ps-1">/ Dus</td>
@@ -675,14 +675,14 @@
                         <td class="text-nowrap fw-bold">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->nat->package_price ?? 0, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->nat->package_price ?? 0)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ Bks</td>
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->nat_total_cost, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->nat_total_cost)</span>
                             </div>
                         </td>
                         
@@ -690,13 +690,13 @@
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-success-dark" style="font-size: 15px;">Rp</span>
-                                    <span class="text-success-dark" style="font-size: 15px;">{{ number_format($materialCalculation->total_material_cost, 0, ',', '.') }}</span>
+                                    <span class="text-success-dark" style="font-size: 15px;">@price($materialCalculation->total_material_cost)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="text-end bg-highlight align-top rowspan-cell">
                                 <div class="d-flex justify-content-between w-100">
                                     <span class="text-primary-dark" style="font-size: 14px;">Rp</span>
-                                    <span class="text-primary-dark" style="font-size: 14px;">{{ number_format($costPerM2, 0, ',', '.') }}</span>
+                                    <span class="text-primary-dark" style="font-size: 14px;">@price($costPerM2)</span>
                                 </div>
                             </td>
                             <td rowspan="{{ $rowSpan }}" class="bg-highlight align-top text-muted fw-bold text-start ps-1 rowspan-cell" style="max-width: 30px">/ M2</td>
@@ -706,7 +706,7 @@
                         <td class="text-nowrap">
                             <div class="d-flex justify-content-between w-100">
                                 <span>Rp</span>
-                                <span>{{ number_format($materialCalculation->nat->package_price ?? 0, 0, ',', '.') }}</span>
+                                <span>@price($materialCalculation->nat->package_price ?? 0)</span>
                             </div>
                         </td>
                         <td class="text-muted text-nowrap ps-1">/ Bks</td>

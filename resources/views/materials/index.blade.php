@@ -224,7 +224,7 @@ html.materials-booting .page-content {
   }
 
   /* Force Aksi column width */
-  .table-container thead th:last-child,
+  .table-container thead tr:not(.dim-sub-row) th:last-child,
   .table-container tbody td:last-child {
       width: 90px !important;
       min-width: 90px !important;
@@ -273,6 +273,8 @@ html.materials-booting .page-content {
       text-align: center !important;
       font-size: 12px !important;
       width: 50px !important;
+      min-width: 50px !important;
+      max-width: 50px !important;
       padding: 2px 2px !important;
       height: 35px !important;
   }
@@ -545,6 +547,17 @@ html.materials-booting .page-content {
   body.materials-lock .material-tab-card .table-container {
       flex: 1 1 auto;
       overflow-y: auto;
+  }
+  /* Utility classes for removing borders in grouped columns - Ultra High Specificity */
+  .material-tab-panel .table-container tbody td.border-left-none {
+      border-left: 0 !important;
+      border-left-style: none !important;
+      border-left-color: transparent !important;
+  }
+  .material-tab-panel .table-container tbody td.border-right-none {
+      border-right: 0 !important;
+      border-right-style: none !important;
+      border-right-color: transparent !important;
   }
   @media (max-width: 992px) {
       html.materials-lock .material-tab-wrapper,
@@ -1125,9 +1138,9 @@ html.materials-booting .page-content {
                                             <th rowspan="2" class="action-cell">Aksi</th>
                                         </tr>
                                         <tr class="dim-sub-row">
-                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
-                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
-                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
                                         </tr>
 
                                     @elseif($material['type'] == 'sand')
@@ -1235,9 +1248,9 @@ html.materials-booting .page-content {
                                             <th rowspan="2" class="action-cell">Aksi</th>
                                         </tr>
                                         <tr class="dim-sub-row">
-                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">P</th>
-                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">L</th>
-                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 40px;">T</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
+                                            <th style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
                                         </tr>
 
                                     @elseif($material['type'] == 'cat')
@@ -1665,15 +1678,16 @@ html.materials-booting .page-content {
                                         <th rowspan="2" class="action-cell">Aksi</th>
                                     </tr>
                                     <tr class="dim-sub-row">
-                                        <th class="ceramic-sticky-col col-dim-p" style="text-align: center; font-size: 12px; padding: 0 2px;">P</th>
-                                        <th class="ceramic-sticky-col col-dim-l" style="text-align: center; font-size: 12px; padding: 0 2px;">L</th>
-                                        <th class="ceramic-sticky-col col-dim-t" style="text-align: center; font-size: 12px; padding: 0 2px;">T</th>
+                                        <th class="ceramic-sticky-col col-dim-p" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">P</th>
+                                        <th class="ceramic-sticky-col col-dim-l" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">L</th>
+                                        <th class="ceramic-sticky-col col-dim-t" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
                                     </tr>
                                 @endif
                             </thead>
                             @php
                                 $letterGroups = $material['data']->groupBy(function ($item) use ($material) {
-                                    $groupValue = in_array($material['type'], ['ceramic','brick','sand','cat','cement'], true) ? ($item->type ?? '') : ($item->brand ?? '');
+                                    // Modified to group by brand for all materials as requested
+                                    $groupValue = $item->brand ?? '';
                                     $groupValue = trim((string) $groupValue);
                                     return $groupValue !== '' ? strtoupper(substr($groupValue, 0, 1)) : '#';
                                 });
@@ -1727,59 +1741,59 @@ html.materials-booting .page-content {
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell border-right-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell border-left-none border-right-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
                                                 @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell border-left-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_height))
                                                 @format($item->dimension_height)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px; font-size: 12px;">
+                                        <td class="border-right-none" style="text-align: right; width: 80px; min-width: 80px; font-size: 12px;">
                                             @if($item->package_volume)
                                                 @format($item->package_volume)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">M3</td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">M3</td>
                                         <td class="brick-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
                                             <div class="brick-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="brick-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="brick-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
                                         </td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 60px; min-width: 60px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->price_per_piece)
-                                                {{ number_format($item->price_per_piece, 0, ',', '.') }}
+                                                @price($item->price_per_piece)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 60px; min-width: 60px;">/ Bh</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-left-none" style="text-align: left; width: 60px; min-width: 60px;">/ Bh</td>
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_m3)
-                                                {{ number_format($item->comparison_price_per_m3, 0, ',', '.') }}
+                                                @price($item->comparison_price_per_m3)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
 
                                     @elseif($material['type'] == 'cat')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
@@ -1787,61 +1801,61 @@ html.materials-booting .page-content {
                                         <td style="text-align: start;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="text-align: right; font-size: 12px;">{{ $item->color_code ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->color_name ?? '-' }}</td>
-                                        <td style="text-align: right; width: 50px; min-width: 50px;">
+                                        <td class="border-right-none" style="text-align: right; width: 50px; min-width: 50px;">
                                             @if($item->package_unit)
                                                 {{ $item->packageUnit?->name ?? $item->package_unit }}
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; width: 50px; min-width: 50px;">
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 50px; min-width: 50px;">
                                             @if($item->package_weight_gross)
-                                                (@format($item->package_weight_gross)
+                                                (  @format($item->package_weight_gross )
                                             @else
-                                                <span>(-</span>
+                                                <span>(  -</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 50px; min-width: 50px;">Kg)</td>
-                                        <td style="text-align: right; width: 60px; min-width: 60px;">
+                                        <td class="border-left-none" style="text-align: left; width: 50px; min-width: 50px;">Kg  )</td>
+                                        <td class="border-right-none" style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->volume)
                                                 @format($item->volume)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 30px; min-width: 30px;">L</td>
-                                        <td style="text-align: right; width: 60px; min-width: 60px;">
+                                        <td class="border-left-none" style="text-align: left; width: 30px; min-width: 30px;">L</td>
+                                        <td class="border-right-none" style="text-align: right; width: 60px; min-width: 60px;">
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
                                                 @format($item->package_weight_net)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 30px; min-width: 30px;">Kg</td>
+                                        <td class="border-left-none" style="text-align: left; width: 30px; min-width: 30px;">Kg</td>
                                         <td class="cat-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
                                             <div class="cat-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="cat-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="cat-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
                                         </td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->purchase_price)
-                                                {{ number_format($item->purchase_price, 0, ',', '.') }}
+                                                @price($item->purchase_price)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 80px; min-width: 80px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-left-none" style="text-align: left; width: 80px; min-width: 80px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_kg)
-                                                {{ number_format($item->comparison_price_per_kg, 0, ',', '.') }}
+                                                @price($item->comparison_price_per_kg)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>@elseif($material['type'] == 'cement')
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>@elseif($material['type'] == 'cement')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
@@ -1854,39 +1868,39 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px; font-size: 12px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px; font-size: 12px;">
                                             @if($item->package_weight_net && $item->package_weight_net > 0)
                                                 @format($item->package_weight_net)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">Kg</td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">Kg</td>
                                         <td class="cement-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
                                             <div class="cement-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="cement-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="cement-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
                                         </td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->package_price)
-                                                {{ number_format($item->package_price, 0, ',', '.') }}
+                                                @price($item->package_price)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_kg)
-                                                {{ number_format($item->comparison_price_per_kg, 0, ',', '.') }}
+                                                @price($item->comparison_price_per_kg)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>
 
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>
                                     @elseif($material['type'] == 'sand')
                                         <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
@@ -1897,77 +1911,77 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell border-right-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell border-left-none border-right-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
                                                 @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
+                                        <td class="dim-cell border-left-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_height))
                                                 @format($item->dimension_height)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
+                                        <td class="border-right-none" style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
                                             @if($item->package_volume)
                                                 @format($item->package_volume)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 30px; min-width: 30px;">M3</td>
+                                        <td class="border-left-none" style="text-align: left; width: 30px; min-width: 30px;">M3</td>
                                         <td class="sand-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
                                             <div class="sand-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="sand-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="sand-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
                                         </td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->package_price)
-                                                {{ number_format($item->package_price, 0, ',', '.') }}
+                                                @price($item->package_price)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 80px; min-width: 80px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-left-none" style="text-align: left; width: 80px; min-width: 80px;">/ {{ $item->packageUnit?->name ?? $item->package_unit ?? '-' }}</td>
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_m3)
-                                                {{ number_format($item->comparison_price_per_m3, 0, ',', '.') }}
+                                                @price($item->comparison_price_per_m3)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
 
                                     @elseif($material['type'] == 'ceramic')
                                         <td class="ceramic-sticky-col col-type" style="text-align: left;">{{ $item->type ?? '-' }}</td>
-                                        <td class="dim-cell ceramic-sticky-col col-dim-p" style="text-align: center; font-size: 12px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col col-dim-p border-right-none" style="text-align: center; font-size: 12px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_length))
                                                 @format($item->dimension_length)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell ceramic-sticky-col col-dim-l" style="text-align: center; font-size: 12px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col col-dim-l border-left-none border-right-none" style="text-align: center; font-size: 12px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_width))
                                                 @format($item->dimension_width)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="dim-cell ceramic-sticky-col col-dim-t" style="text-align: center; font-size: 12px; padding: 0 2px;">
+                                        <td class="dim-cell ceramic-sticky-col col-dim-t border-left-none" style="text-align: center; font-size: 12px; padding: 0 2px;">
                                             @if(!is_null($item->dimension_thickness))
                                                 @format($item->dimension_thickness)
                                             @else
@@ -1980,47 +1994,47 @@ html.materials-booting .page-content {
                                         <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->color ?? '-' }}</td>
                                         <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">{{ $item->packaging ?? '-' }}</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">{{ $item->packaging ?? '-' }}</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 40px; min-width: 40px; font-size: 13px;">
                                             @if($item->pieces_per_package)
-                                                ({{ number_format($item->pieces_per_package, 0, ',', '.') }}
+                                                (  @format($item->pieces_per_package)
                                             @else
-                                                <span>(-</span>
+                                                <span>(  -</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">Lbr)</td>
-                                        <td style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">Lbr  )</td>
+                                        <td class="border-right-none" style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
                                             @if($item->coverage_per_package)
                                                 @format($item->coverage_per_package)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 30px; min-width: 30px;">M2</td>
+                                        <td class="border-left-none" style="text-align: left; width: 30px; min-width: 30px;">M2</td>
                                         <td class="ceramic-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
                                             <div class="ceramic-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
                                         </td>
                                         <td class="ceramic-scroll-td" style="text-align: left; width: 200px; min-width: 200px; max-width: 200px;">
                                             <div class="ceramic-scroll-cell" style="max-width: 200px; width: 100%; white-space: nowrap;">{{ $item->address ?? '-' }}</div>
                                         </td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->price_per_package)
-                                                {{ number_format($item->price_per_package, 0, ',', '.') }}
+                                                @price($item->price_per_package)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packaging ?? '-' }}</td>
-                                        <td style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
-                                        <td style="text-align: right; width: 80px; min-width: 80px;">
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ {{ $item->packaging ?? '-' }}</td>
+                                        <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
+                                        <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
                                             @if($item->comparison_price_per_m2)
-                                                {{ number_format($item->comparison_price_per_m2, 0, ',', '.') }}
+                                                @price($item->comparison_price_per_m2)
                                             @else
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td style="text-align: left; width: 40px; min-width: 40px;">/ M2</td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ M2</td>
                                     @endif
                                     <td class="text-center action-cell">
                                         <div class="btn-group-compact">
@@ -2089,7 +2103,7 @@ html.materials-booting .page-content {
 
                                     <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
                                         <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
-                                            {{ number_format($material['db_count'], 0, ',', '.') }}
+                                            @format($material['db_count'])
                                         </span>
                                     </div>
                                 </div>
@@ -2110,7 +2124,7 @@ html.materials-booting .page-content {
 
                                     <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
                                         <span class="material-footer-count" style="font-size: 32px; line-height: 1;">
-                                            {{ number_format($grandTotal, 0, ',', '.') }}
+                                            @format($grandTotal)
                                         </span>
                                     </div>
                                 </div>
@@ -2681,6 +2695,34 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!form.__submitIntercepted) {
                 form.__submitIntercepted = true;
                 form.addEventListener('submit', function(e) {
+                    const methodInput = form.querySelector('input[name="_method"]');
+                    const isUpdate = methodInput && (methodInput.value === 'PUT' || methodInput.value === 'PATCH');
+
+                    if (isUpdate) {
+                        e.preventDefault();
+                        // Use async confirmation
+                        if (typeof window.showConfirm === 'function') {
+                            window.showConfirm({
+                                title: 'Simpan Perubahan?',
+                                message: 'Apakah Anda yakin ingin menyimpan perubahan data ini?',
+                                confirmText: 'Simpan',
+                                cancelText: 'Batal',
+                                type: 'primary'
+                            }).then(confirmed => {
+                                if (confirmed) {
+                                    showLoadingState(form);
+                                    HTMLFormElement.prototype.submit.call(form);
+                                }
+                            });
+                        } else {
+                            if (confirm('Simpan perubahan data ini?')) {
+                                showLoadingState(form);
+                                HTMLFormElement.prototype.submit.call(form);
+                            }
+                        }
+                        return;
+                    }
+
                     console.log('[Modal] Form submitting to:', form.action);
                     // Log all form data
                     const formData = new FormData(form);
@@ -2689,17 +2731,20 @@ document.addEventListener('DOMContentLoaded', function() {
                             console.log('[Modal] Form data:', key, '=', value);
                         }
                     }
-                    // Show loading state before submit
-                    const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
-                    }
-                    // Let form submit normally, controller will redirect back
+                    showLoadingState(form);
                 });
             }
         } else {
             console.error('[Modal] No form found in modalBody');
+        }
+    }
+
+    function showLoadingState(form) {
+        // Show loading state before submit
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
         }
     }
 
@@ -2789,11 +2834,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (modal && modalBody && modalTitle && closeBtn && backdrop) {
+        let isFormDirty = false;
+
         document.querySelectorAll('.open-modal').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const url = this.href;
             const { materialType, action, materialLabel } = getMaterialInfo(url);
+
+            // Reset dirty flag immediately on open
+            isFormDirty = false;
 
             modal.classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -2835,6 +2885,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 modalBody.innerHTML = content ? content.outerHTML : html;
 
+                // Track dirty state
+                const loadedForm = modalBody.querySelector('form');
+                if (loadedForm) {
+                    loadedForm.addEventListener('input', () => { isFormDirty = true; });
+                    loadedForm.addEventListener('change', () => { isFormDirty = true; });
+                }
+
                 // Always intercept form submit first to add redirect URL
                 interceptFormSubmit();
 
@@ -2850,17 +2907,42 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function closeModal() {
+    async function closeModal() {
+        if (isFormDirty) {
+            const confirmed = await window.showConfirm({
+                title: 'Batalkan Perubahan?',
+                message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
+                confirmText: 'Ya, Tutup',
+                cancelText: 'Kembali',
+                type: 'warning'
+            });
+            if (!confirmed) return;
+        }
+
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
             modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+            isFormDirty = false;
         }, 300);
     }
 
     // Expose closeModal as global function for form cancel buttons
     window.closeFloatingModalLocal = closeModal;
-    window.closeFloatingModal = closeModal; // Alias for compatibility with edit forms
+    
+    // Save original global closer (from app.blade.php)
+    const originalGlobalCloser = window.closeFloatingModal;
+    
+    window.closeFloatingModal = function() {
+        // If local modal is open, use local closer (with dirty check)
+        if (modal.classList.contains('active')) {
+            return closeModal();
+        }
+        // Otherwise delegate to original global closer (which handles global modal dirty check)
+        if (typeof originalGlobalCloser === 'function') {
+            return originalGlobalCloser();
+        }
+    };
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
