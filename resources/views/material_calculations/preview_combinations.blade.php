@@ -3493,7 +3493,9 @@ $(document).ready(function() {
                     if (response.success) {
                         // Hide loading, show content
                         $ceramicProject.find('.loading-placeholder').hide();
-                        $ceramicProject.find('.combinations-content').html(response.html).show();
+                        const $content = $ceramicProject.find('.combinations-content');
+                        $content.html(response.html).show();
+                        ensureCeramicModals($content);
                         $ceramicProject.data('loaded', 'true');
                         if (typeof window.updatePreviewScrollIndicators === 'function') {
                             window.updatePreviewScrollIndicators();
@@ -3521,6 +3523,30 @@ $(document).ready(function() {
         $ceramicProject.find('.combinations-content')
             .html(`<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> ${message}</div>`)
             .show();
+    }
+
+    function ensureCeramicModalInBody(modalEl) {
+        if (!modalEl || !modalEl.id) {
+            return;
+        }
+        const existing = document.querySelectorAll('body > #' + modalEl.id);
+        existing.forEach(function(node) {
+            if (node !== modalEl) {
+                node.remove();
+            }
+        });
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
+    }
+
+    function ensureCeramicModals($container) {
+        if (!$container || !$container.length) {
+            return;
+        }
+        $container.find('.modal[id^="ceramicAllPriceModal"]').each(function() {
+            ensureCeramicModalInBody(this);
+        });
     }
 
     function enqueueCeramic($ceramicProject) {
@@ -3630,13 +3656,30 @@ $(document).ready(function() {
         showSizePaneByTarget($(this).attr('data-bs-target'));
     });
 
+    $(document).on('click', '[data-ceramic-modal-target]', function(event) {
+        const targetId = $(this).data('ceramic-modal-target');
+        if (!targetId) {
+            return;
+        }
+        const modalEl = document.getElementById(targetId);
+        if (!modalEl) {
+            return;
+        }
+        event.preventDefault();
+        ensureCeramicModalInBody(modalEl);
+        if (window.bootstrap && bootstrap.Modal) {
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        }
+    });
+
     console.log('Lazy loading initialized for', $('.ceramic-project').length, 'ceramics');
 });
 </script>
 @endif
 <script>
 document.addEventListener('shown.bs.modal', function(event) {
-    if (!event.target || event.target.id !== 'allPriceModal') return;
+    if (!event.target) return;
+    if (event.target.id !== 'allPriceModal' && !event.target.id.startsWith('ceramicAllPriceModal-')) return;
     const backdrop = document.querySelector('.modal-backdrop');
     if (backdrop) {
         backdrop.classList.add('modal-high-backdrop');
@@ -3644,7 +3687,8 @@ document.addEventListener('shown.bs.modal', function(event) {
 });
 
 document.addEventListener('hidden.bs.modal', function(event) {
-    if (!event.target || event.target.id !== 'allPriceModal') return;
+    if (!event.target) return;
+    if (event.target.id !== 'allPriceModal' && !event.target.id.startsWith('ceramicAllPriceModal-')) return;
     const backdrop = document.querySelector('.modal-backdrop');
     if (backdrop) {
         backdrop.classList.remove('modal-high-backdrop');

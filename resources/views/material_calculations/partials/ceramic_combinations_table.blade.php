@@ -3,6 +3,26 @@
 
 @php
     $isGroupMode = $isGroupMode ?? false;
+    $contextType = $ceramic->type ?? null;
+    $contextLength = (float)($ceramic->dimension_length ?? 0);
+    $contextWidth = (float)($ceramic->dimension_width ?? 0);
+    $modalId = 'ceramicAllPriceModal-' . ($ceramic->id ?? 'group') . '-' . (int)$contextLength . 'x' . (int)$contextWidth;
+    $matchesCeramicContext = function ($item) use ($contextType, $contextLength, $contextWidth) {
+        if (!isset($item['ceramic'])) {
+            return true;
+        }
+        $candidate = $item['ceramic'];
+        if ($contextType && isset($candidate->type) && $candidate->type !== $contextType) {
+            return false;
+        }
+        $candidateLength = (float)($candidate->dimension_length ?? 0);
+        $candidateWidth = (float)($candidate->dimension_width ?? 0);
+        if ($contextLength > 0 && $contextWidth > 0) {
+            return ($candidateLength === $contextLength && $candidateWidth === $contextWidth)
+                || ($candidateLength === $contextWidth && $candidateWidth === $contextLength);
+        }
+        return true;
+    };
 @endphp
 
 <div id="preview-top"></div>
@@ -33,8 +53,7 @@
         style="border: 1px solid #f59e0b; background-color: transparent; color: #f59e0b;
         padding: 6px 16px; font-size: 13px; font-weight: 600; border-radius: 8px;
         display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;"
-        data-bs-toggle="modal"
-        data-bs-target="#ceramicAllPriceModal-{{ $ceramic->id ?? 'group' }}">
+        data-ceramic-modal-target="{{ $modalId }}">
         <i class="bi bi-list-ul"></i> Daftar Harga
     </button>
 </div>
@@ -52,6 +71,9 @@
                 $priceCandidates = [];
                 foreach ($combinations as $label => $items) {
                     foreach ($items as $item) {
+                        if (!$matchesCeramicContext($item)) {
+                            continue;
+                        }
                         $priceCandidates[] = [
                             'label' => $label,
                             'item' => $item,
@@ -107,10 +129,12 @@
                             $labelParts = array_map('trim', explode('=', $label));
                             // Check if this group of items corresponds to the current key (e.g. "TerBAIK 1")
                             if (in_array($key, $labelParts)) {
-                                // Found the group! Now we need the specific item for this key if possible.
-                                // In most cases, $items has 1 element or they are identical for this label.
-                                // Just take the first one.
-                                $matchItem = $items[0] ?? null;
+                                foreach ($items as $item) {
+                                    if ($matchesCeramicContext($item)) {
+                                        $matchItem = $item;
+                                        break;
+                                    }
+                                }
                                 break; 
                             }
                         }
@@ -1190,6 +1214,9 @@
     if (!empty($combinations)) {
         foreach ($combinations as $label => $items) {
             foreach ($items as $item) {
+                if (!$matchesCeramicContext($item)) {
+                    continue;
+                }
                 $allPriceCandidates[] = [
                     'label' => $label,
                     'item' => $item,
@@ -1239,8 +1266,12 @@
     }
     
     // Separate Best and Common for quick view
-    $bestRows = array_filter($allPriceRows, fn($row) => str_contains($row['display_label'], 'TerBAIK'));
-    $commonRows = array_filter($allPriceRows, fn($row) => str_contains($row['display_label'], 'TerUMUM'));
+    $bestRows = array_filter($allPriceRows, function ($row) {
+        return isset($row['display_label']) && strpos($row['display_label'], 'TerBAIK') !== false;
+    });
+    $commonRows = array_filter($allPriceRows, function ($row) {
+        return isset($row['display_label']) && strpos($row['display_label'], 'TerUMUM') !== false;
+    });
 @endphp
 
 <style>
@@ -1267,7 +1298,7 @@
 </style>
 
 @if(count($allPriceRows) > 0)
-    <div class="modal fade modal-high" id="ceramicAllPriceModal-{{ $ceramic->id ?? 'group' }}" tabindex="-1" aria-hidden="true">
+    <div class="modal fade modal-high" id="{{ $modalId }}" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-md modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1359,17 +1390,3 @@
     </div>
 @endif
 
-<script>
-    (function() {
-        const modalId = "ceramicAllPriceModal-{{ $ceramic->id ?? 'group' }}";
-        // Move modal to body to avoid stacking context issues (backdrop overlaying modal)
-        // First, check if there's already one in body and remove it (cleanup)
-        const existingModals = document.querySelectorAll(`body > #${modalId}`);
-        existingModals.forEach(el => el.remove());
-
-        const modalEl = document.getElementById(modalId);
-        if (modalEl) {
-            document.body.appendChild(modalEl);
-        }
-    })();
-</script>

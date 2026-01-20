@@ -610,6 +610,7 @@ class MaterialCalculationController extends Controller
     {
         $priceFilters = $request->price_filters ?? ['best'];
         $allCombinations = [];
+        $groupCeramicIds = $ceramics->pluck('id')->all();
 
         // Pre-fetch related materials to avoid N+1 in loops
         $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->get();
@@ -690,6 +691,12 @@ class MaterialCalculationController extends Controller
             // For 'common' filter, use historical frequency data
             if ($filter === 'common') {
                 $commonCombos = $this->getCommonCombinations($brick, $request);
+                if (!empty($groupCeramicIds)) {
+                    $commonCombos = array_values(array_filter($commonCombos, function ($combo) use ($groupCeramicIds) {
+                        $ceramicId = $combo['ceramic']->id ?? null;
+                        return $ceramicId && in_array($ceramicId, $groupCeramicIds, true);
+                    }));
+                }
                 foreach ($commonCombos as $index => $combo) {
                     $number = $index + 1;
                     $filterLabel = $this->getFilterLabel($filter);
