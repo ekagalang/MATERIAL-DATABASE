@@ -169,7 +169,7 @@ class BrickQuarterFormula implements FormulaInterface
             'formula' => 'Jumlah tingkat * Kolom vertikal bata',
             'calculations' => [
                 'Perhitungan' => "$jumlahTingkat * $kolomVertikalBata",
-                'Hasil' => number_format($jumlahBata),
+                'Hasil' => NumberHelper::format($jumlahBata),
             ],
         ];
 

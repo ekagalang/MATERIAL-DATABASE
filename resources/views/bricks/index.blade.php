@@ -428,30 +428,84 @@ let currentSortDirection = null;
 // HELPER FUNCTIONS
 // ========================================
 
-function getSmartPrecision(num) {
-    if (!isFinite(num)) return 0;
-    if (Math.floor(num) === num) return 0;
+function formatFixedPlain(value, decimals = 2) {
+    const num = Number(value);
+    if (!isFinite(num)) return '';
+    const resolvedDecimals = Math.max(0, decimals);
+    const factor = 10 ** resolvedDecimals;
+    const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+    const sign = truncated < 0 ? '-' : '';
+    const abs = Math.abs(truncated);
+    const intPart = Math.floor(abs / factor).toString();
+    if (resolvedDecimals === 0) {
+        return `${sign}${intPart}`;
+    }
+    const decPart = (abs % factor).toString().padStart(resolvedDecimals, '0');
+    return `${sign}${intPart}.${decPart}`;
+}
 
-    const str = num.toFixed(30);
-    const decimalPart = (str.split('.')[1] || '');
-    let firstNonZero = decimalPart.length;
-    for (let i = 0; i < decimalPart.length; i++) {
-        if (decimalPart[i] !== '0') {
-            firstNonZero = i;
+function formatDynamicPlain(value) {
+    const num = Number(value);
+    if (!isFinite(num)) return '';
+    if (num === 0) return '0';
+
+    const absValue = Math.abs(num);
+    const epsilon = Math.min(absValue * 1e-12, 1e-6);
+    const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+    const sign = adjusted < 0 ? '-' : '';
+    const abs = Math.abs(adjusted);
+    const intPart = Math.trunc(abs);
+
+    if (intPart > 0) {
+        const scaled = Math.trunc(abs * 100);
+        const intDisplay = Math.trunc(scaled / 100).toString();
+        let decPart = String(scaled % 100).padStart(2, '0');
+        decPart = decPart.replace(/0+$/, '');
+        return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+    }
+
+    let fraction = abs;
+    let digits = '';
+    let firstNonZeroIndex = null;
+    const maxDigits = 30;
+
+    for (let i = 0; i < maxDigits; i++) {
+        fraction *= 10;
+        const digit = Math.floor(fraction + 1e-12);
+        fraction -= digit;
+        digits += String(digit);
+
+        if (digit !== 0 && firstNonZeroIndex === null) {
+            firstNonZeroIndex = i;
+        }
+
+        if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
             break;
         }
     }
 
-    if (firstNonZero === decimalPart.length) return 0;
-    return firstNonZero + 2;
+    digits = digits.replace(/0+$/, '');
+    if (!digits) return '0';
+    return `${sign}0.${digits}`;
+}
+
+function formatFixedLocale(value, decimals = 2) {
+    const plain = formatFixedPlain(value, decimals);
+    if (!plain) return '';
+    const parts = plain.split('.');
+    const intPart = parts[0] || '0';
+    const decPart = parts[1] || '';
+    const sign = intPart.startsWith('-') ? '-' : '';
+    const digits = sign ? intPart.slice(1) : intPart;
+    const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    if (!decPart || /^0+$/.test(decPart)) {
+        return `${sign}${withThousands}`;
+    }
+    return `${sign}${withThousands},${decPart}`;
 }
 
 function formatSmartDecimalPlain(value) {
-    const num = Number(value);
-    if (!isFinite(num)) return '';
-    const precision = getSmartPrecision(num);
-    if (!precision) return num.toString();
-    return num.toFixed(precision).replace(/\.?0+$/, '');
+    return formatDynamicPlain(value);
 }
 
 function formatDimension(value) {
@@ -474,11 +528,12 @@ function formatPrice(value) {
     if (!value || value === null) {
         return '<span style="color: #cbd5e1;">—</span>';
     }
+    const formatted = formatFixedLocale(value, 0);
     return `
         <div style="display: flex; width: 100%; font-size: 13px;">
             <span style="color: #64748b; font-weight: 500;">Rp</span>
             <span style="color: #0f172a; font-weight: 600; text-align: right; flex: 1; margin-left: 4px;">
-                ${parseInt(value).toLocaleString('id-ID')}
+                ${formatted}
             </span>
         </div>
     `;

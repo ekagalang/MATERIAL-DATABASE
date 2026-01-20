@@ -63,11 +63,12 @@ class PaintingFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
+        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
 
         // ============ STEP 1: Load Input Parameters ============
-        $panjang = $params['wall_length']; // m
-        $tinggi = $params['wall_height']; // m
-        $jumlahLapis = $params['layer_count']; // jumlah lapis pengecatan
+        $panjang = $n($params['wall_length']); // m
+        $tinggi = $n($params['wall_height']); // m
+        $jumlahLapis = $n($params['layer_count']); // jumlah lapis pengecatan
 
         $trace['steps'][] = [
             'step' => 1,
@@ -90,9 +91,9 @@ class PaintingFormula implements FormulaInterface
             }
         }
 
-        $beratBersihCat = $cat->package_weight_net; // kg
-        $coverageRate = 7.5; // M2 per kg per lapis
-        $ratioAir = 0.05; // 5% dari berat bersih cat
+        $beratBersihCat = $n($cat->package_weight_net); // kg
+        $coverageRate = $n(7.5); // M2 per kg per lapis
+        $ratioAir = $n(0.05); // 5% dari berat bersih cat
 
         $trace['steps'][] = [
             'step' => 2,
@@ -106,7 +107,7 @@ class PaintingFormula implements FormulaInterface
         ];
 
         // ============ STEP 3: Hitung Luas Bidang ============
-        $luasBidang = $panjang * $tinggi;
+        $luasBidang = $n($panjang * $tinggi);
 
         $trace['steps'][] = [
             'step' => 3,
@@ -120,7 +121,8 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 4: Hitung Volume Adukan Per Kemasan ============
         // Volume adukan per kemasan = Berat bersih cat + (berat bersih cat * 5%)
-        $volumeAdukanPerKemasan = $beratBersihCat + $beratBersihCat * $ratioAir;
+        $beratAirPerKemasan = $n($beratBersihCat * $ratioAir);
+        $volumeAdukanPerKemasan = $n($beratBersihCat + $beratAirPerKemasan);
 
         $trace['steps'][] = [
             'step' => 4,
@@ -129,14 +131,14 @@ class PaintingFormula implements FormulaInterface
             'info' => 'Total berat cat + air per kemasan',
             'calculations' => [
                 'Berat Cat' => NumberHelper::format($beratBersihCat) . ' kg',
-                'Berat Air (5%)' => NumberHelper::format($beratBersihCat * $ratioAir) . ' kg',
+                'Berat Air (5%)' => NumberHelper::format($beratAirPerKemasan) . ' kg',
                 'Total Volume Adukan' => NumberHelper::format($volumeAdukanPerKemasan) . ' kg',
             ],
         ];
 
         // ============ STEP 5: Hitung Luas Pengecatan Per Lapis Per Kemasan ============
         // Luas pengecatan per lapis per kemasan = 7.5 M2 per kg per lapis * volume adukan per kemasan
-        $luasPengecatanPerLapisPerKemasan = $coverageRate * $volumeAdukanPerKemasan;
+        $luasPengecatanPerLapisPerKemasan = $n($coverageRate * $volumeAdukanPerKemasan);
 
         $trace['steps'][] = [
             'step' => 5,
@@ -151,7 +153,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 6: Hitung Volume Adukan Per 1M2 ============
         // Volume adukan Per 1M2 = Volume adukan per kemasan / Luas pengecatan per lapis per kemasan
-        $volumeAdukanPer1M2 = $volumeAdukanPerKemasan / $luasPengecatanPerLapisPerKemasan;
+        $volumeAdukanPer1M2 = $n($volumeAdukanPerKemasan / $luasPengecatanPerLapisPerKemasan);
 
         $trace['steps'][] = [
             'step' => 6,
@@ -168,7 +170,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 7: Hitung Galon Per 1M2 ============
         // Galon per 1M2 = 1 / luas pengecatan per 1 lapis per kemasan
-        $galonPer1M2 = 1 / $luasPengecatanPerLapisPerKemasan;
+        $galonPer1M2 = $n(1 / $luasPengecatanPerLapisPerKemasan);
 
         $trace['steps'][] = [
             'step' => 7,
@@ -184,10 +186,13 @@ class PaintingFormula implements FormulaInterface
         // Liter per 1M2 = Volume kemasan cat / luas pengecatan per 1 lapis per kemasan
         // Hanya dihitung jika cat memiliki data volume
         $volumeKemasan = $cat->volume ?? null;
+        if ($volumeKemasan !== null) {
+            $volumeKemasan = $n($volumeKemasan);
+        }
         $literPer1M2 = null;
 
         if ($volumeKemasan && $volumeKemasan > 0) {
-            $literPer1M2 = $volumeKemasan / $luasPengecatanPerLapisPerKemasan;
+            $literPer1M2 = $n($volumeKemasan / $luasPengecatanPerLapisPerKemasan);
 
             $trace['steps'][] = [
                 'step' => 8,
@@ -204,7 +209,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 9: Hitung Kg Per 1M2 ============
         // Kg per 1M2 = Berat bersih / luas pengecatan per 1 sisi per kemasan
-        $kgCatPer1M2 = $beratBersihCat / $luasPengecatanPerLapisPerKemasan;
+        $kgCatPer1M2 = $n($beratBersihCat / $luasPengecatanPerLapisPerKemasan);
 
         $trace['steps'][] = [
             'step' => 9,
@@ -219,8 +224,8 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 10: Hitung Liter Air Per 1M2 ============
         // Liter air per 1M2 = Ratio air (5%) / luas pengecatan per 1 sisi per kemasan
-        $beratAir = $beratBersihCat * $ratioAir;
-        $literAirPer1M2 = $beratAir / $luasPengecatanPerLapisPerKemasan;
+        $beratAir = $beratAirPerKemasan;
+        $literAirPer1M2 = $n($beratAir / $luasPengecatanPerLapisPerKemasan);
 
         $trace['steps'][] = [
             'step' => 10,
@@ -236,7 +241,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 11: Hitung Volume Adukan Cat Per Pekerjaan (1 Lapis) ============
         // Volume adukan Cat per pekerjaan = Volume adukan Per 1M2 * Luas Bidang
-        $volumeAdukanPerPekerjaanPerLapis = $volumeAdukanPer1M2 * $luasBidang;
+        $volumeAdukanPerPekerjaanPerLapis = $n($volumeAdukanPer1M2 * $luasBidang);
 
         $trace['steps'][] = [
             'step' => 11,
@@ -250,7 +255,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 12: Hitung Galon Per Pekerjaan (1 Lapis) ============
         // Galon per pekerjaan = Galon per 1M2 * Luas bidang
-        $galonPerPekerjaanPerLapis = $galonPer1M2 * $luasBidang;
+        $galonPerPekerjaanPerLapis = $n($galonPer1M2 * $luasBidang);
 
         $trace['steps'][] = [
             'step' => 12,
@@ -267,7 +272,7 @@ class PaintingFormula implements FormulaInterface
         $literCatPerPekerjaanPerLapis = null;
 
         if ($literPer1M2 !== null) {
-            $literCatPerPekerjaanPerLapis = $literPer1M2 * $luasBidang;
+            $literCatPerPekerjaanPerLapis = $n($literPer1M2 * $luasBidang);
 
             $trace['steps'][] = [
                 'step' => 13,
@@ -282,7 +287,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 14: Hitung Kg Per Pekerjaan (1 Lapis) ============
         // Kg per pekerjaan = Kg per 1M2 * luas bidang
-        $kgCatPerPekerjaanPerLapis = $kgCatPer1M2 * $luasBidang;
+        $kgCatPerPekerjaanPerLapis = $n($kgCatPer1M2 * $luasBidang);
 
         $trace['steps'][] = [
             'step' => 14,
@@ -296,7 +301,7 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 15: Hitung Liter Air Per Pekerjaan (1 Lapis) ============
         // Liter air per pekerjaan = Liter air per 1M2 * Luas bidang
-        $literAirPerPekerjaanPerLapis = $literAirPer1M2 * $luasBidang;
+        $literAirPerPekerjaanPerLapis = $n($literAirPer1M2 * $luasBidang);
 
         $trace['steps'][] = [
             'step' => 15,
@@ -310,14 +315,14 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 16: Kalikan dengan Jumlah Lapis ============
         // Hasil akhir * banyak lapis
-        $volumeAdukanPekerjaan = $volumeAdukanPerPekerjaanPerLapis * $jumlahLapis;
-        $kemasanPekerjaan = $galonPerPekerjaanPerLapis * $jumlahLapis;
+        $volumeAdukanPekerjaan = $n($volumeAdukanPerPekerjaanPerLapis * $jumlahLapis);
+        $kemasanPekerjaan = $n($galonPerPekerjaanPerLapis * $jumlahLapis);
         $literCatPekerjaan =
-            $literCatPerPekerjaanPerLapis !== null ? $literCatPerPekerjaanPerLapis * $jumlahLapis : null;
-        $kgCatPekerjaan = $kgCatPerPekerjaanPerLapis * $jumlahLapis;
-        $literAirPekerjaan = $literAirPerPekerjaanPerLapis * $jumlahLapis;
+            $literCatPerPekerjaanPerLapis !== null ? $n($literCatPerPekerjaanPerLapis * $jumlahLapis) : null;
+        $kgCatPekerjaan = $n($kgCatPerPekerjaanPerLapis * $jumlahLapis);
+        $literAirPekerjaan = $n($literAirPerPekerjaanPerLapis * $jumlahLapis);
 
-        $grandLuasBidang = $luasBidang * $jumlahLapis;
+        $grandLuasBidang = $n($luasBidang * $jumlahLapis);
 
         $calculations = [
             'Volume Adukan Total' => NumberHelper::format($volumeAdukanPekerjaan) . ' kg',
@@ -347,17 +352,17 @@ class PaintingFormula implements FormulaInterface
         ];
 
         // ============ STEP 17: Hitung Harga ============
-        $catPrice = $cat->purchase_price ?? 0; // Harga per kemasan
-        $totalCatPrice = $kemasanPekerjaan * $catPrice;
-        $grandTotal = $totalCatPrice; // Hanya cat, tanpa material lain
+        $catPrice = $n($cat->purchase_price ?? 0, 0); // Harga per kemasan
+        $totalCatPrice = $n($kemasanPekerjaan * $catPrice, 0);
+        $grandTotal = $n($totalCatPrice, 0); // Hanya cat, tanpa material lain
 
         $trace['steps'][] = [
             'step' => 17,
             'title' => 'Perhitungan Harga',
             'calculations' => [
-                'Harga Cat per Kemasan' => 'Rp ' . number_format($catPrice, 0, ',', '.'),
-                'Total Harga Cat' => 'Rp ' . number_format($totalCatPrice, 0, ',', '.'),
-                'Grand Total' => 'Rp ' . number_format($grandTotal, 0, ',', '.'),
+                'Harga Cat per Kemasan' => NumberHelper::currency($catPrice),
+                'Total Harga Cat' => NumberHelper::currency($totalCatPrice),
+                'Grand Total' => NumberHelper::currency($grandTotal),
             ],
         ];
 
@@ -380,7 +385,7 @@ class PaintingFormula implements FormulaInterface
             'cement_m3' => 0,
             'sand_m3' => 0,
             'sand_sak' => 0,
-            'water_m3' => $literAirPekerjaan / 1000,
+            'water_m3' => $n($literAirPekerjaan / 1000),
             'mortar_volume_m3' => 0,
 
             // Prices

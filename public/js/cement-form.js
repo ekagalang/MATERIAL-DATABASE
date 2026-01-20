@@ -16,37 +16,16 @@ function initCementForm(root) {
     let currentPackageUnit = '';
     let currentStore = '';
 
-    function getSmartPrecision(num) {
-        if (!isFinite(num)) return 0;
-        if (Math.floor(num) === num) return 0;
-
-        const str = num.toFixed(30);
-        const decimalPart = (str.split('.')[1] || '');
-        let firstNonZero = decimalPart.length;
-        for (let i = 0; i < decimalPart.length; i++) {
-            if (decimalPart[i] !== '0') {
-                firstNonZero = i;
-                break;
-            }
-        }
-
-        if (firstNonZero === decimalPart.length) return 0;
-        return firstNonZero + 2;
-    }
-
     function normalizeSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return NaN;
-        const precision = getSmartPrecision(num);
-        return precision ? Number(num.toFixed(precision)) : num;
+        const plain = formatDynamicPlain(value);
+        const num = plain ? Number(plain) : NaN;
+        return isFinite(num) ? num : NaN;
     }
 
     function formatSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartPrecision(num);
-        if (!precision) return num.toString();
-        return num.toFixed(precision).replace(/\.?0+$/, '');
+        const plain = formatDynamicPlain(value);
+        if (!plain) return '';
+        return plain.replace('.', ',');
     }
 
     // Auto-suggest with cascading logic
@@ -91,13 +70,13 @@ function initCementForm(root) {
                             // Note: calculateVolume() will be triggered by the input event above
                         } else if (field === 'package_price') {
                             // Handle package price field - format and trigger sync
-                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                            input.value = formatRupiah(v);
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
                             }
                         } else if (field === 'comparison_price_per_kg') {
                             // Handle comparison price field - format and trigger sync
-                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                            input.value = formatRupiah(v);
                             if (typeof syncComparisonFromDisplay === 'function') {
                                 syncComparisonFromDisplay();
                             }
@@ -310,8 +289,9 @@ function initCementForm(root) {
 
         if (!isNaN(priceValue) && priceValue > 0) {
             const calcComparison = priceValue / net;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+            const calcPlain = formatPlainNumber(calcComparison, 0);
+            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
         } 
         // Priority 2: Jika harga kemasan kosong, tapi ada harga komparasi -> Hitung Harga Kemasan
         else {
@@ -320,8 +300,9 @@ function initCementForm(root) {
             
             if (!isNaN(compValue) && compValue > 0) {
                 const calcPrice = compValue * net;
-                if (packagePrice) packagePrice.value = Math.round(calcPrice);
-                if (packagePriceDisplay) packagePriceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+                const calcPlain = formatPlainNumber(calcPrice, 0);
+                if (packagePrice) packagePrice.value = calcPlain || '';
+                if (packagePriceDisplay) packagePriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
             }
         }
     }
@@ -351,13 +332,93 @@ function initCementForm(root) {
     }
 
     function unformatRupiah(str) {
-        return (str || '').toString().replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
+        return (str || '').toString().replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
+    }
+
+    function truncateNumber(value, decimals = 2) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const factor = 10 ** decimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        return truncated / factor;
+    }
+
+    function formatPlainNumber(value, decimals = 2) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const resolvedDecimals = Math.max(0, decimals);
+        const factor = 10 ** resolvedDecimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const intPart = Math.floor(abs / factor).toString();
+        if (resolvedDecimals === 0) {
+            return `${sign}${intPart}`;
+        }
+        const decPart = (abs % factor).toString().padStart(resolvedDecimals, '0');
+        return `${sign}${intPart}.${decPart}`;
+    }
+
+    function formatDynamicPlain(value) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (num === 0) return '0';
+
+        const absValue = Math.abs(num);
+        const epsilon = Math.min(absValue * 1e-12, 1e-6);
+        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+        const sign = adjusted < 0 ? '-' : '';
+        const abs = Math.abs(adjusted);
+        const intPart = Math.trunc(abs);
+
+        if (intPart > 0) {
+            const scaled = Math.trunc(abs * 100);
+            const intDisplay = Math.trunc(scaled / 100).toString();
+            let decPart = String(scaled % 100).padStart(2, '0');
+            decPart = decPart.replace(/0+$/, '');
+            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        }
+
+        let fraction = abs;
+        let digits = '';
+        let firstNonZeroIndex = null;
+        const maxDigits = 30;
+
+        for (let i = 0; i < maxDigits; i++) {
+            fraction *= 10;
+            const digit = Math.floor(fraction + 1e-12);
+            fraction -= digit;
+            digits += String(digit);
+
+            if (digit !== 0 && firstNonZeroIndex === null) {
+                firstNonZeroIndex = i;
+            }
+
+            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
+                break;
+            }
+        }
+
+        digits = digits.replace(/0+$/, '');
+        if (!digits) return '0';
+        return `${sign}0.${digits}`;
     }
 
     function formatRupiah(num) {
-        const n = Number(num || 0);
-        if (!isFinite(n)) return '';
-        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+        const plain = formatPlainNumber(num, 0);
+        if (!plain) return '';
+        const parts = plain.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+        const sign = intPart.startsWith('-') ? '-' : '';
+        const digits = sign ? intPart.slice(1) : intPart;
+        const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        if (!decPart || /^0+$/.test(decPart)) {
+            return `${sign}${withThousands}`;
+        }
+        return `${sign}${withThousands},${decPart}`;
     }
 
     // Sync Handlers
@@ -366,16 +427,18 @@ function initCementForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(packagePriceDisplay?.value || '');
-        if (packagePrice) packagePrice.value = raw;
-        if (packagePriceDisplay) packagePriceDisplay.value = raw ? formatRupiah(raw) : '';
+        const normalized = raw ? formatPlainNumber(raw, 0) : '';
+        if (packagePrice) packagePrice.value = normalized || '';
+        if (packagePriceDisplay) packagePriceDisplay.value = normalized ? formatRupiah(normalized) : '';
 
         // Trigger recalc partial (hanya update lawan)
         const net = getCurrentWeight();
-        if (raw && net > 0) {
-            const calcComparison = parseFloat(raw) / net;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
-        } else if (!raw) {
+        if (normalized && net > 0) {
+            const calcComparison = Number(normalized) / net;
+            const calcPlain = formatPlainNumber(calcComparison, 0);
+            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        } else if (!normalized) {
              // Jika dikosongkan, kosongkan juga lawannya? Opsional.
              // if (comparisonPrice) comparisonPrice.value = '';
              // if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
@@ -389,14 +452,16 @@ function initCementForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
-        if (comparisonPrice) comparisonPrice.value = raw;
-        if (comparisonPriceDisplay) comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
+        const normalized = raw ? formatPlainNumber(raw, 0) : '';
+        if (comparisonPrice) comparisonPrice.value = normalized || '';
+        if (comparisonPriceDisplay) comparisonPriceDisplay.value = normalized ? formatRupiah(normalized) : '';
 
         const net = getCurrentWeight();
-        if (raw && net > 0) {
-            const calcPrice = parseFloat(raw) * net;
-            if (packagePrice) packagePrice.value = Math.round(calcPrice);
-            if (packagePriceDisplay) packagePriceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+        if (normalized && net > 0) {
+            const calcPrice = Number(normalized) * net;
+            const calcPlain = formatPlainNumber(calcPrice, 0);
+            if (packagePrice) packagePrice.value = calcPlain || '';
+            if (packagePriceDisplay) packagePriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
         }
 
         isUpdatingPrice = false;

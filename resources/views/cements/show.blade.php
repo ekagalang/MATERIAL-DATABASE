@@ -202,7 +202,7 @@
                             @if($cement->package_price)
                                 <span style="font-weight: 600; color: #64748b;">Rp</span>
                                 <span style="font-weight: 700; color: #0f172a;">
-                                    {{ number_format($cement->package_price, 0, ',', '.') }}
+                                    @price($cement->package_price)
                                 </span>
                                 <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/ {{ $cement->price_unit ?? 'unit' }}</span>
                             @else
@@ -230,7 +230,7 @@
                                             border-radius: 10px;">
                                     <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
-                                        {{ number_format($cement->comparison_price_per_kg, 0, ',', '.') }}
+                                        @price($cement->comparison_price_per_kg)
                                     </span>
                                     <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ Kg</span>
                                 </div>

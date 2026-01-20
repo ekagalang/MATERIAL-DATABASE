@@ -110,6 +110,11 @@ class FormulaRegistry
                 }
             }
         }
+
+        // Sort formulas alphabetically by name
+        usort(self::$formulas, function ($a, $b) {
+            return strcasecmp($a['name'], $b['name']);
+        });
     }
 
     /**

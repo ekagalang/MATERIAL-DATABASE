@@ -15,6 +15,8 @@ use App\Repositories\CalculationRepository;
 use App\Services\FormulaRegistry;
 use App\Services\BrickCalculationTracer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class MaterialCalculationController extends Controller
@@ -151,7 +153,7 @@ class MaterialCalculationController extends Controller
             // 1. VALIDASI
             $rules = [
                 'work_type' => 'required',
-                'price_filters' => 'nullable|array',
+                'price_filters' => 'required|array|min:1',
                 'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
@@ -161,10 +163,10 @@ class MaterialCalculationController extends Controller
                 'skim_sides' => 'nullable|integer|min:1',
             ];
 
-            // Default to 'best' if no filters selected
-            if (!$request->has('price_filters') || empty($request->price_filters)) {
-                $request->merge(['price_filters' => ['best']]);
-            }
+            // Remove default 'best' merge to force user selection
+            // if (!$request->has('price_filters') || empty($request->price_filters)) {
+            //    $request->merge(['price_filters' => ['best']]);
+            // }
 
             // NEW LOGIC: Dynamic Material Validation based on Work Type
             $workType = $request->work_type;
@@ -322,6 +324,12 @@ class MaterialCalculationController extends Controller
 
     protected function generateCombinations(Request $request)
     {
+        $cacheKey = $this->buildCalculationCacheKey($request);
+        $cachedPayload = $this->getCalculationCachePayload($cacheKey);
+        if ($cachedPayload) {
+            return view('material_calculations.preview_combinations', $cachedPayload);
+        }
+
         $targetBricks = collect();
         $priceFilters = $request->price_filters ?? [];
         $workType = $request->work_type ?? 'brick_half';
@@ -398,12 +406,17 @@ class MaterialCalculationController extends Controller
         $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
         $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
 
-        return view('material_calculations.preview_combinations', [
+        $payload = [
             'projects' => $projects,
             'requestData' => $request->except(['brick_ids', 'brick_id']),
             'formulaName' => $formulaName,
             'isBrickless' => $isBrickless,
-        ]);
+            'ceramicProjects' => [],
+        ];
+
+        $this->storeCalculationCachePayload($cacheKey, $payload);
+
+        return view('material_calculations.preview_combinations', $payload);
     }
 
     /**
@@ -413,6 +426,12 @@ class MaterialCalculationController extends Controller
      */
     protected function generateMultiCeramicCombinations(Request $request)
     {
+        $cacheKey = $this->buildCalculationCacheKey($request);
+        $cachedPayload = $this->getCalculationCachePayload($cacheKey);
+        if ($cachedPayload) {
+            return view('material_calculations.preview_combinations', $cachedPayload);
+        }
+
         $workType = $request->work_type ?? 'tile_installation';
 
         // Build ceramic query based on filters
@@ -465,7 +484,7 @@ class MaterialCalculationController extends Controller
         $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
         $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Keramik';
 
-        return view('material_calculations.preview_combinations', [
+        $payload = [
             'projects' => [], // Empty for ceramic-only work
             'ceramicProjects' => $ceramicProjects,
             'groupedCeramics' => $groupedByType,
@@ -474,7 +493,47 @@ class MaterialCalculationController extends Controller
             'requestData' => $request->except(['ceramic_types', 'ceramic_sizes']),
             'formulaName' => $formulaName,
             'totalCeramics' => $targetCeramics->count(),
-        ]);
+        ];
+
+        $this->storeCalculationCachePayload($cacheKey, $payload);
+
+        return view('material_calculations.preview_combinations', $payload);
+    }
+
+    protected function buildCalculationCacheKey(Request $request): string
+    {
+        $payload = $request->except(['_token', 'confirm_save']);
+        $normalized = $this->normalizeCalculationPayload($payload);
+        return 'material_calc:' . hash('sha256', json_encode($normalized));
+    }
+
+    protected function normalizeCalculationPayload($value)
+    {
+        if (is_array($value)) {
+            if (Arr::isAssoc($value)) {
+                ksort($value);
+                foreach ($value as $key => $item) {
+                    $value[$key] = $this->normalizeCalculationPayload($item);
+                }
+                return $value;
+            }
+            $normalized = array_map([$this, 'normalizeCalculationPayload'], $value);
+            sort($normalized);
+            return $normalized;
+        }
+        return $value;
+    }
+
+    protected function getCalculationCachePayload(string $cacheKey): ?array
+    {
+        $cached = Cache::get($cacheKey);
+        return is_array($cached) ? $cached : null;
+    }
+
+    protected function storeCalculationCachePayload(string $cacheKey, array $payload): void
+    {
+        Cache::put($cacheKey, $payload, now()->addMinutes(60));
+        session()->put('material_calc_last_key', $cacheKey);
     }
 
     /**
@@ -1498,48 +1557,8 @@ class MaterialCalculationController extends Controller
         // Get ALL results first (sorted by price ASC via calculateCombinationsFromMaterials)
         $allResults = $this->calculateCombinationsFromMaterials($brick, $request, $cements, $sands, $cats, 'TerSEDANG', null, $ceramics, $nats);
 
-        // If results are empty or few, just return them
-        if (count($allResults) < 3) {
-            return $allResults;
-        }
-
-        // RE-ORDERING STRATEGY: Spiral Out From Center
-        // This ensures distinctness from Cheapest even if prices are flat.
-        // [1, 2, 3, 4, 5] -> [3, 4, 2, 5, 1]
-        
-        $count = count($allResults);
-        $middleIndex = floor(($count - 1) / 2);
-        
-        $sortedByMedium = [];
-        $sortedByMedium[] = $allResults[$middleIndex]; // Center
-
-        $left = $middleIndex - 1;
-        $right = $middleIndex + 1;
-
-        while ($left >= 0 || $right < $count) {
-            if ($right < $count) {
-                $sortedByMedium[] = $allResults[$right];
-                $right++;
-            }
-            if ($left >= 0) {
-                $sortedByMedium[] = $allResults[$left];
-                $left--;
-            }
-        }
-
-        // UX IMPROVEMENT: Sort the Top 3 results by Price ASC
-        // This ensures TerSEDANG 1, 2, 3 are monotonic (e.g. 49, 50, 51)
-        // instead of zig-zag (50, 51, 49).
-        if (count($sortedByMedium) >= 3) {
-            $top3 = array_slice($sortedByMedium, 0, 3);
-            usort($top3, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
-            array_splice($sortedByMedium, 0, 3, $top3);
-        } elseif (count($sortedByMedium) == 2) {
-             // Sort top 2 as well just in case
-             usort($sortedByMedium, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
-        }
-
-        return $sortedByMedium;
+        // Return full ascending list; median selection handled in view for display/rekap
+        return $allResults;
     }
 
     protected function getExpensiveCombinations($brick, $request, $fixedCeramic = null)

@@ -964,7 +964,7 @@ class MaterialGeneratorCommand extends Command
                 $tableCells .= "                    <td style=\"text-align: right;\">@format(\$item->{$name})</td>\n";
             } elseif ($type === 'integer') {
                 // Numeric formatting for integers
-                $tableCells .= "                    <td style=\"text-align: right;\">{{ number_format(\$item->{$name}, 0, ',', '.') }}</td>\n";
+                $tableCells .= "                    <td style=\"text-align: right;\">@format(\$item->{$name})</td>\n";
             } else {
                 // Regular text
                 $tableCells .= "                    <td>{{ \$item->{$name} ?? '-' }}</td>\n";

@@ -6,19 +6,41 @@
 <div id="preview-top"></div>
 <div class="container-fluid py-4 preview-combinations-page">
     <div class="container mb-4">
-        <div class="d-flex position-relative align-items-center">
+        <div class="d-flex align-items-center justify-content-between position-relative">
+
+            <!-- KIRI -->
             <div>
-                <h2 class="fw-bold mb-1 position-absolute start-50 translate-middle-x"
+                <button type="button" id="btnResetSession"
+                    class="btn-cancel"
+                    style="border: 1px solid #891313; background-color: transparent; color: #891313;
+                    padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px;
+                    display: inline-flex; align-items: center; gap: 8px;">
+                    <i class="bi bi-arrow-left"></i> Kembali
+                </button>
+            </div>
+
+            <!-- TENGAH -->
+            <div class="position-absolute start-50 translate-middle-x text-center">
+                <h2 class="fw-bold mb-0"
                     style="color: #0f172a; font-size: 22px; letter-spacing: -0.5px;">
                     Pilih Kombinasi Material
                 </h2>
             </div>
-            
-            <div class="d-flex gap-2">
-                <button type="button" id="btnResetSession" class="btn-cancel" style="border: 1px solid #891313; background-color: transparent; color: #891313; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
-                    <i class="bi bi-arrow-left"></i> Batal Perhitungan
-                </button>
+
+            <!-- KANAN -->
+            <div>
+                @if(!empty($projects))
+                    <button type="button"
+                        style="border: 1px solid #891313; background-color: transparent; color: #891313;
+                        padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 10px;
+                        display: inline-flex; align-items: center; gap: 8px;"
+                        data-bs-toggle="modal"
+                        data-bs-target="#allPriceModal">
+                        <i class="bi bi-list-ul"></i> Daftar Kombinasi Harga
+                    </button>
+                @endif
             </div>
+
         </div>
     </div>
 
@@ -362,14 +384,37 @@
         </style>
 
     @else
-
         {{-- TABEL REKAP GLOBAL (untuk semua bata) --}}
         @php
             // Prepare rekap data global untuk semua bata
             $requestedFilters = $requestData['price_filters'] ?? [];
-            $filterCategories = ['TerBAIK', 'TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
-            if (in_array('custom', $requestedFilters, true)) {
+            if (!is_array($requestedFilters)) {
+                $requestedFilters = [$requestedFilters];
+            }
+            if (empty($requestedFilters)) {
+                $requestedFilters = ['best'];
+            }
+            $filterMap = [
+                'best' => 'TerBAIK',
+                'common' => 'TerUMUM',
+                'cheapest' => 'TerMURAH',
+                'medium' => 'TerSEDANG',
+                'expensive' => 'TerMAHAL',
+            ];
+            $orderedFilters = array_keys($filterMap);
+            $filterSet = in_array('all', $requestedFilters, true)
+                ? array_unique(array_merge($requestedFilters, $orderedFilters))
+                : array_unique($requestedFilters);
+            $filterCategories = [];
+            foreach ($orderedFilters as $filterKey) {
+                if (in_array($filterKey, $filterSet, true)) {
+                    $filterCategories[] = $filterMap[$filterKey];
+                }
+            }
+            $rekapCategories = ['TerBAIK', 'TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            if (in_array('custom', $filterSet, true)) {
                 $filterCategories[] = 'Custom';
+                $rekapCategories[] = 'Custom';
             }
             $globalRekapData = [];
             $hasBrick = false;
@@ -422,6 +467,59 @@
                     3 => ['bg' => '#f8fafc', 'text' => '#64748b'],
                 ],
             ];
+            $buildRekapEntry = function ($project, $item, $key) use (&$hasBrick, &$hasCement, &$hasSand, &$hasCat, &$hasCeramic, &$hasNat) {
+                $res = $item['result'];
+
+                if (($res['total_bricks'] ?? 0) > 0) $hasBrick = true;
+                if (($res['cement_sak'] ?? 0) > 0) $hasCement = true;
+                if (($res['sand_m3'] ?? 0) > 0) $hasSand = true;
+                if (($res['cat_packages'] ?? 0) > 0) $hasCat = true;
+                if (($res['total_tiles'] ?? 0) > 0) $hasCeramic = true;
+                if (($res['grout_packages'] ?? 0) > 0) $hasNat = true;
+
+                $rekapEntry = [
+                    'grand_total' => $item['result']['grand_total'],
+                    'brick_id' => $project['brick']->id,
+                    'brick_brand' => $project['brick']->brand,
+                    'brick_detail' => ($project['brick']->type ?? '-') . ' - ' .
+                                    ($project['brick']->dimension_length + 0) . ' x ' .
+                                    ($project['brick']->dimension_width + 0) . ' x ' .
+                                    ($project['brick']->dimension_height + 0) . ' cm',
+                    'filter_label' => $key,
+                ];
+
+                if (isset($item['cement'])) {
+                    $rekapEntry['cement_id'] = $item['cement']->id;
+                    $rekapEntry['cement_brand'] = $item['cement']->brand;
+                    $rekapEntry['cement_detail'] = ($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg';
+                }
+
+                if (isset($item['sand'])) {
+                    $rekapEntry['sand_id'] = $item['sand']->id;
+                    $rekapEntry['sand_brand'] = $item['sand']->brand;
+                    $rekapEntry['sand_detail'] = ($item['sand']->package_unit ?? '-') . ' - ' . (($item['sand']->package_volume ?? 0) > 0 ? (($item['sand']->package_volume + 0) . ' M3') : '-');
+                }
+
+                if (isset($item['cat'])) {
+                    $rekapEntry['cat_id'] = $item['cat']->id;
+                    $rekapEntry['cat_brand'] = $item['cat']->brand;
+                    $rekapEntry['cat_detail'] = ($item['cat']->cat_name ?? '-') . ' - ' . ($item['cat']->color_name ?? '-') . ' (' . ($item['cat']->package_weight_net + 0) . ' kg)';
+                }
+                
+                if (isset($item['ceramic'])) {
+                    $rekapEntry['ceramic_id'] = $item['ceramic']->id;
+                    $rekapEntry['ceramic_brand'] = $item['ceramic']->brand;
+                    $rekapEntry['ceramic_detail'] = ($item['ceramic']->color ?? '-') . ' (' . ($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ')';
+                }
+                
+                if (isset($item['nat'])) {
+                    $rekapEntry['nat_id'] = $item['nat']->id;
+                    $rekapEntry['nat_brand'] = $item['nat']->brand;
+                    $rekapEntry['nat_detail'] = ($item['nat']->color ?? 'Nat') . ' (' . ($item['nat']->package_weight_net + 0) . ' kg)';
+                }
+
+                return $rekapEntry;
+            };
 
             // Collect all combinations from all bricks
             $allCombinations = [];
@@ -516,59 +614,79 @@
                 if ($selectedCombination) {
                     $project = $selectedCombination['project'];
                     $item = $selectedCombination['item'];
-                    $res = $item['result'];
-
-                    if (($res['total_bricks'] ?? 0) > 0) $hasBrick = true;
-                    if (($res['cement_sak'] ?? 0) > 0) $hasCement = true;
-                    if (($res['sand_m3'] ?? 0) > 0) $hasSand = true;
-                    if (($res['cat_packages'] ?? 0) > 0) $hasCat = true;
-                    if (($res['total_tiles'] ?? 0) > 0) $hasCeramic = true;
-                    if (($res['grout_packages'] ?? 0) > 0) $hasNat = true;
-
-                    $rekapEntry = [
-                        'grand_total' => $item['result']['grand_total'],
-                        'brick_id' => $project['brick']->id,
-                        'brick_brand' => $project['brick']->brand,
-                        'brick_detail' => ($project['brick']->type ?? '-') . ' - ' .
-                                        ($project['brick']->dimension_length + 0) . ' x ' .
-                                        ($project['brick']->dimension_width + 0) . ' x ' .
-                                        ($project['brick']->dimension_height + 0) . ' cm',
-                        'filter_label' => $key,
-                    ];
-
-                    if (isset($item['cement'])) {
-                        $rekapEntry['cement_id'] = $item['cement']->id;
-                        $rekapEntry['cement_brand'] = $item['cement']->brand;
-                        $rekapEntry['cement_detail'] = ($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg';
-                    }
-
-                    if (isset($item['sand'])) {
-                        $rekapEntry['sand_id'] = $item['sand']->id;
-                        $rekapEntry['sand_brand'] = $item['sand']->brand;
-                        $rekapEntry['sand_detail'] = ($item['sand']->package_unit ?? '-') . ' - ' . (($item['sand']->package_volume ?? 0) > 0 ? (($item['sand']->package_volume + 0) . ' M3') : '-');
-                    }
-
-                    if (isset($item['cat'])) {
-                        $rekapEntry['cat_id'] = $item['cat']->id;
-                        $rekapEntry['cat_brand'] = $item['cat']->brand;
-                        $rekapEntry['cat_detail'] = ($item['cat']->cat_name ?? '-') . ' - ' . ($item['cat']->color_name ?? '-') . ' (' . ($item['cat']->package_weight_net + 0) . ' kg)';
-                    }
-                    
-                    if (isset($item['ceramic'])) {
-                        $rekapEntry['ceramic_id'] = $item['ceramic']->id;
-                        $rekapEntry['ceramic_brand'] = $item['ceramic']->brand;
-                        $rekapEntry['ceramic_detail'] = ($item['ceramic']->color ?? '-') . ' (' . ($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ')';
-                    }
-                    
-                    if (isset($item['nat'])) {
-                        $rekapEntry['nat_id'] = $item['nat']->id;
-                        $rekapEntry['nat_brand'] = $item['nat']->brand;
-                        $rekapEntry['nat_detail'] = ($item['nat']->color ?? 'Nat') . ' (' . ($item['nat']->package_weight_net + 0) . ' kg)';
-                    }
-
-                    $globalRekapData[$key] = $rekapEntry;
+                    $globalRekapData[$key] = $buildRekapEntry($project, $item, $key);
                 }
             }
+
+            $priceRankFilters = ['TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            $needsPriceRanks = count(array_intersect($filterCategories, $priceRankFilters)) > 0;
+            if ($needsPriceRanks) {
+                $allPriceCandidates = [];
+                foreach ($projects as $project) {
+                    foreach ($project['combinations'] as $label => $items) {
+                        foreach ($items as $item) {
+                            $allPriceCandidates[] = [
+                                'project' => $project,
+                                'item' => $item,
+                                'label' => $label,
+                                'grand_total' => (float)($item['result']['grand_total'] ?? 0),
+                            ];
+                        }
+                    }
+                }
+
+                usort($allPriceCandidates, function ($a, $b) {
+                    if ($a['grand_total'] === $b['grand_total']) {
+                        return strcmp($a['label'], $b['label']);
+                    }
+                    return $a['grand_total'] <=> $b['grand_total'];
+                });
+
+                $totalCandidates = count($allPriceCandidates);
+                if ($totalCandidates > 0) {
+                    $termurahLimit = min(3, $totalCandidates);
+                    $termahalCount = min(3, $totalCandidates);
+                    $termahalStartIndex = $totalCandidates - $termahalCount;
+
+                    if (in_array('TerMURAH', $filterCategories, true)) {
+                        for ($i = 0; $i < $termurahLimit; $i++) {
+                            $key = 'TerMURAH ' . ($i + 1);
+                            $combo = $allPriceCandidates[$i];
+                            $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                        }
+                    }
+
+                    if (in_array('TerMAHAL', $filterCategories, true)) {
+                        for ($i = 0; $i < $termahalCount; $i++) {
+                            $key = 'TerMAHAL ' . ($i + 1);
+                            $combo = $allPriceCandidates[$termahalStartIndex + $i];
+                            $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                        }
+                    }
+
+                    if (in_array('TerSEDANG', $filterCategories, true)) {
+                        $middleIndex = (int) floor(($totalCandidates - 1) / 2);
+                        $startIndex = max(0, $middleIndex - 1);
+                        $medianCombos = array_slice($allPriceCandidates, $startIndex, 3);
+                        $medianRank = 0;
+
+                        foreach ($medianCombos as $combo) {
+                            $medianRank++;
+                            $key = 'TerSEDANG ' . $medianRank;
+                            $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                        }
+                    }
+                }
+            }
+
+            $getDisplayKeys = function ($filterType) {
+                $maxCount = $filterType === 'Custom' ? 1 : 3;
+                $fallback = [];
+                for ($i = 1; $i <= $maxCount; $i++) {
+                    $fallback[] = $filterType . ' ' . $i;
+                }
+                return $fallback;
+            };
 
             // Generate color mapping for combinations
             $globalColorMap = [];
@@ -713,9 +831,7 @@
             $brickDataColorMap = []; // Track colors by complete brick data
 
             foreach ($filterCategories as $filterType) {
-                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                for ($i = 1; $i <= $maxCount; $i++) {
-                    $key = $filterType . ' ' . $i;
+                foreach ($getDisplayKeys($filterType) as $key) {
                     if (isset($globalRekapData[$key])) {
                         $project = null;
                         // Find the project data for this key
@@ -760,9 +876,7 @@
             $cementDataColorMap = []; // Track colors by complete cement data
 
             foreach ($filterCategories as $filterType) {
-                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                for ($i = 1; $i <= $maxCount; $i++) {
-                    $key = $filterType . ' ' . $i;
+                foreach ($getDisplayKeys($filterType) as $key) {
                     if (isset($globalRekapData[$key])) {
                         $cement = null;
                         // Find the cement data for this key
@@ -806,9 +920,7 @@
             $sandDataColorMap = []; // Track colors by complete sand data
 
             foreach ($filterCategories as $filterType) {
-                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                for ($i = 1; $i <= $maxCount; $i++) {
-                    $key = $filterType . ' ' . $i;
+                foreach ($getDisplayKeys($filterType) as $key) {
                     if (isset($globalRekapData[$key])) {
                         $sand = null;
                         // Find the sand data for this key
@@ -852,9 +964,7 @@
             $catColorMap = [];
 
             foreach ($filterCategories as $filterType) {
-                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                for ($i = 1; $i <= $maxCount; $i++) {
-                    $key = $filterType . ' ' . $i;
+                foreach ($getDisplayKeys($filterType) as $key) {
                     if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_id'])) {
                         // Create signature
                         $catId = $globalRekapData[$key]['cat_id'];
@@ -879,9 +989,7 @@
             $ceramicColorMap = [];
 
             foreach ($filterCategories as $filterType) {
-                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                for ($i = 1; $i <= $maxCount; $i++) {
-                    $key = $filterType . ' ' . $i;
+                foreach ($getDisplayKeys($filterType) as $key) {
                     if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_id'])) {
                         $ceramicId = $globalRekapData[$key]['ceramic_id'];
                         $ceramicBrand = $globalRekapData[$key]['ceramic_brand'];
@@ -905,9 +1013,7 @@
             $natColorMap = [];
 
             foreach ($filterCategories as $filterType) {
-                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                for ($i = 1; $i <= $maxCount; $i++) {
-                    $key = $filterType . ' ' . $i;
+                foreach ($getDisplayKeys($filterType) as $key) {
                     if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_id'])) {
                         $natId = $globalRekapData[$key]['nat_id'];
                         $natBrand = $globalRekapData[$key]['nat_brand'];
@@ -926,7 +1032,7 @@
             }
         @endphp
 
-        @if(count($globalRekapData) > 0)
+        @if(count($rekapCategories) > 0)
         <div class="container mb-4">
             @php
                 $isRollag = isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag';
@@ -1102,7 +1208,7 @@
                 </div>
             </div>
         </div>
-            <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden;">
+            <div class="card rekap-card" style="background: #ffffff; padding: 0; border-radius: 16px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: visible;">
                 <div class="table-responsive">
                     <style>
                         .table-rekap-global th {
@@ -1114,7 +1220,7 @@
                             border: 1px solid #f1f5f9;
                         }
                     </style>
-                    <table class="table-preview table-rekap-global" style="margin: 0;">
+                    <table class="table-preview table-rekap-global" data-rekap-table="true" style="margin: 0;">
                         <thead>
                             <tr>
                                 <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 0; z-index: 3; width: 80px; min-width: 80px;">Rekap</th>
@@ -1166,11 +1272,10 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($filterCategories as $filterType)
-                                @php $maxCount = $filterType === 'Custom' ? 1 : 3; @endphp
-                                @for($i = 1; $i <= $maxCount; $i++)
+                            @foreach($rekapCategories as $filterType)
+                                @foreach($getDisplayKeys($filterType) as $displayIndex => $key)
                                     @php
-                                        $key = $filterType . ' ' . $i;
+                                        $rank = $displayIndex + 1;
                                         $bgColor = $globalColorMap[$key] ?? '#ffffff';
                                         $brickBgColor = $brickColorMap[$key] ?? '#ffffff';
                                         $cementBgColor = $cementColorMap[$key] ?? '#ffffff';
@@ -1180,7 +1285,7 @@
                                         $ceramicBgColor = $ceramicColorMap[$key] ?? '#ffffff';
 
                                         // Get label color untuk kolom Rekap
-                                        $labelColor = $rekapLabelColors[$filterType][$i] ?? ['bg' => '#ffffff', 'text' => '#000000'];
+                                        $labelColor = $rekapLabelColors[$filterType][$rank] ?? ['bg' => '#ffffff', 'text' => '#000000'];
                                     @endphp
                                     <tr>
                                         {{-- Column 1: Filter Label --}}
@@ -1195,7 +1300,7 @@
                                             @if(isset($globalRekapData[$key]))
                                                 <div class="d-flex justify-content-between w-100">
                                                     <span>Rp</span>
-                                                    <span>{{ number_format($globalRekapData[$key]['grand_total'], 0, ',', '.') }}</span>
+                                                    <span>@price($globalRekapData[$key]['grand_total'])</span>
                                                 </div>
                                             @else
                                                 <span class="text-muted">-</span>
@@ -1206,7 +1311,7 @@
                                         @if($hasBrick)
                                         <td style="background: {{ $brickBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
-                                                <div title="Grand Total: Rp {{ number_format($globalRekapData[$key]['grand_total'], 0, ',', '.') }}">
+                                                <div title="Grand Total: @currency($globalRekapData[$key]['grand_total'])">
                                                     {{ $globalRekapData[$key]['brick_brand'] }}
                                                 </div>
                                             @else
@@ -1323,7 +1428,7 @@
                                                                                         @endif
                                                                                     </td>
                                                                                     @endif                                    </tr>
-                                @endfor
+                                @endforeach
                             @endforeach
                         </tbody>
                     </table>
@@ -1335,7 +1440,7 @@
         {{-- SINGLE TABLE FOR ALL COMBINATIONS --}}
         <div class="container">
             <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden; position: relative; z-index: 1;">
-                <div class="table-responsive">
+                <div class="table-responsive detail-table-wrap">
                                 <style>
                                     /* Global Text Styling */
                                     .table-preview th,
@@ -1537,11 +1642,11 @@
                                             <th colspan="4">Detail</th>
                                             <th class="preview-store-cell">Toko</th>
                                             <th class="preview-address-cell">Alamat</th>
-                                            <th colspan="2">Harga / Kemasan</th>
-                                            <th>Harga Komparasi</br> / Pekerjaan</th>
+                                            <th colspan="2">Harga Beli</th>
+                                            <th>Biaya<br>/ Material</th>
                                             <th>Total Biaya</br> Material / Pekerjaan</th>
                                             <th colspan="2">Harga Satuan</br> Material / Pekerjaan</th>
-                                            <th colspan="2">Harga Beli Aktual<br>/ Satuan Komparasi</th>
+                                            <th colspan="2">Harga Komparasi<br>/ Materal</th>
                                             <th>Aksi</th>
                                         </tr>
                                     </thead>
@@ -1553,9 +1658,7 @@
                                             $allFilteredCombinations = [];
 
                                             foreach ($filterCategories as $filterType) {
-                                                $maxCount = $filterType === 'Custom' ? 1 : 3;
-                                                for ($i = 1; $i <= $maxCount; $i++) {
-                                                    $key = $filterType . ' ' . $i;
+                                                foreach ($getDisplayKeys($filterType) as $key) {
 
                                                     // Check if this filter exists in global recap
                                                     if (isset($globalRekapData[$key])) {
@@ -1680,6 +1783,9 @@
                                                 };
                                                 $formatMoney = function($num) {
                                                     return \App\Helpers\NumberHelper::format($num, 0);
+                                                };
+                                                $formatRaw = function($num, $decimals = 6) {
+                                                    return \App\Helpers\NumberHelper::format($num, $decimals);
                                                 };
 
                                                 // ========================================
@@ -1977,11 +2083,44 @@
                                                         $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                                         $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                                         $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
-                                                        $hargaKomparasi = isset($mat['total_price']) ? $mat['total_price'] : ($pricePerUnit * $priceCalcQty);
+                                                        $hargaKomparasiCalculated = $pricePerUnit * $priceCalcQty;
+                                                        $hargaKomparasi = isset($mat['total_price']) ? $mat['total_price'] : $hargaKomparasiCalculated;
+                                                        $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
+                                                        $detailValue = $mat['detail_value'] ?? 1;
+
+                                                        $qtyTitleParts = [];
+                                                        if (!empty($mat['qty_debug'])) {
+                                                            $qtyTitleParts[] = $mat['qty_debug'];
+                                                        }
+                                                        $qtyTitleParts[] = 'Nilai tampil: ' . $formatNum($mat['qty']) . ' ' . ($mat['unit'] ?? '');
+                                                        $qtyTitle = implode(' | ', $qtyTitleParts);
+
+                                                        $detailTitleParts = [];
+                                                        if (!empty($mat['detail_value_debug'])) {
+                                                            $detailTitleParts[] = $mat['detail_value_debug'];
+                                                        }
+                                                        if (!empty($mat['detail_extra_debug'])) {
+                                                            $detailTitleParts[] = $mat['detail_extra_debug'];
+                                                        }
+                                                        if (!empty($mat['detail_extra'])) {
+                                                            $detailTitleParts[] = 'Nilai tampil: ' . $mat['detail_extra'];
+                                                        }
+                                                        $detailTitle = implode(' | ', $detailTitleParts);
+
+                                                        $packagePriceTitleParts = [];
+                                                        $packagePriceTitleParts[] = 'Nilai tampil: Rp ' . $formatMoney($mat['package_price']) . ' / ' . $mat['package_unit'];
+                                                        if ($priceUnitLabel !== $mat['package_unit'] || abs($pricePerUnit - $mat['package_price']) > 0.00001) {
+                                                            $packagePriceTitleParts[] = 'Harga unit formula: Rp ' . $formatMoney($pricePerUnit) . ' / ' . $priceUnitLabel;
+                                                        }
+                                                        if ($matKey === 'sand' && $detailValue > 0) {
+                                                            $convertedSand = $mat['package_price'] / $detailValue;
+                                                            $packagePriceTitleParts[] = 'Konversi: Rp ' . $formatMoney($mat['package_price']) . ' / ' . $formatNum($detailValue) . ' ' . $comparisonUnit . ' = Rp ' . $formatMoney($convertedSand) . ' / ' . $comparisonUnit;
+                                                        }
+                                                        $packagePriceTitle = implode(' | ', $packagePriceTitleParts);
                                                     @endphp
                                                     <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
                                                         {{-- Column 1-3: Qty, Unit, Material Name --}}
-                                                        <td class="text-end fw-bold sticky-col-1" title="{{ $mat['qty_debug'] ?? '' }}">@format($mat['qty'])</td>
+                                                        <td class="text-end fw-bold sticky-col-1" title="{{ $qtyTitle }}">@format($mat['qty'])</td>
                                                         <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
                                                         <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 
@@ -1989,7 +2128,7 @@
                                                         <td class="text-muted">{{ $mat['type_display'] ?? ($mat['object']->{$mat['type_field']} ?? '-') }}</td>
                                                         <td class="fw-bold">{{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}</td>
                                                         <td class="{{ $matKey === 'brick' ? 'text-center text-nowrap' : '' }}">{{ $mat['detail_display'] }}</td>
-                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }}" title="{{ $mat['detail_value_debug'] ?? ($mat['detail_extra_debug'] ?? '') }}">{{ $mat['detail_extra'] ?? '' }}</td>
+                                                        <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }}" title="{{ $detailTitle }}">{{ $mat['detail_extra'] ?? '' }}</td>
                                                         <td class="preview-scroll-td preview-store-cell">
                                                             <div class="preview-scroll-cell">{{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}</div>
                                                         </td>
@@ -2002,7 +2141,7 @@
                                                             <td class="text-center text-muted">-</td>
                                                             <td></td>
                                                         @else
-                                                            <td class="text-nowrap fw-bold" title="Harga per {{ $mat['package_unit'] }}">
+                                                            <td class="text-nowrap fw-bold" title="{{ $packagePriceTitle }}">
                                                                 <div class="d-flex justify-content-between w-100">
                                                                     <span>Rp</span>
                                                                     <span>{{ $formatMoney($mat['package_price']) }}</span>
@@ -2017,7 +2156,14 @@
                                                         @else
                                                             @php
                                                                 // Hitung harga komparasi sesuai harga formula
-                                                                $hargaKomparasiDebug = "Rumus: " . $formatNum($priceCalcQty) . " " . $priceCalcUnit . " x Rp " . $formatMoney($pricePerUnit) . " / " . $priceUnitLabel;
+                                                                $hargaKomparasiDebugParts = [];
+                                                                $hargaKomparasiDebugParts[] = "Rumus: " . $formatNum($priceCalcQty) . " " . $priceCalcUnit . " x Rp " . $formatMoney($pricePerUnit) . " / " . $priceUnitLabel;
+                                                                $hargaKomparasiDebugParts[] = "Nilai asli: " . $formatRaw($priceCalcQty) . " " . $priceCalcUnit . " x Rp " . $formatRaw($pricePerUnit) . " = Rp " . $formatRaw($hargaKomparasiCalculated);
+                                                                if (isset($mat['total_price']) && abs($mat['total_price'] - $hargaKomparasiCalculated) > 0.01) {
+                                                                    $hargaKomparasiDebugParts[] = "Nilai formula: Rp " . $formatRaw($mat['total_price']);
+                                                                }
+                                                                $hargaKomparasiDebugParts[] = "Nilai tampil: Rp " . $formatMoney($hargaKomparasi);
+                                                                $hargaKomparasiDebug = implode(' | ', $hargaKomparasiDebugParts);
                                                             @endphp
                                                             <td class="text-nowrap" title="{{ $hargaKomparasiDebug }}">
                                                                 <div class="d-flex justify-content-between w-100">
@@ -2046,10 +2192,12 @@
                                                                 }
                                                                 $grandTotalValue = isset($res['grand_total']) ? $res['grand_total'] : $calculatedGrandTotal;
                                                                 $grandTotalDebug = "Rumus: " . implode(' + ', $grandTotalParts);
+                                                                $grandTotalDebug .= " | Nilai tampil: Rp " . $formatMoney($grandTotalValue);
 
                                                                 // Build debug for costPerM2
                                                                 $calculatedCostPerM2 = $areaForCost > 0 ? $grandTotalValue / $areaForCost : 0;
                                                                 $costPerM2Debug = "Rumus: Rp " . $formatMoney($grandTotalValue) . " / " . $formatNum($areaForCost) . " M2";
+                                                                $costPerM2Debug .= " | Nilai tampil: Rp " . $formatMoney($calculatedCostPerM2) . " / M2";
                                                             @endphp
                                                             <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell" title="{{ $grandTotalDebug }}">
                                                                 <div class="d-flex justify-content-between w-100">
@@ -2072,8 +2220,6 @@
                                                             <td></td>
                                                         @else
                                                             @php
-                                                                $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
-                                                                $detailValue = $mat['detail_value'] ?? 1;
                                                                 $qtyValue = $mat['qty'] ?? 0;
                                                                 // Gunakan harga komparasi yang sudah dihitung (sesuai formula)
                                                                 $totalPriceValue = $hargaKomparasi;
@@ -2090,6 +2236,7 @@
                                                                         : 0;
                                                                     $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($qtyValue) . " " . $mat['unit'] . " / " . $formatNum($detailValue) . " " . $comparisonUnit;
                                                                 }
+                                                                $hargaBeliAktualDebug .= " | Nilai tampil: Rp " . $formatMoney($actualBuyPrice) . " / " . $comparisonUnit;
                                                             @endphp
                                                             <td class="text-nowrap" title="{{ $hargaBeliAktualDebug }}">
                                                                 <div class="d-flex justify-content-between w-100">
@@ -2359,6 +2506,68 @@
         padding: 8px 10px !important;
         border: 1px solid #f1f5f9;
     }
+    .table-rekap-global {
+        --sticky-top: 0px;
+    }
+    .rekap-card {
+        overflow: visible;
+    }
+    .table-rekap-global thead th {
+        position: static;
+        top: auto;
+        z-index: auto;
+    }
+    .table-rekap-global thead tr:first-child th:first-child {
+        border-top-left-radius: 12px;
+        background-clip: padding-box;
+    }
+    .table-rekap-global thead tr:first-child th:last-child {
+        border-top-right-radius: 12px;
+        background-clip: padding-box;
+    }
+    .table-rekap-global thead tr:nth-child(2) th {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+    .table-rekap-global.rekap-sticky-active thead {
+        visibility: hidden;
+    }
+    .rekap-sticky-header {
+        position: fixed;
+        left: 0;
+        z-index: 120;
+        pointer-events: none;
+        overflow: hidden;
+        opacity: 0;
+        transform: translateY(-6px);
+        visibility: hidden;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .rekap-sticky-header:not(.is-active) {
+        pointer-events: none;
+    }
+    .rekap-sticky-header.is-active {
+        opacity: 1;
+        transform: translateY(0);
+        visibility: visible;
+    }
+    .rekap-sticky-header.is-scrolling {
+        opacity: 0.985;
+    }
+    .rekap-sticky-header .table-rekap-global {
+        border-collapse: separate;
+        border-spacing: 0;
+        overflow: hidden;
+    }
+    .rekap-sticky-header.is-active .table-rekap-global {
+        border-radius: 0;
+    }
+    .rekap-sticky-header.is-active thead th {
+        border-radius: 0 !important;
+    }
+    .rekap-sticky-header .table-rekap-global {
+        margin: 0;
+    }
 
     /* Table Styling (shared for normal + multi-ceramic) */
     .table-preview th,
@@ -2391,6 +2600,14 @@
         border: 1px solid #f1f5f9;
         vertical-align: top;
         white-space: nowrap;
+    }
+    .table-preview:not(.table-rekap-global) tbody tr {
+        height: 40px;
+    }
+    .table-preview:not(.table-rekap-global) tbody td {
+        height: 40px;
+        padding: 8px 10px;
+        vertical-align: middle;
     }
     .table-preview td.preview-scroll-td {
         position: relative;
@@ -2489,7 +2706,7 @@
     }
     .sticky-col-3 {
         position: sticky;
-        left: 200px;
+        left: 202px;
         background-color: white;
         z-index: 2;
         box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
@@ -2604,6 +2821,240 @@
 </style>
 @endsection
 
+@section('modals')
+@parent
+@if(!empty($projects))
+    @php
+        $allPriceRows = [];
+        $bestRows = [];
+        $commonRows = [];
+        $hasAllPriceBrick = false;
+        foreach ($projects as $project) {
+            $brick = $project['brick'] ?? null;
+            $brickLabel = '';
+            if ($brick) {
+                $brickLabel = trim(($brick->brand ?? '') . ' ' . ($brick->type ?? ''));
+                if ($brickLabel === '') {
+                    $brickLabel = $brick->material_name ?? '';
+                }
+                if ($brickLabel !== '') {
+                    $hasAllPriceBrick = true;
+                }
+            }
+            foreach ($project['combinations'] as $label => $items) {
+                foreach ($items as $item) {
+                    $labelParts = array_map('trim', explode('=', $label));
+                    $grandTotal = (float)($item['result']['grand_total'] ?? 0);
+                    $rowBase = [
+                        'label' => $label,
+                        'brick' => $brickLabel,
+                        'grand_total' => $grandTotal,
+                    ];
+
+                    $bestLabel = null;
+                    $commonLabel = null;
+                    foreach ($labelParts as $part) {
+                        if ($bestLabel === null && str_starts_with($part, 'TerBAIK')) {
+                            $bestLabel = $part;
+                        }
+                        if ($commonLabel === null && str_starts_with($part, 'TerUMUM')) {
+                            $commonLabel = $part;
+                        }
+                    }
+                    if ($bestLabel) {
+                        $bestRows[] = $rowBase + ['display_label' => $bestLabel];
+                    }
+                    if ($commonLabel) {
+                        $commonRows[] = $rowBase + ['display_label' => $commonLabel];
+                    }
+                    $allPriceRows[] = $rowBase;
+                }
+            }
+        }
+        $sortByLabelNumber = function ($a, $b) {
+            $getNumber = function ($label) {
+                if (preg_match('/\s+(\d+)/', $label, $matches)) {
+                    return (int)$matches[1];
+                }
+                return PHP_INT_MAX;
+            };
+            $numA = $getNumber($a['display_label'] ?? '');
+            $numB = $getNumber($b['display_label'] ?? '');
+            return $numA <=> $numB;
+        };
+        usort($bestRows, $sortByLabelNumber);
+        usort($commonRows, $sortByLabelNumber);
+
+        usort($allPriceRows, function ($a, $b) {
+            if ($a['grand_total'] === $b['grand_total']) {
+                return strcmp($a['label'], $b['label']);
+            }
+            return $a['grand_total'] <=> $b['grand_total'];
+        });
+        $sortedCount = count($allPriceRows);
+        $termurahLimit = min(3, $sortedCount);
+        $termahalStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
+        $middleStart = 0;
+        $middleEnd = -1;
+        if ($sortedCount > 0) {
+            $middleIndex = (int) floor(($sortedCount - 1) / 2);
+            $middleStart = max(0, $middleIndex - 1);
+            $middleEnd = min($sortedCount - 1, $middleStart + 2);
+        }
+
+        $sortedIndex = 0;
+        foreach ($allPriceRows as &$row) {
+            $sortedIndex++;
+            $row['index'] = $sortedIndex;
+            $displayLabel = 'Harga ' . $sortedIndex;
+            if ($sortedIndex <= $termurahLimit) {
+                $displayLabel = 'TerMURAH ' . $sortedIndex;
+            } elseif ($sortedIndex >= $termahalStart) {
+                $displayLabel = 'TerMAHAL ' . ($sortedIndex - $termahalStart + 1);
+            } elseif ($sortedIndex - 1 >= $middleStart && $sortedIndex - 1 <= $middleEnd) {
+                $displayLabel = 'TerSEDANG ' . ($sortedIndex - $middleStart);
+            }
+            $row['display_label'] = $displayLabel;
+        }
+        unset($row);
+    @endphp
+
+    <div class="modal fade modal-high" id="allPriceModal" tabindex="-1" aria-labelledby="allPriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-md modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title fw-bold" id="allPriceModalLabel">Daftar Semua Grand Total</h5>
+                        <div class="small text-muted">Ringkas: hanya label dan grand total.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if(count($allPriceRows) > 0)
+                        @if(count($bestRows) > 0)
+                            <div class="fw-bold mb-1">TerBAIK</div>
+                            <div class="table-responsive mb-2">
+                                <table class="table table-sm table-striped align-middle mb-0 all-price-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px;">#</th>
+                                            <th>Label</th>
+                                            @if($hasAllPriceBrick)
+                                                <th>Bata</th>
+                                            @endif
+                                            <th class="text-end" style="width: 160px;">Grand Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($bestRows as $index => $row)
+                                            <tr>
+                                                <td class="text-muted">{{ $index + 1 }}</td>
+                                                <td>{{ $row['display_label'] }}</td>
+                                                @if($hasAllPriceBrick)
+                                                    <td>{{ $row['brick'] ?: '-' }}</td>
+                                                @endif
+                                                <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
+                        @if(count($commonRows) > 0)
+                            <div class="fw-bold mb-1">TerUMUM</div>
+                            <div class="table-responsive mb-2">
+                                <table class="table table-sm table-striped align-middle mb-0 all-price-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px;">#</th>
+                                            <th>Label</th>
+                                            @if($hasAllPriceBrick)
+                                                <th>Bata</th>
+                                            @endif
+                                            <th class="text-end" style="width: 160px;">Grand Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($commonRows as $index => $row)
+                                            <tr>
+                                                <td class="text-muted">{{ $index + 1 }}</td>
+                                                <td>{{ $row['display_label'] }}</td>
+                                                @if($hasAllPriceBrick)
+                                                    <td>{{ $row['brick'] ?: '-' }}</td>
+                                                @endif
+                                                <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
+                        <div class="fw-bold mb-1">Semua Harga (Termurah &rarr; Termahal)</div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped align-middle mb-0 all-price-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">#</th>
+                                        <th>Label</th>
+                                        @if($hasAllPriceBrick)
+                                            <th>Bata</th>
+                                        @endif
+                                        <th class="text-end" style="width: 160px;">Grand Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($allPriceRows as $row)
+                                        <tr>
+                                            <td class="text-muted">{{ $row['index'] }}</td>
+                                            <td>{{ $row['display_label'] }}</td>
+                                            @if($hasAllPriceBrick)
+                                                <td>{{ $row['brick'] ?: '-' }}</td>
+                                            @endif
+                                            <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-muted">Tidak ada data kombinasi untuk ditampilkan.</div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+@endif
+@endsection
+
+@push('styles')
+<style>
+    #allPriceModal.modal-high {
+        z-index: 20050 !important;
+    }
+    .modal-backdrop.modal-high-backdrop {
+        z-index: 20040 !important;
+    }
+    #allPriceModal .modal-dialog {
+        max-width: 520px !important;
+        width: 92vw;
+    }
+    #allPriceModal .modal-body {
+        padding: 12px 16px;
+    }
+    #allPriceModal .all-price-table th,
+    #allPriceModal .all-price-table td {
+        padding: 4px 6px;
+        font-size: 12px;
+        line-height: 1.2;
+    }
+    #allPriceModal .all-price-table th {
+        font-weight: 700;
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
     // Mark this page as a "Skip Page" for history navigation
@@ -2621,23 +3072,125 @@
             });
         });
 
-        // Handle Reset Session Button
+        // Handle New Calculation Button
         const btnReset = document.getElementById('btnResetSession');
         if (btnReset) {
-            btnReset.addEventListener('click', async function() {
-                const confirmed = await window.showConfirm({
-                    title: 'Reset Perhitungan',
-                    message: 'Apakah Anda yakin ingin mereset semua data perhitungan?',
-                    confirmText: 'Reset',
-                    cancelText: 'Batal',
-                    type: 'danger'
-                });
-
-                if (confirmed) {
-                    localStorage.removeItem('materialCalculationSession');
-                    window.location.href = "{{ route('material-calculations.create') }}";
-                }
+            btnReset.addEventListener('click', function() {
+                window.location.href = "{{ route('material-calculations.create') }}";
             });
+        }
+
+        const rekapTable = document.querySelector('[data-rekap-table="true"]');
+        const rekapCard = document.querySelector('.rekap-card');
+        if (rekapTable) {
+            const rekapWrap = rekapTable.closest('.table-responsive');
+            const rekapHead = rekapTable.querySelector('thead');
+            if (rekapHead) {
+                const stickyContainer = document.createElement('div');
+                stickyContainer.className = 'rekap-sticky-header';
+
+                const stickyTable = rekapTable.cloneNode(false);
+                const stickyHead = rekapHead.cloneNode(true);
+                stickyTable.appendChild(stickyHead);
+                stickyContainer.appendChild(stickyTable);
+                document.body.appendChild(stickyContainer);
+
+                const syncWidths = () => {
+                    const sourceCells = rekapHead.querySelectorAll('th');
+                    const stickyCells = stickyHead.querySelectorAll('th');
+                    const rect = rekapTable.getBoundingClientRect();
+                    stickyTable.style.width = `${rect.width}px`;
+                    sourceCells.forEach((cell, idx) => {
+                        const stickyCell = stickyCells[idx];
+                        if (!stickyCell) return;
+                        stickyCell.style.width = `${cell.getBoundingClientRect().width}px`;
+                    });
+                };
+
+                const getStickyTop = () => {
+                    const topbar = document.querySelector('.global-topbar');
+                    let top = topbar ? topbar.getBoundingClientRect().height : 0;
+                    const fixedCard = document.querySelector('.preview-params-fixed');
+                    if (fixedCard) {
+                        top += fixedCard.getBoundingClientRect().height;
+                        return top;
+                    }
+                    const cards = document.querySelectorAll('.preview-params-sticky');
+                    let activeCard = null;
+                    cards.forEach((card) => {
+                        if (!activeCard && card.offsetParent !== null) {
+                            activeCard = card;
+                        }
+                    });
+                    if (activeCard) {
+                        const rect = activeCard.getBoundingClientRect();
+                        if (rect.top <= top + 1) {
+                            top += rect.height;
+                        }
+                    }
+                    return top;
+                };
+
+                const updateSticky = () => {
+                    const rect = rekapTable.getBoundingClientRect();
+                    const wrapRect = rekapWrap ? rekapWrap.getBoundingClientRect() : rect;
+                    const stickyTop = getStickyTop();
+                    const headHeight = rekapHead.offsetHeight || 0;
+                    const scrollLeft = rekapWrap ? rekapWrap.scrollLeft : 0;
+                    stickyContainer.style.top = `${stickyTop}px`;
+                    stickyContainer.style.left = `${wrapRect.left}px`;
+                    stickyContainer.style.width = `${wrapRect.width}px`;
+                    stickyTable.style.transform = `translateX(${-scrollLeft}px)`;
+                    const isActive = rect.top <= stickyTop && rect.bottom > stickyTop + headHeight;
+                    stickyContainer.classList.toggle('is-active', isActive);
+                    rekapTable.classList.toggle('rekap-sticky-active', isActive);
+                };
+
+                let rafId = null;
+                let scrollTick = null;
+                let isScrolling = false;
+                const scheduleScrollEnd = () => {
+                    if (scrollTick) {
+                        clearTimeout(scrollTick);
+                    }
+                    scrollTick = window.setTimeout(() => {
+                        isScrolling = false;
+                        stickyContainer.classList.remove('is-scrolling');
+                    }, 120);
+                };
+                const scheduleSync = () => {
+                    if (rafId) return;
+                    rafId = window.requestAnimationFrame(() => {
+                        rafId = null;
+                        syncWidths();
+                        updateSticky();
+                    });
+                };
+
+                scheduleSync();
+                window.addEventListener('scroll', scheduleSync, { passive: true });
+                window.addEventListener('resize', scheduleSync);
+                if (rekapWrap) {
+                    rekapWrap.addEventListener('scroll', scheduleSync, { passive: true });
+                }
+                if (document.fonts && document.fonts.ready) {
+                    document.fonts.ready.then(scheduleSync).catch(() => {});
+                }
+
+                const handleScrollState = () => {
+                    if (!isScrolling) {
+                        isScrolling = true;
+                        stickyContainer.classList.add('is-scrolling');
+                    }
+                    scheduleSync();
+                    scheduleScrollEnd();
+                };
+
+                window.addEventListener('scroll', handleScrollState, { passive: true });
+                if (rekapWrap) {
+                    rekapWrap.addEventListener('scroll', handleScrollState, { passive: true });
+                }
+            }
         }
     });
 </script>
@@ -2881,8 +3434,15 @@ $(document).ready(function() {
         const $progressBar = $ceramicProject.find('.progress-bar');
         const $progressText = $ceramicProject.find('.progress-text');
         
+        const formatProgress = (value) => {
+            const scaled = Math.floor(value * 100);
+            const intPart = Math.floor(scaled / 100);
+            const decPart = (scaled % 100).toString().padStart(2, '0');
+            return `${intPart}.${decPart}%`;
+        };
+
         $progressBar.css('width', '0%').attr('aria-valuenow', 0);
-        $progressText.text('0%');
+        $progressText.text(formatProgress(0));
 
         // Start Progress Simulation
         let progress = 0;
@@ -2896,7 +3456,7 @@ $(document).ready(function() {
             progress = Math.min(progress + increment, 98);
             
             $progressBar.css('width', progress + '%').attr('aria-valuenow', progress);
-            $progressText.text(Math.round(progress) + '%');
+            $progressText.text(formatProgress(progress));
         }, 100);
 
         // Store interval to clear it later
@@ -2926,7 +3486,7 @@ $(document).ready(function() {
                 
                 // Force 100%
                 $progressBar.css('width', '100%').attr('aria-valuenow', 100);
-                $progressText.text('100%');
+                $progressText.text(formatProgress(100));
 
                 // Short delay to show 100% before showing content
                 setTimeout(function() {
@@ -3074,5 +3634,22 @@ $(document).ready(function() {
 });
 </script>
 @endif
+<script>
+document.addEventListener('shown.bs.modal', function(event) {
+    if (!event.target || event.target.id !== 'allPriceModal') return;
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.classList.add('modal-high-backdrop');
+    }
+});
+
+document.addEventListener('hidden.bs.modal', function(event) {
+    if (!event.target || event.target.id !== 'allPriceModal') return;
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) {
+        backdrop.classList.remove('modal-high-backdrop');
+    }
+});
+</script>
 @endpush
 

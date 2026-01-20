@@ -2,6 +2,7 @@
 
 namespace App\Services\Calculation;
 
+use App\Helpers\NumberHelper;
 use App\Models\Brick;
 use App\Models\BrickCalculation;
 use App\Repositories\CalculationRepository;
@@ -272,7 +273,8 @@ class CalculationOrchestrationService
      */
     public function compareBricks(array $request): array
     {
-        $wallLength = $request['wall_length'];
+        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $wallLength = $n($request['wall_length']);
         $workType = $request['work_type'] ?? 'brick_half';
         $bricks = $this->repository->getBricksByIds($request['brick_ids']);
 
@@ -291,9 +293,11 @@ class CalculationOrchestrationService
                 if ($brickLength <= 0) {
                     $brickLength = 19.2;
                 }
-                $wallHeight = $brickLength / 100;
+                $wallHeight = $n($brickLength / 100);
+            } elseif ($wallHeight !== null) {
+                $wallHeight = $n($wallHeight);
             }
-            $wallArea = $wallHeight ? $wallLength * $wallHeight : 0;
+            $wallArea = $wallHeight ? $n($wallLength * $wallHeight) : 0;
 
             $params = [
                 'wall_length' => $wallLength,
@@ -318,11 +322,12 @@ class CalculationOrchestrationService
 
                 $result = $formula->calculate($params);
 
+                $totalCost = $n($result['grand_total'] ?? 0, 0);
                 $comparisons[] = [
                     'brick' => $brick,
                     'result' => $result,
-                    'total_cost' => $result['grand_total'],
-                    'cost_per_m2' => $wallArea > 0 ? $result['grand_total'] / $wallArea : 0,
+                    'total_cost' => $totalCost,
+                    'cost_per_m2' => $wallArea > 0 ? $n($totalCost / $wallArea) : 0,
                 ];
             } catch (\Exception $e) {
                 Log::error('Compare Bricks Error:', [

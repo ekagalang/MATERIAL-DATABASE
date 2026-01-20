@@ -21,13 +21,93 @@ function initBrickForm(root) {
     const comparisonPriceDisplay = getElement('comparison_price_display');
 
     function unformatRupiah(str) {
-        return (str || '').toString().replace(/\./g,'').replace(/,/g,'.').replace(/[^0-9.]/g,'');
+        return (str || '').toString().replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
+    }
+
+    function truncateNumber(value, decimals = 2) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+        const factor = 10 ** decimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        return truncated / factor;
+    }
+
+    function formatPlainNumber(value, decimals = 2) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        const resolvedDecimals = Math.max(0, decimals);
+        const factor = 10 ** resolvedDecimals;
+        const truncated = num >= 0 ? Math.floor(num * factor) : Math.ceil(num * factor);
+        const sign = truncated < 0 ? '-' : '';
+        const abs = Math.abs(truncated);
+        const intPart = Math.floor(abs / factor).toString();
+        if (resolvedDecimals === 0) {
+            return `${sign}${intPart}`;
+        }
+        const decPart = (abs % factor).toString().padStart(resolvedDecimals, '0');
+        return `${sign}${intPart}.${decPart}`;
+    }
+
+    function formatDynamicPlain(value) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        if (num === 0) return '0';
+
+        const absValue = Math.abs(num);
+        const epsilon = Math.min(absValue * 1e-12, 1e-6);
+        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
+        const sign = adjusted < 0 ? '-' : '';
+        const abs = Math.abs(adjusted);
+        const intPart = Math.trunc(abs);
+
+        if (intPart > 0) {
+            const scaled = Math.trunc(abs * 100);
+            const intDisplay = Math.trunc(scaled / 100).toString();
+            let decPart = String(scaled % 100).padStart(2, '0');
+            decPart = decPart.replace(/0+$/, '');
+            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        }
+
+        let fraction = abs;
+        let digits = '';
+        let firstNonZeroIndex = null;
+        const maxDigits = 30;
+
+        for (let i = 0; i < maxDigits; i++) {
+            fraction *= 10;
+            const digit = Math.floor(fraction + 1e-12);
+            fraction -= digit;
+            digits += String(digit);
+
+            if (digit !== 0 && firstNonZeroIndex === null) {
+                firstNonZeroIndex = i;
+            }
+
+            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
+                break;
+            }
+        }
+
+        digits = digits.replace(/0+$/, '');
+        if (!digits) return '0';
+        return `${sign}0.${digits}`;
     }
 
     function formatRupiah(num) {
-        const n = Number(num || 0);
-        if (!isFinite(n)) return '';
-        return Math.round(n).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+        const plain = formatPlainNumber(num, 0);
+        if (!plain) return '';
+        const parts = plain.split('.');
+        const intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+        const sign = intPart.startsWith('-') ? '-' : '';
+        const digits = sign ? intPart.slice(1) : intPart;
+        const withThousands = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        if (!decPart || /^0+$/.test(decPart)) {
+            return `${sign}${withThousands}`;
+        }
+        return `${sign}${withThousands},${decPart}`;
     }
 
     // Handle price per piece input
@@ -36,8 +116,9 @@ function initBrickForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(pricePerPieceDisplay?.value || '');
-        if (pricePerPiece) pricePerPiece.value = raw || '';
-        if (pricePerPieceDisplay) pricePerPieceDisplay.value = raw ? formatRupiah(raw) : '';
+        const normalized = raw ? formatPlainNumber(raw, 0) : '';
+        if (pricePerPiece) pricePerPiece.value = normalized || '';
+        if (pricePerPieceDisplay) pricePerPieceDisplay.value = normalized ? formatRupiah(normalized) : '';
 
         // Mark that price was edited last
         if (raw) {
@@ -45,11 +126,12 @@ function initBrickForm(root) {
         }
 
         // Calculate comparison price from price per piece
-        if (raw && currentVolume > 0) {
-            const calcComparison = parseFloat(raw) / currentVolume;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
-        } else if (!raw) {
+        if (normalized && currentVolume > 0) {
+            const calcComparison = Number(normalized) / currentVolume;
+            const calcPlain = formatPlainNumber(calcComparison, 0);
+            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        } else if (!normalized) {
             // Clear comparison if price is cleared
             if (comparisonPrice) comparisonPrice.value = '';
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
@@ -64,8 +146,9 @@ function initBrickForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
-        if (comparisonPrice) comparisonPrice.value = raw || '';
-        if (comparisonPriceDisplay) comparisonPriceDisplay.value = raw ? formatRupiah(raw) : '';
+        const normalized = raw ? formatPlainNumber(raw, 0) : '';
+        if (comparisonPrice) comparisonPrice.value = normalized || '';
+        if (comparisonPriceDisplay) comparisonPriceDisplay.value = normalized ? formatRupiah(normalized) : '';
 
         // Mark that comparison was edited last
         if (raw) {
@@ -73,11 +156,12 @@ function initBrickForm(root) {
         }
 
         // Calculate price per piece from comparison price
-        if (raw && currentVolume > 0) {
-            const calcPrice = parseFloat(raw) * currentVolume;
-            if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
-            if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
-        } else if (!raw) {
+        if (normalized && currentVolume > 0) {
+            const calcPrice = Number(normalized) * currentVolume;
+            const calcPlain = formatPlainNumber(calcPrice, 0);
+            if (pricePerPiece) pricePerPiece.value = calcPlain || '';
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        } else if (!normalized) {
             // Clear price if comparison is cleared
             if (pricePerPiece) pricePerPiece.value = '';
             if (pricePerPieceDisplay) pricePerPieceDisplay.value = '';
@@ -104,7 +188,7 @@ function initBrickForm(root) {
                     // Format display untuk field tertentu
                     let displayValue = v;
                     if (field === 'price_per_piece') {
-                        displayValue = 'Rp ' + Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                        displayValue = 'Rp ' + formatRupiah(v);
                     }
 
                     item.textContent = displayValue;
@@ -113,7 +197,7 @@ function initBrickForm(root) {
                         // Handle special fields dengan kalkulasi
                         if (field === 'price_per_piece') {
                             // Update display field dengan format Rupiah
-                            input.value = Math.round(Number(v || 0)).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+                            input.value = formatRupiah(v);
                             // Trigger price sync
                             if (typeof syncPriceFromDisplay === 'function') {
                                 syncPriceFromDisplay();
@@ -323,37 +407,16 @@ function initBrickForm(root) {
     const volumeCalculationDisplay = getElement('volume_calculation_display');
     const packageVolume = getElement('package_volume');
 
-    function getSmartPrecision(num) {
-        if (!isFinite(num)) return 0;
-        if (Math.floor(num) === num) return 0;
-
-        const str = num.toFixed(30);
-        const decimalPart = (str.split('.')[1] || '');
-        let firstNonZero = decimalPart.length;
-        for (let i = 0; i < decimalPart.length; i++) {
-            if (decimalPart[i] !== '0') {
-                firstNonZero = i;
-                break;
-            }
-        }
-
-        if (firstNonZero === decimalPart.length) return 0;
-        return firstNonZero + 2;
-    }
-
     function normalizeSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return NaN;
-        const precision = getSmartPrecision(num);
-        return precision ? Number(num.toFixed(precision)) : num;
+        const plain = formatDynamicPlain(value);
+        const num = plain ? Number(plain) : NaN;
+        return isFinite(num) ? num : NaN;
     }
 
     function formatSmartDecimal(value) {
-        const num = Number(value);
-        if (!isFinite(num)) return '';
-        const precision = getSmartPrecision(num);
-        if (!precision) return num.toString();
-        return num.toFixed(precision).replace(/\.?0+$/, '');
+        const plain = formatDynamicPlain(value);
+        if (!plain) return '';
+        return plain.replace('.', ',');
     }
 
     function formatNumberTrim(value) {
@@ -438,23 +501,27 @@ function initBrickForm(root) {
         if (lastEditedPriceField === 'price' && priceValue > 0) {
             // User edited price, recalculate comparison
             const calcComparison = priceValue / currentVolume;
-            if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+            const calcPlain = formatPlainNumber(calcComparison, 0);
+            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
         } else if (lastEditedPriceField === 'comparison' && compValue > 0) {
             // User edited comparison, recalculate price
             const calcPrice = compValue * currentVolume;
-            if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
-            if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+            const calcPlain = formatPlainNumber(calcPrice, 0);
+            if (pricePerPiece) pricePerPiece.value = calcPlain || '';
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
         } else {
             // No field edited yet, or both are empty - try to calculate based on what exists
             if (priceValue > 0) {
                 const calcComparison = priceValue / currentVolume;
-                if (comparisonPrice) comparisonPrice.value = Math.round(calcComparison);
-                if (comparisonPriceDisplay) comparisonPriceDisplay.value = Math.round(calcComparison).toLocaleString('id-ID');
+                const calcPlain = formatPlainNumber(calcComparison, 0);
+                if (comparisonPrice) comparisonPrice.value = calcPlain || '';
+                if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
             } else if (compValue > 0) {
                 const calcPrice = compValue * currentVolume;
-                if (pricePerPiece) pricePerPiece.value = Math.round(calcPrice);
-                if (pricePerPieceDisplay) pricePerPieceDisplay.value = Math.round(calcPrice).toLocaleString('id-ID');
+                const calcPlain = formatPlainNumber(calcPrice, 0);
+                if (pricePerPiece) pricePerPiece.value = calcPlain || '';
+                if (pricePerPieceDisplay) pricePerPieceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
             }
         }
     }

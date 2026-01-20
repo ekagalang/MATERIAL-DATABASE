@@ -319,7 +319,7 @@
                                 </td>
                                 <td class="text-end">
                                     <div class="text-success">
-                                        <strong>Rp {{ number_format($calc->total_material_cost, 0, ',', '.') }}</strong>
+                                        <strong>@currency($calc->total_material_cost)</strong>
                                     </div>
                                 </td>
                                 <td class="text-center">

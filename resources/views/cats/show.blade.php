@@ -221,7 +221,7 @@
                             @if($cat->purchase_price)
                                 <span style="font-weight: 600; color: #64748b;">Rp</span>
                                 <span style="font-weight: 700; color: #0f172a;">
-                                    {{ number_format($cat->purchase_price, 0, ',', '.') }}
+                                    @price($cat->purchase_price)
                                 </span>
                                 <span style="color: #94a3b8; font-size: 12px; margin-left: 4px;">/ {{ $cat->price_unit ?? 'unit' }}</span>
                             @else
@@ -249,7 +249,7 @@
                                             border-radius: 10px;">
                                     <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
-                                        {{ number_format($cat->comparison_price_per_kg, 0, ',', '.') }}
+                                        @price($cat->comparison_price_per_kg)
                                     </span>
                                     <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ Kg</span>
                                 </div>

@@ -261,7 +261,7 @@
                                     <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; color: inherit; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
-                                           value="{{ $sand->comparison_price_per_m3 ? number_format($sand->comparison_price_per_m3, 0, ',', '.') : '' }}"
+                                           value="{{ $sand->comparison_price_per_m3 ? \App\Helpers\NumberHelper::format($sand->comparison_price_per_m3) : '' }}"
                                            class="autocomplete-input"
                                            data-field="comparison_price_per_m3"
                                            inputmode="numeric"

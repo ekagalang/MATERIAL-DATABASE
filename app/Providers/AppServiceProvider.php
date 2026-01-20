@@ -49,5 +49,15 @@ class AppServiceProvider extends ServiceProvider
         Blade::directive('number', function ($expression) {
             return "<?php echo \App\Helpers\NumberHelper::format($expression); ?>";
         });
+
+        // Currency formatter (Rp prefix, no decimals)
+        Blade::directive('currency', function ($expression) {
+            return "<?php echo \App\Helpers\NumberHelper::currency($expression); ?>";
+        });
+
+        // Price formatter (no prefix, no decimals)
+        Blade::directive('price', function ($expression) {
+            return "<?php echo \App\Helpers\NumberHelper::format($expression, 0); ?>";
+        });
     }
 }

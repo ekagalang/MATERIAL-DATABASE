@@ -12,6 +12,8 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkerController;
 use App\Http\Controllers\SkillController;
+use App\Helpers\NumberHelper;
+use App\Models\BrickCalculation;
 // use App\Http\Controllers\Dev\PriceAnalysisController;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +23,169 @@ Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->nam
 Route::get('/test-error/{code}', function ($code) {
     abort($code);
 });
+
+// Halaman testing format angka (khusus internal)
+Route::get('/testing/number-formatting', function () {
+    $samples = [
+        ['label' => 'integer', 'value' => '10'],
+        ['label' => 'one decimal', 'value' => '10.5'],
+        ['label' => 'two decimals', 'value' => '10.25'],
+        ['label' => 'three decimals', 'value' => '10.259'],
+        ['label' => 'three decimals (round up)', 'value' => '10.299'],
+        ['label' => 'small decimal', 'value' => '0.0049'],
+        ['label' => 'small decimal just over', 'value' => '0.0051'],
+        ['label' => 'very small decimal', 'value' => '0.000021'],
+        ['label' => 'large number', 'value' => '1234567.8912'],
+        ['label' => 'negative', 'value' => '-12.3456'],
+        ['label' => 'zero', 'value' => '0'],
+    ];
+    $factor = '1.333';
+
+    $normalizeInput = static function (string $value): string {
+        $value = trim($value);
+        $value = str_replace(',', '.', $value);
+        if ($value === '' || !is_numeric($value)) {
+            return '0';
+        }
+        return $value;
+    };
+
+    $dynamicPlain = static function (string $value) use ($normalizeInput): string {
+        $value = $normalizeInput($value);
+        $sign = '';
+        if (str_starts_with($value, '-')) {
+            $sign = '-';
+            $value = substr($value, 1);
+        }
+
+        $parts = explode('.', $value, 2);
+        $intPart = $parts[0] === '' ? '0' : ltrim($parts[0], '0');
+        if ($intPart === '') {
+            $intPart = '0';
+        }
+
+        $decPart = $parts[1] ?? '';
+        $decPart = rtrim($decPart, '0');
+
+        if ($intPart !== '0') {
+            $decPart = substr($decPart, 0, 2);
+            $decPart = rtrim($decPart, '0');
+            if ($decPart === '') {
+                return $sign . $intPart;
+            }
+            return $sign . $intPart . '.' . $decPart;
+        }
+
+        if ($decPart === '') {
+            return $sign . '0';
+        }
+
+        $leadingZeros = strspn($decPart, '0');
+        if ($leadingZeros >= strlen($decPart)) {
+            return $sign . '0';
+        }
+
+        $cutLength = min(strlen($decPart), $leadingZeros + 2);
+        $decPart = substr($decPart, 0, $cutLength);
+        $decPart = rtrim($decPart, '0');
+
+        if ($decPart === '') {
+            return $sign . '0';
+        }
+
+        return $sign . '0.' . $decPart;
+    };
+
+    $formatIdDynamic = static function (string $value) use ($dynamicPlain): string {
+        $plain = $dynamicPlain($value);
+        $sign = '';
+        if (str_starts_with($plain, '-')) {
+            $sign = '-';
+            $plain = substr($plain, 1);
+        }
+
+        $parts = explode('.', $plain, 2);
+        $intPart = $parts[0] ?? '0';
+        $decPart = $parts[1] ?? '';
+        $intPart = preg_replace('/\B(?=(\d{3})+(?!\d))/', '.', $intPart);
+
+        if ($decPart === '') {
+            return $sign . $intPart;
+        }
+
+        return $sign . $intPart . ',' . $decPart;
+    };
+
+    $buildRow = static function (string $label, string $value) use (
+        $normalizeInput,
+        $dynamicPlain,
+        $formatIdDynamic,
+        $factor
+    ): array {
+        $raw = $normalizeInput($value);
+        $rawFloat = (float) $raw;
+        $currentDisplay = NumberHelper::format($rawFloat);
+        $currentCalcPlain = NumberHelper::format(NumberHelper::normalize($rawFloat), null, '.', '');
+
+        $targetPlain = $dynamicPlain($raw);
+        $targetDisplay = $formatIdDynamic($raw);
+
+        $calcRaw = (float) $targetPlain * (float) $factor;
+        $calcPlain = NumberHelper::format(NumberHelper::normalize($calcRaw), null, '.', '');
+        $calcDisplay = $formatIdDynamic($calcPlain);
+
+        return [
+            'label' => $label,
+            'raw' => $raw,
+            'current_display' => $currentDisplay,
+            'current_calc' => $currentCalcPlain,
+            'target_display' => $targetDisplay,
+            'target_calc' => $targetPlain,
+            'calc_display' => $calcDisplay,
+            'display_ok' => $currentDisplay === $targetDisplay,
+            'calc_ok' => $currentCalcPlain === $targetPlain,
+        ];
+    };
+
+    $rows = [];
+    foreach ($samples as $sample) {
+        $rows[] = $buildRow($sample['label'], $sample['value']);
+    }
+
+    $fields = [
+        'wall_length' => 'Wall length',
+        'wall_height' => 'Wall height',
+        'wall_area' => 'Wall area',
+        'mortar_thickness' => 'Mortar thickness',
+        'brick_quantity' => 'Brick quantity',
+        'mortar_volume' => 'Mortar volume',
+        'cement_quantity_sak' => 'Cement quantity (sak)',
+        'sand_m3' => 'Sand volume (M3)',
+        'water_liters' => 'Water liters',
+        'total_material_cost' => 'Total material cost',
+    ];
+    $realRows = [];
+    $recentCalculations = BrickCalculation::orderByDesc('created_at')->limit(5)->get();
+    foreach ($recentCalculations as $calculation) {
+        foreach ($fields as $field => $label) {
+            $rawValue = $calculation->getRawOriginal($field);
+            if ($rawValue === null || $rawValue === '') {
+                continue;
+            }
+            $row = $buildRow($label, (string) $rawValue);
+            $row['calc_id'] = $calculation->id;
+            $row['created_at'] = $calculation->created_at?->format('Y-m-d H:i');
+            $row['field'] = $field;
+            $realRows[] = $row;
+        }
+    }
+
+    return view('testing.number-formatting', [
+        'rows' => $rows,
+        'factor' => $factor,
+        'realRows' => $realRows,
+    ]);
+})->name('testing.number-formatting');
 
 Route::resource('units', UnitController::class);
 Route::resource('cats', CatController::class);

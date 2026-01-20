@@ -253,7 +253,7 @@
                             @if($ceramic->price_per_package)
                                 <span style="font-weight: 600; color: #64748b;">Rp</span>
                                 <span style="font-weight: 700; color: #0f172a;">
-                                    {{ number_format($ceramic->price_per_package, 0, ',', '.') }}
+                                    @price($ceramic->price_per_package)
                                 </span>
                             @else
                                 -
@@ -278,7 +278,7 @@
                                             border-radius: 10px;">
                                     <span style="font-weight: 600; color: #991b1b; font-size: 13px;">Rp</span>
                                     <span style="font-weight: 700; color: #7f1d1d; font-size: 15px;">
-                                        {{ number_format($ceramic->comparison_price_per_m2, 0, ',', '.') }}
+                                        @price($ceramic->comparison_price_per_m2)
                                     </span>
                                     <span style="font-weight: 600; color: #991b1b; font-size: 12px;">/ M2</span>
                                 </div>
