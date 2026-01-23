@@ -7,6 +7,7 @@ use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
 use App\Models\Sand;
+use App\Models\Store;
 use App\Models\Unit;
 use App\Services\Cache\CacheService;
 use App\Services\FormulaRegistry;
@@ -237,7 +238,7 @@ class DashboardService
             return [
                 'materialCount' => array_sum($counts),
                 'unitCount' => $this->getUnitCount(),
-                'storeCount' => null, // Under development
+                'storeCount' => Store::count(),
                 'workItemCount' => $this->getWorkItemCount(),
                 'workerCount' => null, // Under development
                 'skillCount' => null, // Under development

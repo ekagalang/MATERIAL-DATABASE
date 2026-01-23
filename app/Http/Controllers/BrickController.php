@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Brick;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class BrickController extends Controller
@@ -80,68 +81,86 @@ class BrickController extends Controller
             'address' => 'nullable|string',
             'address' => 'nullable|string',
             'price_per_piece' => 'nullable|numeric|min:0',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
-        $data['material_name'] = 'Bata'; // Selalu "Bata"
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
+            $data['material_name'] = 'Bata';
 
-        // Upload foto
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                $path = $photo->storeAs('bricks', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: ' . $path);
+            // Upload foto
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('bricks', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo uploaded successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to store photo');
+                    }
                 } else {
-                    \Log::error('Failed to store photo');
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
-            } else {
-                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
+
+            // Buat brick
+            $brick = Brick::create($data);
+
+            // Kalkulasi volume dari dimensi
+            if ($brick->dimension_length && $brick->dimension_width && $brick->dimension_height) {
+                $brick->calculateVolume();
+            }
+
+            // Kalkulasi harga komparasi per M3
+            if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
+                $brick->calculateComparisonPrice();
+            }
+
+            $brick->save();
+
+            // NEW: Attach store location
+            if ($request->filled('store_location_id')) {
+                $brick->storeLocations()->attach($request->input('store_location_id'));
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Data Bata berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
+            }
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Data Bata berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
+            }
+
+            return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create brick: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        // Buat brick
-        $brick = Brick::create($data);
-
-        // Kalkulasi volume dari dimensi
-        if ($brick->dimension_length && $brick->dimension_width && $brick->dimension_height) {
-            $brick->calculateVolume();
-        }
-
-        // Kalkulasi harga komparasi per M3
-        if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
-            $brick->calculateComparisonPrice();
-        }
-
-        $brick->save();
-
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()
-                ->to($request->input('_redirect_url'))
-                ->with('success', 'Data Bata berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()
-                ->route('materials.index')
-                ->with('success', 'Data Bata berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
-        }
-
-        return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil ditambahkan!');
     }
 
     public function show(Brick $brick)
     {
+        $brick->load('storeLocations.store'); // NEW
         return view('bricks.show', compact('brick'));
     }
 
     public function edit(Brick $brick)
     {
+        $brick->load('storeLocations.store'); // NEW
         return view('bricks.edit', compact('brick'));
     }
 
@@ -159,72 +178,102 @@ class BrickController extends Controller
             'address' => 'nullable|string',
             'address' => 'nullable|string',
             'price_per_piece' => 'nullable|numeric|min:0',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
-        $data['material_name'] = 'Bata'; // Selalu "Bata"
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
+            $data['material_name'] = 'Bata';
 
-        // Upload foto baru
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                // Hapus foto lama
-                if ($brick->photo) {
-                    Storage::disk('public')->delete($brick->photo);
-                }
+            // Upload foto baru
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    if ($brick->photo) {
+                        Storage::disk('public')->delete($brick->photo);
+                    }
 
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                $path = $photo->storeAs('bricks', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: ' . $path);
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('bricks', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo updated successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to update photo');
+                    }
                 } else {
-                    \Log::error('Failed to update photo');
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
                 }
-            } else {
-                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
             }
+
+            // Update brick
+            $brick->update($data);
+
+            // Kalkulasi volume dari dimensi
+            if ($brick->dimension_length && $brick->dimension_width && $brick->dimension_height) {
+                $brick->calculateVolume();
+            }
+
+            // Kalkulasi harga komparasi per M3
+            if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
+                $brick->calculateComparisonPrice();
+            } else {
+                $brick->comparison_price_per_m3 = null;
+            }
+
+            $brick->save();
+
+            // NEW: Sync store location
+            if ($request->filled('store_location_id')) {
+                $brick->storeLocations()->sync([$request->input('store_location_id')]);
+            } else {
+                $brick->storeLocations()->detach();
+            }
+
+            DB::commit();
+
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Data Bata berhasil diupdate!');
+            }
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()->route('materials.index')->with('success', 'Data Bata berhasil diupdate!');
+            }
+
+            return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil diupdate!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update brick: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        // Update brick
-        $brick->update($data);
-
-        // Kalkulasi volume dari dimensi
-        if ($brick->dimension_length && $brick->dimension_width && $brick->dimension_height) {
-            $brick->calculateVolume();
-        }
-
-        // Kalkulasi harga komparasi per M3
-        if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
-            $brick->calculateComparisonPrice();
-        } else {
-            $brick->comparison_price_per_m3 = null;
-        }
-
-        $brick->save();
-
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data Bata berhasil diupdate!');
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Data Bata berhasil diupdate!');
-        }
-
-        return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil diupdate!');
     }
 
     public function destroy(Brick $brick)
     {
-        // Hapus foto
-        if ($brick->photo) {
-            Storage::disk('public')->delete($brick->photo);
+        DB::beginTransaction();
+        try {
+            // Hapus foto
+            if ($brick->photo) {
+                Storage::disk('public')->delete($brick->photo);
+            }
+
+            // NEW: Detach store locations
+            $brick->storeLocations()->detach();
+
+            $brick->delete();
+
+            DB::commit();
+
+            return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete brick: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
-
-        $brick->delete();
-
-        return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil dihapus!');
     }
 
     /**

@@ -16,7 +16,7 @@
             'sands.*' => 'Database Material',
             'cats.*' => 'Database Material',
             'ceramics.*' => 'Database Material',
-            'stores.*' => 'Mitra Toko',
+            'stores.*' => 'Database Toko',
             'work-items.*' => 'Item Pekerjaan',
             'workers.*' => 'Tenaga Kerja    ',
             'skills.*' => 'Keahlian',
@@ -41,6 +41,7 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/global.css') }}">
+    <script src="{{ asset('js/number-helper-client.js') }}"></script>
 </head>
 <body>
     <div class="global-topbar" id="globalTopbar">
@@ -268,12 +269,12 @@
 
                 <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
                     <div class="nav-dropdown-content">
-                        <!-- Menu Item: Rekomendasi TerBAIK -->
+                        <!-- Menu Item: Rekomendasi Rekomendasi -->
                         <div class="dropdown-item-parent">
                             <a href="{{ route('settings.recommendations.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
-                                Rekomendasi TerBAIK
+                                Rekomendasi Rekomendasi
                             </a>
                         </div>
                     </div>
@@ -968,6 +969,25 @@
                 pendingGlobalTypePrefill = null;
             }
 
+            // Helper function to load store autocomplete for global modal
+            function loadGlobalStoreAutocomplete(modalBodyEl) {
+                if (!window.storeAutocompleteLoaded) {
+                    const storeScript = document.createElement('script');
+                    storeScript.src = '{{ asset("js/store-autocomplete.js") }}?v=' + Date.now();
+                    storeScript.onload = () => {
+                        window.storeAutocompleteLoaded = true;
+                        if (typeof initStoreAutocomplete === 'function') {
+                            initStoreAutocomplete(modalBodyEl);
+                        }
+                    };
+                    document.head.appendChild(storeScript);
+                } else {
+                    if (typeof initStoreAutocomplete === 'function') {
+                        initStoreAutocomplete(modalBodyEl);
+                    }
+                }
+            }
+
             function initializeForm(initFunctionName, modalBodyEl) {
                 console.log('[Init] Initializing form with function:', initFunctionName);
 
@@ -975,11 +995,12 @@
                     if (typeof window[initFunctionName] === 'function') {
                         console.log('[Init] Function exists, calling it...');
                         // Pass pendingGlobalTypePrefill as the second argument
-                        window[initFunctionName](modalBodyEl, pendingGlobalTypePrefill); 
+                        window[initFunctionName](modalBodyEl, pendingGlobalTypePrefill);
                     } else {
                         console.error('[Init] Function not found:', initFunctionName);
                     }
                     applyGlobalTypePrefill(modalBodyEl);
+                    loadGlobalStoreAutocomplete(modalBodyEl);
                     interceptGlobalFormSubmit();
                 }, 150); // Increased timeout slightly for safety
             }
@@ -1405,6 +1426,9 @@
             });
         })();
     </script>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Performance Optimization Scripts -->
     <script src="{{ asset('js/search-debounce.js') }}"></script>

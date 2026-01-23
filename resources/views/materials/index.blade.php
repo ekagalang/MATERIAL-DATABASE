@@ -969,23 +969,23 @@ html.materials-booting .page-content {
                                     'type' => 'Jenis',
                                     'brand' => 'Merek',
                                     'form' => 'Bentuk',
-                                    'dimension_length' => 'Dimensi (cm)',
+                                    'dimension_length' => 'Dimensi ( cm )',
                                     'package_volume' => 'Volume',
                                     'store' => 'Toko',
                                     'address' => 'Alamat',
                                     'price_per_piece' => 'Harga Beli',
-                                    'comparison_price_per_m3' => 'Harga <br> Komparasi (/ M3)',
+                                    'comparison_price_per_m3' => 'Harga <br> Komparasi ( / M3 )',
                                 ];
                                 $sandSortable = [
                                     'type' => 'Jenis',
                                     'brand' => 'Merek',
                                     'package_unit' => 'Kemasan',
-                                    'dimension_length' => 'Dimensi Kemasan (M)',
+                                    'dimension_length' => 'Dimensi Kemasan ( M )',
                                     'package_volume' => 'Volume',
                                     'store' => 'Toko',
                                     'address' => 'Alamat',
                                     'package_price' => 'Harga Beli',
-                                    'comparison_price_per_m3' => 'Harga <br> Komparasi (/ M3)',
+                                    'comparison_price_per_m3' => 'Harga <br> Komparasi ( / M3 )',
                                 ];
                                 $catSortable = [
                                     'type' => 'Jenis',
@@ -999,7 +999,7 @@ html.materials-booting .page-content {
                                     'store' => 'Toko',
                                     'address' => 'Alamat',
                                     'purchase_price' => 'Harga Beli',
-                                    'comparison_price_per_kg' => 'Harga <br> Komparasi (/ Kg)',
+                                    'comparison_price_per_kg' => 'Harga <br> Komparasi ( / Kg )',
                                 ];
                                 $cementSortable = [
                                     'type' => 'Jenis',
@@ -1008,12 +1008,12 @@ html.materials-booting .page-content {
                                     'code' => 'Kode',
                                     'color' => 'Warna',
                                     'package_unit' => 'Kemasan',
-                                    'dimension_length' => 'Dimensi (cm)',
+                                    'dimension_length' => 'Dimensi ( cm )',
                                     'package_weight_net' => 'Berat Bersih',
                                     'store' => 'Toko',
                                     'address' => 'Alamat',
                                     'package_price' => 'Harga Beli',
-                                    'comparison_price_per_kg' => 'Harga <br> Komparasi (/ Kg)',
+                                    'comparison_price_per_kg' => 'Harga <br> Komparasi ( / Kg )',
                                 ];
                                 $ceramicSortable = [
                                     'type' => 'Jenis',
@@ -1025,12 +1025,12 @@ html.materials-booting .page-content {
                                     'surface' => 'Permukaan',
                                     'packaging' => 'Kemasan',
                                     'pieces_per_package' => 'Volume',
-                                    'coverage_per_package' => 'Luas (M2 / Dus)',
-                                    'dimension_length' => 'Dimensi (cm)',
+                                    'coverage_per_package' => 'Luas ( M2 / Dus )',
+                                    'dimension_length' => 'Dimensi ( cm )',
                                     'store' => 'Toko',
                                     'address' => 'Alamat',
                                     'price_per_package' => 'Harga / Kemasan',
-                                    'comparison_price_per_m2' => 'Harga Komparasi <br> (/ M2)',
+                                    'comparison_price_per_m2' => 'Harga Komparasi <br> ( / M2 )',
                                 ];
                                 @endphp
                                     @if($material['type'] == 'brick')
@@ -1072,7 +1072,7 @@ html.materials-booting .page-content {
                                             <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 120px; min-width: 120px;">
                                                 <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                     style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                    <span>Dimensi (cm)</span>
+                                                    <span>Dimensi ( cm )</span>
                                                     @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
                                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
@@ -1182,7 +1182,7 @@ html.materials-booting .page-content {
                                             <th class="sortable" colspan="3" style="text-align: center; font-size: 13px; width: 120px; min-width: 120px;">
                                                 <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                    <span>Dimensi (cm)</span>
+                                                    <span>Dimensi ( cm )</span>
                                                     @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
                                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                     @else
@@ -1535,7 +1535,7 @@ html.materials-booting .page-content {
                                         <th class="sortable ceramic-sticky-col col-dim-group" colspan="3" style="text-align: center; font-size: 13px;">
                                             <a href="{{ getMaterialSortUrl('dimension_length', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Dimensi (cm)</span>
+                                                <span>Dimensi ( cm )</span>
                                                 @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_thickness']))
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
@@ -1579,7 +1579,7 @@ html.materials-booting .page-content {
                                         <th class="sortable" rowspan="2" style="text-align: right;">
                                             <a href="{{ getMaterialSortUrl('code', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Nomor Seri<br>(   Kode Pembakaran)</span>
+                                                <span>Nomor Seri<br>( Kode Pembakaran )</span>
                                                 @if(request('sort_by') == 'code')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
@@ -1590,7 +1590,7 @@ html.materials-booting .page-content {
                                         <th class="sortable" rowspan="2" style="text-align: left;">
                                             <a href="{{ getMaterialSortUrl('color', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Corak ({{ $ceramicSortable['color'] }})</span>
+                                                <span>Corak ( {{ $ceramicSortable['color'] }} )</span>
                                                 @if(request('sort_by') == 'color')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
@@ -1623,7 +1623,7 @@ html.materials-booting .page-content {
                                         <th class="sortable" colspan="2" rowspan="2" style="text-align: center;">
                                             <a href="{{ getMaterialSortUrl('coverage_per_package', request('sort_by'), request('sort_direction')) }}"
                                                style="color: inherit; text-decoration: none; display: inline-flex; align-items: flex-start; justify-content: center; gap: 6px;">
-                                                <span>Luas<br>(/ Dus)</span>
+                                                <span>Luas<br>( / Dus )</span>
                                                 @if(request('sort_by') == 'coverage_per_package')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                 @else
@@ -2068,7 +2068,7 @@ html.materials-booting .page-content {
                                 <div class="kanggo-logo">
                                     <img src="/Pagination/kangg.png" alt="Kanggo" style="height: 70px; width: auto;">
                                 </div>
-                                <div class="kanggo-letters" style="justify-content: center; margin-top: 5px; height: 80px;">
+                                <div class="kanggo-letters" style="justify-content: center; margin-top: 3.5px; height: 80px;">
                                     @php
                                         $activeLetters = $material['active_letters'];
                                     @endphp
@@ -2782,6 +2782,25 @@ document.addEventListener('DOMContentLoaded', function() {
         return { materialType, action, materialLabel };
     }
 
+    // Helper function to load store autocomplete
+    function loadStoreAutocomplete(modalBodyEl) {
+        if (!window.storeAutocompleteLoaded) {
+            const storeScript = document.createElement('script');
+            storeScript.src = '/js/store-autocomplete.js?v=' + Date.now();
+            storeScript.onload = () => {
+                window.storeAutocompleteLoaded = true;
+                if (typeof initStoreAutocomplete === 'function') {
+                    initStoreAutocomplete(modalBodyEl);
+                }
+            };
+            document.head.appendChild(storeScript);
+        } else {
+            if (typeof initStoreAutocomplete === 'function') {
+                initStoreAutocomplete(modalBodyEl);
+            }
+        }
+    }
+
     // Helper function to load material-specific form script
     function loadMaterialFormScript(materialType, modalBodyEl) {
         const scriptProperty = `${materialType}FormScriptLoaded`;
@@ -2807,6 +2826,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         console.error('[Modal] Init function not found:', initFunctionName);
                     }
+                    loadStoreAutocomplete(modalBodyEl);
                     interceptFormSubmit();
                 }, 100);
             };
@@ -2828,6 +2848,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.error('[Modal] Init function not found:', initFunctionName);
                 }
+                loadStoreAutocomplete(modalBodyEl);
                 interceptFormSubmit();
             }, 100);
         }

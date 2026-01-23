@@ -896,6 +896,25 @@ function initModalHandlers() {
                 const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
                 modalBody.innerHTML = content ? content.outerHTML : html;
 
+                // Function to initialize store autocomplete
+                function initStoreAutocompleteForModal() {
+                    if (!window.storeAutocompleteLoaded) {
+                        const storeScript = document.createElement('script');
+                        storeScript.src = '/js/store-autocomplete.js?v=' + Date.now();
+                        storeScript.onload = () => {
+                            window.storeAutocompleteLoaded = true;
+                            if (typeof initStoreAutocomplete === 'function') {
+                                initStoreAutocomplete(modalBody);
+                            }
+                        };
+                        document.head.appendChild(storeScript);
+                    } else {
+                        if (typeof initStoreAutocomplete === 'function') {
+                            initStoreAutocomplete(modalBody);
+                        }
+                    }
+                }
+
                 // Load brick-form.js if not loaded
                 if (!window.brickFormScriptLoaded) {
                     const script = document.createElement('script');
@@ -906,6 +925,7 @@ function initModalHandlers() {
                             if (typeof initBrickForm === 'function') {
                                 initBrickForm(modalBody);
                             }
+                            initStoreAutocompleteForModal();
                             interceptFormSubmit();
                         }, 100);
                     };
@@ -915,6 +935,7 @@ function initModalHandlers() {
                         if (typeof initBrickForm === 'function') {
                             initBrickForm(modalBody);
                         }
+                        initStoreAutocompleteForModal();
                         interceptFormSubmit();
                     }, 100);
                 }

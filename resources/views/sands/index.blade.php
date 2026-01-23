@@ -796,15 +796,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     const content = doc.querySelector('form') || doc.querySelector('.card') || doc.body;
                     modalBody.innerHTML = content ? content.outerHTML : html;
 
+                    // Function to initialize store autocomplete
+                    function initStoreAutocompleteForModal() {
+                        if (!window.storeAutocompleteLoaded) {
+                            const storeScript = document.createElement('script');
+                            storeScript.src = '/js/store-autocomplete.js?v=' + Date.now();
+                            storeScript.onload = () => {
+                                window.storeAutocompleteLoaded = true;
+                                if (typeof initStoreAutocomplete === 'function') {
+                                    initStoreAutocomplete(modalBody);
+                                }
+                            };
+                            document.head.appendChild(storeScript);
+                        } else {
+                            if (typeof initStoreAutocomplete === 'function') {
+                                initStoreAutocomplete(modalBody);
+                            }
+                        }
+                    }
+
                     if (!window.sandFormScriptLoaded) {
                         const script = document.createElement('script');
-                        script.src = '/js/sand-form.js';
+                        script.src = '/js/sand-form.js?v=' + Date.now();
                         script.onload = () => {
                             window.sandFormScriptLoaded = true;
                             setTimeout(() => {
                                 if (typeof initSandForm === 'function') {
                                     initSandForm(modalBody);
                                 }
+                                initStoreAutocompleteForModal();
                                 interceptFormSubmit();
                             }, 100);
                         };
@@ -814,6 +834,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (typeof initSandForm === 'function') {
                                 initSandForm(modalBody);
                             }
+                            initStoreAutocompleteForModal();
                             interceptFormSubmit();
                         }, 100);
                     }

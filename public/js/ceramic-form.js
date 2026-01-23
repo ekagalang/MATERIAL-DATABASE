@@ -489,6 +489,12 @@ function initCeramicForm(root) {
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
         if (!field) { return; }
+
+        // Skip store and address fields - handled by store-autocomplete.js
+        if (field === 'store' || field === 'address') {
+            return;
+        }
+
         const suggestList = getElement(`${field}-list`);
         let debounceTimer;
         let isSelectingFromAutosuggest = false;

@@ -255,7 +255,7 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
                                 <label for="filter_best">
                                     <span class="tickbox-title">
-                                        TerBAIK
+                                        Rekomendasi
                                     </span>
                                     <span class="tickbox-desc">3 kombinasi Most Recommended (Custom Setting)</span>
                                 </label>
@@ -272,7 +272,7 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
                                 <label for="filter_common">
                                     <span class="tickbox-title">
-                                        TerUMUM
+                                        Populer
                                     </span>
                                     <span class="tickbox-desc">3 kombinasi yang paling sering dihitung user</span>
                                 </label>
@@ -282,9 +282,9 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
                                 <label for="filter_cheapest">
                                     <span class="tickbox-title">
-                                        TerMURAH
+                                        Ekonomis
                                     </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan total harga termurah</span>
+                                    <span class="tickbox-desc">3 kombinasi dengan total harga Ekonomis</span>
                                 </label>
                             </div>
 
@@ -292,7 +292,7 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
                                 <label for="filter_medium">
                                     <span class="tickbox-title">
-                                        TerSEDANG
+                                        Moderat
                                     </span>
                                     <span class="tickbox-desc">3 kombinasi dengan harga menengah</span>
                                 </label>
@@ -302,9 +302,9 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
                                 <label for="filter_expensive">
                                     <span class="tickbox-title">
-                                        TerMAHAL
+                                        Premium
                                     </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan total harga termahal</span>
+                                    <span class="tickbox-desc">3 kombinasi dengan total harga Premium</span>
                                 </label>
                             </div>
 
@@ -901,7 +901,7 @@
             handleWorkTypeChange = function() {
                 const selectedWorkType = workTypeSelector.value;
 
-                // Update "TerBAIK" filter state based on availability
+                // Update "Rekomendasi" filter state based on availability
                 const filterBest = document.getElementById('filter_best');
                 if (filterBest) {
                     if (availableBestRecommendations.includes(selectedWorkType)) {
@@ -1187,7 +1187,7 @@
                 if (!isAnyFilterChecked) {
                     e.preventDefault();
                     if (typeof window.showToast === 'function') {
-                        window.showToast('Harap pilih minimal satu filter harga (contoh: TerBAIK, TerMURAH).', 'error');
+                        window.showToast('Harap pilih minimal satu filter harga (contoh: Rekomendasi, Ekonomis).', 'error');
                     } else {
                         alert('Harap pilih minimal satu filter harga.');
                     }

@@ -30,7 +30,7 @@ class CalculationOrchestrationService
     public function __construct(
         CalculationRepository $repository,
         MaterialSelectionService $materialSelection,
-        CombinationGenerationService $combinationGeneration
+        CombinationGenerationService $combinationGeneration,
     ) {
         $this->repository = $repository;
         $this->materialSelection = $materialSelection;
@@ -105,7 +105,7 @@ class CalculationOrchestrationService
             $bestCombinations = $this->combinationGeneration->getBestCombinations($brick, $request);
             $finalResults = [];
             foreach ($bestCombinations as $index => $combo) {
-                $label = 'TerBAIK ' . ($index + 1);
+                $label = 'Rekomendasi ' . ($index + 1);
                 $finalResults[$label] = [array_merge($combo, ['filter_label' => $label])];
             }
             return $finalResults;
@@ -273,7 +273,7 @@ class CalculationOrchestrationService
      */
     public function compareBricks(array $request): array
     {
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
         $wallLength = $n($request['wall_length']);
         $workType = $request['work_type'] ?? 'brick_half';
         $bricks = $this->repository->getBricksByIds($request['brick_ids']);

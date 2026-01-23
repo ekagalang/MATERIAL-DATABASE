@@ -150,7 +150,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text"
                                            id="volume_display_input"
                                            readonly
                                            placeholder="0"
@@ -441,8 +441,13 @@
 </style>
 
 <script src="/js/brick-form.js?v={{ time() }}"></script>
+<script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initBrickForm === 'function') {
         initBrickForm();
+    }
+    // Initialize store autocomplete after form init
+    if (typeof initStoreAutocomplete === 'function') {
+        initStoreAutocomplete(document.getElementById('brickForm')?.parentElement);
     }
 </script>

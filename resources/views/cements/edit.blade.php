@@ -356,10 +356,15 @@
     }
 </style>
 
-<script src="/js/cement-form.js"></script>
+<script src="/js/cement-form.js?v={{ time() }}"></script>
+<script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initCementForm === 'function') {
         const currentForm = document.getElementById('cementForm');
         initCementForm(currentForm ? currentForm.parentElement : document);
+    }
+    // Initialize store autocomplete after form init
+    if (typeof initStoreAutocomplete === 'function') {
+        initStoreAutocomplete(document.getElementById('cementForm')?.parentElement);
     }
 </script>

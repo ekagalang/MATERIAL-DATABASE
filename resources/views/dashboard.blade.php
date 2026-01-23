@@ -45,15 +45,12 @@
 
     <!-- 3. Database Toko -->
     <div class="modern-stat-card">
-        <div class="card-meta">
-            <span class="status-badge orange text-shadow-bottom">COMING SOON</span>
-        </div>
         <div class="card-icon-wrapper orange">
             <i class="bi bi-shop"></i>
         </div>
         <div class="card-content">
             <p class="card-label text-shadow-bottom">Mitra Toko</p>
-            <h2 class="card-value text-shadow-bottom">--</h2>
+            <h2 class="card-value text-shadow-bottom">@format($storeCount)</h2>
         </div>
         <div class="card-overlay orange"></div>
     </div>

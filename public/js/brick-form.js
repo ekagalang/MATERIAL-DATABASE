@@ -110,15 +110,57 @@ function initBrickForm(root) {
         return `${sign}${withThousands},${decPart}`;
     }
 
+    function formatValuesWithHelper(items) {
+        if (window.NumberHelperClient && typeof window.NumberHelperClient.formatValues === 'function') {
+            return window.NumberHelperClient.formatValues(items);
+        }
+
+        const results = {};
+        items.forEach((item) => {
+            const value = item.value;
+            if (value === null || value === undefined || value === '') {
+                results[item.key] = { formatted: '', plain: '', normalized: 0 };
+                return;
+            }
+            const num = Number(value);
+            if (!isFinite(num)) {
+                results[item.key] = { formatted: '', plain: '', normalized: 0 };
+                return;
+            }
+            const decimals = item.decimals;
+            let formatted = '';
+            let plain = '';
+            if (decimals === 0) {
+                formatted = formatRupiah(num);
+                plain = formatPlainNumber(num, 0);
+            } else {
+                formatted = formatSmartDecimal(num);
+                plain = formatDynamicPlain(num);
+            }
+            results[item.key] = { formatted, plain, normalized: num };
+        });
+        return Promise.resolve(results);
+    }
+
+    function applyPriceFormatting(priceValue, comparisonValue) {
+        return formatValuesWithHelper([
+            { key: 'price', value: priceValue, decimals: 0 },
+            { key: 'comparison', value: comparisonValue, decimals: 0 },
+        ]).then((formatted) => {
+            if (pricePerPiece) pricePerPiece.value = formatted.price?.plain || '';
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = formatted.price?.formatted || '';
+            if (comparisonPrice) comparisonPrice.value = formatted.comparison?.plain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = formatted.comparison?.formatted || '';
+        });
+    }
+
     // Handle price per piece input
     function syncPriceFromDisplay() {
         if (isUpdatingPrice) return;
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(pricePerPieceDisplay?.value || '');
-        const normalized = raw ? formatPlainNumber(raw, 0) : '';
-        if (pricePerPiece) pricePerPiece.value = normalized || '';
-        if (pricePerPieceDisplay) pricePerPieceDisplay.value = normalized ? formatRupiah(normalized) : '';
+        const numericPrice = raw ? Number(raw) : null;
 
         // Mark that price was edited last
         if (raw) {
@@ -126,15 +168,24 @@ function initBrickForm(root) {
         }
 
         // Calculate comparison price from price per piece
-        if (normalized && currentVolume > 0) {
-            const calcComparison = Number(normalized) / currentVolume;
-            const calcPlain = formatPlainNumber(calcComparison, 0);
-            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
-        } else if (!normalized) {
-            // Clear comparison if price is cleared
+        if (numericPrice && currentVolume > 0) {
+            const calcComparison = numericPrice / currentVolume;
+            applyPriceFormatting(numericPrice, calcComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        }
+
+        if (!numericPrice) {
+            if (pricePerPiece) pricePerPiece.value = '';
+            if (pricePerPieceDisplay) pricePerPieceDisplay.value = '';
             if (comparisonPrice) comparisonPrice.value = '';
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
+        } else {
+            applyPriceFormatting(numericPrice, null).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
         }
 
         isUpdatingPrice = false;
@@ -146,9 +197,7 @@ function initBrickForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
-        const normalized = raw ? formatPlainNumber(raw, 0) : '';
-        if (comparisonPrice) comparisonPrice.value = normalized || '';
-        if (comparisonPriceDisplay) comparisonPriceDisplay.value = normalized ? formatRupiah(normalized) : '';
+        const numericComparison = raw ? Number(raw) : null;
 
         // Mark that comparison was edited last
         if (raw) {
@@ -156,15 +205,24 @@ function initBrickForm(root) {
         }
 
         // Calculate price per piece from comparison price
-        if (normalized && currentVolume > 0) {
-            const calcPrice = Number(normalized) * currentVolume;
-            const calcPlain = formatPlainNumber(calcPrice, 0);
-            if (pricePerPiece) pricePerPiece.value = calcPlain || '';
-            if (pricePerPieceDisplay) pricePerPieceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
-        } else if (!normalized) {
-            // Clear price if comparison is cleared
+        if (numericComparison && currentVolume > 0) {
+            const calcPrice = numericComparison * currentVolume;
+            applyPriceFormatting(calcPrice, numericComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        }
+
+        if (!numericComparison) {
+            if (comparisonPrice) comparisonPrice.value = '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
             if (pricePerPiece) pricePerPiece.value = '';
             if (pricePerPieceDisplay) pricePerPieceDisplay.value = '';
+        } else {
+            applyPriceFormatting(null, numericComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
         }
 
         isUpdatingPrice = false;
@@ -174,6 +232,12 @@ function initBrickForm(root) {
     const autosuggestInputs = (scope && scope.querySelectorAll) ? scope.querySelectorAll('.autocomplete-input') : document.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
+
+        // Skip store and address fields - handled by store-autocomplete.js
+        if (field === 'store' || field === 'address') {
+            return;
+        }
+
         const suggestList = getElement(`${field}-list`);
         let debounceTimer;
         let isSelectingFromAutosuggest = false;
@@ -454,21 +518,33 @@ function initBrickForm(root) {
             const volumeM3 = volumeCm3 / 1000000;
             const normalizedVolume = normalizeSmartDecimal(volumeM3);
             currentVolume = normalizedVolume;
-            const volumeText = formatSmartDecimal(normalizedVolume);
-            if (volumeDisplay) {
-                volumeDisplay.textContent = volumeText;
-                volumeDisplay.style.color = '#27ae60';
-            }
-            if (volumeDisplayInput) {
-                volumeDisplayInput.value = volumeText;
-            }
-            if (packageVolume) {
-                packageVolume.value = isNaN(normalizedVolume) ? '' : normalizedVolume.toString();
-            }
-            if (volumeCalculationDisplay) {
-                volumeCalculationDisplay.textContent =
-                    `${formatNumberTrim(length)} x ${formatNumberTrim(width)} x ${formatNumberTrim(height)} = ${formatNumberTrim(volumeCm3)} cm3 = ${volumeText} M3`;
-            }
+            formatValuesWithHelper([
+                { key: 'length', value: length },
+                { key: 'width', value: width },
+                { key: 'height', value: height },
+                { key: 'volumeCm3', value: volumeCm3 },
+                { key: 'volumeM3', value: normalizedVolume },
+            ]).then((formatted) => {
+                const volumeText = formatted.volumeM3?.formatted || '';
+                if (volumeDisplay) {
+                    volumeDisplay.textContent = volumeText;
+                    volumeDisplay.style.color = '#27ae60';
+                }
+                if (volumeDisplayInput) {
+                    volumeDisplayInput.value = volumeText;
+                }
+                if (packageVolume) {
+                    packageVolume.value = formatted.volumeM3?.plain || '';
+                }
+                if (volumeCalculationDisplay) {
+                    const lengthText = formatted.length?.formatted || '';
+                    const widthText = formatted.width?.formatted || '';
+                    const heightText = formatted.height?.formatted || '';
+                    const volumeCm3Text = formatted.volumeCm3?.formatted || '';
+                    volumeCalculationDisplay.textContent =
+                        `${lengthText} x ${widthText} x ${heightText} = ${volumeCm3Text} cm3 = ${volumeText} M3`;
+                }
+            });
             // Recalculate prices when volume changes
             if (!isUpdatingPrice) {
                 recalculatePrices();
@@ -501,27 +577,19 @@ function initBrickForm(root) {
         if (lastEditedPriceField === 'price' && priceValue > 0) {
             // User edited price, recalculate comparison
             const calcComparison = priceValue / currentVolume;
-            const calcPlain = formatPlainNumber(calcComparison, 0);
-            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+            applyPriceFormatting(priceValue, calcComparison);
         } else if (lastEditedPriceField === 'comparison' && compValue > 0) {
             // User edited comparison, recalculate price
             const calcPrice = compValue * currentVolume;
-            const calcPlain = formatPlainNumber(calcPrice, 0);
-            if (pricePerPiece) pricePerPiece.value = calcPlain || '';
-            if (pricePerPieceDisplay) pricePerPieceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+            applyPriceFormatting(calcPrice, compValue);
         } else {
             // No field edited yet, or both are empty - try to calculate based on what exists
             if (priceValue > 0) {
                 const calcComparison = priceValue / currentVolume;
-                const calcPlain = formatPlainNumber(calcComparison, 0);
-                if (comparisonPrice) comparisonPrice.value = calcPlain || '';
-                if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+                applyPriceFormatting(priceValue, calcComparison);
             } else if (compValue > 0) {
                 const calcPrice = compValue * currentVolume;
-                const calcPlain = formatPlainNumber(calcPrice, 0);
-                if (pricePerPiece) pricePerPiece.value = calcPlain || '';
-                if (pricePerPieceDisplay) pricePerPieceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+                applyPriceFormatting(calcPrice, compValue);
             }
         }
     }
@@ -618,11 +686,10 @@ function initBrickForm(root) {
     comparisonPriceDisplay?.addEventListener('input', syncComparisonFromDisplay);
 
     // Format existing values on load
-    if (pricePerPieceDisplay && pricePerPiece && pricePerPiece.value) {
-        pricePerPieceDisplay.value = formatRupiah(pricePerPiece.value);
-    }
-    if (comparisonPriceDisplay && comparisonPrice && comparisonPrice.value) {
-        comparisonPriceDisplay.value = formatRupiah(comparisonPrice.value);
+    if ((pricePerPiece && pricePerPiece.value) || (comparisonPrice && comparisonPrice.value)) {
+        const priceValue = pricePerPiece?.value ? Number(pricePerPiece.value) : null;
+        const comparisonValue = comparisonPrice?.value ? Number(comparisonPrice.value) : null;
+        applyPriceFormatting(priceValue, comparisonValue);
     }
 
     calculateVolume();

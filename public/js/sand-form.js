@@ -25,6 +25,12 @@ function initSandForm(root) {
     const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
+
+        // Skip store and address fields - handled by store-autocomplete.js
+        if (field === 'store' || field === 'address') {
+            return;
+        }
+
         const suggestList = scope.querySelector(`#${field}-list`) || document.getElementById(`${field}-list`);
         let debounceTimer;
         let isSelectingFromAutosuggest = false; // Flag to prevent reopening
@@ -368,13 +374,18 @@ function initSandForm(root) {
             const volumeM3 = lengthM * widthM * heightM;
             const normalizedVolume = normalizeSmartDecimal(volumeM3);
             currentVolume = normalizedVolume;
-            if (volumeDisplay) {
-                volumeDisplay.value = formatSmartDecimal(normalizedVolume);
-            }
-            // Also update the hidden package_volume field
-            if (packageVolume) {
-                packageVolume.value = isNaN(normalizedVolume) ? '' : normalizedVolume.toString();
-            }
+            formatValuesWithHelper([
+                { key: 'volumeM3', value: normalizedVolume },
+            ]).then((formatted) => {
+                const volumeText = formatted.volumeM3?.formatted || '';
+                if (volumeDisplay) {
+                    volumeDisplay.value = volumeText;
+                }
+                // Also update the hidden package_volume field
+                if (packageVolume) {
+                    packageVolume.value = formatted.volumeM3?.plain || '';
+                }
+            });
             if (!isUpdatingPrice) {
                 recalculatePrices();
             }
@@ -391,19 +402,13 @@ function initSandForm(root) {
 
     function recalculatePrices() {
         const priceValue = parseFloat(packagePrice?.value) || 0;
+        const compValue = parseFloat(comparisonPrice?.value) || 0;
         if (priceValue > 0 && currentVolume > 0) {
             const calcComparison = priceValue / currentVolume;
-            const calcPlain = formatPlainNumber(calcComparison, 0);
-            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
-        } else {
-            const compValue = parseFloat(comparisonPrice?.value) || 0;
-            if (compValue > 0 && currentVolume > 0) {
-                const calcPrice = compValue * currentVolume;
-                const calcPlain = formatPlainNumber(calcPrice, 0);
-                if (packagePrice) packagePrice.value = calcPlain || '';
-                if (packagePriceDisplay) packagePriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
-            }
+            applyPriceFormatting(priceValue, calcComparison);
+        } else if (compValue > 0 && currentVolume > 0) {
+            const calcPrice = compValue * currentVolume;
+            applyPriceFormatting(calcPrice, compValue);
         }
     }
 
@@ -497,23 +502,78 @@ function initSandForm(root) {
         return `${sign}${withThousands},${decPart}`;
     }
 
+    function formatValuesWithHelper(items) {
+        if (window.NumberHelperClient && typeof window.NumberHelperClient.formatValues === 'function') {
+            return window.NumberHelperClient.formatValues(items);
+        }
+
+        const results = {};
+        items.forEach((item) => {
+            const value = item.value;
+            if (value === null || value === undefined || value === '') {
+                results[item.key] = { formatted: '', plain: '', normalized: 0 };
+                return;
+            }
+            const num = Number(value);
+            if (!isFinite(num)) {
+                results[item.key] = { formatted: '', plain: '', normalized: 0 };
+                return;
+            }
+            const decimals = item.decimals;
+            let formatted = '';
+            let plain = '';
+            if (decimals === 0) {
+                formatted = formatRupiah(num);
+                plain = formatPlainNumber(num, 0);
+            } else {
+                formatted = formatSmartDecimal(num);
+                plain = formatDynamicPlain(num);
+            }
+            results[item.key] = { formatted, plain, normalized: num };
+        });
+        return Promise.resolve(results);
+    }
+
+    function applyPriceFormatting(priceValue, comparisonValue) {
+        return formatValuesWithHelper([
+            { key: 'price', value: priceValue, decimals: 0 },
+            { key: 'comparison', value: comparisonValue, decimals: 0 },
+        ]).then((formatted) => {
+            if (packagePrice) packagePrice.value = formatted.price?.plain || '';
+            if (packagePriceDisplay) packagePriceDisplay.value = formatted.price?.formatted || '';
+            if (comparisonPrice) comparisonPrice.value = formatted.comparison?.plain || '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = formatted.comparison?.formatted || '';
+        });
+    }
+
     function syncPriceFromDisplay() {
         if (isUpdatingPrice) return;
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(packagePriceDisplay?.value || '');
-        const normalized = raw ? formatPlainNumber(raw, 0) : '';
-        if (packagePrice) packagePrice.value = normalized || '';
-        if (packagePriceDisplay) packagePriceDisplay.value = normalized ? formatRupiah(normalized) : '';
+        const hasValue = raw !== '';
+        const numericPrice = hasValue ? Number(raw) : null;
 
-        if (normalized && currentVolume > 0) {
-            const calcComparison = Number(normalized) / currentVolume;
-            const calcPlain = formatPlainNumber(calcComparison, 0);
-            if (comparisonPrice) comparisonPrice.value = calcPlain || '';
-            if (comparisonPriceDisplay) comparisonPriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        if (!hasValue || !isFinite(numericPrice)) {
+            if (packagePrice) packagePrice.value = '';
+            if (packagePriceDisplay) packagePriceDisplay.value = '';
+            if (comparisonPrice) comparisonPrice.value = '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
+            isUpdatingPrice = false;
+            return;
         }
 
-        isUpdatingPrice = false;
+        if (currentVolume > 0) {
+            const calcComparison = numericPrice / currentVolume;
+            applyPriceFormatting(numericPrice, calcComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        }
+
+        applyPriceFormatting(numericPrice, null).finally(() => {
+            isUpdatingPrice = false;
+        });
     }
 
     function syncComparisonFromDisplay() {
@@ -521,18 +581,29 @@ function initSandForm(root) {
         isUpdatingPrice = true;
 
         const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
-        const normalized = raw ? formatPlainNumber(raw, 0) : '';
-        if (comparisonPrice) comparisonPrice.value = normalized || '';
-        if (comparisonPriceDisplay) comparisonPriceDisplay.value = normalized ? formatRupiah(normalized) : '';
+        const hasValue = raw !== '';
+        const numericComparison = hasValue ? Number(raw) : null;
 
-        if (normalized && currentVolume > 0) {
-            const calcPrice = Number(normalized) * currentVolume;
-            const calcPlain = formatPlainNumber(calcPrice, 0);
-            if (packagePrice) packagePrice.value = calcPlain || '';
-            if (packagePriceDisplay) packagePriceDisplay.value = calcPlain ? formatRupiah(calcPlain) : '';
+        if (!hasValue || !isFinite(numericComparison)) {
+            if (comparisonPrice) comparisonPrice.value = '';
+            if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
+            if (packagePrice) packagePrice.value = '';
+            if (packagePriceDisplay) packagePriceDisplay.value = '';
+            isUpdatingPrice = false;
+            return;
         }
 
-        isUpdatingPrice = false;
+        if (currentVolume > 0) {
+            const calcPrice = numericComparison * currentVolume;
+            applyPriceFormatting(calcPrice, numericComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        }
+
+        applyPriceFormatting(null, numericComparison).finally(() => {
+            isUpdatingPrice = false;
+        });
     }
 
     packagePriceDisplay?.addEventListener('input', syncPriceFromDisplay);
@@ -542,13 +613,10 @@ function initSandForm(root) {
     packagePriceDisplay?.addEventListener('blur', syncPriceFromDisplay);
     comparisonPriceDisplay?.addEventListener('blur', syncComparisonFromDisplay);
 
-    if (packagePriceDisplay && packagePrice && packagePrice.value) {
-        packagePriceDisplay.value = formatRupiah(packagePrice.value);
-        console.log('[SandForm] Initial package price formatted:', packagePriceDisplay.value);
-    }
-    if (comparisonPriceDisplay && comparisonPrice && comparisonPrice.value) {
-        comparisonPriceDisplay.value = formatRupiah(comparisonPrice.value);
-        console.log('[SandForm] Initial comparison price formatted:', comparisonPriceDisplay.value);
+    if ((packagePrice && packagePrice.value) || (comparisonPrice && comparisonPrice.value)) {
+        const priceValue = packagePrice?.value ? Number(packagePrice.value) : null;
+        const comparisonValue = comparisonPrice?.value ? Number(comparisonPrice.value) : null;
+        applyPriceFormatting(priceValue, comparisonValue);
     }
 
     // Add form submit handler to sync all values before submission
@@ -574,9 +642,8 @@ function initSandForm(root) {
             }
 
             // Sync volume field before submit
-            if (volumeDisplay && packageVolume) {
-                const volumeVal = volumeDisplay.value || '';
-                packageVolume.value = volumeVal;
+            if (packageVolume) {
+                packageVolume.value = currentVolume > 0 ? formatDynamicPlain(currentVolume) : '';
                 console.log('[SandForm] Synced package_volume:', packageVolume.value);
             }
 

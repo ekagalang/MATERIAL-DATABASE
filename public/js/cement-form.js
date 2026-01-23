@@ -32,6 +32,12 @@ function initCementForm(root) {
     const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
+
+        // Skip store and address fields - handled by store-autocomplete.js
+        if (field === 'store' || field === 'address') {
+            return;
+        }
+
         const suggestList = getEl(`${field}-list`);
         let debounceTimer;
         let isSelectingFromAutosuggest = false; // Flag to prevent reopening

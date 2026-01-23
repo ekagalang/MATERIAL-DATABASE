@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cement;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CementController extends Controller
@@ -90,87 +91,103 @@ class CementController extends Controller
             'address' => 'nullable|string',
             'package_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
 
-        // Upload foto
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                $path = $photo->storeAs('cements', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: ' . $path);
+            // Upload foto
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('cements', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo uploaded successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to store photo');
+                    }
                 } else {
-                    \Log::error('Failed to store photo');
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
-            } else {
-                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
+
+            // Auto-generate cement_name jika kosong
+            if (empty($data['cement_name'])) {
+                $parts = array_filter([
+                    $data['type'] ?? '',
+                    $data['brand'] ?? '',
+                    $data['sub_brand'] ?? '',
+                    $data['code'] ?? '',
+                    $data['color'] ?? '',
+                ]);
+                $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
+            }
+
+            // Buat cement
+            $cement = Cement::create($data);
+
+            // Kalkulasi berat bersih jika belum diisi
+            if (
+                (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
+                $cement->package_weight_gross &&
+                $cement->package_unit
+            ) {
+                $cement->calculateNetWeight();
+            }
+
+            // Kalkulasi harga komparasi per kg
+            if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
+                $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
+            }
+
+            $cement->save();
+
+            // NEW: Attach store location
+            if ($request->filled('store_location_id')) {
+                $cement->storeLocations()->attach($request->input('store_location_id'));
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Semen berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
+            }
+            // Backward compatibility for older forms
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Semen berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
+            }
+
+            return redirect()->route('cements.index')->with('success', 'Semen berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create cement: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        // Auto-generate cement_name jika kosong
-        if (empty($data['cement_name'])) {
-            $parts = array_filter([
-                $data['type'] ?? '',
-                $data['brand'] ?? '',
-                $data['sub_brand'] ?? '',
-                $data['code'] ?? '',
-                $data['color'] ?? '',
-            ]);
-            $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
-        }
-
-        // Buat cement
-        $cement = Cement::create($data);
-
-        // Kalkulasi berat bersih jika belum diisi
-        if (
-            (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
-            $cement->package_weight_gross &&
-            $cement->package_unit
-        ) {
-            $cement->calculateNetWeight();
-        }
-
-        // Kalkulasi harga komparasi per kg
-        if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
-            $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
-        }
-
-        $cement->save();
-
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()
-                ->to($request->input('_redirect_url'))
-                ->with('success', 'Semen berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()
-                ->route('materials.index')
-                ->with('success', 'Semen berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
-        }
-
-        return redirect()->route('cements.index')->with('success', 'Semen berhasil ditambahkan!');
     }
 
     public function show(Cement $cement)
     {
-        $cement->load('packageUnit');
-
+        $cement->load('packageUnit', 'storeLocations.store'); // UPDATED
         return view('cements.show', compact('cement'));
     }
 
     public function edit(Cement $cement)
     {
+        $cement->load('storeLocations.store'); // NEW
         $units = Cement::getAvailableUnits();
-
         return view('cements.edit', compact('cement', 'units'));
     }
 
@@ -192,87 +209,114 @@ class CementController extends Controller
             'address' => 'nullable|string',
             'package_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
 
-        // Auto-generate cement_name jika kosong
-        if (empty($data['cement_name'])) {
-            $parts = array_filter([
-                $data['type'] ?? '',
-                $data['brand'] ?? '',
-                $data['sub_brand'] ?? '',
-                $data['code'] ?? '',
-                $data['color'] ?? '',
-            ]);
-            $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
-        }
-
-        // Upload foto baru
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                // Hapus foto lama
-                if ($cement->photo) {
-                    Storage::disk('public')->delete($cement->photo);
-                }
-
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                $path = $photo->storeAs('cements', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: ' . $path);
-                } else {
-                    \Log::error('Failed to update photo');
-                }
-            } else {
-                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+            // Auto-generate cement_name jika kosong
+            if (empty($data['cement_name'])) {
+                $parts = array_filter([
+                    $data['type'] ?? '',
+                    $data['brand'] ?? '',
+                    $data['sub_brand'] ?? '',
+                    $data['code'] ?? '',
+                    $data['color'] ?? '',
+                ]);
+                $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
             }
+
+            // Upload foto baru
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    // Hapus foto lama
+                    if ($cement->photo) {
+                        Storage::disk('public')->delete($cement->photo);
+                    }
+
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('cements', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo updated successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to update photo');
+                    }
+                } else {
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+                }
+            }
+
+            // Update cement
+            $cement->update($data);
+
+            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
+            if ($cement->package_weight_gross && $cement->package_unit) {
+                $cement->calculateNetWeight();
+            }
+
+            // Kalkulasi harga komparasi per kg
+            if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
+                $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
+            } else {
+                $cement->comparison_price_per_kg = null;
+            }
+
+            $cement->save();
+
+            // NEW: Sync store location
+            if ($request->filled('store_location_id')) {
+                $cement->storeLocations()->sync([$request->input('store_location_id')]);
+            } else {
+                $cement->storeLocations()->detach();
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()->to($request->input('_redirect_url'))->with('success', 'Semen berhasil diupdate!');
+            }
+            // Backward compatibility for older forms
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()->route('materials.index')->with('success', 'Semen berhasil diupdate!');
+            }
+
+            return redirect()->route('cements.index')->with('success', 'Semen berhasil diupdate!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update cement: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        // Update cement
-        $cement->update($data);
-
-        // Kalkulasi berat bersih jika belum diisi
-        if (
-            (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
-            $cement->package_weight_gross &&
-            $cement->package_unit
-        ) {
-            $cement->calculateNetWeight();
-        }
-
-        // Kalkulasi harga komparasi per kg
-        if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
-            $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
-        } else {
-            $cement->comparison_price_per_kg = null;
-        }
-
-        $cement->save();
-
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Semen berhasil diupdate!');
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Semen berhasil diupdate!');
-        }
-
-        return redirect()->route('cements.index')->with('success', 'Semen berhasil diupdate!');
     }
 
     public function destroy(Cement $cement)
     {
-        // Hapus foto
-        if ($cement->photo) {
-            Storage::disk('public')->delete($cement->photo);
+        DB::beginTransaction();
+        try {
+            // Hapus foto
+            if ($cement->photo) {
+                Storage::disk('public')->delete($cement->photo);
+            }
+
+            // NEW: Detach store locations
+            $cement->storeLocations()->detach();
+
+            $cement->delete();
+
+            DB::commit();
+
+            return redirect()->route('cements.index')->with('success', 'Semen berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete cement: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
-
-        $cement->delete();
-
-        return redirect()->route('cements.index')->with('success', 'Semen berhasil dihapus!');
     }
 
     // API untuk mendapatkan unique values per field
@@ -310,14 +354,7 @@ class CementController extends Controller
 
         // Apply cascading filters based on field
         // Fields that depend on brand selection
-        if (
-            in_array($field, [
-                'sub_brand',
-                'code',
-                'color',
-                'package_weight_gross',
-            ])
-        ) {
+        if (in_array($field, ['sub_brand', 'code', 'color', 'package_weight_gross'])) {
             if ($brand !== '') {
                 $query->where('brand', $brand);
             }

@@ -3,10 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Helpers\NumberHelper;
 
 class Cement extends Model
 {
@@ -28,6 +31,7 @@ class Cement extends Model
         'package_volume',
         'store',
         'address',
+        'store_location_id',
         'package_price',
         'price_unit',
         'comparison_price_per_kg',
@@ -71,6 +75,7 @@ class Cement extends Model
 
     /**
      * Method untuk kalkulasi berat bersih
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      */
     public function calculateNetWeight()
     {
@@ -82,7 +87,8 @@ class Cement extends Model
                 ->first();
 
             if ($unit) {
-                $this->package_weight_net = $this->package_weight_gross - $unit->package_weight;
+                $netWeight = $this->package_weight_gross - $unit->package_weight;
+                $this->package_weight_net = NumberHelper::normalize($netWeight);
 
                 return $this->package_weight_net;
             }
@@ -93,13 +99,20 @@ class Cement extends Model
 
     /**
      * Method untuk kalkulasi harga komparasi per kg
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      */
     public function calculateComparisonPrice()
     {
         if ($this->package_weight_net && $this->package_weight_net > 0 && $this->package_price) {
-            $this->comparison_price_per_kg = $this->package_price / $this->package_weight_net;
+            // Normalize berat sebelum perhitungan
+            $normalizedWeight = NumberHelper::normalize($this->package_weight_net);
 
-            return $this->comparison_price_per_kg;
+            if ($normalizedWeight > 0) {
+                $comparisonPrice = $this->package_price / $normalizedWeight;
+                // Normalize hasil (0 decimal untuk harga)
+                $this->comparison_price_per_kg = NumberHelper::normalize($comparisonPrice, 0);
+                return $this->comparison_price_per_kg;
+            }
         }
 
         return 0;
@@ -138,5 +151,21 @@ class Cement extends Model
     public function calculations(): HasMany
     {
         return $this->hasMany(BrickCalculation::class);
+    }
+
+    /**
+     * Relationship: Cement belongs to one store location (direct)
+     */
+    public function storeLocation(): BelongsTo
+    {
+        return $this->belongsTo(StoreLocation::class);
+    }
+
+    /**
+     * Relationship: Brick tersedia di banyak store locations (Polymorphic Many-to-Many)
+     */
+    public function storeLocations(): MorphToMany
+    {
+        return $this->morphToMany(StoreLocation::class, 'materialable', 'store_material_availabilities');
     }
 }

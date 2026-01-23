@@ -37,7 +37,7 @@
                     {{ (int)$ceramic->dimension_length }}x{{ (int)$ceramic->dimension_width }} cm)
                 </small>
             </h5>
-            <p class="text-muted small mb-0">Menampilkan kombinasi material terbaik dari berbagai merek untuk ukuran ini.</p>
+            <p class="text-muted small mb-0">Menampilkan kombinasi material Rekomendasi dari berbagai merek untuk ukuran ini.</p>
         @else
             <h5 class="fw-bold mb-0" style="color: #f59e0b;">
                 {{ $ceramic->brand ?? 'Keramik' }}
@@ -61,12 +61,12 @@
     @if(!empty($combinations))
         @php
             $requestedFilters = $requestData['price_filters'] ?? [];
-            $filterCategories = ['TerBAIK', 'TerUMUM', 'TerMURAH', 'TerSEDANG', 'TerMAHAL'];
+            $filterCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Moderat', 'Premium'];
             if (in_array('custom', $requestedFilters, true)) {
                 $filterCategories[] = 'Custom';
             }
             $priceRankMap = [];
-            $needsPriceRanks = count(array_intersect($filterCategories, ['TerMURAH', 'TerSEDANG', 'TerMAHAL'])) > 0;
+            $needsPriceRanks = count(array_intersect($filterCategories, ['Ekonomis', 'Moderat', 'Premium'])) > 0;
             if ($needsPriceRanks && !empty($combinations)) {
                 $priceCandidates = [];
                 foreach ($combinations as $label => $items) {
@@ -91,16 +91,16 @@
 
                 $totalCandidates = count($priceCandidates);
                 if ($totalCandidates > 0) {
-                    $termurahLimit = min(3, $totalCandidates);
-                    $termahalCount = min(3, $totalCandidates);
-                    $termahalStartIndex = $totalCandidates - $termahalCount;
+                    $EkonomisLimit = min(3, $totalCandidates);
+                    $PremiumCount = min(3, $totalCandidates);
+                    $PremiumStartIndex = $totalCandidates - $PremiumCount;
 
-                    for ($i = 0; $i < $termurahLimit; $i++) {
-                        $priceRankMap['TerMURAH ' . ($i + 1)] = $priceCandidates[$i];
+                    for ($i = 0; $i < $EkonomisLimit; $i++) {
+                        $priceRankMap['Ekonomis ' . ($i + 1)] = $priceCandidates[$i];
                     }
 
-                    for ($i = 0; $i < $termahalCount; $i++) {
-                        $priceRankMap['TerMAHAL ' . ($i + 1)] = $priceCandidates[$termahalStartIndex + $i];
+                    for ($i = 0; $i < $PremiumCount; $i++) {
+                        $priceRankMap['Premium ' . ($i + 1)] = $priceCandidates[$PremiumStartIndex + $i];
                     }
 
                     $middleIndex = (int) floor(($totalCandidates - 1) / 2);
@@ -110,7 +110,7 @@
 
                     foreach ($medianCombos as $combo) {
                         $medianRank++;
-                        $priceRankMap['TerSEDANG ' . $medianRank] = $combo;
+                        $priceRankMap['Moderat ' . $medianRank] = $combo;
                     }
                 }
             }
@@ -127,7 +127,7 @@
                     } else {
                         foreach ($combinations as $label => $items) {
                             $labelParts = array_map('trim', explode('=', $label));
-                            // Check if this group of items corresponds to the current key (e.g. "TerBAIK 1")
+                            // Check if this group of items corresponds to the current key (e.g. "Rekomendasi 1")
                             if (in_array($key, $labelParts)) {
                                 foreach ($items as $item) {
                                     if ($matchesCeramicContext($item)) {
@@ -170,27 +170,27 @@
                     2 => ['bg' => '#f8fafc', 'border' => '#cbd5e1', 'text' => '#475569'],
                     3 => ['bg' => '#ffffff', 'border' => '#e2e8f0', 'text' => '#64748b'],
                 ],
-                'TerBAIK' => [
+                'Rekomendasi' => [
                     1 => ['bg' => '#fca5a5', 'border' => '#f87171', 'text' => '#991b1b'],
                     2 => ['bg' => '#fecaca', 'border' => '#fca5a5', 'text' => '#dc2626'],
                     3 => ['bg' => '#fee2e2', 'border' => '#fecaca', 'text' => '#ef4444'],
                 ],
-                'TerUMUM' => [
+                'Populer' => [
                     1 => ['bg' => '#93c5fd', 'border' => '#60a5fa', 'text' => '#1e40af'],
                     2 => ['bg' => '#bfdbfe', 'border' => '#93c5fd', 'text' => '#2563eb'],
                     3 => ['bg' => '#dbeafe', 'border' => '#bfdbfe', 'text' => '#3b82f6'],
                 ],
-                'TerMURAH' => [
+                'Ekonomis' => [
                     1 => ['bg' => '#6ee7b7', 'border' => '#34d399', 'text' => '#065f46'],
                     2 => ['bg' => '#a7f3d0', 'border' => '#6ee7b7', 'text' => '#16a34a'],
                     3 => ['bg' => '#d1fae5', 'border' => '#a7f3d0', 'text' => '#22c55e'],
                 ],
-                'TerSEDANG' => [
+                'Moderat' => [
                     1 => ['bg' => '#fcd34d', 'border' => '#fbbf24', 'text' => '#92400e'],
                     2 => ['bg' => '#fde68a', 'border' => '#fcd34d', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'border' => '#fde68a', 'text' => '#d97706'],
                 ],
-                'TerMAHAL' => [
+                'Premium' => [
                     1 => ['bg' => '#d8b4fe', 'border' => '#c084fc', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'border' => '#d8b4fe', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'border' => '#e9d5ff', 'text' => '#9333ea'],
@@ -203,27 +203,27 @@
             ];
 
             $rekapLabelColors = [
-                'TerUMUM' => [
+                'Populer' => [
                     1 => ['bg' => '#93c5fd', 'text' => '#1e40af'],
                     2 => ['bg' => '#bfdbfe', 'text' => '#2563eb'],
                     3 => ['bg' => '#dbeafe', 'text' => '#3b82f6'],
                 ],
-                'TerMURAH' => [
+                'Ekonomis' => [
                     1 => ['bg' => '#6ee7b7', 'text' => '#065f46'],
                     2 => ['bg' => '#a7f3d0', 'text' => '#16a34a'],
                     3 => ['bg' => '#d1fae5', 'text' => '#22c55e'],
                 ],
-                'TerSEDANG' => [
+                'Moderat' => [
                     1 => ['bg' => '#fcd34d', 'text' => '#92400e'],
                     2 => ['bg' => '#fde68a', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'text' => '#d97706'],
                 ],
-                'TerMAHAL' => [
+                'Premium' => [
                     1 => ['bg' => '#d8b4fe', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
                 ],
-                'TerBAIK' => [
+                'Rekomendasi' => [
                     1 => ['bg' => '#fca5a5', 'text' => '#991b1b'],
                     2 => ['bg' => '#fecaca', 'text' => '#dc2626'],
                     3 => ['bg' => '#fee2e2', 'text' => '#ef4444'],
@@ -1236,8 +1236,8 @@
 
     $allPriceRows = [];
     $sortedCount = count($allPriceCandidates);
-    $termurahLimit = min(3, $sortedCount);
-    $termahalStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
+    $EkonomisLimit = min(3, $sortedCount);
+    $PremiumStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
     $middleStart = 0;
     $middleEnd = -1;
     if ($sortedCount > 0) {
@@ -1249,12 +1249,12 @@
     foreach ($allPriceCandidates as $index => $candidate) {
         $sortedIndex = $index + 1;
         $displayLabel = 'Harga ' . $sortedIndex;
-        if ($sortedIndex <= $termurahLimit) {
-            $displayLabel = 'TerMURAH ' . $sortedIndex;
-        } elseif ($sortedIndex >= $termahalStart) {
-            $displayLabel = 'TerMAHAL ' . ($sortedIndex - $termahalStart + 1);
+        if ($sortedIndex <= $EkonomisLimit) {
+            $displayLabel = 'Ekonomis ' . $sortedIndex;
+        } elseif ($sortedIndex >= $PremiumStart) {
+            $displayLabel = 'Premium ' . ($sortedIndex - $PremiumStart + 1);
         } elseif ($index >= $middleStart && $index <= $middleEnd) {
-            $displayLabel = 'TerSEDANG ' . ($sortedIndex - $middleStart);
+            $displayLabel = 'Moderat ' . ($sortedIndex - $middleStart);
         }
 
         $allPriceRows[] = [
@@ -1267,10 +1267,10 @@
     
     // Separate Best and Common for quick view
     $bestRows = array_filter($allPriceRows, function ($row) {
-        return isset($row['display_label']) && strpos($row['display_label'], 'TerBAIK') !== false;
+        return isset($row['display_label']) && strpos($row['display_label'], 'Rekomendasi') !== false;
     });
     $commonRows = array_filter($allPriceRows, function ($row) {
-        return isset($row['display_label']) && strpos($row['display_label'], 'TerUMUM') !== false;
+        return isset($row['display_label']) && strpos($row['display_label'], 'Populer') !== false;
     });
 @endphp
 
@@ -1310,7 +1310,7 @@
                 </div>
                 <div class="modal-body">
                         @if(count($bestRows) > 0)
-                            <div class="fw-bold mb-1">TerBAIK</div>
+                            <div class="fw-bold mb-1">Rekomendasi</div>
                             <div class="table-responsive mb-2">
                                 <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                     <thead>
@@ -1336,7 +1336,7 @@
                         @endif
 
                         @if(count($commonRows) > 0)
-                            <div class="fw-bold mb-1">TerUMUM</div>
+                            <div class="fw-bold mb-1">Populer</div>
                             <div class="table-responsive mb-2">
                                 <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                     <thead>
@@ -1361,7 +1361,7 @@
                             </div>
                         @endif
 
-                        <div class="fw-bold mb-1">Semua Harga (Termurah &rarr; Termahal)</div>
+                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; Premium)</div>
                         <div class="table-responsive">
                             <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                 <thead>

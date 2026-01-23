@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Helpers\MaterialTypeDetector;
+use App\Helpers\NumberHelper;
 
 class Sand extends Model
 {
@@ -29,6 +32,7 @@ class Sand extends Model
         'package_volume',
         'store',
         'address',
+        'store_location_id',
         'package_price',
         'comparison_price_per_m3',
     ];
@@ -95,14 +99,22 @@ class Sand extends Model
 
     /**
      * Kalkulasi volume dari dimensi (p x l x t) dalam M3
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      */
     public function calculateVolume(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
+            // Normalize dimensi terlebih dahulu
+            $length = NumberHelper::normalize($this->dimension_length);
+            $width = NumberHelper::normalize($this->dimension_width);
+            $height = NumberHelper::normalize($this->dimension_height);
+
             // Langsung dalam M3
-            $volumeM3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
-            $this->package_volume = $volumeM3;
-            return $volumeM3;
+            $volumeM3 = $length * $width * $height;
+
+            // Normalize hasil volume
+            $this->package_volume = NumberHelper::normalize($volumeM3);
+            return $this->package_volume;
         }
 
         return 0;
@@ -110,12 +122,20 @@ class Sand extends Model
 
     /**
      * Kalkulasi harga komparasi per M3
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      */
     public function calculateComparisonPrice(): float
     {
         if ($this->package_price && $this->package_volume && $this->package_volume > 0) {
-            $this->comparison_price_per_m3 = $this->package_price / $this->package_volume;
-            return $this->comparison_price_per_m3;
+            // Normalize volume sebelum perhitungan
+            $normalizedVolume = NumberHelper::normalize($this->package_volume);
+
+            if ($normalizedVolume > 0) {
+                $comparisonPrice = $this->package_price / $normalizedVolume;
+                // Normalize hasil (0 decimal untuk harga)
+                $this->comparison_price_per_m3 = NumberHelper::normalize($comparisonPrice, 0);
+                return $this->comparison_price_per_m3;
+            }
         }
 
         return 0;
@@ -154,5 +174,21 @@ class Sand extends Model
     public function calculations(): HasMany
     {
         return $this->hasMany(BrickCalculation::class);
+    }
+
+    /**
+     * Relationship: Sand belongs to one store location (direct)
+     */
+    public function storeLocation(): BelongsTo
+    {
+        return $this->belongsTo(StoreLocation::class);
+    }
+
+    /**
+     * Relationship: Brick tersedia di banyak store locations (Polymorphic Many-to-Many)
+     */
+    public function storeLocations(): MorphToMany
+    {
+        return $this->morphToMany(StoreLocation::class, 'materialable', 'store_material_availabilities');
     }
 }

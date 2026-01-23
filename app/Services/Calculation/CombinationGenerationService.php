@@ -29,10 +29,8 @@ class CombinationGenerationService
     protected CalculationRepository $repository;
     protected MaterialSelectionService $materialSelection;
 
-    public function __construct(
-        CalculationRepository $repository,
-        MaterialSelectionService $materialSelection
-    ) {
+    public function __construct(CalculationRepository $repository, MaterialSelectionService $materialSelection)
+    {
         $this->repository = $repository;
         $this->materialSelection = $materialSelection;
     }
@@ -49,7 +47,7 @@ class CombinationGenerationService
      * @param EloquentCollection|null $cats
      * @param EloquentCollection|null $ceramics
      * @param EloquentCollection|null $nats
-     * @param string $groupLabel Label for this group (e.g., 'TerBAIK', 'TerMURAH')
+     * @param string $groupLabel Label for this group (e.g., 'Rekomendasi', 'Ekonomis')
      * @param int|null $limit Limit number of results
      * @return array
      */
@@ -62,7 +60,7 @@ class CombinationGenerationService
         ?EloquentCollection $ceramics = null,
         ?EloquentCollection $nats = null,
         string $groupLabel = 'Kombinasi',
-        ?int $limit = null
+        ?int $limit = null,
     ): array {
         $workType = $request['work_type'] ?? 'brick_half';
         $wallHeight = $request['wall_height'] ?? null;
@@ -97,7 +95,7 @@ class CombinationGenerationService
         if ($workType === 'tile_installation') {
             return $this->processGeneratorResults(
                 $this->yieldTileInstallationCombinations($paramsBase, $ceramics, $nats, $cements, $sands, $groupLabel),
-                $limit
+                $limit,
             );
         }
 
@@ -277,10 +275,15 @@ class CombinationGenerationService
             if (isset($combo['cat'])) {
                 $key = 'cat-' . $combo['cat']->id;
             } elseif (isset($combo['ceramic'])) {
-                $key = 'cer-' . ($combo['ceramic']->id ?? 0) .
-                    '-nat-' . ($combo['nat']->id ?? 0) .
-                    '-cem-' . ($combo['cement']->id ?? 0) .
-                    '-snd-' . ($combo['sand']->id ?? 0);
+                $key =
+                    'cer-' .
+                    ($combo['ceramic']->id ?? 0) .
+                    '-nat-' .
+                    ($combo['nat']->id ?? 0) .
+                    '-cem-' .
+                    ($combo['cement']->id ?? 0) .
+                    '-snd-' .
+                    ($combo['sand']->id ?? 0);
             } elseif (isset($combo['cement']) && !isset($combo['sand'])) {
                 $key = 'cement-' . ($combo['cement']->id ?? 0);
             } else {
@@ -354,8 +357,7 @@ class CombinationGenerationService
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
 
-        $recommendations = $this->repository->getRecommendedCombinations($workType)
-            ->where('type', 'best');
+        $recommendations = $this->repository->getRecommendedCombinations($workType)->where('type', 'best');
 
         if (in_array('brick', $requiredMaterials, true)) {
             $recommendations = $recommendations->filter(function ($rec) use ($brick) {
@@ -369,7 +371,7 @@ class CombinationGenerationService
                 ' recommendations for brick ID: ' .
                 $brick->id .
                 ' and work_type: ' .
-                $workType
+                $workType,
         );
 
         $allRecommendedResults = [];
@@ -434,8 +436,8 @@ class CombinationGenerationService
                 $cats,
                 $ceramics,
                 $nats,
-                'TerBAIK',
-                1
+                'Rekomendasi',
+                1,
             );
 
             Log::info('Calculation result count: ' . count($results));
@@ -498,13 +500,9 @@ class CombinationGenerationService
                     'price_per_package',
                     'asc',
                     $materialLimit,
-                    3
+                    3,
                 );
-                $nats = Cement::where('type', 'Nat')
-                    ->orderBy('package_price')
-                    ->skip(2)
-                    ->limit($materialLimit)
-                    ->get();
+                $nats = Cement::where('type', 'Nat')->orderBy('package_price')->skip(2)->limit($materialLimit)->get();
 
                 if ($ceramics->isEmpty() && empty($request['ceramic_id'])) {
                     $ceramics = $this->resolveCeramicsForCalculation(
@@ -512,7 +510,7 @@ class CombinationGenerationService
                         $workType,
                         'price_per_package',
                         'asc',
-                        $materialLimit
+                        $materialLimit,
                     );
                 }
                 if ($nats->isEmpty()) {
@@ -527,8 +525,8 @@ class CombinationGenerationService
                     collect(),
                     $ceramics,
                     $nats,
-                    'TerUMUM',
-                    3
+                    'Populer',
+                    3,
                 );
 
                 return array_map(function ($combo) {
@@ -582,8 +580,8 @@ class CombinationGenerationService
                 collect(),
                 collect(),
                 collect(),
-                'TerUMUM',
-                1
+                'Populer',
+                1,
             );
 
             if (!empty($calculated)) {
@@ -612,7 +610,13 @@ class CombinationGenerationService
         $cements = $this->resolveCementsByPrice('asc', $materialLimit);
         $sands = $this->resolveSandsByPrice('asc', $materialLimit);
         $cats = $this->resolveCatsByPrice('asc', $materialLimit);
-        $ceramics = $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'asc', $materialLimit);
+        $ceramics = $this->resolveCeramicsForCalculation(
+            $request,
+            $workType,
+            'price_per_package',
+            'asc',
+            $materialLimit,
+        );
         $nats = $this->resolveNatsByPrice('asc', $materialLimit);
 
         return $this->calculateCombinationsFromMaterials(
@@ -623,8 +627,8 @@ class CombinationGenerationService
             $cats,
             $ceramics,
             $nats,
-            'TerMURAH',
-            3
+            'Ekonomis',
+            3,
         );
     }
 
@@ -645,7 +649,13 @@ class CombinationGenerationService
         $cements = $this->resolveCementsByPrice('asc', $materialLimit);
         $sands = $this->resolveSandsByPrice('asc', $materialLimit);
         $cats = $this->resolveCatsByPrice('asc', $materialLimit);
-        $ceramics = $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'asc', $materialLimit);
+        $ceramics = $this->resolveCeramicsForCalculation(
+            $request,
+            $workType,
+            'price_per_package',
+            'asc',
+            $materialLimit,
+        );
         $nats = $this->resolveNatsByPrice('asc', $materialLimit);
 
         $allResults = $this->calculateCombinationsFromMaterials(
@@ -656,7 +666,7 @@ class CombinationGenerationService
             $cats,
             $ceramics,
             $nats,
-            'TerSEDANG'
+            'Moderat',
         );
 
         // Get middle 3 combinations
@@ -686,7 +696,13 @@ class CombinationGenerationService
         $cements = $this->resolveCementsByPrice('desc', $materialLimit);
         $sands = $this->resolveSandsByPrice('desc', $materialLimit);
         $cats = $this->resolveCatsByPrice('desc', $materialLimit);
-        $ceramics = $this->resolveCeramicsForCalculation($request, $workType, 'price_per_package', 'desc', $materialLimit);
+        $ceramics = $this->resolveCeramicsForCalculation(
+            $request,
+            $workType,
+            'price_per_package',
+            'desc',
+            $materialLimit,
+        );
         $nats = $this->resolveNatsByPrice('desc', $materialLimit);
 
         $allResults = $this->calculateCombinationsFromMaterials(
@@ -697,7 +713,7 @@ class CombinationGenerationService
             $cats,
             $ceramics,
             $nats,
-            'TerMAHAL'
+            'Premium',
         );
 
         // Get top 3 most expensive
@@ -720,13 +736,33 @@ class CombinationGenerationService
         if ($workType === 'painting') {
             if (!empty($request['cat_id'])) {
                 $cats = Cat::where('id', $request['cat_id'])->get();
-                return $this->calculateCombinationsFromMaterials($brick, $request, collect(), collect(), $cats, collect(), collect(), 'Custom', 1);
+                return $this->calculateCombinationsFromMaterials(
+                    $brick,
+                    $request,
+                    collect(),
+                    collect(),
+                    $cats,
+                    collect(),
+                    collect(),
+                    'Custom',
+                    1,
+                );
             }
         } elseif ($workType === 'grout_tile') {
             if (!empty($request['ceramic_id']) && !empty($request['nat_id'])) {
                 $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
                 $nats = Cement::where('id', $request['nat_id'])->get();
-                return $this->calculateCombinationsFromMaterials($brick, $request, collect(), collect(), collect(), $ceramics, $nats, 'Custom', 1);
+                return $this->calculateCombinationsFromMaterials(
+                    $brick,
+                    $request,
+                    collect(),
+                    collect(),
+                    collect(),
+                    $ceramics,
+                    $nats,
+                    'Custom',
+                    1,
+                );
             }
         } elseif ($workType === 'tile_installation') {
             if (
@@ -748,7 +784,7 @@ class CombinationGenerationService
                     $ceramics,
                     $nats,
                     'Custom',
-                    1
+                    1,
                 );
             }
         } elseif (!empty($request['cement_id']) && !empty($request['sand_id'])) {
@@ -763,7 +799,7 @@ class CombinationGenerationService
                 collect(),
                 collect(),
                 'Custom',
-                1
+                1,
             );
         }
 
@@ -785,9 +821,7 @@ class CombinationGenerationService
         $cements = in_array('cement', $requiredMaterials, true)
             ? $this->repository->getCementsForCombination()
             : collect();
-        $sands = in_array('sand', $requiredMaterials, true)
-            ? $this->repository->getSandsForCombination()
-            : collect();
+        $sands = in_array('sand', $requiredMaterials, true) ? $this->repository->getSandsForCombination() : collect();
         $cats = in_array('cat', $requiredMaterials, true)
             ? Cat::where('purchase_price', '>', 0)->orderBy('brand')->get()
             : collect();
@@ -806,7 +840,7 @@ class CombinationGenerationService
             $cats,
             $ceramics,
             $nats,
-            'Semua'
+            'Semua',
         );
     }
 
@@ -819,11 +853,11 @@ class CombinationGenerationService
     public function getFilterLabel(string $filter): string
     {
         return match ($filter) {
-            'best' => 'Terbaik',
+            'best' => 'Rekomendasi',
             'common' => 'Populer',
-            'cheapest' => 'Termurah',
+            'cheapest' => 'Ekonomis',
             'medium' => 'Sedang',
-            'expensive' => 'Termahal',
+            'expensive' => 'Premium',
             'custom' => 'Custom',
             'all' => 'Semua',
             default => ucfirst($filter),
@@ -844,8 +878,8 @@ class CombinationGenerationService
     protected function resolveCementsByPrice(string $direction, int $limit): EloquentCollection
     {
         return Cement::where(function ($q) {
-                $q->where('type', '!=', 'Nat')->orWhereNull('type');
-            })
+            $q->where('type', '!=', 'Nat')->orWhereNull('type');
+        })
             ->where('package_price', '>', 0)
             ->where('package_weight_net', '>', 0)
             ->orderBy('package_price', $direction)
@@ -864,18 +898,12 @@ class CombinationGenerationService
 
     protected function resolveSandsByPrice(string $direction, int $limit): EloquentCollection
     {
-        return Sand::where('package_price', '>', 0)
-            ->orderBy('package_price', $direction)
-            ->limit($limit)
-            ->get();
+        return Sand::where('package_price', '>', 0)->orderBy('package_price', $direction)->limit($limit)->get();
     }
 
     protected function resolveCatsByPrice(string $direction, int $limit): EloquentCollection
     {
-        return Cat::where('purchase_price', '>', 0)
-            ->orderBy('purchase_price', $direction)
-            ->limit($limit)
-            ->get();
+        return Cat::where('purchase_price', '>', 0)->orderBy('purchase_price', $direction)->limit($limit)->get();
     }
 
     protected function resolveCeramicsForCalculation(
@@ -884,7 +912,7 @@ class CombinationGenerationService
         string $orderBy,
         string $direction,
         ?int $limit,
-        int $skip = 0
+        int $skip = 0,
     ): EloquentCollection {
         if (!empty($request['ceramic_id'])) {
             $ceramic = Ceramic::find($request['ceramic_id']);
@@ -894,13 +922,10 @@ class CombinationGenerationService
         $query = Ceramic::query();
 
         if ($workType === 'grout_tile') {
-            $query->whereNotNull('dimension_thickness')
-                ->where('dimension_thickness', '>', 0);
+            $query->whereNotNull('dimension_thickness')->where('dimension_thickness', '>', 0);
         }
 
-        $query = $query->whereNotNull($orderBy)
-            ->orderBy($orderBy, $direction)
-            ->skip($skip);
+        $query = $query->whereNotNull($orderBy)->orderBy($orderBy, $direction)->skip($skip);
 
         if ($limit !== null) {
             $query->limit($limit);
@@ -915,7 +940,7 @@ class CombinationGenerationService
         EloquentCollection $nats,
         EloquentCollection $cements,
         EloquentCollection $sands,
-        string $groupLabel
+        string $groupLabel,
     ) {
         foreach ($ceramics as $ceramic) {
             foreach ($nats as $nat) {

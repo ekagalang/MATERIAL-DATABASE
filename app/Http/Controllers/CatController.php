@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cat;
 use App\Models\Unit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CatController extends Controller
@@ -92,84 +93,101 @@ class CatController extends Controller
             'address' => 'nullable|string',
             'purchase_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
 
-        // Upload foto
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                // Simpan ke disk 'public' agar dapat diakses via /storage
-                $path = $photo->storeAs('cats', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: ' . $path);
+            // Upload foto
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('cats', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo uploaded successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to store photo');
+                    }
                 } else {
-                    \Log::error('Failed to store photo');
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
-            } else {
-                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
-        }
 
-        // Auto-generate cat_name jika kosong
-        if (empty($data['cat_name'])) {
-            $parts = array_filter([
-                $data['type'] ?? '',
-                $data['brand'] ?? '',
-                $data['sub_brand'] ?? '',
-                $data['color_name'] ?? '',
-                ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
-            ]);
-            $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
-        }
+            // Auto-generate cat_name jika kosong
+            if (empty($data['cat_name'])) {
+                $parts = array_filter([
+                    $data['type'] ?? '',
+                    $data['brand'] ?? '',
+                    $data['sub_brand'] ?? '',
+                    $data['color_name'] ?? '',
+                    ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
+                ]);
+                $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
+            }
 
-        // Buat cat
-        $cat = Cat::create($data);
+            // Buat cat
+            $cat = Cat::create($data);
 
-        // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-        if (
-            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
-            $cat->package_weight_gross &&
-            $cat->package_unit
-        ) {
-            $cat->calculateNetWeight();
-        }
-        // Kalkulasi harga komparasi per kg
-        if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
-            $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
-        }
+            // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
+            if (
+                (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+                $cat->package_weight_gross &&
+                $cat->package_unit
+            ) {
+                $cat->calculateNetWeight();
+            }
+            // Kalkulasi harga komparasi per kg
+            if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
+                $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
+            }
 
-        $cat->save();
+            $cat->save();
 
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()
-                ->to($request->input('_redirect_url'))
-                ->with('success', 'Cat berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()
-                ->route('materials.index')
-                ->with('success', 'Cat berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
-        }
+            // NEW: Attach store location
+            if ($request->filled('store_location_id')) {
+                $cat->storeLocations()->attach($request->input('store_location_id'));
+            }
 
-        return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Cat berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
+            }
+            // Backward compatibility for older forms
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Cat berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
+            }
+
+            return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create cat: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function show(Cat $cat)
     {
-        $cat->load('packageUnit');
+        $cat->load('packageUnit', 'storeLocations.store'); // UPDATED
         return view('cats.show', compact('cat'));
     }
 
     public function edit(Cat $cat)
     {
+        $cat->load('storeLocations.store'); // NEW
         $units = Cat::getAvailableUnits();
         return view('cats.edit', compact('cat', 'units'));
     }
@@ -194,87 +212,114 @@ class CatController extends Controller
             'address' => 'nullable|string',
             'purchase_price' => 'nullable|numeric|min:0',
             'price_unit' => 'nullable|string|max:20',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
 
-        // Auto-generate cat_name jika kosong
-        if (empty($data['cat_name'])) {
-            $parts = array_filter([
-                $data['type'] ?? '',
-                $data['brand'] ?? '',
-                $data['sub_brand'] ?? '',
-                $data['color_name'] ?? '',
-                ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
-            ]);
-            $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
-        }
-
-        // Upload foto baru
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                // Hapus foto lama
-                if ($cat->photo) {
-                    Storage::disk('public')->delete($cat->photo);
-                }
-
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                // Simpan ke disk 'public' agar dapat diakses via /storage
-                $path = $photo->storeAs('cats', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: ' . $path);
-                } else {
-                    \Log::error('Failed to update photo');
-                }
-            } else {
-                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+            // Auto-generate cat_name jika kosong
+            if (empty($data['cat_name'])) {
+                $parts = array_filter([
+                    $data['type'] ?? '',
+                    $data['brand'] ?? '',
+                    $data['sub_brand'] ?? '',
+                    $data['color_name'] ?? '',
+                    ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
+                ]);
+                $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
             }
-        }
 
-        // Update cat
-        $cat->update($data);
+            // Upload foto baru
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    // Hapus foto lama
+                    if ($cat->photo) {
+                        Storage::disk('public')->delete($cat->photo);
+                    }
 
-        // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-        if (
-            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
-            $cat->package_weight_gross &&
-            $cat->package_unit
-        ) {
-            $cat->calculateNetWeight();
-        }
-        // Kalkulasi harga komparasi per kg
-        if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
-            $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
-        } else {
-            $cat->comparison_price_per_kg = null;
-        }
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('cats', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo updated successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to update photo');
+                    }
+                } else {
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+                }
+            }
 
-        $cat->save();
+            // Update cat
+            $cat->update($data);
 
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Cat berhasil diupdate!');
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Cat berhasil diupdate!');
-        }
+            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
+            if ($cat->package_weight_gross && $cat->package_unit) {
+                $cat->calculateNetWeight();
+            }
 
-        return redirect()->route('cats.index')->with('success', 'cat berhasil diupdate!');
+            // Kalkulasi harga komparasi per kg
+            if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
+                $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
+            } else {
+                $cat->comparison_price_per_kg = null;
+            }
+
+            $cat->save();
+
+            // NEW: Sync store location
+            if ($request->filled('store_location_id')) {
+                $cat->storeLocations()->sync([$request->input('store_location_id')]);
+            } else {
+                $cat->storeLocations()->detach();
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()->to($request->input('_redirect_url'))->with('success', 'Cat berhasil diupdate!');
+            }
+            // Backward compatibility for older forms
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()->route('materials.index')->with('success', 'Cat berhasil diupdate!');
+            }
+
+            return redirect()->route('cats.index')->with('success', 'cat berhasil diupdate!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update cat: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
     public function destroy(Cat $cat)
     {
-        // Hapus foto
-        if ($cat->photo) {
-            Storage::disk('public')->delete($cat->photo);
+        DB::beginTransaction();
+        try {
+            // Hapus foto
+            if ($cat->photo) {
+                Storage::disk('public')->delete($cat->photo);
+            }
+
+            // NEW: Detach store locations
+            $cat->storeLocations()->detach();
+
+            $cat->delete();
+
+            DB::commit();
+
+            return redirect()->route('cats.index')->with('success', 'Cat berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete cat: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
-
-        $cat->delete();
-
-        return redirect()->route('cats.index')->with('success', 'Cat berhasil dihapus!');
     }
 
     // API untuk mendapatkan unique values per field dengan cascading filter

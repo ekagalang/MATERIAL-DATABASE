@@ -7,6 +7,7 @@ use App\Models\Unit;
 use App\Services\Material\CeramicService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
 
 class CeramicController extends Controller
 {
@@ -94,31 +95,56 @@ class CeramicController extends Controller
             'store' => 'nullable|string',
             'address' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+            // NEW
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $ceramic = $this->service->create($data, $request->file('photo'));
+        // Extract store_location_id sebelum dikirim ke service
+        $storeLocationId = $data['store_location_id'] ?? null;
+        unset($data['store_location_id']);
 
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()
-                ->to($request->input('_redirect_url'))
-                ->with('success', 'Data berhasil disimpan')
-                ->with('new_material', ['type' => 'ceramic', 'id' => $ceramic->id]);
+        DB::beginTransaction();
+        try {
+            $ceramic = $this->service->create($data, $request->file('photo'));
+
+            // Save store_location_id directly to the model
+            if ($storeLocationId) {
+                $ceramic->store_location_id = $storeLocationId;
+                $ceramic->save();
+                // Also attach to many-to-many relationship
+                $ceramic->storeLocations()->attach($storeLocationId);
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Data berhasil disimpan')
+                    ->with('new_material', ['type' => 'ceramic', 'id' => $ceramic->id]);
+            }
+
+            return redirect()->route('ceramics.index')->with('success', 'Data berhasil disimpan');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create ceramic: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        return redirect()->route('ceramics.index')->with('success', 'Data berhasil disimpan');
     }
 
     public function show(Ceramic $ceramic): View
     {
-        // Return view TANPA layout (untuk modal)
+        $ceramic->load('storeLocations.store'); // NEW
         return view('ceramics.show', compact('ceramic'));
     }
 
     public function edit(Ceramic $ceramic): View
     {
+        $ceramic->load('storeLocations.store'); // NEW
         $units = Unit::forMaterial('ceramic')->get();
-        // Return view TANPA layout (untuk modal)
         return view('ceramics.edit', compact('ceramic', 'units'));
     }
 
@@ -143,22 +169,66 @@ class CeramicController extends Controller
             'store' => 'nullable|string',
             'address' => 'nullable|string',
             'photo' => 'nullable|image|max:2048',
+            // NEW
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $this->service->update($ceramic->id, $data, $request->file('photo'));
+        // Extract store_location_id
+        $storeLocationId = $data['store_location_id'] ?? null;
+        unset($data['store_location_id']);
 
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data berhasil diperbarui');
+        DB::beginTransaction();
+        try {
+            $this->service->update($ceramic->id, $data, $request->file('photo'));
+
+            // Reload ceramic to get fresh instance
+            $ceramic = $ceramic->fresh();
+
+            // Save store_location_id directly to the model
+            $ceramic->store_location_id = $storeLocationId;
+            $ceramic->save();
+
+            // Also sync to many-to-many relationship
+            if ($storeLocationId) {
+                $ceramic->storeLocations()->sync([$storeLocationId]);
+            } else {
+                $ceramic->storeLocations()->detach();
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()->to($request->input('_redirect_url'))->with('success', 'Data berhasil diperbarui');
+            }
+
+            return redirect()->route('ceramics.index')->with('success', 'Data berhasil diperbarui');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update ceramic: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        return redirect()->route('ceramics.index')->with('success', 'Data berhasil diperbarui');
     }
 
     public function destroy(Ceramic $ceramic)
     {
-        $this->service->delete($ceramic->id);
-        return redirect()->route('ceramics.index')->with('success', 'Data berhasil dihapus');
+        DB::beginTransaction();
+        try {
+            // NEW: Detach store locations
+            $ceramic->storeLocations()->detach();
+
+            $this->service->delete($ceramic->id);
+
+            DB::commit();
+
+            return redirect()->route('ceramics.index')->with('success', 'Data berhasil dihapus');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete ceramic: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
     }
 
     /* |--------------------------------------------------------------------------
@@ -219,10 +289,7 @@ class CeramicController extends Controller
         }
 
         // Rule: filter price by selected packaging
-        $packagingFilteredFields = [
-            'price_per_package',
-            'comparison_price_per_m2',
-        ];
+        $packagingFilteredFields = ['price_per_package', 'comparison_price_per_m2'];
         if (in_array($field, $packagingFilteredFields, true) && $request->filled('packaging')) {
             $filters['packaging'] = (string) $request->query('packaging');
         }

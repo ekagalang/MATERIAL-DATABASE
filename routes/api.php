@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\StoreSearchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +45,11 @@ Route::post('/test-validation', function (Request $request) {
         'data' => $request->only(['name', 'email']),
     ]);
 });
+
+Route::get('/stores/search', [StoreSearchController::class, 'search']);
+Route::get('/stores/all-stores', [StoreSearchController::class, 'allStores']);
+Route::get('/stores/addresses-by-store', [StoreSearchController::class, 'addressesByStore']);
+Route::post('/stores/quick-create', [StoreSearchController::class, 'quickCreate']);
 
 /*
 |--------------------------------------------------------------------------
@@ -179,4 +185,13 @@ Route::prefix('v1')->group(function () {
     Route::post('/units', [\App\Http\Controllers\Api\V1\UnitApiController::class, 'store']);
     Route::put('/units/{id}', [\App\Http\Controllers\Api\V1\UnitApiController::class, 'update']);
     Route::delete('/units/{id}', [\App\Http\Controllers\Api\V1\UnitApiController::class, 'destroy']);
+
+    // ========================================
+    // NUMBER FORMATTING APIs
+    // ========================================
+
+    Route::post('/number-helper/format', [
+        \App\Http\Controllers\Api\V1\NumberHelperApiController::class,
+        'format',
+    ]);
 });

@@ -12,6 +12,7 @@ use App\Http\Controllers\StoreController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkerController;
 use App\Http\Controllers\SkillController;
+use App\Http\Controllers\StoreLocationController;
 use App\Helpers\NumberHelper;
 use App\Models\BrickCalculation;
 // use App\Http\Controllers\Dev\PriceAnalysisController;
@@ -120,7 +121,7 @@ Route::get('/testing/number-formatting', function () {
         $normalizeInput,
         $dynamicPlain,
         $formatIdDynamic,
-        $factor
+        $factor,
     ): array {
         $raw = $normalizeInput($value);
         $rawFloat = (float) $raw;
@@ -289,16 +290,30 @@ Route::get('/material-calculator/trace', [MaterialCalculationController::class, 
     'material-calculator.trace',
 );
 
-Route::get('/stores', [StoreController::class, 'index'])->name('stores.index');
+Route::resource('stores', StoreController::class);
+Route::get('stores/{store}/locations', [StoreController::class, 'locations'])->name('stores.locations');
+
 Route::get('/work-items/analytics/{code}', [WorkItemController::class, 'analytics'])->name('work-items.analytics');
 Route::resource('work-items', WorkItemController::class);
 Route::get('/workers', [WorkerController::class, 'index'])->name('workers.index');
 Route::get('/skills', [SkillController::class, 'index'])->name('skills.index');
 
-// Setting Rekomendasi Material (TerBAIK)
+// Setting Rekomendasi Material (Rekomendasi)
 Route::prefix('settings/recommendations')
     ->name('settings.recommendations.')
     ->group(function () {
         Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
+    });
+
+// Store Location Routes
+Route::prefix('stores/{store}/locations')
+    ->name('store-locations.')
+    ->group(function () {
+        Route::get('/create', [StoreLocationController::class, 'create'])->name('create');
+        Route::post('/', [StoreLocationController::class, 'store'])->name('store');
+        Route::get('/{location}/edit', [StoreLocationController::class, 'edit'])->name('edit');
+        Route::put('/{location}', [StoreLocationController::class, 'update'])->name('update');
+        Route::delete('/{location}', [StoreLocationController::class, 'destroy'])->name('destroy');
+        Route::get('/{location}/materials', [StoreLocationController::class, 'materials'])->name('materials');
     });

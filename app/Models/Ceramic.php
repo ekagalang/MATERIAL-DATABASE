@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Helpers\NumberHelper;
 
 class Ceramic extends Model
 {
@@ -28,6 +31,7 @@ class Ceramic extends Model
         'coverage_per_package',
         'store',
         'address',
+        'store_location_id',
         'price_per_package',
         'comparison_price_per_m2',
         'photo',
@@ -125,15 +129,20 @@ class Ceramic extends Model
     /**
      * Kalkulasi coverage per package dari dimensi dan jumlah pieces
      * Dimensi dalam CM, hasil dalam M²
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      *
      * @return float
      */
     public function calculateCoverage(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->pieces_per_package) {
+            // Normalize dimensi terlebih dahulu
+            $length = NumberHelper::normalize($this->dimension_length);
+            $width = NumberHelper::normalize($this->dimension_width);
+
             // Konversi dimensi dari CM ke M
-            $lengthM = $this->dimension_length / 100;
-            $widthM = $this->dimension_width / 100;
+            $lengthM = $length / 100;
+            $widthM = $width / 100;
 
             // Luas satu piece dalam M²
             $areaPerPiece = $lengthM * $widthM;
@@ -141,8 +150,9 @@ class Ceramic extends Model
             // Total coverage = luas per piece × jumlah pieces
             $coverage = $areaPerPiece * $this->pieces_per_package;
 
-            $this->coverage_per_package = $coverage;
-            return $coverage;
+            // Normalize hasil coverage
+            $this->coverage_per_package = NumberHelper::normalize($coverage);
+            return $this->coverage_per_package;
         }
 
         return 0;
@@ -150,16 +160,40 @@ class Ceramic extends Model
 
     /**
      * Kalkulasi harga komparasi per M²
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      *
      * @return float
      */
     public function calculateComparisonPrice(): float
     {
         if ($this->price_per_package && $this->coverage_per_package && $this->coverage_per_package > 0) {
-            $this->comparison_price_per_m2 = $this->price_per_package / $this->coverage_per_package;
-            return $this->comparison_price_per_m2;
+            // Normalize coverage sebelum perhitungan
+            $normalizedCoverage = NumberHelper::normalize($this->coverage_per_package);
+
+            if ($normalizedCoverage > 0) {
+                $comparisonPrice = $this->price_per_package / $normalizedCoverage;
+                // Normalize hasil (0 decimal untuk harga)
+                $this->comparison_price_per_m2 = NumberHelper::normalize($comparisonPrice, 0);
+                return $this->comparison_price_per_m2;
+            }
         }
 
         return 0;
+    }
+
+    /**
+     * Relationship: Ceramic belongs to one store location (direct)
+     */
+    public function storeLocation(): BelongsTo
+    {
+        return $this->belongsTo(StoreLocation::class);
+    }
+
+    /**
+     * Relationship: Brick tersedia di banyak store locations (Polymorphic Many-to-Many)
+     */
+    public function storeLocations(): MorphToMany
+    {
+        return $this->morphToMany(StoreLocation::class, 'materialable', 'store_material_availabilities');
     }
 }

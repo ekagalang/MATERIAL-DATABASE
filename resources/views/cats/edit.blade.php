@@ -423,9 +423,14 @@
     }
 </style>
 
-<script src="/js/cat-form.js"></script>
+<script src="/js/cat-form.js?v={{ time() }}"></script>
+<script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initCatForm === 'function') {
         initCatForm();
+    }
+    // Initialize store autocomplete after form init
+    if (typeof initStoreAutocomplete === 'function') {
+        initStoreAutocomplete(document.getElementById('catForm')?.parentElement);
     }
 </script>

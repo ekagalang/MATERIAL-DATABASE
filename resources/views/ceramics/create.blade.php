@@ -389,8 +389,13 @@
 </div>
 
 <script src="/js/ceramic-form.js?v={{ time() }}"></script>
+<script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initCeramicForm === 'function') {
         initCeramicForm();
+    }
+    // Initialize store autocomplete after form init
+    if (typeof initStoreAutocomplete === 'function') {
+        initStoreAutocomplete(document.getElementById('ceramicForm')?.parentElement);
     }
 </script>

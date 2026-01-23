@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Helpers\MaterialTypeDetector;
+use App\Helpers\NumberHelper;
 
 class Brick extends Model
 {
@@ -25,6 +28,7 @@ class Brick extends Model
         'package_volume',
         'store',
         'address',
+        'store_location_id',
         'price_per_piece',
         'comparison_price_per_m3',
     ];
@@ -62,18 +66,25 @@ class Brick extends Model
     /**
      * Kalkulasi volume dari dimensi (p x l x t)
      * Konversi dari cM3 ke M3
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      */
     public function calculateVolume(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
+            // Normalize dimensi terlebih dahulu
+            $length = NumberHelper::normalize($this->dimension_length);
+            $width = NumberHelper::normalize($this->dimension_width);
+            $height = NumberHelper::normalize($this->dimension_height);
+
             // Volume dalam cM3
-            $volumeCm3 = $this->dimension_length * $this->dimension_width * $this->dimension_height;
+            $volumeCm3 = $length * $width * $height;
 
             // Konversi ke M3 (1 M3 = 1,000,000 cM3)
             $volumeM3 = $volumeCm3 / 1000000;
 
-            $this->package_volume = $volumeM3;
-            return $volumeM3;
+            // Normalize hasil volume
+            $this->package_volume = NumberHelper::normalize($volumeM3);
+            return $this->package_volume;
         }
 
         return 0;
@@ -81,12 +92,20 @@ class Brick extends Model
 
     /**
      * Kalkulasi harga komparasi per M3
+     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
      */
     public function calculateComparisonPrice(): float
     {
         if ($this->price_per_piece && $this->package_volume && $this->package_volume > 0) {
-            $this->comparison_price_per_m3 = $this->price_per_piece / $this->package_volume;
-            return $this->comparison_price_per_m3;
+            // Normalize volume sebelum perhitungan
+            $normalizedVolume = NumberHelper::normalize($this->package_volume);
+
+            if ($normalizedVolume > 0) {
+                $comparisonPrice = $this->price_per_piece / $normalizedVolume;
+                // Normalize hasil (0 decimal untuk harga)
+                $this->comparison_price_per_m3 = NumberHelper::normalize($comparisonPrice, 0);
+                return $this->comparison_price_per_m3;
+            }
         }
 
         return 0;
@@ -147,5 +166,21 @@ class Brick extends Model
             'width' => $brick->dimension_width ?? 10,
             'height' => $brick->dimension_height ?? 5,
         ];
+    }
+
+    /**
+     * Relationship: Brick belongs to one store location (direct)
+     */
+    public function storeLocation(): BelongsTo
+    {
+        return $this->belongsTo(StoreLocation::class);
+    }
+
+    /**
+     * Relationship: Brick tersedia di banyak store locations (Polymorphic Many-to-Many)
+     */
+    public function storeLocations(): MorphToMany
+    {
+        return $this->morphToMany(StoreLocation::class, 'materialable', 'store_material_availabilities');
     }
 }

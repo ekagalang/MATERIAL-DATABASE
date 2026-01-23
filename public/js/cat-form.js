@@ -55,6 +55,12 @@ function initCatForm() {
 
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
+
+        // Skip store and address fields - handled by store-autocomplete.js
+        if (field === 'store' || field === 'address') {
+            return;
+        }
+
         const suggestList = document.getElementById(`${field}-list`);
         let debounceTimer;
         let isSelectingFromAutosuggest = false; // Flag to prevent reopening

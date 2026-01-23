@@ -422,8 +422,13 @@
 </style>
 
 <script src="/js/sand-form.js?v={{ time() }}"></script>
+<script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initSandForm === 'function') {
         initSandForm();
+    }
+    // Initialize store autocomplete after form init
+    if (typeof initStoreAutocomplete === 'function') {
+        initStoreAutocomplete(document.getElementById('sandForm')?.parentElement);
     }
 </script>

@@ -25,7 +25,7 @@ class CalculationApiController extends Controller
 
     public function __construct(
         CalculationOrchestrationService $orchestrationService,
-        CalculationRepository $repository
+        CalculationRepository $repository,
     ) {
         $this->orchestrationService = $orchestrationService;
         $this->repository = $repository;
@@ -58,8 +58,8 @@ class CalculationApiController extends Controller
      *     "projects": [{
      *       "brick": {...},
      *       "combinations": {
-     *         "TerBAIK 1": [{...}],
-     *         "TerMURAH 1": [{...}]
+     *         "Rekomendasi 1": [{...}],
+     *         "Ekonomis 1": [{...}]
      *       }
      *     }],
      *     "formulaName": "Pekerjaan 1/2 Bata",
@@ -96,21 +96,27 @@ class CalculationApiController extends Controller
                 'data' => $result,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Calculate Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -169,21 +175,27 @@ class CalculationApiController extends Controller
                 ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Preview Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -236,33 +248,51 @@ class CalculationApiController extends Controller
             ]);
 
             $calculation = $this->orchestrationService->store($validated);
-            $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
+            $calculation->load([
+                'installationType',
+                'mortarFormula',
+                'brick',
+                'cement',
+                'sand',
+                'cat',
+                'ceramic',
+                'nat',
+            ]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Calculation saved successfully',
-                'data' => [
-                    'id' => $calculation->id,
-                    'calculation' => $calculation,
-                    'summary' => $calculation->getSummary(),
+            return response()->json(
+                [
+                    'success' => true,
+                    'message' => 'Calculation saved successfully',
+                    'data' => [
+                        'id' => $calculation->id,
+                        'calculation' => $calculation,
+                        'summary' => $calculation->getSummary(),
+                    ],
                 ],
-            ], 201);
+                201,
+            );
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Store Calculation Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -318,21 +348,27 @@ class CalculationApiController extends Controller
                 'data' => $result,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Compare Bricks Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -388,18 +424,24 @@ class CalculationApiController extends Controller
             $formula = FormulaRegistry::instance($formulaCode);
 
             if (!$formula) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "Formula dengan code '{$formulaCode}' tidak ditemukan",
-                ], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => "Formula dengan code '{$formulaCode}' tidak ditemukan",
+                    ],
+                    404,
+                );
             }
 
             // Validate parameters using formula's validate method
             if (!$formula->validate($validated)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Parameter tidak valid untuk formula ini',
-                ], 422);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Parameter tidak valid untuk formula ini',
+                    ],
+                    422,
+                );
             }
 
             // Execute trace calculation
@@ -410,21 +452,27 @@ class CalculationApiController extends Controller
                 'data' => $trace,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Trace Calculation Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -478,10 +526,13 @@ class CalculationApiController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -511,10 +562,13 @@ class CalculationApiController extends Controller
             $calculation = $this->repository->findCalculation($id);
 
             if (!$calculation) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Calculation not found',
-                ], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Calculation not found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -530,10 +584,13 @@ class CalculationApiController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -580,10 +637,13 @@ class CalculationApiController extends Controller
             $existingCalculation = $this->repository->findCalculation($id);
 
             if (!$existingCalculation) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Calculation not found',
-                ], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Calculation not found',
+                    ],
+                    404,
+                );
             }
 
             $validated = $request->validate([
@@ -615,7 +675,16 @@ class CalculationApiController extends Controller
             // Update existing record
             $existingCalculation->fill($newCalculation->toArray());
             $existingCalculation->save();
-            $existingCalculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
+            $existingCalculation->load([
+                'installationType',
+                'mortarFormula',
+                'brick',
+                'cement',
+                'sand',
+                'cat',
+                'ceramic',
+                'nat',
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -626,11 +695,14 @@ class CalculationApiController extends Controller
                 ],
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Update Calculation Error:', [
                 'id' => $id,
@@ -638,10 +710,13 @@ class CalculationApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -668,10 +743,13 @@ class CalculationApiController extends Controller
             $calculation = $this->repository->findCalculation($id);
 
             if (!$calculation) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Calculation not found',
-                ], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Calculation not found',
+                    ],
+                    404,
+                );
             }
 
             $calculation->delete();
@@ -686,10 +764,13 @@ class CalculationApiController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete calculation: ' . $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete calculation: ' . $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 
@@ -775,21 +856,27 @@ class CalculationApiController extends Controller
                 'data' => $comparisons,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Compare Installation Types Error:', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => $e->getMessage(),
+                ],
+                422,
+            );
         }
     }
 }

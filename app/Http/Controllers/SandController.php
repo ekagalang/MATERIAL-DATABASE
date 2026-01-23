@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Sand;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class SandController extends Controller
@@ -85,79 +86,97 @@ class SandController extends Controller
             'address' => 'nullable|string',
             'address' => 'nullable|string',
             'package_price' => 'nullable|numeric|min:0',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
 
-        // Upload foto
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                $path = $photo->storeAs('sands', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo uploaded successfully: ' . $path);
+            // Upload foto
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('sands', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo uploaded successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to store photo');
+                    }
                 } else {
-                    \Log::error('Failed to store photo');
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
-            } else {
-                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
             }
+
+            // Auto-generate sand_name jika kosong
+            if (empty($data['sand_name'])) {
+                $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
+                $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
+            }
+
+            // Buat sand
+            $sand = Sand::create($data);
+
+            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
+            if ($sand->package_weight_gross && $sand->package_unit) {
+                $sand->calculateNetWeight();
+            }
+
+            // Kalkulasi volume dari dimensi
+            if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
+                $sand->calculateVolume();
+            }
+
+            // Kalkulasi harga komparasi per M3
+            if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
+                $sand->calculateComparisonPrice();
+            }
+
+            $sand->save();
+
+            // NEW: Attach store location
+            if ($request->filled('store_location_id')) {
+                $sand->storeLocations()->attach($request->input('store_location_id'));
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Data Pasir berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
+            }
+            // Backward compatibility for older forms
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Data Pasir berhasil ditambahkan!')
+                    ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
+            }
+
+            return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil ditambahkan!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to create sand: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        // Auto-generate sand_name jika kosong
-        if (empty($data['sand_name'])) {
-            $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
-            $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
-        }
-
-        // Buat sand
-        $sand = Sand::create($data);
-
-        // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-        if ($sand->package_weight_gross && $sand->package_unit) {
-            $sand->calculateNetWeight();
-        }
-
-        // Kalkulasi volume dari dimensi
-        if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
-            $sand->calculateVolume();
-        }
-
-        // Kalkulasi harga komparasi per M3
-        if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
-            $sand->calculateComparisonPrice();
-        }
-
-        $sand->save();
-
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()
-                ->to($request->input('_redirect_url'))
-                ->with('success', 'Data Pasir berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()
-                ->route('materials.index')
-                ->with('success', 'Data Pasir berhasil ditambahkan!')
-                ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
-        }
-
-        return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil ditambahkan!');
     }
 
     public function show(Sand $sand)
     {
-        $sand->load('packageUnit');
+        $sand->load('packageUnit', 'storeLocations.store'); // UPDATED
         return view('sands.show', compact('sand'));
     }
 
     public function edit(Sand $sand)
     {
+        $sand->load('storeLocations.store'); // NEW
         $units = Sand::getAvailableUnits();
         return view('sands.edit', compact('sand', 'units'));
     }
@@ -178,82 +197,115 @@ class SandController extends Controller
             'address' => 'nullable|string',
             'address' => 'nullable|string',
             'package_price' => 'nullable|numeric|min:0',
+            'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
-        $data = $request->all();
+        DB::beginTransaction();
+        try {
+            $data = $request->all();
 
-        // Auto-generate sand_name jika kosong
-        if (empty($data['sand_name'])) {
-            $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
-            $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
-        }
-
-        // Upload foto baru
-        if ($request->hasFile('photo')) {
-            $photo = $request->file('photo');
-            if ($photo->isValid()) {
-                // Hapus foto lama
-                if ($sand->photo) {
-                    Storage::disk('public')->delete($sand->photo);
-                }
-
-                $filename = time() . '_' . $photo->getClientOriginalName();
-                $path = $photo->storeAs('sands', $filename, 'public');
-                if ($path) {
-                    $data['photo'] = $path;
-                    \Log::info('Photo updated successfully: ' . $path);
-                } else {
-                    \Log::error('Failed to update photo');
-                }
-            } else {
-                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+            // Auto-generate sand_name jika kosong
+            if (empty($data['sand_name'])) {
+                $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
+                $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
             }
+
+            // Upload foto baru
+            if ($request->hasFile('photo')) {
+                $photo = $request->file('photo');
+                if ($photo->isValid()) {
+                    // Hapus foto lama
+                    if ($sand->photo) {
+                        Storage::disk('public')->delete($sand->photo);
+                    }
+
+                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $path = $photo->storeAs('sands', $filename, 'public');
+                    if ($path) {
+                        $data['photo'] = $path;
+                        \Log::info('Photo updated successfully: ' . $path);
+                    } else {
+                        \Log::error('Failed to update photo');
+                    }
+                } else {
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+                }
+            }
+
+            // Update sand
+            $sand->update($data);
+
+            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
+            if ($sand->package_weight_gross && $sand->package_unit) {
+                $sand->calculateNetWeight();
+            }
+
+            // Kalkulasi volume dari dimensi
+            if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
+                $sand->calculateVolume();
+            }
+
+            // Kalkulasi harga komparasi per M3
+            if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
+                $sand->calculateComparisonPrice();
+            } else {
+                $sand->comparison_price_per_m3 = null;
+            }
+
+            $sand->save();
+
+            // NEW: Sync store location
+            if ($request->filled('store_location_id')) {
+                $sand->storeLocations()->sync([$request->input('store_location_id')]);
+            } else {
+                $sand->storeLocations()->detach();
+            }
+
+            DB::commit();
+
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Data Pasir berhasil diupdate!');
+            }
+            // Backward compatibility for older forms
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()->route('materials.index')->with('success', 'Data Pasir berhasil diupdate!');
+            }
+
+            return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil diupdate!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update sand: ' . $e->getMessage());
+            return back()
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
+                ->withInput();
         }
-
-        // Update sand
-        $sand->update($data);
-
-        // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-        if ($sand->package_weight_gross && $sand->package_unit) {
-            $sand->calculateNetWeight();
-        }
-
-        // Kalkulasi volume dari dimensi
-        if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
-            $sand->calculateVolume();
-        }
-
-        // Kalkulasi harga komparasi per M3
-        if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
-            $sand->calculateComparisonPrice();
-        } else {
-            $sand->comparison_price_per_m3 = null;
-        }
-
-        $sand->save();
-
-        // Redirect back to the originating page if requested
-        if ($request->filled('_redirect_url')) {
-            return redirect()->to($request->input('_redirect_url'))->with('success', 'Data Pasir berhasil diupdate!');
-        }
-        // Backward compatibility for older forms
-        if ($request->input('_redirect_to_materials')) {
-            return redirect()->route('materials.index')->with('success', 'Data Pasir berhasil diupdate!');
-        }
-
-        return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil diupdate!');
     }
 
     public function destroy(Sand $sand)
     {
-        // Hapus foto
-        if ($sand->photo) {
-            Storage::disk('public')->delete($sand->photo);
+        DB::beginTransaction();
+        try {
+            // Hapus foto
+            if ($sand->photo) {
+                Storage::disk('public')->delete($sand->photo);
+            }
+
+            // NEW: Detach store locations
+            $sand->storeLocations()->detach();
+
+            $sand->delete();
+
+            DB::commit();
+
+            return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to delete sand: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
-
-        $sand->delete();
-
-        return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil dihapus!');
     }
 
     /**
