@@ -1180,6 +1180,28 @@
             });
 
             form.addEventListener('submit', function(e) {
+                // Client-side validation for work type selection
+                const workTypeHidden = document.getElementById('workTypeSelector');
+                if (!workTypeHidden || !workTypeHidden.value) {
+                    e.preventDefault();
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Harap pilih Item Pekerjaan dari daftar yang tersedia. Klik atau ketik untuk melihat pilihan.', 'error');
+                    } else {
+                        alert('Harap pilih Item Pekerjaan dari daftar yang tersedia.');
+                    }
+                    // Scroll to work type field
+                    const workTypeGroup = document.querySelector('.work-type-group');
+                    if (workTypeGroup) {
+                        workTypeGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    // Focus on the work type input
+                    const workTypeDisplay = document.getElementById('workTypeDisplay');
+                    if (workTypeDisplay) {
+                        workTypeDisplay.focus();
+                    }
+                    return;
+                }
+
                 // Client-side validation for price filters
                 const filterCheckboxes = document.querySelectorAll('input[name="price_filters[]"]');
                 const isAnyFilterChecked = Array.from(filterCheckboxes).some(cb => cb.checked);

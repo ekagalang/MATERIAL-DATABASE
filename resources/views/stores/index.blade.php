@@ -53,17 +53,16 @@
 
         <!-- Table Layout -->
         <div class="stores-table-wrapper">
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="table-container text-nowrap">
-                    <table>
-                        <thead class="single-header">
+            <div class="table-container text-nowrap">
+                <table>
+                    <thead class="single-header">
                             <tr>
                                 <th>Nama Toko</th>
                                 <th>Alamat</th>
                                 <th>Kota</th>
                                 <th>Provinsi</th>
                                 <th>No Telp</th>
-                                <th>Kontak PIC</th>
+                                <th>Nama PIC</th>
                                 <th class="text-center">Material</th>
                                 <th class="text-center">Cabang</th>
                                 <th class="text-center">Aksi</th>
@@ -71,7 +70,7 @@
                         </thead>
                         <tbody>
                             @forelse($stores as $store)
-                                <tr class="store-row cursor-pointer" onclick="window.location='{{ route('stores.show', $store) }}'">
+                                <tr class="store-row">
                                     <td>
                                         <span class="fw-semibold text-dark">{{ $store->name }}</span>
                                     </td>
@@ -134,7 +133,6 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
         </div>
     </div>
 </div>
@@ -167,6 +165,8 @@
     .stores-table-wrapper .table-container {
         overflow-y: auto;
         flex-grow: 1;
+        box-shadow: none !important;
+        margin-top: 0 !important;
     }
 
     /* ========== TABLE STYLING (IDENTICAL TO MATERIALS) ========== */

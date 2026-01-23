@@ -371,19 +371,16 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     // Get material sections
     const brickSelect = document.querySelector('select[name="brick_id"]');
     const brickSection = brickSelect?.closest('.col-12');
-    const brickSectionDefaultDisplay = brickSection ? getComputedStyle(brickSection).display : 'block';
-    const cementSection = document.querySelector('select[name="cement_id"]')?.closest('.col-md-6');
-    const sandSection = document.querySelector('select[name="sand_id"]')?.closest('.col-md-6');
-
-    function setBrickSection(isVisible) {
-        if (brickSection) {
-            brickSection.style.display = isVisible ? brickSectionDefaultDisplay : 'none';
-        }
+    
+    // Explicitly set brick section visibility logic
+    if (this.value === 'brick_full' || this.value === 'brick_half' || this.value === 'brick_quarter' || this.value === 'brick_rollag') {
+        if (brickSection) brickSection.style.display = 'block';
+        if (brickSelect) brickSelect.disabled = false;
+    } else {
+        if (brickSection) brickSection.style.display = 'none';
         if (brickSelect) {
-            brickSelect.disabled = !isVisible;
-            if (!isVisible) {
-                brickSelect.value = '';
-            }
+            brickSelect.disabled = true;
+            brickSelect.value = '';
         }
     }
 
@@ -400,7 +397,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        setBrickSection(true);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
@@ -419,7 +415,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
@@ -438,7 +433,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'none';
@@ -457,7 +451,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
-        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'none';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'block';
@@ -476,7 +469,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
@@ -495,7 +487,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';
@@ -514,7 +505,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
-        setBrickSection(false);
         if (cementSection) cementSection.style.display = 'none';
         if (sandSection) sandSection.style.display = 'none';
         if (catSection) catSection.style.display = 'none';
@@ -533,7 +523,6 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'block';
-        setBrickSection(true);
         if (cementSection) cementSection.style.display = 'block';
         if (sandSection) sandSection.style.display = 'block';
         if (catSection) catSection.style.display = 'none';

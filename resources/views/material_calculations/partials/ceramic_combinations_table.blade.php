@@ -737,7 +737,11 @@
                             $item = $combo['item'];
                             $res = $item['result'];
                             $areaForCost = $area > 0 ? $area : (float)($requestData['area'] ?? 0);
-                            $costPerM2 = $areaForCost > 0 ? $res['grand_total'] / $areaForCost : 0;
+                            // Normalize areaForCost karena non-rupiah (M2), normalize hasil pembagian
+                            $normalizedArea = \App\Helpers\NumberHelper::normalize($areaForCost);
+                            $costPerM2 = $normalizedArea > 0
+                                ? \App\Helpers\NumberHelper::normalize($res['grand_total'] / $normalizedArea)
+                                : 0;
                             $cementWeight = isset($item['cement']) ? ($item['cement']->package_weight_net ?? 0) : 0;
                             if ($cementWeight <= 0) {
                                 $cementWeight = 1;
@@ -968,8 +972,12 @@
                                 $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                 $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                 $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
-                                $hargaKomparasiCalculated = $pricePerUnit * $priceCalcQty;
-                                $hargaKomparasi = isset($mat['total_price']) ? $mat['total_price'] : $hargaKomparasiCalculated;
+                                // Rumus baru: harga per kemasan × qty per pekerjaan
+                                // Normalize input DAN hasil agar tidak ada floating-point error
+                                $hargaKomparasi = \App\Helpers\NumberHelper::normalize(
+                                    \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0)
+                                    * \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0)
+                                );
 
                                 $qtyTitleParts = [];
                                 if (!empty($mat['qty_debug'])) {
@@ -1034,12 +1042,11 @@
                                     <td class="text-center text-muted">-</td>
                                 @else
                                     @php
+                                        // Hitung harga komparasi: harga per kemasan × qty per pekerjaan
+                                        $normalizedQtyForDebug = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
+                                        $normalizedPackagePriceForDebug = \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0);
                                         $hargaKomparasiDebugParts = [];
-                                        $hargaKomparasiDebugParts[] = "Nilai asli: " . $formatRaw($priceCalcQty) . " " . $priceCalcUnit . " x Rp " . $formatRaw($pricePerUnit) . " = Rp " . $formatRaw($hargaKomparasiCalculated);
-                                        if (isset($mat['total_price']) && abs($mat['total_price'] - $hargaKomparasiCalculated) > 0.01) {
-                                            $hargaKomparasiDebugParts[] = "Nilai formula: Rp " . $formatRaw($mat['total_price']);
-                                        }
-                                        $hargaKomparasiDebugParts[] = "Nilai tampil: Rp " . $formatMoney($hargaKomparasi);
+                                        $hargaKomparasiDebugParts[] = "Rumus: " . $formatNum($normalizedQtyForDebug) . " " . $mat['unit'] . " x Rp " . $formatMoney($normalizedPackagePriceForDebug) . " / " . $mat['package_unit'] . " = Rp " . $formatMoney($hargaKomparasi);
                                         $hargaKomparasiDebug = implode(' | ', $hargaKomparasiDebugParts);
                                     @endphp
                                     <td class="text-nowrap" title="{{ $hargaKomparasiDebug }}">
@@ -1052,25 +1059,30 @@
 
                                 @if($isFirstMaterial)
                                     @php
+                                        // Build debug breakdown for grand_total (harga per kemasan × qty)
                                         $grandTotalParts = [];
                                         $calculatedGrandTotal = 0;
                                         foreach($visibleMaterials as $debugMatKey => $debugMat) {
                                             if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
-                                                $debugPricePerUnit = $debugMat['price_per_unit'] ?? ($debugMat['package_price'] ?? 0);
-                                                $debugPriceCalcQty = $debugMat['price_calc_qty'] ?? ($debugMat['qty'] ?? 0);
-                                                $calcPrice = isset($debugMat['total_price'])
-                                                    ? $debugMat['total_price']
-                                                    : ($debugPricePerUnit * $debugPriceCalcQty);
+                                                // Rumus baru: harga per kemasan × qty per pekerjaan
+                                                // Normalize input DAN hasil agar tidak ada floating-point error
+                                                $normalizedPackagePrice = \App\Helpers\NumberHelper::normalize($debugMat['package_price'] ?? 0);
+                                                $normalizedQty = \App\Helpers\NumberHelper::normalize($debugMat['qty'] ?? 0);
+                                                $calcPrice = \App\Helpers\NumberHelper::normalize($normalizedPackagePrice * $normalizedQty);
                                                 $calculatedGrandTotal += $calcPrice;
-                                                $grandTotalParts[] = $debugMat['name'] . ": Rp " . $formatMoney($calcPrice);
+                                                $grandTotalParts[] = $debugMat['name'] . " (" . $formatNum($debugMat['qty']) . " x Rp " . $formatMoney($debugMat['package_price']) . "): Rp " . $formatMoney($calcPrice);
                                             }
                                         }
-                                        $grandTotalValue = isset($res['grand_total']) ? $res['grand_total'] : $calculatedGrandTotal;
+                                        $grandTotalValue = \App\Helpers\NumberHelper::normalize($calculatedGrandTotal);
                                         $grandTotalDebug = "Rumus: " . implode(' + ', $grandTotalParts);
-                                        $grandTotalDebug .= " | Nilai tampil: Rp " . $formatMoney($grandTotalValue);
+                                        $grandTotalDebug .= " | Total: Rp " . $formatMoney($grandTotalValue);
 
-                                        $calculatedCostPerM2 = $areaForCost > 0 ? $grandTotalValue / $areaForCost : 0;
-                                        $costPerM2Debug = "Rumus: Rp " . $formatMoney($grandTotalValue) . " / " . $formatNum($areaForCost) . " M2";
+                                        // Build debug for costPerM2 (normalize areaForCost karena non-rupiah, normalize hasil pembagian)
+                                        $normalizedAreaForCost = \App\Helpers\NumberHelper::normalize($areaForCost);
+                                        $calculatedCostPerM2 = $normalizedAreaForCost > 0
+                                            ? \App\Helpers\NumberHelper::normalize($grandTotalValue / $normalizedAreaForCost)
+                                            : 0;
+                                        $costPerM2Debug = "Rumus: Rp " . $formatMoney($grandTotalValue) . " / " . $formatNum($normalizedAreaForCost) . " M2";
                                         $costPerM2Debug .= " | Nilai tampil: Rp " . $formatMoney($calculatedCostPerM2) . " / M2";
                                     @endphp
                                     <td rowspan="{{ $rowCount }}" class="text-end bg-highlight align-top rowspan-cell" title="{{ $grandTotalDebug }}">
@@ -1093,20 +1105,27 @@
                                     <td></td>
                                 @else
                                     @php
-                                        $qtyValue = $mat['qty'] ?? 0;
+                                        // Normalize qty untuk konsistensi
+                                        $normalizedQtyValue = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
+                                        // Gunakan harga komparasi yang sudah dihitung (sesuai formula)
                                         $totalPriceValue = $hargaKomparasi;
+
+                                        // Normalisasi nilai agar sesuai dengan yang ditampilkan (mengikuti aturan NumberHelper)
+                                        // Ini memastikan perhitungan menggunakan nilai yang sama dengan yang user lihat
+                                        $normalizedDetailValue = \App\Helpers\NumberHelper::normalize($detailValue);
+
+                                        // Untuk sand, hanya hitung total_price / qty (tanpa pembagian detail_value)
                                         if ($matKey === 'sand') {
-                                            $actualBuyPrice = ($qtyValue > 0)
-                                                ? ($totalPriceValue / $qtyValue)
+                                            $actualBuyPrice = ($normalizedQtyValue > 0)
+                                                ? \App\Helpers\NumberHelper::normalize($totalPriceValue / $normalizedQtyValue)
                                                 : 0;
-                                            $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($qtyValue) . " " . $mat['unit'];
+                                            $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($normalizedQtyValue) . " " . $mat['unit'] . " = Rp " . $formatMoney($actualBuyPrice);
                                         } else {
-                                            $actualBuyPrice = ($qtyValue > 0 && $detailValue > 0)
-                                                ? ($totalPriceValue / $qtyValue / $detailValue)
+                                            $actualBuyPrice = ($normalizedQtyValue > 0 && $normalizedDetailValue > 0)
+                                                ? \App\Helpers\NumberHelper::normalize($totalPriceValue / $normalizedQtyValue / $normalizedDetailValue)
                                                 : 0;
-                                            $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($qtyValue) . " " . $mat['unit'] . " / " . $formatNum($detailValue) . " " . $comparisonUnit;
+                                            $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($normalizedQtyValue) . " " . $mat['unit'] . " / " . $formatNum($normalizedDetailValue) . " " . $comparisonUnit . " = Rp " . $formatMoney($actualBuyPrice);
                                         }
-                                        $hargaBeliAktualDebug .= " | Nilai tampil: Rp " . $formatMoney($actualBuyPrice) . " / " . $comparisonUnit;
                                     @endphp
                                     <td class="text-nowrap" title="{{ $hargaBeliAktualDebug }}">
                                         <div class="d-flex justify-content-between w-100">

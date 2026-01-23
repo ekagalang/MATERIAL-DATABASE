@@ -401,8 +401,8 @@ class BrickFullFormula implements FormulaInterface
         $kubikSemenPekerjaan = $n($kubikSemen1M3 * $volumeAdukanPekerjaan);
         $sakPasirPekerjaan = $n($sakPasir1M3 * $volumeAdukanPekerjaan);
         $kubikPasirPekerjaan = $n($kubikPasir1M3 * $volumeAdukanPekerjaan);
-        $literAirPekerjaan = $n($literAir1M3 * $volumeAdukanPekerjaan);
         $kubikAirPekerjaan = $n($kubikAir1M3 * $volumeAdukanPekerjaan);
+        $literAirPekerjaan = $kubikAirPekerjaan * 1000;
 
         $trace['steps'][] = [
             'step' => 17,
@@ -471,12 +471,8 @@ class BrickFullFormula implements FormulaInterface
             $cementKg = floor($kgSemenPekerjaan);
         }
 
-        $decimalWater = $literAirPekerjaan - floor($literAirPekerjaan);
-        if ($decimalWater > 0.5) {
-            $waterLiters = floor($literAirPekerjaan);
-        } else {
-            $waterLiters = round($literAirPekerjaan);
-        }
+        // Water liters sudah di-normalize di line 405, tidak perlu pembulatan lagi
+        $waterLiters = $literAirPekerjaan;
 
         // ============ Hitung Harga ============
         $cementM3 = $n($cementKg / $densitySemen);

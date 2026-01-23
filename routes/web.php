@@ -259,6 +259,7 @@ Route::prefix('material-calculations')
         Route::get('/log', [MaterialCalculationController::class, 'log'])->name('log');
         Route::get('/create', [MaterialCalculationController::class, 'create'])->name('create');
         Route::post('/', [MaterialCalculationController::class, 'store'])->name('store');
+        Route::get('/preview/{cacheKey}', [MaterialCalculationController::class, 'showPreview'])->name('preview');
         Route::get('/{materialCalculation}', [MaterialCalculationController::class, 'show'])->name('show');
         Route::get('/{materialCalculation}/edit', [MaterialCalculationController::class, 'edit'])->name('edit');
         Route::put('/{materialCalculation}', [MaterialCalculationController::class, 'update'])->name('update');

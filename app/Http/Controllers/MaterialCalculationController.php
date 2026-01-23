@@ -141,6 +141,24 @@ class MaterialCalculationController extends Controller
                 $request->merge(['work_type' => $request->work_type_select]);
             }
 
+            // DEBUG: Store request data to session (AFTER conversion)
+            session()->put('debug_last_request', [
+                'work_type' => $request->work_type,
+                'work_type_select' => $request->work_type_select,
+                'price_filters' => $request->price_filters,
+                'ceramic_types' => $request->ceramic_types,
+                'ceramic_sizes' => $request->ceramic_sizes,
+                'timestamp' => now()->toDateTimeString(),
+            ]);
+
+            // CRITICAL: Validate work_type is not null
+            if (empty($request->work_type)) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('error', 'Jenis Pekerjaan harus dipilih dari daftar. Mohon klik Item Pekerjaan dan pilih dari dropdown yang muncul (contoh: Pasang Keramik Lantai / Dinding).');
+            }
+
             if (!$request->has('mortar_formula_type')) {
                 $request->merge(['mortar_formula_type' => 'default']);
             }
@@ -317,13 +335,55 @@ class MaterialCalculationController extends Controller
         }
     }
 
+    /**
+     * Show preview hasil perhitungan dari cache
+     * Method ini support GET request sehingga bisa di-refresh dan pagination
+     */
+    public function showPreview(string $cacheKey)
+    {
+        \Log::info('showPreview called', ['cacheKey' => $cacheKey]);
+
+        $cachedPayload = Cache::get($cacheKey);
+
+        \Log::info('Cache check', [
+            'exists' => $cachedPayload !== null,
+            'isArray' => is_array($cachedPayload),
+            'keys' => $cachedPayload ? array_keys($cachedPayload) : []
+        ]);
+
+        if (!$cachedPayload || !is_array($cachedPayload)) {
+            \Log::warning('Cache not found or invalid', ['cacheKey' => $cacheKey]);
+            return redirect()
+                ->route('material-calculations.create')
+                ->with('error', 'Hasil perhitungan tidak ditemukan atau sudah kadaluarsa. Silakan hitung ulang.');
+        }
+
+        \Log::info('Rendering preview_combinations view', [
+            'hasProjects' => !empty($cachedPayload['projects'] ?? []),
+            'hasCeramicProjects' => !empty($cachedPayload['ceramicProjects'] ?? []),
+            'isMultiCeramic' => $cachedPayload['isMultiCeramic'] ?? false,
+        ]);
+
+        return view('material_calculations.preview_combinations', $cachedPayload);
+    }
+
     protected function generateCombinations(Request $request)
     {
         $cacheKey = $this->buildCalculationCacheKey($request);
         $cachedPayload = $this->getCalculationCachePayload($cacheKey);
         if ($cachedPayload) {
-            return view('material_calculations.preview_combinations', $cachedPayload);
+            // Redirect to GET route untuk support pagination dan refresh
+            return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
         }
+
+        \Log::info('generateCombinations called', [
+            'work_type' => $request->work_type,
+            'price_filters' => $request->price_filters,
+            'has_ceramic_types' => $request->has('ceramic_types'),
+            'has_ceramic_sizes' => $request->has('ceramic_sizes'),
+            'ceramic_types_value' => $request->ceramic_types,
+            'ceramic_sizes_value' => $request->ceramic_sizes,
+        ]);
 
         $targetBricks = collect();
         $priceFilters = $request->price_filters ?? [];
@@ -340,8 +400,16 @@ class MaterialCalculationController extends Controller
             ((is_array($request->ceramic_types) && count($request->ceramic_types) > 0) ||
                 (is_array($request->ceramic_sizes) && count($request->ceramic_sizes) > 0));
 
+        \Log::info('Multi-Ceramic check', [
+            'isCeramicWork' => $isCeramicWork,
+            'hasCeramicFilters' => $hasCeramicFilters,
+            'isMultiCeramic' => $isMultiCeramic,
+            'requiredMaterials' => $requiredMaterials,
+        ]);
+
         // Handle Multi-Ceramic Selection
         if ($isMultiCeramic) {
+            \Log::info('Calling generateMultiCeramicCombinations');
             return $this->generateMultiCeramicCombinations($request);
         }
 
@@ -405,7 +473,10 @@ class MaterialCalculationController extends Controller
 
         $payload = [
             'projects' => $projects,
-            'requestData' => $request->except(['brick_ids', 'brick_id']),
+            'requestData' => array_merge(
+                $request->except(['brick_ids', 'brick_id']),
+                ['work_type' => $request->work_type] // Explicitly include work_type from merged request
+            ),
             'formulaName' => $formulaName,
             'isBrickless' => $isBrickless,
             'ceramicProjects' => [],
@@ -413,7 +484,8 @@ class MaterialCalculationController extends Controller
 
         $this->storeCalculationCachePayload($cacheKey, $payload);
 
-        return view('material_calculations.preview_combinations', $payload);
+        // Redirect to GET route untuk support pagination dan refresh
+        return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
     }
 
     /**
@@ -423,10 +495,20 @@ class MaterialCalculationController extends Controller
      */
     protected function generateMultiCeramicCombinations(Request $request)
     {
+        \Log::info('generateMultiCeramicCombinations called', [
+            'work_type' => $request->work_type,
+            'ceramic_types' => $request->ceramic_types,
+            'ceramic_sizes' => $request->ceramic_sizes,
+        ]);
+
         $cacheKey = $this->buildCalculationCacheKey($request);
+        \Log::info('Cache key generated', ['cacheKey' => $cacheKey]);
+
         $cachedPayload = $this->getCalculationCachePayload($cacheKey);
         if ($cachedPayload) {
-            return view('material_calculations.preview_combinations', $cachedPayload);
+            \Log::info('Using cached payload', ['cacheKey' => $cacheKey]);
+            // Redirect to GET route untuk support pagination dan refresh
+            return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
         }
 
         $workType = $request->work_type ?? 'tile_installation';
@@ -451,7 +533,13 @@ class MaterialCalculationController extends Controller
             ->orderBy('dimension_width')
             ->get();
 
+        \Log::info('Ceramics filtered', [
+            'count' => $targetCeramics->count(),
+            'ids' => $targetCeramics->pluck('id')->toArray(),
+        ]);
+
         if ($targetCeramics->isEmpty()) {
+            \Log::warning('No ceramics found matching filters');
             return redirect()->back()->with('error', 'Tidak ada keramik yang sesuai dengan filter yang dipilih.');
         }
 
@@ -485,14 +573,26 @@ class MaterialCalculationController extends Controller
             'groupedCeramics' => $groupedByType,
             'isMultiCeramic' => true,
             'isLazyLoad' => true, // Enable lazy loading
-            'requestData' => $request->except(['ceramic_types', 'ceramic_sizes']),
+            'requestData' => array_merge(
+                $request->except(['ceramic_types', 'ceramic_sizes']),
+                ['work_type' => $request->work_type] // Explicitly include work_type from merged request
+            ),
             'formulaName' => $formulaName,
             'totalCeramics' => $targetCeramics->count(),
         ];
 
+        \Log::info('Payload prepared', [
+            'ceramicProjectsCount' => count($ceramicProjects),
+            'groupedCeramicsCount' => $groupedByType->count(),
+            'totalCeramics' => $targetCeramics->count(),
+        ]);
+
         $this->storeCalculationCachePayload($cacheKey, $payload);
 
-        return view('material_calculations.preview_combinations', $payload);
+        \Log::info('Cache stored, redirecting to preview', ['cacheKey' => $cacheKey]);
+
+        // Redirect to GET route untuk support pagination dan refresh
+        return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
     }
 
     protected function buildCalculationCacheKey(Request $request): string
@@ -551,6 +651,19 @@ class MaterialCalculationController extends Controller
     public function getCeramicCombinations(Request $request)
     {
         try {
+            // Ensure work_type is present (convert from work_type_select if needed)
+            if ($request->has('work_type_select') && !$request->has('work_type')) {
+                $request->merge(['work_type' => $request->work_type_select]);
+            }
+
+            \Log::info('getCeramicCombinations', [
+                'work_type' => $request->work_type,
+                'work_type_select' => $request->work_type_select,
+                'has_ceramic_id' => $request->has('ceramic_id'),
+                'has_type' => $request->has('type'),
+                'has_size' => $request->has('size'),
+            ]);
+
             $brick = $this->resolveFallbackBrick(); // Dummy brick for ceramic work
 
             if ($request->has('type') && $request->has('size')) {
@@ -578,6 +691,15 @@ class MaterialCalculationController extends Controller
                 }
 
                 $combinations = $this->calculateCombinationsForCeramicGroup($brick, $request, $ceramics);
+
+                \Log::info('Combinations calculated (GROUP)', [
+                    'type' => $type,
+                    'size' => $size,
+                    'ceramics_count' => $ceramics->count(),
+                    'combinations_count' => count($combinations),
+                    'combinations_keys' => array_keys($combinations),
+                ]);
+
                 $contextCeramic = $ceramics->first(); // Context for view
                 $isGroupMode = true;
             } else {
@@ -597,7 +719,10 @@ class MaterialCalculationController extends Controller
                 'html' => view('material_calculations.partials.ceramic_combinations_table', [
                     'ceramic' => $contextCeramic,
                     'combinations' => $combinations,
-                    'requestData' => $request->except(['ceramic_id', '_token']),
+                    'requestData' => array_merge(
+                        $request->except(['ceramic_id', '_token']),
+                        ['work_type' => $request->work_type] // Explicitly include work_type
+                    ),
                     'isGroupMode' => $isGroupMode,
                 ])->render(),
             ]);
@@ -626,6 +751,15 @@ class MaterialCalculationController extends Controller
         $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->get();
         $nats = Cement::where('type', 'Nat')->orderBy('package_price')->get();
         $sands = Sand::orderBy('package_price')->get();
+
+        \Log::info('calculateCombinationsForCeramicGroup START', [
+            'work_type' => $request->work_type,
+            'price_filters' => $priceFilters,
+            'ceramics_count' => $ceramics->count(),
+            'cements_count' => $cements->count(),
+            'nats_count' => $nats->count(),
+            'sands_count' => $sands->count(),
+        ]);
 
         foreach ($priceFilters as $filter) {
             // For 'best' filter, use RecommendedCombination
@@ -1941,6 +2075,16 @@ class MaterialCalculationController extends Controller
                                 'filter_type' => $groupLabel,
                             ];
                         } catch (\Exception $e) {
+                            // Log error untuk debugging
+                            \Log::warning('yieldTileInstallationCombinations error', [
+                                'ceramic_id' => $ceramic->id,
+                                'nat_id' => $nat->id,
+                                'cement_id' => $cement->id,
+                                'sand_id' => $sand->id,
+                                'error' => $e->getMessage(),
+                                'file' => $e->getFile(),
+                                'line' => $e->getLine(),
+                            ]);
                             // Skip kombinasi yang error
                             continue;
                         }

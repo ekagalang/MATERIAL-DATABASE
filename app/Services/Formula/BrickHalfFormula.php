@@ -401,8 +401,11 @@ class BrickHalfFormula implements FormulaInterface
         $kubikSemenPekerjaan = $n($kubikSemen1M3 * $volumeAdukanPekerjaan);
         $sakPasirPekerjaan = $n($sakPasir1M3 * $volumeAdukanPekerjaan);
         $kubikPasirPekerjaan = $n($kubikPasir1M3 * $volumeAdukanPekerjaan);
-        $literAirPekerjaan = $n($literAir1M3 * $volumeAdukanPekerjaan);
+
+        // Debug: hitung kubik air dengan detail
+        $kubikAirPekerjaanBeforeNormalize = $kubikAir1M3 * $volumeAdukanPekerjaan;
         $kubikAirPekerjaan = $n($kubikAir1M3 * $volumeAdukanPekerjaan);
+        $literAirPekerjaan = $kubikAirPekerjaan * 1000;
 
         $trace['steps'][] = [
             'step' => 17,
@@ -444,20 +447,22 @@ class BrickHalfFormula implements FormulaInterface
                     ' = ' .
                     NumberHelper::format($kubikPasirPekerjaan) .
                     ' M3',
-                'Liter Air Pekerjaan' =>
-                    NumberHelper::format($literAir1M3) .
-                    ' × ' .
-                    NumberHelper::format($volumeAdukanPekerjaan) .
-                    ' = ' .
-                    NumberHelper::format($literAirPekerjaan) .
-                    ' liter',
-                'Kubik Air Pekerjaan' =>
+                'Kubik Air Pekerjaan (Before Normalize)' =>
                     NumberHelper::format($kubikAir1M3) .
                     ' × ' .
                     NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
+                    sprintf('%.30F', $kubikAirPekerjaanBeforeNormalize) .
+                    ' M3',
+                'Kubik Air Pekerjaan (After Normalize)' =>
+                    'normalize(' . sprintf('%.30F', $kubikAirPekerjaanBeforeNormalize) . ') = ' .
                     NumberHelper::format($kubikAirPekerjaan) .
                     ' M3',
+                'Liter Air Pekerjaan' =>
+                    NumberHelper::format($kubikAirPekerjaan) .
+                    ' × 1000 = ' .
+                    NumberHelper::format($literAirPekerjaan) .
+                    ' liter',
             ],
         ];
 
@@ -471,12 +476,8 @@ class BrickHalfFormula implements FormulaInterface
             $cementKg = floor($kgSemenPekerjaan);
         }
 
-        $decimalWater = $literAirPekerjaan - floor($literAirPekerjaan);
-        if ($decimalWater > 0.5) {
-            $waterLiters = floor($literAirPekerjaan);
-        } else {
-            $waterLiters = round($literAirPekerjaan);
-        }
+        // Water liters sudah di-normalize di line 405, tidak perlu pembulatan lagi
+        $waterLiters = $literAirPekerjaan;
 
         // ============ Hitung Harga ============
         $cementM3 = $n($cementKg / $densitySemen);
@@ -505,6 +506,20 @@ class BrickHalfFormula implements FormulaInterface
             'sand_m3' => $kubikPasirPekerjaan,
             'sand_sak' => $sandSakUnit,
             'water_liters' => $waterLiters,
+            'water_m3' => $kubikAirPekerjaan,
+            // Debug info for water calculation
+            'water_liters_debug' =>
+                'Kubik Air 1M3: ' .
+                NumberHelper::format($kubikAir1M3) .
+                ' M3 | Volume Adukan: ' .
+                NumberHelper::format($volumeAdukanPekerjaan) .
+                ' M3 | Before Normalize: ' .
+                sprintf('%.15F', $kubikAirPekerjaanBeforeNormalize) .
+                ' M3 | After Normalize: ' .
+                NumberHelper::format($kubikAirPekerjaan) .
+                ' M3 | × 1000 = ' .
+                NumberHelper::format($literAirPekerjaan) .
+                ' L',
             // Harga
             'brick_price_per_piece' => $brickPrice,
             'total_brick_price' => $totalBrickPrice,
