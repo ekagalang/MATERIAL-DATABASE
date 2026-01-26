@@ -3,170 +3,158 @@
 @section('title', 'Edit Lokasi - ' . $store->name)
 
 @section('content')
-<div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Header -->
-            <div class="mb-4">
-                <h2 class="mb-1">Edit Lokasi</h2>
-                <p class="text-muted">Toko: <strong>{{ $store->name }}</strong></p>
-                
+<div class="card">
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <div>
+                <strong>Terdapat kesalahan pada input:</strong>
+                <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+    @endif
+
+    <form action="{{ route('store-locations.update', [$store, $location]) }}" method="POST">
+        @csrf
+        @method('PUT')
+
+        <div class="form-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1100px; width: 100%; margin: 0 auto; padding: 20px;">
+
+            <!-- Left Column: Location Info -->
+            <div class="left-column">
+                <h5 class="mb-3 text-secondary border-bottom pb-2">Informasi Lokasi</h5>
+                <p class="text-muted small mb-4">Toko: <strong>{{ $store->name }}</strong></p>
+
                 <!-- Incomplete Warning -->
                 @if($location->is_incomplete)
-                    <div class="alert alert-warning mt-3">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        <strong>Data Belum Lengkap!</strong> Mohon lengkapi data yang ditandai dengan <span class="text-warning">*</span>
+                    <div class="alert alert-warning py-2 px-3 small mb-4">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <div><strong>Data Belum Lengkap!</strong> Mohon lengkapi data yang ditandai dengan <span class="text-warning">*</span></div>
                     </div>
                 @endif
+
+                <!-- Alamat -->
+                <div class="row">
+                    <label>Alamat Jalan</label>
+                    <div style="flex: 1; position: relative;">
+                        <textarea name="address"
+                                  id="address"
+                                  class="autocomplete-input"
+                                  rows="3"
+                                  placeholder="Jl. Merpati No. 123, RT 001/RW 002">{{ old('address', $location->address) }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Kecamatan -->
+                <div class="row">
+                    <label>Kecamatan</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="district"
+                               id="district"
+                               value="{{ old('district', $location->district) }}"
+                               class="autocomplete-input"
+                               placeholder="contoh: Ciputat">
+                    </div>
+                </div>
+
+                <!-- Kota/Kabupaten -->
+                <div class="row">
+                    <label>
+                        Kota/Kabupaten 
+                        @if(empty($location->city))
+                            <span class="text-warning">*</span>
+                        @endif
+                    </label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="city"
+                               id="city"
+                               value="{{ old('city', $location->city) }}"
+                               class="autocomplete-input @if(empty($location->city)) border-warning @endif"
+                               placeholder="contoh: Tangerang Selatan">
+                    </div>
+                </div>
+
+                <!-- Provinsi -->
+                <div class="row">
+                    <label>
+                        Provinsi
+                        @if(empty($location->province))
+                            <span class="text-warning">*</span>
+                        @endif
+                    </label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="province"
+                               id="province"
+                               value="{{ old('province', $location->province) }}"
+                               class="autocomplete-input @if(empty($location->province)) border-warning @endif"
+                               placeholder="contoh: Banten">
+                    </div>
+                </div>
             </div>
 
-            <!-- Error Messages -->
-            @if($errors->any())
-                <div class="alert alert-danger">
-                    <strong>Whoops!</strong> Ada beberapa masalah:
-                    <ul class="mb-0 mt-2">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+            <!-- Right Column: Contact Info & Actions -->
+            <div class="right-column" style="display: flex; flex-direction: column;">
+                <h5 class="mb-3 text-secondary border-bottom pb-2">Informasi Kontak</h5>
+                <p class="text-muted small mb-4" style="visibility: hidden;">Spacer</p>
 
-            <form action="{{ route('store-locations.update', [$store, $location]) }}" method="POST">
-                @csrf
-                @method('PUT')
-
-                <div class="card mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Informasi Lokasi</h5>
+                <!-- Nama Kontak -->
+                <div class="row">
+                    <label>Nama Kontak</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="contact_name"
+                               id="contact_name"
+                               value="{{ old('contact_name', $location->contact_name) }}"
+                               class="autocomplete-input"
+                               placeholder="contoh: Budi Santoso">
                     </div>
-                    <div class="card-body">
-                        <!-- Address -->
-                        <div class="mb-3">
-                            <label for="address" class="form-label">
-                                Alamat Jalan
-                            </label>
-                            <textarea class="form-control @error('address') is-invalid @enderror" 
-                                      id="address" 
-                                      name="address" 
-                                      rows="3" 
-                                      placeholder="Jl. Merpati No. 123, RT 001/RW 002">{{ old('address', $location->address) }}</textarea>
-                            @error('address')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                </div>
 
-                        <div class="row">
-                            <!-- District -->
-                            <div class="col-md-6 mb-3">
-                                <label for="district" class="form-label">Kecamatan</label>
-                                <input type="text" 
-                                       class="form-control @error('district') is-invalid @enderror" 
-                                       id="district" 
-                                       name="district" 
-                                       value="{{ old('district', $location->district) }}" 
-                                       placeholder="contoh: Ciputat">
-                                @error('district')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- City -->
-                            <div class="col-md-6 mb-3">
-                                <label for="city" class="form-label">
-                                    Kota/Kabupaten 
-                                    @if(empty($location->city))
-                                        <span class="text-warning">* (Belum diisi)</span>
-                                    @endif
-                                </label>
-                                <input type="text" 
-                                       class="form-control @error('city') is-invalid @enderror @if(empty($location->city)) border-warning @endif" 
-                                       id="city" 
-                                       name="city" 
-                                       value="{{ old('city', $location->city) }}" 
-                                       placeholder="contoh: Tangerang Selatan">
-                                @error('city')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        <!-- Province -->
-                        <div class="mb-3">
-                            <label for="province" class="form-label">
-                                Provinsi
-                                @if(empty($location->province))
-                                    <span class="text-warning">* (Belum diisi)</span>
-                                @endif
-                            </label>
-                            <input type="text" 
-                                   class="form-control @error('province') is-invalid @enderror @if(empty($location->province)) border-warning @endif" 
-                                   id="province" 
-                                   name="province" 
-                                   value="{{ old('province', $location->province) }}" 
-                                   placeholder="contoh: Banten">
-                            @error('province')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <hr>
-
-                        <div class="row">
-                            <!-- Contact Name -->
-                            <div class="col-md-6 mb-3">
-                                <label for="contact_name" class="form-label">Nama Kontak (PIC)</label>
-                                <input type="text" 
-                                       class="form-control @error('contact_name') is-invalid @enderror" 
-                                       id="contact_name" 
-                                       name="contact_name" 
-                                       value="{{ old('contact_name', $location->contact_name) }}" 
-                                       placeholder="contoh: Budi Santoso">
-                                @error('contact_name')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-
-                            <!-- Contact Phone -->
-                            <div class="col-md-6 mb-3">
-                                <label for="contact_phone" class="form-label">
-                                    No. Telepon
-                                    @if(empty($location->contact_phone))
-                                        <span class="text-warning">* (Belum diisi)</span>
-                                    @endif
-                                </label>
-                                <input type="text" 
-                                       class="form-control @error('contact_phone') is-invalid @enderror @if(empty($location->contact_phone)) border-warning @endif" 
-                                       id="contact_phone" 
-                                       name="contact_phone" 
-                                       value="{{ old('contact_phone', $location->contact_phone) }}" 
-                                       placeholder="08123456789">
-                                @error('contact_phone')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                            </div>
-                        </div>
-
-                        @if($location->is_incomplete)
-                            <div class="alert alert-info">
-                                <i class="bi bi-info-circle"></i>
-                                <strong>Info:</strong> Lengkapi field yang ditandai dengan <span class="text-warning">*</span> agar data menjadi lengkap
-                            </div>
+                <!-- No Telepon -->
+                <div class="row">
+                    <label>
+                        No. Telepon
+                        @if(empty($location->contact_phone))
+                            <span class="text-warning">*</span>
                         @endif
+                    </label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               name="contact_phone"
+                               id="contact_phone"
+                               value="{{ old('contact_phone', $location->contact_phone) }}"
+                               class="autocomplete-input @if(empty($location->contact_phone)) border-warning @endif"
+                               placeholder="08123456789">
                     </div>
                 </div>
+
+                @if($location->is_incomplete)
+                    <div class="alert alert-info mt-3 mb-0 py-2 px-3 small">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Info:</strong> Lengkapi field yang ditandai dengan * agar data menjadi lengkap
+                    </div>
+                @endif
+
+                <!-- Spacer -->
+                <div style="flex-grow: 1;"></div>
 
                 <!-- Actions -->
-                <div class="d-flex justify-content-between">
-                    <a href="{{ route('stores.show', $store) }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Batal
+                <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                    <a href="#" onclick="if(typeof closeFloatingModal==='function')closeFloatingModal(); return false;" class="btn-cancel" style="text-decoration: none;">
+                        <i class="bi bi-arrow-left me-1"></i> Batal
                     </a>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save"></i> Update Lokasi
+                    <button type="submit" class="btn-save">
+                        <i class="bi bi-save me-1"></i> Update Lokasi
                     </button>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 @endsection

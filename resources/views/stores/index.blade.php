@@ -4,9 +4,9 @@
 
 @section('content')
 <div class="page-content stores-page">
-    <div class="container-fluid py-4">
+    <div class="container-fluid pt-1 pb-4">
         <!-- Single Row Search & Action Bar -->
-        <form action="{{ route('stores.index') }}" method="GET" class="w-100 mb-4" data-search-manual="true">
+        <form action="{{ route('stores.index') }}" method="GET" class="w-100 mb-3 mt-0" data-search-manual="true">
             <div class="d-flex align-items-center gap-2 w-100 flex-wrap flex-md-nowrap">
                 <!-- Search Input -->
                 <div class="position-relative flex-grow-1 w-100 w-md-auto">
@@ -19,37 +19,22 @@
 
                 <!-- Search Button -->
                 <button type="submit" class="btn btn-primary-glossy py-2 px-4 rounded-2 btn-sm text-nowrap">
-                    Cari
+                    <i class="bi bi-search me-1"></i>Cari
                 </button>
+
+                @if(request()->filled('search'))
+                    <a href="{{ route('stores.index') }}" class="btn btn-secondary-glossy py-2 px-4 rounded-2 btn-sm text-nowrap">
+                        <i class="bi bi-x-lg me-1"></i> Reset
+                    </a>
+                @endif
 
                 <!-- Add Store Button -->
                 <a href="{{ route('stores.create') }}" 
-                class="btn btn-primary-glossy py-2 px-4 rounded-2 btn-sm text-nowrap">
+                class="btn btn-primary-glossy py-2 px-4 rounded-2 btn-sm text-nowrap global-open-modal">
                     <i class="bi bi-plus-lg me-1"></i>Tambah Toko
                 </a>
             </div>
         </form>
-
-        <!-- Alerts -->
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 rounded-3 mb-3 py-2 px-3 small" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-check-circle-fill me-2 fs-6"></i>
-                    <span class="fw-medium">{{ session('success') }}</span>
-                </div>
-                <button type="button" class="btn-close small p-2" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
-
-        @if(session('error'))
-            <div class="alert alert-danger alert-dismissible fade show shadow-sm border-0 rounded-3 mb-3 py-2 px-3 small" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>
-                    <span class="fw-medium">{{ session('error') }}</span>
-                </div>
-                <button type="button" class="btn-close small p-2" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
 
         <!-- Table Layout -->
         <div class="stores-table-wrapper">
@@ -96,18 +81,23 @@
                                             {{ $store->locations->count() }}
                                         </span>
                                     </td>
-                                    <td class="text-center action-cell" onclick="event.stopPropagation()">
+                                    <td class="text-center action-cell">
                                         <div class="btn-group-compact">
                                             <a href="{{ route('stores.show', $store) }}" class="btn btn-primary-glossy btn-action" data-bs-toggle="tooltip" title="Detail">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <a href="{{ route('stores.edit', $store) }}" class="btn btn-warning btn-action" data-bs-toggle="tooltip" title="Edit">
+                                            <a href="{{ route('stores.edit', $store) }}" class="btn btn-warning btn-action global-open-modal" data-bs-toggle="tooltip" title="Edit">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
-                                            <form action="{{ route('stores.destroy', $store) }}" method="POST" class="d-inline">
+                                            <form action="{{ route('stores.destroy', $store) }}" method="POST" class="d-inline"
+                                                data-confirm="Apakah Anda yakin ingin menghapus toko {{ $store->name }}? Data yang dihapus tidak dapat dikembalikan."
+                                                data-confirm-title="Hapus Toko"
+                                                data-confirm-type="danger"
+                                                data-confirm-ok="Ya, Hapus"
+                                                data-confirm-cancel="Batal">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="button" onclick="if(confirm('Hapus toko {{ $store->name }}?')) this.form.submit()" class="btn btn-danger btn-action" data-bs-toggle="tooltip" title="Hapus">
+                                                <button type="submit" class="btn btn-danger btn-action" data-bs-toggle="tooltip" title="Hapus">
                                                     <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>

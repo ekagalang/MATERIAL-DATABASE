@@ -1058,10 +1058,6 @@
             border-color: #2563eb;
         }
 
-        .alert-info::before {
-            content: "\f431";
-        }
-
         /* Pagination */
         .pagination {
             display: flex;

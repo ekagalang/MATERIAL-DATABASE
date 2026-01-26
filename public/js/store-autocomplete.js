@@ -259,7 +259,9 @@
 
                 // Always resolve store_location_id before submit if we have store name
                 if (storeName && (!storeLocationIdInput || !storeLocationIdInput.value)) {
-                    e.preventDefault(); // Prevent form submission temporarily
+                    // Note: We DO NOT preventDefault() here because we want other submit handlers
+                    // (like the confirmation dialog in index.blade.php) to run after this.
+                    // We use synchronous XHR to ensure the ID is resolved BEFORE those handlers run.
 
                     const input = storeName + (address ? ' - ' + address : '');
 
@@ -281,8 +283,7 @@
                         console.error('Store resolve on submit failed:', err);
                     }
 
-                    // Now submit the form
-                    form.submit();
+                    // No form.submit() call here - let the event propagate
                 }
             });
         }

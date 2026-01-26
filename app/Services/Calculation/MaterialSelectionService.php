@@ -57,7 +57,16 @@ class MaterialSelectionService
             }
         }
 
-        return $targetBricks;
+        // Ensure bricks with Populer history are included when requested
+        if (in_array('common', $priceFilters, true)) {
+            $commonBrickIds = $this->repository->getCommonBrickIdsByWorkType($workType);
+            if ($commonBrickIds->isNotEmpty()) {
+                $commonBricks = $this->repository->getBricksByIds($commonBrickIds->toArray());
+                $targetBricks = $targetBricks->merge($commonBricks);
+            }
+        }
+
+        return $targetBricks->unique('id')->values();
     }
 
     /**

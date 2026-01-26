@@ -168,6 +168,35 @@ class CalculationRepository
     }
 
     /**
+     * Get most frequent brick IDs from calculation history for a work type
+     *
+     * @param string $workType
+     * @param int $limit
+     * @return Collection
+     */
+    public function getCommonBrickIdsByWorkType(string $workType, int $limit = 10): Collection
+    {
+        $rows = BrickCalculation::query()
+            ->select(
+                'brick_id',
+                'cement_id',
+                'sand_id',
+                'cat_id',
+                'ceramic_id',
+                'nat_id',
+                \DB::raw('count(*) as frequency'),
+            )
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+            ->whereNotNull('brick_id')
+            ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
+            ->orderByDesc('frequency')
+            ->limit($limit)
+            ->get();
+
+        return $rows->pluck('brick_id')->unique()->filter();
+    }
+
+    /**
      * Get cheapest bricks (for recommendations fallback)
      *
      * @param int $limit

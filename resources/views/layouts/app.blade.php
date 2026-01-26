@@ -274,7 +274,7 @@
                             <a href="{{ route('settings.recommendations.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
-                                Rekomendasi Rekomendasi
+                                Filter Rekomendasi
                             </a>
                         </div>
                     </div>
@@ -918,6 +918,8 @@
                 else if (url.includes('/cements/')) { materialType = 'cement'; materialLabel = 'Semen'; } 
                 else if (url.includes('/sands/')) { materialType = 'sand'; materialLabel = 'Pasir'; }
                 else if (url.includes('/ceramics/')) { materialType = 'ceramic'; materialLabel = 'Keramik'; }
+                else if (url.includes('/store-locations/')) { materialType = 'store-location'; materialLabel = 'Lokasi Toko'; }
+                else if (url.includes('/stores/')) { materialType = 'store'; materialLabel = 'Toko'; }
                 else if (url.includes('/settings/recommendations')) { materialType = 'recommendations'; materialLabel = 'Setting Rekomendasi'; }
 
                 if (url.includes('/create')) action = 'create';
@@ -928,8 +930,10 @@
             }
 
             function loadGlobalMaterialFormScript(materialType, modalBodyEl) {
-                const scriptProperty = `global${materialType}FormScriptLoaded`;
-                const initFunctionName = `init${materialType.charAt(0).toUpperCase() + materialType.slice(1)}Form`;
+                // Convert kebab-case (store-location) to camelCase (storeLocation) for variable names
+                const camelType = materialType.replace(/-([a-z])/g, (g) => g[1].toUpperCase());
+                const scriptProperty = `global${camelType.charAt(0).toUpperCase() + camelType.slice(1)}FormScriptLoaded`;
+                const initFunctionName = `init${camelType.charAt(0).toUpperCase() + camelType.slice(1)}Form`;
 
                 console.log('[Script] Loading script for:', materialType);
                 console.log('[Script] Init function name:', initFunctionName);
@@ -937,6 +941,7 @@
 
                 if (!window[scriptProperty]) {
                     const script = document.createElement('script');
+                    // Script file remains kebab-case (e.g., store-location-form.js)
                     script.src = `{{ asset('js') }}/${materialType}-form.js?v=${Date.now()}`;
                     console.log('[Script] Creating script element for:', script.src);
 

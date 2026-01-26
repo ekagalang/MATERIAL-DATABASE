@@ -72,6 +72,6 @@ class BrickInstallationTypeSeeder extends Seeder
             ],
         ];
 
-        DB::table('brick_installation_types')->insert($types);
+        DB::table('brick_installation_types')->upsert($types, ['code']);
     }
 }

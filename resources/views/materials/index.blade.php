@@ -419,6 +419,8 @@ html.materials-booting .page-content {
     background-color: rgba(37, 99, 235, 0.08);
     transition: background-color 0.2s ease;
 }
+
+/* --- CERAMIC STICKY --- */
 #section-ceramic .ceramic-sticky-col {
     position: sticky;
     background: #ffffff;
@@ -431,14 +433,33 @@ html.materials-booting .page-content {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
 }
 
-/* Column Widths and Positions for Ceramic Sticky Header */
-#section-ceramic .col-no { left: 0; width: 50px; min-width: 50px; }
-#section-ceramic .col-type { left: 50px; width: 140px; min-width: 140px; }
-#section-ceramic .col-dim-group { left: 190px; width: 150px; min-width: 150px; }
-#section-ceramic .col-dim-p { left: 190px; width: 50px; min-width: 50px; }
-#section-ceramic .col-dim-l { left: 240px; width: 50px; min-width: 50px; }
-#section-ceramic .col-dim-t { left: 290px; width: 50px; min-width: 50px; }
-#section-ceramic .col-brand { left: 340px; width: 120px; min-width: 120px; }
+/* --- CAT STICKY --- */
+#section-cat .cat-sticky-col {
+    position: sticky;
+    background: #ffffff;
+    z-index: 3;
+}
+#section-cat thead .cat-sticky-col {
+    z-index: 7;
+}
+#section-cat .cat-sticky-edge {
+    box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
+}
+
+/* --- CEMENT STICKY --- */
+#section-cement .cement-sticky-col {
+    position: sticky;
+    background: #ffffff;
+    z-index: 3;
+}
+#section-cement thead .cement-sticky-col {
+    z-index: 7;
+}
+#section-cement .cement-sticky-edge {
+    box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
+}
+
+
 .material-search-hit {
     color: #2563eb;
 }
@@ -1255,8 +1276,8 @@ html.materials-booting .page-content {
 
                                     @elseif($material['type'] == 'cat')
                                         <tr class="dim-group-row">
-                                            <th style="text-align: center; width: 40px; min-width: 40px;">No</th>
-                                            <th class="sortable" style="text-align: left;">
+                                            <th class="cat-sticky-col col-no" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                            <th class="sortable cat-sticky-col col-type" style="text-align: left;">
                                                 <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['type'] }}</span>
@@ -1267,7 +1288,7 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" style="text-align: center;">
+                                            <th class="sortable cat-sticky-col col-brand cat-sticky-edge" style="text-align: center;">
                                                 <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $catSortable['brand'] }}</span>
@@ -1393,8 +1414,8 @@ html.materials-booting .page-content {
                                         
                                     @elseif($material['type'] == 'cement')
                                         <tr class="dim-group-row">
-                                            <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
-                                            <th class="sortable" rowspan="2" style="text-align: left;">
+                                            <th class="cement-sticky-col" rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                            <th class="sortable cement-sticky-col" rowspan="2" style="text-align: left;">
                                                 <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['type'] }}</span>
@@ -1405,7 +1426,7 @@ html.materials-booting .page-content {
                                                     @endif
                                                 </a>
                                             </th>
-                                            <th class="sortable" rowspan="2" style="text-align: center;">
+                                            <th class="sortable cement-sticky-col cement-sticky-edge" rowspan="2" style="text-align: center;">
                                                 <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction')) }}"
                                                    style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                                     <span>{{ $cementSortable['brand'] }}</span>
@@ -1572,7 +1593,7 @@ html.materials-booting .page-content {
                                                 @if(request('sort_by') == 'surface')
                                                     <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                 @else
-                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                    <i class="bi bi-arrow-down-up sort-style" style="margin-left: 12px; font-size: 12px; opacity: 0.3;"></i>
                                                 @endif
                                             </a>
                                         </th>
@@ -1732,9 +1753,14 @@ html.materials-booting .page-content {
                                                 return !is_null($value) && trim((string) $value) !== '';
                                             });
                                             $searchValue = strtolower(trim(preg_replace('/\s+/', ' ', implode(' ', $searchParts))));
+                                            
+                                            $stickyClass = '';
+                                            if($material['type'] == 'ceramic') $stickyClass = 'ceramic-sticky-col col-no';
+                                            elseif($material['type'] == 'cat') $stickyClass = 'cat-sticky-col col-no';
+                                            elseif($material['type'] == 'cement') $stickyClass = 'cement-sticky-col';
                                         @endphp
                                 <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
-                                    <td class="{{ $material['type'] == 'ceramic' ? 'ceramic-sticky-col col-no' : '' }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
+                                    <td class="{{ $stickyClass }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif @if($material['type'] == 'ceramic') style="text-align: center;" @elseif($material['type'] == 'cement') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'sand') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'cat') style="text-align: center; width: 40px; min-width: 40px;" @elseif($material['type'] == 'brick') style="text-align: center; width: 40px; min-width: 40px;" @endif>
                                         {{ $rowNumber++ }}
                                     </td>
                                      @if($material['type'] == 'brick')
@@ -1796,8 +1822,8 @@ html.materials-booting .page-content {
                                         <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ M3</td>
 
                                     @elseif($material['type'] == 'cat')
-                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
-                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td class="cat-sticky-col col-type" style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td class="cat-sticky-col col-brand cat-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: start;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="text-align: right; font-size: 12px;">{{ $item->color_code ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->color_name ?? '-' }}</td>
@@ -1855,9 +1881,11 @@ html.materials-booting .page-content {
                                                 <span>-</span>
                                             @endif
                                         </td>
-                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>@elseif($material['type'] == 'cement')
-                                        <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
-                                        <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+                                        <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>
+
+                                    @elseif($material['type'] == 'cement')
+                                        <td class="cement-sticky-col" style="text-align: left;">{{ $item->type ?? '-' }}</td>
+                                        <td class="cement-sticky-col cement-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
                                         <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
                                         <td style="text-align: left;">{{ $item->color ?? '-' }}</td>
@@ -2377,6 +2405,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const tableContainer = panel.querySelector('.table-container');
             if (tableContainer) {
                 tableContainer.scrollLeft = 0;
+            }
+
+            // Recalculate sticky offsets when tab becomes visible
+            if (typeof applyAllStickyOffsets === 'function') {
+                window.requestAnimationFrame(() => applyAllStickyOffsets());
             }
 
             try {
@@ -3540,16 +3573,37 @@ document.addEventListener('DOMContentLoaded', function() {
         highlightSearchMatches();
     }
 
-    function applyCeramicStickyOffsets() {
-        const panel = document.getElementById('section-ceramic');
-        if (!panel || panel.offsetParent === null) return;
-        const tables = panel.querySelectorAll('table');
-        tables.forEach(table => {
-            const stickyCells = table.querySelectorAll('.ceramic-sticky-col');
-            stickyCells.forEach(cell => {
-                cell.style.left = `${cell.offsetLeft}px`;
+    function applyAllStickyOffsets() {
+        // Function to apply sticky offsets to a specific section and class
+        const applyToSection = (sectionId, stickyClass) => {
+            const panel = document.getElementById(sectionId);
+            if (!panel || panel.offsetParent === null) return;
+            const tables = panel.querySelectorAll('table');
+            tables.forEach(table => {
+                // To support both single-row body cells and multi-row headers,
+                // we iterate over all rows (thead and tbody)
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const stickyCells = row.querySelectorAll('.' + stickyClass);
+                    stickyCells.forEach(cell => {
+                        // Reset left to let browser calculate natural position
+                        cell.style.left = '';
+                        // Set left to the calculated offset
+                        // This ensures consistent width even when sticky
+                        cell.style.left = `${cell.offsetLeft}px`;
+                    });
+                });
             });
-        });
+        };
+
+        // Apply to Ceramic (existing)
+        applyToSection('section-ceramic', 'ceramic-sticky-col');
+        
+        // Apply to Cat (new)
+        applyToSection('section-cat', 'cat-sticky-col');
+        
+        // Apply to Cement (new)
+        applyToSection('section-cement', 'cement-sticky-col');
     }
 
     // Add click handlers to pagination links to preserve current tab
@@ -3620,14 +3674,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial update of active pagination letter on page load
     updateActivePaginationLetter();
     setupSearchEnhancements();
-    applyCeramicStickyOffsets();
+    
+    // Apply sticky offsets for all relevant sections
+    applyAllStickyOffsets();
+    
     window.setTimeout(() => {
         focusNewMaterialRow();
     }, 200);
 
     window.addEventListener('resize', () => {
         window.requestAnimationFrame(() => {
-            applyCeramicStickyOffsets();
+            applyAllStickyOffsets();
         });
     });
 
@@ -3638,7 +3695,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
-
-
-
-

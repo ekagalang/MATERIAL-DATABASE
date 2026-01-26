@@ -15,10 +15,15 @@ composer run setup
 # Development (starts PHP server, queue listener, and Vite concurrently)
 composer run dev
 
-# Run tests
+# Run tests (uses Pest PHP framework)
 composer test
 # or: php artisan test
 # Single test: php artisan test --filter TestName
+# Specific test suite: php artisan test --testsuite=Unit
+
+# Database operations
+php artisan migrate:fresh --seed    # Reset and seed database
+php artisan db:seed                 # Run seeders only
 
 # Format code
 npm run format              # JS/CSS/JSON/PHP/Blade via Prettier
@@ -90,4 +95,17 @@ Core domain models in `app/Models/`:
 
 ## Testing
 
-Tests use Pest PHP framework with in-memory SQLite database. Test files in `tests/Unit/` and `tests/Feature/`.
+Tests use Pest PHP framework with in-memory SQLite database (configured in `phpunit.xml`). Test files in `tests/Unit/` and `tests/Feature/`.
+
+## Database
+
+- MySQL in production/development (default: `kanggo_database`)
+- SQLite in-memory for tests
+- Queue system uses database driver (requires `queue:listen` or `queue:work`)
+- **Seeder order is critical**: `MaterialSettingSeeder` MUST run before material seeders (`BrickSeeder`, `CementSeeder`, etc.)
+
+## Performance
+
+- Complex material calculations may take time. Controllers have `set_time_limit(300)` for heavy computations
+- **Telescope**: Disable with `TELESCOPE_ENABLED=false` in `.env` for better performance during development
+- Material calculations use caching to avoid recalculating identical combinations

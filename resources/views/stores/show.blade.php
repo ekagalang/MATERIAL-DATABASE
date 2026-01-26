@@ -37,14 +37,16 @@
                     <!-- Actions -->
                     <div class="col-md-4 text-md-end position-relative" style="z-index: 2;">
                         <div class="d-flex flex-column flex-md-row justify-content-md-end gap-2">
-                            <a href="{{ route('stores.edit', $store) }}" class="btn btn-light border btn-lg px-4 fs-6 text-dark fw-medium">
-                                <i class="bi bi-pencil me-2 text-muted"></i>Edit
+                            <div class="d-flex align-items-center gap-3">   
+                                <a href="{{ route('stores.index') }}" class="btn btn-secondary-glossy btn-lg px-4 fs-6">
+                                    <i class="bi bi-arrow-left me-1"></i> Kembali
+                                </a>
+                            </div>
+                            <a href="{{ route('stores.edit', $store) }}" class="btn btn-warning btn-lg px-4 fs-6 text-white fw-medium global-open-modal">
+                                <i class="bi bi-pencil me-2 text-white"></i>Edit
                             </a>
-                            <a href="{{ route('store-locations.create', $store) }}" class="btn btn-primary-glossy btn-lg px-4 fs-6">
+                            <a href="{{ route('store-locations.create', $store) }}" class="btn btn-primary-glossy btn-lg px-4 fs-6 global-open-modal">
                                 <i class="bi bi-plus-lg me-2"></i>Tambah Lokasi
-                            </a>
-                            <a href="{{ route('stores.index') }}" class="btn btn-light btn-sm shadow-sm border">
-                                <i class="bi bi-arrow-left me-1"></i> Kembali
                             </a>
                         </div>
                     </div>
@@ -55,18 +57,6 @@
                 <i class="bi bi-shop display-1 text-secondary" style="font-size: 8rem;"></i>
             </div>
         </div>
-
-        @if(session('success'))
-            <div class="alert alert-success alert-dismissible fade show shadow-sm border-0 rounded-3 mb-4 py-3" role="alert">
-                <div class="d-flex align-items-center">
-                    <div class="icon-box bg-white bg-opacity-25 rounded-circle me-3 p-1">
-                        <i class="bi bi-check-lg fs-5"></i>
-                    </div>
-                    <span class="fw-medium">{{ session('success') }}</span>
-                </div>
-                <button type="button" class="btn-close p-3" data-bs-dismiss="alert"></button>
-            </div>
-        @endif
 
         <!-- Locations Content -->
         <div class="d-flex align-items-center justify-content-between mb-4">
@@ -119,19 +109,21 @@
                             <td style="text-align: right;">{{ $location->contact_name ?? '-' }}</td>
                             <td>{{ $location->contact_phone ?? '-' }}</td>
                             <td class="text-center">
-                                <div class="d-flex flex-column align-items-center justify-content-center gap-1">
-                                    <span class="fw-bold">{{ $location->material_availabilities_count }} material</span>
-                                    <a href="{{ route('store-locations.materials', [$store, $location]) }}" class="text-decoration-none small text-primary fw-medium hover-arrow">
-                                        Lihat Material <i class="bi bi-arrow-right ms-1"></i>
-                                    </a>
-                                </div>
+                                <a href="{{ route('store-locations.materials', [$store, $location]) }}" class="text-decoration-none text-primary fw-medium hover-arrow" style="font-size: 13px;">
+                                    {{ $location->material_availabilities_count }} Material <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
                             </td>
                             <td class="text-center action-cell">
                                 <div class="btn-group-compact">
-                                    <a href="{{ route('store-locations.edit', [$store, $location]) }}" class="btn btn-warning btn-action" data-bs-toggle="tooltip" title="Edit">
+                                    <a href="{{ route('store-locations.edit', [$store, $location]) }}" class="btn btn-warning btn-action global-open-modal" data-bs-toggle="tooltip" title="Edit">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>
-                                    <form action="{{ route('store-locations.destroy', [$store, $location]) }}" method="POST" onsubmit="return confirm('Yakin ingin menghapus lokasi ini?');" class="d-inline">
+                                    <form action="{{ route('store-locations.destroy', [$store, $location]) }}" method="POST" class="d-inline"
+                                        data-confirm="Apakah Anda yakin ingin menghapus lokasi ini?"
+                                        data-confirm-title="Hapus Lokasi"
+                                        data-confirm-type="danger"
+                                        data-confirm-ok="Ya, Hapus"
+                                        data-confirm-cancel="Batal">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="btn-action btn-danger" data-bs-toggle="tooltip" title="Hapus">
@@ -164,85 +156,113 @@
 
 @push('styles')
 <style>
-    /* Styles adapted from materials/index.blade.php */
+    /* Table Styles from materials/index.blade.php */
     .table-container {
         position: relative;
         overflow-x: auto;
-        background-color: #fff;
         border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        box-shadow: none;
+        border: 1px solid #e2e8f0;
     }
+
     .table-container table {
         border-collapse: separate !important;
         border-spacing: 0 !important;
         width: 100%;
     }
+
+    /* Header Styling */
     .table-container thead th {
-        border-top: 0;
-        border-bottom: 1px solid #dee2e6 !important;
-        background: #f8f9fa;
-        padding: 0.75rem 1rem !important;
-        vertical-align: middle !important;
-        font-size: 11px !important;
+        height: 40px !important;
+        padding: 8px 12px !important;
+        background-color: #f8fafc;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #495057;
-    }
-    .table-container tbody td {
-        border-top: 1px solid #f1f5f9 !important;
-        padding: 0.5rem 1rem !important; /* Smaller padding */
+        letter-spacing: 0.05em;
+        color: #64748b;
+        font-size: 12px;
+        border: 1px solid #cbd5e1 !important;
         vertical-align: middle !important;
-        font-size: 13px;
+        white-space: nowrap;
     }
+
+    /* Body Styling */
+    .table-container tbody td {
+        border: 1px solid #f1f5f9 !important;
+        vertical-align: middle !important;
+        color: #1e293b !important;
+        height: 35px !important;
+        padding: 4px 12px !important;
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+    }
+
     .table-container tbody tr:hover {
-        background-color: #f8f9fa;
+        background-color: #fcfcfc;
     }
+
+    /* Force Aksi column width */
+    .table-container thead th:last-child,
+    .table-container tbody td:last-child {
+        width: 90px !important;
+        min-width: 90px !important;
+        text-align: center !important;
+    }
+
+    /* Button Group Compact */
     .btn-group-compact {
-      display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
-      overflow: hidden;
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-  }
-  .btn-group-compact .btn-action {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 28px;
-      width: 30px;
-      padding: 0;
-      margin: 0;
-      background: transparent;
-      border: none;
-      font-size: 13px;
-      line-height: 1;
-      color: #64748b;
-  }
-  .btn-group-compact .btn-action:hover {
-      background: #f1f5f9;
-      color: #0f172a;
-  }
-  .btn-group-compact .btn-action + .btn-action {
-      border-left: 1px solid #e2e8f0;
-  }
-  .btn-light, .btn-white {
-      color: #1e293b !important;
-  }
-  .btn-outline-primary {
-      color: var(--bs-primary) !important;
-  }
-  .btn-outline-primary:hover {
-      color: #fff !important;
-  }
-  .hover-arrow {
-      transition: transform 0.2s ease;
-      display: inline-block;
-  }
-  .hover-arrow:hover {
-      transform: translateX(3px);
-  }
+        display: inline-flex;
+        align-items: center;
+        border-radius: 0;
+        overflow: visible;
+        box-shadow: none;
+        background: transparent;
+    }
+    .btn-group-compact .btn-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 22px;
+        width: 26px;
+        padding: 0;
+        margin: 0;
+        border-radius: 0 !important;
+        font-size: 12px;
+        line-height: 1;
+        font-weight: normal !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        color: #0f172a !important;
+    }
+    .btn-group-compact .btn-action:hover {
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    .btn-group-compact .btn-action.btn-warning {
+        color: #b45309 !important;
+    }
+    .btn-group-compact .btn-action.btn-danger {
+        color: #b91c1c !important;
+    }
+    .btn-group-compact .btn-action:first-child {
+        border-top-left-radius: 999px !important;
+        border-bottom-left-radius: 999px !important;
+    }
+    .btn-group-compact .btn-action:last-child {
+        border-top-right-radius: 999px !important;
+        border-bottom-right-radius: 999px !important;
+    }
+    .btn-group-compact .btn-action + .btn-action {
+        border-left: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .hover-arrow {
+        transition: transform 0.2s ease;
+        display: inline-block;
+    }
+    .hover-arrow:hover {
+        transform: translateX(3px);
+    }
 </style>
 @endpush
 @endsection

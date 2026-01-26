@@ -4,34 +4,7 @@
 
 @section('content')
 
-{{-- DEBUG PANEL --}}
-@if(config('app.debug') && session('debug_last_request'))
-<div class="container mt-3">
-    <div class="alert alert-warning border-warning">
-        <h5 class="text-danger">⚠️ WORK_TYPE IS NULL - KOMBINASI TIDAK BISA DIHITUNG!</h5>
-        <p class="mb-2"><strong>Masalah:</strong> Jenis Pekerjaan tidak dipilih di form. Silakan kembali dan pilih Jenis Pekerjaan.</p>
-        <details>
-            <summary style="cursor: pointer; user-select: none;" class="mb-2">🔍 Debug Info (klik untuk expand)</summary>
-            <pre style="font-size: 11px; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;">{{ json_encode([
-                'last_request' => session('debug_last_request'),
-                'current_data' => [
-                    'has_projects' => !empty($projects ?? []),
-                    'has_ceramicProjects' => !empty($ceramicProjects ?? []),
-                    'ceramicProjects_count' => isset($ceramicProjects) ? count($ceramicProjects) : 0,
-                    'isMultiCeramic' => $isMultiCeramic ?? false,
-                    'isLazyLoad' => $isLazyLoad ?? false,
-                    'has_groupedCeramics' => isset($groupedCeramics),
-                    'groupedCeramics_count' => isset($groupedCeramics) ? $groupedCeramics->count() : 0,
-                    'requestData_work_type' => $requestData['work_type'] ?? 'NOT_SET',
-                ]
-            ], JSON_PRETTY_PRINT) }}</pre>
-        </details>
-        <button onclick="window.location.href='{{ route('material-calculations.create') }}'" class="btn btn-sm btn-danger mt-2">
-            <i class="bi bi-arrow-left"></i> Kembali ke Form
-        </button>
-    </div>
-</div>
-@endif
+{{-- DEBUG PANEL REMOVED --}}
 
 <div id="preview-top"></div>
 <div class="container-fluid py-4 preview-combinations-page">
@@ -454,15 +427,52 @@
             $hasCeramic = false;
             $hasNat = false;
 
-            // Get historical frequency data for Populer from database
-            $historicalFrequency = DB::table('brick_calculations')
-                ->select('cement_id', 'sand_id', DB::raw('count(*) as frequency'))
-                ->groupBy('cement_id', 'sand_id')
-                ->orderByDesc('frequency')
-                ->get()
-                ->keyBy(function($item) {
-                    return $item->cement_id . '-' . $item->sand_id;
-                });
+            // Build historical frequency map for Populer (same work_type only).
+            $workType = $requestData['work_type'] ?? null;
+            $historicalFrequencyByBrick = [];
+            $historicalFrequencyGlobal = [];
+
+            $historicalFrequencyQuery = DB::table('brick_calculations')
+                ->select(
+                    'brick_id',
+                    'cement_id',
+                    'sand_id',
+                    'cat_id',
+                    'ceramic_id',
+                    'nat_id',
+                    DB::raw('count(*) as frequency')
+                );
+            if ($workType) {
+                $historicalFrequencyQuery->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType]);
+            }
+            $historicalRows = $historicalFrequencyQuery
+                ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
+                ->get();
+
+            foreach ($historicalRows as $row) {
+                $signature = implode('-', [
+                    $row->cement_id ?? 0,
+                    $row->sand_id ?? 0,
+                    $row->cat_id ?? 0,
+                    $row->ceramic_id ?? 0,
+                    $row->nat_id ?? 0,
+                ]);
+
+                if (!isset($historicalFrequencyGlobal[$signature])) {
+                    $historicalFrequencyGlobal[$signature] = 0;
+                }
+                $historicalFrequencyGlobal[$signature] += (int) $row->frequency;
+
+                if (!empty($row->brick_id)) {
+                    if (!isset($historicalFrequencyByBrick[$row->brick_id])) {
+                        $historicalFrequencyByBrick[$row->brick_id] = [];
+                    }
+                    $historicalFrequencyByBrick[$row->brick_id][$signature] = (int) $row->frequency;
+                }
+            }
+
+            // Populer combos will be resolved from combinations that originated from historical data
+            // (filter type "common") to keep output consistent with stored calculations.
 
             // Definisi warna label untuk kolom Rekap (sama dengan yang di tabel utama)
             $rekapLabelColors = [
@@ -554,6 +564,15 @@
             // Collect all combinations from all bricks
             $allCombinations = [];
 
+            // DEBUG: Log all combination labels
+            $allLabels = [];
+            foreach ($projects as $project) {
+                foreach ($project['combinations'] as $label => $items) {
+                    $allLabels[] = $label;
+                }
+            }
+            \Log::info('All combination labels in view', ['labels' => $allLabels]);
+
             foreach ($projects as $project) {
                 foreach ($project['combinations'] as $label => $items) {
                     foreach ($items as $item) {
@@ -585,38 +604,81 @@
                 }
             }
 
-            // Second pass: Select best combination for each filter type
-            foreach ($allCombinations as $key => $combinations) {
-                $filterType = preg_replace('/\s+\d+.*$/', '', $key);
-                $selectedCombination = null;
+            // DEBUG: Show what combinations were found
+            \Log::info('All combinations collected for rekap', [
+                'keys' => array_keys($allCombinations),
+                'counts' => array_map('count', $allCombinations),
+            ]);
 
-                if ($filterType === 'Populer') {
-                    // For Populer: pick based on HISTORICAL frequency from database
-                    $maxHistoricalFreq = 0;
-                    $mostCommonHistorical = null;
-
-                    foreach ($combinations as $combo) {
-                        // Safe check for masonry materials
-                        if (isset($combo['item']['cement']) && isset($combo['item']['sand'])) {
-                            $materialKey = $combo['item']['cement']->id . '-' . $combo['item']['sand']->id;
-                            $histFreq = isset($historicalFrequency[$materialKey]) ? $historicalFrequency[$materialKey]->frequency : 0;
-
-                            if ($histFreq > $maxHistoricalFreq) {
-                                $maxHistoricalFreq = $histFreq;
-                                $mostCommonHistorical = $combo;
+            // Collect Populer candidates directly from combinations that originate from "common" filter
+            // so the ranking matches stored calculation history.
+            $populerCandidates = [];
+            if (in_array('Populer', $filterCategories, true)) {
+                foreach ($projects as $project) {
+                    foreach ($project['combinations'] as $label => $items) {
+                        foreach ($items as $item) {
+                            $sourceFilters = $item['source_filters'] ?? (($item['filter_type'] ?? null) ? [$item['filter_type']] : []);
+                            if (!in_array('common', $sourceFilters, true)) {
+                                continue;
                             }
-                        } else {
-                            // For non-masonry (e.g. painting), just take the first one or logic for 'most common' painting
-                            // Fallback to cheapest for now if no history logic
-                            $mostCommonHistorical = $combo;
+
+                            $freqSignature = implode('-', [
+                                $item['cement']->id ?? 0,
+                                $item['sand']->id ?? 0,
+                                $item['cat']->id ?? 0,
+                                $item['ceramic']->id ?? 0,
+                                $item['nat']->id ?? 0,
+                            ]);
+                            $brickId = $project['brick']->id ?? null;
+
+                            $isBricklessWork = $isBrickless ?? false;
+                            if ($brickId && !$isBricklessWork) {
+                                $frequency = (int) ($historicalFrequencyByBrick[$brickId][$freqSignature] ?? 0);
+                            } else {
+                                $frequency = (int) ($historicalFrequencyGlobal[$freqSignature] ?? 0);
+                            }
+
+                            if ($frequency <= 0) {
+                                continue;
+                            }
+
+                            $signature = implode('-', [
+                                $brickId ?? 0,
+                                $freqSignature,
+                            ]);
+
+                            if (!isset($populerCandidates[$signature]) || $frequency > $populerCandidates[$signature]['frequency']) {
+                                $populerCandidates[$signature] = [
+                                    'combo' => [
+                                        'project' => $project,
+                                        'item' => $item,
+                                    ],
+                                    'frequency' => $frequency,
+                                ];
+                            }
                         }
                     }
+                }
+            }
 
-                    if ($mostCommonHistorical) {
-                        $selectedCombination = $mostCommonHistorical;
-                    }
+            // Second pass: Select and renumber combinations for each filter type
+            // Track sequential numbering per filter type
+            $filterTypeNumbers = [];
+
+            foreach ($allCombinations as $key => $combinations) {
+                $filterType = preg_replace('/\s+\d+.*$/', '', $key);
+
+                // Initialize counter for this filter type if not exists
+                if (!isset($filterTypeNumbers[$filterType])) {
+                    $filterTypeNumbers[$filterType] = 0;
+                }
+
+                if ($filterType === 'Populer') {
+                    continue;
                 } else {
                     // For other filter types: use price-based selection
+                    $selectedCombination = null;
+
                     foreach ($combinations as $combo) {
                         if (!$selectedCombination) {
                             $selectedCombination = $combo;
@@ -638,13 +700,35 @@
                             }
                         }
                     }
-                }
 
-                // Store the selected combination
-                if ($selectedCombination) {
-                    $project = $selectedCombination['project'];
-                    $item = $selectedCombination['item'];
-                    $globalRekapData[$key] = $buildRekapEntry($project, $item, $key);
+                    // Store the selected combination with renumbered key
+                    if ($selectedCombination) {
+                        $filterTypeNumbers[$filterType]++;
+                        $newKey = $filterType . ' ' . $filterTypeNumbers[$filterType];
+
+                        $project = $selectedCombination['project'];
+                        $item = $selectedCombination['item'];
+                        $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                    }
+                }
+            }
+
+            if (!empty($populerCandidates)) {
+                $populerList = array_values($populerCandidates);
+                usort($populerList, function ($a, $b) {
+                    return $b['frequency'] <=> $a['frequency'];
+                });
+
+                $rank = 0;
+                foreach ($populerList as $entry) {
+                    $rank++;
+                    if ($rank > 3) {
+                        break;
+                    }
+                    $newKey = 'Populer ' . $rank;
+                    $project = $entry['combo']['project'];
+                    $item = $entry['combo']['item'];
+                    $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
                 }
             }
 
@@ -708,6 +792,7 @@
                     }
                 }
             }
+
 
             $getDisplayKeys = function ($filterType) {
                 $maxCount = $filterType === 'Custom' ? 1 : 3;
@@ -802,13 +887,16 @@
             // Grand Total: Use combined palette
             $availableColors = array_merge($brickColors, $cementColors, $sandColors, $catColors, $ceramicColors, $natColors);
 
-            // Color map for Grand Total - only color if combination appears more than once
+            // Color map for Grand Total - only color if combination appears in multiple filter types
             $colorIndex = 0;
             $combinationColorMap = []; // Track colors by combination signature
-            $signatureCount = []; // Count occurrences of each signature
+            $signatureFilterTypes = []; // Track which filter types have each signature
 
-            // First pass: count how many times each signature appears
+            // First pass: track which filter types have each signature
             foreach ($globalRekapData as $key1 => $data1) {
+                // Extract filter type from key (e.g., "Rekomendasi 1" -> "Rekomendasi")
+                $filterType = preg_replace('/\s+\d+$/', '', $key1);
+
                 // Generate safe signature
                 if (isset($data1['cat_id'])) {
                     $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
@@ -818,13 +906,16 @@
                     $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
                 }
 
-                if (!isset($signatureCount[$signature])) {
-                    $signatureCount[$signature] = 0;
+                if (!isset($signatureFilterTypes[$signature])) {
+                    $signatureFilterTypes[$signature] = [];
                 }
-                $signatureCount[$signature]++;
+                // Track unique filter types for this signature
+                if (!in_array($filterType, $signatureFilterTypes[$signature])) {
+                    $signatureFilterTypes[$signature][] = $filterType;
+                }
             }
 
-            // Second pass: assign colors only to non-unique combinations
+            // Second pass: assign colors only if combination appears in multiple filter types
             foreach ($globalRekapData as $key1 => $data1) {
                 if (!isset($globalColorMap[$key1])) {
                     // Create unique signature for this combination
@@ -836,20 +927,20 @@
                         $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
                     }
 
-                    // Only assign color if this combination appears more than once
-                    if ($signatureCount[$signature] > 1) {
+                    // Only assign color if this combination appears in more than one filter type
+                    if (count($signatureFilterTypes[$signature]) > 1) {
                         if (isset($combinationColorMap[$signature])) {
                             // Use existing color for this combination
                             $globalColorMap[$key1] = $combinationColorMap[$signature];
                         } else {
-                            // Assign new color for this recurring combination
+                            // Assign new color for this recurring combination across filter types
                             $color = $availableColors[$colorIndex % count($availableColors)];
                             $globalColorMap[$key1] = $color;
                             $combinationColorMap[$signature] = $color;
                             $colorIndex++;
                         }
                     } else {
-                        // Unique combination - white background (must be opaque for sticky columns)
+                        // Combination only appears in one filter type - white background (must be opaque for sticky columns)
                         $globalColorMap[$key1] = '#ffffff';
                     }
                 }
@@ -2891,6 +2982,12 @@
         $bestRows = [];
         $commonRows = [];
         $hasAllPriceBrick = false;
+        if (!isset($historicalFrequencyByBrick)) {
+            $historicalFrequencyByBrick = [];
+        }
+        if (!isset($historicalFrequencyGlobal)) {
+            $historicalFrequencyGlobal = [];
+        }
         foreach ($projects as $project) {
             $brick = $project['brick'] ?? null;
             $brickLabel = '';
@@ -2921,6 +3018,37 @@
                         }
                         if ($commonLabel === null && str_starts_with($part, 'Populer')) {
                             $commonLabel = $part;
+                        }
+                    }
+
+                    if ($commonLabel) {
+                        $sourceFilters = $item['source_filters'] ?? (($item['filter_type'] ?? null) ? [$item['filter_type']] : []);
+                        $isCommonFromHistory = in_array('common', $sourceFilters, true);
+
+                        if ($isCommonFromHistory) {
+                            $freqSignature = implode('-', [
+                                $item['cement']->id ?? 0,
+                                $item['sand']->id ?? 0,
+                                $item['cat']->id ?? 0,
+                                $item['ceramic']->id ?? 0,
+                                $item['nat']->id ?? 0,
+                            ]);
+                            $brickId = $brick->id ?? null;
+
+                            $isBricklessWork = $isBrickless ?? false;
+                            if ($brickId && !$isBricklessWork) {
+                                $frequency = (int) ($historicalFrequencyByBrick[$brickId][$freqSignature] ?? 0);
+                            } else {
+                                $frequency = (int) ($historicalFrequencyGlobal[$freqSignature] ?? 0);
+                            }
+
+                            if ($frequency <= 0) {
+                                $isCommonFromHistory = false;
+                            }
+                        }
+
+                        if (!$isCommonFromHistory) {
+                            $commonLabel = null;
                         }
                     }
                     if ($bestLabel) {
@@ -3758,4 +3886,3 @@ document.addEventListener('hidden.bs.modal', function(event) {
 });
 </script>
 @endpush
-

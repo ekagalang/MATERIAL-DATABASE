@@ -133,6 +133,9 @@ class MaterialCalculationController extends Controller
      */
     public function store(Request $request)
     {
+        // Increase execution time for complex calculations
+        set_time_limit(300); // 5 minutes
+
         try {
             DB::beginTransaction();
 
@@ -156,7 +159,10 @@ class MaterialCalculationController extends Controller
                 return redirect()
                     ->back()
                     ->withInput()
-                    ->with('error', 'Jenis Pekerjaan harus dipilih dari daftar. Mohon klik Item Pekerjaan dan pilih dari dropdown yang muncul (contoh: Pasang Keramik Lantai / Dinding).');
+                    ->with(
+                        'error',
+                        'Jenis Pekerjaan harus dipilih dari daftar. Mohon klik Item Pekerjaan dan pilih dari dropdown yang muncul (contoh: Pasang Keramik Lantai / Dinding).',
+                    );
             }
 
             if (!$request->has('mortar_formula_type')) {
@@ -348,7 +354,7 @@ class MaterialCalculationController extends Controller
         \Log::info('Cache check', [
             'exists' => $cachedPayload !== null,
             'isArray' => is_array($cachedPayload),
-            'keys' => $cachedPayload ? array_keys($cachedPayload) : []
+            'keys' => $cachedPayload ? array_keys($cachedPayload) : [],
         ]);
 
         if (!$cachedPayload || !is_array($cachedPayload)) {
@@ -439,20 +445,65 @@ class MaterialCalculationController extends Controller
                     }
                 }
 
-                // 2. Filter Premium (Expensive) - Butuh bata mahal
+                // 2. Filter Populer (Common) - Get bricks from historical data
+                if (in_array('common', $priceFilters, true)) {
+                    $commonBrickIds = DB::table('brick_calculations')
+                        ->select('brick_id', DB::raw('count(*) as frequency'))
+                        ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+                        ->whereNotNull('brick_id')
+                        ->groupBy('brick_id')
+                        ->orderByDesc('frequency')
+                        ->limit(5)
+                        ->pluck('brick_id');
+
+                    if ($commonBrickIds->isNotEmpty()) {
+                        $commonBricks = Brick::whereIn('id', $commonBrickIds)->get();
+                        $targetBricks = $targetBricks->merge($commonBricks);
+                    }
+                }
+
+                // 3. Filter Premium (Expensive) - Butuh bata mahal
                 if (in_array('expensive', $priceFilters, true)) {
                     $expensiveBricks = Brick::orderBy('price_per_piece', 'desc')->limit(5)->get();
                     $targetBricks = $targetBricks->merge($expensiveBricks);
                 }
 
-                // 3. Filter Lainnya (Cheapest, Medium, Common, atau Default jika kosong)
+                // 4. Filter Lainnya (Cheapest, Medium, atau Default jika kosong)
                 // Kita ambil bata Ekonomis sebagai base comparison
-                $otherFilters = array_diff($priceFilters, ['best', 'expensive', 'custom']);
+                $otherFilters = array_diff($priceFilters, ['best', 'common', 'expensive', 'custom']);
                 $needsDefaultPool = !empty($otherFilters) || $targetBricks->isEmpty();
 
                 if ($needsDefaultPool) {
                     $defaultBricks = Brick::orderBy('price_per_piece', 'asc')->limit(5)->get();
                     $targetBricks = $targetBricks->merge($defaultBricks);
+                }
+            }
+
+            // Ensure common bricks from history are included when Populer filter is selected
+            if (!$isBrickless && in_array('common', $priceFilters, true)) {
+                $commonBrickIds = DB::table('brick_calculations')
+                    ->select(
+                        'brick_id',
+                        'cement_id',
+                        'sand_id',
+                        'cat_id',
+                        'ceramic_id',
+                        'nat_id',
+                        DB::raw('count(*) as frequency')
+                    )
+                    ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+                    ->whereNotNull('brick_id')
+                    ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
+                    ->orderByDesc('frequency')
+                    ->limit(10)
+                    ->get()
+                    ->pluck('brick_id')
+                    ->unique()
+                    ->filter();
+
+                if ($commonBrickIds->isNotEmpty()) {
+                    $commonBricks = Brick::whereIn('id', $commonBrickIds)->get();
+                    $targetBricks = $targetBricks->merge($commonBricks);
                 }
             }
 
@@ -462,9 +513,18 @@ class MaterialCalculationController extends Controller
 
         $projects = [];
         foreach ($targetBricks as $brick) {
+            $combinations = $this->calculateCombinationsForBrick($brick, $request);
+
+            \Log::info('Project combinations for brick', [
+                'brick_id' => $brick->id,
+                'brick_brand' => $brick->brand,
+                'combination_labels' => array_keys($combinations),
+                'total_combinations' => count($combinations),
+            ]);
+
             $projects[] = [
                 'brick' => $brick,
-                'combinations' => $this->calculateCombinationsForBrick($brick, $request),
+                'combinations' => $combinations,
             ];
         }
 
@@ -475,7 +535,7 @@ class MaterialCalculationController extends Controller
             'projects' => $projects,
             'requestData' => array_merge(
                 $request->except(['brick_ids', 'brick_id']),
-                ['work_type' => $request->work_type] // Explicitly include work_type from merged request
+                ['work_type' => $request->work_type], // Explicitly include work_type from merged request
             ),
             'formulaName' => $formulaName,
             'isBrickless' => $isBrickless,
@@ -575,7 +635,7 @@ class MaterialCalculationController extends Controller
             'isLazyLoad' => true, // Enable lazy loading
             'requestData' => array_merge(
                 $request->except(['ceramic_types', 'ceramic_sizes']),
-                ['work_type' => $request->work_type] // Explicitly include work_type from merged request
+                ['work_type' => $request->work_type], // Explicitly include work_type from merged request
             ),
             'formulaName' => $formulaName,
             'totalCeramics' => $targetCeramics->count(),
@@ -634,6 +694,9 @@ class MaterialCalculationController extends Controller
 
     protected function getCalculationCachePayload(string $cacheKey): ?array
     {
+        if (app()->environment('local') && config('app.debug')) {
+            return null;
+        }
         $cached = Cache::get($cacheKey);
         return is_array($cached) ? $cached : null;
     }
@@ -721,7 +784,7 @@ class MaterialCalculationController extends Controller
                     'combinations' => $combinations,
                     'requestData' => array_merge(
                         $request->except(['ceramic_id', '_token']),
-                        ['work_type' => $request->work_type] // Explicitly include work_type
+                        ['work_type' => $request->work_type], // Explicitly include work_type
                     ),
                     'isGroupMode' => $isGroupMode,
                 ])->render(),
@@ -1166,6 +1229,13 @@ class MaterialCalculationController extends Controller
         $allCombinations = [];
         foreach ($filtersToCalculate as $filter) {
             $combinations = $this->getCombinationsByFilter($brick, $request, $filter);
+
+            \Log::info("Filter '{$filter}' returned combinations", [
+                'filter' => $filter,
+                'brick_id' => $brick->id,
+                'count' => count($combinations),
+            ]);
+
             foreach ($combinations as $index => $combo) {
                 $number = $index + 1;
                 $filterLabel = $this->getFilterLabel($filter);
@@ -1181,6 +1251,12 @@ class MaterialCalculationController extends Controller
             }
         }
 
+        \Log::info('All combinations before deduplication', [
+            'brick_id' => $brick->id,
+            'total_count' => count($allCombinations),
+            'filter_types' => array_count_values(array_column($allCombinations, 'filter_type')),
+        ]);
+
         $uniqueCombos = $this->detectAndMergeDuplicates($allCombinations);
 
         $priorityLabels = [];
@@ -1194,7 +1270,17 @@ class MaterialCalculationController extends Controller
         $finalResults = [];
         foreach ($uniqueCombos as $combo) {
             $sources = $combo['source_filters'] ?? [$combo['filter_type']];
-            if (count(array_intersect($sources, $requestedFilters)) > 0) {
+            $intersect = array_intersect($sources, $requestedFilters);
+
+            \Log::info('Checking combo for final results', [
+                'filter_label' => $combo['filter_label'] ?? 'unknown',
+                'sources' => $sources,
+                'requested_filters' => $requestedFilters,
+                'intersect' => $intersect,
+                'has_match' => count($intersect) > 0,
+            ]);
+
+            if (count($intersect) > 0) {
                 $labels = $combo['all_labels'] ?? [$combo['filter_label']];
                 if (!empty($priorityLabels)) {
                     usort($labels, function ($a, $b) use ($priorityLabels) {
@@ -1220,14 +1306,23 @@ class MaterialCalculationController extends Controller
                 $finalResults[$label] = [$combo];
             }
         }
+
+        \Log::info('Final results after filtering', [
+            'brick_id' => $brick->id,
+            'requested_filters' => $requestedFilters,
+            'unique_combos_count' => count($uniqueCombos),
+            'final_results_count' => count($finalResults),
+            'final_labels' => array_keys($finalResults),
+        ]);
+
         return $finalResults;
     }
 
     protected function getCombinationsByFilter($brick, $request, $filter, $fixedCeramic = null)
     {
-        if ($filter !== 'best' && !$this->isBrickSelectedForRequest($brick, $request)) {
-            return [];
-        }
+        // Remove the brick selection check - if brick is passed to this method, it means it should be calculated
+        // The brick selection logic is already handled in generateCombinations() where bricks are chosen
+        // based on filters (best, expensive, etc.) or user selection
 
         switch ($filter) {
             case 'best':
@@ -1349,6 +1444,13 @@ class MaterialCalculationController extends Controller
         $isBrickless = !in_array('brick', $requiredMaterials, true);
         $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
 
+        \Log::info('getCommonCombinations called', [
+            'work_type' => $workType,
+            'brick_id' => $brick->id ?? null,
+            'is_brickless' => $isBrickless,
+            'is_ceramic_work' => $isCeramicWork,
+        ]);
+
         if ($isCeramicWork) {
             // For ceramic work types, get most frequently used combinations from history
             $query = DB::table('brick_calculations')
@@ -1376,7 +1478,17 @@ class MaterialCalculationController extends Controller
                 ->limit(3)
                 ->get();
 
+            \Log::info('Ceramic common combinations query result', [
+                'work_type' => $workType,
+                'fixed_ceramic_id' => $fixedCeramic->id ?? null,
+                'found_count' => $frequencyCounts->count(),
+            ]);
+
             if ($frequencyCounts->isEmpty()) {
+                \Log::warning('No common combinations found for ceramic work type', [
+                    'work_type' => $workType,
+                    'fixed_ceramic' => $fixedCeramic ? $fixedCeramic->id : 'none',
+                ]);
                 return [];
             }
 
@@ -1440,6 +1552,12 @@ class MaterialCalculationController extends Controller
                     continue;
                 }
             }
+
+            \Log::info('Ceramic common combinations result', [
+                'work_type' => $workType,
+                'found_count' => count($results),
+            ]);
+
             return $results;
         }
 
@@ -1456,7 +1574,15 @@ class MaterialCalculationController extends Controller
                 ->limit(3)
                 ->get();
 
+            \Log::info('Cat common combinations query result', [
+                'work_type' => $workType,
+                'found_count' => $commonCombos->count(),
+            ]);
+
             if ($commonCombos->isEmpty()) {
+                \Log::warning('No common combinations found for cat work type', [
+                    'work_type' => $workType,
+                ]);
                 return [];
             }
 
@@ -1506,7 +1632,15 @@ class MaterialCalculationController extends Controller
                 ->limit(3)
                 ->get();
 
+            \Log::info('Brickless common combinations query result', [
+                'work_type' => $workType,
+                'found_count' => $commonCombos->count(),
+            ]);
+
             if ($commonCombos->isEmpty()) {
+                \Log::warning('No common combinations found for brickless work type', [
+                    'work_type' => $workType,
+                ]);
                 return [];
             }
 
@@ -1551,7 +1685,7 @@ class MaterialCalculationController extends Controller
                         'sand' => $sand,
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
-                        'filter_type' => 'Populer',
+                        'filter_type' => 'common',
                         'frequency' => $combo->frequency,
                     ];
                 } catch (\Exception $e) {
@@ -1572,8 +1706,19 @@ class MaterialCalculationController extends Controller
             ->limit(3)
             ->get();
 
+        \Log::info('Common combinations query result (brick-based)', [
+            'work_type' => $workType,
+            'brick_id' => $brick->id,
+            'found_count' => $commonCombos->count(),
+            'combinations' => $commonCombos->toArray(),
+        ]);
+
         if ($commonCombos->isEmpty()) {
-            // No historical data for this specific work_type - return empty
+            // No historical data for this brick/work_type - return empty
+            \Log::info('No common combos for specific brick', [
+                'work_type' => $workType,
+                'brick_id' => $brick->id,
+            ]);
             return [];
         }
 
@@ -2280,6 +2425,9 @@ class MaterialCalculationController extends Controller
 
     public function calculate(Request $request)
     {
+        // Increase execution time for complex calculations
+        set_time_limit(300); // 5 minutes
+
         $request->validate([
             'work_type' => 'nullable|string',
             'wall_length' => 'required|numeric|min:0.01',

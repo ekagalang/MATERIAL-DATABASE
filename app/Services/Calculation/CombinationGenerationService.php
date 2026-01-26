@@ -490,106 +490,255 @@ class CombinationGenerationService
         $workType = $request['work_type'] ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
+        $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
+        $isCatWork = in_array('cat', $requiredMaterials, true);
 
-        if ($isBrickless) {
-            if ($workType === 'grout_tile') {
-                $materialLimit = $this->resolveMaterialLimit($workType);
-                $ceramics = $this->resolveCeramicsForCalculation(
-                    $request,
-                    $workType,
-                    'price_per_package',
-                    'asc',
-                    $materialLimit,
-                    3,
-                );
-                $nats = Cement::where('type', 'Nat')->orderBy('package_price')->skip(2)->limit($materialLimit)->get();
+        $paramsBase = $request;
+        unset($paramsBase['_token'], $paramsBase['price_filters'], $paramsBase['brick_ids'], $paramsBase['brick_id']);
+        $paramsBase['brick_id'] = $brick->id;
 
-                if ($ceramics->isEmpty() && empty($request['ceramic_id'])) {
-                    $ceramics = $this->resolveCeramicsForCalculation(
-                        $request,
-                        $workType,
-                        'price_per_package',
-                        'asc',
-                        $materialLimit,
-                    );
-                }
-                if ($nats->isEmpty()) {
-                    $nats = $this->resolveNatsByPrice('asc', $materialLimit);
-                }
+        if ($isCeramicWork) {
+            $query = DB::table('brick_calculations')
+                ->select('ceramic_id', 'nat_id', 'cement_id', 'sand_id', DB::raw('count(*) as frequency'))
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+                ->whereNotNull('ceramic_id')
+                ->whereNotNull('nat_id');
 
-                $results = $this->calculateCombinationsFromMaterials(
-                    $brick,
-                    $request,
-                    collect(),
-                    collect(),
-                    collect(),
-                    $ceramics,
-                    $nats,
-                    'Populer',
-                    3,
-                );
-
-                return array_map(function ($combo) {
-                    $combo['source_filter'] = 'common';
-                    return $combo;
-                }, $results);
+            if (in_array('cement', $requiredMaterials, true)) {
+                $query->whereNotNull('cement_id');
+            }
+            if (in_array('sand', $requiredMaterials, true)) {
+                $query->whereNotNull('sand_id');
+            }
+            if (!empty($request['ceramic_id'])) {
+                $query->where('ceramic_id', $request['ceramic_id']);
             }
 
-            $cheapest = $this->getCheapestCombinations($brick, $request);
-            return array_map(function ($combo) {
-                $combo['source_filter'] = 'common';
-                return $combo;
-            }, array_slice($cheapest, 0, 3));
+            $frequencyCounts = $query
+                ->groupBy('ceramic_id', 'nat_id', 'cement_id', 'sand_id')
+                ->orderByDesc('frequency')
+                ->limit(3)
+                ->get();
+
+            if ($frequencyCounts->isEmpty()) {
+                return [];
+            }
+
+            $results = [];
+            foreach ($frequencyCounts as $combo) {
+                $ceramic = Ceramic::find($combo->ceramic_id);
+                $nat = Cement::find($combo->nat_id);
+                $cement = $combo->cement_id ? Cement::find($combo->cement_id) : null;
+                $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
+
+                if (!$ceramic || !$nat) {
+                    continue;
+                }
+                if (in_array('cement', $requiredMaterials, true) && !$cement) {
+                    continue;
+                }
+                if ($combo->cement_id && !$cement) {
+                    continue;
+                }
+                if (in_array('sand', $requiredMaterials, true) && !$sand) {
+                    continue;
+                }
+                if ($combo->sand_id && !$sand) {
+                    continue;
+                }
+
+                $params = array_merge($paramsBase, [
+                    'ceramic_id' => $ceramic->id,
+                    'nat_id' => $nat->id,
+                    'cement_id' => $cement ? $cement->id : null,
+                    'sand_id' => $sand ? $sand->id : null,
+                ]);
+
+                try {
+                    $formula = FormulaRegistry::instance($workType);
+                    if (!$formula) {
+                        continue;
+                    }
+                    $trace = $formula->trace($params);
+                    $result = $trace['final_result'] ?? $formula->calculate($params);
+
+                    $results[] = [
+                        'ceramic' => $ceramic,
+                        'nat' => $nat,
+                        'cement' => $cement,
+                        'sand' => $sand,
+                        'result' => $result,
+                        'total_cost' => $result['grand_total'],
+                        'filter_type' => 'common',
+                        'frequency' => $combo->frequency,
+                    ];
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+
+            return $results;
         }
 
-        // Query most frequent combinations from brick_calculations table
+        if ($isCatWork) {
+            $commonCombos = DB::table('brick_calculations')
+                ->select('cat_id', DB::raw('count(*) as frequency'))
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+                ->whereNotNull('cat_id')
+                ->groupBy('cat_id')
+                ->orderByDesc('frequency')
+                ->limit(3)
+                ->get();
+
+            if ($commonCombos->isEmpty()) {
+                return [];
+            }
+
+            $results = [];
+            foreach ($commonCombos as $combo) {
+                $cat = Cat::find($combo->cat_id);
+                if (!$cat) {
+                    continue;
+                }
+
+                $params = array_merge($paramsBase, ['cat_id' => $cat->id]);
+                try {
+                    $formula = FormulaRegistry::instance($workType);
+                    if (!$formula) {
+                        continue;
+                    }
+                    $trace = $formula->trace($params);
+                    $result = $trace['final_result'] ?? $formula->calculate($params);
+
+                    $results[] = [
+                        'cat' => $cat,
+                        'result' => $result,
+                        'total_cost' => $result['grand_total'],
+                        'filter_type' => 'common',
+                        'frequency' => $combo->frequency,
+                    ];
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+
+            return $results;
+        }
+
+        if ($isBrickless) {
+            $commonCombos = DB::table('brick_calculations')
+                ->select('cement_id', 'sand_id', DB::raw('count(*) as frequency'))
+                ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+                ->whereNotNull('cement_id')
+                ->groupBy('cement_id', 'sand_id')
+                ->orderByDesc('frequency')
+                ->limit(3)
+                ->get();
+
+            if ($commonCombos->isEmpty()) {
+                return [];
+            }
+
+            $results = [];
+            foreach ($commonCombos as $combo) {
+                $cement = Cement::find($combo->cement_id);
+                $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
+
+                if (!$cement) {
+                    continue;
+                }
+                if (in_array('sand', $requiredMaterials, true) && !$sand) {
+                    continue;
+                }
+                if ($combo->sand_id && !$sand) {
+                    continue;
+                }
+
+                $params = array_merge($paramsBase, [
+                    'cement_id' => $cement->id,
+                    'sand_id' => $sand ? $sand->id : null,
+                ]);
+
+                try {
+                    $formula = FormulaRegistry::instance($workType);
+                    if (!$formula) {
+                        continue;
+                    }
+                    $trace = $formula->trace($params);
+                    $result = $trace['final_result'] ?? $formula->calculate($params);
+
+                    $results[] = [
+                        'cement' => $cement,
+                        'sand' => $sand,
+                        'result' => $result,
+                        'total_cost' => $result['grand_total'],
+                        'filter_type' => 'common',
+                        'frequency' => $combo->frequency,
+                    ];
+                } catch (\Exception $e) {
+                    continue;
+                }
+            }
+
+            return $results;
+        }
+
         $commonCombos = DB::table('brick_calculations')
             ->select('cement_id', 'sand_id', DB::raw('count(*) as frequency'))
             ->where('brick_id', $brick->id)
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+            ->whereNotNull('cement_id')
+            ->whereNotNull('sand_id')
             ->groupBy('cement_id', 'sand_id')
             ->orderByDesc('frequency')
             ->limit(3)
             ->get();
 
         if ($commonCombos->isEmpty()) {
-            // Fallback to cheapest if no history
-            $cheapest = $this->getCheapestCombinations($brick, $request);
-            return array_map(function ($combo) {
-                $combo['source_filter'] = 'cheapest';
-                return $combo;
-            }, $cheapest);
+            return [];
         }
 
         $results = [];
         foreach ($commonCombos as $combo) {
-            $cement = $this->repository->findCement($combo->cement_id);
-            $sand = $this->repository->findSand($combo->sand_id);
+            $cement = Cement::find($combo->cement_id);
+            $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
-            if (!$cement || !$sand) {
+            if (!$cement) {
+                continue;
+            }
+            if (in_array('sand', $requiredMaterials, true) && !$sand) {
+                continue;
+            }
+            if ($combo->sand_id && !$sand) {
                 continue;
             }
 
-            // Create Eloquent Collections instead of Support Collections
-            $cements = Cement::whereIn('id', [$cement->id])->get();
-            $sands = Sand::whereIn('id', [$sand->id])->get();
-            $calculated = $this->calculateCombinationsFromMaterials(
-                $brick,
-                $request,
-                $cements,
-                $sands,
-                collect(),
-                collect(),
-                collect(),
-                'Populer',
-                1,
-            );
+            $params = array_merge($paramsBase, [
+                'cement_id' => $cement->id,
+                'sand_id' => $sand ? $sand->id : null,
+            ]);
 
-            if (!empty($calculated)) {
-                $results[] = $calculated[0];
+            try {
+                $formula = FormulaRegistry::instance($workType);
+                if (!$formula) {
+                    continue;
+                }
+                $trace = $formula->trace($params);
+                $result = $trace['final_result'] ?? $formula->calculate($params);
+
+                $results[] = [
+                    'cement' => $cement,
+                    'sand' => $sand,
+                    'result' => $result,
+                    'total_cost' => $result['grand_total'],
+                    'filter_type' => 'common',
+                    'frequency' => $combo->frequency,
+                ];
+            } catch (\Exception $e) {
+                continue;
             }
         }
 
-        // Return whatever results we have (1, 2, or 3 combinations)
         return $results;
     }
 

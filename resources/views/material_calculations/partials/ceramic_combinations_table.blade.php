@@ -972,12 +972,22 @@
                                 $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                 $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                 $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
-                                // Rumus baru: harga per kemasan × qty per pekerjaan
-                                // Normalize input DAN hasil agar tidak ada floating-point error
-                                $hargaKomparasi = \App\Helpers\NumberHelper::normalize(
-                                    \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0)
-                                    * \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0)
-                                );
+                                // Rumus baru: (Harga beli / ukuran per kemasan) * Qty per pekerjaan
+                                $conversionFactor = 1;
+                                if ($matKey === 'sand') {
+                                     $conversionFactor = $mat['detail_value'] ?? 1;
+                                } elseif ($matKey === 'ceramic') {
+                                     $conversionFactor = $mat['object']->pieces_per_package ?? 1;
+                                }
+                                
+                                $normalizedPrice = \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0);
+                                $normalizedSize = \App\Helpers\NumberHelper::normalize($conversionFactor);
+                                $normalizedQty = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
+                                
+                                $unitPrice = ($normalizedSize > 0) ? ($normalizedPrice / $normalizedSize) : 0;
+                                $unitPrice = \App\Helpers\NumberHelper::normalize($unitPrice);
+                                
+                                $hargaKomparasi = \App\Helpers\NumberHelper::normalize($unitPrice * $normalizedQty);
 
                                 $qtyTitleParts = [];
                                 if (!empty($mat['qty_debug'])) {
@@ -1042,11 +1052,9 @@
                                     <td class="text-center text-muted">-</td>
                                 @else
                                     @php
-                                        // Hitung harga komparasi: harga per kemasan × qty per pekerjaan
-                                        $normalizedQtyForDebug = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
-                                        $normalizedPackagePriceForDebug = \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0);
+                                        // Hitung harga komparasi: (harga / ukuran) * qty
                                         $hargaKomparasiDebugParts = [];
-                                        $hargaKomparasiDebugParts[] = "Rumus: " . $formatNum($normalizedQtyForDebug) . " " . $mat['unit'] . " x Rp " . $formatMoney($normalizedPackagePriceForDebug) . " / " . $mat['package_unit'] . " = Rp " . $formatMoney($hargaKomparasi);
+                                        $hargaKomparasiDebugParts[] = "Rumus: (Rp " . $formatMoney($normalizedPrice) . " / " . $formatNum($normalizedSize) . ") x " . $formatNum($normalizedQty) . " = Rp " . $formatMoney($hargaKomparasi);
                                         $hargaKomparasiDebug = implode(' | ', $hargaKomparasiDebugParts);
                                     @endphp
                                     <td class="text-nowrap" title="{{ $hargaKomparasiDebug }}">
@@ -1064,13 +1072,25 @@
                                         $calculatedGrandTotal = 0;
                                         foreach($visibleMaterials as $debugMatKey => $debugMat) {
                                             if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
-                                                // Rumus baru: harga per kemasan × qty per pekerjaan
-                                                // Normalize input DAN hasil agar tidak ada floating-point error
-                                                $normalizedPackagePrice = \App\Helpers\NumberHelper::normalize($debugMat['package_price'] ?? 0);
-                                                $normalizedQty = \App\Helpers\NumberHelper::normalize($debugMat['qty'] ?? 0);
-                                                $calcPrice = \App\Helpers\NumberHelper::normalize($normalizedPackagePrice * $normalizedQty);
+                                                // Rumus baru: (Harga beli / ukuran per kemasan) * Qty per pekerjaan
+                                                $debugConversionFactor = 1;
+                                                if ($debugMatKey === 'sand') {
+                                                     $debugConversionFactor = $debugMat['detail_value'] ?? 1;
+                                                } elseif ($debugMatKey === 'ceramic') {
+                                                     $debugConversionFactor = $debugMat['object']->pieces_per_package ?? 1;
+                                                }
+                                                
+                                                $debugNormalizedPrice = \App\Helpers\NumberHelper::normalize($debugMat['package_price'] ?? 0);
+                                                $debugNormalizedSize = \App\Helpers\NumberHelper::normalize($debugConversionFactor);
+                                                $debugNormalizedQty = \App\Helpers\NumberHelper::normalize($debugMat['qty'] ?? 0);
+                                                
+                                                $debugUnitPrice = ($debugNormalizedSize > 0) ? ($debugNormalizedPrice / $debugNormalizedSize) : 0;
+                                                $debugUnitPrice = \App\Helpers\NumberHelper::normalize($debugUnitPrice);
+                                                
+                                                $calcPrice = \App\Helpers\NumberHelper::normalize($debugUnitPrice * $debugNormalizedQty);
                                                 $calculatedGrandTotal += $calcPrice;
-                                                $grandTotalParts[] = $debugMat['name'] . " (" . $formatNum($debugMat['qty']) . " x Rp " . $formatMoney($debugMat['package_price']) . "): Rp " . $formatMoney($calcPrice);
+                                                
+                                                $grandTotalParts[] = $debugMat['name'] . " ((Rp " . $formatMoney($debugNormalizedPrice) . " / " . $formatNum($debugNormalizedSize) . ") x " . $formatNum($debugNormalizedQty) . "): Rp " . $formatMoney($calcPrice);
                                             }
                                         }
                                         $grandTotalValue = \App\Helpers\NumberHelper::normalize($calculatedGrandTotal);
@@ -1108,7 +1128,8 @@
                                         // Normalize qty untuk konsistensi
                                         $normalizedQtyValue = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
                                         // Gunakan harga komparasi yang sudah dihitung (sesuai formula)
-                                        $totalPriceValue = $hargaKomparasi;
+                                        // Normalize ke 0 decimal agar perhitungan backward (total / qty) sesuai dengan angka yang ditampilkan
+                                        $totalPriceValue = \App\Helpers\NumberHelper::normalize($hargaKomparasi, 0);
 
                                         // Normalisasi nilai agar sesuai dengan yang ditampilkan (mengikuti aturan NumberHelper)
                                         // Ini memastikan perhitungan menggunakan nilai yang sama dengan yang user lihat
@@ -1221,8 +1242,19 @@
             </p>
         </div>
     @else
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i> Tidak ada kombinasi tersedia untuk keramik ini.
+        <div class="alert alert-warning border-warning">
+            <div class="d-flex gap-3">
+                <i class="bi bi-exclamation-triangle fs-4 text-warning"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Tidak ada kombinasi tersedia</h6>
+                    <p class="mb-0 small">Meskipun data Keramik tersedia, perhitungan memerlukan data material pendukung lengkap. Pastikan Anda telah menginput data berikut di database:</p>
+                    <ul class="mb-0 small mt-1">
+                        <li><strong>Semen (Tipe Nat):</strong> Di menu Semen, pastikan ada minimal satu data dengan Tipe = "Nat".</li>
+                        <li><strong>Semen (Biasa):</strong> Semen untuk adukan perekat.</li>
+                        <li><strong>Pasir:</strong> Pasir dengan data harga dan volume/kemasan yang lengkap.</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     @endif
 </div>
