@@ -887,24 +887,43 @@
             // Grand Total: Use combined palette
             $availableColors = array_merge($brickColors, $cementColors, $sandColors, $catColors, $ceramicColors, $natColors);
 
+            $signatureWorkType = $requestData['work_type'] ?? 'unknown';
+            $buildCombinationSignature = function ($row) use ($signatureWorkType) {
+                return implode('-', [
+                    $signatureWorkType,
+                    $row['brick_id'] ?? 0,
+                    $row['cement_id'] ?? 0,
+                    $row['sand_id'] ?? 0,
+                    $row['cat_id'] ?? 0,
+                    $row['ceramic_id'] ?? 0,
+                    $row['nat_id'] ?? 0,
+                ]);
+            };
+
             // Color map for Grand Total - only color if combination appears in multiple filter types
             $colorIndex = 0;
             $combinationColorMap = []; // Track colors by combination signature
             $signatureFilterTypes = []; // Track which filter types have each signature
 
-            // First pass: track which filter types have each signature
-            foreach ($globalRekapData as $key1 => $data1) {
+            $displayedRekapKeys = [];
+            foreach ($rekapCategories as $filterType) {
+                foreach ($getDisplayKeys($filterType) as $key) {
+                    if (isset($globalRekapData[$key])) {
+                        $displayedRekapKeys[] = $key;
+                    }
+                }
+            }
+
+            // First pass: track which filter types have each signature (only displayed rows)
+            foreach ($displayedRekapKeys as $key1) {
+                $data1 = $globalRekapData[$key1] ?? null;
+                if (!$data1) {
+                    continue;
+                }
                 // Extract filter type from key (e.g., "Rekomendasi 1" -> "Rekomendasi")
                 $filterType = preg_replace('/\s+\d+$/', '', $key1);
 
-                // Generate safe signature
-                if (isset($data1['cat_id'])) {
-                    $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
-                } elseif (isset($data1['ceramic_id'])) {
-                     $signature = ($data1['ceramic_id'] ?? '0') . '-' . ($data1['nat_id'] ?? '0') . '-' . ($data1['cement_id'] ?? '0') . '-' . ($data1['sand_id'] ?? '0');
-                } else {
-                    $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
-                }
+                $signature = $buildCombinationSignature($data1);
 
                 if (!isset($signatureFilterTypes[$signature])) {
                     $signatureFilterTypes[$signature] = [];
@@ -916,16 +935,14 @@
             }
 
             // Second pass: assign colors only if combination appears in multiple filter types
-            foreach ($globalRekapData as $key1 => $data1) {
+            foreach ($displayedRekapKeys as $key1) {
+                $data1 = $globalRekapData[$key1] ?? null;
+                if (!$data1) {
+                    continue;
+                }
                 if (!isset($globalColorMap[$key1])) {
-                    // Create unique signature for this combination
-                    if (isset($data1['cat_id'])) {
-                        $signature = $data1['brick_id'] . '-cat-' . $data1['cat_id'];
-                    } elseif (isset($data1['ceramic_id'])) {
-                         $signature = ($data1['ceramic_id'] ?? '0') . '-' . ($data1['nat_id'] ?? '0') . '-' . ($data1['cement_id'] ?? '0') . '-' . ($data1['sand_id'] ?? '0');
-                    } else {
-                        $signature = $data1['brick_id'] . '-' . ($data1['cement_id'] ?? 0) . '-' . ($data1['sand_id'] ?? 0);
-                    }
+                    // Create unique signature for this combination (all materials + work type)
+                    $signature = $buildCombinationSignature($data1);
 
                     // Only assign color if this combination appears in more than one filter type
                     if (count($signatureFilterTypes[$signature]) > 1) {
@@ -1398,6 +1415,7 @@
                                     @php
                                         $rank = $displayIndex + 1;
                                         $bgColor = $globalColorMap[$key] ?? '#ffffff';
+                                        $grandTotalBg = ($bgColor && strtolower($bgColor) !== '#ffffff') ? $bgColor : null;
                                         $brickBgColor = $brickColorMap[$key] ?? '#ffffff';
                                         $cementBgColor = $cementColorMap[$key] ?? '#ffffff';
                                         $sandBgColor = $sandColorMap[$key] ?? '#ffffff';
@@ -1417,7 +1435,7 @@
                                         </td>
 
                                         {{-- Column 2: Grand Total --}}
-                                        <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $bgColor }}; padding: 4px 8px; vertical-align: middle; width: 120px; min-width: 120px;">
+                                        <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); {{ $grandTotalBg ? 'background: ' . $grandTotalBg . ';' : '' }} padding: 4px 8px; vertical-align: middle; width: 120px; min-width: 120px;">
                                             @if(isset($globalRekapData[$key]))
                                                 <div class="d-flex justify-content-between w-100">
                                                     <span>Rp</span>
@@ -3388,12 +3406,16 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const sessionData = @json(request()->except(['_token', 'confirm_save']));
+    const sessionData = @json($requestData ?? request()->except(['_token', 'confirm_save']));
     try {
         localStorage.setItem('materialCalculationSession', JSON.stringify({
             updatedAt: Date.now(),
             data: sessionData,
             autoSubmit: true,
+        }));
+        localStorage.setItem('materialCalculationPreview', JSON.stringify({
+            updatedAt: Date.now(),
+            url: window.location.href,
         }));
     } catch (error) {
         console.warn('Failed to store calculation session', error);

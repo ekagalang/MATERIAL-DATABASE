@@ -240,8 +240,8 @@ class GroutTileFormula implements FormulaInterface
         $kubikNatPekerjaan = $n($kubikNatPerBungkus * $kebutuhanBungkusNat);
         $kubikAirNatPekerjaan = $n($kubikAirNatPerBungkus * $kebutuhanBungkusNat);
 
-        // Kebutuhan liter air per pekerjaan = Liter ratio air dari nat (33%)
-        $literAirNatPekerjaan = $n($literAirNatPerBungkus * $kebutuhanBungkusNat);
+        // Kebutuhan liter air per pekerjaan = Kubik Air Normalized * 1000
+        $literAirNatPekerjaan = $kubikAirNatPekerjaan * 1000;
 
         $volumeAdukanNatPekerjaan = $n($volumeAdukanNatPerBungkus * $kebutuhanBungkusNat);
 

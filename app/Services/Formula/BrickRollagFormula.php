@@ -301,8 +301,8 @@ class BrickRollagFormula implements FormulaInterface
         $sakPasirPekerjaan = $n($sakPasir1M3 * $volumeAdukanPekerjaan);
         $kubikPasirPekerjaan = $n($kubikPasir1M3 * $volumeAdukanPekerjaan);
 
-        $literAirPekerjaan = $n($literAir1M3 * $volumeAdukanPekerjaan);
         $kubikAirPekerjaan = $n($kubikAir1M3 * $volumeAdukanPekerjaan);
+        $literAirPekerjaan = $kubikAirPekerjaan * 1000;
 
         $trace['steps'][] = [
             'step' => 12,

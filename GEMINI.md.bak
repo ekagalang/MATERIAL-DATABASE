@@ -49,7 +49,7 @@ The application follows a structured architecture to separate concerns:
 
 ### Setup & Running
 *   **Initial Setup:** `composer run setup` (Installs deps, migrates, builds assets).
-*   **Start Dev Server:** `composer run dev` (Starts PHP server, Queue listener, and Vite concurrently).
+*   **Start Dev Server:** `composer run dev` (Starts PHP server, Queue listener, and Vite).
 
 ### Testing
 *   **Run All Tests:** `composer test` or `php artisan test`
@@ -63,7 +63,7 @@ The application follows a structured architecture to separate concerns:
 
 ### Material Type Configuration System
 A major planned feature is the "Material Type Config System" to map specific material types (e.g., "PCC Cement") to specific work items (e.g., "Brick Wall").
-*   **Status:** Planned/In-Progress.
+*   **Status:** Planned/In-Progress (Refer to `TODO_MATERIAL_TYPE_CONFIG.txt`).
 *   **Goal:** Allow admin to restrict which material types appear for specific calculations.
 *   **Logic:**
     1.  New types auto-detected -> Global (allowed everywhere).

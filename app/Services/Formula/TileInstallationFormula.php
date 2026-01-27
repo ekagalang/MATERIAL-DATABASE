@@ -248,8 +248,8 @@ class TileInstallationFormula implements FormulaInterface
         $kebutuhanPasirM3Pekerjaan = $n($kebutuhanPasirPerM2M3 * $luasBidang);
         $kebutuhanPasirSakPekerjaan = $n($kebutuhanPasirPerM2Sak * $luasBidang);
 
-        $kebutuhanAirLiterPekerjaan = $n($kebutuhanAirPerM2Liter * $luasBidang);
         $kebutuhanAirM3Pekerjaan = $n($kebutuhanAirPerM2M3 * $luasBidang);
+        $kebutuhanAirLiterPekerjaan = $kebutuhanAirM3Pekerjaan * 1000;
 
         $volumeAdukanPekerjaan = $n($kebutuhanSemenM3Pekerjaan + $kebutuhanPasirM3Pekerjaan + $kebutuhanAirM3Pekerjaan);
 
@@ -418,8 +418,8 @@ class TileInstallationFormula implements FormulaInterface
         $kubikNatPekerjaan = $n($kubikNatPerBungkus * $kebutuhanBungkusNat);
         $kubikAirNatPekerjaan = $n($kubikAirNatPerBungkus * $kebutuhanBungkusNat);
 
-        // Kebutuhan liter air per pekerjaan = Liter ratio air dari nat (33%)
-        $literAirNatPekerjaan = $n($literAirNatPerBungkus * $kebutuhanBungkusNat);
+        // Kebutuhan liter air per pekerjaan = Kubik Air Normalized * 1000
+        $literAirNatPekerjaan = $kubikAirNatPekerjaan * 1000;
 
         $volumeAdukanNatPekerjaan = $n($volumeAdukanNatPerBungkus * $kebutuhanBungkusNat);
 

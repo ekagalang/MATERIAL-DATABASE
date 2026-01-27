@@ -123,7 +123,7 @@
                             </div>
 
                             <div class="dimension-item" id="mortarThicknessGroup">
-                                <label>Tebal Adukan</label>
+                                <label id="mortarThicknessLabel">Tebal Adukan</label>
                                 <div class="input-with-unit">
                                     <input type="number" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
                                         value="{{ request('mortar_thickness', 2) }}">
@@ -656,6 +656,7 @@
         const ceramicFilterSection = document.getElementById('ceramicFilterSection');
         const mortarThicknessInput = document.getElementById('mortarThickness');
         const mortarThicknessUnit = document.getElementById('mortarThicknessUnit');
+        const mortarThicknessLabel = document.getElementById('mortarThicknessLabel');
         const wallHeightDefaultDisplay = wallHeightGroup ? getComputedStyle(wallHeightGroup).display : 'flex';
 
         function formatFixedPlain(value, decimals = 2) {
@@ -745,11 +746,24 @@
             const layerCountUnit = document.getElementById('layerCountUnit');
             const layerCountInputWrapper = document.getElementById('layerCountInputWrapper');
             const isRollag = workTypeSelector && workTypeSelector.value === 'brick_rollag';
+            const isAciWall = workTypeSelector && workTypeSelector.value === 'skim_coating';
+            const isAciFloor = workTypeSelector && workTypeSelector.value === 'coating_floor';
+            const isAci = isAciWall || isAciFloor;
+            const nextMortarMode = isAci ? 'acian' : 'adukan';
+            const prevMortarMode = mortarThicknessInput ? (mortarThicknessInput.dataset.mode || 'adukan') : 'adukan';
+            const mortarModeChanged = prevMortarMode !== nextMortarMode;
 
             setWallHeightVisibility(!isRollag);
 
             if (wallHeightLabel) {
                 wallHeightLabel.textContent = 'Tinggi';
+            }
+
+            if (mortarThicknessLabel) {
+                mortarThicknessLabel.textContent = isAci ? 'Tebal Acian' : 'Tebal Adukan';
+            }
+            if (mortarThicknessInput) {
+                mortarThicknessInput.dataset.mode = nextMortarMode;
             }
 
             if (workTypeSelector && layerCountGroup && plasterSidesGroup && skimSidesGroup) {
@@ -760,6 +774,9 @@
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -781,6 +798,9 @@
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -795,6 +815,9 @@
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('mm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(3);
+                    }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -808,6 +831,10 @@
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        setMortarThicknessUnit('cm');
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
@@ -835,8 +862,14 @@
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     if (workTypeSelector.value === 'coating_floor') {
                         setMortarThicknessUnit('mm');
+                        if (mortarModeChanged && mortarThicknessInput) {
+                            mortarThicknessInput.value = formatThicknessValue(3);
+                        }
                     } else {
                         setMortarThicknessUnit('cm');
+                        if (mortarModeChanged && mortarThicknessInput) {
+                            mortarThicknessInput.value = formatThicknessValue(2);
+                        }
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
@@ -853,6 +886,9 @@
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'block';
@@ -866,6 +902,10 @@
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        setMortarThicknessUnit('cm');
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
 
                     // Show ceramic dimension inputs for grout_tile
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'flex';
@@ -886,6 +926,9 @@
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
                     // Restore label to "Tinggi" for other formulas
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';

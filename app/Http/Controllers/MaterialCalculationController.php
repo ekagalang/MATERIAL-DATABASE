@@ -703,7 +703,7 @@ class MaterialCalculationController extends Controller
 
     protected function storeCalculationCachePayload(string $cacheKey, array $payload): void
     {
-        Cache::put($cacheKey, $payload, now()->addMinutes(60));
+        Cache::put($cacheKey, $payload, now()->addMinutes(360));
         session()->put('material_calc_last_key', $cacheKey);
     }
 

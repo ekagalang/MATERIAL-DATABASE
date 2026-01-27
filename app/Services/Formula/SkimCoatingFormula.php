@@ -195,11 +195,11 @@ class SkimCoatingFormula implements FormulaInterface
         // Kubik semen pekerjaan
         $kubikSemenPekerjaan = $n($kubikSemenPer1M2 * $totalLuasAcian);
 
-        // Liter air pekerjaan
-        $literAirPekerjaan = $n($literAirPer1M2 * $totalLuasAcian);
-
         // Kubik air pekerjaan
         $kubikAirPekerjaan = $n($kubikAirPer1M2 * $totalLuasAcian);
+
+        // Liter air pekerjaan (derived from M3 normalized)
+        $literAirPekerjaan = $kubikAirPekerjaan * 1000;
 
         // Volume adukan pekerjaan
         $volumeAdukanPekerjaan = $n($kubikSemenPekerjaan + $kubikAirPekerjaan);

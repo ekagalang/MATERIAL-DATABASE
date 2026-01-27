@@ -216,11 +216,11 @@ class WallPlasteringFormula implements FormulaInterface
         // Kubik pasir pekerjaan
         $kubikPasirPekerjaan = $n($kubikPasirPer1M2 * $totalLuasPlesteran);
 
-        // Liter air pekerjaan
-        $literAirPekerjaan = $n($literAirPer1M2 * $totalLuasPlesteran);
-
         // Kubik air pekerjaan
         $kubikAirPekerjaan = $n($kubikAirPer1M2 * $totalLuasPlesteran);
+
+        // Liter air pekerjaan (derived from M3 normalized)
+        $literAirPekerjaan = $kubikAirPekerjaan * 1000;
 
         // Volume adukan pekerjaan
         $volumeAdukanPekerjaan = $n($kubikSemenPekerjaan + $kubikPasirPekerjaan + $kubikAirPekerjaan);

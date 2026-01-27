@@ -166,33 +166,79 @@
                     }
 
                     const calcLink = document.getElementById('calcNavLink');
-                    let calcResumeHref = null;
-                    const calcSessionRaw = localStorage.getItem('materialCalculationSession');
-                    let calcSession = null;
-                    try {
-                        calcSession = calcSessionRaw ? JSON.parse(calcSessionRaw) : null;
-                    } catch (error) {
-                        calcSession = null;
+                    let calcBaseHref = null;
+
+                    function getCalcSession() {
+                        const calcSessionRaw = localStorage.getItem('materialCalculationSession');
+                        if (!calcSessionRaw) return null;
+                        try {
+                            return JSON.parse(calcSessionRaw);
+                        } catch (error) {
+                            return null;
+                        }
                     }
-                    if (calcLink) {
-                        const baseHref = calcLink.getAttribute('href') || calcLink.href;
-                        if (calcSession && baseHref) {
-                            const resumeUrl = new URL(baseHref, window.location.origin);
+
+                    function getCalcPreviewInfo() {
+                        const raw = localStorage.getItem('materialCalculationPreview');
+                        if (!raw) return { status: 'none' };
+                        try {
+                            const parsed = JSON.parse(raw);
+                            if (!parsed || typeof parsed !== 'object') return { status: 'none' };
+                            const url = parsed.url ? String(parsed.url) : '';
+                            const updatedAt = Number(parsed.updatedAt || 0);
+                            if (!url || !updatedAt) return { status: 'none' };
+                            if (Date.now() - updatedAt > 60 * 60 * 1000) return { status: 'expired' };
+                            const parsedUrl = new URL(url, window.location.origin);
+                            if (!parsedUrl.pathname.includes('/material-calculations/preview/')) return { status: 'none' };
+                            return { status: 'valid', url: parsedUrl.toString() };
+                        } catch (error) {
+                            return { status: 'none' };
+                        }
+                    }
+
+                    function showCalcSessionExpiredAlert() {
+                        const message = 'Session perhitungan di server sudah habis. Silakan hitung ulang untuk hasil terbaru.';
+                        if (typeof window.showToast === 'function') {
+                            window.showToast(message, 'error');
+                        } else {
+                            alert(message);
+                        }
+                    }
+
+                    function buildCalcResumeHref() {
+                        if (!calcBaseHref) return null;
+                        const previewInfo = getCalcPreviewInfo();
+                        if (previewInfo.status === 'expired') {
+                            localStorage.removeItem('materialCalculationPreview');
+                            showCalcSessionExpiredAlert();
+                        }
+                        if (previewInfo.status === 'valid') {
+                            return previewInfo.url;
+                        }
+                        const resumeUrl = new URL(calcBaseHref, window.location.origin);
+                        const calcSession = getCalcSession();
+                        if (calcSession && typeof calcSession === 'object') {
                             resumeUrl.searchParams.set('resume', '1');
                             if (calcSession.autoSubmit) {
                                 resumeUrl.searchParams.set('auto_submit', '1');
                             } else {
                                 resumeUrl.searchParams.delete('auto_submit');
                             }
-                            calcResumeHref = resumeUrl.toString();
                         } else {
-                            calcResumeHref = baseHref;
+                            resumeUrl.searchParams.delete('resume');
+                            resumeUrl.searchParams.delete('auto_submit');
                         }
+                        return resumeUrl.toString();
+                    }
+
+                    if (calcLink) {
+                        const baseHref = calcLink.getAttribute('href') || calcLink.href;
                         if (baseHref) {
                             const cleanUrl = new URL(baseHref, window.location.origin);
                             cleanUrl.searchParams.delete('resume');
                             cleanUrl.searchParams.delete('auto_submit');
-                            calcLink.href = cleanUrl.toString();
+                            calcBaseHref = cleanUrl.toString();
+                            calcLink.href = calcBaseHref;
                         }
                     }
 
@@ -201,7 +247,7 @@
                         workItemToggle.addEventListener('click', function(e) {
                             if (e.detail === 0) return;
                             if (e.target && e.target.closest('.nav-caret')) return;
-                            window.location.href = calcResumeHref || calcLink.href;
+                            window.location.href = buildCalcResumeHref() || calcLink.href;
                         });
                     }
                 });
