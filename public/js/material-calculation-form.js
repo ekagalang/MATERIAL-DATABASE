@@ -11,6 +11,16 @@ function initMaterialCalculationForm(root, formData) {
     const cementsData = formData?.cements || [];
     const sandsData = formData?.sands || [];
     const catsData = formData?.cats || [];
+    const materialTypeLabels = {
+        brick: 'Bata',
+        cement: 'Semen',
+        sand: 'Pasir',
+        cat: 'Cat',
+        ceramic: 'Keramik',
+        nat: 'Nat'
+    };
+    const ceramicsData = formData?.ceramics || [];
+    const natsData = formData?.nats || [];
 
     function truncateNumber(value, decimals = 2) {
         const num = Number(value);
@@ -146,7 +156,10 @@ function initMaterialCalculationForm(root, formData) {
         }
 
         function normalize(text) {
-            return (text || '').toLowerCase();
+            return (text || '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/gi, '')
+                .trim();
         }
 
         function closeList() {
@@ -250,6 +263,231 @@ function initMaterialCalculationForm(root, formData) {
         }
     }
 
+    function setupMaterialTypeFilters() {
+        const groupEl = scope.querySelector('#materialTypeFilterGroup') || document.getElementById('materialTypeFilterGroup');
+        const workTypeSelector = scope.querySelector('#workTypeSelector') || document.getElementById('workTypeSelector');
+        const materialTypes = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        const optionsByType = {};
+
+        function normalize(text) {
+            return (text || '').toLowerCase();
+        }
+
+        function uniqueSorted(values) {
+            const set = new Set();
+            values.forEach(value => {
+                const cleaned = String(value || '').trim();
+                if (cleaned) {
+                    set.add(cleaned);
+                }
+            });
+            return Array.from(set).sort((a, b) => a.localeCompare(b, 'id-ID'));
+        }
+
+        function formatCeramicSize(length, width) {
+            const len = Number(length);
+            const wid = Number(width);
+            if (!isFinite(len) || !isFinite(wid) || len <= 0 || wid <= 0) {
+                return '';
+            }
+            const minVal = Math.min(len, wid);
+            const maxVal = Math.max(len, wid);
+            const minText = formatSmartDecimal(minVal);
+            const maxText = formatSmartDecimal(maxVal);
+            if (!minText || !maxText) return '';
+            return `${minText} x ${maxText}`;
+        }
+
+        function resolveMaterialTypeValue(type, item) {
+            if (!item) return '';
+            switch (type) {
+                case 'brick':
+                    return item.type || '';
+                case 'cement':
+                    return item.type || '';
+                case 'sand':
+                    return item.type || '';
+                case 'cat':
+                    return item.type || '';
+                case 'ceramic':
+                    return formatCeramicSize(item.dimension_length, item.dimension_width);
+                case 'nat':
+                    return item.type || '';
+                default:
+                    return '';
+            }
+        }
+
+        function buildOptions(type) {
+            let source = [];
+            if (type === 'brick') source = bricksData;
+            if (type === 'cement') source = cementsData;
+            if (type === 'sand') source = sandsData;
+            if (type === 'cat') source = catsData;
+            if (type === 'ceramic') source = ceramicsData;
+            if (type === 'nat') source = natsData;
+
+            const values = source.map(item => resolveMaterialTypeValue(type, item)).filter(Boolean);
+            return uniqueSorted(values);
+        }
+
+        materialTypes.forEach(type => {
+            optionsByType[type] = buildOptions(type);
+        });
+
+        function setupAutocomplete(type) {
+            const displayInput = scope.querySelector(`#materialTypeDisplay-${type}`) || document.getElementById(`materialTypeDisplay-${type}`);
+            const hiddenInput = scope.querySelector(`#materialTypeSelector-${type}`) || document.getElementById(`materialTypeSelector-${type}`);
+            const listEl = scope.querySelector(`#materialType-list-${type}`) || document.getElementById(`materialType-list-${type}`);
+            const containerEl = scope.querySelector(`.material-type-filter-item[data-material-type="${type}"]`);
+            const options = optionsByType[type] || [];
+
+            if (!displayInput || !hiddenInput || !listEl || !containerEl) return;
+
+            function closeList() {
+                listEl.style.display = 'none';
+            }
+
+            function renderList(items) {
+                listEl.innerHTML = '';
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'autocomplete-item';
+                emptyItem.textContent = '- Tidak Pilih -';
+                emptyItem.addEventListener('click', function() {
+                    applySelection('');
+                });
+                listEl.appendChild(emptyItem);
+                items.forEach(option => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = option;
+                    item.addEventListener('click', function() {
+                        applySelection(option);
+                    });
+                    listEl.appendChild(item);
+                });
+                listEl.style.display = 'block';
+            }
+
+            function filterOptions(term) {
+                const query = normalize(term);
+                if (!query) {
+                    return options;
+                }
+                return options.filter(option => normalize(option).includes(query));
+            }
+
+            function findExactMatch(term) {
+                const query = normalize(term);
+                if (!query) return null;
+                return options.find(option => normalize(option) === query) || null;
+            }
+
+            function applySelection(option) {
+                displayInput.value = option;
+                hiddenInput.value = option;
+                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                closeList();
+            }
+
+            displayInput.addEventListener('focus', function() {
+                if (displayInput.readOnly || displayInput.disabled) return;
+                renderList(filterOptions(''));
+            });
+
+            displayInput.addEventListener('input', function() {
+                if (displayInput.readOnly || displayInput.disabled) return;
+                const term = this.value || '';
+                renderList(filterOptions(term));
+
+                if (!term.trim()) {
+                    if (hiddenInput.value) {
+                        hiddenInput.value = '';
+                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    return;
+                }
+
+                const exactMatch = findExactMatch(term);
+                if (exactMatch) {
+                    hiddenInput.value = exactMatch;
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                } else if (hiddenInput.value) {
+                    hiddenInput.value = '';
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            displayInput.addEventListener('keydown', function(event) {
+                if (event.key !== 'Enter') return;
+                const exactMatch = findExactMatch(displayInput.value);
+                if (exactMatch) {
+                    applySelection(exactMatch);
+                    event.preventDefault();
+                }
+            });
+
+            displayInput.addEventListener('blur', function() {
+                setTimeout(closeList, 150);
+            });
+
+            document.addEventListener('click', function(event) {
+                if (event.target === displayInput || listEl.contains(event.target)) return;
+                closeList();
+            });
+
+            hiddenInput.addEventListener('change', function() {
+                if (displayInput.value !== hiddenInput.value) {
+                    displayInput.value = hiddenInput.value;
+                }
+            });
+
+            if (options.length === 0) {
+                displayInput.disabled = true;
+                displayInput.placeholder = `Tidak ada data ${materialTypeLabels[type] || type}`;
+            }
+        }
+
+        materialTypes.forEach(type => {
+            setupAutocomplete(type);
+        });
+
+        function updateVisibility() {
+            const workType = workTypeSelector ? workTypeSelector.value : '';
+            const formula = formulasData.find(entry => String(entry?.code) === String(workType));
+            const required = Array.isArray(formula?.materials) ? formula.materials : [];
+            const hasRequired = workType && required.length > 0;
+
+            if (groupEl) {
+                groupEl.style.display = hasRequired ? '' : 'none';
+            }
+
+            materialTypes.forEach(type => {
+                const itemEl = scope.querySelector(`.material-type-filter-item[data-material-type="${type}"]`);
+                const displayInput = scope.querySelector(`#materialTypeDisplay-${type}`) || document.getElementById(`materialTypeDisplay-${type}`);
+                const hiddenInput = scope.querySelector(`#materialTypeSelector-${type}`) || document.getElementById(`materialTypeSelector-${type}`);
+                let shouldShow = hasRequired && required.includes(type);
+                if (workType === 'grout_tile' && type === 'ceramic') {
+                    shouldShow = false;
+                }
+
+                if (itemEl) {
+                    itemEl.style.display = shouldShow ? '' : 'none';
+                }
+                if (!shouldShow && displayInput && hiddenInput) {
+                    displayInput.value = '';
+                    hiddenInput.value = '';
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        }
+
+        updateVisibility();
+        if (workTypeSelector) {
+            workTypeSelector.addEventListener('change', updateVisibility);
+        }
+    }
+
     // Work type selector change handler
     const workTypeSelector = scope.querySelector('#workTypeSelector') || document.getElementById('workTypeSelector');
     if (workTypeSelector) {
@@ -294,6 +532,7 @@ function initMaterialCalculationForm(root, formData) {
     }
 
     setupWorkTypeAutocomplete();
+    setupMaterialTypeFilters();
 
     // Auto-calculate area when length or height changes
     const wallLength = scope.querySelector('#wallLength') || document.getElementById('wallLength');

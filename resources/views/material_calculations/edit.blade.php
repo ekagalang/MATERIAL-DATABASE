@@ -159,9 +159,9 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium" {{ in_array('medium', $existingFilters) ? 'checked' : '' }}>
                                 <label for="filter_medium">
                                     <span class="tickbox-title">
-                                        <i class="bi bi-graph-up me-2 text-warning"></i>Moderat
+                                        <i class="bi bi-graph-up me-2 text-warning"></i>Average
                                     </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan harga menengah</span>
+                                    <span class="tickbox-desc">3 kombinasi dengan harga rata-rata</span>
                                 </label>
                             </div>
 
@@ -169,9 +169,9 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive" {{ in_array('expensive', $existingFilters) ? 'checked' : '' }}>
                                 <label for="filter_expensive">
                                     <span class="tickbox-title">
-                                        <i class="bi bi-gem me-2 text-danger"></i>Premium
+                                        <i class="bi bi-gem me-2 text-danger"></i>TerMAHAL
                                     </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan total harga Premium</span>
+                                    <span class="tickbox-desc">3 kombinasi dengan total harga TerMAHAL</span>
                                 </label>
                             </div>
 

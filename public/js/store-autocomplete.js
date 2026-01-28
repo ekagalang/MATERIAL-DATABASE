@@ -40,6 +40,7 @@
         let addressDebounceTimer = null;
         let isSelectingStore = false;
         let isSelectingAddress = false;
+        let suppressAddressSuggest = false;
 
         // ========== HELPER FUNCTIONS ==========
 
@@ -89,7 +90,9 @@
                 .then(addresses => {
                     if (addresses.length === 1) {
                         // Only 1 address - auto-fill
+                        suppressAddressSuggest = true;
                         addressInput.value = addresses[0];
+                        if (addressList) addressList.style.display = 'none';
                         // Trigger input event for any listeners
                         addressInput.dispatchEvent(new Event('input', { bubbles: true }));
                         // Resolve store_location_id
@@ -227,12 +230,19 @@
             // Address input events
             addressInput.addEventListener('focus', function() {
                 if (!isSelectingAddress) {
+                    if ((addressInput.value || '').trim().length > 0) {
+                        return;
+                    }
                     loadAddresses('');
                 }
             });
 
             addressInput.addEventListener('input', function() {
                 if (isSelectingAddress) return;
+                if (suppressAddressSuggest) {
+                    suppressAddressSuggest = false;
+                    return;
+                }
 
                 clearTimeout(addressDebounceTimer);
                 const term = this.value || '';

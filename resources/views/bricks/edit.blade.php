@@ -75,7 +75,7 @@
                     <div style="flex: 1;">
                         <div class="dimensi-wrapper" style="display: flex; align-items: flex-end; gap: 8px;">
                             <!-- Panjang -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Panjang</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="number"
@@ -99,7 +99,7 @@
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
 
                             <!-- Lebar -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Lebar</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="number"
@@ -123,7 +123,7 @@
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">×</span>
 
                             <!-- Tinggi -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Tinggi</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="number"
@@ -147,7 +147,7 @@
                             <span style="color: #cbd5e1; text-align: center; font-weight: 300; font-size: 16px; padding-bottom: 10px;">=</span>
 
                             <!-- Volume -->
-                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
+                            <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1.6;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
                                 <div class="dimensi-input-with-unit">
                                     <input type="text"

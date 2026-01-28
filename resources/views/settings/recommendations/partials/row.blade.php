@@ -44,6 +44,10 @@
         $formulaMaterials = $formula['materials'] ?? [];
     }
     $visibleMaterials = !empty($formulaMaterials) ? $formulaMaterials : array_keys($materialMeta);
+    $resolvedWorkType = $workTypeCode ?? ($rec ? $rec->work_type : null);
+    if ($resolvedWorkType === 'grout_tile') {
+        $visibleMaterials = array_values(array_diff($visibleMaterials, ['ceramic']));
+    }
 @endphp
 
 <div class="recommendation-card" data-index="{{ $index }}">

@@ -21,8 +21,20 @@
         history.scrollRestoration = 'manual';
     }
     if (window.location.hash) {
-        window.__materialHash = window.location.hash;
+        const h = window.location.hash;
+        // Always strip hash from URL immediately
         history.replaceState(null, null, window.location.pathname + window.location.search);
+        
+        if (h === '#skip-page') {
+            // Aggressively force top for #skip-page and do NOT pass to main logic
+            document.documentElement.style.scrollBehavior = 'auto';
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            return;
+        }
+        
+        window.__materialHash = h;
     }
 })();
 (function() {
@@ -1714,28 +1726,34 @@ html.materials-booting .page-content {
                                 });
                                 $orderedGroups = collect();
                                 $isSorting = request()->filled('sort_by');
+                                $defaultSort = false;
+                                
                                 if ($isSorting) {
                                     $orderedGroups['*'] = $material['data'];
                                 } else {
-                                    foreach ($material['active_letters'] as $letter) {
-                                        if ($letterGroups->has($letter)) {
-                                            $orderedGroups[$letter] = $letterGroups[$letter];
-                                        }
-                                    }
-                                    if ($letterGroups->has('#')) {
-                                        $orderedGroups['#'] = $letterGroups['#'];
-                                    }
+                                    // Default: Sort by Type -> Brand -> etc, and FLATTEN the list (no brand grouping)
+                                    $defaultSort = true;
+                                    $sortedData = $material['data']->sortBy([
+                                        ['type', 'asc'],
+                                        ['brand', 'asc'],
+                                        ['sub_brand', 'asc'],
+                                        ['code', 'asc'],
+                                        ['color_name', 'asc'],
+                                        ['color', 'asc'],
+                                    ]);
+                                    $orderedGroups['*'] = $sortedData;
                                 }
                                 $rowNumber = 1;
                             @endphp
                             <tbody>
                                 @foreach($orderedGroups as $letter => $items)
                                     @php
-                                        $anchorId = $isSorting ? null : ($letter === '#' ? 'other' : $letter);
+                                        // If default sort or explicit sort, disable group anchors
+                                        $anchorId = ($isSorting || $defaultSort) ? null : ($letter === '#' ? 'other' : $letter);
                                     @endphp
                                     @foreach($items as $item)
                                         @php
-                                            $rowAnchorId = (!$isSorting && $loop->first) ? $material['type'] . '-letter-' . $anchorId : null;
+                                            $rowAnchorId = (!$isSorting && !$defaultSort && $loop->first) ? $material['type'] . '-letter-' . $anchorId : null;
                                             $searchParts = array_filter([
                                                 $item->type ?? null,
                                                 $item->material_name ?? null,
@@ -3115,7 +3133,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function normalizeMaterialSearchValue(value) {
-        return (value || '').toLowerCase().trim();
+        return (value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/gi, ' ')
+            .trim()
+            .replace(/\s+/g, ' ');
     }
 
     function highlightMaterialRowByType(materialTab, typeValue) {
@@ -3126,14 +3148,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const normalized = normalizeMaterialSearchValue(typeValue);
         if (!normalized) return;
 
+        const tokens = normalized.split(' ').filter(Boolean);
         const rows = panel.querySelectorAll('tbody tr[data-material-kind]');
         let match = null;
         rows.forEach(row => {
             if (match) return;
             const rowSearch = normalizeMaterialSearchValue(row.dataset.materialSearch || '');
-            if (rowSearch && rowSearch.includes(normalized)) {
-                match = row;
-                return;
+            if (rowSearch && tokens.length) {
+                const matchesAll = tokens.every(token => rowSearch.includes(token));
+                if (matchesAll) {
+                    match = row;
+                    return;
+                }
             }
 
             const rowType = normalizeMaterialSearchValue(row.dataset.materialKind || '');
@@ -3269,8 +3295,8 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Helper function to update active pagination letter
-    function updateActivePaginationLetter() {
-        const hash = window.location.hash; // e.g., #brick-letter-A
+    function updateActivePaginationLetter(forcedHash = null) {
+        const hash = forcedHash || window.location.hash || window.__materialHash || ''; // e.g., #brick-letter-A
 
         // Remove 'current' class from all pagination links
         document.querySelectorAll('.kanggo-img-link').forEach(link => {
@@ -3624,9 +3650,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Update URL
                 history.replaceState(null, null, href);
+                window.__materialHash = href;
 
                 // Update active pagination letter
-                updateActivePaginationLetter();
+                updateActivePaginationLetter(href);
 
                 // Scroll to target in container with offset
                 scrollToTargetInContainer(targetId);
@@ -3640,21 +3667,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle page load with hash (prevent native jump)
     const initialHash = window.__materialHash || window.location.hash;
     if (initialHash) {
+        // Force instant scroll to top (disable smooth behavior temporarily)
+        document.documentElement.style.scrollBehavior = 'auto';
         window.scrollTo(0, 0);
+
+        if (initialHash !== '#skip-page') {
+            window.setTimeout(() => {
+                const targetId = initialHash.slice(1);
+                // Update active pagination letter
+                updateActivePaginationLetter(initialHash);
+                // Scroll to target
+                scrollToTargetInContainer(targetId);
+                // Highlight row
+                window.setTimeout(() => highlightMaterialRow(targetId), 400);
+                history.replaceState(null, null, initialHash);
+            }, 500);
+        }
+
+        // Restore smooth scroll behavior
         window.setTimeout(() => {
-            const targetId = initialHash.slice(1);
-
-            // Update active pagination letter
-            updateActivePaginationLetter();
-
-            // Scroll to target
-            scrollToTargetInContainer(targetId);
-
-            // Highlight row
-            window.setTimeout(() => highlightMaterialRow(targetId), 400);
-
-            history.replaceState(null, null, initialHash);
-        }, 500);
+            document.documentElement.style.scrollBehavior = '';
+        }, 100);
     }
 
     // Handle hash change events
@@ -3662,7 +3695,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetId = window.location.hash.slice(1);
 
         // Update active pagination letter
-        updateActivePaginationLetter();
+        updateActivePaginationLetter(window.location.hash);
 
         // Scroll to target
         scrollToTargetInContainer(targetId);

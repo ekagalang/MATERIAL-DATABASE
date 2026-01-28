@@ -42,6 +42,7 @@
                 <table>
                     <thead class="single-header">
                             <tr>
+                                <th style="text-align: center; width: 40px; min-width: 40px;">No</th>
                                 <th>Nama Toko</th>
                                 <th>Alamat</th>
                                 <th>Kota</th>
@@ -56,6 +57,7 @@
                         <tbody>
                             @forelse($stores as $store)
                                 <tr class="store-row">
+                                    <td style="text-align: center;">{{ $loop->iteration }}</td>
                                     <td>
                                         <span class="fw-semibold text-dark">{{ $store->name }}</span>
                                     </td>
@@ -106,7 +108,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="text-center py-5">
+                                    <td colspan="10" class="text-center py-5">
                                         <div class="d-flex flex-column align-items-center justify-content-center">
                                             <div class="bg-light rounded-circle p-3 mb-3">
                                                 <i class="bi bi-shop fs-3 text-muted"></i>

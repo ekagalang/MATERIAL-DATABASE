@@ -287,14 +287,14 @@ class PaintingFormula implements FormulaInterface
 
         // ============ STEP 14: Hitung Kg Per Pekerjaan (1 Lapis) ============
         // Kg per pekerjaan = Kg per 1M2 * luas bidang
-        $kgCatPerPekerjaanPerLapis = $n($kgCatPer1M2 * $luasBidang);
+        $kgCatPerPekerjaanPerLapis = $n($beratBersihCat * $galonPerPekerjaanPerLapis);
 
         $trace['steps'][] = [
             'step' => 14,
             'title' => 'Kg Cat Per Pekerjaan (1 Lapis)',
             'formula' => 'Kg per 1M2 × Luas bidang',
             'calculations' => [
-                'Perhitungan' => NumberHelper::format($kgCatPer1M2) . ' × ' . NumberHelper::format($luasBidang),
+                'Perhitungan' => NumberHelper::format($beratBersihCat) . ' × ' . NumberHelper::format($galonPerPekerjaanPerLapis),
                 'Hasil' => NumberHelper::format($kgCatPerPekerjaanPerLapis) . ' kg',
             ],
         ];

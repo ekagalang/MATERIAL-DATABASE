@@ -2948,9 +2948,7 @@ input[type="text"]:focus {
         display: flex; 
         justify-content: flex-end; 
         gap: 12px; 
-        margin-top: 24px; 
-        padding-top: 16px; 
-        border-top: 1px solid #e2e8f0; 
+        margin-top: 12px; 
     }
     
     .btn:hover { 
@@ -3014,6 +3012,16 @@ input[type="text"]:focus {
         flex-direction: column;
         gap: 8px;
         margin-top: 8px;
+    }
+
+    .filter-tickbox-list label {
+        display: grid;
+        grid-template-columns: auto;
+    }
+
+    .filter-tickbox-title,
+    .filter-tickbox-desc {
+        line-height: 1.2;
     }
 
     .filter-tickbox-list.ceramic-tickbox-grid {

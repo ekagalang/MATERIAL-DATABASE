@@ -174,6 +174,8 @@ class MaterialCalculationController extends Controller
                 'work_type' => 'required',
                 'price_filters' => 'required|array|min:1',
                 'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
+                'material_type_filters' => 'nullable|array',
+                'material_type_filters.*' => 'nullable|string',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
@@ -397,6 +399,7 @@ class MaterialCalculationController extends Controller
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
         $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
+        $materialTypeFilters = $request->input('material_type_filters', []);
 
         // Check if multi-ceramic is selected
         $hasCeramicFilters = $request->has('ceramic_types') || $request->has('ceramic_sizes');
@@ -462,7 +465,7 @@ class MaterialCalculationController extends Controller
                     }
                 }
 
-                // 3. Filter Premium (Expensive) - Butuh bata mahal
+                // 3. Filter TerMAHAL (Expensive) - Butuh bata mahal
                 if (in_array('expensive', $priceFilters, true)) {
                     $expensiveBricks = Brick::orderBy('price_per_piece', 'desc')->limit(5)->get();
                     $targetBricks = $targetBricks->merge($expensiveBricks);
@@ -509,6 +512,15 @@ class MaterialCalculationController extends Controller
 
             // Ensure unique bricks
             $targetBricks = $targetBricks->unique('id')->values();
+        }
+
+        if (!$isBrickless && !empty($materialTypeFilters['brick'])) {
+            $brickTypeFilter = $materialTypeFilters['brick'];
+            $targetBricks = $targetBricks
+                ->filter(function ($brick) use ($brickTypeFilter) {
+                    return $this->resolveMaterialTypeValue($brick, 'brick') === $brickTypeFilter;
+                })
+                ->values();
         }
 
         $projects = [];
@@ -1063,6 +1075,7 @@ class MaterialCalculationController extends Controller
             'price_filters',
             'brick_ids',
             'brick_id',
+            'material_type_filters',
             'ceramic_id',
             'ceramic_ids',
         ]);
@@ -1443,6 +1456,7 @@ class MaterialCalculationController extends Controller
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
         $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
+        $materialTypeFilters = $request->input('material_type_filters', []);
 
         \Log::info('getCommonCombinations called', [
             'work_type' => $workType,
@@ -1493,7 +1507,7 @@ class MaterialCalculationController extends Controller
             }
 
             $results = [];
-            $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id']);
+            $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id', 'material_type_filters']);
             $paramsBase['brick_id'] = $brick->id;
 
             foreach ($frequencyCounts as $combo) {
@@ -1503,6 +1517,16 @@ class MaterialCalculationController extends Controller
                 $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
                 if (!$ceramic || !$nat) {
+                    continue;
+                }
+                if (!empty($materialTypeFilters) &&
+                    !$this->passesMaterialTypeFilters($materialTypeFilters, [
+                        'ceramic' => $ceramic,
+                        'nat' => $nat,
+                        'cement' => $cement,
+                        'sand' => $sand,
+                        'brick' => $brick,
+                    ], $requiredMaterials)) {
                     continue;
                 }
 
@@ -1587,12 +1611,19 @@ class MaterialCalculationController extends Controller
             }
 
             $results = [];
-            $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id']);
+            $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id', 'material_type_filters']);
             $paramsBase['brick_id'] = $brick->id;
 
             foreach ($commonCombos as $combo) {
                 $cat = Cat::find($combo->cat_id);
                 if (!$cat) {
+                    continue;
+                }
+                if (!empty($materialTypeFilters) &&
+                    !$this->passesMaterialTypeFilters($materialTypeFilters, [
+                        'cat' => $cat,
+                        'brick' => $brick,
+                    ], $requiredMaterials)) {
                     continue;
                 }
 
@@ -1645,7 +1676,7 @@ class MaterialCalculationController extends Controller
             }
 
             $results = [];
-            $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id']);
+            $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id', 'material_type_filters']);
             $paramsBase['brick_id'] = $brick->id;
 
             foreach ($commonCombos as $combo) {
@@ -1653,6 +1684,14 @@ class MaterialCalculationController extends Controller
                 $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
                 if (!$cement) {
+                    continue;
+                }
+                if (!empty($materialTypeFilters) &&
+                    !$this->passesMaterialTypeFilters($materialTypeFilters, [
+                        'cement' => $cement,
+                        'sand' => $sand,
+                        'brick' => $brick,
+                    ], $requiredMaterials)) {
                     continue;
                 }
 
@@ -1723,7 +1762,7 @@ class MaterialCalculationController extends Controller
         }
 
         $results = [];
-        $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id']);
+        $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id', 'material_type_filters']);
         $paramsBase['brick_id'] = $brick->id;
 
         foreach ($commonCombos as $combo) {
@@ -1731,6 +1770,14 @@ class MaterialCalculationController extends Controller
             $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
             if (!$cement) {
+                continue;
+            }
+            if (!empty($materialTypeFilters) &&
+                !$this->passesMaterialTypeFilters($materialTypeFilters, [
+                    'cement' => $cement,
+                    'sand' => $sand,
+                    'brick' => $brick,
+                ], $requiredMaterials)) {
                 continue;
             }
 
@@ -1968,7 +2015,7 @@ class MaterialCalculationController extends Controller
             $cements,
             $sands,
             $cats,
-            'Premium',
+            'TerMAHAL',
             null,
             $ceramics,
             $nats,
@@ -2047,10 +2094,23 @@ class MaterialCalculationController extends Controller
         $ceramics = [],
         $nats = [],
     ) {
-        $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id']);
+        $paramsBase = $request->except(['_token', 'price_filters', 'brick_ids', 'brick_id', 'material_type_filters']);
         $paramsBase['brick_id'] = $brick->id;
         $workType = $request->work_type ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
+        $materialTypeFilters = $request->input('material_type_filters', []);
+        $collections = $this->applyMaterialTypeFiltersToCollections($request, $requiredMaterials, $materialTypeFilters, [
+            'cement' => $cements,
+            'sand' => $sands,
+            'cat' => $cats,
+            'ceramic' => $ceramics,
+            'nat' => $nats,
+        ]);
+        $cements = $collections['cement'] ?? $cements;
+        $sands = $collections['sand'] ?? $sands;
+        $cats = $collections['cat'] ?? $cats;
+        $ceramics = $collections['ceramic'] ?? $ceramics;
+        $nats = $collections['nat'] ?? $nats;
 
         // Gunakan generator untuk tile_installation untuk efisiensi memory
         if ($workType === 'tile_installation') {
@@ -2279,7 +2339,7 @@ class MaterialCalculationController extends Controller
             'common' => 'Populer',
             'cheapest' => 'Ekonomis',
             'medium' => 'Moderat',
-            'expensive' => 'Premium',
+            'expensive' => 'TerMAHAL',
             'custom' => 'Custom',
             'all' => 'Semua',
             default => ucfirst($filter),
@@ -2543,6 +2603,106 @@ class MaterialCalculationController extends Controller
     {
         return MortarFormula::where('is_active', true)->where('cement_ratio', 1)->where('sand_ratio', 3)->first() ??
             MortarFormula::getDefault();
+    }
+
+    protected function applyMaterialTypeFiltersToCollections(
+        Request $request,
+        array $requiredMaterials,
+        $materialTypeFilters,
+        array $collections,
+    ): array {
+        $filters = is_array($materialTypeFilters) ? $materialTypeFilters : [];
+        if (empty($filters)) {
+            return $collections;
+        }
+
+        foreach ($filters as $type => $value) {
+            if (!$value || !in_array($type, $requiredMaterials, true)) {
+                continue;
+            }
+            if (array_key_exists($type, $collections)) {
+                $collections[$type] = $this->filterCollectionByMaterialType($collections[$type], $type, $value);
+            }
+        }
+
+        return $collections;
+    }
+
+    protected function filterCollectionByMaterialType($collection, string $type, string $value)
+    {
+        $collection = $collection instanceof \Illuminate\Support\Collection ? $collection : collect($collection);
+        if ($collection->isEmpty()) {
+            return $collection;
+        }
+
+        return $collection
+            ->filter(function ($model) use ($type, $value) {
+                return $this->resolveMaterialTypeValue($model, $type) === $value;
+            })
+            ->values();
+    }
+
+    protected function resolveMaterialTypeValue($model, string $type): ?string
+    {
+        if (!$model) {
+            return null;
+        }
+
+        return match ($type) {
+            'brick' => $model->type ?? null,
+            'cement' => $model->type ?? null,
+            'sand' => $model->type ?? null,
+            'cat' => $model->type ?? null,
+            'ceramic' => $this->formatCeramicSizeValue($model->dimension_length ?? null, $model->dimension_width ?? null),
+            'nat' => $model->type ?? null,
+            default => null,
+        };
+    }
+
+    protected function formatCeramicSizeValue($length, $width): ?string
+    {
+        $lengthValue = is_numeric($length) ? (float) $length : null;
+        $widthValue = is_numeric($width) ? (float) $width : null;
+        if (empty($lengthValue) || empty($widthValue)) {
+            return null;
+        }
+
+        $min = min($lengthValue, $widthValue);
+        $max = max($lengthValue, $widthValue);
+        if ($min <= 0 || $max <= 0) {
+            return null;
+        }
+
+        $minText = \App\Helpers\NumberHelper::format($min);
+        $maxText = \App\Helpers\NumberHelper::format($max);
+        if ($minText === '' || $maxText === '') {
+            return null;
+        }
+
+        return $minText . ' x ' . $maxText;
+    }
+
+    protected function passesMaterialTypeFilters(array $filters, array $models, array $requiredMaterials): bool
+    {
+        if (empty($filters)) {
+            return true;
+        }
+
+        foreach ($filters as $type => $value) {
+            if (!$value || !in_array($type, $requiredMaterials, true)) {
+                continue;
+            }
+            $model = $models[$type] ?? null;
+            if (!$model) {
+                return false;
+            }
+            $modelType = $this->resolveMaterialTypeValue($model, $type);
+            if (!$modelType || $modelType !== $value) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function traceCalculation(Request $request)

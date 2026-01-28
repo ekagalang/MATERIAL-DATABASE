@@ -57,6 +57,7 @@
         @php
             $workType = $requestData['work_type'] ?? '';
             $isRollag = $workType === 'brick_rollag';
+            $isGroutTile = $workType === 'grout_tile';
             $heightLabel = in_array($workType, ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'], true) ? 'LEBAR' : 'TINGGI';
             $lengthValue = $requestData['wall_length'] ?? null;
             $heightValue = $isRollag ? null : ($requestData['wall_height'] ?? null);
@@ -67,10 +68,11 @@
             }
             $formulaDisplay = $formulaName ?? ($requestData['formula_name'] ?? null);
             $mortarValue = $requestData['mortar_thickness'] ?? null;
-            $isPainting = (isset($requestData['work_type']) && $requestData['work_type'] === 'painting');
+            $isPainting = (isset($requestData['work_type']) && ($requestData['work_type'] === 'painting' || $requestData['work_type'] === 'wall_painting'));
             $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL ADUKAN';
             $paramUnit = $isPainting ? 'Lapis' : 'cm';
-            $paramValue = $isPainting ? ($requestData['painting_layers'] ?? 2) : $mortarValue;
+            // Don't show mortar thickness for grout_tile
+            $paramValue = $isGroutTile ? null : ($isPainting ? ($requestData['layer_count'] ?? $requestData['painting_layers'] ?? 2) : $mortarValue);
         @endphp
 
         @if($formulaDisplay || $paramValue || $lengthValue || $heightValue || $groutValue || $areaValue)
@@ -132,6 +134,45 @@
                         <div class="input-group">
                             <div class="form-control fw-bold text-center px-1" style="background-color: #e0f2fe; border-color: #38bdf8;">@format($groutValue)</div>
                             <span class="input-group-text bg-info text-white small px-1" style="font-size: 0.7rem;">mm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Panjang Keramik (untuk Pasang Nat saja) --}}
+                    @if($isGroutTile && isset($requestData['ceramic_length']))
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge text-white border" style="background-color: #f59e0b;">P. KERAMIK</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_length'] }}</div>
+                            <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">cm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Lebar Keramik (untuk Pasang Nat saja) --}}
+                    @if($isGroutTile && isset($requestData['ceramic_width']))
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge text-white border" style="background-color: #f59e0b;">L. KERAMIK</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_width'] }}</div>
+                            <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">cm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Tebal Keramik (untuk Pasang Nat saja) --}}
+                    @if($isGroutTile && isset($requestData['ceramic_thickness']))
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge text-white border" style="background-color: #f59e0b;">T. KERAMIK</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_thickness'] }}</div>
+                            <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">mm</span>
                         </div>
                     </div>
                     @endif
@@ -401,8 +442,8 @@
                 'best' => 'Rekomendasi',
                 'common' => 'Populer',
                 'cheapest' => 'Ekonomis',
-                'medium' => 'Moderat',
-                'expensive' => 'Premium',
+                'medium' => 'Average',
+                'expensive' => 'TerMAHAL',
             ];
             $orderedFilters = array_keys($filterMap);
             $filterSet = in_array('all', $requestedFilters, true)
@@ -414,7 +455,7 @@
                     $filterCategories[] = $filterMap[$filterKey];
                 }
             }
-            $rekapCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Moderat', 'Premium'];
+            $rekapCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'TerMAHAL'];
             if (in_array('custom', $filterSet, true)) {
                 $filterCategories[] = 'Custom';
                 $rekapCategories[] = 'Custom';
@@ -427,10 +468,57 @@
             $hasCeramic = false;
             $hasNat = false;
 
-            // Build historical frequency map for Populer (same work_type only).
-            $workType = $requestData['work_type'] ?? null;
-            $historicalFrequencyByBrick = [];
-            $historicalFrequencyGlobal = [];
+            // Build historical material usage map for Populer (same work_type only).
+            $workType = $requestData['work_type'] ?? $requestData['work_type_select'] ?? null;
+            $materialUsage = [
+                'brick' => [],
+                'cement' => [],
+                'sand' => [],
+                'cat' => [],
+                'ceramic' => [],
+                'nat' => [],
+            ];
+            $materialTypeFilters = $requestData['material_type_filters'] ?? [];
+            if (!is_array($materialTypeFilters)) {
+                $materialTypeFilters = [];
+            }
+            $materialTypeFilters = array_map(function ($value) {
+                return is_string($value) ? trim($value) : $value;
+            }, $materialTypeFilters);
+            $normalizeCeramicSize = function ($value) {
+                $clean = is_string($value) ? trim($value) : '';
+                if ($clean === '') {
+                    return '';
+                }
+                $clean = strtolower(str_replace(' ', '', $clean));
+                return $clean;
+            };
+            $formatCeramicSizeValue = function ($length, $width) use ($normalizeCeramicSize) {
+                $lengthValue = is_numeric($length) ? (float) $length : null;
+                $widthValue = is_numeric($width) ? (float) $width : null;
+                if (empty($lengthValue) || empty($widthValue)) {
+                    return '';
+                }
+                $min = min($lengthValue, $widthValue);
+                $max = max($lengthValue, $widthValue);
+                if ($min <= 0 || $max <= 0) {
+                    return '';
+                }
+                $minText = \App\Helpers\NumberHelper::format($min);
+                $maxText = \App\Helpers\NumberHelper::format($max);
+                if ($minText === '' || $maxText === '') {
+                    return '';
+                }
+                return $normalizeCeramicSize($minText . ' x ' . $maxText);
+            };
+            $materialModelMap = [
+                'brick' => \App\Models\Brick::class,
+                'cement' => \App\Models\Cement::class,
+                'sand' => \App\Models\Sand::class,
+                'cat' => \App\Models\Cat::class,
+                'ceramic' => \App\Models\Ceramic::class,
+                'nat' => \App\Models\Cement::class,
+            ];
 
             $historicalFrequencyQuery = DB::table('brick_calculations')
                 ->select(
@@ -445,34 +533,88 @@
             if ($workType) {
                 $historicalFrequencyQuery->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType]);
             }
-            $historicalRows = $historicalFrequencyQuery
-                ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
-                ->get();
-
-            foreach ($historicalRows as $row) {
-                $signature = implode('-', [
-                    $row->cement_id ?? 0,
-                    $row->sand_id ?? 0,
-                    $row->cat_id ?? 0,
-                    $row->ceramic_id ?? 0,
-                    $row->nat_id ?? 0,
-                ]);
-
-                if (!isset($historicalFrequencyGlobal[$signature])) {
-                    $historicalFrequencyGlobal[$signature] = 0;
-                }
-                $historicalFrequencyGlobal[$signature] += (int) $row->frequency;
-
-                if (!empty($row->brick_id)) {
-                    if (!isset($historicalFrequencyByBrick[$row->brick_id])) {
-                        $historicalFrequencyByBrick[$row->brick_id] = [];
-                    }
-                    $historicalFrequencyByBrick[$row->brick_id][$signature] = (int) $row->frequency;
-                }
+            $historicalRows = collect();
+            if ($workType) {
+                $historicalRows = $historicalFrequencyQuery
+                    ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
+                    ->get();
             }
 
-            // Populer combos will be resolved from combinations that originated from historical data
-            // (filter type "common") to keep output consistent with stored calculations.
+            foreach ($historicalRows as $row) {
+                $frequency = (int) $row->frequency;
+                if (!empty($row->brick_id)) {
+                    $materialUsage['brick'][$row->brick_id] = ($materialUsage['brick'][$row->brick_id] ?? 0) + $frequency;
+                }
+                if (!empty($row->cement_id)) {
+                    $materialUsage['cement'][$row->cement_id] = ($materialUsage['cement'][$row->cement_id] ?? 0) + $frequency;
+                }
+                if (!empty($row->sand_id)) {
+                    $materialUsage['sand'][$row->sand_id] = ($materialUsage['sand'][$row->sand_id] ?? 0) + $frequency;
+                }
+                if (!empty($row->cat_id)) {
+                    $materialUsage['cat'][$row->cat_id] = ($materialUsage['cat'][$row->cat_id] ?? 0) + $frequency;
+                }
+                if (!empty($row->ceramic_id)) {
+                    $materialUsage['ceramic'][$row->ceramic_id] = ($materialUsage['ceramic'][$row->ceramic_id] ?? 0) + $frequency;
+                }
+                if (!empty($row->nat_id)) {
+                    $materialUsage['nat'][$row->nat_id] = ($materialUsage['nat'][$row->nat_id] ?? 0) + $frequency;
+                }
+            }
+            foreach ($materialTypeFilters as $type => $value) {
+                $value = is_string($value) ? trim($value) : $value;
+                if (empty($value) || empty($materialUsage[$type]) || empty($materialModelMap[$type])) {
+                    if (!empty($value) && empty($materialModelMap[$type])) {
+                        $materialUsage[$type] = [];
+                    }
+                    continue;
+                }
+                $ids = array_keys($materialUsage[$type]);
+                if ($type === 'ceramic') {
+                    $targetSize = $normalizeCeramicSize((string) $value);
+                    if ($targetSize === '') {
+                        $materialUsage[$type] = [];
+                        continue;
+                    }
+                    $matchedIds = $materialModelMap[$type]::whereIn('id', $ids)
+                        ->get(['id', 'dimension_length', 'dimension_width'])
+                        ->filter(function ($model) use ($formatCeramicSizeValue, $targetSize) {
+                            return $formatCeramicSizeValue($model->dimension_length, $model->dimension_width) === $targetSize;
+                        })
+                        ->pluck('id')
+                        ->all();
+                } else {
+                    $matchedIds = $materialModelMap[$type]::whereIn('id', $ids)
+                        ->where('type', $value)
+                        ->pluck('id')
+                        ->all();
+                }
+                if (empty($matchedIds)) {
+                    $materialUsage[$type] = [];
+                    continue;
+                }
+                $allowed = array_flip($matchedIds);
+                $materialUsage[$type] = array_intersect_key($materialUsage[$type], $allowed);
+            }
+            $hasHistoricalUsage =
+                array_sum($materialUsage['brick']) > 0 ||
+                array_sum($materialUsage['cement']) > 0 ||
+                array_sum($materialUsage['sand']) > 0 ||
+                array_sum($materialUsage['cat']) > 0 ||
+                array_sum($materialUsage['ceramic']) > 0 ||
+                array_sum($materialUsage['nat']) > 0;
+            $selectedTypeFilters = array_filter($materialTypeFilters, function ($value) {
+                return is_string($value) ? trim($value) !== '' : !empty($value);
+            });
+            if (!empty($selectedTypeFilters)) {
+                foreach ($selectedTypeFilters as $type => $value) {
+                    if (empty($materialUsage[$type])) {
+                        $hasHistoricalUsage = false;
+                        break;
+                    }
+                }
+            }
+            // Keep Populer rows visible even if no historical usage; show "-" placeholders instead.
 
             // Definisi warna label untuk kolom Rekap (sama dengan yang di tabel utama)
             $rekapLabelColors = [
@@ -491,12 +633,12 @@
                     2 => ['bg' => '#a7f3d0', 'text' => '#16a34a'],
                     3 => ['bg' => '#d1fae5', 'text' => '#22c55e'],
                 ],
-                'Moderat' => [
+                'Average' => [
                     1 => ['bg' => '#fcd34d', 'text' => '#92400e'],
                     2 => ['bg' => '#fde68a', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'text' => '#d97706'],
                 ],
-                'Premium' => [
+                'TerMAHAL' => [
                     1 => ['bg' => '#d8b4fe', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
@@ -518,15 +660,19 @@
                 if (($res['grout_packages'] ?? 0) > 0) $hasNat = true;
 
                 $rekapEntry = [
-                    'grand_total' => $item['result']['grand_total'],
-                    'brick_id' => $project['brick']->id,
-                    'brick_brand' => $project['brick']->brand,
-                    'brick_detail' => ($project['brick']->type ?? '-') . ' - ' .
-                                    ($project['brick']->dimension_length + 0) . ' x ' .
-                                    ($project['brick']->dimension_width + 0) . ' x ' .
-                                    ($project['brick']->dimension_height + 0) . ' cm',
+                    'grand_total' => $item['result']['grand_total'] ?? null,
                     'filter_label' => $key,
                 ];
+
+                // Only add brick data if brick exists in project
+                if (isset($project['brick'])) {
+                    $rekapEntry['brick_id'] = $project['brick']->id;
+                    $rekapEntry['brick_brand'] = $project['brick']->brand;
+                    $rekapEntry['brick_detail'] = ($project['brick']->type ?? '-') . ' - ' .
+                                    ($project['brick']->dimension_length + 0) . ' x ' .
+                                    ($project['brick']->dimension_width + 0) . ' x ' .
+                                    ($project['brick']->dimension_height + 0) . ' cm';
+                }
 
                 if (isset($item['cement'])) {
                     $rekapEntry['cement_id'] = $item['cement']->id;
@@ -541,17 +687,27 @@
                 }
 
                 if (isset($item['cat'])) {
-                    $rekapEntry['cat_id'] = $item['cat']->id;
-                    $rekapEntry['cat_brand'] = $item['cat']->brand;
-                    $rekapEntry['cat_detail'] = ($item['cat']->cat_name ?? '-') . ' - ' . ($item['cat']->color_name ?? '-') . ' (' . ($item['cat']->package_weight_net + 0) . ' kg)';
+                    $cat = $item['cat'];
+                    $rekapEntry['cat_id'] = $cat->id;
+                    $rekapEntry['cat_brand'] = $cat->brand;
+                    $catDetailParts = [];
+                    $catDetailParts[] = ($cat->sub_brand ?? '-');
+                    if (!empty($cat->color_code)) $catDetailParts[] = $cat->color_code;
+                    if (!empty($cat->color_name)) $catDetailParts[] = $cat->color_name;
+                    if (!empty($cat->package_unit)) $catDetailParts[] = $cat->package_unit;
+                    if (!empty($cat->volume)) {
+                        $catDetailParts[] = \App\Helpers\NumberHelper::format($cat->volume) . ' ' . ($cat->volume_unit ?? 'L');
+                    }
+                    $catDetailParts[] = 'Berat bersih: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
+                    $rekapEntry['cat_detail'] = implode(' - ', $catDetailParts);
                 }
-                
+
                 if (isset($item['ceramic'])) {
                     $rekapEntry['ceramic_id'] = $item['ceramic']->id;
                     $rekapEntry['ceramic_brand'] = $item['ceramic']->brand;
                     $rekapEntry['ceramic_detail'] = ($item['ceramic']->color ?? '-') . ' (' . ($item['ceramic']->dimension_length + 0) . 'x' . ($item['ceramic']->dimension_width + 0) . ')';
                 }
-                
+
                 if (isset($item['nat'])) {
                     $rekapEntry['nat_id'] = $item['nat']->id;
                     $rekapEntry['nat_brand'] = $item['nat']->brand;
@@ -559,6 +715,74 @@
                 }
 
                 return $rekapEntry;
+            };
+            $buildPartialRekapEntry = function ($key, array $models) use (&$hasBrick, &$hasCement, &$hasSand, &$hasCat, &$hasCeramic, &$hasNat) {
+                $entry = [
+                    'grand_total' => null,
+                    'filter_label' => $key,
+                ];
+
+                if (!empty($models['brick'])) {
+                    $brick = $models['brick'];
+                    $hasBrick = true;
+                    $entry['brick_id'] = $brick->id;
+                    $entry['brick_brand'] = $brick->brand;
+                    $entry['brick_detail'] = ($brick->type ?? '-') . ' - ' .
+                        ($brick->dimension_length + 0) . ' x ' .
+                        ($brick->dimension_width + 0) . ' x ' .
+                        ($brick->dimension_height + 0) . ' cm';
+                }
+
+                if (!empty($models['cement'])) {
+                    $cement = $models['cement'];
+                    $hasCement = true;
+                    $entry['cement_id'] = $cement->id;
+                    $entry['cement_brand'] = $cement->brand;
+                    $entry['cement_detail'] = ($cement->color ?? '-') . ' - ' . ($cement->package_weight_net + 0) . ' Kg';
+                }
+
+                if (!empty($models['sand'])) {
+                    $sand = $models['sand'];
+                    $hasSand = true;
+                    $entry['sand_id'] = $sand->id;
+                    $entry['sand_brand'] = $sand->brand;
+                    $entry['sand_detail'] = ($sand->package_unit ?? '-') . ' - ' . (($sand->package_volume ?? 0) > 0 ? (($sand->package_volume + 0) . ' M3') : '-');
+                }
+
+                if (!empty($models['cat'])) {
+                    $cat = $models['cat'];
+                    $hasCat = true;
+                    $entry['cat_id'] = $cat->id;
+                    $entry['cat_brand'] = $cat->brand;
+                    $catDetailParts = [];
+                    $catDetailParts[] = ($cat->sub_brand ?? '-');
+                    if (!empty($cat->color_code)) $catDetailParts[] = $cat->color_code;
+                    if (!empty($cat->color_name)) $catDetailParts[] = $cat->color_name;
+                    if (!empty($cat->package_unit)) $catDetailParts[] = $cat->package_unit;
+                    if (!empty($cat->volume)) {
+                        $catDetailParts[] = \App\Helpers\NumberHelper::format($cat->volume) . ' ' . ($cat->volume_unit ?? 'L');
+                    }
+                    $catDetailParts[] = 'Berat bersih: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
+                    $entry['cat_detail'] = implode(' - ', $catDetailParts);
+                }
+
+                if (!empty($models['ceramic'])) {
+                    $ceramic = $models['ceramic'];
+                    $hasCeramic = true;
+                    $entry['ceramic_id'] = $ceramic->id;
+                    $entry['ceramic_brand'] = $ceramic->brand;
+                    $entry['ceramic_detail'] = ($ceramic->color ?? '-') . ' (' . ($ceramic->dimension_length + 0) . 'x' . ($ceramic->dimension_width + 0) . ')';
+                }
+
+                if (!empty($models['nat'])) {
+                    $nat = $models['nat'];
+                    $hasNat = true;
+                    $entry['nat_id'] = $nat->id;
+                    $entry['nat_brand'] = $nat->brand;
+                    $entry['nat_detail'] = ($nat->color ?? 'Nat') . ' (' . ($nat->package_weight_net + 0) . ' kg)';
+                }
+
+                return $entry;
             };
 
             // Collect all combinations from all bricks
@@ -610,54 +834,469 @@
                 'counts' => array_map('count', $allCombinations),
             ]);
 
-            // Collect Populer candidates directly from combinations that originate from "common" filter
-            // so the ranking matches stored calculation history.
-            $populerCandidates = [];
-            if (in_array('Populer', $filterCategories, true)) {
-                foreach ($projects as $project) {
-                    foreach ($project['combinations'] as $label => $items) {
-                        foreach ($items as $item) {
-                            $sourceFilters = $item['source_filters'] ?? (($item['filter_type'] ?? null) ? [$item['filter_type']] : []);
-                            if (!in_array('common', $sourceFilters, true)) {
-                                continue;
-                            }
+            // Collect Populer candidates based on per-material rank (can create new combinations)
+            $populerRankedEntries = [];
+            $requiredMaterials = \App\Services\FormulaRegistry::materialsFor($workType);
+            if (empty($requiredMaterials)) {
+                $requiredMaterials = ['brick', 'cement', 'sand'];
+            }
 
-                            $freqSignature = implode('-', [
-                                $item['cement']->id ?? 0,
-                                $item['sand']->id ?? 0,
-                                $item['cat']->id ?? 0,
-                                $item['ceramic']->id ?? 0,
-                                $item['nat']->id ?? 0,
+            $fallbackMaterialIds = [
+                'brick' => [],
+                'cement' => [],
+                'sand' => [],
+                'cat' => [],
+                'ceramic' => [],
+                'nat' => [],
+            ];
+
+            foreach ($projects as $project) {
+                if (!empty($project['brick'])) {
+                    $fallbackMaterialIds['brick'][$project['brick']->id] = true;
+                }
+                foreach ($project['combinations'] as $label => $items) {
+                    foreach ($items as $item) {
+                        if (!empty($item['cement'])) $fallbackMaterialIds['cement'][$item['cement']->id] = true;
+                        if (!empty($item['sand'])) $fallbackMaterialIds['sand'][$item['sand']->id] = true;
+                        if (!empty($item['cat'])) $fallbackMaterialIds['cat'][$item['cat']->id] = true;
+                        if (!empty($item['ceramic'])) $fallbackMaterialIds['ceramic'][$item['ceramic']->id] = true;
+                        if (!empty($item['nat'])) $fallbackMaterialIds['nat'][$item['nat']->id] = true;
+                    }
+                }
+            }
+
+            // Usage percentage helpers for rekap table (based on historical usage within current filtered materials)
+            // Percentages are calculated per-brand to align with Populer ranking (unique brand per material type).
+            $materialBrandUsage = [
+                'brick' => [],
+                'cement' => [],
+                'sand' => [],
+                'cat' => [],
+                'ceramic' => [],
+                'nat' => [],
+            ];
+            $materialIdToBrand = [
+                'brick' => [],
+                'cement' => [],
+                'sand' => [],
+                'cat' => [],
+                'ceramic' => [],
+                'nat' => [],
+            ];
+
+            foreach ($materialUsage as $type => $usageMap) {
+                $ids = array_keys($usageMap);
+                if (empty($ids) || empty($materialModelMap[$type])) {
+                    continue;
+                }
+                $models = $materialModelMap[$type]::whereIn('id', $ids)->get(['id', 'brand'])->keyBy('id');
+                foreach ($usageMap as $id => $count) {
+                    $brand = $models->get($id)->brand ?? null;
+                    if (!$brand) {
+                        continue;
+                    }
+                    $materialIdToBrand[$type][$id] = $brand;
+                    $materialBrandUsage[$type][$brand] = ($materialBrandUsage[$type][$brand] ?? 0) + (int) $count;
+                }
+            }
+
+            $allowedBrandMap = [
+                'brick' => [],
+                'cement' => [],
+                'sand' => [],
+                'cat' => [],
+                'ceramic' => [],
+                'nat' => [],
+            ];
+            foreach ($fallbackMaterialIds as $type => $allowedIdsMap) {
+                $allowedIds = array_keys($allowedIdsMap ?? []);
+                if (empty($allowedIds) || empty($materialModelMap[$type])) {
+                    continue;
+                }
+                $models = $materialModelMap[$type]::whereIn('id', $allowedIds)->get(['id', 'brand']);
+                foreach ($models as $model) {
+                    if (!empty($model->brand)) {
+                        $allowedBrandMap[$type][$model->brand] = true;
+                    }
+                }
+            }
+
+            $usageTotals = [];
+            foreach ($materialBrandUsage as $type => $brandUsage) {
+                $allowedBrands = $allowedBrandMap[$type] ?? [];
+                if (!empty($allowedBrands)) {
+                    $total = 0;
+                    foreach ($allowedBrands as $brand => $flag) {
+                        $total += (int) ($brandUsage[$brand] ?? 0);
+                    }
+                    $usageTotals[$type] = $total;
+                } else {
+                    $usageTotals[$type] = array_sum($brandUsage);
+                }
+            }
+
+            $formatUsagePercent = function (string $type, $id) use ($materialBrandUsage, $materialIdToBrand, $usageTotals, $allowedBrandMap) {
+                if (empty($usageTotals[$type]) || empty($id)) {
+                    return null;
+                }
+                $brand = $materialIdToBrand[$type][$id] ?? null;
+                if (!$brand) {
+                    return null;
+                }
+                $allowedBrands = $allowedBrandMap[$type] ?? [];
+                if (!empty($allowedBrands) && !isset($allowedBrands[$brand])) {
+                    return null;
+                }
+                $count = (int) ($materialBrandUsage[$type][$brand] ?? 0);
+                if ($count <= 0) {
+                    return null;
+                }
+                $percent = ($count / $usageTotals[$type]) * 100;
+                return number_format($percent, 1);
+            };
+
+            $resolveRankedUniqueIds = function (string $materialType, array $usageMap, array $fallbackMap, string $modelClass, int $limit = 3) use ($workType): array {
+                $ids = !empty($usageMap) ? array_keys($usageMap) : array_keys($fallbackMap);
+                if (empty($ids)) {
+                    return [];
+                }
+
+                $models = $modelClass::whereIn('id', $ids)->get()->keyBy('id');
+                $cacheKey = 'populer_rank:' . ($workType ?? 'all') . ':' . $materialType;
+                $previousOrder = \Illuminate\Support\Facades\Cache::get($cacheKey, []);
+                $previousIndex = is_array($previousOrder) ? array_flip($previousOrder) : [];
+
+                if (!empty($usageMap)) {
+                    usort($ids, function ($a, $b) use ($usageMap, $previousIndex) {
+                        $freqCompare = ($usageMap[$b] ?? 0) <=> ($usageMap[$a] ?? 0);
+                        if ($freqCompare !== 0) {
+                            return $freqCompare;
+                        }
+                        $aIndex = $previousIndex[$a] ?? PHP_INT_MAX;
+                        $bIndex = $previousIndex[$b] ?? PHP_INT_MAX;
+                        if ($aIndex !== $bIndex) {
+                            return $aIndex <=> $bIndex;
+                        }
+                        return $a <=> $b;
+                    });
+                } elseif (!empty($previousIndex)) {
+                    usort($ids, function ($a, $b) use ($previousIndex) {
+                        $aIndex = $previousIndex[$a] ?? PHP_INT_MAX;
+                        $bIndex = $previousIndex[$b] ?? PHP_INT_MAX;
+                        if ($aIndex !== $bIndex) {
+                            return $aIndex <=> $bIndex;
+                        }
+                        return $a <=> $b;
+                    });
+                }
+
+                $unique = [];
+                $seenBrands = [];
+                foreach ($ids as $id) {
+                    $model = $models->get($id);
+                    if (!$model) {
+                        continue;
+                    }
+                    $brand = $model->brand ?? null;
+                    if (!$brand) {
+                        continue;
+                    }
+                    if (isset($seenBrands[$brand])) {
+                        continue;
+                    }
+                    $seenBrands[$brand] = true;
+                    $unique[] = $id;
+                    if (count($unique) >= $limit) {
+                        break;
+                    }
+                }
+                if (!empty($usageMap)) {
+                    \Illuminate\Support\Facades\Cache::forever($cacheKey, $unique);
+                }
+                return $unique;
+            };
+            $getRankedId = function (array $list, int $index) {
+                return $list[$index] ?? null;
+            };
+
+            if (in_array('Populer', $filterCategories, true) && $hasHistoricalUsage) {
+                $comboService = app(\App\Services\Calculation\CombinationGenerationService::class);
+                $isBricklessWork = $isBrickless ?? false;
+                $emptyEloquent = new \Illuminate\Database\Eloquent\Collection();
+
+                $rankedIds = [
+                    'brick' => in_array('brick', $requiredMaterials, true)
+                        ? $resolveRankedUniqueIds('brick', $materialUsage['brick'], $fallbackMaterialIds['brick'], \App\Models\Brick::class)
+                        : [],
+                    'cement' => in_array('cement', $requiredMaterials, true)
+                        ? $resolveRankedUniqueIds('cement', $materialUsage['cement'], $fallbackMaterialIds['cement'], \App\Models\Cement::class)
+                        : [],
+                    'sand' => in_array('sand', $requiredMaterials, true)
+                        ? $resolveRankedUniqueIds('sand', $materialUsage['sand'], $fallbackMaterialIds['sand'], \App\Models\Sand::class)
+                        : [],
+                    'cat' => in_array('cat', $requiredMaterials, true)
+                        ? $resolveRankedUniqueIds('cat', $materialUsage['cat'], $fallbackMaterialIds['cat'], \App\Models\Cat::class)
+                        : [],
+                    'ceramic' => in_array('ceramic', $requiredMaterials, true)
+                        ? $resolveRankedUniqueIds('ceramic', $materialUsage['ceramic'], $fallbackMaterialIds['ceramic'], \App\Models\Ceramic::class)
+                        : [],
+                    'nat' => in_array('nat', $requiredMaterials, true)
+                        ? $resolveRankedUniqueIds('nat', $materialUsage['nat'], $fallbackMaterialIds['nat'], \App\Models\Cement::class)
+                        : [],
+                ];
+                if (($workType ?? '') === 'grout_tile') {
+                    $rankedIds['ceramic'] = [];
+                }
+
+                $defaultBrick = $projects[0]['brick'] ?? \App\Models\Brick::first();
+                $usedSignatures = [];
+                $fallbackCeramic = null;
+                if (($workType ?? '') === 'grout_tile') {
+                    if (!empty($requestData['ceramic_id'])) {
+                        $fallbackCeramic = \App\Models\Ceramic::find($requestData['ceramic_id']);
+                    }
+                    if (!$fallbackCeramic) {
+                        $fallbackCeramic = \App\Models\Ceramic::whereNotNull('dimension_thickness')
+                            ->where('dimension_thickness', '>', 0)
+                            ->orderBy('id')
+                            ->first();
+                    }
+                }
+
+                for ($rankIndex = 0; $rankIndex < 3; $rankIndex++) {
+                    $brickId = in_array('brick', $requiredMaterials, true)
+                        ? $getRankedId($rankedIds['brick'], $rankIndex)
+                        : null;
+                    $cementId = in_array('cement', $requiredMaterials, true)
+                        ? $getRankedId($rankedIds['cement'], $rankIndex)
+                        : null;
+                    $sandId = in_array('sand', $requiredMaterials, true)
+                        ? $getRankedId($rankedIds['sand'], $rankIndex)
+                        : null;
+                    $catId = in_array('cat', $requiredMaterials, true)
+                        ? $getRankedId($rankedIds['cat'], $rankIndex)
+                        : null;
+                    $ceramicId = in_array('ceramic', $requiredMaterials, true)
+                        ? $getRankedId($rankedIds['ceramic'], $rankIndex)
+                        : null;
+                    $natId = in_array('nat', $requiredMaterials, true)
+                        ? $getRankedId($rankedIds['nat'], $rankIndex)
+                        : null;
+
+                    $models = [
+                        'brick' => null,
+                        'cement' => null,
+                        'sand' => null,
+                        'cat' => null,
+                        'ceramic' => null,
+                        'nat' => null,
+                    ];
+                    $hasAnyMaterial = false;
+                    $isComplete = true;
+
+                    if (in_array('brick', $requiredMaterials, true)) {
+                        if ($brickId) {
+                            $models['brick'] = \App\Models\Brick::find($brickId);
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['brick']);
+                        } else {
+                            $isComplete = false;
+                        }
+                    } else {
+                        $models['brick'] = $defaultBrick;
+                    }
+
+                    if (in_array('cement', $requiredMaterials, true)) {
+                        if ($cementId) {
+                            $models['cement'] = \App\Models\Cement::find($cementId);
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['cement']);
+                        } else {
+                            $isComplete = false;
+                        }
+                    }
+
+                    if (in_array('sand', $requiredMaterials, true)) {
+                        if ($sandId) {
+                            $models['sand'] = \App\Models\Sand::find($sandId);
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['sand']);
+                        } else {
+                            $isComplete = false;
+                        }
+                    }
+
+                    if (in_array('cat', $requiredMaterials, true)) {
+                        if ($catId) {
+                            $models['cat'] = \App\Models\Cat::find($catId);
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['cat']);
+                        } else {
+                            $isComplete = false;
+                        }
+                    }
+
+                    if (in_array('ceramic', $requiredMaterials, true)) {
+                        if ($ceramicId) {
+                            $models['ceramic'] = \App\Models\Ceramic::find($ceramicId);
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['ceramic']);
+                        } elseif (($workType ?? '') === 'grout_tile' && $fallbackCeramic) {
+                            $models['ceramic'] = $fallbackCeramic;
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['ceramic']);
+                        } else {
+                            $isComplete = false;
+                        }
+                    }
+
+                    if (in_array('nat', $requiredMaterials, true)) {
+                        if ($natId) {
+                            $models['nat'] = \App\Models\Cement::find($natId);
+                            $hasAnyMaterial = $hasAnyMaterial || !empty($models['nat']);
+                        } else {
+                            $isComplete = false;
+                        }
+                    }
+
+                    if (!$hasAnyMaterial) {
+                        continue;
+                    }
+
+                    $brick = $defaultBrick;
+                    if (in_array('brick', $requiredMaterials, true)) {
+                        $brick = $models['brick'] ?? $defaultBrick;
+                    }
+                    if (!$brick) {
+                        if ($isComplete) {
+                            continue;
+                        }
+                    }
+
+                    if ($isComplete) {
+                        $cements = (in_array('cement', $requiredMaterials, true) && $cementId)
+                            ? \App\Models\Cement::where('id', $cementId)->get()
+                            : $emptyEloquent;
+                        $sands = (in_array('sand', $requiredMaterials, true) && $sandId)
+                            ? \App\Models\Sand::where('id', $sandId)->get()
+                            : $emptyEloquent;
+                        $cats = (in_array('cat', $requiredMaterials, true) && $catId)
+                            ? \App\Models\Cat::where('id', $catId)->get()
+                            : $emptyEloquent;
+                        $ceramics = $emptyEloquent;
+                        if (in_array('ceramic', $requiredMaterials, true)) {
+                            if ($ceramicId) {
+                                $ceramics = \App\Models\Ceramic::where('id', $ceramicId)->get();
+                            } elseif (($workType ?? '') === 'grout_tile' && $fallbackCeramic) {
+                                $ceramics = new \Illuminate\Database\Eloquent\Collection([$fallbackCeramic]);
+                            }
+                        }
+                        $nats = (in_array('nat', $requiredMaterials, true) && $natId)
+                            ? \App\Models\Cement::where('id', $natId)->get()
+                            : $emptyEloquent;
+
+                        $combos = $comboService->calculateCombinationsFromMaterials(
+                            $brick,
+                            $requestData,
+                            $cements,
+                            $sands,
+                            $cats,
+                            $ceramics,
+                            $nats,
+                            'Populer',
+                            1,
+                        );
+
+                        if (!empty($combos)) {
+                            $combo = $combos[0];
+                            $comboSignature = implode('-', [
+                                $isBricklessWork ? 0 : ($brick->id ?? 0),
+                                $combo['cement']->id ?? 0,
+                                $combo['sand']->id ?? 0,
+                                $combo['cat']->id ?? 0,
+                                $combo['ceramic']->id ?? 0,
+                                $combo['nat']->id ?? 0,
                             ]);
-                            $brickId = $project['brick']->id ?? null;
 
-                            $isBricklessWork = $isBrickless ?? false;
-                            if ($brickId && !$isBricklessWork) {
-                                $frequency = (int) ($historicalFrequencyByBrick[$brickId][$freqSignature] ?? 0);
-                            } else {
-                                $frequency = (int) ($historicalFrequencyGlobal[$freqSignature] ?? 0);
-                            }
-
-                            if ($frequency <= 0) {
-                                continue;
-                            }
-
-                            $signature = implode('-', [
-                                $brickId ?? 0,
-                                $freqSignature,
-                            ]);
-
-                            if (!isset($populerCandidates[$signature]) || $frequency > $populerCandidates[$signature]['frequency']) {
-                                $populerCandidates[$signature] = [
-                                    'combo' => [
-                                        'project' => $project,
-                                        'item' => $item,
-                                    ],
-                                    'frequency' => $frequency,
+                            if (!isset($usedSignatures[$comboSignature])) {
+                                $usedSignatures[$comboSignature] = true;
+                                $projectData = [];
+                                if ($brick && !$isBricklessWork) {
+                                    $projectData['brick'] = $brick;
+                                }
+                                $populerRankedEntries[] = [
+                                    'project' => $projectData,
+                                    'item' => $combo,
                                 ];
+                                continue;
                             }
                         }
                     }
+
+                    $partialEntry = $buildPartialRekapEntry('Populer', $models);
+                    $signatureParts = [
+                        $isBricklessWork ? 0 : ($partialEntry['brick_id'] ?? 0),
+                        $partialEntry['cement_id'] ?? 0,
+                        $partialEntry['sand_id'] ?? 0,
+                        $partialEntry['cat_id'] ?? 0,
+                        $partialEntry['ceramic_id'] ?? 0,
+                        $partialEntry['nat_id'] ?? 0,
+                    ];
+                    $partialSignature = implode('-', $signatureParts);
+                    if (isset($usedSignatures[$partialSignature])) {
+                        continue;
+                    }
+                    $usedSignatures[$partialSignature] = true;
+                    $projectDataPartial = [];
+                    if ($brick && !$isBricklessWork) {
+                        $projectDataPartial['brick'] = $brick;
+                    }
+
+                    // Try to calculate grand total if we have complete materials
+                    // For brickless works (e.g., grout_tile), check if all required materials are available
+                    $canCalculate = true;
+                    foreach ($requiredMaterials as $matType) {
+                        if ($matType === 'ceramic' && (($workType ?? '') === 'grout_tile') && !empty($fallbackCeramic)) {
+                            // For grout_tile, fallback ceramic is acceptable
+                            continue;
+                        }
+                        if (empty($models[$matType])) {
+                            $canCalculate = false;
+                            break;
+                        }
+                    }
+
+                    $itemData = ['result' => ['grand_total' => null]] + $partialEntry;
+
+                    if ($canCalculate) {
+                        // Try to calculate the combination
+                        $cements = !empty($models['cement']) ? new \Illuminate\Database\Eloquent\Collection([$models['cement']]) : $emptyEloquent;
+                        $sands = !empty($models['sand']) ? new \Illuminate\Database\Eloquent\Collection([$models['sand']]) : $emptyEloquent;
+                        $cats = !empty($models['cat']) ? new \Illuminate\Database\Eloquent\Collection([$models['cat']]) : $emptyEloquent;
+                        $ceramics = !empty($models['ceramic']) ? new \Illuminate\Database\Eloquent\Collection([$models['ceramic']]) :
+                                   ((($workType ?? '') === 'grout_tile' && $fallbackCeramic) ? new \Illuminate\Database\Eloquent\Collection([$fallbackCeramic]) : $emptyEloquent);
+                        $nats = !empty($models['nat']) ? new \Illuminate\Database\Eloquent\Collection([$models['nat']]) : $emptyEloquent;
+
+                        try {
+                            $calculatedCombos = $comboService->calculateCombinationsFromMaterials(
+                                $brick,
+                                $requestData,
+                                $cements,
+                                $sands,
+                                $cats,
+                                $ceramics,
+                                $nats,
+                                'Populer',
+                                1,
+                            );
+
+                            if (!empty($calculatedCombos)) {
+                                $itemData = $calculatedCombos[0];
+                            }
+                        } catch (\Exception $e) {
+                            // If calculation fails, keep grand_total as null
+                        }
+                    }
+
+                    $populerRankedEntries[] = [
+                        'project' => $projectDataPartial,
+                        'item' => $itemData,
+                        'partial_entry' => $partialEntry,
+                    ];
                 }
             }
 
@@ -688,13 +1327,13 @@
                         $currentTotal = $combo['item']['result']['grand_total'];
                         $selectedTotal = $selectedCombination['item']['result']['grand_total'];
 
-                        if ($filterType === 'Premium') {
+                        if ($filterType === 'TerMAHAL') {
                             // Pick the HIGHEST price
                             if ($currentTotal > $selectedTotal) {
                                 $selectedCombination = $combo;
                             }
                         } else {
-                            // For Ekonomis, Moderat: pick the LOWEST price
+                            // For Ekonomis, Average: pick the LOWEST price
                             if ($currentTotal < $selectedTotal) {
                                 $selectedCombination = $combo;
                             }
@@ -713,26 +1352,64 @@
                 }
             }
 
-            if (!empty($populerCandidates)) {
-                $populerList = array_values($populerCandidates);
-                usort($populerList, function ($a, $b) {
-                    return $b['frequency'] <=> $a['frequency'];
-                });
-
+            if (!empty($populerRankedEntries)) {
                 $rank = 0;
-                foreach ($populerList as $entry) {
+                foreach ($populerRankedEntries as $entry) {
                     $rank++;
-                    if ($rank > 3) {
-                        break;
-                    }
                     $newKey = 'Populer ' . $rank;
-                    $project = $entry['combo']['project'];
-                    $item = $entry['combo']['item'];
-                    $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                    if (!empty($entry['partial_entry'])) {
+                        // Check if item has valid grand_total
+                        $grandTotal = $entry['item']['result']['grand_total'] ?? null;
+                        $rekapEntry = array_merge($entry['partial_entry'], ['filter_label' => $newKey]);
+
+                        // If grand_total is still null, try to find it from existing combinations with same material signature
+                        if ($grandTotal === null) {
+                            // For grout_tile, ignore ceramic_id in signature (only dimensions matter, not ceramic selection)
+                            $isGroutTile = ($workType ?? '') === 'grout_tile';
+                            $searchSignature = implode('-', [
+                                $isBricklessWork ? 0 : ($rekapEntry['brick_id'] ?? 0),
+                                $rekapEntry['cement_id'] ?? 0,
+                                $rekapEntry['sand_id'] ?? 0,
+                                $rekapEntry['cat_id'] ?? 0,
+                                $isGroutTile ? 0 : ($rekapEntry['ceramic_id'] ?? 0),
+                                $rekapEntry['nat_id'] ?? 0,
+                            ]);
+
+                            // Search in all projects combinations for matching material signature
+                            foreach ($projects as $searchProject) {
+                                foreach ($searchProject['combinations'] as $searchLabel => $searchItems) {
+                                    foreach ($searchItems as $searchItem) {
+                                        $itemSignature = implode('-', [
+                                            $isBricklessWork ? 0 : ($searchProject['brick']->id ?? 0),
+                                            $searchItem['cement']->id ?? 0,
+                                            $searchItem['sand']->id ?? 0,
+                                            $searchItem['cat']->id ?? 0,
+                                            $isGroutTile ? 0 : ($searchItem['ceramic']->id ?? 0),
+                                            $searchItem['nat']->id ?? 0,
+                                        ]);
+
+                                        if ($itemSignature === $searchSignature && isset($searchItem['result']['grand_total'])) {
+                                            $grandTotal = $searchItem['result']['grand_total'];
+                                            break 3; // Break out of all three loops
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if ($grandTotal !== null) {
+                            $rekapEntry['grand_total'] = $grandTotal;
+                        }
+                        $globalRekapData[$newKey] = $rekapEntry;
+                    } else {
+                        $project = $entry['project'];
+                        $item = $entry['item'];
+                        $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                    }
                 }
             }
 
-            $priceRankFilters = ['Ekonomis', 'Moderat', 'Premium'];
+            $priceRankFilters = ['Ekonomis', 'Average', 'TerMAHAL'];
             $needsPriceRanks = count(array_intersect($filterCategories, $priceRankFilters)) > 0;
             if ($needsPriceRanks) {
                 $allPriceCandidates = [];
@@ -759,8 +1436,8 @@
                 $totalCandidates = count($allPriceCandidates);
                 if ($totalCandidates > 0) {
                     $EkonomisLimit = min(3, $totalCandidates);
-                    $PremiumCount = min(3, $totalCandidates);
-                    $PremiumStartIndex = $totalCandidates - $PremiumCount;
+                    $TerMAHALCount = min(3, $totalCandidates);
+                    $TerMAHALStartIndex = $totalCandidates - $TerMAHALCount;
 
                     if (in_array('Ekonomis', $filterCategories, true)) {
                         for ($i = 0; $i < $EkonomisLimit; $i++) {
@@ -770,24 +1447,46 @@
                         }
                     }
 
-                    if (in_array('Premium', $filterCategories, true)) {
-                        for ($i = 0; $i < $PremiumCount; $i++) {
-                            $key = 'Premium ' . ($i + 1);
-                            $combo = $allPriceCandidates[$PremiumStartIndex + $i];
+                    if (in_array('TerMAHAL', $filterCategories, true)) {
+                        for ($i = 0; $i < $TerMAHALCount; $i++) {
+                            $key = 'TerMAHAL ' . ($i + 1);
+                            $combo = $allPriceCandidates[$TerMAHALStartIndex + $i];
                             $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
                         }
                     }
 
-                    if (in_array('Moderat', $filterCategories, true)) {
-                        $middleIndex = (int) floor(($totalCandidates - 1) / 2);
-                        $startIndex = max(0, $middleIndex - 1);
-                        $medianCombos = array_slice($allPriceCandidates, $startIndex, 3);
-                        $medianRank = 0;
+                    if (in_array('Average', $filterCategories, true)) {
+                        $sumTotal = array_sum(array_map(fn ($row) => $row['grand_total'], $allPriceCandidates));
+                        $averageTotal = $totalCandidates > 0 ? ($sumTotal / $totalCandidates) : 0;
+                        $closestIndex = 0;
+                        $closestDiff = null;
 
-                        foreach ($medianCombos as $combo) {
-                            $medianRank++;
-                            $key = 'Moderat ' . $medianRank;
+                        foreach ($allPriceCandidates as $idx => $combo) {
+                            $diff = abs($combo['grand_total'] - $averageTotal);
+                            if ($closestDiff === null || $diff < $closestDiff) {
+                                $closestDiff = $diff;
+                                $closestIndex = $idx;
+                            }
+                        }
+
+                        $averageRank = 1;
+                        if (isset($allPriceCandidates[$closestIndex])) {
+                            $combo = $allPriceCandidates[$closestIndex];
+                            $key = 'Average 1';
                             $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                            $lastPrice = $combo['grand_total'];
+                            $averageRank = 2;
+
+                            for ($i = $closestIndex + 1; $i < $totalCandidates && $averageRank <= 3; $i++) {
+                                $candidatePrice = $allPriceCandidates[$i]['grand_total'];
+                                if ($candidatePrice <= $lastPrice) {
+                                    continue;
+                                }
+                                $key = 'Average ' . $averageRank;
+                                $globalRekapData[$key] = $buildRekapEntry($allPriceCandidates[$i]['project'], $allPriceCandidates[$i]['item'], $key);
+                                $lastPrice = $candidatePrice;
+                                $averageRank++;
+                            }
                         }
                     }
                 }
@@ -802,6 +1501,11 @@
                 }
                 return $fallback;
             };
+
+            if (($workType ?? '') === 'grout_tile') {
+                $hasBrick = false;
+                $hasCeramic = false;
+            }
 
             // Generate color mapping for combinations
             $globalColorMap = [];
@@ -889,6 +1593,20 @@
 
             $signatureWorkType = $requestData['work_type'] ?? 'unknown';
             $buildCombinationSignature = function ($row) use ($signatureWorkType) {
+                // For grout_tile, ceramic_id is not relevant for matching (only used for dimensions)
+                // Only nat_id matters for identifying the same combination
+                if ($signatureWorkType === 'grout_tile') {
+                    return implode('-', [
+                        $signatureWorkType,
+                        0, // brick_id (not used)
+                        0, // cement_id (not used)
+                        0, // sand_id (not used)
+                        0, // cat_id (not used)
+                        0, // ceramic_id (ignore - only for dimensions)
+                        $row['nat_id'] ?? 0, // nat_id (the only material that matters)
+                    ]);
+                }
+
                 return implode('-', [
                     $signatureWorkType,
                     $row['brick_id'] ?? 0,
@@ -977,6 +1695,9 @@
                             foreach ($p['combinations'] as $label => $items) {
                                 foreach ($items as $item) {
                                     if (isset($globalRekapData[$key]) &&
+                                        !empty($globalRekapData[$key]['brick_id']) &&
+                                        isset($p['brick']) &&
+                                        $p['brick'] &&
                                         $p['brick']->id === $globalRekapData[$key]['brick_id']) {
                                         $project = $p;
                                         break 3;
@@ -1235,14 +1956,15 @@
 
                     {{-- ===== GRUP TAMBAHAN: Parameter Lainnya ===== --}}
 
-                    {{-- Tebal Spesi / Lapis Cat --}}
+                    {{-- Tebal Spesi (tidak untuk Pasang Nat atau Pengecatan) --}}
+                    @if(!isset($requestData['work_type']) || (!in_array($requestData['work_type'], ['grout_tile', 'painting', 'wall_painting'])))
                     <div style="flex: 0 0 auto; width: 100px;">
                         @php
-                            $isPainting = (isset($requestData['work_type']) && $requestData['work_type'] === 'painting');
-                            $paramLabel = $isPainting ? 'LAPIS' : 'TEBAL ADUKAN';
-                            $paramUnit = $isPainting ? 'Lapis' : 'cm';
-                            $paramValue = $isPainting ? ($requestData['painting_layers'] ?? 2) : ($requestData['mortar_thickness'] ?? 2.0);
-                            $badgeClass = $isPainting ? 'bg-primary text-white' : 'bg-light';
+                            // Logic simplified: this block is now only for mortar thickness
+                            $paramLabel = 'TEBAL ADUKAN';
+                            $paramUnit = 'cm';
+                            $paramValue = $requestData['mortar_thickness'] ?? 2.0;
+                            $badgeClass = 'bg-light';
                         @endphp
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
                             <span class="badge {{ $badgeClass }} border">{{ $paramLabel }}</span>
@@ -1252,6 +1974,7 @@
                             <span class="input-group-text bg-light small px-1" style="font-size: 0.7rem;">{{ $paramUnit }}</span>
                         </div>
                     </div>
+                    @endif
 
                     {{-- Tingkat (hanya untuk Rollag) --}}
                     @if(isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag')
@@ -1293,13 +2016,13 @@
                     @endif
 
                     {{-- Lapis Pengecatan --}}
-                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'wall_painting')
+                    @if(isset($requestData['work_type']) && ($requestData['work_type'] === 'wall_painting' || $requestData['work_type'] === 'painting'))
                     <div style="flex: 0 0 auto; width: 120px;">
                         <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
                             <span class="badge bg-primary text-white border border-primary">LAPIS CAT</span>
                         </label>
                         <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1" style="background-color: #dbeafe; border-color: #3b82f6;">{{ $requestData['paint_layers'] ?? 1 }}</div>
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #dbeafe; border-color: #3b82f6;">{{ $requestData['layer_count'] ?? $requestData['paint_layers'] ?? $requestData['painting_layers'] ?? 1 }}</div>
                             <span class="input-group-text bg-primary text-white small px-1" style="font-size: 0.7rem;">Lapisan</span>
                         </div>
                     </div>
@@ -1340,6 +2063,19 @@
                         <div class="input-group">
                             <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_width'] }}</div>
                             <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">cm</span>
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Tebal Keramik (untuk Pasang Nat saja) --}}
+                    @if(isset($requestData['work_type']) && $requestData['work_type'] === 'grout_tile' && isset($requestData['ceramic_thickness']))
+                    <div style="flex: 0 0 auto; width: 110px;">
+                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start" style="font-size: 0.75rem;">
+                            <span class="badge text-white border" style="background-color: #f59e0b;">T. KERAMIK</span>
+                        </label>
+                        <div class="input-group">
+                            <div class="form-control fw-bold text-center px-1" style="background-color: #fef3c7; border-color: #fde047;">{{ $requestData['ceramic_thickness'] }}</div>
+                            <span class="input-group-text text-white small px-1" style="background-color: #f59e0b; font-size: 0.7rem;">mm</span>
                         </div>
                     </div>
                     @endif
@@ -1422,6 +2158,13 @@
                                         $catBgColor = $catColorMap[$key] ?? '#ffffff';
                                         $natBgColor = $natColorMap[$key] ?? '#ffffff';
                                         $ceramicBgColor = $ceramicColorMap[$key] ?? '#ffffff';
+                                        $isPopulerRow = $filterType === 'Populer';
+                                        $brickPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('brick', $globalRekapData[$key]['brick_id'] ?? null) : null;
+                                        $cementPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('cement', $globalRekapData[$key]['cement_id'] ?? null) : null;
+                                        $sandPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('sand', $globalRekapData[$key]['sand_id'] ?? null) : null;
+                                        $catPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('cat', $globalRekapData[$key]['cat_id'] ?? null) : null;
+                                        $ceramicPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('ceramic', $globalRekapData[$key]['ceramic_id'] ?? null) : null;
+                                        $natPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('nat', $globalRekapData[$key]['nat_id'] ?? null) : null;
 
                                         // Get label color untuk kolom Rekap
                                         $labelColor = $rekapLabelColors[$filterType][$rank] ?? ['bg' => '#ffffff', 'text' => '#000000'];
@@ -1436,14 +2179,18 @@
 
                                         {{-- Column 2: Grand Total --}}
                                         <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); {{ $grandTotalBg ? 'background: ' . $grandTotalBg . ';' : '' }} padding: 4px 8px; vertical-align: middle; width: 120px; min-width: 120px;">
-                                            @if(isset($globalRekapData[$key]))
-                                                <div class="d-flex justify-content-between w-100">
+                                        @if(isset($globalRekapData[$key]))
+                                            <div class="d-flex justify-content-between w-100">
+                                                @if(isset($globalRekapData[$key]['grand_total']) && $globalRekapData[$key]['grand_total'] !== null)
                                                     <span>Rp</span>
                                                     <span>@price($globalRekapData[$key]['grand_total'])</span>
-                                                </div>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
+                                                @else
+                                                    <span class="text-muted">-</span>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
                                         </td>
 
                                         {{-- Column 3: Merek Bata --}}
@@ -1451,7 +2198,10 @@
                                         <td style="background: {{ $brickBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
                                                 <div title="Grand Total: @currency($globalRekapData[$key]['grand_total'])">
-                                                    {{ $globalRekapData[$key]['brick_brand'] }}
+                                                    {{ $globalRekapData[$key]['brick_brand'] ?? '-' }}
+                                                @if($isPopulerRow && $brickPercent)
+                                                    <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;">Populer {{ $brickPercent }}%</span>
+                                                @endif
                                                 </div>
                                             @else
                                                 <span class="text-muted">-</span>
@@ -1461,7 +2211,7 @@
                                         {{-- Column 4: Detail Bata --}}
                                         <td class="text-muted small" style="background: {{ $brickBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
                                             @if(isset($globalRekapData[$key]))
-                                                {{ $globalRekapData[$key]['brick_detail'] }}
+                                                {{ $globalRekapData[$key]['brick_detail'] ?? '-' }}
                                             @else
                                                 -
                                             @endif
@@ -1472,7 +2222,10 @@
                                         @if($hasCement)
                                         <td style="background: {{ $cementBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
-                                                {{ $globalRekapData[$key]['cement_brand'] }}
+                                                {{ $globalRekapData[$key]['cement_brand'] ?? '-' }}
+                                                @if($isPopulerRow && $cementPercent)
+                                                    <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;">Populer {{ $cementPercent }}%</span>
+                                                @endif
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
@@ -1481,7 +2234,7 @@
                                         {{-- Column 6: Detail Semen --}}
                                         <td class="text-muted small" style="background: {{ $cementBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
                                             @if(isset($globalRekapData[$key]))
-                                                {{ $globalRekapData[$key]['cement_detail'] }}
+                                                {{ $globalRekapData[$key]['cement_detail'] ?? '-' }}
                                             @else
                                                 -
                                             @endif
@@ -1492,7 +2245,10 @@
                                         @if($hasSand)
                                         <td style="background: {{ $sandBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]))
-                                                {{ $globalRekapData[$key]['sand_brand'] }}
+                                                {{ $globalRekapData[$key]['sand_brand'] ?? '-' }}
+                                                @if($isPopulerRow && $sandPercent)
+                                                    <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;">Populer {{ $sandPercent }}%</span>
+                                                @endif
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
@@ -1501,7 +2257,7 @@
                                         {{-- Column 8: Detail Pasir --}}
                                         <td class="text-muted small" style="background: {{ $sandBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['sand_brand']))
-                                                {{ $globalRekapData[$key]['sand_detail'] }}
+                                                {{ $globalRekapData[$key]['sand_detail'] ?? '-' }}
                                             @else
                                                 -
                                             @endif
@@ -1512,61 +2268,71 @@
                                         @if($hasCat)
                                         <td style="background: {{ $catBgColor }}; vertical-align: middle;">
                                             @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_brand']))
-                                                {{ $globalRekapData[$key]['cat_brand'] }}
+                                                {{ $globalRekapData[$key]['cat_brand'] ?? '-' }}
+                                                @if($isPopulerRow && $catPercent)
+                                                    <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;">Populer {{ $catPercent }}%</span>
+                                                @endif
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
                                         </td>
 
-                                                                                    {{-- Column 10: Detail Cat --}}
-                                                                                    <td class="text-muted small" style="background: {{ $catBgColor }}; vertical-align: middle;">
-                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_detail']))
-                                                                                            {{ $globalRekapData[$key]['cat_detail'] }}
-                                                                                        @else
-                                                                                            -
-                                                                                        @endif
-                                                                                    </td>
-                                                                                    @endif
+                                        {{-- Column 10: Detail Cat --}}
+                                        <td class="text-muted small" style="background: {{ $catBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_detail']))
+                                                {{ $globalRekapData[$key]['cat_detail'] ?? '-' }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        @endif
                                         
-                                                                                    {{-- Column 11: Merek Keramik --}}
-                                                                                    @if($hasCeramic)
-                                                                                    <td style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
-                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_brand']))
-                                                                                            {{ $globalRekapData[$key]['ceramic_brand'] }}
-                                                                                        @else
-                                                                                            <span class="text-muted">-</span>
-                                                                                        @endif
-                                                                                    </td>
+                                        {{-- Column 11: Merek Keramik --}}
+                                        @if($hasCeramic)
+                                        <td style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_brand']))
+                                                {{ $globalRekapData[$key]['ceramic_brand'] ?? '-' }}
+                                                @if($isPopulerRow && $ceramicPercent)
+                                                    <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;">Populer {{ $ceramicPercent }}%</span>
+                                                @endif
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
                                         
-                                                                                    {{-- Column 12: Detail Keramik --}}
-                                                                                    <td class="text-muted small" style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
-                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_detail']))
-                                                                                            {{ $globalRekapData[$key]['ceramic_detail'] }}
-                                                                                        @else
-                                                                                            -
-                                                                                        @endif
-                                                                                    </td>
-                                                                                    @endif
+                                        {{-- Column 12: Detail Keramik --}}
+                                        <td class="text-muted small" style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_detail']))
+                                                {{ $globalRekapData[$key]['ceramic_detail'] ?? '-' }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        @endif
                                         
-                                                                                    {{-- Column 13: Merek Nat --}}
-                                                                                    @if($hasNat)
-                                                                                    <td style="background: {{ $natBgColor }}; vertical-align: middle;">
-                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_brand']))
-                                                                                            {{ $globalRekapData[$key]['nat_brand'] }}
-                                                                                        @else
-                                                                                            <span class="text-muted">-</span>
-                                                                                        @endif
-                                                                                    </td>
-                                        
-                                                                                    {{-- Column 14: Detail Nat --}}
-                                                                                    <td class="text-muted small" style="background: {{ $natBgColor }}; vertical-align: middle;">
-                                                                                        @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_detail']))
-                                                                                            {{ $globalRekapData[$key]['nat_detail'] }}
-                                                                                        @else
-                                                                                            -
-                                                                                        @endif
-                                                                                    </td>
-                                                                                    @endif                                    </tr>
+                                        {{-- Column 13: Merek Nat --}}
+                                        @if($hasNat)
+                                        <td style="background: {{ $natBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_brand']))
+                                                {{ $globalRekapData[$key]['nat_brand'] ?? '-' }}
+                                                @if($isPopulerRow && $natPercent)
+                                                    <span class="badge rounded-pill text-bg-primary" style="font-size: 0.7rem;">Populer {{ $natPercent }}%</span>
+                                                @endif
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+
+                                        {{-- Column 14: Detail Nat --}}
+                                        <td class="text-muted small" style="background: {{ $natBgColor }}; vertical-align: middle;">
+                                            @if(isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_detail']))
+                                                {{ $globalRekapData[$key]['nat_detail'] ?? '-' }}
+                                            @else
+                                                -
+                                            @endif
+                                        </td>
+                                        @endif
+                                    </tr>
                                 @endforeach
                             @endforeach
                         </tbody>
@@ -1806,7 +2572,10 @@
                                                         // Search through ALL projects to find the matching combination
                                                         foreach ($projects as $project) {
                                                             // Check if this project uses the brick from recap
-                                                            if ($rekapData['brick_id'] === $project['brick']->id) {
+                                                            if (!empty($rekapData['brick_id']) &&
+                                                                isset($project['brick']) &&
+                                                                $project['brick'] &&
+                                                                $rekapData['brick_id'] === $project['brick']->id) {
                                                                 // Find the matching combination in this project
                                                                 foreach ($project['combinations'] as $label => $items) {
                                                                     foreach ($items as $item) {
@@ -1930,6 +2699,25 @@
                                                 $formatRaw = function($num, $decimals = 6) {
                                                     return \App\Helpers\NumberHelper::format($num, $decimals);
                                                 };
+                                                $catDetailDisplayParts = [];
+                                                $catDetailExtraParts = [];
+                                                $catSubBrand = isset($item['cat']) ? trim((string)($item['cat']->sub_brand ?? '')) : '';
+                                                $catCode = isset($item['cat']) ? trim((string)($item['cat']->color_code ?? '')) : '';
+                                                $catColor = isset($item['cat']) ? trim((string)($item['cat']->color_name ?? '')) : '';
+                                                if ($catSubBrand !== '') $catDetailDisplayParts[] = $catSubBrand;
+                                                if ($catCode !== '') $catDetailDisplayParts[] = $catCode;
+                                                if ($catColor !== '') $catDetailDisplayParts[] = $catColor;
+                                                $catDetailDisplay = !empty($catDetailDisplayParts) ? implode(' - ', $catDetailDisplayParts) : '-';
+
+                                                $catPackageUnit = isset($item['cat']) ? trim((string)($item['cat']->package_unit ?? '')) : '';
+                                                $catVolume = isset($item['cat']) ? ($item['cat']->volume ?? null) : null;
+                                                $catVolumeUnit = isset($item['cat']) ? ($item['cat']->volume_unit ?? 'L') : 'L';
+                                                if ($catPackageUnit !== '') $catDetailExtraParts[] = $catPackageUnit;
+                                                if (!empty($catVolume) && $catVolume > 0) $catDetailExtraParts[] = $formatNum($catVolume) . ' ' . $catVolumeUnit;
+                                                if (isset($item['cat']) && ($item['cat']->package_weight_net ?? null) !== null) {
+                                                    $catDetailExtraParts[] = 'Berat bersih ' . $formatNum($item['cat']->package_weight_net) . ' Kg';
+                                                }
+                                                $catDetailExtra = !empty($catDetailExtraParts) ? implode(' - ', $catDetailExtraParts) : '-';
 
                                                 // ========================================
                                                 // DYNAMIC MATERIAL CONFIGURATION
@@ -2026,8 +2814,8 @@
                                                         'object' => $item['cat'] ?? null,
                                                         'type_field' => 'type',
                                                         'brand_field' => 'brand',
-                                                        'detail_display' => isset($item['cat']) ? ($item['cat']->color_name ?? '-') : '-',
-                                                        'detail_extra' => isset($item['cat']) ? ($formatNum($item['cat']->package_weight_net) . ' Kg') : '-',
+                                                        'detail_display' => $catDetailDisplay,
+                                                        'detail_extra' => $catDetailExtra,
                                                         'store_field' => 'store',
                                                         'address_field' => 'address',
                                                         'package_price' => isset($item['cat']) ? ($item['cat']->purchase_price ?? 0) : 0,
@@ -2156,12 +2944,12 @@
                                                                     2 => ['bg' => '#a7f3d0', 'border' => '#6ee7b7', 'text' => '#16a34a'],
                                                                     3 => ['bg' => '#d1fae5', 'border' => '#a7f3d0', 'text' => '#22c55e'],
                                                                 ],
-                                                                'Moderat' => [
+                                                                'Average' => [
                                                                     1 => ['bg' => '#fcd34d', 'border' => '#fbbf24', 'text' => '#92400e'],
                                                                     2 => ['bg' => '#fde68a', 'border' => '#fcd34d', 'text' => '#b45309'],
                                                                     3 => ['bg' => '#fef3c7', 'border' => '#fde68a', 'text' => '#d97706'],
                                                                 ],
-                                                                'Premium' => [
+                                                                'TerMAHAL' => [
                                                                     1 => ['bg' => '#d8b4fe', 'border' => '#c084fc', 'text' => '#6b21a8'],
                                                                     2 => ['bg' => '#e9d5ff', 'border' => '#d8b4fe', 'text' => '#7c3aed'],
                                                                     3 => ['bg' => '#f3e8ff', 'border' => '#e9d5ff', 'text' => '#9333ea'],
@@ -2998,14 +3786,7 @@
     @php
         $allPriceRows = [];
         $bestRows = [];
-        $commonRows = [];
         $hasAllPriceBrick = false;
-        if (!isset($historicalFrequencyByBrick)) {
-            $historicalFrequencyByBrick = [];
-        }
-        if (!isset($historicalFrequencyGlobal)) {
-            $historicalFrequencyGlobal = [];
-        }
         foreach ($projects as $project) {
             $brick = $project['brick'] ?? null;
             $brickLabel = '';
@@ -3029,53 +3810,27 @@
                     ];
 
                     $bestLabel = null;
-                    $commonLabel = null;
                     foreach ($labelParts as $part) {
                         if ($bestLabel === null && str_starts_with($part, 'Rekomendasi')) {
                             $bestLabel = $part;
-                        }
-                        if ($commonLabel === null && str_starts_with($part, 'Populer')) {
-                            $commonLabel = $part;
-                        }
-                    }
-
-                    if ($commonLabel) {
-                        $sourceFilters = $item['source_filters'] ?? (($item['filter_type'] ?? null) ? [$item['filter_type']] : []);
-                        $isCommonFromHistory = in_array('common', $sourceFilters, true);
-
-                        if ($isCommonFromHistory) {
-                            $freqSignature = implode('-', [
-                                $item['cement']->id ?? 0,
-                                $item['sand']->id ?? 0,
-                                $item['cat']->id ?? 0,
-                                $item['ceramic']->id ?? 0,
-                                $item['nat']->id ?? 0,
-                            ]);
-                            $brickId = $brick->id ?? null;
-
-                            $isBricklessWork = $isBrickless ?? false;
-                            if ($brickId && !$isBricklessWork) {
-                                $frequency = (int) ($historicalFrequencyByBrick[$brickId][$freqSignature] ?? 0);
-                            } else {
-                                $frequency = (int) ($historicalFrequencyGlobal[$freqSignature] ?? 0);
-                            }
-
-                            if ($frequency <= 0) {
-                                $isCommonFromHistory = false;
-                            }
-                        }
-
-                        if (!$isCommonFromHistory) {
-                            $commonLabel = null;
                         }
                     }
                     if ($bestLabel) {
                         $bestRows[] = $rowBase + ['display_label' => $bestLabel];
                     }
-                    if ($commonLabel) {
-                        $commonRows[] = $rowBase + ['display_label' => $commonLabel];
-                    }
                     $allPriceRows[] = $rowBase;
+                }
+            }
+        }
+        $commonRows = [];
+        if (isset($globalRekapData)) {
+            foreach ($globalRekapData as $label => $row) {
+                if (str_starts_with($label, 'Populer')) {
+                    $commonRows[] = [
+                        'display_label' => $label,
+                        'brick' => $row['brick_brand'] ?? '',
+                        'grand_total' => (float)($row['grand_total'] ?? 0),
+                    ];
                 }
             }
         }
@@ -3101,13 +3856,36 @@
         });
         $sortedCount = count($allPriceRows);
         $EkonomisLimit = min(3, $sortedCount);
-        $PremiumStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
-        $middleStart = 0;
-        $middleEnd = -1;
+        $TerMAHALStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
+        $averageIndexMap = [];
         if ($sortedCount > 0) {
-            $middleIndex = (int) floor(($sortedCount - 1) / 2);
-            $middleStart = max(0, $middleIndex - 1);
-            $middleEnd = min($sortedCount - 1, $middleStart + 2);
+            $sumTotals = array_sum(array_map(fn ($row) => $row['grand_total'], $allPriceRows));
+            $averageTotal = $sumTotals / $sortedCount;
+            $closestIndex = 0;
+            $closestDiff = null;
+
+            foreach ($allPriceRows as $idx => $row) {
+                $diff = abs($row['grand_total'] - $averageTotal);
+                if ($closestDiff === null || $diff < $closestDiff) {
+                    $closestDiff = $diff;
+                    $closestIndex = $idx;
+                }
+            }
+
+            $averageIndices = [$closestIndex];
+            $lastPrice = $allPriceRows[$closestIndex]['grand_total'];
+            for ($i = $closestIndex + 1; $i < $sortedCount && count($averageIndices) < 3; $i++) {
+                $candidatePrice = $allPriceRows[$i]['grand_total'];
+                if ($candidatePrice <= $lastPrice) {
+                    continue;
+                }
+                $averageIndices[] = $i;
+                $lastPrice = $candidatePrice;
+            }
+
+            foreach ($averageIndices as $rank => $idx) {
+                $averageIndexMap[$idx] = $rank + 1;
+            }
         }
 
         $sortedIndex = 0;
@@ -3115,12 +3893,12 @@
             $sortedIndex++;
             $row['index'] = $sortedIndex;
             $displayLabel = 'Harga ' . $sortedIndex;
-            if ($sortedIndex <= $EkonomisLimit) {
+            if (isset($averageIndexMap[$sortedIndex - 1])) {
+                $displayLabel = 'Average ' . $averageIndexMap[$sortedIndex - 1];
+            } elseif ($sortedIndex <= $EkonomisLimit) {
                 $displayLabel = 'Ekonomis ' . $sortedIndex;
-            } elseif ($sortedIndex >= $PremiumStart) {
-                $displayLabel = 'Premium ' . ($sortedIndex - $PremiumStart + 1);
-            } elseif ($sortedIndex - 1 >= $middleStart && $sortedIndex - 1 <= $middleEnd) {
-                $displayLabel = 'Moderat ' . ($sortedIndex - $middleStart);
+            } elseif ($sortedIndex >= $TerMAHALStart) {
+                $displayLabel = 'TerMAHAL ' . ($sortedIndex - $TerMAHALStart + 1);
             }
             $row['display_label'] = $displayLabel;
         }
@@ -3199,7 +3977,7 @@
                             </div>
                         @endif
 
-                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; Premium)</div>
+                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; TerMAHAL)</div>
                         <div class="table-responsive">
                             <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                 <thead>
@@ -3272,7 +4050,24 @@
     // When submitting the form (moving forward to Result), replace the CURRENT history entry (Preview)
     // with the URL of the Create page. This ensures that hitting "Back" from Result goes straight to Create.
     document.addEventListener('DOMContentLoaded', () => {
-        const createPageUrl = "{{ request('referrer') ?? route('material-calculations.create') }}";
+        const baseCreateUrl = "{{ $requestData['referrer'] ?? route('material-calculations.create') }}";
+        const createPageUrl = baseCreateUrl.includes('?')
+            ? `${baseCreateUrl}&resume=1`
+            : `${baseCreateUrl}?resume=1`;
+
+        const sessionPayload = @json($requestData ?? []);
+        if (sessionPayload && Object.keys(sessionPayload).length) {
+            try {
+                localStorage.setItem('materialCalculationSession', JSON.stringify({
+                    updatedAt: Date.now(),
+                    data: sessionPayload,
+                    autoSubmit: false,
+                    normalized: true,
+                }));
+            } catch (error) {
+                console.warn('Failed to cache calculation session', error);
+            }
+        }
         
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', () => {
@@ -3284,7 +4079,7 @@
         const btnReset = document.getElementById('btnResetSession');
         if (btnReset) {
             btnReset.addEventListener('click', function() {
-                window.location.href = "{{ route('material-calculations.create') }}";
+                window.location.href = createPageUrl;
             });
         }
 

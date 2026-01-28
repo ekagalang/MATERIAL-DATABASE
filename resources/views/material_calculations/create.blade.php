@@ -19,6 +19,16 @@
     $selectedWorkTypeLabel = $selectedWorkType
         ? ($formulaNames[$selectedWorkType] ?? $selectedWorkType)
         : '';
+
+    $materialTypeLabels = [
+        'brick' => 'Bata',
+        'cement' => 'Semen',
+        'sand' => 'Pasir',
+        'cat' => 'Cat',
+        'ceramic' => 'Keramik',
+        'nat' => 'Nat',
+    ];
+    $selectedMaterialTypeFilters = old('material_type_filters') ?? (request('material_type_filters') ?? []);
     
     // Cek Single Brick (Carry Over)
     $isSingleCarryOver = request()->has('brick_id');
@@ -183,15 +193,65 @@
                                     <span class="unit" style="background-color: #fef08a;">cm</span>
                                 </div>
                             </div>
+
+                            <div class="dimension-item" id="ceramicThicknessGroup" style="display: none;">
+                                <label>Tebal Keramik</label>
+                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                    <input type="number" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ request('ceramic_thickness', 8) }}">
+                                    <span class="unit" style="background-color: #fef08a;">mm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="material-type-filter-group" id="materialTypeFilterGroup" style="display: none;">
+                            @foreach($materialTypeLabels as $materialKey => $materialLabel)
+                                @php
+                                    $selectedTypeValue = $selectedMaterialTypeFilters[$materialKey] ?? '';
+                                @endphp
+                        <div class="form-group material-type-filter-item" data-material-type="{{ $materialKey }}" style="display: none;">
+                                    @php
+                                        $labelText = $materialKey === 'ceramic' ? 'Ukuran Keramik' : ('Jenis ' . $materialLabel);
+                                        $placeholderText = $materialKey === 'ceramic'
+                                            ? 'Pilih atau ketik ukuran keramik...'
+                                            : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...';
+                                    @endphp
+                                    <label>{{ $labelText }}</label>
+                                    <div class="input-wrapper">
+                                        <div class="work-type-autocomplete">
+                                            <div class="work-type-input">
+                                                <input type="text"
+                                                       id="materialTypeDisplay-{{ $materialKey }}"
+                                                       class="autocomplete-input"
+                                                       placeholder="{{ $placeholderText }}"
+                                                       autocomplete="off"
+                                                       value="{{ $selectedTypeValue }}">
+                                            </div>
+                                            <div class="autocomplete-list" id="materialType-list-{{ $materialKey }}"></div>
+                                        </div>
+                                        <input type="hidden"
+                                               id="materialTypeSelector-{{ $materialKey }}"
+                                               name="material_type_filters[{{ $materialKey }}]"
+                                               value="{{ $selectedTypeValue }}">
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="button" id="btnResetForm" class="btn-cancel" style="padding: 5px 20px;">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                {{-- CERAMIC FILTERS - ONLY FOR TILE INSTALLATION --}}
-                    <div class="filter-section" id="ceramicFilterSection" style="display: none;">
-                        <label class="filter-section-title">+ Filter Keramik:</label>
 
-                        {{-- Jenis Keramik - Dynamic from Database --}}
+            <!-- 
+                {{-- CERAMIC FILTERS - ONLY FOR TILE INSTALLATION --}}
+                <div class="filter-section" id="ceramicFilterSection" style="display: none;">
+                    <label class="filter-section-title">+ Filter Keramik:</label>
+
+                    {{-- Jenis Keramik - Dynamic from Database --}}
                         @if(isset($ceramicTypes) && $ceramicTypes->count() > 0)
                         <div class="form-group ceramic-filter-row">
                             <label class="ceramic-filter-label">
@@ -233,94 +293,86 @@
                         </div>
                         @endif
                     </div>
-            </div>
+                    -->
+                </div>
+
 
             {{-- RIGHT COLUMN: FILTERS --}}
             <div class="right-column">
-                    {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
-                    <div class="filter-section">
-                        <label class="filter-section-title">+ Filter by:</label>
-                        <div class="filter-tickbox-list">
-                            <div class="tickbox-item">
-                                <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
-                                <label for="filter_all">
-                                    <span class="tickbox-title">
-                                        Semua
-                                    </span>
-                                    <span class="tickbox-desc">Menampilkan semua kombinasi material</span>
-                                </label>
-                            </div>
+                {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
+                <div class="filter-section">
+                    <label class="filter-section-title">+ Filter by:</label>
+                    <div class="filter-tickbox-list">
+                        <div class="tickbox-item">
+                            <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
+                            <label for="filter_all">
+                                <span class="tickbox-title">
+                                    Semua - Menampilkan semua kombinasi material
+                                </span>
+                            </label>
+                        </div>
 
-                            <div class="tickbox-item position-relative">
-                                <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
-                                <label for="filter_best">
-                                    <span class="tickbox-title">
-                                        Rekomendasi
-                                    </span>
-                                    <span class="tickbox-desc">3 kombinasi Most Recommended (Custom Setting)</span>
-                                </label>
-                                <a href="{{ route('settings.recommendations.index') }}" 
-                                   class="position-absolute top-0 end-0 mt-1 me-1 p-1" 
-                                   style="z-index: 5; color: #000000 !important;" 
-                                   title="Setting Rekomendasi"
-                                   onclick="event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
-                                    <i class="bi bi-gear-fill"></i>
-                                </a>
-                            </div>
+                        <div class="tickbox-item position-relative">
+                            <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
+                            <label for="filter_best">
+                                <span class="tickbox-title">
+                                    Rekomendasi - 3 Kombinasi Most Recommended (Custom Setting)
+                                </span>
+                            </label>
+                            <a href="{{ route('settings.recommendations.index') }}" 
+                               class="position-absolute top-0 end-0 mt-1 me-1 p-1" 
+                               style="z-index: 5; color: #000000 !important;" 
+                               title="Setting Rekomendasi"
+                               onclick="event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
+                                <i class="bi bi-gear-fill"></i>
+                            </a>
+                        </div>
 
-                            <div class="tickbox-item">
-                                <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
-                                <label for="filter_common">
-                                    <span class="tickbox-title">
-                                        Populer
-                                    </span>
-                                    <span class="tickbox-desc">3 kombinasi yang paling sering dihitung user</span>
-                                </label>
-                            </div>
+                        <div class="tickbox-item">
+                            <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
+                            <label for="filter_common">
+                                <span class="tickbox-title">
+                                    Populer - Kombinasi yang paling sering dihitung user     
+                                </span>
+                            </label>
+                        </div>
 
-                            <div class="tickbox-item">
-                                <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
-                                <label for="filter_cheapest">
-                                    <span class="tickbox-title">
-                                        Ekonomis
-                                    </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan total harga Ekonomis</span>
-                                </label>
-                            </div>
+                        <div class="tickbox-item">
+                            <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
+                            <label for="filter_cheapest">
+                                <span class="tickbox-title">
+                                    Ekonomis - 3 kombinasi dengan total harga Ekonomis
+                                </span>
+                            </label>
+                        </div>
 
-                            <div class="tickbox-item">
-                                <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
-                                <label for="filter_medium">
-                                    <span class="tickbox-title">
-                                        Moderat
-                                    </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan harga menengah</span>
-                                </label>
-                            </div>
+                        <div class="tickbox-item">
+                            <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
+                            <label for="filter_medium">
+                                <span class="tickbox-title">
+                                    Average - 3 kombinasi dengan harga rata-rata
+                                </span>
+                            </label>
+                        </div>
 
-                            <div class="tickbox-item">
-                                <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
-                                <label for="filter_expensive">
-                                    <span class="tickbox-title">
-                                        Premium
-                                    </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan total harga Premium</span>
-                                </label>
-                            </div>
+                        <div class="tickbox-item">
+                            <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
+                            <label for="filter_expensive">
+                                <span class="tickbox-title">
+                                    TerMAHAL - 3 kombinasi dengan total harga TerMAHAL
+                                </span>
+                            </label>
+                        </div>
 
-                            <div class="tickbox-item">
-                                <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
-                                <label for="filter_custom">
-                                    <span class="tickbox-title">
-                                        Custom
-                                    </span>
-                                    <span class="tickbox-desc">Pilih material sendiri secara manual</span>
-                                </label>
-                            </div>
+                        <div class="tickbox-item">
+                            <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
+                            <label for="filter_custom">
+                                <span class="tickbox-title">
+                                    Custom - Pilih material sendiri secara manual
+                                </span>
+                            </label>
                         </div>
                     </div>
-
-                    
 
                     {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
                     <div id="customMaterialForm" style="display:none; margin-top:16px;">
@@ -516,14 +568,13 @@
                             </div>
                         </div>
                     </div>
+                    <div class="button-actions">
+                        <button type="submit" class="btn btn-submit">
+                            <i class="bi bi-search"></i> Hitung
+                        </button>
+                    </div>
                 </div>
 
-        </div>
-
-        <div class="button-actions">
-            <button type="submit" class="btn btn-submit">
-                <i class="bi bi-search"></i> Hitung
-            </button>
         </div>
     </form>
 @endsection
@@ -534,6 +585,11 @@
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         font-size: 32px;
+    }
+
+    .material-type-filter-group {
+        margin-top: 16px;
+        display: block;
     }
 </style>
 
@@ -650,6 +706,7 @@
         const groutThicknessGroup = document.getElementById('groutThicknessGroup');
         const ceramicLengthGroup = document.getElementById('ceramicLengthGroup');
         const ceramicWidthGroup = document.getElementById('ceramicWidthGroup');
+        const ceramicThicknessGroup = document.getElementById('ceramicThicknessGroup');
         const wallHeightLabel = document.getElementById('wallHeightLabel');
         const wallHeightGroup = document.getElementById('wallHeightGroup');
         const wallHeightInput = document.getElementById('wallHeight');
@@ -891,6 +948,7 @@
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'block';
                     // Change label to "Lebar" for tile installation
                     if (wallHeightLabel) {
@@ -910,6 +968,7 @@
                     // Show ceramic dimension inputs for grout_tile
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'flex';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'flex';
+                    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'flex';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
 
                     // Change label to "Lebar" for grout tile
@@ -923,6 +982,7 @@
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
                     if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('cm');
@@ -933,6 +993,19 @@
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
                     }
+                }
+            }
+
+            if (ceramicFilterSection && workTypeSelector) {
+                const showCeramicFilters = workTypeSelector.value === 'tile_installation';
+                ceramicFilterSection.style.display = showCeramicFilters ? 'block' : 'none';
+                if (!showCeramicFilters) {
+                    ceramicFilterSection.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                        if (cb.checked) {
+                            cb.checked = false;
+                            cb.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    });
                 }
             }
         }
@@ -1005,6 +1078,37 @@
         let loadingInterval = null;
         const calcSessionKey = 'materialCalculationSession';
         let saveSessionTimer = null;
+        const resetButton = document.getElementById('btnResetForm');
+
+        if (resetButton) {
+            resetButton.addEventListener('click', function() {
+                if (!form) return;
+
+                form.reset();
+                localStorage.removeItem(calcSessionKey);
+
+                const workTypeDisplay = document.getElementById('workTypeDisplay');
+                const workTypeHidden = document.getElementById('workTypeSelector');
+                if (workTypeDisplay) {
+                    workTypeDisplay.value = '';
+                    workTypeDisplay.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+                if (workTypeHidden) {
+                    workTypeHidden.value = '';
+                    workTypeHidden.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                const materialTypeInputs = document.querySelectorAll('[name^="material_type_filters["]');
+                materialTypeInputs.forEach(input => {
+                    input.value = '';
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
+                toggleCustomForm();
+                if (typeof handleWorkTypeChange === 'function') {
+                    handleWorkTypeChange();
+                }
+            });
+        }
 
         function serializeCalculationSession(formEl) {
             if (!formEl) return null;
@@ -1086,6 +1190,8 @@
 
             const workTypeInput = form.querySelector('#workTypeSelector');
             const workTypeValue = state.work_type_select || state.work_type || '';
+            const expectsMm = ['skim_coating', 'coating_floor'].includes(workTypeValue);
+            let pendingMortarThickness = null;
             if (workTypeInput && workTypeValue) {
                 workTypeInput.value = workTypeValue;
                 workTypeInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1097,6 +1203,20 @@
 
             Object.entries(state).forEach(([key, value]) => {
                 if (key === 'work_type_select' || key === 'work_type') return;
+                if (key.startsWith('material_type_filters[')) {
+                    const fields = form.querySelectorAll(`[name="${key}"]`);
+                    if (!fields.length) return;
+                    const typeValue = Array.isArray(value) ? value[0] : value;
+                    fields.forEach(field => {
+                        field.value = typeValue;
+                        field.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+                    return;
+                }
+                if (key === 'mortar_thickness' && expectsMm) {
+                    pendingMortarThickness = value;
+                    return;
+                }
                 const selector = `[name="${key}"], [name="${key}[]"]`;
                 const fields = form.querySelectorAll(selector);
                 if (!fields.length) return;
@@ -1118,6 +1238,17 @@
                     }
                 });
             });
+
+            if (expectsMm && pendingMortarThickness !== null && mortarThicknessInput) {
+                const cmValue = Array.isArray(pendingMortarThickness)
+                    ? parseFloat(pendingMortarThickness[0])
+                    : parseFloat(pendingMortarThickness);
+                if (!isNaN(cmValue)) {
+                    mortarThicknessInput.value = formatThicknessValue(cmValue * 10);
+                    mortarThicknessInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    mortarThicknessInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
         }
 
         function restoreCalculationSession() {
@@ -1135,8 +1266,21 @@
                 return;
             }
 
+            const isNormalized = parsed && typeof parsed === 'object' && parsed.normalized === true;
             const state = parsed && typeof parsed === 'object' && parsed.data ? parsed.data : parsed;
             applyCalculationSession(state);
+
+            if (isNormalized && mortarThicknessInput) {
+                const currentUnit = mortarThicknessInput.dataset.unit || 'cm';
+                if (currentUnit === 'mm' && state && state.mortar_thickness !== undefined && state.mortar_thickness !== null && state.mortar_thickness !== '') {
+                    const cmValue = parseFloat(state.mortar_thickness);
+                    if (!isNaN(cmValue)) {
+                        mortarThicknessInput.value = formatThicknessValue(cmValue * 10);
+                        mortarThicknessInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        mortarThicknessInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
+            }
 
             const cleanUrl = new URL(window.location.href);
             cleanUrl.searchParams.delete('resume');

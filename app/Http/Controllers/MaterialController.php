@@ -75,6 +75,29 @@ class MaterialController extends Controller
     public function typeSuggestions(Request $request)
     {
         $search = trim((string) $request->query('q', ''));
+        $normalizedSearch = strtolower(trim(preg_replace('/[^\pL\pN]+/u', ' ', $search)));
+        $tokens = array_values(array_filter(explode(' ', $normalizedSearch)));
+        $materialTokenMap = [
+            'bata' => 'brick',
+            'brick' => 'brick',
+            'cat' => 'cat',
+            'semen' => 'cement',
+            'cement' => 'cement',
+            'pasir' => 'sand',
+            'sand' => 'sand',
+            'keramik' => 'ceramic',
+            'ceramic' => 'ceramic',
+        ];
+        $materialTokens = [];
+        $searchTokens = [];
+        foreach ($tokens as $token) {
+            if (isset($materialTokenMap[$token])) {
+                $materialTokens[] = $materialTokenMap[$token];
+            } else {
+                $searchTokens[] = $token;
+            }
+        }
+        $targetMaterialTypes = array_values(array_unique($materialTokens));
         $models = [
             'brick' => Brick::class,
             'cat' => Cat::class,
@@ -130,22 +153,31 @@ class MaterialController extends Controller
 
         $items = collect();
         foreach ($models as $materialType => $model) {
+            if (!empty($targetMaterialTypes) && !in_array($materialType, $targetMaterialTypes, true)) {
+                continue;
+            }
             $materialLabel = $materialLabels[$materialType] ?? ucfirst($materialType);
             $columns = array_unique(
                 array_merge(['type'], $labelColumns[$materialType] ?? [], $searchColumns[$materialType] ?? []),
             );
             $query = $model::query()->select($columns)->whereNotNull('type')->where('type', '!=', '');
 
-            $like = '%' . $search . '%';
             $columns = $searchColumns[$materialType] ?? [];
-            $query->where(function ($builder) use ($like, $columns) {
-                $builder->where('type', 'like', $like);
-                foreach ($columns as $column) {
-                    $builder->orWhere($column, 'like', $like);
+            if (!empty($searchTokens)) {
+                foreach ($searchTokens as $token) {
+                    $like = '%' . $token . '%';
+                    $query->where(function ($builder) use ($like, $columns) {
+                        foreach ($columns as $column) {
+                            $builder->orWhere($column, 'like', $like);
+                        }
+                    });
                 }
-            });
+            }
 
-            $results = $query->orderBy('type')->limit(20)->get();
+            $results = collect();
+            if (!empty($searchTokens)) {
+                $results = $query->orderBy('type')->limit(20)->get();
+            }
             foreach ($results as $row) {
                 $label = $this->buildSuggestionLabel($materialType, $row);
                 if ($label === '') {
@@ -159,7 +191,16 @@ class MaterialController extends Controller
             }
 
             if ($search !== '') {
-                if (stripos($materialLabel, $search) !== false || stripos($materialType, $search) !== false) {
+                $labelMatches = stripos($materialLabel, $search) !== false || stripos($materialType, $search) !== false;
+                if (!$labelMatches && !empty($tokens)) {
+                    foreach ($tokens as $token) {
+                        if ($token !== '' && (stripos($materialLabel, $token) !== false || stripos($materialType, $token) !== false)) {
+                            $labelMatches = true;
+                            break;
+                        }
+                    }
+                }
+                if ($labelMatches) {
                     $items->push([
                         'material_type' => $materialType,
                         'type' => $materialLabel,
@@ -167,16 +208,24 @@ class MaterialController extends Controller
                     ]);
                 }
 
-                $typeMatches = $model
-                    ::query()
-                    ->select('type')
-                    ->whereNotNull('type')
-                    ->where('type', '!=', '')
-                    ->where('type', 'like', $like)
-                    ->distinct()
-                    ->orderBy('type')
-                    ->limit(10)
-                    ->pluck('type');
+                if (empty($searchTokens)) {
+                    $typeMatches = $model
+                        ::query()
+                        ->select('type')
+                        ->whereNotNull('type')
+                        ->where('type', '!=', '')
+                        ->distinct()
+                        ->orderBy('type')
+                        ->limit(10)
+                        ->pluck('type');
+                } else {
+                    $typeQuery = $model::query()->select('type')->whereNotNull('type')->where('type', '!=', '');
+                    foreach ($searchTokens as $token) {
+                        $like = '%' . $token . '%';
+                        $typeQuery->where('type', 'like', $like);
+                    }
+                    $typeMatches = $typeQuery->distinct()->orderBy('type')->limit(10)->pluck('type');
+                }
 
                 foreach ($typeMatches as $type) {
                     $items->push([
@@ -202,35 +251,59 @@ class MaterialController extends Controller
 
     private function buildSuggestionLabel(string $materialType, $row): string
     {
-        $label = '';
+        $parts = [];
         switch ($materialType) {
             case 'brick':
-                $label = $row->material_name ?? ($row->brand ?? ($row->form ?? ($row->type ?? '')));
+                $parts = [
+                    $row->type ?? null,
+                    $row->brand ?? null,
+                    $row->form ?? null,
+                ];
                 break;
             case 'cat':
-                $label =
-                    $row->cat_name ?? ($row->brand ?? ($row->sub_brand ?? ($row->color_name ?? ($row->type ?? ''))));
+                $parts = [
+                    $row->brand ?? null,
+                    $row->sub_brand ?? null,
+                    $row->color_name ?? null,
+                    $row->type ?? null,
+                ];
                 break;
             case 'cement':
-                $label =
-                    $row->cement_name ??
-                    ($row->brand ?? ($row->sub_brand ?? ($row->code ?? ($row->color ?? ($row->type ?? '')))));
+                $parts = [
+                    $row->type ?? null,
+                    $row->brand ?? null,
+                    $row->sub_brand ?? null,
+                    $row->code ?? null,
+                    $row->color ?? null,
+                ];
                 break;
             case 'sand':
-                $label = $row->sand_name ?? ($row->brand ?? ($row->type ?? ''));
+                $parts = [
+                    $row->type ?? null,
+                    $row->brand ?? null,
+                ];
                 break;
             case 'ceramic':
-                $label =
-                    $row->material_name ??
-                    ($row->brand ??
-                        ($row->sub_brand ?? ($row->code ?? ($row->color ?? ($row->form ?? ($row->type ?? ''))))));
+                $parts = [
+                    $row->type ?? null,
+                    $row->brand ?? null,
+                    $row->sub_brand ?? null,
+                    $row->code ?? null,
+                    $row->color ?? null,
+                    $row->form ?? null,
+                ];
                 break;
             default:
-                $label = $row->type ?? '';
+                $parts = [$row->type ?? null];
                 break;
         }
 
-        return trim((string) $label);
+        $parts = array_values(array_filter($parts, function ($value) {
+            return !is_null($value) && trim((string) $value) !== '';
+        }));
+
+        $parts = array_slice($parts, 0, 3);
+        return trim(implode(' - ', $parts));
     }
 
     private function getActiveLetters($type)

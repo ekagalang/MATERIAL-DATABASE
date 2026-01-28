@@ -5,7 +5,6 @@ namespace App\Services\Formula;
 use App\Helpers\NumberHelper;
 
 use App\Models\Cement;
-use App\Models\Ceramic;
 
 /**
  * Formula - Perhitungan Pekerjaan Nat Keramik
@@ -30,6 +29,8 @@ class GroutTileFormula implements FormulaInterface
 
     public static function getMaterialRequirements(): array
     {
+        // Ceramic is still required for technical reasons (signature matching in preview)
+        // but dimensions are taken from input parameters, not from ceramic selection
         return ['ceramic', 'nat'];
     }
 
@@ -38,6 +39,14 @@ class GroutTileFormula implements FormulaInterface
         $required = ['wall_length', 'wall_height', 'grout_thickness'];
 
         foreach ($required as $field) {
+            if (!isset($params[$field]) || !is_numeric($params[$field]) || (float) $params[$field] <= 0) {
+                return false;
+            }
+        }
+
+        // Ceramic dimensions are required
+        $ceramicRequired = ['ceramic_length', 'ceramic_width', 'ceramic_thickness'];
+        foreach ($ceramicRequired as $field) {
             if (!isset($params[$field]) || !is_numeric($params[$field]) || (float) $params[$field] <= 0) {
                 return false;
             }
@@ -75,15 +84,8 @@ class GroutTileFormula implements FormulaInterface
         ];
 
         // ============ STEP 2: Load Material dari Database ============
-        $ceramic = isset($params['ceramic_id']) ? Ceramic::find($params['ceramic_id']) : null;
         $nat = isset($params['nat_id']) ? Cement::find($params['nat_id']) : null;
-
-        $ceramic = $ceramic ?: Ceramic::first();
         $nat = $nat ?: Cement::where('type', 'Nat')->first();
-
-        if (!$ceramic) {
-            throw new \RuntimeException('Data keramik tidak tersedia di database.');
-        }
 
         if (!$nat) {
             throw new \RuntimeException(
@@ -93,22 +95,14 @@ class GroutTileFormula implements FormulaInterface
 
         $densityNat = 1440; // kg/M3
 
-        // Use custom ceramic dimensions from input if provided, otherwise use from database
-        $panjangKeramik = isset($params['ceramic_length']) && $params['ceramic_length'] > 0
-            ? $n($params['ceramic_length'])
-            : $n($ceramic->dimension_length); // cm
+        // Load ceramic dimensions from input parameters
+        $panjangKeramik = $n($params['ceramic_length']); // cm
+        $lebarKeramik = $n($params['ceramic_width']); // cm
+        $tebalKeramikMm = $n($params['ceramic_thickness']); // mm
+        $tebalKeramikCm = $n($tebalKeramikMm / 10); // cm
 
-        $lebarKeramik = isset($params['ceramic_width']) && $params['ceramic_width'] > 0
-            ? $n($params['ceramic_width'])
-            : $n($ceramic->dimension_width); // cm
-
-        $tebalKeramikCm = $n($ceramic->dimension_thickness); // cm
-        $tebalKeramikMm = $n($tebalKeramikCm * 10); // mm
-
-        // Note: Isi per dus tidak krusial untuk hitungan nat murni, tapi dimensi sangat penting.
-
-        if ($panjangKeramik <= 0 || $lebarKeramik <= 0) {
-            throw new \RuntimeException('Data dimensi keramik tidak valid. Pastikan Panjang dan Lebar Keramik sudah diisi.');
+        if ($panjangKeramik <= 0 || $lebarKeramik <= 0 || $tebalKeramikMm <= 0) {
+            throw new \RuntimeException('Data dimensi keramik tidak valid. Pastikan Panjang, Lebar, dan Tebal Keramik sudah diisi.');
         }
 
         // Grout parameters from database
@@ -116,14 +110,11 @@ class GroutTileFormula implements FormulaInterface
         $volumePastaNatPerBungkus = $n($nat->package_volume > 0 ? $nat->package_volume : 0.00069444); // M3 per bungkus
         $hargaNatPerBungkus = $n($nat->package_price ?? 0, 0);
 
-        $isCustomDimension = isset($params['ceramic_length']) && $params['ceramic_length'] > 0;
-        $dimensionSource = $isCustomDimension ? ' (Custom Input)' : ' (Database)';
-
         $trace['steps'][] = [
             'step' => 2,
             'title' => 'Data Material',
             'calculations' => [
-                'Keramik' => $ceramic->brand . ' (' . $panjangKeramik . 'x' . $lebarKeramik . ' cm)' . $dimensionSource,
+                'Dimensi Keramik' => $panjangKeramik . ' x ' . $lebarKeramik . ' cm',
                 'Tebal Keramik' => $tebalKeramikMm . ' mm',
                 'Nat' => $nat->brand . ' (' . $beratKemasanNat . ' kg)',
                 'Berat Kemasan Nat' => $beratKemasanNat . ' kg',

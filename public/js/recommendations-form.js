@@ -369,16 +369,25 @@
             };
 
             const applyMaterialVisibility = (card, workType) => {
-                const required = (formulaMaterials[workType] || []);
+                const isGroutTile = workType === 'grout_tile';
+                let required = (formulaMaterials[workType] || []);
+                if (isGroutTile) {
+                    required = required.filter(type => type !== 'ceramic');
+                }
                 const showAll = required.length === 0;
 
                 card.querySelectorAll('.material-section').forEach(section => {
                     const type = section.dataset.materialType;
-                    const shouldShow = showAll || required.includes(type);
+                    const shouldShow = showAll
+                        ? (!isGroutTile || type !== 'ceramic')
+                        : required.includes(type);
                     section.style.display = shouldShow ? '' : 'none';
                     const select = section.querySelector('select');
                     if (select) {
                         select.disabled = !shouldShow;
+                        if (!shouldShow) {
+                            select.value = '';
+                        }
                     }
                 });
             };

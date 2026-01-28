@@ -73,6 +73,9 @@ class RecommendedCombinationController extends Controller
                 $workType = $rec['work_type'] ?? null;
                 $requiredMaterials = $workType ? FormulaRegistry::materialsFor($workType) : [];
                 $requiredMaterials = array_values(array_diff($requiredMaterials, ['brick']));
+                if ($workType === 'grout_tile') {
+                    $requiredMaterials = array_values(array_diff($requiredMaterials, ['ceramic']));
+                }
 
                 if (!$workType || empty($requiredMaterials)) {
                     continue;

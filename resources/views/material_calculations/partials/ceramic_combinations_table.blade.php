@@ -61,12 +61,12 @@
     @if(!empty($combinations))
         @php
             $requestedFilters = $requestData['price_filters'] ?? [];
-            $filterCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Moderat', 'Premium'];
+            $filterCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'TerMAHAL'];
             if (in_array('custom', $requestedFilters, true)) {
                 $filterCategories[] = 'Custom';
             }
             $priceRankMap = [];
-            $needsPriceRanks = count(array_intersect($filterCategories, ['Ekonomis', 'Moderat', 'Premium'])) > 0;
+            $needsPriceRanks = count(array_intersect($filterCategories, ['Ekonomis', 'Average', 'TerMAHAL'])) > 0;
             if ($needsPriceRanks && !empty($combinations)) {
                 $priceCandidates = [];
                 foreach ($combinations as $label => $items) {
@@ -92,25 +92,44 @@
                 $totalCandidates = count($priceCandidates);
                 if ($totalCandidates > 0) {
                     $EkonomisLimit = min(3, $totalCandidates);
-                    $PremiumCount = min(3, $totalCandidates);
-                    $PremiumStartIndex = $totalCandidates - $PremiumCount;
+                    $TerMAHALCount = min(3, $totalCandidates);
+                    $TerMAHALStartIndex = $totalCandidates - $TerMAHALCount;
 
                     for ($i = 0; $i < $EkonomisLimit; $i++) {
                         $priceRankMap['Ekonomis ' . ($i + 1)] = $priceCandidates[$i];
                     }
 
-                    for ($i = 0; $i < $PremiumCount; $i++) {
-                        $priceRankMap['Premium ' . ($i + 1)] = $priceCandidates[$PremiumStartIndex + $i];
+                    for ($i = 0; $i < $TerMAHALCount; $i++) {
+                        $priceRankMap['TerMAHAL ' . ($i + 1)] = $priceCandidates[$TerMAHALStartIndex + $i];
                     }
 
-                    $middleIndex = (int) floor(($totalCandidates - 1) / 2);
-                    $startIndex = max(0, $middleIndex - 1);
-                    $medianCombos = array_slice($priceCandidates, $startIndex, 3);
-                    $medianRank = 0;
+                    $sumTotal = array_sum(array_map(fn ($row) => $row['grand_total'], $priceCandidates));
+                    $averageTotal = $totalCandidates > 0 ? ($sumTotal / $totalCandidates) : 0;
+                    $closestIndex = 0;
+                    $closestDiff = null;
 
-                    foreach ($medianCombos as $combo) {
-                        $medianRank++;
-                        $priceRankMap['Moderat ' . $medianRank] = $combo;
+                    foreach ($priceCandidates as $idx => $combo) {
+                        $diff = abs($combo['grand_total'] - $averageTotal);
+                        if ($closestDiff === null || $diff < $closestDiff) {
+                            $closestDiff = $diff;
+                            $closestIndex = $idx;
+                        }
+                    }
+
+                    if (isset($priceCandidates[$closestIndex])) {
+                        $priceRankMap['Average 1'] = $priceCandidates[$closestIndex];
+                        $lastPrice = $priceCandidates[$closestIndex]['grand_total'];
+                        $averageRank = 2;
+
+                        for ($i = $closestIndex + 1; $i < $totalCandidates && $averageRank <= 3; $i++) {
+                            $candidatePrice = $priceCandidates[$i]['grand_total'];
+                            if ($candidatePrice <= $lastPrice) {
+                                continue;
+                            }
+                            $priceRankMap['Average ' . $averageRank] = $priceCandidates[$i];
+                            $lastPrice = $candidatePrice;
+                            $averageRank++;
+                        }
                     }
                 }
             }
@@ -185,12 +204,12 @@
                     2 => ['bg' => '#a7f3d0', 'border' => '#6ee7b7', 'text' => '#16a34a'],
                     3 => ['bg' => '#d1fae5', 'border' => '#a7f3d0', 'text' => '#22c55e'],
                 ],
-                'Moderat' => [
+                'Average' => [
                     1 => ['bg' => '#fcd34d', 'border' => '#fbbf24', 'text' => '#92400e'],
                     2 => ['bg' => '#fde68a', 'border' => '#fcd34d', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'border' => '#fde68a', 'text' => '#d97706'],
                 ],
-                'Premium' => [
+                'TerMAHAL' => [
                     1 => ['bg' => '#d8b4fe', 'border' => '#c084fc', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'border' => '#d8b4fe', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'border' => '#e9d5ff', 'text' => '#9333ea'],
@@ -213,12 +232,12 @@
                     2 => ['bg' => '#a7f3d0', 'text' => '#16a34a'],
                     3 => ['bg' => '#d1fae5', 'text' => '#22c55e'],
                 ],
-                'Moderat' => [
+                'Average' => [
                     1 => ['bg' => '#fcd34d', 'text' => '#92400e'],
                     2 => ['bg' => '#fde68a', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'text' => '#d97706'],
                 ],
-                'Premium' => [
+                'TerMAHAL' => [
                     1 => ['bg' => '#d8b4fe', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
@@ -1288,24 +1307,47 @@
     $allPriceRows = [];
     $sortedCount = count($allPriceCandidates);
     $EkonomisLimit = min(3, $sortedCount);
-    $PremiumStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
-    $middleStart = 0;
-    $middleEnd = -1;
+    $TerMAHALStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
+    $averageIndexMap = [];
     if ($sortedCount > 0) {
-        $middleIndex = (int) floor(($sortedCount - 1) / 2);
-        $middleStart = max(0, $middleIndex - 1);
-        $middleEnd = min($sortedCount - 1, $middleStart + 2);
+        $sumTotals = array_sum(array_map(fn ($row) => $row['grand_total'], $allPriceCandidates));
+        $averageTotal = $sumTotals / $sortedCount;
+        $closestIndex = 0;
+        $closestDiff = null;
+
+        foreach ($allPriceCandidates as $idx => $candidate) {
+            $diff = abs($candidate['grand_total'] - $averageTotal);
+            if ($closestDiff === null || $diff < $closestDiff) {
+                $closestDiff = $diff;
+                $closestIndex = $idx;
+            }
+        }
+
+        $averageIndices = [$closestIndex];
+        $lastPrice = $allPriceCandidates[$closestIndex]['grand_total'];
+        for ($i = $closestIndex + 1; $i < $sortedCount && count($averageIndices) < 3; $i++) {
+            $candidatePrice = $allPriceCandidates[$i]['grand_total'];
+            if ($candidatePrice <= $lastPrice) {
+                continue;
+            }
+            $averageIndices[] = $i;
+            $lastPrice = $candidatePrice;
+        }
+
+        foreach ($averageIndices as $rank => $idx) {
+            $averageIndexMap[$idx] = $rank + 1;
+        }
     }
 
     foreach ($allPriceCandidates as $index => $candidate) {
         $sortedIndex = $index + 1;
         $displayLabel = 'Harga ' . $sortedIndex;
-        if ($sortedIndex <= $EkonomisLimit) {
+        if (isset($averageIndexMap[$index])) {
+            $displayLabel = 'Average ' . $averageIndexMap[$index];
+        } elseif ($sortedIndex <= $EkonomisLimit) {
             $displayLabel = 'Ekonomis ' . $sortedIndex;
-        } elseif ($sortedIndex >= $PremiumStart) {
-            $displayLabel = 'Premium ' . ($sortedIndex - $PremiumStart + 1);
-        } elseif ($index >= $middleStart && $index <= $middleEnd) {
-            $displayLabel = 'Moderat ' . ($sortedIndex - $middleStart);
+        } elseif ($sortedIndex >= $TerMAHALStart) {
+            $displayLabel = 'TerMAHAL ' . ($sortedIndex - $TerMAHALStart + 1);
         }
 
         $allPriceRows[] = [
@@ -1412,7 +1454,7 @@
                             </div>
                         @endif
 
-                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; Premium)</div>
+                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; TerMAHAL)</div>
                         <div class="table-responsive">
                             <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                 <thead>
@@ -1440,4 +1482,3 @@
         </div>
     </div>
 @endif
-

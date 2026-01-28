@@ -576,7 +576,11 @@
             };
 
             function normalizeMaterialType(text) {
-                return (text || '').toLowerCase().trim();
+                return (text || '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/gi, ' ')
+                    .trim()
+                    .replace(/\s+/g, ' ');
             }
 
             function filterMaterialTypeOptions(term, options) {

@@ -174,10 +174,12 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; font-weight: 700; color: #15803d;">Volume</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text"
                                            id="volume_display"
                                            readonly
                                            placeholder="0"
+                                           inputmode="decimal"
+                                           value="{{ \App\Helpers\NumberHelper::format((float) old('package_volume')) }}"
                                            style="text-align: right; padding-right: 38px; width: 100%; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); font-weight: 600; color: #15803d; border: 1.5px solid #86efac;">
                                     <span class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #16a34a; font-weight: 600; pointer-events: none;">M3</span>
                                 </div>
