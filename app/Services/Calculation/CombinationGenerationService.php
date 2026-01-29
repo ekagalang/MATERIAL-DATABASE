@@ -862,7 +862,7 @@ class CombinationGenerationService
             $cats,
             $ceramics,
             $nats,
-            'TerMAHAL',
+            'Termahal',
         );
 
         // Get top 3 most expensive
@@ -1006,7 +1006,7 @@ class CombinationGenerationService
             'common' => 'Populer',
             'cheapest' => 'Ekonomis',
             'medium' => 'Sedang',
-            'expensive' => 'TerMAHAL',
+            'expensive' => 'Termahal',
             'custom' => 'Custom',
             'all' => 'Semua',
             default => ucfirst($filter),

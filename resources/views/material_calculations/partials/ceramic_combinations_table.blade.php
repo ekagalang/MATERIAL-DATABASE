@@ -61,12 +61,12 @@
     @if(!empty($combinations))
         @php
             $requestedFilters = $requestData['price_filters'] ?? [];
-            $filterCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'TerMAHAL'];
+            $filterCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
             if (in_array('custom', $requestedFilters, true)) {
                 $filterCategories[] = 'Custom';
             }
             $priceRankMap = [];
-            $needsPriceRanks = count(array_intersect($filterCategories, ['Ekonomis', 'Average', 'TerMAHAL'])) > 0;
+            $needsPriceRanks = count(array_intersect($filterCategories, ['Ekonomis', 'Average', 'Termahal'])) > 0;
             if ($needsPriceRanks && !empty($combinations)) {
                 $priceCandidates = [];
                 foreach ($combinations as $label => $items) {
@@ -92,15 +92,15 @@
                 $totalCandidates = count($priceCandidates);
                 if ($totalCandidates > 0) {
                     $EkonomisLimit = min(3, $totalCandidates);
-                    $TerMAHALCount = min(3, $totalCandidates);
-                    $TerMAHALStartIndex = $totalCandidates - $TerMAHALCount;
+                    $TermahalCount = min(3, $totalCandidates);
+                    $TermahalStartIndex = $totalCandidates - $TermahalCount;
 
                     for ($i = 0; $i < $EkonomisLimit; $i++) {
                         $priceRankMap['Ekonomis ' . ($i + 1)] = $priceCandidates[$i];
                     }
 
-                    for ($i = 0; $i < $TerMAHALCount; $i++) {
-                        $priceRankMap['TerMAHAL ' . ($i + 1)] = $priceCandidates[$TerMAHALStartIndex + $i];
+                    for ($i = 0; $i < $TermahalCount; $i++) {
+                        $priceRankMap['Termahal ' . ($i + 1)] = $priceCandidates[$TermahalStartIndex + $i];
                     }
 
                     $sumTotal = array_sum(array_map(fn ($row) => $row['grand_total'], $priceCandidates));
@@ -209,7 +209,7 @@
                     2 => ['bg' => '#fde68a', 'border' => '#fcd34d', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'border' => '#fde68a', 'text' => '#d97706'],
                 ],
-                'TerMAHAL' => [
+                'Termahal' => [
                     1 => ['bg' => '#d8b4fe', 'border' => '#c084fc', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'border' => '#d8b4fe', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'border' => '#e9d5ff', 'text' => '#9333ea'],
@@ -237,7 +237,7 @@
                     2 => ['bg' => '#fde68a', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'text' => '#d97706'],
                 ],
-                'TerMAHAL' => [
+                'Termahal' => [
                     1 => ['bg' => '#d8b4fe', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
@@ -1307,7 +1307,7 @@
     $allPriceRows = [];
     $sortedCount = count($allPriceCandidates);
     $EkonomisLimit = min(3, $sortedCount);
-    $TerMAHALStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
+    $TermahalStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
     $averageIndexMap = [];
     if ($sortedCount > 0) {
         $sumTotals = array_sum(array_map(fn ($row) => $row['grand_total'], $allPriceCandidates));
@@ -1346,8 +1346,8 @@
             $displayLabel = 'Average ' . $averageIndexMap[$index];
         } elseif ($sortedIndex <= $EkonomisLimit) {
             $displayLabel = 'Ekonomis ' . $sortedIndex;
-        } elseif ($sortedIndex >= $TerMAHALStart) {
-            $displayLabel = 'TerMAHAL ' . ($sortedIndex - $TerMAHALStart + 1);
+        } elseif ($sortedIndex >= $TermahalStart) {
+            $displayLabel = 'Termahal ' . ($sortedIndex - $TermahalStart + 1);
         }
 
         $allPriceRows[] = [
@@ -1454,7 +1454,7 @@
                             </div>
                         @endif
 
-                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; TerMAHAL)</div>
+                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; Termahal)</div>
                         <div class="table-responsive">
                             <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                 <thead>

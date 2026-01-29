@@ -169,9 +169,9 @@
                                 <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive" {{ in_array('expensive', $existingFilters) ? 'checked' : '' }}>
                                 <label for="filter_expensive">
                                     <span class="tickbox-title">
-                                        <i class="bi bi-gem me-2 text-danger"></i>TerMAHAL
+                                        <i class="bi bi-gem me-2 text-danger"></i>Termahal
                                     </span>
-                                    <span class="tickbox-desc">3 kombinasi dengan total harga TerMAHAL</span>
+                                    <span class="tickbox-desc">3 kombinasi dengan total harga Termahal</span>
                                 </label>
                             </div>
 

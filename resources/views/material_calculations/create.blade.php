@@ -359,7 +359,7 @@
                             <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
                             <label for="filter_expensive">
                                 <span class="tickbox-title">
-                                    TerMAHAL - 3 kombinasi dengan total harga TerMAHAL
+                                    Termahal - 3 kombinasi dengan total harga Termahal
                                 </span>
                             </label>
                         </div>

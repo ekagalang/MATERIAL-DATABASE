@@ -1727,21 +1727,17 @@ html.materials-booting .page-content {
                                 $orderedGroups = collect();
                                 $isSorting = request()->filled('sort_by');
                                 $defaultSort = false;
-                                
+
                                 if ($isSorting) {
+                                    // When sorting, flatten all into one group
                                     $orderedGroups['*'] = $material['data'];
                                 } else {
-                                    // Default: Sort by Type -> Brand -> etc, and FLATTEN the list (no brand grouping)
-                                    $defaultSort = true;
-                                    $sortedData = $material['data']->sortBy([
-                                        ['type', 'asc'],
-                                        ['brand', 'asc'],
-                                        ['sub_brand', 'asc'],
-                                        ['code', 'asc'],
-                                        ['color_name', 'asc'],
-                                        ['color', 'asc'],
-                                    ]);
-                                    $orderedGroups['*'] = $sortedData;
+                                    // Default: Group by FIRST LETTER of brand for pagination
+                                    $orderedGroups = $material['data']->groupBy(function ($item) {
+                                        $brand = $item->brand ?? '';
+                                        $firstChar = strtoupper(substr($brand, 0, 1));
+                                        return ctype_alpha($firstChar) ? $firstChar : '#';
+                                    })->sortKeys();
                                 }
                                 $rowNumber = 1;
                             @endphp

@@ -31,7 +31,9 @@
       "Bash(curl:*)",
       "Bash(del:*)",
       "Bash(rm:*)",
-      "Bash(python clean_css.py:*)"
+      "Bash(python clean_css.py:*)",
+      "Bash(echo:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

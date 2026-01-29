@@ -465,7 +465,7 @@ class MaterialCalculationController extends Controller
                     }
                 }
 
-                // 3. Filter TerMAHAL (Expensive) - Butuh bata mahal
+                // 3. Filter Termahal (Expensive) - Butuh bata mahal
                 if (in_array('expensive', $priceFilters, true)) {
                     $expensiveBricks = Brick::orderBy('price_per_piece', 'desc')->limit(5)->get();
                     $targetBricks = $targetBricks->merge($expensiveBricks);
@@ -2015,7 +2015,7 @@ class MaterialCalculationController extends Controller
             $cements,
             $sands,
             $cats,
-            'TerMAHAL',
+            'Termahal',
             null,
             $ceramics,
             $nats,
@@ -2339,7 +2339,7 @@ class MaterialCalculationController extends Controller
             'common' => 'Populer',
             'cheapest' => 'Ekonomis',
             'medium' => 'Moderat',
-            'expensive' => 'TerMAHAL',
+            'expensive' => 'Termahal',
             'custom' => 'Custom',
             'all' => 'Semua',
             default => ucfirst($filter),

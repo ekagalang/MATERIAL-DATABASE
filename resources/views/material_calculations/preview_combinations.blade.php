@@ -443,7 +443,7 @@
                 'common' => 'Populer',
                 'cheapest' => 'Ekonomis',
                 'medium' => 'Average',
-                'expensive' => 'TerMAHAL',
+                'expensive' => 'Termahal',
             ];
             $orderedFilters = array_keys($filterMap);
             $filterSet = in_array('all', $requestedFilters, true)
@@ -455,7 +455,7 @@
                     $filterCategories[] = $filterMap[$filterKey];
                 }
             }
-            $rekapCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'TerMAHAL'];
+            $rekapCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
             if (in_array('custom', $filterSet, true)) {
                 $filterCategories[] = 'Custom';
                 $rekapCategories[] = 'Custom';
@@ -638,7 +638,7 @@
                     2 => ['bg' => '#fde68a', 'text' => '#b45309'],
                     3 => ['bg' => '#fef3c7', 'text' => '#d97706'],
                 ],
-                'TerMAHAL' => [
+                'Termahal' => [
                     1 => ['bg' => '#d8b4fe', 'text' => '#6b21a8'],
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
@@ -694,11 +694,21 @@
                     $catDetailParts[] = ($cat->sub_brand ?? '-');
                     if (!empty($cat->color_code)) $catDetailParts[] = $cat->color_code;
                     if (!empty($cat->color_name)) $catDetailParts[] = $cat->color_name;
-                    if (!empty($cat->package_unit)) $catDetailParts[] = $cat->package_unit;
+                    $catPackageUnitDisplay = trim((string)($cat->package_unit ?? ''));
+                    if ($catPackageUnitDisplay === '') $catPackageUnitDisplay = '-';
+                    $catGrossWeight = $cat->package_weight_gross ?? null;
+                    $catGrossDisplay = ($catGrossWeight !== null && $catGrossWeight > 0)
+                        ? \App\Helpers\NumberHelper::format($catGrossWeight)
+                        : '-';
+                    $catDetailParts[] = $catPackageUnitDisplay . ' ( ' . $catGrossDisplay . ' Kg )';
+                    $catVolumeUnit = trim((string)($cat->volume_unit ?? 'L'));
+                    if ($catVolumeUnit === '') $catVolumeUnit = 'L';
                     if (!empty($cat->volume)) {
-                        $catDetailParts[] = \App\Helpers\NumberHelper::format($cat->volume) . ' ' . ($cat->volume_unit ?? 'L');
+                        $catDetailParts[] = '( ' . \App\Helpers\NumberHelper::format($cat->volume) . ' ' . $catVolumeUnit . ' )';
+                    } else {
+                        $catDetailParts[] = '( - ' . $catVolumeUnit . ' )';
                     }
-                    $catDetailParts[] = 'Berat bersih: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
+                    $catDetailParts[] = 'BB: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
                     $rekapEntry['cat_detail'] = implode(' - ', $catDetailParts);
                 }
 
@@ -758,11 +768,21 @@
                     $catDetailParts[] = ($cat->sub_brand ?? '-');
                     if (!empty($cat->color_code)) $catDetailParts[] = $cat->color_code;
                     if (!empty($cat->color_name)) $catDetailParts[] = $cat->color_name;
-                    if (!empty($cat->package_unit)) $catDetailParts[] = $cat->package_unit;
+                    $catPackageUnitDisplay = trim((string)($cat->package_unit ?? ''));
+                    if ($catPackageUnitDisplay === '') $catPackageUnitDisplay = '-';
+                    $catGrossWeight = $cat->package_weight_gross ?? null;
+                    $catGrossDisplay = ($catGrossWeight !== null && $catGrossWeight > 0)
+                        ? \App\Helpers\NumberHelper::format($catGrossWeight)
+                        : '-';
+                    $catDetailParts[] = $catPackageUnitDisplay . ' (' . $catGrossDisplay . ' Kg)';
+                    $catVolumeUnit = trim((string)($cat->volume_unit ?? 'L'));
+                    if ($catVolumeUnit === '') $catVolumeUnit = 'L';
                     if (!empty($cat->volume)) {
-                        $catDetailParts[] = \App\Helpers\NumberHelper::format($cat->volume) . ' ' . ($cat->volume_unit ?? 'L');
+                        $catDetailParts[] = '(' . \App\Helpers\NumberHelper::format($cat->volume) . ' ' . $catVolumeUnit . ')';
+                    } else {
+                        $catDetailParts[] = '(- ' . $catVolumeUnit . ')';
                     }
-                    $catDetailParts[] = 'Berat bersih: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
+                    $catDetailParts[] = 'BB: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
                     $entry['cat_detail'] = implode(' - ', $catDetailParts);
                 }
 
@@ -1327,7 +1347,7 @@
                         $currentTotal = $combo['item']['result']['grand_total'];
                         $selectedTotal = $selectedCombination['item']['result']['grand_total'];
 
-                        if ($filterType === 'TerMAHAL') {
+                        if ($filterType === 'Termahal') {
                             // Pick the HIGHEST price
                             if ($currentTotal > $selectedTotal) {
                                 $selectedCombination = $combo;
@@ -1409,7 +1429,7 @@
                 }
             }
 
-            $priceRankFilters = ['Ekonomis', 'Average', 'TerMAHAL'];
+            $priceRankFilters = ['Ekonomis', 'Average', 'Termahal'];
             $needsPriceRanks = count(array_intersect($filterCategories, $priceRankFilters)) > 0;
             if ($needsPriceRanks) {
                 $allPriceCandidates = [];
@@ -1436,8 +1456,7 @@
                 $totalCandidates = count($allPriceCandidates);
                 if ($totalCandidates > 0) {
                     $EkonomisLimit = min(3, $totalCandidates);
-                    $TerMAHALCount = min(3, $totalCandidates);
-                    $TerMAHALStartIndex = $totalCandidates - $TerMAHALCount;
+                    $TermahalCount = min(3, $totalCandidates);
 
                     if (in_array('Ekonomis', $filterCategories, true)) {
                         for ($i = 0; $i < $EkonomisLimit; $i++) {
@@ -1447,10 +1466,12 @@
                         }
                     }
 
-                    if (in_array('TerMAHAL', $filterCategories, true)) {
-                        for ($i = 0; $i < $TerMAHALCount; $i++) {
-                            $key = 'TerMAHAL ' . ($i + 1);
-                            $combo = $allPriceCandidates[$TerMAHALStartIndex + $i];
+                    if (in_array('Termahal', $filterCategories, true)) {
+                        for ($i = 0; $i < $TermahalCount; $i++) {
+                            $rank = $i + 1;
+                            $candidateIndex = $totalCandidates - 1 - $i;
+                            $key = 'Termahal ' . $rank;
+                            $combo = $allPriceCandidates[$candidateIndex];
                             $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
                         }
                     }
@@ -2711,11 +2732,21 @@
 
                                                 $catPackageUnit = isset($item['cat']) ? trim((string)($item['cat']->package_unit ?? '')) : '';
                                                 $catVolume = isset($item['cat']) ? ($item['cat']->volume ?? null) : null;
-                                                $catVolumeUnit = isset($item['cat']) ? ($item['cat']->volume_unit ?? 'L') : 'L';
-                                                if ($catPackageUnit !== '') $catDetailExtraParts[] = $catPackageUnit;
-                                                if (!empty($catVolume) && $catVolume > 0) $catDetailExtraParts[] = $formatNum($catVolume) . ' ' . $catVolumeUnit;
+                                                $catVolumeUnit = isset($item['cat']) ? trim((string)($item['cat']->volume_unit ?? 'L')) : 'L';
+                                                if ($catVolumeUnit === '') $catVolumeUnit = 'L';
+                                                $catPackageUnitDisplay = $catPackageUnit !== '' ? $catPackageUnit : '-';
+                                                $catGrossWeight = isset($item['cat']) ? ($item['cat']->package_weight_gross ?? null) : null;
+                                                $catGrossDisplay = ($catGrossWeight !== null && $catGrossWeight > 0)
+                                                    ? $formatNum($catGrossWeight)
+                                                    : '-';
+                                                $catDetailExtraParts[] = $catPackageUnitDisplay . ' ( ' . $catGrossDisplay . ' Kg )';
+                                                if (!empty($catVolume) && $catVolume > 0) {
+                                                    $catDetailExtraParts[] = '( ' . $formatNum($catVolume) . ' ' . $catVolumeUnit . ' )';
+                                                } else {
+                                                    $catDetailExtraParts[] = '( - ' . $catVolumeUnit . ' )';
+                                                }
                                                 if (isset($item['cat']) && ($item['cat']->package_weight_net ?? null) !== null) {
-                                                    $catDetailExtraParts[] = 'Berat bersih ' . $formatNum($item['cat']->package_weight_net) . ' Kg';
+                                                    $catDetailExtraParts[] = 'BB ' . $formatNum($item['cat']->package_weight_net) . ' Kg';
                                                 }
                                                 $catDetailExtra = !empty($catDetailExtraParts) ? implode(' - ', $catDetailExtraParts) : '-';
 
@@ -2949,7 +2980,7 @@
                                                                     2 => ['bg' => '#fde68a', 'border' => '#fcd34d', 'text' => '#b45309'],
                                                                     3 => ['bg' => '#fef3c7', 'border' => '#fde68a', 'text' => '#d97706'],
                                                                 ],
-                                                                'TerMAHAL' => [
+                                                                'Termahal' => [
                                                                     1 => ['bg' => '#d8b4fe', 'border' => '#c084fc', 'text' => '#6b21a8'],
                                                                     2 => ['bg' => '#e9d5ff', 'border' => '#d8b4fe', 'text' => '#7c3aed'],
                                                                     3 => ['bg' => '#f3e8ff', 'border' => '#e9d5ff', 'text' => '#9333ea'],
@@ -3025,11 +3056,9 @@
                                                                 $normalizedPrice = \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0);
                                                                 $normalizedSize = \App\Helpers\NumberHelper::normalize($conversionFactor);
                                                                 $normalizedQty = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
-                                                                
+
                                                                 $unitPrice = ($normalizedSize > 0) ? ($normalizedPrice / $normalizedSize) : 0;
-                                                                // User request: "hasilnya langsung di normalize"
-                                                                $unitPrice = \App\Helpers\NumberHelper::normalize($unitPrice);
-                                                                
+
                                                                 $hargaKomparasi = \App\Helpers\NumberHelper::normalize($unitPrice * $normalizedQty);                                                        $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
                                                         $detailValue = $mat['detail_value'] ?? 1;
 
@@ -3856,7 +3885,7 @@
         });
         $sortedCount = count($allPriceRows);
         $EkonomisLimit = min(3, $sortedCount);
-        $TerMAHALStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
+        $TermahalStart = $sortedCount > 0 ? max(1, $sortedCount - 2) : 1;
         $averageIndexMap = [];
         if ($sortedCount > 0) {
             $sumTotals = array_sum(array_map(fn ($row) => $row['grand_total'], $allPriceRows));
@@ -3897,8 +3926,9 @@
                 $displayLabel = 'Average ' . $averageIndexMap[$sortedIndex - 1];
             } elseif ($sortedIndex <= $EkonomisLimit) {
                 $displayLabel = 'Ekonomis ' . $sortedIndex;
-            } elseif ($sortedIndex >= $TerMAHALStart) {
-                $displayLabel = 'TerMAHAL ' . ($sortedIndex - $TerMAHALStart + 1);
+            } elseif ($sortedIndex >= $TermahalStart) {
+                $rank = $sortedCount - $sortedIndex + 1;
+                $displayLabel = 'Termahal ' . $rank;
             }
             $row['display_label'] = $displayLabel;
         }
@@ -3977,7 +4007,7 @@
                             </div>
                         @endif
 
-                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; TerMAHAL)</div>
+                        <div class="fw-bold mb-1">Semua Harga (Ekonomis &rarr; Termahal)</div>
                         <div class="table-responsive">
                             <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                 <thead>
