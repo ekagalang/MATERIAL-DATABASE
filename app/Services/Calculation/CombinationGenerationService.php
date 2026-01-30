@@ -58,11 +58,7 @@ class CombinationGenerationService
         $useStoreFilter = $request->boolean('use_store_filter', true);
 
         if ($useStoreFilter) {
-            $storeCombinations = $this->getStoreBasedCombinations($request, $constraints);
-            if (!empty($storeCombinations)) {
-                return $storeCombinations;
-            }
-            // Fallback to mixed calculation if no store has all materials
+            return $this->getStoreBasedCombinations($request, $constraints);
         }
 
         $requestedFilters = $request->price_filters ?? ['best'];
