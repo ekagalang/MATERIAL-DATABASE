@@ -562,7 +562,7 @@ class MaterialController extends Controller
                 $query->orderBy($sortColumn, $sortDirection);
             }
 
-            return $query->get();
+            return $query->limit(1000)->get();
         }
 
         $defaultOrderBy = match ($type) {
@@ -655,6 +655,7 @@ class MaterialController extends Controller
             $query->orderBy($column, 'asc');
         }
 
-        return $query->get();
+        // Limit to 1000 rows to prevent memory exhaustion/slow rendering
+        return $query->limit(1000)->get();
     }
 }

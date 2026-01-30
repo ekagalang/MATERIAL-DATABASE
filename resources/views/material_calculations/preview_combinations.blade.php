@@ -2122,10 +2122,10 @@
                                 <th rowspan="2" style="background: #891313; color: white; position: sticky; left: 80px; z-index: 3; width: 120px; min-width: 120px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.3);">Grand Total</th>
                                 @if($hasBrick)
                                 <th colspan="2" style="background: #891313; color: white;">Bata</th>
-                                @endif
+                                                @endif
                                 @if($hasCement)
                                 <th colspan="2" style="background: #891313; color: white;">Semen</th>
-                                @endif
+                                        @endif
                                 @if($hasSand)
                                 <th colspan="2" style="background: #891313; color: white;">Pasir</th>
                                 @endif
@@ -3832,10 +3832,25 @@
                 foreach ($items as $item) {
                     $labelParts = array_map('trim', explode('=', $label));
                     $grandTotal = (float)($item['result']['grand_total'] ?? 0);
+                    
+                    // Extract Details
+                    $storeInfo = $item['store_label'] ?? null;
+                    $cementInfo = isset($item['cement']) ? ($item['cement']->brand ?? '') : null;
+                    $sandInfo = isset($item['sand']) ? ($item['sand']->brand ?? '') : null;
+                    $catInfo = isset($item['cat']) ? ($item['cat']->brand ?? '') : null;
+                    $ceramicInfo = isset($item['ceramic']) ? ($item['ceramic']->brand ?? '') : null;
+                    $natInfo = isset($item['nat']) ? ($item['nat']->brand ?? '') : null;
+
                     $rowBase = [
                         'label' => $label,
                         'brick' => $brickLabel,
                         'grand_total' => $grandTotal,
+                        'store' => $storeInfo,
+                        'cement' => $cementInfo,
+                        'sand' => $sandInfo,
+                        'cat' => $catInfo,
+                        'ceramic' => $ceramicInfo,
+                        'nat' => $natInfo,
                     ];
 
                     $bestLabel = null;
@@ -4012,23 +4027,41 @@
                             <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                 <thead>
                                     <tr>
-                                        <th style="width: 60px;">#</th>
+                                        <th style="width: 40px;">#</th>
                                         <th>Label</th>
                                         @if($hasAllPriceBrick)
                                             <th>Bata</th>
                                         @endif
-                                        <th class="text-end" style="width: 160px;">Grand Total</th>
+                                        <th>Toko & Material</th>
+                                        <th class="text-end" style="width: 130px;">Grand Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($allPriceRows as $row)
                                         <tr>
                                             <td class="text-muted">{{ $row['index'] }}</td>
-                                            <td>{{ $row['display_label'] }}</td>
+                                            <td>
+                                                <div class="fw-bold text-dark">{{ $row['display_label'] }}</div>
+                                                <div class="text-muted" style="font-size: 0.65rem;">{{ $row['label'] }}</div>
+                                            </td>
                                             @if($hasAllPriceBrick)
                                                 <td>{{ $row['brick'] ?: '-' }}</td>
                                             @endif
-                                            <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                            <td>
+                                                @if(!empty($row['store']))
+                                                    <div class="mb-1 text-primary fw-bold" style="font-size: 0.75rem;">
+                                                        <i class="bi bi-shop me-1"></i>{{ Str::before($row['store'], ' (') }}
+                                                    </div>
+                                                @endif
+                                                <div class="text-secondary lh-sm" style="font-size: 0.7rem;">
+                                                    @if(!empty($row['cement'])) <span class="d-block">Sem: {{ $row['cement'] }}</span> @endif
+                                                    @if(!empty($row['sand'])) <span class="d-block">Pas: {{ $row['sand'] }}</span> @endif
+                                                    @if(!empty($row['ceramic'])) <span class="d-block">Ker: {{ $row['ceramic'] }}</span> @endif
+                                                    @if(!empty($row['nat'])) <span class="d-block">Nat: {{ $row['nat'] }}</span> @endif
+                                                    @if(!empty($row['cat'])) <span class="d-block">Cat: {{ $row['cat'] }}</span> @endif
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-bold">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>
