@@ -37,7 +37,7 @@
                     {{ (int)$ceramic->dimension_length }}x{{ (int)$ceramic->dimension_width }} cm)
                 </small>
             </h5>
-            <p class="text-muted small mb-0">Menampilkan kombinasi material Rekomendasi dari berbagai merek untuk ukuran ini.</p>
+            <p class="text-muted small mb-0">Menampilkan kombinasi material Preferensi dari berbagai merek untuk ukuran ini.</p>
         @else
             <h5 class="fw-bold mb-0" style="color: #f59e0b;">
                 {{ $ceramic->brand ?? 'Keramik' }}
@@ -61,7 +61,7 @@
     @if(!empty($combinations))
         @php
             $requestedFilters = $requestData['price_filters'] ?? [];
-            $filterCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
+            $filterCategories = ['Preferensi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
             if (in_array('custom', $requestedFilters, true)) {
                 $filterCategories[] = 'Custom';
             }
@@ -146,7 +146,7 @@
                     } else {
                         foreach ($combinations as $label => $items) {
                             $labelParts = array_map('trim', explode('=', $label));
-                            // Check if this group of items corresponds to the current key (e.g. "Rekomendasi 1")
+                            // Check if this group of items corresponds to the current key (e.g. "Preferensi 1")
                             if (in_array($key, $labelParts)) {
                                 foreach ($items as $item) {
                                     if ($matchesCeramicContext($item)) {
@@ -189,7 +189,7 @@
                     2 => ['bg' => '#f8fafc', 'border' => '#cbd5e1', 'text' => '#475569'],
                     3 => ['bg' => '#ffffff', 'border' => '#e2e8f0', 'text' => '#64748b'],
                 ],
-                'Rekomendasi' => [
+                'Preferensi' => [
                     1 => ['bg' => '#fca5a5', 'border' => '#f87171', 'text' => '#991b1b'],
                     2 => ['bg' => '#fecaca', 'border' => '#fca5a5', 'text' => '#dc2626'],
                     3 => ['bg' => '#fee2e2', 'border' => '#fecaca', 'text' => '#ef4444'],
@@ -242,7 +242,7 @@
                     2 => ['bg' => '#e9d5ff', 'text' => '#7c3aed'],
                     3 => ['bg' => '#f3e8ff', 'text' => '#9333ea'],
                 ],
-                'Rekomendasi' => [
+                'Preferensi' => [
                     1 => ['bg' => '#fca5a5', 'text' => '#991b1b'],
                     2 => ['bg' => '#fecaca', 'text' => '#dc2626'],
                     3 => ['bg' => '#fee2e2', 'text' => '#ef4444'],
@@ -1360,7 +1360,7 @@
     
     // Separate Best and Common for quick view
     $bestRows = array_filter($allPriceRows, function ($row) {
-        return isset($row['display_label']) && strpos($row['display_label'], 'Rekomendasi') !== false;
+        return isset($row['display_label']) && strpos($row['display_label'], 'Preferensi') !== false;
     });
     $commonRows = array_filter($allPriceRows, function ($row) {
         return isset($row['display_label']) && strpos($row['display_label'], 'Populer') !== false;
@@ -1403,7 +1403,7 @@
                 </div>
                 <div class="modal-body">
                         @if(count($bestRows) > 0)
-                            <div class="fw-bold mb-1">Rekomendasi</div>
+                            <div class="fw-bold mb-1">Preferensi</div>
                             <div class="table-responsive mb-2">
                                 <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                     <thead>

@@ -303,76 +303,86 @@
                 <div class="filter-section">
                     <label class="filter-section-title">+ Filter by:</label>
                     <div class="filter-tickbox-list">
-                        <div class="tickbox-item">
-                            <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
-                            <label for="filter_all">
-                                <span class="tickbox-title">
-                                    Semua - Menampilkan semua kombinasi material
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="tickbox-item position-relative">
-                            <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
-                            <label for="filter_best">
-                                <span class="tickbox-title">
-                                    Rekomendasi - 3 Kombinasi Most Recommended (Custom Setting)
-                                </span>
-                            </label>
-                            <a href="{{ route('settings.recommendations.index') }}" 
-                               class="position-absolute top-0 end-0 mt-1 me-1 p-1" 
-                               style="z-index: 5; color: #000000 !important;" 
-                               title="Setting Rekomendasi"
-                               onclick="event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
-                                <i class="bi bi-gear-fill"></i>
-                            </a>
-                        </div>
-
-                        <div class="tickbox-item">
-                            <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
-                            <label for="filter_common">
-                                <span class="tickbox-title">
-                                    Populer - Kombinasi yang paling sering dihitung user     
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="tickbox-item">
-                            <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
-                            <label for="filter_cheapest">
-                                <span class="tickbox-title">
-                                    Ekonomis - 3 kombinasi dengan total harga Ekonomis
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="tickbox-item">
-                            <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
-                            <label for="filter_medium">
-                                <span class="tickbox-title">
-                                    Average - 3 kombinasi dengan harga rata-rata
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="tickbox-item">
-                            <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
-                            <label for="filter_expensive">
-                                <span class="tickbox-title">
-                                    Termahal - 3 kombinasi dengan total harga Termahal
-                                </span>
-                            </label>
-                        </div>
-
-                        <div class="tickbox-item">
-                            <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
-                            <label for="filter_custom">
-                                <span class="tickbox-title">
-                                    Custom - Pilih material sendiri secara manual
-                                </span>
-                            </label>
-                        </div>
+    
+                    <div class="filter-tickbox-list">
+                    
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
+                        <label for="filter_all">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Semua</b>
+                                <span class="text-muted">- Menampilkan semua kombinasi material</span>
+                            </span>
+                        </label>
                     </div>
+
+                    <div class="tickbox-item position-relative">
+                        <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
+                        <label for="filter_best" class="w-100">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Preferensi</b>
+                                <span class="text-muted">- 3 Kombinasi pilihan Kanggo</span>
+                            </span>
+                        </label>
+                        <a href="{{ route('settings.recommendations.index') }}" 
+                        class="position-absolute top-0 end-0 mt-2 me-2 text-decoration-none" 
+                        style="z-index: 50; color: #64748b; font-size: 1.1rem; padding: 4px;" 
+                        title="Setting Rekomendasi"
+                        onclick="event.stopPropagation(); event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
+                            <i class="bi bi-gear-fill"></i>
+                        </a>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
+                        <label for="filter_common">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Populer</b>
+                                <span class="text-muted">- 3 Kombinasi yang paling sering digunakan user</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
+                        <label for="filter_cheapest">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Ekonomis</b>
+                                <span class="text-muted">- 3 kombinasi dengan total harga paling Ekonomis</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
+                        <label for="filter_medium">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Average</b>
+                                <span class="text-muted">- 3 kombinasi dengan harga rata-rata</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
+                        <label for="filter_expensive">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Termahal</b>
+                                <span class="text-muted">- 3 kombinasi dengan total harga paling Mahal</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
+                        <label for="filter_custom">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Custom</b>
+                                <span class="text-muted">- Pilih material sendiri secara manual</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
 
                     {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
                     <div id="customMaterialForm" style="display:none; margin-top:16px;">
@@ -590,6 +600,17 @@
     .material-type-filter-group {
         margin-top: 16px;
         display: block;
+    }
+
+    .tickbox-title-label {
+        min-width: 100px; /* Sesuaikan lebar ini jika perlu */
+        display: inline-block;
+        color: #000; /* Pastikan judul tetap hitam */
+    }
+    
+    /* CSS untuk warna abu-abu (jika tidak pakai Bootstrap, class text-muted bisa dihapus dan pakai ini) */
+    .desc-text {
+        color: #6c757d; /* Kode warna abu-abu */
     }
 </style>
 
@@ -1017,7 +1038,7 @@
             handleWorkTypeChange = function() {
                 const selectedWorkType = workTypeSelector.value;
 
-                // Update "Rekomendasi" filter state based on availability
+                // Update "Preferensi" filter state based on availability
                 const filterBest = document.getElementById('filter_best');
                 if (filterBest) {
                     if (availableBestRecommendations.includes(selectedWorkType)) {
@@ -1396,7 +1417,7 @@
                 if (!isAnyFilterChecked) {
                     e.preventDefault();
                     if (typeof window.showToast === 'function') {
-                        window.showToast('Harap pilih minimal satu filter harga (contoh: Rekomendasi, Ekonomis).', 'error');
+                        window.showToast('Harap pilih minimal satu filter harga (contoh: Preferensi, Ekonomis).', 'error');
                     } else {
                         alert('Harap pilih minimal satu filter harga.');
                     }

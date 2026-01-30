@@ -439,7 +439,7 @@ class MaterialCalculationController extends Controller
             } elseif ($hasBrickId) {
                 $targetBricks = Brick::where('id', $request->brick_id)->get();
             } else {
-                // 1. Filter Rekomendasi (Best)
+                // 1. Filter Preferensi (Best)
                 if (in_array('best', $priceFilters, true)) {
                     $recommendedBrickIds = RecommendedCombination::where('type', 'best')
                         ->where('work_type', $workType)
@@ -875,7 +875,7 @@ class MaterialCalculationController extends Controller
                         collect(),
                         $targetCeramics,
                         $recNats,
-                        'Rekomendasi',
+                        'Preferensi',
                         1
                     );
 

@@ -315,12 +315,12 @@
 
                 <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
                     <div class="nav-dropdown-content">
-                        <!-- Menu Item: Rekomendasi Rekomendasi -->
+                        <!-- Menu Item: Preferensi Preferensi -->
                         <div class="dropdown-item-parent">
                             <a href="{{ route('settings.recommendations.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
-                                Filter Rekomendasi
+                                Filter Preferensi
                             </a>
                         </div>
                     </div>

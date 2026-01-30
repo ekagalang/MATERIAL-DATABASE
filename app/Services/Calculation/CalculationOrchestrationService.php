@@ -105,7 +105,7 @@ class CalculationOrchestrationService
             $bestCombinations = $this->combinationGeneration->getBestCombinations($brick, $request);
             $finalResults = [];
             foreach ($bestCombinations as $index => $combo) {
-                $label = 'Rekomendasi ' . ($index + 1);
+                $label = 'Preferensi ' . ($index + 1);
                 $finalResults[$label] = [array_merge($combo, ['filter_label' => $label])];
             }
             return $finalResults;

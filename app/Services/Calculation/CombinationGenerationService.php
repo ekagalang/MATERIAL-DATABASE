@@ -40,22 +40,25 @@ class CombinationGenerationService
     }
 
     /**
-     * Calculate combinations for a specific brick based on filters
+     * Calculate combinations based on constraints (Refactored from calculateCombinationsForBrick)
      *
-     * @param Brick $brick
      * @param Request $request
-     * @param Ceramic|null $fixedCeramic
+     * @param array $constraints ['brick' => $model, 'ceramic' => $model, etc]
      * @return array
      */
-    public function calculateCombinationsForBrick(Brick $brick, Request $request, ?Ceramic $fixedCeramic = null): array
+    public function calculateCombinations(Request $request, array $constraints = []): array
     {
+        $brick = $constraints['brick'] ?? null;
+        $fixedCeramic = $constraints['ceramic'] ?? null;
+
+        // Legacy Support: Ensure brick is present if work type requires it
+        // This logic is moved from Controller to here
+        
         // Feature: Store-Based Combination (One Stop Shopping)
-        // If requested, we calculate combinations grouped by store availability
-        // Defaults to true for better performance and realism, unless explicitly disabled
         $useStoreFilter = $request->boolean('use_store_filter', true);
 
         if ($useStoreFilter) {
-            return $this->getStoreBasedCombinations($brick, $request, $fixedCeramic);
+            return $this->getStoreBasedCombinations($request, $constraints);
         }
 
         $requestedFilters = $request->price_filters ?? ['best'];
@@ -64,7 +67,7 @@ class CombinationGenerationService
             $bestCombinations = $this->getBestCombinations($brick, $request->all(), $fixedCeramic);
             $finalResults = [];
             foreach ($bestCombinations as $index => $combo) {
-                $label = 'Rekomendasi ' . ($index + 1);
+                $label = 'Preferensi ' . ($index + 1);
                 $finalResults[$label] = [array_merge($combo, ['filter_label' => $label])];
             }
             return $finalResults;
@@ -150,6 +153,17 @@ class CombinationGenerationService
     }
 
     /**
+     * Legacy Wrapper for backward compatibility
+     */
+    public function calculateCombinationsForBrick(Brick $brick, Request $request, ?Ceramic $fixedCeramic = null): array
+    {
+        return $this->calculateCombinations($request, [
+            'brick' => $brick,
+            'ceramic' => $fixedCeramic
+        ]);
+    }
+
+    /**
      * Get combinations based on Store Availability (One Stop Shopping)
      * 
      * Strategy:
@@ -158,8 +172,11 @@ class CombinationGenerationService
      * 3. Calculate local combinations
      * 4. Aggregate Global Cheapest & Expensive
      */
-    public function getStoreBasedCombinations(Brick $brick, Request $request, ?Ceramic $fixedCeramic = null): array
+    public function getStoreBasedCombinations(Request $request, array $constraints = []): array
     {
+        $brick = $constraints['brick'] ?? null;
+        $fixedCeramic = $constraints['ceramic'] ?? null;
+
         $workType = $request['work_type'] ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         
@@ -233,14 +250,25 @@ class CombinationGenerationService
                 if ($req === 'brick') {
                     // Check if THIS store has the specific brick we are calculating for
                     // Check availability for this specific brick ID
-                    $hasBrick = $location->materialAvailabilities()
-                        ->where('materialable_type', Brick::class)
-                        ->where('materialable_id', $brick->id)
-                        ->exists();
-                        
-                    if (!$hasBrick) {
-                        $isComplete = false;
-                        break;
+                    
+                    // If no brick constraint is passed, we check if store has ANY brick? 
+                    // No, usually we iterate per brick.
+                    // But if we are in "Truly Dynamic" mode (Populer), maybe brick is not passed yet?
+                    // For now assume brick is passed.
+                    
+                    if ($brick) {
+                        $hasBrick = $location->materialAvailabilities()
+                            ->where('materialable_type', Brick::class)
+                            ->where('materialable_id', $brick->id)
+                            ->exists();
+                            
+                        if (!$hasBrick) {
+                            $isComplete = false;
+                            break;
+                        }
+                    } else {
+                        // If logic is "Find Popular Brick in this store", we don't constrain by specific ID yet.
+                        // We will iterate popular bricks later or check store inventory.
                     }
                     continue; 
                 }
@@ -278,8 +306,15 @@ class CombinationGenerationService
 
             // Calculate Local Combinations
             // We only need Cheapest & Expensive per store to represent range
+            // NOTE: If $brick is null, this calc might fail if formula requires it. 
+            // We need a fallback or loop.
+            if (!$brick && in_array('brick', $requiredMaterials)) {
+                 // Skip calculation if brick is missing but required
+                 continue;
+            }
+
             $localResults = $this->calculateCombinationsFromMaterials(
-                $brick,
+                $brick ?? new Brick(), // Fallback if not required
                 $request->all(),
                 $storeMaterials['cement'],
                 $storeMaterials['sand'],
@@ -338,6 +373,135 @@ class CombinationGenerationService
     }
 
     /**
+     * Get Popular Combinations (One Stop Shopping Validated)
+     * 
+     * 1. Get Top 3 most used material combinations from history
+     * 2. Find Stores that stock EXACTLY those materials
+     * 3. Pick Cheapest Store for each combination
+     */
+    public function getPopularStoreCombinations(Request $request): array
+    {
+        $workType = $request['work_type'] ?? 'brick_half';
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+        
+        // 1. Get Top Combinations from History
+        $query = DB::table('brick_calculations')
+            ->select('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id', DB::raw('count(*) as frequency'))
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+            ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
+            ->orderByDesc('frequency')
+            ->limit(5); // Get top 5 candidates
+
+        // Filter valid IDs only
+        if (in_array('brick', $requiredMaterials)) $query->whereNotNull('brick_id');
+        if (in_array('cement', $requiredMaterials)) $query->whereNotNull('cement_id');
+        
+        $topCombos = $query->get();
+        $finalResults = [];
+        $rank = 1;
+
+        // 2. Validate Store Availability for each Combo
+        foreach ($topCombos as $combo) {
+            if ($rank > 3) break;
+
+            // Load Material Models
+            $materials = [];
+            $validCombo = true;
+
+            if (in_array('brick', $requiredMaterials)) {
+                $materials['brick'] = Brick::find($combo->brick_id);
+                if (!$materials['brick']) $validCombo = false;
+            }
+            if (in_array('cement', $requiredMaterials)) {
+                $materials['cement'] = Cement::find($combo->cement_id);
+                if (!$materials['cement']) $validCombo = false;
+            }
+            if (in_array('sand', $requiredMaterials)) {
+                $materials['sand'] = Sand::find($combo->sand_id);
+                if (!$materials['sand']) $validCombo = false;
+            }
+            if (in_array('cat', $requiredMaterials)) {
+                $materials['cat'] = Cat::find($combo->cat_id);
+                if (!$materials['cat']) $validCombo = false;
+            }
+            if (in_array('ceramic', $requiredMaterials)) {
+                $materials['ceramic'] = Ceramic::find($combo->ceramic_id);
+                if (!$materials['ceramic']) $validCombo = false;
+            }
+            if (in_array('nat', $requiredMaterials)) {
+                $materials['nat'] = Cement::find($combo->nat_id); // Nat is Cement model
+                if (!$materials['nat']) $validCombo = false;
+            }
+
+            if (!$validCombo) continue;
+
+            // Find Stores having ALL these specific materials
+            $validStores = [];
+            $locations = \App\Models\StoreLocation::with(['materialAvailabilities', 'store'])->get();
+
+            foreach ($locations as $location) {
+                $hasAll = true;
+                foreach ($materials as $type => $model) {
+                    $exists = $location->materialAvailabilities()
+                        ->where('materialable_type', get_class($model))
+                        ->where('materialable_id', $model->id)
+                        ->exists();
+                    
+                    if (!$exists) {
+                        $hasAll = false;
+                        break;
+                    }
+                }
+
+                if ($hasAll) {
+                    // Calculate Cost at this store
+                    $cements = isset($materials['cement']) ? collect([$materials['cement']]) : collect();
+                    $sands = isset($materials['sand']) ? collect([$materials['sand']]) : collect();
+                    $cats = isset($materials['cat']) ? collect([$materials['cat']]) : collect();
+                    $ceramics = isset($materials['ceramic']) ? collect([$materials['ceramic']]) : collect();
+                    $nats = isset($materials['nat']) ? collect([$materials['nat']]) : collect();
+                    $brick = $materials['brick'] ?? new Brick(); // Fallback if not needed
+
+                    $result = $this->calculateCombinationsFromMaterials(
+                        $brick,
+                        $request->all(),
+                        $cements,
+                        $sands,
+                        $cats,
+                        $ceramics,
+                        $nats,
+                        'Populer Store',
+                        1
+                    );
+
+                    if (!empty($result)) {
+                        $res = $result[0];
+                        $res['store_label'] = $location->store->name . ' (' . $location->city . ')';
+                        $res['store_location'] = $location;
+                        $validStores[] = $res;
+                    }
+                }
+            }
+
+            // If we found valid stores for this popular combo, pick the cheapest one
+            if (!empty($validStores)) {
+                usort($validStores, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+                $winner = $validStores[0];
+                
+                $label = 'Populer ' . $rank;
+                $winner['filter_label'] = $label;
+                $winner['filter_type'] = 'common';
+                $winner['frequency'] = $combo->frequency; // Pass frequency data to view
+                
+                $finalResults[$label] = [$winner];
+                $rank++;
+            }
+        }
+
+        return $finalResults;
+    }
+
+    /**
      * Get combinations by filter
      *
      * @param Brick $brick
@@ -352,7 +516,19 @@ class CombinationGenerationService
             case 'best':
                 return $this->getBestCombinations($brick, $requestData);
             case 'common':
-                return $this->getCommonCombinations($brick, $requestData);
+                // Use new Store-Validated Popular logic
+                // Since this returns grouped array ['Populer 1' => [...]], we need to flatten it 
+                // to match the expected return format of getCombinationsByFilter (array of combinations)
+                $requestObj = $requestData instanceof Request ? $requestData : new Request($requestData);
+                $grouped = $this->getPopularStoreCombinations($requestObj);
+                
+                $flat = [];
+                foreach ($grouped as $group) {
+                    foreach ($group as $item) {
+                        $flat[] = $item;
+                    }
+                }
+                return $flat;
             case 'cheapest':
                 return $this->getCheapestCombinations($brick, $requestData);
             case 'medium':
@@ -378,7 +554,7 @@ class CombinationGenerationService
      * @param iterable|null $cats
      * @param iterable|null $ceramics
      * @param iterable|null $nats
-     * @param string $groupLabel Label for this group (e.g., 'Rekomendasi', 'Ekonomis')
+     * @param string $groupLabel Label for this group (e.g., 'Preferensi', 'Ekonomis')
      * @param int|null $limit Limit number of results
      * @return array
      */
@@ -764,7 +940,7 @@ class CombinationGenerationService
                 $cats,
                 $ceramics,
                 $nats,
-                'Rekomendasi',
+                'Preferensi',
                 1,
             );
 
@@ -1353,7 +1529,7 @@ class CombinationGenerationService
     public function getFilterLabel(string $filter): string
     {
         return match ($filter) {
-            'best' => 'Rekomendasi',
+            'best' => 'Preferensi',
             'common' => 'Populer',
             'cheapest' => 'Ekonomis',
             'medium' => 'Sedang',

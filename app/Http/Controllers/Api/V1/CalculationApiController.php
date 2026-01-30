@@ -58,7 +58,7 @@ class CalculationApiController extends Controller
      *     "projects": [{
      *       "brick": {...},
      *       "combinations": {
-     *         "Rekomendasi 1": [{...}],
+     *         "Preferensi 1": [{...}],
      *         "Ekonomis 1": [{...}]
      *       }
      *     }],

@@ -27,6 +27,7 @@
         
         if (h === '#skip-page') {
             // Aggressively force top for #skip-page and do NOT pass to main logic
+            window.__materialSkipPage = true;
             document.documentElement.style.scrollBehavior = 'auto';
             window.scrollTo(0, 0);
             document.documentElement.scrollTop = 0;
@@ -1740,16 +1741,25 @@ html.materials-booting .page-content {
                                     })->sortKeys();
                                 }
                                 $rowNumber = 1;
+                                $seenAnchors = [];
                             @endphp
                             <tbody>
                                 @foreach($orderedGroups as $letter => $items)
-                                    @php
-                                        // If default sort or explicit sort, disable group anchors
-                                        $anchorId = ($isSorting || $defaultSort) ? null : ($letter === '#' ? 'other' : $letter);
-                                    @endphp
                                     @foreach($items as $item)
                                         @php
-                                            $rowAnchorId = (!$isSorting && !$defaultSort && $loop->first) ? $material['type'] . '-letter-' . $anchorId : null;
+                                            $brandFirst = $item->brand ?? '';
+                                            $brandFirst = trim((string) $brandFirst);
+                                            $rowLetter = $brandFirst !== '' ? strtoupper(substr($brandFirst, 0, 1)) : '#';
+                                            if (!ctype_alpha($rowLetter)) {
+                                                $rowLetter = '#';
+                                            }
+
+                                            $rowAnchorId = null;
+                                            if (!$defaultSort && !isset($seenAnchors[$rowLetter])) {
+                                                $anchorSuffix = $rowLetter === '#' ? 'other' : $rowLetter;
+                                                $rowAnchorId = $material['type'] . '-letter-' . $anchorSuffix;
+                                                $seenAnchors[$rowLetter] = true;
+                                            }
                                             $searchParts = array_filter([
                                                 $item->type ?? null,
                                                 $item->material_name ?? null,
@@ -2647,7 +2657,32 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('[Restore] Calling updateTabVisibility');
     const savedTab = window.__materialSavedTab || localStorage.getItem('materialActiveTab');
     updateTabVisibility(savedTab);
-    document.documentElement.classList.remove('materials-booting');
+    if (window.__materialSkipPage) {
+        const resetSkipPageScroll = () => {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            const activePanel = document.querySelector('.material-tab-panel.active')
+                || document.querySelector('.material-tab-panel');
+            if (activePanel) {
+                const tableContainer = activePanel.querySelector('.table-container');
+                if (tableContainer) {
+                    tableContainer.scrollTop = 0;
+                }
+            }
+        };
+
+        document.documentElement.style.scrollBehavior = 'auto';
+        resetSkipPageScroll();
+        window.requestAnimationFrame(() => {
+            resetSkipPageScroll();
+            document.documentElement.style.scrollBehavior = '';
+            document.documentElement.classList.remove('materials-booting');
+        });
+        window.__materialSkipPage = false;
+    } else {
+        document.documentElement.classList.remove('materials-booting');
+    }
 
     if (navSearchType) {
         const searchTab = navBlinkMaterial || savedTab;

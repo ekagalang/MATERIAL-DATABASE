@@ -439,7 +439,7 @@
                 $requestedFilters = ['best'];
             }
             $filterMap = [
-                'best' => 'Rekomendasi',
+                'best' => 'Preferensi',
                 'common' => 'Populer',
                 'cheapest' => 'Ekonomis',
                 'medium' => 'Average',
@@ -455,7 +455,7 @@
                     $filterCategories[] = $filterMap[$filterKey];
                 }
             }
-            $rekapCategories = ['Rekomendasi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
+            $rekapCategories = ['Preferensi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
             if (in_array('custom', $filterSet, true)) {
                 $filterCategories[] = 'Custom';
                 $rekapCategories[] = 'Custom';
@@ -618,7 +618,7 @@
 
             // Definisi warna label untuk kolom Rekap (sama dengan yang di tabel utama)
             $rekapLabelColors = [
-                'Rekomendasi' => [
+                'Preferensi' => [
                     1 => ['bg' => '#fca5a5', 'text' => '#991b1b'],
                     2 => ['bg' => '#fecaca', 'text' => '#dc2626'],
                     3 => ['bg' => '#fee2e2', 'text' => '#ef4444'],
@@ -885,8 +885,8 @@
                 }
             }
 
-            // Usage percentage helpers for rekap table (based on historical usage within current filtered materials)
-            // Percentages are calculated per-brand to align with Populer ranking (unique brand per material type).
+            // Usage percentage helpers: GROUP BY BRAND (Normalized)
+            // This ensures that "Semen Gresik" from Store A (ID 1) matches "Semen Gresik" from Store B (ID 2)
             $materialBrandUsage = [
                 'brick' => [],
                 'cement' => [],
@@ -895,84 +895,67 @@
                 'ceramic' => [],
                 'nat' => [],
             ];
-            $materialIdToBrand = [
-                'brick' => [],
-                'cement' => [],
-                'sand' => [],
-                'cat' => [],
-                'ceramic' => [],
-                'nat' => [],
+            
+            // Usage Totals per Type
+            $usageTotals = [
+                'brick' => 0, 'cement' => 0, 'sand' => 0, 'cat' => 0, 'ceramic' => 0, 'nat' => 0
             ];
 
+            // 1. Load ALL historical IDs involved to get their brands
             foreach ($materialUsage as $type => $usageMap) {
                 $ids = array_keys($usageMap);
                 if (empty($ids) || empty($materialModelMap[$type])) {
                     continue;
                 }
-                $models = $materialModelMap[$type]::whereIn('id', $ids)->get(['id', 'brand'])->keyBy('id');
-                foreach ($usageMap as $id => $count) {
-                    $brand = $models->get($id)->brand ?? null;
-                    if (!$brand) {
-                        continue;
-                    }
-                    $materialIdToBrand[$type][$id] = $brand;
-                    $materialBrandUsage[$type][$brand] = ($materialBrandUsage[$type][$brand] ?? 0) + (int) $count;
-                }
-            }
-
-            $allowedBrandMap = [
-                'brick' => [],
-                'cement' => [],
-                'sand' => [],
-                'cat' => [],
-                'ceramic' => [],
-                'nat' => [],
-            ];
-            foreach ($fallbackMaterialIds as $type => $allowedIdsMap) {
-                $allowedIds = array_keys($allowedIdsMap ?? []);
-                if (empty($allowedIds) || empty($materialModelMap[$type])) {
-                    continue;
-                }
-                $models = $materialModelMap[$type]::whereIn('id', $allowedIds)->get(['id', 'brand']);
+                
+                // Fetch brands for these IDs
+                $models = $materialModelMap[$type]::whereIn('id', $ids)->get(['id', 'brand']);
+                
                 foreach ($models as $model) {
-                    if (!empty($model->brand)) {
-                        $allowedBrandMap[$type][$model->brand] = true;
+                    $id = $model->id;
+                    $count = $usageMap[$id] ?? 0;
+                    $brand = strtoupper(trim($model->brand ?? ''));
+                    
+                    if ($brand !== '') {
+                        if (!isset($materialBrandUsage[$type][$brand])) {
+                            $materialBrandUsage[$type][$brand] = 0;
+                        }
+                        $materialBrandUsage[$type][$brand] += $count;
                     }
                 }
+                
+                // Calculate Total Usage for this Material Type
+                $usageTotals[$type] = array_sum($materialBrandUsage[$type]);
             }
 
-            $usageTotals = [];
-            foreach ($materialBrandUsage as $type => $brandUsage) {
-                $allowedBrands = $allowedBrandMap[$type] ?? [];
-                if (!empty($allowedBrands)) {
-                    $total = 0;
-                    foreach ($allowedBrands as $brand => $flag) {
-                        $total += (int) ($brandUsage[$brand] ?? 0);
-                    }
-                    $usageTotals[$type] = $total;
-                } else {
-                    $usageTotals[$type] = array_sum($brandUsage);
-                }
-            }
-
-            $formatUsagePercent = function (string $type, $id) use ($materialBrandUsage, $materialIdToBrand, $usageTotals, $allowedBrandMap) {
-                if (empty($usageTotals[$type]) || empty($id)) {
+            // 2. Helper to Format Percent based on BRAND name
+            $formatUsagePercent = function (string $type, $modelOrBrand) use ($materialBrandUsage, $usageTotals) {
+                if (empty($usageTotals[$type]) || empty($modelOrBrand)) {
                     return null;
                 }
-                $brand = $materialIdToBrand[$type][$id] ?? null;
-                if (!$brand) {
+                
+                $brand = '';
+                if (is_string($modelOrBrand)) {
+                    $brand = strtoupper(trim($modelOrBrand));
+                } elseif (is_object($modelOrBrand)) {
+                    $brand = strtoupper(trim($modelOrBrand->brand ?? ''));
+                }
+                
+                if ($brand === '') {
                     return null;
                 }
-                $allowedBrands = $allowedBrandMap[$type] ?? [];
-                if (!empty($allowedBrands) && !isset($allowedBrands[$brand])) {
-                    return null;
-                }
-                $count = (int) ($materialBrandUsage[$type][$brand] ?? 0);
+                
+                $count = $materialBrandUsage[$type][$brand] ?? 0;
+                
                 if ($count <= 0) {
                     return null;
                 }
+                
+                // Threshold: Only show if > 5% popularity to reduce noise
                 $percent = ($count / $usageTotals[$type]) * 100;
-                return number_format($percent, 1);
+                if ($percent < 5) return null;
+                
+                return number_format($percent, 0);
             };
 
             $resolveRankedUniqueIds = function (string $materialType, array $usageMap, array $fallbackMap, string $modelClass, int $limit = 3) use ($workType): array {
@@ -1659,7 +1642,7 @@
                 if (!$data1) {
                     continue;
                 }
-                // Extract filter type from key (e.g., "Rekomendasi 1" -> "Rekomendasi")
+                // Extract filter type from key (e.g., "Preferensi 1" -> "Preferensi")
                 $filterType = preg_replace('/\s+\d+$/', '', $key1);
 
                 $signature = $buildCombinationSignature($data1);
@@ -2179,13 +2162,15 @@
                                         $catBgColor = $catColorMap[$key] ?? '#ffffff';
                                         $natBgColor = $natColorMap[$key] ?? '#ffffff';
                                         $ceramicBgColor = $ceramicColorMap[$key] ?? '#ffffff';
-                                        $isPopulerRow = $filterType === 'Populer';
-                                        $brickPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('brick', $globalRekapData[$key]['brick_id'] ?? null) : null;
-                                        $cementPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('cement', $globalRekapData[$key]['cement_id'] ?? null) : null;
-                                        $sandPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('sand', $globalRekapData[$key]['sand_id'] ?? null) : null;
-                                        $catPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('cat', $globalRekapData[$key]['cat_id'] ?? null) : null;
-                                        $ceramicPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('ceramic', $globalRekapData[$key]['ceramic_id'] ?? null) : null;
-                                        $natPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('nat', $globalRekapData[$key]['nat_id'] ?? null) : null;
+                                        $isPopulerRow = str_contains($filterType, 'Populer');
+                                        
+                                        // Calculate Percentages based on BRAND NAME matching
+                                        $brickPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('brick', $globalRekapData[$key]['brick_brand'] ?? null) : null;
+                                        $cementPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('cement', $globalRekapData[$key]['cement_brand'] ?? null) : null;
+                                        $sandPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('sand', $globalRekapData[$key]['sand_brand'] ?? null) : null;
+                                        $catPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('cat', $globalRekapData[$key]['cat_brand'] ?? null) : null;
+                                        $ceramicPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('ceramic', $globalRekapData[$key]['ceramic_brand'] ?? null) : null;
+                                        $natPercent = isset($globalRekapData[$key]) ? $formatUsagePercent('nat', $globalRekapData[$key]['nat_brand'] ?? null) : null;
 
                                         // Get label color untuk kolom Rekap
                                         $labelColor = $rekapLabelColors[$filterType][$rank] ?? ['bg' => '#ffffff', 'text' => '#000000'];
@@ -2199,12 +2184,29 @@
                                         </td>
 
                                         {{-- Column 2: Grand Total --}}
-                                        <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); {{ $grandTotalBg ? 'background: ' . $grandTotalBg . ';' : '' }} padding: 4px 8px; vertical-align: middle; width: 120px; min-width: 120px;">
+                                        <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); {{ $grandTotalBg ? 'background: ' . $grandTotalBg . ';' : '' }} padding: 4px 8px; vertical-align: middle; width: 140px; min-width: 140px;">
                                         @if(isset($globalRekapData[$key]))
-                                            <div class="d-flex justify-content-between w-100">
+                                            <div class="d-flex flex-column align-items-end w-100">
+                                                {{-- Usage Frequency Badge (Populer) --}}
+                                                @if(isset($globalRekapData[$key]['frequency']))
+                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-1" style="font-size: 0.65rem;">
+                                                        Dipakai {{ $globalRekapData[$key]['frequency'] }}x
+                                                    </span>
+                                                @endif
+
+                                                {{-- Store Info --}}
+                                                @if(isset($globalRekapData[$key]['store_label']))
+                                                    <div class="text-secondary small mb-1 text-end" style="font-size: 0.7rem; line-height: 1.1;">
+                                                        <div class="fw-bold">{{ Str::before($globalRekapData[$key]['store_label'], ' (') }}</div>
+                                                        <div class="fw-light">{{ Str::after($globalRekapData[$key]['store_label'], '(') }}</div>
+                                                    </div>
+                                                @endif
+
                                                 @if(isset($globalRekapData[$key]['grand_total']) && $globalRekapData[$key]['grand_total'] !== null)
-                                                    <span>Rp</span>
-                                                    <span>@price($globalRekapData[$key]['grand_total'])</span>
+                                                    <div class="d-flex justify-content-between w-100">
+                                                        <span>Rp</span>
+                                                        <span>@price($globalRekapData[$key]['grand_total'])</span>
+                                                    </div>
                                                 @else
                                                     <span class="text-muted">-</span>
                                                 @endif
@@ -2960,7 +2962,7 @@
                                                                     2 => ['bg' => '#f8fafc', 'border' => '#cbd5e1', 'text' => '#475569'],
                                                                     3 => ['bg' => '#ffffff', 'border' => '#e2e8f0', 'text' => '#64748b'],
                                                                 ],
-                                                                'Rekomendasi' => [
+                                                                'Preferensi' => [
                                                                     1 => ['bg' => '#fca5a5', 'border' => '#f87171', 'text' => '#991b1b'],
                                                                     2 => ['bg' => '#fecaca', 'border' => '#fca5a5', 'text' => '#dc2626'],
                                                                     3 => ['bg' => '#fee2e2', 'border' => '#fecaca', 'text' => '#ef4444'],
@@ -3005,7 +3007,7 @@
                                                                     $labelPrefix = preg_replace('/\s+\d+.*$/', '', $singleLabel);
                                                                     $labelPrefix = trim($labelPrefix);
 
-                                                                    // Extract nomor dari label (contoh: "Rekomendasi 1" -> 1)
+                                                                    // Extract nomor dari label (contoh: "Preferensi 1" -> 1)
                                                                     preg_match('/\s+(\d+)/', $singleLabel, $matches);
                                                                     $number = isset($matches[1]) ? (int)$matches[1] : 1;
 
@@ -3855,7 +3857,7 @@
 
                     $bestLabel = null;
                     foreach ($labelParts as $part) {
-                        if ($bestLabel === null && str_starts_with($part, 'Rekomendasi')) {
+                        if ($bestLabel === null && str_starts_with($part, 'Preferensi')) {
                             $bestLabel = $part;
                         }
                     }
@@ -3963,7 +3965,7 @@
                 <div class="modal-body">
                     @if(count($allPriceRows) > 0)
                         @if(count($bestRows) > 0)
-                            <div class="fw-bold mb-1">Rekomendasi</div>
+                            <div class="fw-bold mb-1">Preferensi</div>
                             <div class="table-responsive mb-2">
                                 <table class="table table-sm table-striped align-middle mb-0 all-price-table">
                                     <thead>
