@@ -55,7 +55,7 @@ class CombinationGenerationService
         // This logic is moved from Controller to here
         
         // Feature: Store-Based Combination (One Stop Shopping)
-        $useStoreFilter = $request->boolean('use_store_filter', true);
+        $useStoreFilter = $request->boolean('use_store_filter', false);
 
         if ($useStoreFilter) {
             return $this->getStoreBasedCombinations($request, $constraints);
@@ -1532,7 +1532,7 @@ class CombinationGenerationService
             'best' => 'Preferensi',
             'common' => 'Populer',
             'cheapest' => 'Ekonomis',
-            'medium' => 'Sedang',
+            'medium' => 'Average',
             'expensive' => 'Termahal',
             'custom' => 'Custom',
             'all' => 'Semua',
