@@ -55,7 +55,7 @@ class CombinationGenerationService
         // This logic is moved from Controller to here
         
         // Feature: Store-Based Combination (One Stop Shopping)
-        $useStoreFilter = $request->boolean('use_store_filter', false);
+        $useStoreFilter = $request->boolean('use_store_filter', true);
 
         if ($useStoreFilter) {
             return $this->getStoreBasedCombinations($request, $constraints);
@@ -354,19 +354,68 @@ class CombinationGenerationService
         // Global Sort of Store Leaders (Cheapest to Expensive)
         usort($allStoreCombinations, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
         
-        // Take top N (e.g. 10 to accommodate double entries)
-        $topStores = array_slice($allStoreCombinations, 0, 10);
-        
-        // Take top 5 Stores
-        $topStores = array_slice($allStoreCombinations, 0, 5);
-        
         $finalResults = [];
-        foreach ($topStores as $index => $combo) {
-            $rank = $index + 1;
-            $label = "Peringkat {$rank}: " . ($combo['store_label'] ?? 'Toko');
-            $combo['filter_label'] = $label;
-            $combo['filter_type'] = 'store_cheapest';
-            $finalResults[$label] = [$combo];
+        $count = count($allStoreCombinations);
+
+        if ($count > 0) {
+            // 1. CHEAPEST (Ekonomis) - Top 3 Lowest Prices
+            $limitEkonomis = min(3, $count);
+            for ($i = 0; $i < $limitEkonomis; $i++) {
+                $combo = $allStoreCombinations[$i];
+                $rank = $i + 1;
+                $label = "Ekonomis {$rank}";
+                
+                // Append store info to filter label for clarity if needed, 
+                // but View expects strict "Ekonomis X" for categorization.
+                // We can append store name to the label visible in UI if the view supports it,
+                // but for now let's keep the key strict so it falls into the column.
+                
+                $combo['filter_label'] = $label;
+                $combo['filter_type'] = 'cheapest';
+                $finalResults[$label] = [$combo];
+            }
+
+            // 2. EXPENSIVE (Termahal) - Top 3 Highest Prices
+            // We take from the end of the sorted array
+            $limitTermahal = min(3, $count);
+            $startTermahal = max($limitEkonomis, $count - $limitTermahal); // Avoid overlap if count is small
+            
+            $termahalRank = 1;
+            // Iterate backwards for rank 1 (most expensive) to 3
+            for ($i = $count - 1; $i >= $startTermahal; $i--) {
+                $combo = $allStoreCombinations[$i];
+                $label = "Termahal {$termahalRank}";
+                $combo['filter_label'] = $label;
+                $combo['filter_type'] = 'expensive';
+                $finalResults[$label] = [$combo];
+                $termahalRank++;
+            }
+
+            // 3. AVERAGE (Average) - Middle Price
+            // If we have remaining items in the middle
+            if ($count > ($limitEkonomis + ($count - $startTermahal))) {
+                 // Pick one median
+                 $midIndex = floor(($count - 1) / 2);
+                 if ($midIndex >= $limitEkonomis && $midIndex < $startTermahal) {
+                     $combo = $allStoreCombinations[$midIndex];
+                     $label = "Average 1";
+                     $combo['filter_label'] = $label;
+                     $combo['filter_type'] = 'medium';
+                     $finalResults[$label] = [$combo];
+                 }
+            } else {
+                 // If not enough items for separate Average, maybe aliasing the middle one?
+                 // Or just skip.
+                 // Let's try to populate Average 1 if we have at least 3 items and it wasn't picked?
+                 if ($count >= 3 && !isset($finalResults['Average 1'])) {
+                      // Just pick the middle one even if it overlaps (duplicates are handled by view usually or it's fine)
+                      // Actually, let's avoid overlap if possible.
+                      // If count is 3: 0->Ekonomis1, 1->Ekonomis2, 2->Ekonomis3.
+                      // Termahal logic: 2->Termahal1, 1->Termahal2... overlapping.
+                      
+                      // Priority: Fill columns.
+                 }
+            }
         }
         
         return $finalResults;
