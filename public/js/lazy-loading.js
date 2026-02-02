@@ -132,3 +132,109 @@
     window.reinitializeLazyLoading = init;
 
 })();
+
+/**
+ * Tab Content Lazy Loading
+ * Automatically fetches content for material tabs when they become active
+ */
+(function() {
+    'use strict';
+
+    function loadTabContent(container) {
+        // Prevent double-loading
+        if (container.dataset.isLoading === "true") return;
+        container.dataset.isLoading = "true";
+
+        const url = container.dataset.url;
+        if (!url) return;
+
+        console.log('[LazyLoad] Fetching tab content:', url);
+
+        fetch(url, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html'
+            }
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.text();
+        })
+        .then(html => {
+            // Create a temp container to parse the HTML
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            
+            // The response might contain the loading div again if something went wrong,
+            // or the actual content. We replace the loader with the content.
+            if (temp.firstElementChild) {
+                container.replaceWith(temp.firstElementChild);
+                console.log('[LazyLoad] Content loaded and replaced.');
+                
+                // Re-run UI initializers
+                if (typeof window.applyAllStickyOffsets === 'function') {
+                    window.applyAllStickyOffsets();
+                }
+                if (typeof window.reinitializeLazyLoading === 'function') {
+                    window.reinitializeLazyLoading();
+                }
+            } else {
+                container.innerHTML = '<div class="p-4 text-center text-muted">Data kosong.</div>';
+            }
+        })
+        .catch(error => {
+            console.error('[LazyLoad] Error:', error);
+            container.innerHTML = `
+                <div class="p-4 text-center text-danger">
+                    <p>Gagal memuat data.</p>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="this.closest('.material-tab-loading').dataset.isLoading='false'; this.closest('.material-tab-loading').click()">Coba Lagi</button>
+                </div>
+            `;
+            container.dataset.isLoading = "false";
+            // Allow clicking to retry
+            container.style.cursor = 'pointer';
+            container.onclick = () => loadTabContent(container);
+        });
+    }
+
+    function checkActiveTabs() {
+        // Find all active panels that have a loading indicator
+        const activeLoaders = document.querySelectorAll('.material-tab-panel.active .material-tab-loading');
+        activeLoaders.forEach(loader => {
+            loadTabContent(loader);
+        });
+    }
+
+    // Observer to watch for tab changes
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const target = mutation.target;
+                // If this is a panel and it became active
+                if (target.classList.contains('material-tab-panel') && target.classList.contains('active')) {
+                    const loader = target.querySelector('.material-tab-loading');
+                    if (loader) {
+                        loadTabContent(loader);
+                    }
+                }
+            }
+        });
+    });
+
+    function initTabObserver() {
+        const panels = document.querySelectorAll('.material-tab-panel');
+        panels.forEach(panel => {
+            observer.observe(panel, { attributes: true });
+        });
+        checkActiveTabs();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTabObserver);
+    } else {
+        initTabObserver();
+    }
+    
+    // Also expose a global function to trigger check manually if needed
+    window.checkLazyTabs = checkActiveTabs;
+})();

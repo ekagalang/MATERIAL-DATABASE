@@ -232,7 +232,7 @@ class StoreLocationController extends Controller
 
         $sortCollection = function($collection) use ($sortBy, $sortDirection) {
             if (!$sortBy) {
-                return $collection->sortBy('brand', SORT_NATURAL|SORT_FLAG_CASE);
+                return $collection->sortBy('type', SORT_NATURAL|SORT_FLAG_CASE);
             }
             return $collection->sortBy(function($item) use ($sortBy) {
                 return $item->{$sortBy} ?? null;
@@ -255,6 +255,7 @@ class StoreLocationController extends Controller
             'type' => 'brick',
             'label' => 'Bata',
             'count' => $bricks->count(),
+            'db_count' => $bricks->count(),
             'data' => $bricks,
             'active_letters' => $this->getActiveLetters($bricks)
         ];
@@ -264,6 +265,7 @@ class StoreLocationController extends Controller
             'type' => 'cement',
             'label' => 'Semen',
             'count' => $cements->count(),
+            'db_count' => $cements->count(),
             'data' => $cements,
             'active_letters' => $this->getActiveLetters($cements)
         ];
@@ -273,6 +275,7 @@ class StoreLocationController extends Controller
             'type' => 'sand',
             'label' => 'Pasir',
             'count' => $sands->count(),
+            'db_count' => $sands->count(),
             'data' => $sands,
             'active_letters' => $this->getActiveLetters($sands)
         ];
@@ -282,6 +285,7 @@ class StoreLocationController extends Controller
             'type' => 'cat',
             'label' => 'Cat',
             'count' => $cats->count(),
+            'db_count' => $cats->count(),
             'data' => $cats,
             'active_letters' => $this->getActiveLetters($cats)
         ];
@@ -291,6 +295,7 @@ class StoreLocationController extends Controller
             'type' => 'ceramic',
             'label' => 'Keramik',
             'count' => $ceramics->count(),
+            'db_count' => $ceramics->count(),
             'data' => $ceramics,
             'active_letters' => $this->getActiveLetters($ceramics)
         ];
@@ -304,12 +309,150 @@ class StoreLocationController extends Controller
     }
 
     /**
+     * AJAX Endpoint for lazy loading tabs in Store Location view
+     */
+    public function fetchTab(Request $request, Store $store, StoreLocation $location, $type)
+    {
+        // Validate type
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic'])) {
+            abort(404);
+        }
+
+        $search = $request->get('search');
+        
+        // Base query for this location
+        $query = $location->materialAvailabilities()->with('materialable');
+        
+        // Get all availabilities first (filtering happens in memory due to polymorphic relation)
+        // Optimization: In a real large-scale app, we might want to filter by type in DB query if possible
+        // But since materialAvailabilities is polymorphic, we fetch and filter.
+        $availabilities = $query->get();
+        
+        $materialsCollection = collect();
+        
+        $targetClass = match($type) {
+            'brick' => 'Brick',
+            'cat' => 'Cat',
+            'cement' => 'Cement',
+            'sand' => 'Sand',
+            'ceramic' => 'Ceramic',
+        };
+
+        foreach ($availabilities as $availability) {
+            $material = $availability->materialable;
+            if (!$material) continue;
+            
+            // Filter by type
+            if (class_basename($material) !== $targetClass) continue;
+
+            // Search Filter
+            if ($search) {
+                $searchLower = strtolower($search);
+                $found = false;
+
+                // 1. Attribute Search
+                $attributes = $material->getAttributes();
+                foreach ($attributes as $key => $value) {
+                    if (in_array($key, ['id', 'created_at', 'updated_at']) || $value === null) continue;
+                    if (stripos(strtolower((string)$value), $searchLower) !== false) {
+                        $found = true;
+                        break;
+                    }
+                }
+
+                // 2. Computed Properties Search
+                if (!$found) {
+                    $computedFields = match ($type) {
+                        'sand' => ['sand_name'],
+                        'cat' => ['cat_name'],
+                        'cement' => ['cement_name'],
+                        'ceramic' => ['material_name'],
+                        default => []
+                    };
+                    foreach ($computedFields as $field) {
+                        try {
+                            $value = $material->{$field} ?? null;
+                            if ($value && stripos(strtolower((string)$value), $searchLower) !== false) {
+                                $found = true;
+                                break;
+                            }
+                        } catch (\Exception $e) { continue; }
+                    }
+                }
+
+                // 3. Relationship Search (Package Unit)
+                if (!$found && in_array($type, ['sand', 'cat', 'cement'])) {
+                    try {
+                        if (method_exists($material, 'packageUnit') && $material->packageUnit) {
+                            $packageUnitName = $material->packageUnit->name ?? null;
+                            if ($packageUnitName && stripos(strtolower($packageUnitName), $searchLower) !== false) {
+                                $found = true;
+                            }
+                        }
+                    } catch (\Exception $e) {}
+                }
+
+                // 4. Unit Labels Search
+                if (!$found) {
+                    $unitLabels = [];
+                    if (isset($material->comparison_price_per_m3) && $material->comparison_price_per_m3) $unitLabels[] = 'm3';
+                    if (isset($material->comparison_price_per_kg) && $material->comparison_price_per_kg) {
+                        $unitLabels[] = 'kg';
+                        $unitLabels[] = 'kilogram';
+                    }
+                    if (isset($material->comparison_price_per_m2) && $material->comparison_price_per_m2) $unitLabels[] = 'm2';
+
+                    foreach ($unitLabels as $label) {
+                        if (stripos($label, $searchLower) !== false) {
+                            $found = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!$found) continue;
+            }
+
+            $materialsCollection->push($material);
+        }
+
+        // Sorting
+        $sortBy = $request->get('sort_by');
+        $sortDirection = $request->get('sort_direction', 'asc');
+
+        if (!$sortBy) {
+            $materialsCollection = $materialsCollection->sortBy('type', SORT_NATURAL|SORT_FLAG_CASE);
+        } else {
+            $materialsCollection = $materialsCollection->sortBy(function($item) use ($sortBy) {
+                return $item->{$sortBy} ?? null;
+            }, SORT_REGULAR, $sortDirection === 'desc');
+        }
+
+        // Calculate Grand Total (Count of all materials in this location)
+        // This is needed for the partial view footer usually, or just consistency
+        $grandTotal = $location->materialAvailabilities()->count();
+
+        // Prepare View Data
+        $material = [
+            'type' => $type,
+            'label' => \App\Models\MaterialSetting::getMaterialLabel($type),
+            'data' => $materialsCollection,
+            'count' => $materialsCollection->count(),
+            'db_count' => $materialsCollection->count(), // For store view, db_count is effectively the filtered list count in this context
+            'active_letters' => $this->getActiveLetters($materialsCollection),
+            'is_loaded' => true,
+        ];
+
+        return view('materials.partials.table', compact('material', 'grandTotal'));
+    }
+
+    /**
      * Helper to get active letters for grouping
      */
     private function getActiveLetters($collection)
     {
         return $collection->map(function ($item) {
-            return strtoupper(substr($item->brand ?? '#', 0, 1));
+            return strtoupper(substr($item->type ?? '#', 0, 1));
         })->unique()->sort()->values();
     }
 }

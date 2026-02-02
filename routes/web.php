@@ -194,6 +194,7 @@ Route::resource('bricks', BrickController::class);
 Route::get('/materials/type-suggestions', [MaterialController::class, 'typeSuggestions'])->name(
     'materials.type-suggestions',
 );
+Route::get('/materials/tab/{type}', [MaterialController::class, 'fetchTab'])->name('materials.tab');
 Route::resource('materials', MaterialController::class);
 Route::resource('cements', CementController::class);
 Route::resource('sands', SandController::class);
@@ -317,4 +318,5 @@ Route::prefix('stores/{store}/locations')
         Route::put('/{location}', [StoreLocationController::class, 'update'])->name('update');
         Route::delete('/{location}', [StoreLocationController::class, 'destroy'])->name('destroy');
         Route::get('/{location}/materials', [StoreLocationController::class, 'materials'])->name('materials');
+        Route::get('/{location}/materials/tab/{type}', [StoreLocationController::class, 'fetchTab'])->name('materials.tab');
     });

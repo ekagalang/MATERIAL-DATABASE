@@ -26,6 +26,15 @@ class MaterialController extends Controller
         $materials = [];
         $grandTotal = 0;
 
+        // Determine active tab from request or default to the first one
+        $activeTab = $request->query('tab');
+        
+        // If no tab is specified, we'll load the first one by default.
+        // However, we don't know the user's preference order on server-side.
+        // We'll trust that if 'tab' is missing, we load the first one in the list.
+        $firstType = $allSettings->first()->material_type ?? 'brick';
+        $targetTab = $activeTab ?: $firstType;
+
         foreach ($allSettings as $setting) {
             $type = $setting->material_type;
 
@@ -55,21 +64,79 @@ class MaterialController extends Controller
             // Get active letters for this material type
             $activeLetters = $this->getActiveLetters($type);
 
-            $data = $this->getMaterialData($type, $request);
-
-            if ($data) {
-                $materials[] = [
-                    'type' => $type,
-                    'label' => MaterialSetting::getMaterialLabel($type),
-                    'data' => $data,
-                    'count' => $data->count(), // Filtered count
-                    'db_count' => $dbCount, // Absolute total for this type
-                    'active_letters' => $activeLetters,
-                ];
+            // Lazy Load Logic: Only fetch data if it's the target tab
+            $isLoaded = ($type === $targetTab);
+            
+            if ($isLoaded) {
+                $data = $this->getMaterialData($type, $request);
+            } else {
+                // Return empty collection for non-active tabs to avoid heavy queries
+                $data = collect();
             }
+
+            $materials[] = [
+                'type' => $type,
+                'label' => MaterialSetting::getMaterialLabel($type),
+                'data' => $data,
+                'count' => $isLoaded ? $data->count() : 0, // Filtered count only if loaded
+                'db_count' => $dbCount, // Absolute total for this type
+                'active_letters' => $activeLetters,
+                'is_loaded' => $isLoaded,
+            ];
         }
 
         return view('materials.index', compact('materials', 'allSettings', 'grandTotal'));
+    }
+
+    public function fetchTab(Request $request, $type)
+    {
+        // Validate type
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic'])) {
+            abort(404);
+        }
+
+        // Calculate Grand Total (needed for footer) - can be cached or simplified
+        // For consistency, we recalculate it or pass a placeholder if not strictly needed in the partial
+        // Ideally, grandTotal should be passed from the main view or recalculated.
+        // Recalculating is cheap (count queries).
+        $grandTotal = 0;
+        $allSettings = MaterialSetting::where('material_type', '!=', 'nat')->get();
+        foreach ($allSettings as $setting) {
+             $modelClass = match($setting->material_type) {
+                 'brick' => Brick::class,
+                 'cat' => Cat::class,
+                 'ceramic' => Ceramic::class,
+                 'sand' => Sand::class,
+                 'cement' => Cement::class,
+                 default => null
+             };
+             if ($modelClass) {
+                 $grandTotal += $modelClass::count();
+             }
+        }
+
+        $data = $this->getMaterialData($type, $request);
+        $model = match($type) {
+             'brick' => Brick::class,
+             'cat' => Cat::class,
+             'ceramic' => Ceramic::class,
+             'sand' => Sand::class,
+             'cement' => Cement::class,
+             default => null
+        };
+        $dbCount = $model ? $model::count() : 0;
+
+        $material = [
+            'type' => $type,
+            'label' => MaterialSetting::getMaterialLabel($type),
+            'data' => $data,
+            'count' => $data->count(),
+            'db_count' => $dbCount,
+            'active_letters' => $this->getActiveLetters($type),
+            'is_loaded' => true,
+        ];
+
+        return view('materials.partials.table', compact('material', 'grandTotal'));
     }
 
     public function typeSuggestions(Request $request)
@@ -331,8 +398,8 @@ class MaterialController extends Controller
             return [];
         }
 
-        // Changed to 'brand' based on user request to paginate by Brand instead of Type
-        $letterColumn = 'brand';
+        // Changed to 'type' based on user request to paginate by Type
+        $letterColumn = 'type';
 
         // Get distinct first letters, uppercase
         return $model
@@ -567,8 +634,8 @@ class MaterialController extends Controller
 
         $defaultOrderBy = match ($type) {
             'brick' => [
-                'brand',
                 'type',
+                'brand',
                 'form',
                 'dimension_length',
                 'dimension_width',
@@ -581,8 +648,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'sand' => [
-                'brand',
                 'type',
+                'brand',
                 'package_unit',
                 'dimension_length',
                 'dimension_width',
@@ -595,8 +662,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'cat' => [
-                'brand',
                 'type',
+                'brand',
                 'sub_brand',
                 'color_code',
                 'color_name',
@@ -611,8 +678,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'cement' => [
-                'brand',
                 'type',
+                'brand',
                 'sub_brand',
                 'code',
                 'color',
@@ -625,8 +692,8 @@ class MaterialController extends Controller
                 'id',
             ],
             'ceramic' => [
-                'brand',
                 'type',
+                'brand',
                 'dimension_length',
                 'dimension_width',
                 'dimension_thickness',
@@ -645,8 +712,8 @@ class MaterialController extends Controller
                 'id',
             ],
             default => [
+                'type',
                 'created_at',
-                'brand',
                 'id',
             ],
         };

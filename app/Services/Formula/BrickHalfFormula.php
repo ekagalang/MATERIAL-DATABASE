@@ -122,24 +122,35 @@ class BrickHalfFormula implements FormulaInterface
         ];
 
         // ============ STEP 4: Hitung baris horizontal bata ============
-        // baris horizontal bata = Panjang dinding / ((Panjang bata + tebal adukan)/100). (jika hasilnya desimal maka dibulatkan keatas)
+        // baris horizontal bata = Panjang dinding / ((Panjang bata + tebal adukan)/100)
+        // Pembulatan: 0-0.5 -> 0.5, >0.5 -> bulatkan ke atas
         $barisHorizontalBataRaw = $n(($panjangDinding - $tebalAdukan / 100) / (($panjangBata + $tebalAdukan) / 100));
         $decimal = $barisHorizontalBataRaw - floor($barisHorizontalBataRaw);
         $barisHorizontalBata = floor($barisHorizontalBataRaw);
-        if ($decimal > 0) {
+
+        // Tentukan pembulatan dan tambahan adukan
+        $tambahanAdukan = 0;
+        if ($decimal > 0 && $decimal <= 0.5) {
+            // Jika desimal 0-0.5, bulatkan ke 0.5 dan tambahan adukan = 0
+            $barisHorizontalBata = floor($barisHorizontalBataRaw) + 0.5;
+            $tambahanAdukan = 0;
+        } elseif ($decimal > 0.5) {
+            // Jika desimal > 0.5, bulatkan ke atas
             $barisHorizontalBata = ceil($barisHorizontalBataRaw);
+            // Hitung tambahan adukan = (Kolom Vertikal Bata / 2)
+            // Akan dihitung setelah step 3, jadi simpan flagnya dulu
         }
 
         $trace['steps'][] = [
             'step' => 4,
             'title' => 'Baris Horizontal Bata',
             'formula' => '(Panjang dinding - (tebal adukan / 100)) / ((Panjang bata + tebal adukan)/100)',
-            'info' => 'Jika hasilnya desimal, dibulatkan keatas',
+            'info' => 'Pembulatan: Desimal 0-0.5 → 0.5 (tambahan adukan = 0), Desimal >0.5 → bulatkan ke atas',
             'calculations' => [
                 'Perhitungan' => "($panjangDinding - ($tebalAdukan / 100)) / (($panjangBata + $tebalAdukan) / 100)",
                 'Raw' => NumberHelper::format($barisHorizontalBataRaw),
                 'Desimal' => NumberHelper::format($decimal),
-                'Hasil' => $barisHorizontalBata . ' kolom',
+                'Hasil' => NumberHelper::format($barisHorizontalBata) . ' kolom',
             ],
         ];
 
@@ -201,27 +212,62 @@ class BrickHalfFormula implements FormulaInterface
             ],
         ];
 
+        // ============ STEP 7A: Hitung Tambahan Adukan ============
+        // Hitung tambahan adukan berdasarkan desimal dari step 4
+        $decimalStep4 = $barisHorizontalBataRaw - floor($barisHorizontalBataRaw);
+        if ($decimalStep4 > 0.5) {
+            // Jika desimal > 0.5, hitung tambahan adukan = (Kolom Vertikal Bata / 2)
+            $tambahanAdukanRaw = $n($kolomVertikalBata / 2);
+            $tambahanAdukanDecimal = $tambahanAdukanRaw - floor($tambahanAdukanRaw);
+
+            if ($tambahanAdukanDecimal == 0.5) {
+                // Jika hasilnya pas 0.5, pakai 0.5
+                $tambahanAdukan = $tambahanAdukanRaw;
+            } else {
+                // Jika desimal bukan 0.5, bulatkan ke bawah
+                $tambahanAdukan = floor($tambahanAdukanRaw);
+            }
+        } else {
+            // Jika desimal 0-0.5, tambahan adukan = 0 (sudah diset di step 4)
+            $tambahanAdukan = 0;
+            $tambahanAdukanRaw = 0;
+            $tambahanAdukanDecimal = 0;
+        }
+
+        $trace['steps'][] = [
+            'step' => '7A',
+            'title' => 'Tambahan Adukan',
+            'formula' => 'Jika desimal Baris Horizontal Bata > 0.5: (Kolom Vertikal Bata / 2)',
+            'info' => 'Jika hasil = 0.5 maka pakai 0.5, jika desimal lain maka bulatkan ke bawah. Jika desimal Baris Horizontal Bata 0-0.5 maka tambahan adukan = 0',
+            'calculations' => [
+                'Desimal Baris Horizontal Bata (Step 4)' => NumberHelper::format($decimalStep4),
+                'Perhitungan' => $decimalStep4 > 0.5 ? "($kolomVertikalBata / 2) = " . NumberHelper::format($tambahanAdukanRaw) : 'Desimal ≤ 0.5, tambahan adukan = 0',
+                'Desimal Tambahan Adukan' => $decimalStep4 > 0.5 ? NumberHelper::format($tambahanAdukanDecimal) : 'N/A',
+                'Hasil Tambahan Adukan' => NumberHelper::format($tambahanAdukan) . ' baris',
+            ],
+        ];
+
         // ============ STEP 8: Hitung Panjang Adukan ============
         // Panjang Adukan = (baris horizontal adukan * Panjang dinding) +
-        //                  (kolom vertical adukan * (kolom vertikal jumlah bata * (tinggi bata / 100))) +
-        //                  ((Kolom vertikal jumlah bata / 2) * (tinggi bata / 100))
+        //                  (kolom vertical adukan * (kolom vertikal bata * (tinggi bata / 100))) +
+        //                  (tambahan adukan * (tinggi bata / 100))
         $part1 = $n($barisHorizontalAdukan * $panjangDinding);
         $part2 = $n($kolomVertikalAdukan * ($kolomVertikalBata * ($tinggiBata / 100)));
-        $part3 = $n(($kolomVertikalBata / 2) * ($tinggiBata / 100));
+        $part3 = $n($tambahanAdukan * ($tinggiBata / 100));
         $panjangAdukan = $n($part1 + $part2 + $part3);
 
         $trace['steps'][] = [
             'step' => 8,
             'title' => 'Panjang Adukan',
             'formula' =>
-                '(baris horizontal adukan × Panjang dinding) + (kolom vertical adukan × (kolom vertikal bata × (tinggi bata / 100))) + ((kolom vertikal bata / 2) × (tinggi bata / 100))',
+                '(baris horizontal adukan × Panjang dinding) + (kolom vertical adukan × (kolom vertikal bata × (tinggi bata / 100))) + (tambahan adukan × (tinggi bata / 100))',
             'calculations' => [
                 'Part 1' => "($barisHorizontalAdukan × $panjangDinding) = " . NumberHelper::format($part1) . ' m',
                 'Part 2' =>
                     "($kolomVertikalAdukan × ($kolomVertikalBata × ($tinggiBata / 100))) = " .
                     NumberHelper::format($part2) .
                     ' m',
-                'Part 3' => "(($kolomVertikalBata / 2) × ($tinggiBata / 100)) = " . NumberHelper::format($part3) . ' m',
+                'Part 3' => '(' . NumberHelper::format($tambahanAdukan) . " × ($tinggiBata / 100)) = " . NumberHelper::format($part3) . ' m',
                 'Hasil Panjang Adukan' => NumberHelper::format($panjangAdukan) . ' m',
             ],
         ];
