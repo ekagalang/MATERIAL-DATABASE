@@ -452,7 +452,7 @@ class StoreLocationController extends Controller
     private function getActiveLetters($collection)
     {
         return $collection->map(function ($item) {
-            return strtoupper(substr($item->type ?? '#', 0, 1));
+            return strtoupper(substr($item->brand ?? '#', 0, 1));
         })->unique()->sort()->values();
     }
 }

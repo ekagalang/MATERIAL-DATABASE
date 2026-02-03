@@ -398,8 +398,8 @@ class MaterialController extends Controller
             return [];
         }
 
-        // Changed to 'type' based on user request to paginate by Type
-        $letterColumn = 'type';
+        // Changed to 'brand' based on user request to paginate by Brand instead of Type
+        $letterColumn = 'brand';
 
         // Get distinct first letters, uppercase
         return $model

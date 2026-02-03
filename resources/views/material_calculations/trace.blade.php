@@ -157,6 +157,16 @@
                                         </span>
                                     </div>
                                 </div>
+                                <div class="col-lg-3 col-md-6" id="ceramicThicknessGroup" style="display: none;">
+                                    <label class="form-label fw-semibold">Tebal Keramik</label>
+                                    <div class="position-relative">
+                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                            name="ceramic_thickness" value="8" step="0.1" min="0.1">
+                                        <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
+                                            mm
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -244,7 +254,9 @@
                                         <option value="">-- Gunakan Default --</option>
                                         @if(isset($ceramics))
                                             @foreach($ceramics as $ceramic)
-                                                <option value="{{ $ceramic->id }}">
+                                                <option value="{{ $ceramic->id }}" data-length="{{ $ceramic->dimension_length }}"
+                                                    data-width="{{ $ceramic->dimension_width }}"
+                                                    data-thickness="{{ $ceramic->dimension_thickness }}">
                                                     {{ $ceramic->brand }} - {{ $ceramic->color }} ({{ $ceramic->dimension_length }}×{{ $ceramic->dimension_width }} cm, {{ $ceramic->pieces_per_package }} pcs/dus)
                                                 </option>
                                             @endforeach
@@ -283,8 +295,58 @@
 </div>
 
 <script>
+function syncCeramicDimensionsFromSelection(force = false) {
+    const formulaSelector = document.getElementById('formulaSelector');
+    if (!formulaSelector || formulaSelector.value !== 'grout_tile') {
+        return;
+    }
+
+    const form = document.getElementById('traceForm');
+    const ceramicSelect = form?.querySelector('select[name="ceramic_id"]');
+    if (!ceramicSelect || !ceramicSelect.value) {
+        return;
+    }
+
+    const selectedOption = ceramicSelect.options[ceramicSelect.selectedIndex];
+    if (!selectedOption) {
+        return;
+    }
+
+    [
+        ['ceramic_length', 'length'],
+        ['ceramic_width', 'width'],
+        ['ceramic_thickness', 'thickness'],
+    ].forEach(([fieldName, dataKey]) => {
+        const field = form.querySelector(`[name="${fieldName}"]`);
+        const optionValue = selectedOption.dataset[dataKey];
+        if (!field || !optionValue) {
+            return;
+        }
+
+        const currentValue = parseFloat(field.value);
+        const shouldSet = force || !field.value || Number.isNaN(currentValue) || currentValue <= 0;
+        if (!shouldSet) {
+            return;
+        }
+
+        field.value = optionValue;
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+}
+
+let isApplyingQueryParams = false;
+
+const ceramicSelectForSync = document.querySelector('select[name="ceramic_id"]');
+if (ceramicSelectForSync) {
+    ceramicSelectForSync.addEventListener('change', function() {
+        syncCeramicDimensionsFromSelection(!isApplyingQueryParams);
+    });
+}
+
 document.getElementById('traceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+
+    syncCeramicDimensionsFromSelection(false);
 
     const formData = new FormData(this);
     const params = Object.fromEntries(formData.entries());
@@ -360,6 +422,7 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     const groutThicknessGroup = document.getElementById('groutThicknessGroup');
     const ceramicLengthGroup = document.getElementById('ceramicLengthGroup');
     const ceramicWidthGroup = document.getElementById('ceramicWidthGroup');
+    const ceramicThicknessGroup = document.getElementById('ceramicThicknessGroup');
     const mortarThicknessGroup = document.getElementById('mortarThicknessGroup');
     const catSection = document.getElementById('catSection');
     const ceramicSection = document.getElementById('ceramicSection');
@@ -371,6 +434,10 @@ document.getElementById('formulaSelector').addEventListener('change', function()
     // Get material sections
     const brickSelect = document.querySelector('select[name="brick_id"]');
     const brickSection = brickSelect?.closest('.col-12');
+    const cementSelect = document.querySelector('select[name="cement_id"]');
+    const cementSection = cementSelect?.closest('.col-md-6') || cementSelect?.closest('.col-12');
+    const sandSelect = document.querySelector('select[name="sand_id"]');
+    const sandSection = sandSelect?.closest('.col-md-6') || sandSelect?.closest('.col-12');
     
     // Explicitly set brick section visibility logic
     if (this.value === 'brick_full' || this.value === 'brick_half' || this.value === 'brick_quarter' || this.value === 'brick_rollag') {
@@ -383,6 +450,8 @@ document.getElementById('formulaSelector').addEventListener('change', function()
             brickSelect.value = '';
         }
     }
+
+    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
 
     if (this.value === 'brick_rollag') {
         if (wallHeightGroup) wallHeightGroup.style.display = 'none';
@@ -504,6 +573,7 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'block';
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'block';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'block';
+        if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'block';
         if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'none';
         if (cementSection) cementSection.style.display = 'none';
         if (sandSection) sandSection.style.display = 'none';
@@ -552,6 +622,7 @@ function applyQueryParamsToTraceForm() {
         formulaSelector.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
+    isApplyingQueryParams = true;
     params.forEach((value, key) => {
         if (key === 'formula_code' || key === 'auto_trace') {
             return;
@@ -563,19 +634,29 @@ function applyQueryParamsToTraceForm() {
         field.value = value;
         field.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    isApplyingQueryParams = false;
 
     if (formulaSelector) {
         formulaSelector.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    if (params.get('auto_trace') === '1') {
+    const shouldAutoTrace = params.get('auto_trace') === '1';
+    const hasExplicitCeramicDimensions =
+        params.has('ceramic_length') || params.has('ceramic_width') || params.has('ceramic_thickness');
+    syncCeramicDimensionsFromSelection(shouldAutoTrace && !hasExplicitCeramicDimensions);
+
+    if (shouldAutoTrace) {
         setTimeout(() => {
             form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
         }, 50);
     }
 }
 
-document.addEventListener('DOMContentLoaded', applyQueryParamsToTraceForm);
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyQueryParamsToTraceForm);
+} else {
+    applyQueryParamsToTraceForm();
+}
 
 function renderTrace(trace, containerId) {
     let html = `

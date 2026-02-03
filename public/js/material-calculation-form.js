@@ -531,8 +531,58 @@ function initMaterialCalculationForm(root, formData) {
         handleWorkTypeChange(workTypeSelector.value);
     }
 
+    function setupCustomFormLinking() {
+        // Brick Linking
+        const brickFilter = scope.querySelector('#materialTypeSelector-brick') || document.getElementById('materialTypeSelector-brick');
+        const customBrick = scope.querySelector('#customBrick') || document.getElementById('customBrick');
+        
+        if (brickFilter && customBrick) {
+            brickFilter.addEventListener('change', function() {
+                const selectedType = this.value;
+                const currentVal = customBrick.value;
+                
+                customBrick.innerHTML = '<option value="">-- Semua Bata (Auto) --</option>';
+                
+                let filtered = bricksData;
+                if (selectedType) {
+                    filtered = bricksData.filter(b => b.type === selectedType);
+                }
+                
+                filtered.forEach(brick => {
+                    const option = document.createElement('option');
+                    option.value = brick.id;
+                    const dims = `${brick.dimension_length}x${brick.dimension_width}x${brick.dimension_height}`;
+                    const price = formatFixedLocale(brick.price_per_piece || 0, 0);
+                    option.textContent = `${brick.brand} - ${brick.type} (${dims} cm) - Rp ${price}`;
+                    if (brick.id == currentVal) option.selected = true;
+                    customBrick.appendChild(option);
+                });
+            });
+        }
+
+        // Cement, Sand, Cat Linking
+        ['cement', 'sand', 'cat'].forEach(type => {
+            const filter = scope.querySelector(`#materialTypeSelector-${type}`) || document.getElementById(`materialTypeSelector-${type}`);
+            const typeKey = type.charAt(0).toUpperCase() + type.slice(1);
+            const customType = scope.querySelector(`#custom${typeKey}Type`) || document.getElementById(`custom${typeKey}Type`);
+            
+            if (filter && customType) {
+                filter.addEventListener('change', function() {
+                    const val = this.value;
+                    if (customType.value !== val) {
+                        customType.value = val;
+                        if (val === '' || customType.value === val) {
+                             customType.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                });
+            }
+        });
+    }
+
     setupWorkTypeAutocomplete();
     setupMaterialTypeFilters();
+    setupCustomFormLinking();
 
     // Auto-calculate area when length or height changes
     const wallLength = scope.querySelector('#wallLength') || document.getElementById('wallLength');

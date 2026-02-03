@@ -216,22 +216,39 @@
                                             : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...';
                                     @endphp
                                     <label>{{ $labelText }}</label>
-                                    <div class="input-wrapper">
-                                        <div class="work-type-autocomplete">
-                                            <div class="work-type-input">
-                                                <input type="text"
-                                                       id="materialTypeDisplay-{{ $materialKey }}"
-                                                       class="autocomplete-input"
-                                                       placeholder="{{ $placeholderText }}"
-                                                       autocomplete="off"
-                                                       value="{{ $selectedTypeValue }}">
+                                    <div class="material-type-rows" data-material-type="{{ $materialKey }}">
+                                        <div class="material-type-row material-type-row-base" data-material-type="{{ $materialKey }}">
+                                            <div class="input-wrapper">
+                                                <div class="work-type-autocomplete">
+                                                    <div class="work-type-input">
+                                                        <input type="text"
+                                                               id="materialTypeDisplay-{{ $materialKey }}"
+                                                               class="autocomplete-input"
+                                                               placeholder="{{ $placeholderText }}"
+                                                               autocomplete="off"
+                                                               value="{{ is_array($selectedTypeValue) ? ($selectedTypeValue[0] ?? '') : $selectedTypeValue }}">
+                                                    </div>
+                                                    <div class="autocomplete-list" id="materialType-list-{{ $materialKey }}"></div>
+                                                </div>
+                                                <input type="hidden"
+                                                       id="materialTypeSelector-{{ $materialKey }}"
+                                                       name="material_type_filters[{{ $materialKey }}]"
+                                                       value="{{ is_array($selectedTypeValue) ? ($selectedTypeValue[0] ?? '') : $selectedTypeValue }}">
                                             </div>
-                                            <div class="autocomplete-list" id="materialType-list-{{ $materialKey }}"></div>
+                                            <div class="material-type-row-actions">
+                                                <button type="button" class="material-type-row-btn material-type-row-btn-delete"
+                                                    data-material-type-action="remove" data-material-type="{{ $materialKey }}"
+                                                    title="Hapus baris">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                <button type="button" class="material-type-row-btn material-type-row-btn-add"
+                                                    data-material-type-action="add" data-material-type="{{ $materialKey }}"
+                                                    title="Tambah baris">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <input type="hidden"
-                                               id="materialTypeSelector-{{ $materialKey }}"
-                                               name="material_type_filters[{{ $materialKey }}]"
-                                               value="{{ $selectedTypeValue }}">
+                                        <div class="material-type-extra-rows" data-material-type="{{ $materialKey }}"></div>
                                     </div>
                                 </div>
                             @endforeach
@@ -311,7 +328,7 @@
                         <label for="filter_all">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Semua</b>
-                                <span class="text-muted">- Menampilkan semua kombinasi material</span>
+                                <span class="text-muted">: Menampilkan semua kombinasi harga</span>
                             </span>
                         </label>
                     </div>
@@ -321,7 +338,7 @@
                         <label for="filter_best" class="w-100">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Preferensi</b>
-                                <span class="text-muted">- 3 Kombinasi pilihan Kanggo</span>
+                                <span class="text-muted">: 3 Kombinasi pilihan Kanggo</span>
                             </span>
                         </label>
                         <a href="{{ route('settings.recommendations.index') }}" 
@@ -338,7 +355,7 @@
                         <label for="filter_common">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Populer</b>
-                                <span class="text-muted">- 3 Kombinasi yang paling sering digunakan user</span>
+                                <span class="text-muted">: 3 Kombinasi yang paling sering digunakan Customer</span>
                             </span>
                         </label>
                     </div>
@@ -348,7 +365,7 @@
                         <label for="filter_cheapest">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Ekonomis</b>
-                                <span class="text-muted">- 3 kombinasi dengan total harga paling Ekonomis</span>
+                                <span class="text-muted">: 3 kombinasi dengan total harga paling murah</span>
                             </span>
                         </label>
                     </div>
@@ -358,7 +375,7 @@
                         <label for="filter_medium">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Average</b>
-                                <span class="text-muted">- 3 kombinasi dengan harga rata-rata</span>
+                                <span class="text-muted">: 3 kombinasi dengan total harga rata-rata</span>
                             </span>
                         </label>
                     </div>
@@ -368,7 +385,7 @@
                         <label for="filter_expensive">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Termahal</b>
-                                <span class="text-muted">- 3 kombinasi dengan total harga paling Mahal</span>
+                                <span class="text-muted">: 3 kombinasi dengan total harga paling mahal</span>
                             </span>
                         </label>
                     </div>
@@ -378,7 +395,7 @@
                         <label for="filter_custom">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Custom</b>
-                                <span class="text-muted">- Pilih material sendiri secara manual</span>
+                                <span class="text-muted">: Pilih kombinasi sendiri secara manual</span>
                             </span>
                         </label>
                     </div>
@@ -602,6 +619,160 @@
         display: block;
     }
 
+    .material-type-filter-item {
+        align-items: flex-start;
+        margin-bottom: 4px !important;
+    }
+
+    .material-type-filter-item > label {
+        align-self: flex-start;
+        padding-top: 0 !important;
+    }
+
+    .material-type-filter-item.has-extra-rows {
+        margin-bottom: 8px !important;
+    }
+
+    .material-type-filter-item:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    .material-type-filter-item .material-type-rows {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .material-type-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .material-type-extra-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .material-type-row {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+        gap: 0;
+        position: relative;
+    }
+
+    .material-type-row::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 4px;
+        pointer-events: none;
+        box-shadow: 0 0 0 0 rgba(137, 19, 19, 0);
+        transition: box-shadow 0.15s ease;
+    }
+
+    .material-type-row .input-wrapper {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+    .material-type-row .work-type-input {
+        border-radius: 4px 0 0 4px;
+        border-right: 0 !important;
+    }
+
+    .material-type-row .work-type-autocomplete,
+    .material-type-row .work-type-input,
+    .material-type-row .autocomplete-input {
+        width: 100%;
+    }
+
+    .material-type-row-actions {
+        display: flex;
+        align-items: stretch;
+        gap: 0;
+        margin-left: -1px;
+        border: 1px solid #cbd5e1;
+        border-left: none;
+        border-radius: 0 4px 4px 0;
+        background: #ffffff;
+        overflow: hidden;
+        flex: 0 0 auto;
+    }
+
+    .material-type-row-btn {
+        border: 0;
+        border-left: 1px solid #e2e8f0;
+        background: transparent;
+        color: #334155;
+        width: 38px;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+    }
+
+    .material-type-row-actions .material-type-row-btn:first-child {
+        border-left: 0;
+    }
+
+    .material-type-row-actions .material-type-row-btn-delete:not(.is-visible) + .material-type-row-btn-add {
+        border-left: 0;
+    }
+
+    .material-type-row-btn:hover {
+        background: #f1f5f9;
+    }
+
+    .material-type-row-btn-delete {
+        color: #b91c1c;
+        display: none;
+    }
+
+    .material-type-row-btn-add {
+        color: #166534;
+    }
+
+    .material-type-row:focus-within .work-type-input:focus-within {
+        box-shadow: none !important;
+        transform: none !important;
+    }
+
+    .material-type-row:focus-within .work-type-input {
+        border-color: #891313 !important;
+        border-width: 1px !important;
+        border-right-width: 0 !important;
+        background-color: #fffbfb !important;
+    }
+
+    .material-type-row .work-type-input .autocomplete-input:focus {
+        border: 0 !important;
+        border-width: 0 !important;
+        box-shadow: none !important;
+        transform: none !important;
+        background-color: transparent !important;
+    }
+
+    .material-type-row:focus-within .material-type-row-actions {
+        border-color: #891313;
+        box-shadow: none;
+    }
+
+    .material-type-row:focus-within::after {
+        box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.12);
+    }
+
+    .material-type-row.has-multiple .material-type-row-btn-delete,
+    .material-type-row-btn-delete.is-visible {
+        display: inline-flex;
+    }
+
     .tickbox-title-label {
         min-width: 100px; /* Sesuaikan lebar ini jika perlu */
         display: inline-block;
@@ -646,6 +817,485 @@
         }
         if (typeof initMaterialCalculationForm === 'function') {
             initMaterialCalculationForm(document, payload);
+        }
+
+        function normalizeFilterToken(value) {
+            return String(value ?? '').trim();
+        }
+
+        function uniqueFilterTokens(values) {
+            const seen = new Set();
+            const result = [];
+            (values || []).forEach(value => {
+                const rawToken = normalizeFilterToken(value);
+                if (!rawToken) return;
+                rawToken.split('|').forEach(part => {
+                    const token = normalizeFilterToken(part);
+                    if (!token || seen.has(token)) return;
+                    seen.add(token);
+                    result.push(token);
+                });
+            });
+            return result;
+        }
+
+        function formatMaterialTypeSize(length, width) {
+            const len = Number(length);
+            const wid = Number(width);
+            if (!Number.isFinite(len) || !Number.isFinite(wid) || len <= 0 || wid <= 0) return '';
+            const minVal = Math.min(len, wid);
+            const maxVal = Math.max(len, wid);
+            return `${minVal.toString().replace('.', ',')} x ${maxVal.toString().replace('.', ',')}`;
+        }
+
+        function buildMaterialTypeOptionMap(formPayload) {
+            const sourceMap = {
+                brick: formPayload?.bricks || [],
+                cement: formPayload?.cements || [],
+                sand: formPayload?.sands || [],
+                cat: formPayload?.cats || [],
+                ceramic: formPayload?.ceramics || [],
+                nat: formPayload?.nats || [],
+            };
+
+            const valueResolver = {
+                brick: item => item?.type || '',
+                cement: item => item?.type || '',
+                sand: item => item?.type || '',
+                cat: item => item?.type || '',
+                ceramic: item => formatMaterialTypeSize(item?.dimension_length, item?.dimension_width),
+                nat: item => item?.type || '',
+            };
+
+            const options = {};
+            Object.keys(sourceMap).forEach(type => {
+                const values = (sourceMap[type] || [])
+                    .map(item => (valueResolver[type] ? valueResolver[type](item) : ''))
+                    .filter(Boolean);
+                options[type] = uniqueFilterTokens(values).sort((a, b) => a.localeCompare(b, 'id-ID'));
+            });
+            return options;
+        }
+
+        function initMultiMaterialTypeFilters(formPayload) {
+            const optionsByType = buildMaterialTypeOptionMap(formPayload);
+            const itemElements = document.querySelectorAll('.material-type-filter-item[data-material-type]');
+            const api = {
+                setValues(type, values) {},
+                clearHiddenRows() {},
+                clearAll() {},
+            };
+            const typeControllers = {};
+            let extraRowSequence = 0;
+
+            function createActionButton(type, action) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `material-type-row-btn ${action === 'add' ? 'material-type-row-btn-add' : 'material-type-row-btn-delete'}`;
+                btn.dataset.materialTypeAction = action;
+                btn.dataset.materialType = type;
+                btn.title = action === 'add' ? 'Tambah baris' : 'Hapus baris';
+                btn.innerHTML = action === 'add'
+                    ? '<i class="bi bi-plus-lg"></i>'
+                    : '<i class="bi bi-trash"></i>';
+                return btn;
+            }
+
+            function normalizeOption(value) {
+                return String(value ?? '').trim().toLowerCase();
+            }
+
+            itemElements.forEach(itemEl => {
+                const type = itemEl.dataset.materialType;
+                const baseRow = itemEl.querySelector('.material-type-row-base');
+                const baseDisplay = itemEl.querySelector(`#materialTypeDisplay-${type}`);
+                const baseHidden = itemEl.querySelector(`#materialTypeSelector-${type}`);
+                const baseList = itemEl.querySelector(`#materialType-list-${type}`);
+                const extraRowsContainer = itemEl.querySelector('.material-type-extra-rows');
+                const baseDeleteBtn = baseRow?.querySelector('[data-material-type-action="remove"]');
+                const baseAddBtn = baseRow?.querySelector('[data-material-type-action="add"]');
+                const basePlaceholder = baseDisplay?.getAttribute('placeholder') || 'Pilih atau ketik...';
+                const options = optionsByType[type] || [];
+                let isSyncing = false;
+
+                if (
+                    !type ||
+                    !baseRow ||
+                    !baseDisplay ||
+                    !baseHidden ||
+                    !baseList ||
+                    !extraRowsContainer ||
+                    !baseAddBtn ||
+                    !baseDeleteBtn
+                ) {
+                    return;
+                }
+
+                baseHidden.dataset.materialTypeHidden = '1';
+
+                const updateRowButtons = () => {
+                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
+                    const hasExtra = extraRows.length > 0;
+                    baseRow.classList.toggle('has-multiple', hasExtra);
+                    itemEl.classList.toggle('has-extra-rows', hasExtra);
+                    baseDeleteBtn.classList.toggle('is-visible', hasExtra);
+                    extraRows.forEach(row => {
+                        const deleteBtn = row.querySelector('[data-material-type-action="remove"]');
+                        if (deleteBtn) {
+                            deleteBtn.classList.toggle('is-visible', true);
+                        }
+                    });
+                };
+
+                const getRowStates = () => {
+                    const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
+                    return rows.map(row => row.__materialTypeRowState).filter(Boolean);
+                };
+
+                const getHiddenInputs = () => getRowStates().map(row => row.hiddenEl).filter(Boolean);
+
+                const getAvailableOptions = (term = '', currentHiddenEl = null) => {
+                    const query = normalizeOption(term);
+                    const selectedSet = new Set();
+                    getHiddenInputs().forEach(hiddenEl => {
+                        if (!hiddenEl || hiddenEl === currentHiddenEl) return;
+                        const normalized = normalizeOption(hiddenEl.value);
+                        if (normalized) {
+                            selectedSet.add(normalized);
+                        }
+                    });
+                    return options.filter(option => {
+                        const normalized = normalizeOption(option);
+                        if (!normalized || selectedSet.has(normalized)) return false;
+                        if (!query) return true;
+                        return normalized.includes(query);
+                    });
+                };
+
+                const refreshOpenLists = () => {
+                    getRowStates().forEach(rowState => {
+                        if (rowState.listEl && rowState.listEl.style.display === 'block') {
+                            rowState.renderList(rowState.displayEl.value || '');
+                        }
+                    });
+                };
+
+                const enforceUniqueSelection = () => {
+                    if (isSyncing) return;
+                    isSyncing = true;
+                    try {
+                        const seen = new Set();
+                        getRowStates().forEach(rowState => {
+                            const currentValue = String(rowState.hiddenEl.value || '').trim();
+                            const normalized = normalizeOption(currentValue);
+                            if (!normalized) return;
+
+                            if (seen.has(normalized)) {
+                                rowState.displayEl.value = '';
+                                rowState.hiddenEl.value = '';
+                                rowState.hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                return;
+                            }
+                            seen.add(normalized);
+                        });
+                    } finally {
+                        isSyncing = false;
+                    }
+                };
+
+                const syncRows = () => {
+                    enforceUniqueSelection();
+                    refreshOpenLists();
+                };
+
+                const setupAutocomplete = rowState => {
+                    const { rowEl, displayEl, hiddenEl, listEl } = rowState;
+
+                    const closeList = () => {
+                        listEl.style.display = 'none';
+                    };
+
+                    const applySelection = optionValue => {
+                        const finalValue = String(optionValue || '').trim();
+                        displayEl.value = finalValue;
+                        if (hiddenEl.value !== finalValue) {
+                            hiddenEl.value = finalValue;
+                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        } else {
+                            syncRows();
+                        }
+                        closeList();
+                    };
+
+                    const renderList = (term = '') => {
+                        listEl.innerHTML = '';
+
+                        const emptyItem = document.createElement('div');
+                        emptyItem.className = 'autocomplete-item';
+                        emptyItem.textContent = '- Tidak Pilih -';
+                        emptyItem.addEventListener('click', function() {
+                            applySelection('');
+                        });
+                        listEl.appendChild(emptyItem);
+
+                        getAvailableOptions(term, hiddenEl).forEach(option => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+                            item.textContent = option;
+                            item.addEventListener('click', function() {
+                                applySelection(option);
+                            });
+                            listEl.appendChild(item);
+                        });
+
+                        listEl.style.display = 'block';
+                    };
+
+                    const findExactAvailableOption = term => {
+                        const query = normalizeOption(term);
+                        if (!query) return null;
+                        const available = getAvailableOptions(term, hiddenEl);
+                        return available.find(option => normalizeOption(option) === query) || null;
+                    };
+
+                    rowState.closeList = closeList;
+                    rowState.renderList = renderList;
+                    rowEl.__materialTypeRowState = rowState;
+
+                    displayEl.addEventListener('focus', function() {
+                        if (displayEl.readOnly || displayEl.disabled) return;
+                        renderList(this.value || '');
+                    });
+
+                    displayEl.addEventListener('input', function() {
+                        if (displayEl.readOnly || displayEl.disabled) return;
+                        const term = this.value || '';
+                        renderList(term);
+
+                        if (!term.trim()) {
+                            if (hiddenEl.value) {
+                                hiddenEl.value = '';
+                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            } else {
+                                syncRows();
+                            }
+                            return;
+                        }
+
+                        const exactMatch = findExactAvailableOption(term);
+                        if (exactMatch) {
+                            if (hiddenEl.value !== exactMatch) {
+                                hiddenEl.value = exactMatch;
+                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            } else {
+                                syncRows();
+                            }
+                        } else if (hiddenEl.value) {
+                            hiddenEl.value = '';
+                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        } else {
+                            syncRows();
+                        }
+                    });
+
+                    displayEl.addEventListener('keydown', function(event) {
+                        if (event.key !== 'Enter') return;
+                        const exactMatch = findExactAvailableOption(displayEl.value || '');
+                        if (exactMatch) {
+                            applySelection(exactMatch);
+                            event.preventDefault();
+                        }
+                    });
+
+                    displayEl.addEventListener('blur', function() {
+                        setTimeout(closeList, 150);
+                    });
+
+                    document.addEventListener('click', function(event) {
+                        if (event.target === displayEl || listEl.contains(event.target)) return;
+                        closeList();
+                    });
+
+                    hiddenEl.addEventListener('change', function() {
+                        if (displayEl.value !== hiddenEl.value) {
+                            displayEl.value = hiddenEl.value;
+                        }
+                        if (!isSyncing) {
+                            syncRows();
+                        }
+                    });
+
+                    if (options.length === 0) {
+                        displayEl.disabled = true;
+                        displayEl.placeholder = `Tidak ada data untuk ${type}`;
+                    }
+                };
+
+                const buildExtraRow = (value = '') => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'material-type-row material-type-row-extra';
+                    rowEl.dataset.materialType = type;
+
+                    const inputWrapperEl = document.createElement('div');
+                    inputWrapperEl.className = 'input-wrapper';
+                    const autocompleteEl = document.createElement('div');
+                    autocompleteEl.className = 'work-type-autocomplete';
+                    const inputShellEl = document.createElement('div');
+                    inputShellEl.className = 'work-type-input';
+
+                    const displayEl = document.createElement('input');
+                    displayEl.type = 'text';
+                    displayEl.className = 'autocomplete-input';
+                    displayEl.placeholder = basePlaceholder;
+                    displayEl.autocomplete = 'off';
+                    displayEl.value = String(value || '');
+
+                    const listEl = document.createElement('div');
+                    listEl.className = 'autocomplete-list';
+                    listEl.id = `materialType-list-${type}-extra-${++extraRowSequence}`;
+
+                    const hiddenEl = document.createElement('input');
+                    hiddenEl.type = 'hidden';
+                    hiddenEl.name = `material_type_filters_extra[${type}][]`;
+                    hiddenEl.value = String(value || '');
+                    hiddenEl.dataset.materialTypeHidden = '1';
+                    hiddenEl.dataset.materialTypeExtra = '1';
+
+                    inputShellEl.appendChild(displayEl);
+                    autocompleteEl.appendChild(inputShellEl);
+                    autocompleteEl.appendChild(listEl);
+                    inputWrapperEl.appendChild(autocompleteEl);
+                    inputWrapperEl.appendChild(hiddenEl);
+
+                    const actionEl = document.createElement('div');
+                    actionEl.className = 'material-type-row-actions';
+                    const deleteBtn = createActionButton(type, 'remove');
+                    const addBtn = createActionButton(type, 'add');
+                    actionEl.appendChild(deleteBtn);
+                    actionEl.appendChild(addBtn);
+
+                    rowEl.appendChild(inputWrapperEl);
+                    rowEl.appendChild(actionEl);
+                    extraRowsContainer.appendChild(rowEl);
+                    updateRowButtons();
+
+                    setupAutocomplete({
+                        rowEl,
+                        displayEl,
+                        hiddenEl,
+                        listEl,
+                        renderList() {},
+                        closeList() {},
+                    });
+                    syncRows();
+
+                    deleteBtn.addEventListener('click', function() {
+                        rowEl.remove();
+                        updateRowButtons();
+                        syncRows();
+                    });
+                    addBtn.addEventListener('click', function() {
+                        buildExtraRow('');
+                    });
+
+                    return rowEl;
+                };
+
+                const removeLastExtraRow = () => {
+                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
+                    const lastRow = extraRows[extraRows.length - 1];
+                    if (lastRow) {
+                        lastRow.remove();
+                        updateRowButtons();
+                        syncRows();
+                    }
+                };
+
+                baseAddBtn.addEventListener('click', function() {
+                    buildExtraRow('');
+                });
+
+                baseDeleteBtn.addEventListener('click', function() {
+                    removeLastExtraRow();
+                });
+
+                setupAutocomplete({
+                    rowEl: baseRow,
+                    displayEl: baseDisplay,
+                    hiddenEl: baseHidden,
+                    listEl: baseList,
+                    renderList() {},
+                    closeList() {},
+                });
+
+                itemEl.__setMaterialTypeValues = function(values) {
+                    const tokens = uniqueFilterTokens(Array.isArray(values) ? values : [values]);
+                    while (extraRowsContainer.firstChild) {
+                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
+                    }
+
+                    const first = tokens[0] || '';
+                    baseDisplay.value = first;
+                    baseHidden.value = first;
+                    baseHidden.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    tokens.slice(1).forEach(token => buildExtraRow(token));
+                    updateRowButtons();
+                    syncRows();
+                };
+
+                itemEl.__clearExtraRows = function() {
+                    while (extraRowsContainer.firstChild) {
+                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
+                    }
+                    updateRowButtons();
+                    syncRows();
+                };
+
+                typeControllers[type] = {
+                    setValues: itemEl.__setMaterialTypeValues,
+                    clearExtraRows: itemEl.__clearExtraRows,
+                };
+
+                updateRowButtons();
+                syncRows();
+            });
+
+            api.setValues = function(type, values) {
+                const controller = typeControllers[type];
+                if (!controller || typeof controller.setValues !== 'function') return;
+                controller.setValues(values);
+            };
+
+            api.clearHiddenRows = function() {
+                itemElements.forEach(itemEl => {
+                    if (itemEl.style.display !== 'none') return;
+                    const type = itemEl.dataset.materialType;
+                    const controller = typeControllers[type];
+                    if (controller && typeof controller.clearExtraRows === 'function') {
+                        controller.clearExtraRows();
+                    }
+                });
+            };
+
+            api.clearAll = function() {
+                itemElements.forEach(itemEl => {
+                    if (typeof itemEl.__setMaterialTypeValues === 'function') {
+                        itemEl.__setMaterialTypeValues([]);
+                    }
+                });
+            };
+
+            return api;
+        }
+
+        const materialTypeFilterMultiApi = initMultiMaterialTypeFilters(payload);
+        const initialMaterialTypeFilters = @json($selectedMaterialTypeFilters);
+        if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.setValues === 'function' && initialMaterialTypeFilters) {
+            Object.entries(initialMaterialTypeFilters).forEach(([type, value]) => {
+                const values = Array.isArray(value) ? value : [value];
+                materialTypeFilterMultiApi.setValues(type, values);
+            });
         }
 
         // Handle filter checkboxes (multiple selection)
@@ -1063,6 +1713,9 @@
                         if (!materialKey) return;
                         section.style.display = requiredMaterials.includes(materialKey) ? 'block' : 'none';
                     });
+                    if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.clearHiddenRows === 'function') {
+                        materialTypeFilterMultiApi.clearHiddenRows();
+                    }
                 }, 100);
             };
 
@@ -1123,6 +1776,9 @@
                     input.value = '';
                     input.dispatchEvent(new Event('change', { bubbles: true }));
                 });
+                if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.clearAll === 'function') {
+                    materialTypeFilterMultiApi.clearAll();
+                }
 
                 toggleCustomForm();
                 if (typeof handleWorkTypeChange === 'function') {
@@ -1224,6 +1880,27 @@
 
             Object.entries(state).forEach(([key, value]) => {
                 if (key === 'work_type_select' || key === 'work_type') return;
+                
+                // Handle nested material_type_filters object (from JSON state)
+                if (key === 'material_type_filters' && typeof value === 'object' && value !== null) {
+                    Object.entries(value).forEach(([subKey, subValue]) => {
+                        const values = Array.isArray(subValue) ? subValue : [subValue];
+                        if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.setValues === 'function') {
+                            materialTypeFilterMultiApi.setValues(subKey, values);
+                            return;
+                        }
+                        const fieldName = `material_type_filters[${subKey}]`;
+                        const fields = form.querySelectorAll(`[name="${fieldName}"]`);
+                        if (!fields.length) return;
+                        const typeValue = values[0] ?? '';
+                        fields.forEach(field => {
+                            field.value = typeValue;
+                            field.dispatchEvent(new Event('change', { bubbles: true }));
+                        });
+                    });
+                    return;
+                }
+
                 if (key.startsWith('material_type_filters[')) {
                     const fields = form.querySelectorAll(`[name="${key}"]`);
                     if (!fields.length) return;
@@ -1232,6 +1909,25 @@
                         field.value = typeValue;
                         field.dispatchEvent(new Event('change', { bubbles: true }));
                     });
+                    return;
+                }
+                if (key.startsWith('material_type_filters_extra[')) {
+                    if (!materialTypeFilterMultiApi || typeof materialTypeFilterMultiApi.setValues !== 'function') {
+                        return;
+                    }
+                    const match = key.match(/^material_type_filters_extra\[(.+?)\]$/);
+                    if (!match || !match[1]) {
+                        return;
+                    }
+                    const materialKey = match[1];
+                    const existingMain = form.querySelector(`[name="material_type_filters[${materialKey}]"]`);
+                    const mergedValues = [];
+                    if (existingMain && existingMain.value) {
+                        mergedValues.push(existingMain.value);
+                    }
+                    const extraValues = Array.isArray(value) ? value : [value];
+                    mergedValues.push(...extraValues);
+                    materialTypeFilterMultiApi.setValues(materialKey, mergedValues);
                     return;
                 }
                 if (key === 'mortar_thickness' && expectsMm) {

@@ -1182,6 +1182,41 @@
                                             $traceFormulaCode = $requestData['formula_code']
                                                 ?? $requestData['work_type']
                                                 ?? null;
+                                            $traceCeramic = $item['ceramic'] ?? null;
+                                            $traceCeramicLength =
+                                                $requestData['ceramic_length'] ??
+                                                data_get($requestData, 'ceramic_dimensions.length') ??
+                                                data_get($requestData, 'params.ceramic_length') ??
+                                                data_get($requestData, 'params.ceramic_dimensions.length');
+                                            $traceCeramicWidth =
+                                                $requestData['ceramic_width'] ??
+                                                data_get($requestData, 'ceramic_dimensions.width') ??
+                                                data_get($requestData, 'params.ceramic_width') ??
+                                                data_get($requestData, 'params.ceramic_dimensions.width');
+                                            $traceCeramicThickness =
+                                                $requestData['ceramic_thickness'] ??
+                                                data_get($requestData, 'ceramic_dimensions.thickness') ??
+                                                data_get($requestData, 'params.ceramic_thickness') ??
+                                                data_get($requestData, 'params.ceramic_dimensions.thickness');
+                                            if (
+                                                (!is_numeric($traceCeramicLength) || (float) $traceCeramicLength <= 0) &&
+                                                $traceCeramic
+                                            ) {
+                                                $traceCeramicLength = $traceCeramic->dimension_length ?? null;
+                                            }
+                                            if (
+                                                (!is_numeric($traceCeramicWidth) || (float) $traceCeramicWidth <= 0) &&
+                                                $traceCeramic
+                                            ) {
+                                                $traceCeramicWidth = $traceCeramic->dimension_width ?? null;
+                                            }
+                                            if (
+                                                (!is_numeric($traceCeramicThickness) ||
+                                                    (float) $traceCeramicThickness <= 0) &&
+                                                $traceCeramic
+                                            ) {
+                                                $traceCeramicThickness = $traceCeramic->dimension_thickness ?? null;
+                                            }
                                             $traceParams = [
                                                 'formula_code' => $traceFormulaCode,
                                                 'work_type' => $requestData['work_type'] ?? null,
@@ -1190,6 +1225,9 @@
                                                 'area' => $requestData['area'] ?? null,
                                                 'mortar_thickness' => $requestData['mortar_thickness'] ?? null,
                                                 'grout_thickness' => $requestData['grout_thickness'] ?? null,
+                                                'ceramic_length' => $traceCeramicLength,
+                                                'ceramic_width' => $traceCeramicWidth,
+                                                'ceramic_thickness' => $traceCeramicThickness,
                                                 'painting_layers' => $requestData['painting_layers'] ?? null,
                                                 'layer_count' => $requestData['layer_count'] ?? null,
                                                 'auto_trace' => 1,
@@ -1217,16 +1255,41 @@
                                             </a>
                                             <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
                                                 @csrf
+                                                @php
+                                                    $flattenHiddenInputs = function (
+                                                        string $name,
+                                                        mixed $value,
+                                                    ) use (&$flattenHiddenInputs, &$hiddenInputs) {
+                                                        if (is_array($value)) {
+                                                            $isAssoc = array_keys($value) !==
+                                                                range(0, count($value) - 1);
+                                                            foreach ($value as $childKey => $childValue) {
+                                                                $childName = $isAssoc
+                                                                    ? $name . '[' . $childKey . ']'
+                                                                    : $name . '[]';
+                                                                $flattenHiddenInputs($childName, $childValue);
+                                                            }
+                                                            return;
+                                                        }
+
+                                                        $hiddenInputs[] = [
+                                                            'name' => $name,
+                                                            'value' => is_scalar($value) || $value === null
+                                                                ? (string) $value
+                                                                : json_encode($value),
+                                                        ];
+                                                    };
+                                                    $hiddenInputs = [];
+                                                @endphp
                                                 @foreach($requestData as $key => $value)
                                                     @if($key != '_token' && $key != 'cement_id' && $key != 'sand_id' && $key != 'brick_ids' && $key != 'brick_id' && $key != 'price_filters')
-                                                        @if(is_array($value))
-                                                            @foreach($value as $v)
-                                                                <input type="hidden" name="{{ $key }}[]" value="{{ $v }}">
-                                                            @endforeach
-                                                        @else
-                                                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                                                        @endif
+                                                        @php
+                                                            $flattenHiddenInputs($key, $value);
+                                                        @endphp
                                                     @endif
+                                                @endforeach
+                                                @foreach ($hiddenInputs as $hiddenInput)
+                                                    <input type="hidden" name="{{ $hiddenInput['name'] }}" value="{{ $hiddenInput['value'] }}">
                                                 @endforeach
                                                 @if(isset($item['cement']))
                                                     <input type="hidden" name="cement_id" value="{{ $item['cement']->id }}">

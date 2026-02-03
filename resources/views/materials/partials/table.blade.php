@@ -1208,45 +1208,41 @@
                                                             <th class="ceramic-sticky-col col-dim-t" style="text-align: center; font-size: 12px; padding: 0 2px; width: 50px;">T</th>
                                                         </tr>
                                                     @endif                </thead>
-                                                    @php
-                                                        $letterGroups = $material['data']->groupBy(function ($item) use ($material) {
-                                                            $groupValue = $item->type ?? '';
-                                                            $groupValue = trim((string) $groupValue);
-                                                            return $groupValue !== '' ? strtoupper(substr($groupValue, 0, 1)) : '#';
-                                                        });
-                                                        $orderedGroups = collect();
-                                                        $isSorting = request()->filled('sort_by');
-                                                        $defaultSort = false;
-                
-                                                        if ($isSorting) {
-                                                            $orderedGroups['*'] = $material['data'];
-                                                        } else {
-                                                            $orderedGroups = $material['data']->groupBy(function ($item) {
-                                                                $groupVal = $item->type ?? '';
-                                                                $firstChar = strtoupper(substr($groupVal, 0, 1));
-                                                                return ctype_alpha($firstChar) ? $firstChar : '#';
-                                                            })->sortKeys();
-                                                        }
-                                                        $rowNumber = 1;
-                                                        $seenAnchors = [];
-                                                    @endphp
-                                                    <tbody>
-                                                        @foreach($orderedGroups as $letter => $items)
-                                                            @foreach($items as $item)
-                                                                @php
-                                                                    $groupFirst = $item->type ?? '';
-                                                                    $groupFirst = trim((string) $groupFirst);
-                                                                    $rowLetter = $groupFirst !== '' ? strtoupper(substr($groupFirst, 0, 1)) : '#';
-                                                                    if (!ctype_alpha($rowLetter)) {
-                                                                        $rowLetter = '#';
-                                                                    }
-                
-                                                                    $rowAnchorId = null;
-                                                                    if (!$defaultSort && !isset($seenAnchors[$rowLetter])) {
-                                                                        $anchorSuffix = $rowLetter === '#' ? 'other' : $rowLetter;
-                                                                        $rowAnchorId = $material['type'] . '-letter-' . $anchorSuffix;
-                                                                        $seenAnchors[$rowLetter] = true;
-                                                                    }                                $searchParts = array_filter([
+                                                                                        @php
+                                                                                            $letterGroups = $material['data']->groupBy(function ($item) use ($material) {
+                                                                                                $groupValue = $item->brand ?? '';
+                                                                                                $groupValue = trim((string) $groupValue);
+                                                                                                return $groupValue !== '' ? strtoupper(substr($groupValue, 0, 1)) : '#';
+                                                                                            });
+                                                                                            $orderedGroups = collect();
+                                                                                            $isSorting = request()->filled('sort_by');
+                                                                                            $defaultSort = false;
+                                                    
+                                                                                                                                                        if ($isSorting) {
+                                                                                                                                                            $orderedGroups['*'] = $material['data'];
+                                                                                                                                                        } else {
+                                                                                                                                                            // Modified: Sort by Type (Jenis) alphabetically as default, instead of grouping by Brand
+                                                                                                                                                            $orderedGroups['*'] = $material['data']->sortBy('type');
+                                                                                                                                                        }                                                                                            $rowNumber = 1;
+                                                                                            $seenAnchors = [];
+                                                                                        @endphp
+                                                                                        <tbody>
+                                                                                            @foreach($orderedGroups as $letter => $items)
+                                                                                                @foreach($items as $item)
+                                                                                                    @php
+                                                                                                        $brandFirst = $item->brand ?? '';
+                                                                                                        $brandFirst = trim((string) $brandFirst);
+                                                                                                        $rowLetter = $brandFirst !== '' ? strtoupper(substr($brandFirst, 0, 1)) : '#';
+                                                                                                        if (!ctype_alpha($rowLetter)) {
+                                                                                                            $rowLetter = '#';
+                                                                                                        }
+                                                    
+                                                                                                        $rowAnchorId = null;
+                                                                                                        if (!$defaultSort && !isset($seenAnchors[$rowLetter])) {
+                                                                                                            $anchorSuffix = $rowLetter === '#' ? 'other' : $rowLetter;
+                                                                                                            $rowAnchorId = $material['type'] . '-letter-' . $anchorSuffix;
+                                                                                                            $seenAnchors[$rowLetter] = true;
+                                                                                                        }                                $searchParts = array_filter([
                                     $item->type ?? null,
                                     $item->material_name ?? null,
                                     $item->cat_name ?? null,

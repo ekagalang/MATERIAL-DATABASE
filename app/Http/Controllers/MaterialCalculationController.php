@@ -180,7 +180,11 @@ class MaterialCalculationController extends Controller
                 'price_filters' => 'required|array|min:1',
                 'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
                 'material_type_filters' => 'nullable|array',
-                'material_type_filters.*' => 'nullable|string',
+                'material_type_filters.*' => 'nullable',
+                'material_type_filters.*.*' => 'nullable|string',
+                'material_type_filters_extra' => 'nullable|array',
+                'material_type_filters_extra.*' => 'nullable|array',
+                'material_type_filters_extra.*.*' => 'nullable|string',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
@@ -260,6 +264,7 @@ class MaterialCalculationController extends Controller
                 $rules['nat_id'] = 'nullable';
             }
 
+            $this->mergeMaterialTypeFilters($request);
             $request->validate($rules);
 
             // 2. SETUP DEFAULT
@@ -396,6 +401,8 @@ class MaterialCalculationController extends Controller
             'has_ceramic_sizes' => $request->has('ceramic_sizes'),
             'ceramic_types_value' => $request->ceramic_types,
             'ceramic_sizes_value' => $request->ceramic_sizes,
+            'material_type_filters' => $request->input('material_type_filters'),
+            'has_material_type_filters' => $request->has('material_type_filters'),
         ]);
 
         $targetBricks = collect();
@@ -433,11 +440,20 @@ class MaterialCalculationController extends Controller
             $targetBricks = collect();
             $hasBrickIds = $request->has('brick_ids') && !empty($request->brick_ids);
             $hasBrickId = $request->has('brick_id') && !empty($request->brick_id);
+            $brickTypeFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['brick'] ?? null);
 
             if ($hasBrickIds) {
-                $targetBricks = Brick::whereIn('id', $request->brick_ids)->get();
+                $query = Brick::whereIn('id', $request->brick_ids);
+                if (!empty($brickTypeFilterValues)) {
+                    $query->whereIn('type', $brickTypeFilterValues);
+                }
+                $targetBricks = $query->get();
             } elseif ($hasBrickId) {
-                $targetBricks = Brick::where('id', $request->brick_id)->get();
+                $query = Brick::where('id', $request->brick_id);
+                if (!empty($brickTypeFilterValues)) {
+                    $query->whereIn('type', $brickTypeFilterValues);
+                }
+                $targetBricks = $query->get();
             } else {
                 // 1. Filter Preferensi (Best)
                 if (in_array('best', $priceFilters, true)) {
@@ -448,7 +464,11 @@ class MaterialCalculationController extends Controller
                         ->filter();
 
                     if ($recommendedBrickIds->isNotEmpty()) {
-                        $recBricks = Brick::whereIn('id', $recommendedBrickIds)->get();
+                        $query = Brick::whereIn('id', $recommendedBrickIds);
+                        if (!empty($brickTypeFilterValues)) {
+                            $query->whereIn('type', $brickTypeFilterValues);
+                        }
+                        $recBricks = $query->get();
                         $targetBricks = $targetBricks->merge($recBricks);
                     }
                 }
@@ -465,14 +485,22 @@ class MaterialCalculationController extends Controller
                         ->pluck('brick_id');
 
                     if ($commonBrickIds->isNotEmpty()) {
-                        $commonBricks = Brick::whereIn('id', $commonBrickIds)->get();
+                        $query = Brick::whereIn('id', $commonBrickIds);
+                        if (!empty($brickTypeFilterValues)) {
+                            $query->whereIn('type', $brickTypeFilterValues);
+                        }
+                        $commonBricks = $query->get();
                         $targetBricks = $targetBricks->merge($commonBricks);
                     }
                 }
 
                 // 3. Filter Termahal (Expensive) - Butuh bata mahal
                 if (in_array('expensive', $priceFilters, true)) {
-                    $expensiveBricks = Brick::orderBy('price_per_piece', 'desc')->limit(5)->get();
+                    $query = Brick::orderBy('price_per_piece', 'desc');
+                    if (!empty($brickTypeFilterValues)) {
+                        $query->whereIn('type', $brickTypeFilterValues);
+                    }
+                    $expensiveBricks = $query->limit(5)->get();
                     $targetBricks = $targetBricks->merge($expensiveBricks);
                 }
 
@@ -482,7 +510,11 @@ class MaterialCalculationController extends Controller
                 $needsDefaultPool = !empty($otherFilters) || $targetBricks->isEmpty();
 
                 if ($needsDefaultPool) {
-                    $defaultBricks = Brick::orderBy('price_per_piece', 'asc')->limit(5)->get();
+                    $query = Brick::orderBy('price_per_piece', 'asc');
+                    if (!empty($brickTypeFilterValues)) {
+                        $query->whereIn('type', $brickTypeFilterValues);
+                    }
+                    $defaultBricks = $query->limit(5)->get();
                     $targetBricks = $targetBricks->merge($defaultBricks);
                 }
             }
@@ -510,22 +542,49 @@ class MaterialCalculationController extends Controller
                     ->filter();
 
                 if ($commonBrickIds->isNotEmpty()) {
-                    $commonBricks = Brick::whereIn('id', $commonBrickIds)->get();
+                    $query = Brick::whereIn('id', $commonBrickIds);
+                    if (!empty($brickTypeFilterValues)) {
+                        $query->whereIn('type', $brickTypeFilterValues);
+                    }
+                    $commonBricks = $query->get();
                     $targetBricks = $targetBricks->merge($commonBricks);
                 }
             }
 
             // Ensure unique bricks
             $targetBricks = $targetBricks->unique('id')->values();
+
+            // DEBUG: Log brick pool before type filtering
+            \Log::info('Bricks before type filtering', [
+                'count' => $targetBricks->count(),
+                'brick_ids' => $targetBricks->pluck('id')->toArray(),
+                'brick_types' => $targetBricks->pluck('type')->unique()->values()->toArray(),
+            ]);
         }
 
         if (!$isBrickless && !empty($materialTypeFilters['brick'])) {
-            $brickTypeFilter = $materialTypeFilters['brick'];
+            $brickTypeFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['brick']);
+
+            // DEBUG: Log brick type filter
+            \Log::info('Applying brick type filter', [
+                'filter' => $brickTypeFilterValues,
+                'bricks_before' => $targetBricks->count(),
+            ]);
+
             $targetBricks = $targetBricks
-                ->filter(function ($brick) use ($brickTypeFilter) {
-                    return $this->resolveMaterialTypeValue($brick, 'brick') === $brickTypeFilter;
+                ->filter(function ($brick) use ($brickTypeFilterValues) {
+                    return $this->matchesMaterialTypeFilter(
+                        $this->resolveMaterialTypeValue($brick, 'brick'),
+                        $brickTypeFilterValues,
+                    );
                 })
                 ->values();
+
+            // DEBUG: Log result after filtering
+            \Log::info('Bricks after type filtering', [
+                'count' => $targetBricks->count(),
+                'brick_ids' => $targetBricks->pluck('id')->toArray(),
+            ]);
         }
 
         $projects = [];
@@ -559,10 +618,19 @@ class MaterialCalculationController extends Controller
             'ceramicProjects' => [],
         ];
 
-        $this->storeCalculationCachePayload($cacheKey, $payload);
+        // DISABLE CACHE FOR DEBUGGING - Don't store and render directly
+        // $this->storeCalculationCachePayload($cacheKey, $payload);
+
+        \Log::info('RENDERING DIRECTLY (Cache disabled for debugging)', [
+            'projects_count' => count($payload['projects'] ?? []),
+            'has_combinations' => !empty($payload['projects'])
+        ]);
+
+        // Render directly without cache
+        return view('material_calculations.preview_combinations', $payload);
 
         // Redirect to GET route untuk support pagination dan refresh
-        return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
+        // return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
     }
 
     /**
@@ -664,12 +732,18 @@ class MaterialCalculationController extends Controller
             'totalCeramics' => $targetCeramics->count(),
         ]);
 
-        $this->storeCalculationCachePayload($cacheKey, $payload);
+        // DISABLE CACHE FOR DEBUGGING
+        // $this->storeCalculationCachePayload($cacheKey, $payload);
 
-        \Log::info('Cache stored, redirecting to preview', ['cacheKey' => $cacheKey]);
+        \Log::info('RENDERING DIRECTLY (Cache disabled - Multi Ceramic)', [
+            'ceramicProjectsCount' => count($payload['ceramicProjects'] ?? [])
+        ]);
+
+        // Render directly without cache
+        return view('material_calculations.preview_combinations', $payload);
 
         // Redirect to GET route untuk support pagination dan refresh
-        return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
+        // return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
     }
 
     protected function buildCalculationCacheKey(Request $request): string
@@ -711,6 +785,9 @@ class MaterialCalculationController extends Controller
 
     protected function getCalculationCachePayload(string $cacheKey): ?array
     {
+        // DISABLE CACHE FOR DEBUGGING MATERIAL TYPE FILTERS
+        return null;
+
         if (app()->environment('local') && config('app.debug')) {
             return null;
         }
@@ -826,15 +903,37 @@ class MaterialCalculationController extends Controller
         $priceFilters = $request->price_filters ?? ['best'];
         $allCombinations = [];
         $groupCeramicIds = $ceramics->pluck('id')->all();
+        $materialTypeFilters = $request->input('material_type_filters', []);
 
         // Pre-fetch related materials to avoid N+1 in loops
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('package_price')->get();
-        $nats = Cement::where('type', 'Nat')->orderBy('package_price')->get();
-        $sands = Sand::orderBy('package_price')->get();
+        // Apply material type filters
+        $cementQuery = Cement::where(function ($q) {
+            $q->where('type', '!=', 'Nat')->orWhereNull('type');
+        });
+        $cementFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['cement'] ?? null);
+        if (!empty($cementFilterValues)) {
+            $cementQuery->whereIn('type', $cementFilterValues);
+        }
+        $cements = $cementQuery->orderBy('package_price')->get();
+
+        $natQuery = Cement::where('type', 'Nat');
+        $natFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['nat'] ?? null);
+        if (!empty($natFilterValues)) {
+            $natQuery->whereIn('type', $natFilterValues);
+        }
+        $nats = $natQuery->orderBy('package_price')->get();
+
+        $sandQuery = Sand::query();
+        $sandFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['sand'] ?? null);
+        if (!empty($sandFilterValues)) {
+            $sandQuery->whereIn('type', $sandFilterValues);
+        }
+        $sands = $sandQuery->orderBy('package_price')->get();
 
         \Log::info('calculateCombinationsForCeramicGroup START', [
             'work_type' => $request->work_type,
             'price_filters' => $priceFilters,
+            'material_type_filters' => $materialTypeFilters,
             'ceramics_count' => $ceramics->count(),
             'cements_count' => $cements->count(),
             'nats_count' => $nats->count(),
@@ -1443,18 +1542,19 @@ class MaterialCalculationController extends Controller
         }
 
         foreach ($filters as $type => $value) {
-            if (!$value || !in_array($type, $requiredMaterials, true)) {
+            $filterValues = $this->normalizeMaterialTypeFilterValues($value);
+            if (empty($filterValues) || !in_array($type, $requiredMaterials, true)) {
                 continue;
             }
             if (array_key_exists($type, $collections)) {
-                $collections[$type] = $this->filterCollectionByMaterialType($collections[$type], $type, $value);
+                $collections[$type] = $this->filterCollectionByMaterialType($collections[$type], $type, $filterValues);
             }
         }
 
         return $collections;
     }
 
-    protected function filterCollectionByMaterialType($collection, string $type, string $value)
+    protected function filterCollectionByMaterialType($collection, string $type, array $filterValues)
     {
         $collection = $collection instanceof \Illuminate\Support\Collection ? $collection : collect($collection);
         if ($collection->isEmpty()) {
@@ -1462,8 +1562,8 @@ class MaterialCalculationController extends Controller
         }
 
         return $collection
-            ->filter(function ($model) use ($type, $value) {
-                return $this->resolveMaterialTypeValue($model, $type) === $value;
+            ->filter(function ($model) use ($type, $filterValues) {
+                return $this->matchesMaterialTypeFilter($this->resolveMaterialTypeValue($model, $type), $filterValues);
             })
             ->values();
     }
@@ -1515,7 +1615,8 @@ class MaterialCalculationController extends Controller
         }
 
         foreach ($filters as $type => $value) {
-            if (!$value || !in_array($type, $requiredMaterials, true)) {
+            $filterValues = $this->normalizeMaterialTypeFilterValues($value);
+            if (empty($filterValues) || !in_array($type, $requiredMaterials, true)) {
                 continue;
             }
             $model = $models[$type] ?? null;
@@ -1523,12 +1624,81 @@ class MaterialCalculationController extends Controller
                 return false;
             }
             $modelType = $this->resolveMaterialTypeValue($model, $type);
-            if (!$modelType || $modelType !== $value) {
+            if (!$this->matchesMaterialTypeFilter($modelType, $filterValues)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    protected function mergeMaterialTypeFilters(Request $request): void
+    {
+        $baseFilters = $request->input('material_type_filters', []);
+        $extraFilters = $request->input('material_type_filters_extra', []);
+
+        $baseFilters = is_array($baseFilters) ? $baseFilters : [];
+        $extraFilters = is_array($extraFilters) ? $extraFilters : [];
+        $keys = array_unique(array_merge(array_keys($baseFilters), array_keys($extraFilters)));
+
+        $mergedFilters = [];
+        foreach ($keys as $key) {
+            $values = [];
+            $values = array_merge($values, $this->normalizeMaterialTypeFilterValues($baseFilters[$key] ?? null));
+            $values = array_merge($values, $this->normalizeMaterialTypeFilterValues($extraFilters[$key] ?? null));
+            $values = array_values(array_unique($values));
+
+            if (count($values) === 1) {
+                $mergedFilters[$key] = $values[0];
+            } elseif (count($values) > 1) {
+                $mergedFilters[$key] = $values;
+            } else {
+                $mergedFilters[$key] = null;
+            }
+        }
+
+        $request->merge(['material_type_filters' => $mergedFilters]);
+    }
+
+    protected function normalizeMaterialTypeFilterValues($value): array
+    {
+        if (is_array($value)) {
+            $flattened = [];
+            foreach ($value as $item) {
+                $flattened = array_merge($flattened, $this->normalizeMaterialTypeFilterValues($item));
+            }
+            return array_values(array_unique($flattened));
+        }
+
+        if ($value === null) {
+            return [];
+        }
+
+        $text = trim((string) $value);
+        if ($text === '') {
+            return [];
+        }
+
+        $parts = preg_split('/\s*\|\s*/', $text) ?: [];
+        $tokens = array_values(
+            array_filter(
+                array_map(static fn($part) => trim((string) $part), $parts),
+                static fn($part) => $part !== '',
+            ),
+        );
+
+        return array_values(array_unique($tokens));
+    }
+
+    protected function matchesMaterialTypeFilter(?string $actualValue, array $filterValues): bool
+    {
+        if (empty($filterValues)) {
+            return true;
+        }
+        if ($actualValue === null || $actualValue === '') {
+            return false;
+        }
+        return in_array($actualValue, $filterValues, true);
     }
 
     public function traceCalculation(Request $request)
@@ -1555,6 +1725,10 @@ class MaterialCalculationController extends Controller
             'layer_count' => 'nullable|integer|min:1',
             'plaster_sides' => 'nullable|integer|min:1',
             'skim_sides' => 'nullable|integer|min:1',
+            // Ceramic dimensions for grout_tile formula
+            'ceramic_length' => 'nullable|numeric|min:1',
+            'ceramic_width' => 'nullable|numeric|min:1',
+            'ceramic_thickness' => 'nullable|numeric|min:0.1',
         ]);
 
         try {

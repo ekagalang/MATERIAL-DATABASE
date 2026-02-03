@@ -10,7 +10,7 @@
     document.documentElement.classList.add('materials-lock');
 })();
 (function() {
-    const savedTab = localStorage.getItem('materialActiveTab');
+    const savedTab = localStorage.getItem('storeLocationMaterialActiveTab');
     if (savedTab) {
         window.__materialSavedTab = savedTab;
     }
@@ -1125,7 +1125,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.style.overflow = '';
 
     // Load saved filter from localStorage
-    const STORAGE_KEY = 'material_filter_preferences';
+    const STORAGE_KEY = 'store_location_material_filter_preferences';
+    const ACTIVE_TAB_STORAGE_KEY = 'storeLocationMaterialActiveTab';
     let savedFilter = null;
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -1315,7 +1316,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                localStorage.setItem('materialActiveTab', materialType);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, materialType);
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', materialType);
+                history.replaceState(null, null, url.toString());
+                localStorage.setItem('lastStoreLocationMaterialsUrl', url.toString());
             } catch (e) {
                 // Ignore
             }
@@ -1535,7 +1540,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page state: restore from localStorage or show empty state
     console.log('[Restore] Calling updateTabVisibility');
-    const savedTab = window.__materialSavedTab || localStorage.getItem('materialActiveTab');
+    const savedTab = window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
     updateTabVisibility(savedTab);
     document.documentElement.classList.remove('materials-booting');
 
@@ -1962,7 +1967,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 url.searchParams.set('tab', btn.dataset.tab);
                 // Reset page to 1 when switching tabs to avoid empty pages
                 url.searchParams.delete(btn.dataset.tab + '_page');
-                localStorage.setItem('lastMaterialsUrl', url.toString());
+                localStorage.setItem('lastStoreLocationMaterialsUrl', url.toString());
                 // Note: We don't pushState here to avoid reload, but saving to LS is enough for Navbar return
             });
         });
@@ -1970,7 +1975,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Save Current State for Navbar Return ---
     // Save the full current URL to localStorage on page load
-    localStorage.setItem('lastMaterialsUrl', window.location.href);
+    localStorage.setItem('lastStoreLocationMaterialsUrl', window.location.href);
 
     // Add click handlers to "Lihat Semua" buttons to save current tab
     document.querySelectorAll('a[href*="bricks.index"], a[href*="cats.index"], a[href*="cements.index"], a[href*="sands.index"]').forEach(link => {
@@ -1979,7 +1984,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeTab = document.querySelector('.material-tab-btn.active');
             if (activeTab) {
                 const currentTab = activeTab.dataset.tab;
-                localStorage.setItem('materialActiveTab', currentTab);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, currentTab);
             }
         });
     });
@@ -2213,7 +2218,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const result = await api.delete(`/${endpoint}/${id}`);
             if (result.success) {
-                localStorage.setItem('materialActiveTab', type);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, type);
                 sessionStorage.setItem('pendingToast', JSON.stringify({
                     type: 'success',
                     message: `Data ${label} berhasil dihapus.`
@@ -2651,7 +2656,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeTab = document.querySelector('.material-tab-btn.active');
             if (activeTab) {
                 const currentTab = activeTab.dataset.tab;
-                localStorage.setItem('materialActiveTab', currentTab);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, currentTab);
             }
 
             const href = link.getAttribute('href');

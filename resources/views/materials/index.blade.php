@@ -10,7 +10,7 @@
     document.documentElement.classList.add('materials-lock');
 })();
 (function() {
-    const savedTab = localStorage.getItem('materialActiveTab');
+    const savedTab = localStorage.getItem('materialsIndexActiveTab');
     if (savedTab) {
         // Set a flag that will be checked by main script
         window.__materialSavedTab = savedTab;
@@ -53,6 +53,9 @@
             window.scrollTo(0, scrollY);
         });
     }
+})();
+(function() {
+    document.documentElement.classList.toggle('materials-skip-page', !!window.__materialSkipPage);
 })();
 (function() {
     window.addEventListener('load', function() {
@@ -144,6 +147,13 @@ html.materials-booting .page-content {
 }
 .material-tab-btn.material-tab-blink {
     animation: material-tab-blink 1.2s ease-in-out 2;
+}
+@keyframes material-letter-blink {
+    0%, 100% { transform: translateY(0) scale(1); filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)) grayscale(0%); }
+    50% { transform: translateY(-1px) scale(1.08); filter: drop-shadow(0 0 8px rgba(137, 19, 19, 0.45)) grayscale(0%); }
+}
+.kanggo-img-link.material-letter-blink .kanggo-img {
+    animation: material-letter-blink 0.9s ease-in-out 2;
 }
   .table-container {
       position: relative;
@@ -570,6 +580,14 @@ html.materials-booting .page-content {
   }
   .material-footer-sticky .kanggo-img-link img {
       height: 17px !important;
+  }
+  html.materials-skip-page .kanggo-img-link:not(.current) .kanggo-img {
+      filter: grayscale(100%) !important;
+      opacity: 0.6 !important;
+  }
+  html.materials-skip-page .kanggo-img-link:not(.current):hover .kanggo-img {
+      filter: grayscale(100%) !important;
+      opacity: 0.6 !important;
   }
   html.materials-lock body,
   body.materials-lock {
@@ -1172,7 +1190,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.style.overflow = '';
 
     // Load saved filter from localStorage
-    const STORAGE_KEY = 'material_filter_preferences';
+    const STORAGE_KEY = 'materials_index_filter_preferences';
+    const ACTIVE_TAB_STORAGE_KEY = 'materialsIndexActiveTab';
+    const LETTER_HISTORY_STORAGE_KEY = 'materialsIndexLetterHistory';
     let savedFilter = null;
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -1188,6 +1208,37 @@ document.addEventListener('DOMContentLoaded', function() {
     let materialOrder = savedFilter.order || [];
     const navBlinkMaterial = localStorage.getItem('materialNavSearchBlink');
     const navSearchType = localStorage.getItem('materialNavSearchType');
+    const wasSkipPageOnLoad = !!window.__materialSkipPage;
+    let letterHistory = {};
+    try {
+        const storedLetterHistory = localStorage.getItem(LETTER_HISTORY_STORAGE_KEY);
+        letterHistory = storedLetterHistory ? JSON.parse(storedLetterHistory) : {};
+    } catch (e) {
+        letterHistory = {};
+    }
+
+    function saveLetterHistory() {
+        try {
+            localStorage.setItem(LETTER_HISTORY_STORAGE_KEY, JSON.stringify(letterHistory));
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+
+    function rememberLetterForTab(tabType, hash) {
+        const tab = String(tabType || '').trim();
+        const value = String(hash || '').trim();
+        if (!tab || !value.startsWith('#')) return;
+        letterHistory[tab] = value;
+        saveLetterHistory();
+    }
+
+    function getRememberedLetterForTab(tabType) {
+        const tab = String(tabType || '').trim();
+        if (!tab) return '';
+        const remembered = letterHistory[tab];
+        return typeof remembered === 'string' ? remembered : '';
+    }
 
     if (navBlinkMaterial) {
         if (!Array.isArray(savedFilter.selected)) {
@@ -1331,11 +1382,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .then(html => {
                         card.innerHTML = html;
-                        
+
                         // Re-initialize sticky headers
                         if (typeof applyAllStickyOffsets === 'function') {
                             window.requestAnimationFrame(() => applyAllStickyOffsets());
                         }
+
+                        // Ensure default letter state is applied after lazy content is rendered.
+                        updateActivePaginationLetter();
                         
                         // Re-run search setup if search query exists
                         // Note: We might need to extract this logic to be reusable
@@ -1365,7 +1419,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                localStorage.setItem('materialActiveTab', materialType);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, materialType);
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', materialType);
+                history.replaceState(null, null, url.toString());
+                localStorage.setItem('lastMaterialsUrl', url.toString());
             } catch (e) {
                 // Ignore
             }
@@ -1609,7 +1667,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page state: restore from localStorage or show empty state
     console.log('[Restore] Calling updateTabVisibility');
-    const savedTab = window.__materialSavedTab || localStorage.getItem('materialActiveTab');
+    const savedTab = window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
     updateTabVisibility(savedTab);
     if (window.__materialSkipPage) {
         const resetSkipPageScroll = () => {
@@ -1634,6 +1692,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.documentElement.classList.remove('materials-booting');
         });
         window.__materialSkipPage = false;
+        document.documentElement.classList.remove('materials-skip-page');
     } else {
         document.documentElement.classList.remove('materials-booting');
     }
@@ -2080,7 +2139,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeTab = document.querySelector('.material-tab-btn.active');
             if (activeTab) {
                 const currentTab = activeTab.dataset.tab;
-                localStorage.setItem('materialActiveTab', currentTab);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, currentTab);
             }
         });
     });
@@ -2264,7 +2323,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const result = await api.delete(`/${endpoint}/${id}`);
             if (result.success) {
-                localStorage.setItem('materialActiveTab', type);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, type);
                 sessionStorage.setItem('pendingToast', JSON.stringify({
                     type: 'success',
                     message: `Data ${label} berhasil dihapus.`
@@ -2281,9 +2340,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
+    function blinkPaginationLetter(linkEl) {
+        if (!linkEl) return;
+        linkEl.classList.remove('material-letter-blink');
+        void linkEl.offsetWidth;
+        linkEl.classList.add('material-letter-blink');
+        window.setTimeout(() => {
+            linkEl.classList.remove('material-letter-blink');
+        }, 2000);
+    }
+
     // Helper function to update active pagination letter
     function updateActivePaginationLetter(forcedHash = null) {
-        const hash = forcedHash || window.location.hash || window.__materialHash || ''; // e.g., #brick-letter-A
+        const explicitHash =
+            typeof forcedHash === 'string' && forcedHash.startsWith('#')
+                ? forcedHash
+                : '';
 
         // Remove 'current' class from all pagination links
         document.querySelectorAll('.kanggo-img-link').forEach(link => {
@@ -2293,16 +2365,44 @@ document.addEventListener('DOMContentLoaded', function() {
         // Default: mark first available letter in the active tab
         const activePanel = document.querySelector('.material-tab-panel.active') || document.querySelector('.material-tab-panel');
         if (!activePanel) return;
+        const activeButton = document.querySelector('.material-tab-btn.active');
+        const activeTabType =
+            activePanel.getAttribute('data-tab')
+            || (activeButton ? activeButton.getAttribute('data-tab') : '')
+            || '';
 
-        // If hash exists and matches a link inside active tab, use it
-        if (hash) {
-            const matchingLink = activePanel.querySelector(`.kanggo-img-link[href="${hash}"]`);
+        const activateByHash = candidateHash => {
+            if (!candidateHash) return false;
+            const matchingLink = activePanel.querySelector(`.kanggo-img-link[href="${candidateHash}"]`);
             if (matchingLink) {
                 matchingLink.classList.add('current');
-                return;
+                return true;
             }
+            return false;
+        };
+
+        // 1) If hash is explicitly passed, prioritize it.
+        if (explicitHash && activateByHash(explicitHash)) {
+            rememberLetterForTab(activeTabType, explicitHash);
+            return;
         }
 
+        // 2) Restore remembered letter for this tab if available.
+        const rememberedHash = getRememberedLetterForTab(activeTabType);
+        if (rememberedHash && activateByHash(rememberedHash)) {
+            const rememberedLink = activePanel.querySelector(`.kanggo-img-link[href="${rememberedHash}"]`);
+            if (rememberedLink) {
+                blinkPaginationLetter(rememberedLink);
+            }
+            return;
+        }
+
+        // 3) In skip-page mode, keep default grey when no explicit/remembered letter.
+        if (window.__materialSkipPage) {
+            return;
+        }
+
+        // 4) Normal fallback: first letter in active tab.
         const firstLink = activePanel.querySelector('.kanggo-img-link');
         if (firstLink) {
             firstLink.classList.add('current');
@@ -2699,12 +2799,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeTab = document.querySelector('.material-tab-btn.active');
             if (activeTab) {
                 const currentTab = activeTab.dataset.tab;
-                localStorage.setItem('materialActiveTab', currentTab);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, currentTab);
             }
 
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
                 const targetId = href.slice(1);
+                const activeTabType = activeTab && activeTab.dataset ? activeTab.dataset.tab : '';
+                rememberLetterForTab(activeTabType, href);
 
                 // Keep hash in JS state only to avoid native page jump.
                 window.__materialHash = href;
@@ -2764,7 +2866,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initial update of active pagination letter on page load
-    updateActivePaginationLetter();
+    if (wasSkipPageOnLoad) {
+        const activeTabBtn = document.querySelector('.material-tab-btn.active');
+        const activeTabType = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : '';
+        const rememberedHash = getRememberedLetterForTab(activeTabType);
+        if (rememberedHash) {
+            updateActivePaginationLetter(rememberedHash);
+        }
+    } else {
+        updateActivePaginationLetter();
+    }
     setupSearchEnhancements();
     
     // Apply sticky offsets for all relevant sections

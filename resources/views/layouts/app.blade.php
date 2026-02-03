@@ -160,9 +160,24 @@
                 document.addEventListener('DOMContentLoaded', function() {
                     const materialLink = document.getElementById('materialNavLink');
                     const lastUrl = localStorage.getItem('lastMaterialsUrl');
-                    
+
+                    function isMaterialsIndexUrl(url) {
+                        if (!url) return false;
+                        try {
+                            const baseUrl = new URL('{{ route('materials.index') }}', window.location.origin);
+                            const parsedUrl = new URL(url, window.location.origin);
+                            return parsedUrl.pathname === baseUrl.pathname;
+                        } catch (error) {
+                            return false;
+                        }
+                    }
+
                     if (materialLink && lastUrl) {
-                        materialLink.href = lastUrl;
+                        if (isMaterialsIndexUrl(lastUrl)) {
+                            materialLink.href = lastUrl;
+                        } else {
+                            localStorage.removeItem('lastMaterialsUrl');
+                        }
                     }
 
                     const calcLink = document.getElementById('calcNavLink');
@@ -568,7 +583,7 @@
             const navToggles = document.querySelectorAll('.nav-material-toggle');
             const applyFilterBtn = document.getElementById('applyMaterialFilter');
             const resetFilterBtn = document.getElementById('resetMaterialFilterNav');
-            const STORAGE_KEY = 'material_filter_preferences';
+            const STORAGE_KEY = 'materials_index_filter_preferences';
             const materialTypeSuggestionState = {
                 loaded: false,
                 items: [],
