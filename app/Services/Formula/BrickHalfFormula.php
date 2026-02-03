@@ -220,13 +220,8 @@ class BrickHalfFormula implements FormulaInterface
             $tambahanAdukanRaw = $n($kolomVertikalBata / 2);
             $tambahanAdukanDecimal = $tambahanAdukanRaw - floor($tambahanAdukanRaw);
 
-            if ($tambahanAdukanDecimal == 0.5) {
-                // Jika hasilnya pas 0.5, pakai 0.5
-                $tambahanAdukan = $tambahanAdukanRaw;
-            } else {
-                // Jika desimal bukan 0.5, bulatkan ke bawah
-                $tambahanAdukan = floor($tambahanAdukanRaw);
-            }
+            // Bulatkan ke bawah
+            $tambahanAdukan = floor($tambahanAdukanRaw);
         } else {
             // Jika desimal 0-0.5, tambahan adukan = 0 (sudah diset di step 4)
             $tambahanAdukan = 0;
@@ -238,7 +233,7 @@ class BrickHalfFormula implements FormulaInterface
             'step' => '7A',
             'title' => 'Tambahan Adukan',
             'formula' => 'Jika desimal Baris Horizontal Bata > 0.5: (Kolom Vertikal Bata / 2)',
-            'info' => 'Jika hasil = 0.5 maka pakai 0.5, jika desimal lain maka bulatkan ke bawah. Jika desimal Baris Horizontal Bata 0-0.5 maka tambahan adukan = 0',
+            'info' => 'Hasil dibulatkan ke bawah. Jika desimal Baris Horizontal Bata 0-0.5 maka tambahan adukan = 0',
             'calculations' => [
                 'Desimal Baris Horizontal Bata (Step 4)' => NumberHelper::format($decimalStep4),
                 'Perhitungan' => $decimalStep4 > 0.5 ? "($kolomVertikalBata / 2) = " . NumberHelper::format($tambahanAdukanRaw) : 'Desimal ≤ 0.5, tambahan adukan = 0',
