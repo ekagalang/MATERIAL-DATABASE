@@ -7,6 +7,7 @@ use App\Helpers\NumberHelper;
 use App\Models\Cement;
 use App\Models\Sand;
 use App\Models\Ceramic;
+use App\Models\Nat;
 
 /**
  * Formula - Perhitungan Pasang Keramik
@@ -81,12 +82,12 @@ class TileInstallationFormula implements FormulaInterface
         $cement = isset($params['cement_id']) ? Cement::find($params['cement_id']) : null;
         $sand = isset($params['sand_id']) ? Sand::find($params['sand_id']) : null;
         $ceramic = isset($params['ceramic_id']) ? Ceramic::find($params['ceramic_id']) : null;
-        $nat = isset($params['nat_id']) ? Cement::find($params['nat_id']) : null;
+        $nat = isset($params['nat_id']) ? Nat::find($params['nat_id']) : null;
 
-        $cement = $cement ?: Cement::where('type', '!=', 'Nat')->orWhereNull('type')->first();
+        $cement = $cement ?: Cement::query()->first();
         $sand = $sand ?: Sand::first();
         $ceramic = $ceramic ?: Ceramic::first();
-        $nat = $nat ?: Cement::where('type', 'Nat')->first();
+        $nat = $nat ?: Nat::query()->orderBy('id')->first();
 
         if (!$cement || !$sand || !$ceramic) {
             throw new \RuntimeException('Data material (semen/pasir/keramik) tidak tersedia di database.');
@@ -94,7 +95,7 @@ class TileInstallationFormula implements FormulaInterface
 
         if (!$nat) {
             throw new \RuntimeException(
-                'Data material nat tidak tersedia di database. Pastikan ada data cement dengan type "Nat".',
+                'Data material nat tidak tersedia di database. Pastikan ada data di tabel nats.',
             );
         }
 

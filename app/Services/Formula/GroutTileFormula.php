@@ -4,7 +4,7 @@ namespace App\Services\Formula;
 
 use App\Helpers\NumberHelper;
 
-use App\Models\Cement;
+use App\Models\Nat;
 
 /**
  * Formula - Perhitungan Pekerjaan Nat Keramik
@@ -84,12 +84,12 @@ class GroutTileFormula implements FormulaInterface
         ];
 
         // ============ STEP 2: Load Material dari Database ============
-        $nat = isset($params['nat_id']) ? Cement::find($params['nat_id']) : null;
-        $nat = $nat ?: Cement::where('type', 'Nat')->first();
+        $nat = isset($params['nat_id']) ? Nat::find($params['nat_id']) : null;
+        $nat = $nat ?: Nat::query()->orderBy('id')->first();
 
         if (!$nat) {
             throw new \RuntimeException(
-                'Data material nat tidak tersedia di database. Pastikan ada data cement dengan type "Nat".',
+                'Data material nat tidak tersedia di database. Pastikan ada data di tabel nats.',
             );
         }
 

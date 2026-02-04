@@ -50,6 +50,6 @@ class RecommendedCombination extends Model
 
     public function nat(): BelongsTo
     {
-        return $this->belongsTo(Cement::class, 'nat_id');
+        return $this->belongsTo(Nat::class, 'nat_id');
     }
 }

@@ -7,10 +7,9 @@ use Illuminate\Support\Facades\DB;
 
 class NatSeeder extends Seeder
 {
-    public function run(): void
+    public static function rows(): array
     {
-        $cements = [
-            // Semen Gresik - Sesuai Excel (40kg, 30x20x60 cm = 0.036 M3)
+        return [
             [
                 'cement_name' => 'Semen',
                 'type' => 'Nat',
@@ -25,7 +24,7 @@ class NatSeeder extends Seeder
                 'address' => 'Gading Serpong',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
-                'comparison_price_per_kg' => 31000, // 31000 / 1
+                'comparison_price_per_kg' => 31000,
             ],
             [
                 'cement_name' => 'Semen',
@@ -41,7 +40,7 @@ class NatSeeder extends Seeder
                 'address' => 'Gading Serpong',
                 'package_price' => 16000,
                 'price_unit' => 'Bks',
-                'comparison_price_per_kg' => 16000, // 16000 / 1
+                'comparison_price_per_kg' => 16000,
             ],
             [
                 'cement_name' => 'Semen',
@@ -57,7 +56,7 @@ class NatSeeder extends Seeder
                 'address' => 'Gading Serpong',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
-                'comparison_price_per_kg' => 31000, // 31000 / 1
+                'comparison_price_per_kg' => 31000,
             ],
             [
                 'cement_name' => 'Semen',
@@ -73,7 +72,7 @@ class NatSeeder extends Seeder
                 'address' => 'Gading Serpong',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
-                'comparison_price_per_kg' => 31000, // 31000 / 1
+                'comparison_price_per_kg' => 31000,
             ],
             [
                 'cement_name' => 'Semen',
@@ -89,7 +88,7 @@ class NatSeeder extends Seeder
                 'address' => 'Gading Serpong',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
-                'comparison_price_per_kg' => 31000, // 31000 / 1
+                'comparison_price_per_kg' => 31000,
             ],
             [
                 'cement_name' => 'Semen',
@@ -105,9 +104,14 @@ class NatSeeder extends Seeder
                 'address' => 'Gading Serpong',
                 'package_price' => 31000,
                 'price_unit' => 'Bks',
-                'comparison_price_per_kg' => 31000, // 31000 / 1
+                'comparison_price_per_kg' => 31000,
             ],
         ];
+    }
+
+    public function run(): void
+    {
+        $cements = self::rows();
 
         foreach ($cements as $cement) {
             DB::table('cements')->insert(

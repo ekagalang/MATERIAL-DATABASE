@@ -595,7 +595,7 @@ $paramValue = $isGroutTile
                     'sand' => \App\Models\Sand::class,
                     'cat' => \App\Models\Cat::class,
                     'ceramic' => \App\Models\Ceramic::class,
-                    'nat' => \App\Models\Cement::class,
+                    'nat' => \App\Models\Nat::class,
                 ];
 
                 $historicalFrequencyQuery = DB::table('brick_calculations')->select(
@@ -1289,7 +1289,7 @@ $paramValue = $isGroutTile
                                 'nat',
                                 $materialUsage['nat'],
                                 $fallbackMaterialIds['nat'],
-                                \App\Models\Cement::class,
+                                \App\Models\Nat::class,
                             )
                             : [],
                     ];
@@ -1395,7 +1395,7 @@ $paramValue = $isGroutTile
 
                         if (in_array('nat', $requiredMaterials, true)) {
                             if ($natId) {
-                                $models['nat'] = \App\Models\Cement::find($natId);
+                                $models['nat'] = \App\Models\Nat::find($natId);
                                 $hasAnyMaterial = $hasAnyMaterial || !empty($models['nat']);
                             } else {
                                 $isComplete = false;
@@ -1439,7 +1439,7 @@ $paramValue = $isGroutTile
                             }
                             $nats =
                                 in_array('nat', $requiredMaterials, true) && $natId
-                                    ? \App\Models\Cement::where('id', $natId)->get()
+                                    ? \App\Models\Nat::where('id', $natId)->get()
                                     : $emptyEloquent;
 
                             $combos = $comboService->calculateCombinationsFromMaterials(

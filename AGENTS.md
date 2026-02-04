@@ -1,37 +1,38 @@
-﻿# Repository Guidelines
+# Repository Guidelines
 
 ## Project Structure & Module Organization
-- `app/` holds application logic (controllers, models, helpers). Example: `app/Http/Controllers/`.
-- `routes/` contains route definitions (`routes/web.php`).
-- `resources/views/` contains Blade templates; `resources/js/` and `resources/css/` are bundled via Vite.
-- `database/migrations/` and `database/seeders/` manage schema and seed data.
-- `public/` hosts static assets and Vite build output.
-- `tests/` contains automated tests (Pest).
+- `app/` contains core Laravel code (controllers, models, services, helpers), with controllers in `app/Http/Controllers/`.
+- `routes/` defines HTTP routes (`routes/web.php`, plus API routes if added).
+- `resources/views/` stores Blade templates; `resources/js/` and `resources/css/` are built through Vite.
+- `database/migrations/` and `database/seeders/` manage schema evolution and seed data.
+- `public/` serves static assets and Vite build output.
+- `tests/` contains Pest/PHPUnit tests.
 
 ## Build, Test, and Development Commands
-- `composer run setup` installs PHP/JS deps, creates `.env`, generates key, runs migrations, and builds assets.
-- `composer run dev` starts the PHP server, queue listener, and Vite dev server.
-- `php artisan serve` runs the Laravel dev server only.
-- `npm run dev` runs the Vite dev server only.
-- `npm run build` produces production assets.
-- `composer test` or `php artisan test` runs the test suite.
-- `npm run format` formats JS/CSS/JSON/PHP/Blade via Prettier.
+- `composer run setup` — install dependencies, copy `.env`, generate app key, run migrations, and build assets.
+- `composer run dev` — run the Laravel server, queue worker, log watcher, and Vite dev server together.
+- `php artisan serve` — run only the Laravel app server.
+- `npm run dev` — run only the Vite asset watcher.
+- `npm run build` — generate production frontend assets.
+- `composer test` or `php artisan test` — run the full test suite.
+- `npm run format` — format Blade, PHP, JS, CSS, and JSON files via Prettier.
 
 ## Coding Style & Naming Conventions
-- Indentation: 4 spaces, LF line endings, UTF-8 (see `.editorconfig`).
-- PHP follows PSR-12; use `vendor/bin/pint` if formatting is needed.
-- Blade/JS/CSS should be formatted with Prettier.
-- Naming: Controllers use `*Controller.php`, models are singular PascalCase, migrations are timestamped and descriptive.
+- Follow `.editorconfig`: UTF-8, LF endings, 4-space indentation.
+- Use PSR-12 for PHP; run `vendor/bin/pint` when needed.
+- Use Prettier formatting for Blade/JS/CSS/JSON.
+- Naming conventions: controllers `*Controller.php`, singular PascalCase models, descriptive timestamped migrations.
 
 ## Testing Guidelines
-- Tests live in `tests/` and typically end with `Test.php`.
-- Prefer focused runs during development: `php artisan test --filter Materials`.
-- Update or add tests when changing behavior or calculations.
+- Add tests under `tests/`, using `*Test.php` file names.
+- Prefer targeted runs during development, e.g. `php artisan test --filter Materials`.
+- Add or update tests for behavior changes, especially business logic and calculations.
 
 ## Commit & Pull Request Guidelines
-- Recent commits use short, imperative summaries like "Fix …" or "Adjust …". Keep the first line concise and specific.
-- PRs should include a summary, testing notes, and screenshots for UI/Blade changes. Link related issues when available.
+- Keep commit subjects short, imperative, and specific (e.g., `Fix material total calculation`).
+- PRs should include: concise summary, testing notes (`php artisan test` output), and screenshots for UI/Blade updates.
+- Link related issues and call out schema/config changes clearly.
 
 ## Configuration & Data
-- Copy `.env` from `.env.example` and set app/DB credentials before running.
-- Schema changes go in `database/migrations/`; seed defaults in `database/seeders/`.
+- Copy `.env.example` to `.env` and set local app/database credentials before first run.
+- Put schema changes in `database/migrations/` and default seed data in `database/seeders/`.

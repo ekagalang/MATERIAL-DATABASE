@@ -69,7 +69,15 @@
         @foreach($materialMeta as $materialKey => $material)
             @php
                 $isVisible = in_array($materialKey, $visibleMaterials, true);
-                $selectedValue = $rec ? ($rec->{$materialKey . '_id'} ?? null) : null;
+                $selectedValue = null;
+                if ($rec) {
+                    if ($materialKey === 'nat') {
+                        $selectedValue = $rec->nat_id ?? null;
+                    } else {
+                        $selectedValue = $rec->{$materialKey . '_id'} ?? null;
+                    }
+                }
+                $fieldName = $materialKey === 'nat' ? 'nat_id' : ($materialKey . '_id');
             @endphp
             <div class="material-section" data-material-type="{{ $materialKey }}" style="{{ $isVisible ? '' : 'display:none;' }}">
                 <div class="section-header">
@@ -79,7 +87,7 @@
                 <div class="form-group">
                     <label>Produk</label>
                     <div class="input-wrapper">
-                        <select name="recommendations[{{ $index }}][{{ $materialKey }}_id]"
+                        <select name="recommendations[{{ $index }}][{{ $fieldName }}]"
                                 class="form-select {{ $material['selectClass'] }} material-select"
                                 data-material-type="{{ $materialKey }}"
                                 data-selected="{{ $selectedValue }}">

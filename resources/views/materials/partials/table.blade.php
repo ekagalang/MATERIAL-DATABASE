@@ -297,6 +297,7 @@
                         @break
 
                     @case('cement')
+                    @case('nat')
                         <thead class="material-skeleton-header single-header">
                             <tr>
                                 <th class="cement-sticky-col" rowspan="2" style="width: 40px; min-width: 40px; text-align: center;"><div class="skeleton-box skeleton-w-60" style="margin: 0 auto;"></div></th>
@@ -909,7 +910,7 @@
                                 @endif
                             </tr>
                             
-                        @elseif($material['type'] == 'cement')
+                        @elseif(in_array($material['type'], ['cement', 'nat']))
                             <tr class="dim-group-row">
                                 <th class="cement-sticky-col" rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
                                 <th class="sortable cement-sticky-col" rowspan="2" style="text-align: left;">
@@ -1247,6 +1248,7 @@
                                     $item->material_name ?? null,
                                     $item->cat_name ?? null,
                                     $item->cement_name ?? null,
+                                    $item->nat_name ?? null,
                                     $item->sand_name ?? null,
                                     $item->brand ?? null,
                                     $item->sub_brand ?? null,
@@ -1263,9 +1265,9 @@
                                 $stickyClass = '';
                                 if($material['type'] == 'ceramic') $stickyClass = 'ceramic-sticky-col col-no';
                                 elseif($material['type'] == 'cat') $stickyClass = 'cat-sticky-col col-no';
-                                elseif($material['type'] == 'cement') $stickyClass = 'cement-sticky-col';
+                                elseif(in_array($material['type'], ['cement', 'nat'])) $stickyClass = 'cement-sticky-col';
                             @endphp
-                    <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? '' }}" data-material-search="{{ $searchValue }}">
+                    <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? $item->nat_name ?? '' }}" data-material-search="{{ $searchValue }}">
                         {{--  ... ROW CONTENT ... --}}
                         {{--  I will include the row content here but simplified for brevity as it is huge and repetitive in the original file. 
                               Wait, I need to copy the FULL content to be correct. 

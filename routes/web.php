@@ -6,6 +6,7 @@ use App\Http\Controllers\CementController;
 use App\Http\Controllers\CeramicController;
 use App\Http\Controllers\MaterialCalculationController;
 use App\Http\Controllers\MaterialController;
+use App\Http\Controllers\NatController;
 use App\Http\Controllers\SandController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\StoreController;
@@ -197,6 +198,7 @@ Route::get('/materials/type-suggestions', [MaterialController::class, 'typeSugge
 Route::get('/materials/tab/{type}', [MaterialController::class, 'fetchTab'])->name('materials.tab');
 Route::resource('materials', MaterialController::class);
 Route::resource('cements', CementController::class);
+Route::resource('nats', NatController::class);
 Route::resource('sands', SandController::class);
 Route::resource('ceramics', CeramicController::class);
 
@@ -211,6 +213,7 @@ Route::get('/api/sands/all-stores', [SandController::class, 'getAllStores'])->na
 Route::get('/api/bricks/all-stores', [BrickController::class, 'getAllStores'])->name('bricks.all-stores');
 
 Route::get('/api/cements/all-stores', [CementController::class, 'getAllStores'])->name('cements.all-stores');
+Route::get('/api/nats/all-stores', [NatController::class, 'getAllStores'])->name('nats.all-stores');
 
 // API untuk mendapatkan alamat berdasarkan toko dari semua material
 Route::get('/api/cats/addresses-by-store', [CatController::class, 'getAddressesByStore'])->name(
@@ -228,6 +231,9 @@ Route::get('/api/bricks/addresses-by-store', [BrickController::class, 'getAddres
 Route::get('/api/cements/addresses-by-store', [CementController::class, 'getAddressesByStore'])->name(
     'cements.addresses-by-store',
 );
+Route::get('/api/nats/addresses-by-store', [NatController::class, 'getAddressesByStore'])->name(
+    'nats.addresses-by-store',
+);
 
 // API untuk mendapatkan unique values per field - Bricks
 Route::get('/api/bricks/field-values/{field}', [BrickController::class, 'getFieldValues'])->name('bricks.field-values');
@@ -236,6 +242,7 @@ Route::get('/api/bricks/field-values/{field}', [BrickController::class, 'getFiel
 Route::get('/api/cements/field-values/{field}', [CementController::class, 'getFieldValues'])->name(
     'cements.field-values',
 );
+Route::get('/api/nats/field-values/{field}', [NatController::class, 'getFieldValues'])->name('nats.field-values');
 
 // API untuk mendapatkan unique values per field - Sands
 Route::get('/api/sands/field-values/{field}', [SandController::class, 'getFieldValues'])->name('sands.field-values');

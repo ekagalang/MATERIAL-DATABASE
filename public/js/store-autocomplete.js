@@ -5,6 +5,139 @@
 (function() {
     'use strict';
 
+    function ensureKeyboardStyle() {
+        if (document.getElementById('autocomplete-keyboard-style')) {
+            return;
+        }
+
+        const style = document.createElement('style');
+        style.id = 'autocomplete-keyboard-style';
+        style.textContent = `
+            .autocomplete-item.autocomplete-item-active {
+                background: linear-gradient(to right, #fef2f2 0%, #fef8f8 100%) !important;
+                color: #891313 !important;
+                padding-left: 20px !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function initKeyboardAutocomplete(scope) {
+        const root = (scope && scope.querySelectorAll) ? scope : document;
+        ensureKeyboardStyle();
+
+        root.querySelectorAll('.autocomplete-input').forEach(input => {
+            if (input.__keyboardAutocompleteInited) {
+                return;
+            }
+
+            const field = input.dataset?.field;
+            if (!field) {
+                return;
+            }
+
+            const list = root.querySelector('#' + field + '-list') || document.getElementById(field + '-list');
+            if (!list) {
+                return;
+            }
+
+            input.__keyboardAutocompleteInited = true;
+            let activeIndex = -1;
+
+            function getItems() {
+                return Array.from(list.querySelectorAll('.autocomplete-item'))
+                    .filter(item => item.dataset.autocompleteHint !== '1');
+            }
+
+            function resetActive() {
+                activeIndex = -1;
+                list.querySelectorAll('.autocomplete-item').forEach(item => {
+                    item.classList.remove('autocomplete-item-active');
+                });
+            }
+
+            function highlightByIndex(nextIndex) {
+                const items = getItems();
+                if (!items.length) {
+                    resetActive();
+                    return;
+                }
+
+                if (nextIndex < 0) {
+                    nextIndex = items.length - 1;
+                } else if (nextIndex >= items.length) {
+                    nextIndex = 0;
+                }
+
+                activeIndex = nextIndex;
+                items.forEach((item, index) => {
+                    item.classList.toggle('autocomplete-item-active', index === activeIndex);
+                });
+
+                const activeItem = items[activeIndex];
+                if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+                    activeItem.scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            function isListVisible() {
+                const style = window.getComputedStyle(list);
+                return style.display !== 'none' && getItems().length > 0;
+            }
+
+            input.addEventListener('keydown', function(e) {
+                if (!['ArrowDown', 'ArrowUp', 'Enter', 'Escape'].includes(e.key)) {
+                    return;
+                }
+
+                const items = getItems();
+                const visible = isListVisible();
+
+                if (e.key === 'Escape' && visible) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    list.style.display = 'none';
+                    resetActive();
+                    return;
+                }
+
+                if (!items.length) {
+                    return;
+                }
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!visible) {
+                        list.style.display = 'block';
+                    }
+                    highlightByIndex(activeIndex + 1);
+                    return;
+                }
+
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!visible) {
+                        list.style.display = 'block';
+                    }
+                    highlightByIndex(activeIndex - 1);
+                    return;
+                }
+
+                if (e.key === 'Enter' && visible && activeIndex >= 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    items[activeIndex]?.click();
+                    resetActive();
+                }
+            });
+
+            input.addEventListener('input', resetActive);
+            input.addEventListener('focus', resetActive);
+        });
+    }
+
     /**
      * Initialize store autocomplete for material forms
      * Call this after the form's own init function
@@ -13,6 +146,7 @@
      */
     function initStoreAutocomplete(scope) {
         scope = scope || document;
+        initKeyboardAutocomplete(scope);
 
         const storeInput = scope.querySelector('#store');
         const addressInput = scope.querySelector('#address');
@@ -200,6 +334,7 @@
                 if (!storeName) {
                     const hintItem = document.createElement('div');
                     hintItem.className = 'autocomplete-item';
+                    hintItem.dataset.autocompleteHint = '1';
                     hintItem.style.color = '#94a3b8';
                     hintItem.style.fontStyle = 'italic';
                     hintItem.textContent = 'Pilih toko terlebih dahulu...';

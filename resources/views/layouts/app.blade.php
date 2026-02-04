@@ -13,6 +13,7 @@
             'materials.*' => 'Database Material',
             'bricks.*' => 'Database Material',
             'cements.*' => 'Database Material',
+            'nats.*' => 'Database Material',
             'sands.*' => 'Database Material',
             'cats.*' => 'Database Material',
             'ceramics.*' => 'Database Material',
@@ -65,7 +66,7 @@
             
             <!-- Material Dropdown (Modified for Return & Hover) -->
             <div class="nav-dropdown-wrapper material-wrapper">
-                <a href="{{ route('materials.index') }}" class="nav-link-btn {{ request()->routeIs('materials.*') || request()->routeIs('bricks.*') || request()->routeIs('cements.*') || request()->routeIs('sands.*') || request()->routeIs('cats.*') ? 'active' : '' }}" id="materialNavLink">
+                <a href="{{ route('materials.index') }}" class="nav-link-btn {{ request()->routeIs('materials.*') || request()->routeIs('bricks.*') || request()->routeIs('cements.*') || request()->routeIs('nats.*') || request()->routeIs('sands.*') || request()->routeIs('cats.*') ? 'active' : '' }}" id="materialNavLink">
                     <i class="bi bi-box-seam"></i> Material <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                 </a>
                 
@@ -91,6 +92,7 @@
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
+                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="nat"> Nat</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
                                 </div>
@@ -121,6 +123,7 @@
                                     <a href="{{ route('bricks.create') }}" class="dropdown-item global-open-modal">Bata</a>
                                     <a href="{{ route('cats.create') }}" class="dropdown-item global-open-modal">Cat</a>
                                     <a href="{{ route('ceramics.create') }}" class="dropdown-item global-open-modal">Keramik</a>
+                                    <a href="{{ route('nats.create') }}" class="dropdown-item global-open-modal">Nat</a>
                                     <a href="{{ route('sands.create') }}" class="dropdown-item global-open-modal">Pasir</a>
                                     <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
                                 </div>
@@ -129,6 +132,10 @@
                     </div>
                 </div>
             </div>
+
+            <a href="{{ route('nats.index') }}" class="{{ request()->routeIs('nats.*') ? 'active' : '' }}">
+                <i class="bi bi-grid-1x2"></i> Nat
+            </a>
 
             <style>
                 /* Hover Logic for Navbar Dropdowns */
@@ -786,6 +793,7 @@
                     const createUrlMap = {
                         brick: '{{ route("bricks.create") }}',
                         cement: '{{ route("cements.create") }}',
+                        nat: '{{ route("nats.create") }}',
                         sand: '{{ route("sands.create") }}',
                         cat: '{{ route("cats.create") }}',
                         ceramic: '{{ route("ceramics.create") }}'
@@ -981,6 +989,7 @@
                 if (url.includes('/bricks/')) { materialType = 'brick'; materialLabel = 'Bata'; } 
                 else if (url.includes('/cats/')) { materialType = 'cat'; materialLabel = 'Cat'; } 
                 else if (url.includes('/cements/')) { materialType = 'cement'; materialLabel = 'Semen'; } 
+                else if (url.includes('/nats/')) { materialType = 'nat'; materialLabel = 'Nat'; }
                 else if (url.includes('/sands/')) { materialType = 'sand'; materialLabel = 'Pasir'; }
                 else if (url.includes('/ceramics/')) { materialType = 'ceramic'; materialLabel = 'Keramik'; }
                 else if (url.includes('/store-locations/')) { materialType = 'store-location'; materialLabel = 'Lokasi Toko'; }

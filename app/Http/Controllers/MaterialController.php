@@ -9,6 +9,7 @@ use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Sand;
 use App\Models\Ceramic;
+use App\Models\Nat;
 
 class MaterialController extends Controller
 {
@@ -16,7 +17,7 @@ class MaterialController extends Controller
     {
         // Load ALL materials data (not filtered)
         // JavaScript will handle showing/hiding tabs based on checkbox
-        $allSettings = MaterialSetting::where('material_type', '!=', 'nat')
+        $allSettings = MaterialSetting::query()
             ->get()
             ->sortBy(function ($setting) {
                 return MaterialSetting::getMaterialLabel($setting->material_type);
@@ -56,6 +57,9 @@ class MaterialController extends Controller
                 case 'cement':
                     $model = Cement::class;
                     break;
+                case 'nat':
+                    $model = Nat::class;
+                    break;
             }
 
             $dbCount = $model ? $model::count() : 0;
@@ -91,7 +95,7 @@ class MaterialController extends Controller
     public function fetchTab(Request $request, $type)
     {
         // Validate type
-        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic'])) {
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
             abort(404);
         }
 
@@ -100,7 +104,7 @@ class MaterialController extends Controller
         // Ideally, grandTotal should be passed from the main view or recalculated.
         // Recalculating is cheap (count queries).
         $grandTotal = 0;
-        $allSettings = MaterialSetting::where('material_type', '!=', 'nat')->get();
+        $allSettings = MaterialSetting::query()->get();
         foreach ($allSettings as $setting) {
              $modelClass = match($setting->material_type) {
                  'brick' => Brick::class,
@@ -108,6 +112,7 @@ class MaterialController extends Controller
                  'ceramic' => Ceramic::class,
                  'sand' => Sand::class,
                  'cement' => Cement::class,
+                 'nat' => Nat::class,
                  default => null
              };
              if ($modelClass) {
@@ -122,6 +127,7 @@ class MaterialController extends Controller
              'ceramic' => Ceramic::class,
              'sand' => Sand::class,
              'cement' => Cement::class,
+             'nat' => Nat::class,
              default => null
         };
         $dbCount = $model ? $model::count() : 0;
@@ -150,6 +156,8 @@ class MaterialController extends Controller
             'cat' => 'cat',
             'semen' => 'cement',
             'cement' => 'cement',
+            'nat' => 'nat',
+            'grout' => 'nat',
             'pasir' => 'sand',
             'sand' => 'sand',
             'keramik' => 'ceramic',
@@ -171,17 +179,26 @@ class MaterialController extends Controller
             'cement' => Cement::class,
             'sand' => Sand::class,
             'ceramic' => Ceramic::class,
+            'nat' => Nat::class,
+        ];
+        $typeColumns = [
+            'brick' => 'type',
+            'cat' => 'type',
+            'cement' => 'type',
+            'sand' => 'type',
+            'ceramic' => 'type',
+            'nat' => 'type',
         ];
         if ($search === '') {
             $items = collect();
             foreach ($models as $materialType => $model) {
+                $typeColumn = $typeColumns[$materialType] ?? 'type';
                 $types = $model
-                    ::query()
-                    ->select('type')
-                    ->whereNotNull('type')
-                    ->where('type', '!=', '')
+                    ::query()->selectRaw($typeColumn . ' as type')
+                    ->whereNotNull($typeColumn)
+                    ->where($typeColumn, '!=', '')
                     ->distinct()
-                    ->orderBy('type')
+                    ->orderBy($typeColumn)
                     ->limit(25)
                     ->pluck('type');
 
@@ -202,6 +219,7 @@ class MaterialController extends Controller
             'cement' => 'Semen',
             'sand' => 'Pasir',
             'ceramic' => 'Keramik',
+            'nat' => 'Nat',
         ];
         $labelColumns = [
             'brick' => ['material_name', 'brand', 'form', 'type'],
@@ -209,6 +227,7 @@ class MaterialController extends Controller
             'cement' => ['cement_name', 'brand', 'sub_brand', 'code', 'color', 'type'],
             'sand' => ['sand_name', 'brand', 'type'],
             'ceramic' => ['material_name', 'brand', 'sub_brand', 'code', 'color', 'form', 'type'],
+            'nat' => ['type', 'nat_name', 'brand', 'sub_brand', 'code', 'color'],
         ];
         $searchColumns = [
             'brick' => ['type', 'material_name', 'brand', 'form'],
@@ -216,6 +235,7 @@ class MaterialController extends Controller
             'cement' => ['type', 'cement_name', 'brand', 'sub_brand', 'code', 'color'],
             'sand' => ['type', 'sand_name', 'brand'],
             'ceramic' => ['type', 'material_name', 'brand', 'sub_brand', 'code', 'color', 'form'],
+            'nat' => ['type', 'nat_name', 'brand', 'sub_brand', 'code', 'color'],
         ];
 
         $items = collect();
@@ -224,10 +244,11 @@ class MaterialController extends Controller
                 continue;
             }
             $materialLabel = $materialLabels[$materialType] ?? ucfirst($materialType);
+            $typeColumn = $typeColumns[$materialType] ?? 'type';
             $columns = array_unique(
-                array_merge(['type'], $labelColumns[$materialType] ?? [], $searchColumns[$materialType] ?? []),
+                array_merge([$typeColumn], $labelColumns[$materialType] ?? [], $searchColumns[$materialType] ?? []),
             );
-            $query = $model::query()->select($columns)->whereNotNull('type')->where('type', '!=', '');
+            $query = $model::query()->select($columns)->whereNotNull($typeColumn)->where($typeColumn, '!=', '');
 
             $columns = $searchColumns[$materialType] ?? [];
             if (!empty($searchTokens)) {
@@ -252,7 +273,7 @@ class MaterialController extends Controller
                 }
                 $items->push([
                     'material_type' => $materialType,
-                    'type' => $row->type,
+                    'type' => $row->{$typeColumn},
                     'label' => $label,
                 ]);
             }
@@ -277,21 +298,23 @@ class MaterialController extends Controller
 
                 if (empty($searchTokens)) {
                     $typeMatches = $model
-                        ::query()
-                        ->select('type')
-                        ->whereNotNull('type')
-                        ->where('type', '!=', '')
+                        ::query()->selectRaw($typeColumn . ' as type')
+                        ->whereNotNull($typeColumn)
+                        ->where($typeColumn, '!=', '')
                         ->distinct()
-                        ->orderBy('type')
+                        ->orderBy($typeColumn)
                         ->limit(10)
                         ->pluck('type');
                 } else {
-                    $typeQuery = $model::query()->select('type')->whereNotNull('type')->where('type', '!=', '');
+                    $typeQuery = $model::query()
+                        ->selectRaw($typeColumn . ' as type')
+                        ->whereNotNull($typeColumn)
+                        ->where($typeColumn, '!=', '');
                     foreach ($searchTokens as $token) {
                         $like = '%' . $token . '%';
-                        $typeQuery->where('type', 'like', $like);
+                        $typeQuery->where($typeColumn, 'like', $like);
                     }
-                    $typeMatches = $typeQuery->distinct()->orderBy('type')->limit(10)->pluck('type');
+                    $typeMatches = $typeQuery->distinct()->orderBy($typeColumn)->limit(10)->pluck('type');
                 }
 
                 foreach ($typeMatches as $type) {
@@ -360,6 +383,16 @@ class MaterialController extends Controller
                     $row->form ?? null,
                 ];
                 break;
+            case 'nat':
+                $parts = [
+                    $row->type ?? null,
+                    $row->nat_name ?? null,
+                    $row->brand ?? null,
+                    $row->sub_brand ?? null,
+                    $row->code ?? null,
+                    $row->color ?? null,
+                ];
+                break;
             default:
                 $parts = [$row->type ?? null];
                 break;
@@ -391,6 +424,9 @@ class MaterialController extends Controller
                 break;
             case 'ceramic':
                 $model = Ceramic::class;
+                break;
+            case 'nat':
+                $model = Nat::class;
                 break;
         }
 
@@ -435,6 +471,9 @@ class MaterialController extends Controller
                 break;
             case 'sand':
                 $query = Sand::query()->with('packageUnit');
+                break;
+            case 'nat':
+                $query = Nat::query()->with('packageUnit');
                 break;
         }
 
@@ -522,6 +561,20 @@ class MaterialController extends Controller
                     'comparison_price_per_m2',
                     'material_name',
                 ],
+                'nat' => [
+                    'type',
+                    'nat_name',
+                    'brand',
+                    'sub_brand',
+                    'code',
+                    'color',
+                    'package_unit',
+                    'package_weight_net',
+                    'store',
+                    'address',
+                    'package_price',
+                    'comparison_price_per_kg',
+                ],
                 default => ['brand', 'store'],
             };
 
@@ -604,6 +657,20 @@ class MaterialController extends Controller
                 'address',
                 'price_per_package',
                 'comparison_price_per_m2',
+            ],
+            'nat' => [
+                'type',
+                'nat_name',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'package_unit',
+                'package_weight_net',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_kg',
             ],
             default => [],
         };
@@ -709,6 +776,21 @@ class MaterialController extends Controller
                 'address',
                 'price_per_package',
                 'comparison_price_per_m2',
+                'id',
+            ],
+            'nat' => [
+                'type',
+                'nat_name',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'package_unit',
+                'package_weight_net',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_kg',
                 'id',
             ],
             default => [

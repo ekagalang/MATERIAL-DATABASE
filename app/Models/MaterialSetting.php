@@ -24,6 +24,7 @@ class MaterialSetting extends Model
             'brick' => 'Bata',
             'cat' => 'Cat',
             'cement' => 'Semen',
+            'nat' => 'Nat',
             'sand' => 'Pasir',
             'ceramic' => 'Keramik',
         ];

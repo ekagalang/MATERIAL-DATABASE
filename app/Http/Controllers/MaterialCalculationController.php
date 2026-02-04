@@ -9,6 +9,7 @@ use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
 use App\Models\MortarFormula;
+use App\Models\Nat;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
 use App\Repositories\CalculationRepository;
@@ -68,8 +69,8 @@ class MaterialCalculationController extends Controller
         $installationTypes = BrickInstallationType::getActive();
         $mortarFormulas = MortarFormula::getActive();
         $bricks = Brick::orderBy('brand')->get();
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('brand')->get();
-        $nats = Cement::where('type', 'Nat')->orderBy('brand')->get();
+        $cements = Cement::query()->orderBy('brand')->get();
+        $nats = Nat::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
@@ -174,6 +175,8 @@ class MaterialCalculationController extends Controller
                 $request->merge(['mortar_formula_type' => 'default']);
             }
 
+            $this->normalizeNatIdentifiers($request);
+
             // 1. VALIDASI
             $rules = [
                 'work_type' => 'required',
@@ -256,9 +259,9 @@ class MaterialCalculationController extends Controller
             // Nat Validation
             if ($needsNat) {
                 if (in_array('custom', $request->price_filters ?? [])) {
-                    $rules['nat_id'] = 'required|exists:cements,id';
+                    $rules['nat_id'] = 'required|exists:nats,id';
                 } else {
-                    $rules['nat_id'] = 'nullable|exists:cements,id';
+                    $rules['nat_id'] = 'nullable|exists:nats,id';
                 }
             } else {
                 $rules['nat_id'] = 'nullable';
@@ -306,8 +309,14 @@ class MaterialCalculationController extends Controller
                     if ($material === 'brick') {
                         continue;
                     }
-                    $key = $material . '_id';
-                    if (empty($request->$key)) {
+                    $isMissing = false;
+                    if ($material === 'nat') {
+                        $isMissing = empty($request->nat_id);
+                    } else {
+                        $key = $material . '_id';
+                        $isMissing = empty($request->$key);
+                    }
+                    if ($isMissing) {
                         $isCustomEmpty = true;
                         break;
                     }
@@ -907,19 +916,17 @@ class MaterialCalculationController extends Controller
 
         // Pre-fetch related materials to avoid N+1 in loops
         // Apply material type filters
-        $cementQuery = Cement::where(function ($q) {
-            $q->where('type', '!=', 'Nat')->orWhereNull('type');
-        });
+        $cementQuery = Cement::query();
         $cementFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['cement'] ?? null);
         if (!empty($cementFilterValues)) {
             $cementQuery->whereIn('type', $cementFilterValues);
         }
         $cements = $cementQuery->orderBy('package_price')->get();
 
-        $natQuery = Cement::where('type', 'Nat');
+        $natQuery = Nat::query();
         $natFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['nat'] ?? null);
-        if (!empty($natFilterValues)) {
-            $natQuery->whereIn('type', $natFilterValues);
+        if (!empty($natFilterValues) && !in_array('Nat', $natFilterValues, true)) {
+            $natQuery->whereRaw('1 = 0');
         }
         $nats = $natQuery->orderBy('package_price')->get();
 
@@ -952,7 +959,7 @@ class MaterialCalculationController extends Controller
                     // Resolve Materials from Recommendation
                     // If ID is present, use specific. If null, fallback to ALL available (pre-fetched)
                     $recCements = $rec->cement_id ? Cement::where('id', $rec->cement_id)->get() : $cements;
-                    $recNats = $rec->nat_id ? Cement::where('id', $rec->nat_id)->get() : $nats;
+                    $recNats = $rec->nat_id ? Nat::where('id', $rec->nat_id)->get() : $nats;
                     $recSands = $rec->sand_id ? Sand::where('id', $rec->sand_id)->get() : $sands;
 
                     // Resolve Ceramics
@@ -1039,6 +1046,13 @@ class MaterialCalculationController extends Controller
                     }
 
                     $key = $material . '_id';
+                    if ($material === 'nat') {
+                        if (empty($request->nat_id)) {
+                            $missingRequired = true;
+                            break;
+                        }
+                        continue;
+                    }
                     if (empty($request->$key)) {
                         $missingRequired = true;
                         break;
@@ -1052,7 +1066,7 @@ class MaterialCalculationController extends Controller
                             $customSands = Sand::where('id', $request->sand_id)->get();
                             break;
                         case 'nat':
-                            $customNats = Cement::where('id', $request->nat_id)->get();
+                            $customNats = Nat::where('id', $request->nat_id)->get();
                             break;
                     }
                 }
@@ -1502,8 +1516,8 @@ class MaterialCalculationController extends Controller
         $mortarFormulas = MortarFormula::getActive();
         $defaultMortarFormula = $this->getPreferredMortarFormula();
         $bricks = Brick::orderBy('brand')->get();
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('cement_name')->get();
-        $nats = Cement::where('type', 'Nat')->orderBy('brand')->get();
+        $cements = Cement::query()->orderBy('cement_name')->get();
+        $nats = Nat::orderBy('brand')->get();
         $sands = Sand::orderBy('sand_name')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
@@ -1528,6 +1542,13 @@ class MaterialCalculationController extends Controller
     {
         return MortarFormula::where('is_active', true)->where('cement_ratio', 1)->where('sand_ratio', 3)->first() ??
             MortarFormula::getDefault();
+    }
+
+    protected function normalizeNatIdentifiers(Request $request): void
+    {
+        if ($request->filled('nat_id')) {
+            $request->merge(['nat_id' => (int) $request->input('nat_id')]);
+        }
     }
 
     protected function applyMaterialTypeFiltersToCollections(
@@ -1580,7 +1601,7 @@ class MaterialCalculationController extends Controller
             'sand' => $model->type ?? null,
             'cat' => $model->type ?? null,
             'ceramic' => $this->formatCeramicSizeValue($model->dimension_length ?? null, $model->dimension_width ?? null),
-            'nat' => $model->type ?? null,
+            'nat' => 'Nat',
             default => null,
         };
     }
@@ -1715,6 +1736,7 @@ class MaterialCalculationController extends Controller
             'sand_id' => 'nullable|exists:sands,id',
             'cat_id' => 'nullable|exists:cats,id',
             'ceramic_id' => 'nullable|exists:ceramics,id',
+            'nat_id' => 'nullable|exists:nats,id',
             'grout_thickness' => 'nullable|numeric|min:0.1|max:20',
             'grout_package_weight' => 'nullable|numeric|min:0.1',
             'grout_volume_per_package' => 'nullable|numeric|min:0.0001',

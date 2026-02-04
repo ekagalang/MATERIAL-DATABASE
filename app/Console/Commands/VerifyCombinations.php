@@ -30,7 +30,7 @@ class VerifyCombinations extends Command
         $this->info("Work Type: $workType");
 
         // 1. Count Raw Potential
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->where('package_price', '>', 0)->count();
+        $cements = Cement::query()->where('package_price', '>', 0)->count();
         $sands = Sand::where('package_price', '>', 0)->count();
         
         $this->info("------------------------------------------------");

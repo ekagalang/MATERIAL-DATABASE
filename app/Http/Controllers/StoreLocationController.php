@@ -111,7 +111,7 @@ class StoreLocationController extends Controller
         $search = request('search');
 
         // Eager load materialAvailabilities with their polymorphic relations
-        // Note: packageUnit relationship only exists on Sand, Cat, and Cement models
+        // Note: packageUnit relationship exists on Sand, Cat, Cement, and Nat models
         $query = $location->materialAvailabilities()->with('materialable');
 
         $availabilities = $query->get();
@@ -122,6 +122,7 @@ class StoreLocationController extends Controller
         $sands = collect();
         $cats = collect();
         $ceramics = collect();
+        $nats = collect();
         
         foreach ($availabilities as $availability) {
             $material = $availability->materialable;
@@ -158,6 +159,7 @@ class StoreLocationController extends Controller
                     'Sand' => ['sand_name'],
                     'Cat' => ['cat_name'],
                     'Cement' => ['cement_name'],
+                    'Nat' => ['nat_name'],
                     'Ceramic' => ['material_name'],
                     default => []
                 };
@@ -178,8 +180,7 @@ class StoreLocationController extends Controller
                 }
 
                 // Search in packageUnit relationship (for "karung", "sak", etc.)
-                // Only Sand, Cat, and Cement have packageUnit relationship
-                if (!$found && in_array($type, ['Sand', 'Cat', 'Cement'])) {
+                if (!$found && in_array($type, ['Sand', 'Cat', 'Cement', 'Nat'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -223,6 +224,7 @@ class StoreLocationController extends Controller
                 case 'Sand': $sands->push($material); break;
                 case 'Cat': $cats->push($material); break;
                 case 'Ceramic': $ceramics->push($material); break;
+                case 'Nat': $nats->push($material); break;
             }
         }
 
@@ -232,10 +234,13 @@ class StoreLocationController extends Controller
 
         $sortCollection = function($collection) use ($sortBy, $sortDirection) {
             if (!$sortBy) {
-                return $collection->sortBy('type', SORT_NATURAL|SORT_FLAG_CASE);
+                return $collection->sortBy(function ($item) {
+                    return $item->type ?? $item->nat_name ?? null;
+                }, SORT_NATURAL|SORT_FLAG_CASE);
             }
             return $collection->sortBy(function($item) use ($sortBy) {
-                return $item->{$sortBy} ?? null;
+                $column = $sortBy === 'type' ? ((isset($item->type) && $item->type !== null) ? 'type' : 'nat_name') : $sortBy;
+                return $item->{$column} ?? null;
             }, SORT_REGULAR, $sortDirection === 'desc');
         };
 
@@ -244,6 +249,7 @@ class StoreLocationController extends Controller
         $sands = $sortCollection($sands);
         $cats = $sortCollection($cats);
         $ceramics = $sortCollection($ceramics);
+        $nats = $sortCollection($nats);
 
         // Prepare data structure for the view (similar to MaterialController@index)
         // IMPORTANT: Always include all material types even if count is 0
@@ -268,6 +274,16 @@ class StoreLocationController extends Controller
             'db_count' => $cements->count(),
             'data' => $cements,
             'active_letters' => $this->getActiveLetters($cements)
+        ];
+
+        // Always include nat
+        $materials[] = [
+            'type' => 'nat',
+            'label' => 'Nat',
+            'count' => $nats->count(),
+            'db_count' => $nats->count(),
+            'data' => $nats,
+            'active_letters' => $this->getActiveLetters($nats)
         ];
 
         // Always include sand
@@ -314,7 +330,7 @@ class StoreLocationController extends Controller
     public function fetchTab(Request $request, Store $store, StoreLocation $location, $type)
     {
         // Validate type
-        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic'])) {
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
             abort(404);
         }
 
@@ -336,6 +352,7 @@ class StoreLocationController extends Controller
             'cement' => 'Cement',
             'sand' => 'Sand',
             'ceramic' => 'Ceramic',
+            'nat' => 'Nat',
         };
 
         foreach ($availabilities as $availability) {
@@ -366,6 +383,7 @@ class StoreLocationController extends Controller
                         'sand' => ['sand_name'],
                         'cat' => ['cat_name'],
                         'cement' => ['cement_name'],
+                        'nat' => ['nat_name'],
                         'ceramic' => ['material_name'],
                         default => []
                     };
@@ -381,7 +399,7 @@ class StoreLocationController extends Controller
                 }
 
                 // 3. Relationship Search (Package Unit)
-                if (!$found && in_array($type, ['sand', 'cat', 'cement'])) {
+                if (!$found && in_array($type, ['sand', 'cat', 'cement', 'nat'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -421,10 +439,14 @@ class StoreLocationController extends Controller
         $sortDirection = $request->get('sort_direction', 'asc');
 
         if (!$sortBy) {
-            $materialsCollection = $materialsCollection->sortBy('type', SORT_NATURAL|SORT_FLAG_CASE);
+            $materialsCollection = $materialsCollection->sortBy(
+                fn($item) => $item->type ?? $item->nat_name ?? null,
+                SORT_NATURAL|SORT_FLAG_CASE,
+            );
         } else {
             $materialsCollection = $materialsCollection->sortBy(function($item) use ($sortBy) {
-                return $item->{$sortBy} ?? null;
+                $column = ($item->nat_name ?? null) !== null && $sortBy === 'type' ? 'nat_name' : $sortBy;
+                return $item->{$column} ?? null;
             }, SORT_REGULAR, $sortDirection === 'desc');
         }
 

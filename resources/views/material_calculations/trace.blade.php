@@ -221,13 +221,13 @@
                                 </div>
 
                                 <div class="col-12" id="natSection" style="display: none;">
-                                    <label class="form-label fw-semibold">Nat (Semen Type Nat)</label>
+                                    <label class="form-label fw-semibold">Nat</label>
                                     <select class="form-select form-select-lg rounded-3 shadow-sm" name="nat_id">
                                         <option value="">-- Gunakan Default --</option>
                                         @if(isset($nats))
                                             @foreach($nats as $nat)
                                                 <option value="{{ $nat->id }}">
-                                                    {{ $nat->brand }} ({{ $nat->package_weight_net }} kg) - @currency($nat->package_price)
+                                                    {{ $nat->nat_name ?? $nat->brand }} ({{ $nat->package_weight_net }} kg) - @currency($nat->package_price)
                                                 </option>
                                             @endforeach
                                         @endif

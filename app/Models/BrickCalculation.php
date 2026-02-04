@@ -142,7 +142,7 @@ class BrickCalculation extends Model
 
     public function nat(): BelongsTo
     {
-        return $this->belongsTo(Cement::class, 'nat_id');
+        return $this->belongsTo(Nat::class, 'nat_id');
     }
 
     /**
@@ -254,6 +254,10 @@ class BrickCalculation extends Model
 
         if ($groutThickness !== null) {
             $calculationParams['grout_thickness'] = $groutThickness;
+        }
+
+        if (!empty($params['nat_id'])) {
+            $calculationParams['nat_id'] = $params['nat_id'];
         }
 
         if ($ceramicLength !== null || $ceramicWidth !== null) {

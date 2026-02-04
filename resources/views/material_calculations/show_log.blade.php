@@ -666,7 +666,7 @@
                         <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->nat_quantity)</td>
                         <td class="text-center sticky-col-2">Bks</td>
                         <td class="fw-bold sticky-col-3">Nat</td>
-                        <td class="text-muted">{{ $materialCalculation->nat->type ?? 'Nat' }}</td>
+                        <td class="text-muted">{{ $materialCalculation->nat->nat_name ?? 'Nat' }}</td>
                         <td class="fw-bold">{{ $materialCalculation->nat->brand ?? '-' }}</td>
                         <td>{{ $materialCalculation->nat->color ?? 'Nat' }}</td>
                         <td class="text-start text-nowrap fw-bold">{{ ($materialCalculation->nat->package_weight_net ?? 0) + 0 }} Kg</td>

@@ -6,6 +6,7 @@ use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
+use App\Models\Nat;
 use App\Models\Sand;
 use App\Repositories\CalculationRepository;
 use App\Services\FormulaRegistry;
@@ -340,8 +341,6 @@ class CombinationGenerationService
             // For MVP, we iterate availabilities.
             foreach ($location->materialAvailabilities as $availability) {
                 // Determine type based on materialable_type
-                // App\Models\Cement -> 'cement' (or 'nat' if type=Nat)
-                // App\Models\Sand -> 'sand'
 
                 $modelClass = $availability->materialable_type;
                 $modelId = $availability->materialable_id;
@@ -349,16 +348,17 @@ class CombinationGenerationService
                 if ($modelClass === Cement::class) {
                     $cement = Cement::find($modelId);
                     if ($cement) {
-                        if ($cement->type === 'Nat') {
-                            // Apply nat filter
-                            if ($this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['nat'] ?? null)) {
-                                $storeMaterials['nat']->push($cement);
-                            }
-                        } else {
-                            // Apply cement filter
-                            if ($this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
-                                $storeMaterials['cement']->push($cement);
-                            }
+                        // Apply cement filter
+                        if ($this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
+                            $storeMaterials['cement']->push($cement);
+                        }
+                    }
+                } elseif ($modelClass === Nat::class) {
+                    $nat = Nat::find($modelId);
+                    if ($nat) {
+                        // Nat currently treated as single logical type token: "Nat"
+                        if ($this->matchesMaterialTypeFilter('Nat', $materialTypeFilters['nat'] ?? null)) {
+                            $storeMaterials['nat']->push($nat);
                         }
                     }
                 } elseif ($modelClass === Sand::class) {
@@ -611,7 +611,7 @@ class CombinationGenerationService
                 'cement' => $item->type ?? null,
                 'sand' => $item->type ?? null,
                 'cat' => $item->type ?? null,
-                'nat' => $item->type ?? null,
+                'nat' => 'Nat',
                 'ceramic' => $this->formatCeramicSize($item),
                 default => null,
             };
@@ -659,7 +659,15 @@ class CombinationGenerationService
 
         // 1. Get Top Combinations from History
         $query = DB::table('brick_calculations')
-            ->select('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id', DB::raw('count(*) as frequency'))
+            ->select(
+                'brick_id',
+                'cement_id',
+                'sand_id',
+                'cat_id',
+                'ceramic_id',
+                'nat_id',
+                DB::raw('count(*) as frequency'),
+            )
             ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
             ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id')
             ->orderByDesc('frequency')
@@ -721,10 +729,10 @@ class CombinationGenerationService
                 }
             }
             if (in_array('nat', $requiredMaterials)) {
-                $materials['nat'] = Cement::find($combo->nat_id); // Nat is Cement model
+                $materials['nat'] = isset($combo->nat_id) ? Nat::find($combo->nat_id) : null;
                 if (!$materials['nat']) $validCombo = false;
                 // Apply nat filter
-                if ($validCombo && !$this->matchesMaterialTypeFilter($materials['nat']->type ?? null, $materialTypeFilters['nat'] ?? null)) {
+                if ($validCombo && !$this->matchesMaterialTypeFilter('Nat', $materialTypeFilters['nat'] ?? null)) {
                     $validCombo = false;
                 }
             }
@@ -742,7 +750,7 @@ class CombinationGenerationService
                         ->where('materialable_type', get_class($model))
                         ->where('materialable_id', $model->id)
                         ->exists();
-                    
+                     
                     if (!$exists) {
                         $hasAll = false;
                         break;
@@ -1004,7 +1012,7 @@ class CombinationGenerationService
                 foreach ($nats as $nat) {
                     $params = array_merge($paramsBase, [
                         'ceramic_id' => $ceramic->id,
-                        'nat_id' => $nat->id,
+                        'nat_id' => $this->extractNatIdFromModel($nat),
                         // ceramic_length, ceramic_width, ceramic_thickness already in paramsBase from request
                     ]);
 
@@ -1023,7 +1031,7 @@ class CombinationGenerationService
                     } catch (\Exception $e) {
                         Log::warning('GroutTile calculation failed', [
                             'ceramic_id' => $ceramic->id,
-                            'nat_id' => $nat->id,
+                            'nat_id' => $params['nat_id'] ?? null,
                             'error' => $e->getMessage(),
                             'params' => $params,
                         ]);
@@ -1233,7 +1241,7 @@ class CombinationGenerationService
                 if (empty($rec->nat_id)) {
                     $missingRequired = true;
                 } else {
-                    $nats = Cement::where('id', $rec->nat_id)->get();
+                    $nats = Nat::where('id', $rec->nat_id)->get();
                 }
             }
 
@@ -1345,7 +1353,7 @@ class CombinationGenerationService
             $results = [];
             foreach ($frequencyCounts as $combo) {
                 $ceramic = Ceramic::find($combo->ceramic_id);
-                $nat = Cement::find($combo->nat_id);
+                $nat = isset($combo->nat_id) ? Nat::find($combo->nat_id) : null;
                 $cement = $combo->cement_id ? Cement::find($combo->cement_id) : null;
                 $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
@@ -1372,7 +1380,7 @@ class CombinationGenerationService
                 if ($sand && !$this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
                     continue;
                 }
-                if ($nat && !$this->matchesMaterialTypeFilter($nat->type, $materialTypeFilters['nat'] ?? null)) {
+                if ($nat && !$this->matchesMaterialTypeFilter('Nat', $materialTypeFilters['nat'] ?? null)) {
                     continue;
                 }
                 if (!empty($materialTypeFilters['ceramic']) && $ceramic) {
@@ -1384,7 +1392,7 @@ class CombinationGenerationService
 
                 $params = array_merge($paramsBase, [
                     'ceramic_id' => $ceramic->id,
-                    'nat_id' => $nat->id,
+                    'nat_id' => $this->extractNatIdFromModel($nat),
                     'cement_id' => $cement ? $cement->id : null,
                     'sand_id' => $sand ? $sand->id : null,
                 ]);
@@ -1622,9 +1630,7 @@ class CombinationGenerationService
         $materialTypeFilters = $request['material_type_filters'] ?? [];
 
         // DEBUG: Get available types from database
-        $availableCementTypes = Cement::where(function ($q) {
-            $q->where('type', '!=', 'Nat')->orWhereNull('type');
-        })->distinct()->pluck('type')->filter()->values()->toArray();
+        $availableCementTypes = Cement::query()->distinct()->pluck('type')->filter()->values()->toArray();
 
         $availableSandTypes = Sand::distinct()->pluck('type')->filter()->values()->toArray();
 
@@ -1777,6 +1783,7 @@ class CombinationGenerationService
      */
     public function getCustomCombinations(Brick $brick, array $request): array
     {
+        $request = $this->normalizeNatRequestIds($request);
         $workType = $request['work_type'] ?? 'brick_half';
 
         if ($workType === 'painting') {
@@ -1797,7 +1804,7 @@ class CombinationGenerationService
         } elseif ($workType === 'grout_tile') {
             if (!empty($request['ceramic_id']) && !empty($request['nat_id'])) {
                 $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
-                $nats = Cement::where('id', $request['nat_id'])->get();
+                $nats = Nat::where('id', $request['nat_id'])->get();
                 return $this->calculateCombinationsFromMaterials(
                     $brick,
                     $request,
@@ -1818,7 +1825,7 @@ class CombinationGenerationService
                 !empty($request['sand_id'])
             ) {
                 $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
-                $nats = Cement::where('id', $request['nat_id'])->get();
+                $nats = Nat::where('id', $request['nat_id'])->get();
                 $cements = $this->repository->getCementsByIds([$request['cement_id']]);
                 $sands = $this->repository->getSandsByIds([$request['sand_id']]);
                 return $this->calculateCombinationsFromMaterials(
@@ -1877,9 +1884,7 @@ class CombinationGenerationService
 
         $cements = collect();
         if (in_array('cement', $requiredMaterials, true)) {
-            $query = Cement::where(function ($q) {
-                $q->where('type', '!=', 'Nat')->orWhereNull('type');
-            })
+            $query = Cement::query()
             ->where('package_price', '>', 0)
             ->where('package_weight_net', '>', 0);
 
@@ -1934,11 +1939,15 @@ class CombinationGenerationService
 
         $nats = collect();
         if (in_array('nat', $requiredMaterials, true)) {
-            $query = Cement::where('type', 'Nat')->orderBy('brand');
+            $query = Nat::query()->orderBy('brand');
 
             // Apply material type filter for nat
             if (!empty($materialTypeFilters['nat'])) {
-                $this->applyTypeFilterToQuery($query, $materialTypeFilters['nat']);
+                // Nat currently treated as single logical type.
+                $filterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['nat']);
+                if (!empty($filterValues) && !in_array('Nat', $filterValues, true)) {
+                    $query->whereRaw('1 = 0');
+                }
             }
 
             $nats = $query->cursor(); // Lazy Loading
@@ -1954,6 +1963,27 @@ class CombinationGenerationService
             $nats,
             'Semua',
         );
+    }
+
+    protected function normalizeNatRequestIds(array $request): array
+    {
+        if (!empty($request['nat_id'])) {
+            $request['nat_id'] = (int) $request['nat_id'];
+        }
+
+        return $request;
+    }
+
+    /**
+     * @return int|null
+     */
+    protected function extractNatIdFromModel($nat): ?int
+    {
+        if (!$nat) {
+            return null;
+        }
+
+        return isset($nat->id) ? (int) $nat->id : null;
     }
 
     /**
@@ -1989,9 +2019,7 @@ class CombinationGenerationService
 
     protected function resolveCementsByPrice(string $direction, int $limit, string|array|null $typeFilter = null): EloquentCollection
     {
-        $query = Cement::where(function ($q) {
-            $q->where('type', '!=', 'Nat')->orWhereNull('type');
-        })
+        $query = Cement::query()
             ->where('package_price', '>', 0)
             ->where('package_weight_net', '>', 0);
 
@@ -2022,12 +2050,15 @@ class CombinationGenerationService
 
     protected function resolveNatsByPrice(string $direction, int $limit, string|array|null $typeFilter = null): EloquentCollection
     {
-        $query = Cement::where('type', 'Nat')
+        $query = Nat::query()
             ->where('package_price', '>', 0);
 
-        // Apply material type filter (although nat type is usually fixed)
+        // Apply material type filter (nat is a fixed logical type)
         if (!empty($typeFilter)) {
-            $this->applyTypeFilterToQuery($query, $typeFilter);
+            $filterValues = $this->normalizeMaterialTypeFilterValues($typeFilter);
+            if (!empty($filterValues) && !in_array('Nat', $filterValues, true)) {
+                $query->whereRaw('1 = 0');
+            }
         }
 
         return $query->orderBy('package_price', $direction)
@@ -2127,7 +2158,7 @@ class CombinationGenerationService
 
                         $params = array_merge($paramsBase, [
                             'ceramic_id' => $ceramic->id,
-                            'nat_id' => $nat->id,
+                            'nat_id' => $this->extractNatIdFromModel($nat),
                             'cement_id' => $cement->id,
                             'sand_id' => $sand->id,
                         ]);

@@ -131,11 +131,13 @@
     </td>
     <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">/ Kg</td>
 
-@elseif($material['type'] == 'cement')
+@elseif(in_array($material['type'], ['cement', 'nat']))
     <td class="{{ $stickyClass }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif style="text-align: center; width: 40px; min-width: 40px;">
         {{ $rowNumber }}
     </td>
-    <td class="cement-sticky-col" style="text-align: left;">{{ $item->type ?? '-' }}</td>
+    <td class="cement-sticky-col" style="text-align: left;">
+        {{ $material['type'] === 'nat' ? ($item->type ?? $item->nat_name ?? '-') : ($item->type ?? '-') }}
+    </td>
     <td class="cement-sticky-col cement-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
     <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>

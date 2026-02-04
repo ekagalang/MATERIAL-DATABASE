@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 (function() {
     function updateCeramicScrollIndicators() {
-        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-nat .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
         cells.forEach(td => {
             const scroller = td.querySelector('.ceramic-scroll-cell, .cement-scroll-cell, .sand-scroll-cell, .cat-scroll-cell, .brick-scroll-cell');
             if (!scroller) return;
@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function bindCeramicScrollHandlers() {
-        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-nat .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
         cells.forEach(td => {
             const scroller = td.querySelector('.ceramic-scroll-cell, .cement-scroll-cell, .sand-scroll-cell, .cat-scroll-cell, .brick-scroll-cell');
             if (!scroller || scroller.__ceramicScrollBound) return;
@@ -171,12 +171,14 @@ html.materials-booting .page-content {
   #section-sand .table-container thead,
   #section-cat .table-container thead,
   #section-cement .table-container thead,
+  #section-nat .table-container thead,
   #section-ceramic .table-container thead {
       height: 40px !important;
   }
 
   /* Single header rows should fill the full 40px - COMPACT */
   #section-cat .table-container thead.single-header tr th,
+  #section-nat .table-container thead.single-header tr th,
   #section-cement .table-container thead.single-header tr th {
       height: 40px !important;
       line-height: 1.2 !important;
@@ -215,6 +217,7 @@ html.materials-booting .page-content {
   #section-sand .table-container thead th,
   #section-cat .table-container thead th,
   #section-cement .table-container thead th,
+  #section-nat .table-container thead th,
   #section-ceramic .table-container thead th {
       vertical-align: top !important;
       font-size: 14px !important;
@@ -268,6 +271,7 @@ html.materials-booting .page-content {
   #section-sand .table-container tbody td,
   #section-cat .table-container tbody td,
   #section-cement .table-container tbody td,
+  #section-nat .table-container tbody td,
   #section-ceramic .table-container tbody td {
       height: 35px !important;
       padding: 2px 8px !important;
@@ -298,6 +302,7 @@ html.materials-booting .page-content {
   /* Ceramic scroll cells: keep text inside cell */
   #section-ceramic .ceramic-scroll-td,
   #section-cement .cement-scroll-td,
+  #section-nat .cement-scroll-td,
   #section-sand .sand-scroll-td,
   #section-cat .cat-scroll-td,
   #section-brick .brick-scroll-td {
@@ -306,6 +311,7 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-td.is-scrollable::after,
   #section-cement .cement-scroll-td.is-scrollable::after,
+  #section-nat .cement-scroll-td.is-scrollable::after,
   #section-sand .sand-scroll-td.is-scrollable::after,
   #section-cat .cat-scroll-td.is-scrollable::after,
   #section-brick .brick-scroll-td.is-scrollable::after {
@@ -323,6 +329,7 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-td.is-scrolled-end::after,
   #section-cement .cement-scroll-td.is-scrolled-end::after,
+  #section-nat .cement-scroll-td.is-scrolled-end::after,
   #section-sand .sand-scroll-td.is-scrolled-end::after,
   #section-cat .cat-scroll-td.is-scrolled-end::after,
   #section-brick .brick-scroll-td.is-scrolled-end::after {
@@ -330,6 +337,7 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-cell,
   #section-cement .cement-scroll-cell,
+  #section-nat .cement-scroll-cell,
   #section-sand .sand-scroll-cell,
   #section-cat .cat-scroll-cell,
   #section-brick .brick-scroll-cell {
@@ -341,6 +349,7 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-cell::-webkit-scrollbar,
   #section-cement .cement-scroll-cell::-webkit-scrollbar,
+  #section-nat .cement-scroll-cell::-webkit-scrollbar,
   #section-sand .sand-scroll-cell::-webkit-scrollbar,
   #section-cat .cat-scroll-cell::-webkit-scrollbar,
   #section-brick .brick-scroll-cell::-webkit-scrollbar {
@@ -467,10 +476,21 @@ html.materials-booting .page-content {
     background: #ffffff;
     z-index: 3;
 }
+#section-nat .cement-sticky-col {
+    position: sticky;
+    background: #ffffff;
+    z-index: 3;
+}
 #section-cement thead .cement-sticky-col {
     z-index: 7;
 }
+#section-nat thead .cement-sticky-col {
+    z-index: 7;
+}
 #section-cement .cement-sticky-edge {
+    box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
+}
+#section-nat .cement-sticky-edge {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
 }
 
@@ -1083,6 +1103,11 @@ html.materials-booting .page-content {
                     <div class="material-choice-icon">🏗️</div>
                     <div class="material-choice-label">Semen</div>
                     <div class="material-choice-desc">Tambah data semen</div>
+                </a>
+                <a href="{{ route('nats.create') }}" class="material-choice-card open-modal">
+                    <div class="material-choice-icon">🧱</div>
+                    <div class="material-choice-label">Nat</div>
+                    <div class="material-choice-desc">Tambah data nat</div>
                 </a>
                 <a href="{{ route('sands.create') }}" class="material-choice-card open-modal">
                     <div class="material-choice-icon">⛱️</div>
@@ -1705,6 +1730,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (url.includes('/cements/')) {
             materialType = 'cement';
             materialLabel = 'Semen';
+        } else if (url.includes('/nats/')) {
+            materialType = 'nat';
+            materialLabel = 'Nat';
         } else if (url.includes('/sands/')) {
             materialType = 'sand';
             materialLabel = 'Pasir';
@@ -2641,6 +2669,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Apply to Cement (new)
         applyToSection('section-cement', 'cement-sticky-col');
+        applyToSection('section-nat', 'cement-sticky-col');
 
         // Apply to Brick and Sand too
         applyToSection('section-brick', 'brick-sticky-col');

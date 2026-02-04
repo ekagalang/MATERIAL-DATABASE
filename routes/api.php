@@ -80,6 +80,12 @@ Route::prefix('v1')->group(function () {
     ]);
     Route::apiResource('cements', \App\Http\Controllers\Api\CementController::class)->names('api.cements');
 
+    // NAT
+    Route::get('/nats/field-values/{field}', [\App\Http\Controllers\Api\NatController::class, 'getFieldValues']);
+    Route::get('/nats/all-stores', [\App\Http\Controllers\Api\NatController::class, 'getAllStores']);
+    Route::get('/nats/addresses-by-store', [\App\Http\Controllers\Api\NatController::class, 'getAddressesByStore']);
+    Route::apiResource('nats', \App\Http\Controllers\Api\NatController::class)->names('api.nats');
+
     // SAND
     Route::get('/sands/field-values/{field}', [\App\Http\Controllers\Api\SandController::class, 'getFieldValues']);
     Route::get('/sands/all-stores', [\App\Http\Controllers\Api\SandController::class, 'getAllStores']);

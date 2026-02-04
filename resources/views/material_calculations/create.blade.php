@@ -586,7 +586,7 @@
                                         @if(isset($nats))
                                             @foreach($nats as $nat)
                                                 <option value="{{ $nat->id }}">
-                                                    {{ $nat->brand }} ({{ $nat->package_weight_net }} kg)
+                                                    {{ $nat->nat_name ?? $nat->brand }} ({{ $nat->package_weight_net }} kg)
                                                 </option>
                                             @endforeach
                                         @endif

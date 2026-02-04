@@ -334,7 +334,7 @@
                     return `${name}${details ? ` (${details})` : ''}${price ? ` - ${price}` : ''}`;
                 },
                 nat: (item) => {
-                    const name = [item.brand, item.cement_name].filter(Boolean).join(' - ') || 'Nat';
+                    const name = [item.brand, item.nat_name].filter(Boolean).join(' - ') || 'Nat';
                     const weight = isPositiveNumber(item.package_weight_net) ? `${item.package_weight_net} kg` : null;
                     const price = formatCurrency(item.package_price);
                     return `${name}${weight ? ` (${weight})` : ''}${price ? ` - ${price}` : ''}`;

@@ -7,6 +7,7 @@ use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
+use App\Models\Nat;
 use App\Models\Sand;
 use App\Repositories\RecommendationRepository;
 use App\Services\FormulaRegistry;
@@ -52,8 +53,8 @@ class RecommendationApiController extends Controller
             if ($request->boolean('include_materials')) {
                 $response['materials'] = [
                     'bricks' => Brick::orderBy('brand')->get(),
-                    'cements' => Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('brand')->get(),
-                    'nats' => Cement::where('type', 'Nat')->orderBy('brand')->get(),
+                    'cements' => Cement::query()->orderBy('brand')->get(),
+                    'nats' => Nat::orderBy('brand')->get(),
                     'sands' => Sand::orderBy('brand')->get(),
                     'cats' => Cat::orderBy('brand')->get(),
                     'ceramics' => Ceramic::orderBy('brand')->get(),
@@ -109,7 +110,7 @@ class RecommendationApiController extends Controller
                 'recommendations.*.sand_id' => 'nullable|exists:sands,id',
                 'recommendations.*.cat_id' => 'nullable|exists:cats,id',
                 'recommendations.*.ceramic_id' => 'nullable|exists:ceramics,id',
-                'recommendations.*.nat_id' => 'nullable|exists:cements,id',
+                'recommendations.*.nat_id' => 'nullable|exists:nats,id',
             ]);
 
             $recommendations = $validated['recommendations'] ?? [];

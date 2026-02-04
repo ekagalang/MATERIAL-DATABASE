@@ -1331,7 +1331,7 @@
                     <h6 class="fw-bold mb-1">Tidak ada kombinasi tersedia</h6>
                     <p class="mb-0 small">Meskipun data Keramik tersedia, perhitungan memerlukan data material pendukung lengkap. Pastikan Anda telah menginput data berikut di database:</p>
                     <ul class="mb-0 small mt-1">
-                        <li><strong>Semen (Tipe Nat):</strong> Di menu Semen, pastikan ada minimal satu data dengan Tipe = "Nat".</li>
+                        <li><strong>Nat:</strong> Pastikan ada minimal satu data Nat aktif di master Nat.</li>
                         <li><strong>Semen (Biasa):</strong> Semen untuk adukan perekat.</li>
                         <li><strong>Pasir:</strong> Pasir dengan data harga dan volume/kemasan yang lengkap.</li>
                     </ul>

@@ -77,6 +77,14 @@ class RecommendationRepository
                 $missingRequired = false;
                 foreach ($requiredMaterials as $material) {
                     $key = $material . '_id';
+                    if ($material === 'nat') {
+                        if (empty($rec['nat_id'])) {
+                            $missingRequired = true;
+                            break;
+                        }
+                        continue;
+                    }
+
                     if (empty($rec[$key])) {
                         $missingRequired = true;
                         break;

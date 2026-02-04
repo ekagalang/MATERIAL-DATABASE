@@ -6,6 +6,7 @@ use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
+use App\Models\Nat;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
 use App\Services\FormulaRegistry;
@@ -27,8 +28,8 @@ class RecommendedCombinationController extends Controller
 
         // Get options for dropdowns
         $bricks = Brick::orderBy('brand')->get();
-        $cements = Cement::where('type', '!=', 'Nat')->orWhereNull('type')->orderBy('brand')->get();
-        $nats = Cement::where('type', 'Nat')->orderBy('brand')->get();
+        $cements = Cement::query()->orderBy('brand')->get();
+        $nats = Nat::orderBy('brand')->get();
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
@@ -54,7 +55,7 @@ class RecommendedCombinationController extends Controller
             'recommendations.*.sand_id' => 'nullable|exists:sands,id',
             'recommendations.*.cat_id' => 'nullable|exists:cats,id',
             'recommendations.*.ceramic_id' => 'nullable|exists:ceramics,id',
-            'recommendations.*.nat_id' => 'nullable|exists:cements,id',
+            'recommendations.*.nat_id' => 'nullable|exists:nats,id',
         ]);
 
         try {
@@ -84,6 +85,14 @@ class RecommendedCombinationController extends Controller
                 $missingRequired = false;
                 foreach ($requiredMaterials as $material) {
                     $key = $material . '_id';
+                    if ($material === 'nat') {
+                        if (empty($rec['nat_id'])) {
+                            $missingRequired = true;
+                            break;
+                        }
+                        continue;
+                    }
+
                     if (empty($rec[$key])) {
                         $missingRequired = true;
                         break;
