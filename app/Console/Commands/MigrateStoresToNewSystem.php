@@ -6,6 +6,7 @@ use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
+use App\Models\Nat;
 use App\Models\Sand;
 use App\Models\Store;
 use App\Models\StoreLocation;
@@ -24,6 +25,7 @@ class MigrateStoresToNewSystem extends Command
     protected $materialModels = [
         'bricks' => Brick::class,
         'cements' => Cement::class,
+        'nats' => Nat::class,
         'sands' => Sand::class,
         'ceramics' => Ceramic::class,
         'cats' => Cat::class,
