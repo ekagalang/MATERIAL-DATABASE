@@ -855,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if (!window.catFormScriptLoaded) {
                         const script = document.createElement('script');
-                        script.src = '/js/cat-form.js?v=' + Date.now();
+                        script.src = '/js/cat-form.js?v=2.0.1';
                         script.onload = () => {
                             window.catFormScriptLoaded = true;
                             setTimeout(() => {

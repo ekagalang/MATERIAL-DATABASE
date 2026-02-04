@@ -817,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     if (!window.sandFormScriptLoaded) {
                         const script = document.createElement('script');
-                        script.src = '/js/sand-form.js?v=' + Date.now();
+                        script.src = '/js/sand-form.js?v=2.0.1';
                         script.onload = () => {
                             window.sandFormScriptLoaded = true;
                             setTimeout(() => {

@@ -437,7 +437,7 @@
     }
 </style>
 
-<script src="/js/sand-form.js?v={{ time() }}"></script>
+<script src="/js/sand-form.js?v=2.0.1"></script>
 <script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initSandForm === 'function') {
