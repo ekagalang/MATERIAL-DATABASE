@@ -257,7 +257,12 @@ class CatController extends Controller
             $cat->update($data);
 
             // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            if ($cat->package_weight_gross && $cat->package_unit) {
+            // HANYA jika berat bersih belum diisi manual oleh user
+            if (
+                (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+                $cat->package_weight_gross &&
+                $cat->package_unit
+            ) {
                 $cat->calculateNetWeight();
             }
 

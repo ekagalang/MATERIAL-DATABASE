@@ -571,4 +571,24 @@ function initCementForm(root) {
     }
     
     calculateVolume();
+
+    // Convert comma decimals to dot decimals before form submission
+    form.addEventListener('submit', function(e) {
+        // Convert package_weight_gross
+        if (grossInput && grossInput.value) {
+            const grossValue = grossInput.value.replace(',', '.');
+            grossInput.value = grossValue;
+        }
+
+        // Convert dimension fields
+        if (dimensionLength && dimensionLength.value) {
+            dimensionLength.value = dimensionLength.value.replace(',', '.');
+        }
+        if (dimensionWidth && dimensionWidth.value) {
+            dimensionWidth.value = dimensionWidth.value.replace(',', '.');
+        }
+        if (dimensionHeight && dimensionHeight.value) {
+            dimensionHeight.value = dimensionHeight.value.replace(',', '.');
+        }
+    });
 }

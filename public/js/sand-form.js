@@ -647,6 +647,26 @@ function initSandForm(root) {
                 console.log('[SandForm] Synced package_volume:', packageVolume.value);
             }
 
+            // Convert comma decimals to dot decimals for weight and dimension fields
+            const grossInput = scope.querySelector('#package_weight_gross') || document.getElementById('package_weight_gross');
+            if (grossInput && grossInput.value) {
+                grossInput.value = grossInput.value.replace(',', '.');
+                console.log('[SandForm] Converted package_weight_gross:', grossInput.value);
+            }
+
+            if (dimLength && dimLength.value) {
+                dimLength.value = dimLength.value.replace(',', '.');
+                console.log('[SandForm] Converted dimension_length:', dimLength.value);
+            }
+            if (dimWidth && dimWidth.value) {
+                dimWidth.value = dimWidth.value.replace(',', '.');
+                console.log('[SandForm] Converted dimension_width:', dimWidth.value);
+            }
+            if (dimHeight && dimHeight.value) {
+                dimHeight.value = dimHeight.value.replace(',', '.');
+                console.log('[SandForm] Converted dimension_height:', dimHeight.value);
+            }
+
             // Log all hidden field values
             console.log('[SandForm] Final form values:');
             console.log('  - package_price:', packagePrice?.value);

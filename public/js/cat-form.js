@@ -637,4 +637,26 @@ function initCatForm() {
     updateNetCalc();
     recalculatePrices();
     syncPriceUnit();
+
+    // Convert comma decimals to dot decimals before form submission
+    form.addEventListener('submit', function(e) {
+        // Convert package_weight_gross
+        if (grossInput && grossInput.value) {
+            const grossValue = grossInput.value.replace(',', '.');
+            grossInput.value = grossValue;
+        }
+
+        // Convert package_weight_net
+        if (netInput && netInput.value) {
+            const netValue = netInput.value.replace(',', '.');
+            netInput.value = netValue;
+        }
+
+        // Convert volume
+        const volumeInput = document.getElementById('volume');
+        if (volumeInput && volumeInput.value) {
+            const volumeValue = volumeInput.value.replace(',', '.');
+            volumeInput.value = volumeValue;
+        }
+    });
 }

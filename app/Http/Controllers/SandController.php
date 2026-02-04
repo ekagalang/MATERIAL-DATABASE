@@ -236,7 +236,12 @@ class SandController extends Controller
             $sand->update($data);
 
             // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            if ($sand->package_weight_gross && $sand->package_unit) {
+            // HANYA jika berat bersih belum diisi manual oleh user
+            if (
+                (!$sand->package_weight_net || $sand->package_weight_net <= 0) &&
+                $sand->package_weight_gross &&
+                $sand->package_unit
+            ) {
                 $sand->calculateNetWeight();
             }
 

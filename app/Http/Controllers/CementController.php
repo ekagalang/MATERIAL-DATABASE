@@ -254,7 +254,12 @@ class CementController extends Controller
             $cement->update($data);
 
             // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            if ($cement->package_weight_gross && $cement->package_unit) {
+            // HANYA jika berat bersih belum diisi manual oleh user
+            if (
+                (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
+                $cement->package_weight_gross &&
+                $cement->package_unit
+            ) {
                 $cement->calculateNetWeight();
             }
 
