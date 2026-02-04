@@ -100,6 +100,13 @@ class CatController extends Controller
         try {
             $data = $request->all();
 
+            // Debug logging
+            \Log::info('CatController@store - Request data:', [
+                'package_weight_gross' => $request->input('package_weight_gross'),
+                'package_weight_net' => $request->input('package_weight_net'),
+                'package_unit' => $request->input('package_unit'),
+            ]);
+
             // Upload foto
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
@@ -218,6 +225,14 @@ class CatController extends Controller
         DB::beginTransaction();
         try {
             $data = $request->all();
+
+            // Debug logging
+            \Log::info('CatController@update - Request data:', [
+                'id' => $cat->id,
+                'package_weight_gross' => $request->input('package_weight_gross'),
+                'package_weight_net' => $request->input('package_weight_net'),
+                'package_unit' => $request->input('package_unit'),
+            ]);
 
             // Auto-generate cat_name jika kosong
             if (empty($data['cat_name'])) {
