@@ -573,22 +573,41 @@ function initCementForm(root) {
     calculateVolume();
 
     // Convert comma decimals to dot decimals before form submission
-    form.addEventListener('submit', function(e) {
-        // Convert package_weight_gross
-        if (grossInput && grossInput.value) {
-            const grossValue = grossInput.value.replace(',', '.');
-            grossInput.value = grossValue;
-        }
+    if (form && !form.__cementSubmitHandlerAttached) {
+        form.__cementSubmitHandlerAttached = true;
+        form.addEventListener('submit', function(e) {
+            try {
+                console.log('[CementForm] Form submitting, converting decimals...');
 
-        // Convert dimension fields
-        if (dimensionLength && dimensionLength.value) {
-            dimensionLength.value = dimensionLength.value.replace(',', '.');
-        }
-        if (dimensionWidth && dimensionWidth.value) {
-            dimensionWidth.value = dimensionWidth.value.replace(',', '.');
-        }
-        if (dimensionHeight && dimensionHeight.value) {
-            dimensionHeight.value = dimensionHeight.value.replace(',', '.');
-        }
-    });
+                // Convert package_weight_gross
+                if (grossInput && grossInput.value) {
+                    const original = grossInput.value;
+                    grossInput.value = grossInput.value.replace(/,/g, '.');
+                    console.log('[CementForm] Converted package_weight_gross:', original, '→', grossInput.value);
+                }
+
+                // Convert dimension fields
+                if (dimensionLength && dimensionLength.value) {
+                    const original = dimensionLength.value;
+                    dimensionLength.value = dimensionLength.value.replace(/,/g, '.');
+                    console.log('[CementForm] Converted dimension_length:', original, '→', dimensionLength.value);
+                }
+                if (dimensionWidth && dimensionWidth.value) {
+                    const original = dimensionWidth.value;
+                    dimensionWidth.value = dimensionWidth.value.replace(/,/g, '.');
+                    console.log('[CementForm] Converted dimension_width:', original, '→', dimensionWidth.value);
+                }
+                if (dimensionHeight && dimensionHeight.value) {
+                    const original = dimensionHeight.value;
+                    dimensionHeight.value = dimensionHeight.value.replace(/,/g, '.');
+                    console.log('[CementForm] Converted dimension_height:', original, '→', dimensionHeight.value);
+                }
+
+                console.log('[CementForm] Decimal conversion complete, form will submit');
+            } catch (error) {
+                console.error('[CementForm] Error in submit handler:', error);
+                // Don't prevent submission even if there's an error
+            }
+        });
+    }
 }

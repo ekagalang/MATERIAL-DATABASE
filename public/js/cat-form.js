@@ -639,24 +639,39 @@ function initCatForm() {
     syncPriceUnit();
 
     // Convert comma decimals to dot decimals before form submission
-    form.addEventListener('submit', function(e) {
-        // Convert package_weight_gross
-        if (grossInput && grossInput.value) {
-            const grossValue = grossInput.value.replace(',', '.');
-            grossInput.value = grossValue;
-        }
+    if (form && !form.__catSubmitHandlerAttached) {
+        form.__catSubmitHandlerAttached = true;
+        form.addEventListener('submit', function(e) {
+            try {
+                console.log('[CatForm] Form submitting, converting decimals...');
 
-        // Convert package_weight_net
-        if (netInput && netInput.value) {
-            const netValue = netInput.value.replace(',', '.');
-            netInput.value = netValue;
-        }
+                // Convert package_weight_gross
+                if (grossInput && grossInput.value) {
+                    const original = grossInput.value;
+                    grossInput.value = grossInput.value.replace(/,/g, '.');
+                    console.log('[CatForm] Converted package_weight_gross:', original, '→', grossInput.value);
+                }
 
-        // Convert volume
-        const volumeInput = document.getElementById('volume');
-        if (volumeInput && volumeInput.value) {
-            const volumeValue = volumeInput.value.replace(',', '.');
-            volumeInput.value = volumeValue;
-        }
-    });
+                // Convert package_weight_net
+                if (netInput && netInput.value) {
+                    const original = netInput.value;
+                    netInput.value = netInput.value.replace(/,/g, '.');
+                    console.log('[CatForm] Converted package_weight_net:', original, '→', netInput.value);
+                }
+
+                // Convert volume
+                const volumeInput = document.getElementById('volume');
+                if (volumeInput && volumeInput.value) {
+                    const original = volumeInput.value;
+                    volumeInput.value = volumeInput.value.replace(/,/g, '.');
+                    console.log('[CatForm] Converted volume:', original, '→', volumeInput.value);
+                }
+
+                console.log('[CatForm] Decimal conversion complete, form will submit');
+            } catch (error) {
+                console.error('[CatForm] Error in submit handler:', error);
+                // Don't prevent submission even if there's an error
+            }
+        });
+    }
 }

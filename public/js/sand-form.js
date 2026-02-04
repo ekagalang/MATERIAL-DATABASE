@@ -648,23 +648,32 @@ function initSandForm(root) {
             }
 
             // Convert comma decimals to dot decimals for weight and dimension fields
-            const grossInput = scope.querySelector('#package_weight_gross') || document.getElementById('package_weight_gross');
-            if (grossInput && grossInput.value) {
-                grossInput.value = grossInput.value.replace(',', '.');
-                console.log('[SandForm] Converted package_weight_gross:', grossInput.value);
-            }
+            try {
+                const grossInput = scope.querySelector('#package_weight_gross') || document.getElementById('package_weight_gross');
+                if (grossInput && grossInput.value) {
+                    const original = grossInput.value;
+                    grossInput.value = grossInput.value.replace(/,/g, '.');
+                    console.log('[SandForm] Converted package_weight_gross:', original, '→', grossInput.value);
+                }
 
-            if (dimLength && dimLength.value) {
-                dimLength.value = dimLength.value.replace(',', '.');
-                console.log('[SandForm] Converted dimension_length:', dimLength.value);
-            }
-            if (dimWidth && dimWidth.value) {
-                dimWidth.value = dimWidth.value.replace(',', '.');
-                console.log('[SandForm] Converted dimension_width:', dimWidth.value);
-            }
-            if (dimHeight && dimHeight.value) {
-                dimHeight.value = dimHeight.value.replace(',', '.');
-                console.log('[SandForm] Converted dimension_height:', dimHeight.value);
+                if (dimLength && dimLength.value) {
+                    const original = dimLength.value;
+                    dimLength.value = dimLength.value.replace(/,/g, '.');
+                    console.log('[SandForm] Converted dimension_length:', original, '→', dimLength.value);
+                }
+                if (dimWidth && dimWidth.value) {
+                    const original = dimWidth.value;
+                    dimWidth.value = dimWidth.value.replace(/,/g, '.');
+                    console.log('[SandForm] Converted dimension_width:', original, '→', dimWidth.value);
+                }
+                if (dimHeight && dimHeight.value) {
+                    const original = dimHeight.value;
+                    dimHeight.value = dimHeight.value.replace(/,/g, '.');
+                    console.log('[SandForm] Converted dimension_height:', original, '→', dimHeight.value);
+                }
+            } catch (error) {
+                console.error('[SandForm] Error converting decimals:', error);
+                // Don't prevent submission even if there's an error
             }
 
             // Log all hidden field values
