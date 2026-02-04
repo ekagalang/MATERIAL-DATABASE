@@ -18,6 +18,13 @@ function initCatForm() {
         return plain.replace('.', ',');
     }
 
+    // Parse decimal value handling both dot and comma as decimal separator
+    function parseDecimal(value) {
+        if (typeof value === 'number') return isFinite(value) ? value : 0;
+        if (typeof value !== 'string' || value.trim() === '') return 0;
+        return parseFloat(value.replace(',', '.')) || 0;
+    }
+
     // Auto-suggest dengan cascading logic
     const autosuggestInputs = document.querySelectorAll('.autocomplete-input');
 
@@ -357,14 +364,14 @@ function initCatForm() {
     function updateNetCalc() {
         if (!grossInput || !unitSelect || !netInput) return 0;
 
-        const gross = parseFloat(grossInput.value) || 0;
+        const gross = parseDecimal(grossInput.value);
         const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
         const netCalc = Math.max(gross - tare, 0);
         const normalizedNetCalc = normalizeSmartDecimal(netCalc);
 
         // Cek apakah user sedang mengetik di input berat bersih
         const isUserTyping = document.activeElement === netInput;
-        const netManual = parseFloat(netInput.value) || 0;
+        const netManual = parseDecimal(netInput.value);
 
         // Update label berdasarkan kondisi
         if (netWeightLabel) {
@@ -408,8 +415,8 @@ function initCatForm() {
     }
 
     function getCurrentWeight() {
-        const gross = parseFloat(grossInput?.value) || 0;
-        const netManual = parseFloat(netInput?.value) || 0;
+        const gross = parseDecimal(grossInput?.value);
+        const netManual = parseDecimal(netInput?.value);
         
         // Validasi: Berat bersih tidak boleh melebihi berat kotor
         if (netManual > 0 && gross > 0 && netManual > gross) {

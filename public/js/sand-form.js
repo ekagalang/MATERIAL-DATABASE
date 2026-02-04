@@ -21,6 +21,13 @@ function initSandForm(root) {
         return plain.replace('.', ',');
     }
 
+    // Parse decimal value handling both dot and comma as decimal separator
+    function parseDecimal(value) {
+        if (typeof value === 'number') return isFinite(value) ? value : 0;
+        if (typeof value !== 'string' || value.trim() === '') return 0;
+        return parseFloat(value.replace(',', '.')) || 0;
+    }
+
     // Auto-suggest with cascading logic
     const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {

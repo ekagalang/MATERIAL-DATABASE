@@ -72,6 +72,9 @@ class SandController extends Controller
 
     public function store(Request $request)
     {
+        // Normalize comma decimal separator (Indonesian format) to dot
+        $this->normalizeDecimalFields($request);
+
         $request->validate([
             'type' => 'nullable|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -183,6 +186,9 @@ class SandController extends Controller
 
     public function update(Request $request, Sand $sand)
     {
+        // Normalize comma decimal separator (Indonesian format) to dot
+        $this->normalizeDecimalFields($request);
+
         $request->validate([
             'type' => 'nullable|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
@@ -310,6 +316,26 @@ class SandController extends Controller
             DB::rollBack();
             \Log::error('Failed to delete sand: ' . $e->getMessage());
             return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Normalize comma decimal separator to dot for numeric fields.
+     */
+    private function normalizeDecimalFields(Request $request): void
+    {
+        $fields = ['package_weight_gross', 'package_weight_net', 'volume', 'purchase_price', 'comparison_price_per_kg'];
+        $normalized = [];
+
+        foreach ($fields as $field) {
+            $value = $request->input($field);
+            if (is_string($value) && $value !== '') {
+                $normalized[$field] = str_replace(',', '.', $value);
+            }
+        }
+
+        if ($normalized) {
+            $request->merge($normalized);
         }
     }
 
