@@ -232,24 +232,12 @@ class StoreLocationController extends Controller
         $sortBy = request('sort_by');
         $sortDirection = request('sort_direction', 'asc');
 
-        $sortCollection = function($collection) use ($sortBy, $sortDirection) {
-            if (!$sortBy) {
-                return $collection->sortBy(function ($item) {
-                    return $item->type ?? $item->nat_name ?? null;
-                }, SORT_NATURAL|SORT_FLAG_CASE);
-            }
-            return $collection->sortBy(function($item) use ($sortBy) {
-                $column = $sortBy === 'type' ? ((isset($item->type) && $item->type !== null) ? 'type' : 'nat_name') : $sortBy;
-                return $item->{$column} ?? null;
-            }, SORT_REGULAR, $sortDirection === 'desc');
-        };
-
-        $bricks = $sortCollection($bricks);
-        $cements = $sortCollection($cements);
-        $sands = $sortCollection($sands);
-        $cats = $sortCollection($cats);
-        $ceramics = $sortCollection($ceramics);
-        $nats = $sortCollection($nats);
+        $bricks = $this->sortMaterialsCollection($bricks, 'brick', $sortBy, $sortDirection);
+        $cements = $this->sortMaterialsCollection($cements, 'cement', $sortBy, $sortDirection);
+        $sands = $this->sortMaterialsCollection($sands, 'sand', $sortBy, $sortDirection);
+        $cats = $this->sortMaterialsCollection($cats, 'cat', $sortBy, $sortDirection);
+        $ceramics = $this->sortMaterialsCollection($ceramics, 'ceramic', $sortBy, $sortDirection);
+        $nats = $this->sortMaterialsCollection($nats, 'nat', $sortBy, $sortDirection);
 
         // Prepare data structure for the view (similar to MaterialController@index)
         // IMPORTANT: Always include all material types even if count is 0
@@ -437,18 +425,7 @@ class StoreLocationController extends Controller
         // Sorting
         $sortBy = $request->get('sort_by');
         $sortDirection = $request->get('sort_direction', 'asc');
-
-        if (!$sortBy) {
-            $materialsCollection = $materialsCollection->sortBy(
-                fn($item) => $item->type ?? $item->nat_name ?? null,
-                SORT_NATURAL|SORT_FLAG_CASE,
-            );
-        } else {
-            $materialsCollection = $materialsCollection->sortBy(function($item) use ($sortBy) {
-                $column = ($item->nat_name ?? null) !== null && $sortBy === 'type' ? 'nat_name' : $sortBy;
-                return $item->{$column} ?? null;
-            }, SORT_REGULAR, $sortDirection === 'desc');
-        }
+        $materialsCollection = $this->sortMaterialsCollection($materialsCollection, $type, $sortBy, $sortDirection);
 
         // Calculate Grand Total (Count of all materials in this location)
         // This is needed for the partial view footer usually, or just consistency
@@ -471,6 +448,190 @@ class StoreLocationController extends Controller
     /**
      * Helper to get active letters for grouping
      */
+    private function sortMaterialsCollection($collection, string $materialType, ?string $sortBy, string $sortDirection)
+    {
+        $priorityColumns = $this->getMaterialSortPriorityColumns($materialType);
+        if (empty($priorityColumns)) {
+            return $collection->values();
+        }
+
+        $normalizedDirection = strtolower((string) $sortDirection) === 'desc' ? 'desc' : 'asc';
+        $primaryColumns = [];
+
+        if ($sortBy && in_array($sortBy, $priorityColumns, true)) {
+            if ($materialType === 'ceramic' && $sortBy === 'dimension_length') {
+                $primaryColumns = ['dimension_length', 'dimension_width', 'dimension_thickness'];
+            } elseif (in_array($materialType, ['brick', 'sand'], true) && $sortBy === 'dimension_length') {
+                $primaryColumns = ['dimension_length', 'dimension_width', 'dimension_height'];
+            } else {
+                $primaryColumns = [$sortBy];
+            }
+        }
+
+        $sortPlan = [];
+        if (empty($primaryColumns)) {
+            foreach ($priorityColumns as $column) {
+                $sortPlan[] = ['column' => $column, 'direction' => 'asc'];
+            }
+        } else {
+            foreach ($primaryColumns as $column) {
+                $sortPlan[] = ['column' => $column, 'direction' => $normalizedDirection];
+            }
+            foreach ($priorityColumns as $column) {
+                if (!in_array($column, $primaryColumns, true)) {
+                    $sortPlan[] = ['column' => $column, 'direction' => 'asc'];
+                }
+            }
+        }
+
+        return $collection
+            ->sort(function ($left, $right) use ($sortPlan, $materialType) {
+                foreach ($sortPlan as $rule) {
+                    $leftValue = $this->readMaterialSortValue($left, $rule['column'], $materialType);
+                    $rightValue = $this->readMaterialSortValue($right, $rule['column'], $materialType);
+                    $comparison = $this->compareMaterialSortValues($leftValue, $rightValue);
+
+                    if ($comparison !== 0) {
+                        return $rule['direction'] === 'desc' ? -$comparison : $comparison;
+                    }
+                }
+
+                return (($left->id ?? 0) <=> ($right->id ?? 0));
+            })
+            ->values();
+    }
+
+    private function getMaterialSortPriorityColumns(string $materialType): array
+    {
+        return match ($materialType) {
+            'brick' => [
+                'type',
+                'brand',
+                'form',
+                'dimension_length',
+                'dimension_width',
+                'dimension_height',
+                'package_volume',
+                'store',
+                'address',
+                'price_per_piece',
+                'comparison_price_per_m3',
+            ],
+            'sand' => [
+                'type',
+                'brand',
+                'package_unit',
+                'dimension_length',
+                'dimension_width',
+                'dimension_height',
+                'package_volume',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_m3',
+            ],
+            'cat' => [
+                'type',
+                'brand',
+                'sub_brand',
+                'color_code',
+                'color_name',
+                'package_unit',
+                'package_weight_gross',
+                'volume',
+                'package_weight_net',
+                'store',
+                'address',
+                'purchase_price',
+                'comparison_price_per_kg',
+            ],
+            'cement' => [
+                'type',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'package_unit',
+                'package_weight_net',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_kg',
+            ],
+            'ceramic' => [
+                'type',
+                'brand',
+                'dimension_length',
+                'dimension_width',
+                'dimension_thickness',
+                'sub_brand',
+                'surface',
+                'code',
+                'color',
+                'form',
+                'packaging',
+                'pieces_per_package',
+                'coverage_per_package',
+                'store',
+                'address',
+                'price_per_package',
+                'comparison_price_per_m2',
+            ],
+            'nat' => [
+                'type',
+                'nat_name',
+                'brand',
+                'sub_brand',
+                'code',
+                'color',
+                'package_unit',
+                'package_weight_net',
+                'store',
+                'address',
+                'package_price',
+                'comparison_price_per_kg',
+            ],
+            default => [],
+        };
+    }
+
+    private function readMaterialSortValue($item, string $column, string $materialType)
+    {
+        $resolvedColumn = $column;
+        if ($materialType === 'nat' && $column === 'type') {
+            $resolvedColumn = 'nat_name';
+        }
+
+        $value = $item->{$resolvedColumn} ?? null;
+        if (is_string($value)) {
+            return trim($value);
+        }
+
+        return $value;
+    }
+
+    private function compareMaterialSortValues($left, $right): int
+    {
+        $leftIsEmpty = $left === null || $left === '';
+        $rightIsEmpty = $right === null || $right === '';
+
+        if ($leftIsEmpty && $rightIsEmpty) {
+            return 0;
+        }
+        if ($leftIsEmpty) {
+            return 1;
+        }
+        if ($rightIsEmpty) {
+            return -1;
+        }
+
+        if (is_numeric($left) && is_numeric($right)) {
+            return (float) $left <=> (float) $right;
+        }
+
+        return strnatcasecmp((string) $left, (string) $right);
+    }
+
     private function getActiveLetters($collection)
     {
         return $collection->map(function ($item) {

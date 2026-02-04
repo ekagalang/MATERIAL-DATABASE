@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Brick;
+use App\Services\Material\MaterialDuplicateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class BrickController extends Controller
 {
@@ -84,10 +86,17 @@ class BrickController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+        $data['material_name'] = 'Bata';
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('brick', $data);
+        if ($duplicate) {
+            $message = 'Data Bata sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
-            $data['material_name'] = 'Bata';
 
             // Upload foto
             if ($request->hasFile('photo')) {
@@ -128,18 +137,33 @@ class BrickController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('bricks.index'));
+            $newMaterial = ['type' => 'brick', 'id' => $brick->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data Bata berhasil ditambahkan!',
+                    'redirect_url' => $redirectUrl,
+                    'new_material' => $newMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
                     ->with('success', 'Data Bata berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
+                    ->with('new_material', $newMaterial);
             }
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
                     ->with('success', 'Data Bata berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'brick', 'id' => $brick->id]);
+                    ->with('new_material', $newMaterial);
             }
 
             return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil ditambahkan!');
@@ -181,10 +205,17 @@ class BrickController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+        $data['material_name'] = 'Bata';
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('brick', $data, $brick->id);
+        if ($duplicate) {
+            $message = 'Data Bata sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
-            $data['material_name'] = 'Bata';
 
             // Upload foto baru
             if ($request->hasFile('photo')) {
@@ -233,16 +264,38 @@ class BrickController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('bricks.index'));
+            $updatedMaterial = ['type' => 'brick', 'id' => $brick->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data Bata berhasil diupdate!',
+                    'redirect_url' => $redirectUrl,
+                    'updated_material' => $updatedMaterial,
+                ]);
+            }
+
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
-                    ->with('success', 'Data Bata berhasil diupdate!');
+                    ->with('success', 'Data Bata berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
             if ($request->input('_redirect_to_materials')) {
-                return redirect()->route('materials.index')->with('success', 'Data Bata berhasil diupdate!');
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Data Bata berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
 
-            return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil diupdate!');
+            return redirect()
+                ->route('bricks.index')
+                ->with('success', 'Data Bata berhasil diupdate!')
+                ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update brick: ' . $e->getMessage());

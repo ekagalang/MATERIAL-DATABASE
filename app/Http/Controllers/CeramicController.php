@@ -5,9 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Ceramic;
 use App\Models\Unit;
 use App\Services\Material\CeramicService;
+use App\Services\Material\MaterialDuplicateService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CeramicController extends Controller
 {
@@ -103,6 +105,12 @@ class CeramicController extends Controller
         $storeLocationId = $data['store_location_id'] ?? null;
         unset($data['store_location_id']);
 
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('ceramic', $data);
+        if ($duplicate) {
+            $message = 'Data Keramik sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
             $ceramic = $this->service->create($data, $request->file('photo'));
@@ -117,12 +125,27 @@ class CeramicController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : route('ceramics.index');
+            $newMaterial = ['type' => 'ceramic', 'id' => $ceramic->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data berhasil disimpan',
+                    'redirect_url' => $redirectUrl,
+                    'new_material' => $newMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
                     ->with('success', 'Data berhasil disimpan')
-                    ->with('new_material', ['type' => 'ceramic', 'id' => $ceramic->id]);
+                    ->with('new_material', $newMaterial);
             }
 
             return redirect()->route('ceramics.index')->with('success', 'Data berhasil disimpan');
@@ -177,6 +200,12 @@ class CeramicController extends Controller
         $storeLocationId = $data['store_location_id'] ?? null;
         unset($data['store_location_id']);
 
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('ceramic', $data, $ceramic->id);
+        if ($duplicate) {
+            $message = 'Data Keramik sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
             $this->service->update($ceramic->id, $data, $request->file('photo'));
@@ -197,12 +226,33 @@ class CeramicController extends Controller
 
             DB::commit();
 
-            // Redirect back to the originating page if requested
-            if ($request->filled('_redirect_url')) {
-                return redirect()->to($request->input('_redirect_url'))->with('success', 'Data berhasil diperbarui');
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : route('ceramics.index');
+            $updatedMaterial = ['type' => 'ceramic', 'id' => $ceramic->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data berhasil diperbarui',
+                    'redirect_url' => $redirectUrl,
+                    'updated_material' => $updatedMaterial,
+                ]);
             }
 
-            return redirect()->route('ceramics.index')->with('success', 'Data berhasil diperbarui');
+            // Redirect back to the originating page if requested
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Data berhasil diperbarui')
+                    ->with('updated_material', $updatedMaterial);
+            }
+
+            return redirect()
+                ->route('ceramics.index')
+                ->with('success', 'Data berhasil diperbarui')
+                ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update ceramic: ' . $e->getMessage());

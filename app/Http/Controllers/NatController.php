@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Nat;
+use App\Services\Material\MaterialDuplicateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class NatController extends Controller
 {
@@ -90,9 +92,16 @@ class NatController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('nat', $data);
+        if ($duplicate) {
+            $message = 'Data Nat sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
@@ -136,17 +145,32 @@ class NatController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('nats.index'));
+            $newMaterial = ['type' => 'nat', 'id' => $nat->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nat berhasil ditambahkan!',
+                    'redirect_url' => $redirectUrl,
+                    'new_material' => $newMaterial,
+                ]);
+            }
+
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
                     ->with('success', 'Nat berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'nat', 'id' => $nat->id]);
+                    ->with('new_material', $newMaterial);
             }
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
                     ->with('success', 'Nat berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'nat', 'id' => $nat->id]);
+                    ->with('new_material', $newMaterial);
             }
 
             return redirect()->route('nats.index')->with('success', 'Nat berhasil ditambahkan!');
@@ -194,9 +218,16 @@ class NatController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('nat', $data, $nat->id);
+        if ($duplicate) {
+            $message = 'Data Nat sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             if (empty($data['nat_name'])) {
                 $parts = array_filter([
@@ -244,14 +275,38 @@ class NatController extends Controller
 
             DB::commit();
 
-            if ($request->filled('_redirect_url')) {
-                return redirect()->to($request->input('_redirect_url'))->with('success', 'Nat berhasil diupdate!');
-            }
-            if ($request->input('_redirect_to_materials')) {
-                return redirect()->route('materials.index')->with('success', 'Nat berhasil diupdate!');
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('nats.index'));
+            $updatedMaterial = ['type' => 'nat', 'id' => $nat->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nat berhasil diupdate!',
+                    'redirect_url' => $redirectUrl,
+                    'updated_material' => $updatedMaterial,
+                ]);
             }
 
-            return redirect()->route('nats.index')->with('success', 'Nat berhasil diupdate!');
+            if ($request->filled('_redirect_url')) {
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Nat berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
+            }
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Nat berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
+            }
+
+            return redirect()
+                ->route('nats.index')
+                ->with('success', 'Nat berhasil diupdate!')
+                ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()

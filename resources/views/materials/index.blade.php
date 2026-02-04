@@ -464,7 +464,7 @@ html.materials-booting .page-content {
     z-index: 4;
 }
 .material-row-new td {
-    background-color: rgba(37, 99, 235, 0.08);
+    background-color: rgba(37, 99, 235, 0.18) !important;
     transition: background-color 0.2s ease;
 }
 
@@ -1229,7 +1229,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchQueryRaw = typeof searchQuery === 'string' ? searchQuery.trim() : '';
     const normalizedSearchQuery = searchQueryRaw.toLowerCase();
     const hasSearchQuery = normalizedSearchQuery.length > 0;
-    const newMaterialData = @json(session('new_material'));
+    const sessionNewMaterialData = @json(session('new_material'));
+    const sessionUpdatedMaterialData = @json(session('updated_material'));
+    const focusTypeFromUrl = new URLSearchParams(window.location.search).get('_focus_type');
+    const focusIdFromUrl = new URLSearchParams(window.location.search).get('_focus_id');
+    const queryFocusMaterialData = (focusTypeFromUrl && focusIdFromUrl)
+        ? { type: String(focusTypeFromUrl), id: String(focusIdFromUrl) }
+        : null;
+    let pendingMaterialData = null;
+    try {
+        const pendingRaw = sessionStorage.getItem('pendingMaterialFocus');
+        pendingMaterialData = pendingRaw ? JSON.parse(pendingRaw) : null;
+    } catch (e) {
+        pendingMaterialData = null;
+    }
+    const newMaterialData = queryFocusMaterialData || sessionNewMaterialData || sessionUpdatedMaterialData || pendingMaterialData;
     let materialOrder = savedFilter.order || [];
     const navBlinkMaterial = localStorage.getItem('materialNavSearchBlink');
     const navSearchType = localStorage.getItem('materialNavSearchType');
@@ -1420,6 +1434,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Note: We might need to extract this logic to be reusable
                         if (typeof setupSearchEnhancements === 'function' && typeof hasSearchQuery !== 'undefined' && hasSearchQuery) {
                             setupSearchEnhancements();
+                        }
+
+                        if (
+                            newMaterialData &&
+                            newMaterialData.type &&
+                            materialType === newMaterialData.type &&
+                            !newMaterialHandled
+                        ) {
+                            window.setTimeout(focusNewMaterialRow, 80);
                         }
                     })
                     .catch(err => {
@@ -1692,7 +1715,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page state: restore from localStorage or show empty state
     console.log('[Restore] Calling updateTabVisibility');
-    const savedTab = window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+    const tabFromQuery = new URLSearchParams(window.location.search).get('tab');
+    const savedTab = tabFromQuery || window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
     updateTabVisibility(savedTab);
     if (window.__materialSkipPage) {
         const resetSkipPageScroll = () => {
@@ -2248,6 +2272,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     let newMaterialHandled = false;
+    let newMaterialFocusAttempts = 0;
+
+    function clearPendingMaterialFocusStorage() {
+        try {
+            sessionStorage.removeItem('pendingMaterialFocus');
+        } catch (e) {
+            // Ignore storage errors
+        }
+    }
+
+    function clearMaterialFocusQueryParams() {
+        try {
+            const url = new URL(window.location.href);
+            if (!url.searchParams.has('_focus_type') && !url.searchParams.has('_focus_id')) {
+                return;
+            }
+            url.searchParams.delete('_focus_type');
+            url.searchParams.delete('_focus_id');
+            history.replaceState(null, null, url.toString());
+        } catch (e) {
+            // Ignore URL parsing errors
+        }
+    }
     let newMaterialRow = null;
 
     function createMaterialRowSweep(row) {
@@ -2285,8 +2332,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function bindNewMaterialClear(row) {
         const clear = () => clearNewMaterialHighlight();
         document.addEventListener('pointerdown', clear, { once: true });
+        document.addEventListener('touchstart', clear, { once: true, passive: true });
         document.addEventListener('keydown', clear, { once: true });
-        window.addEventListener('scroll', clear, { once: true, passive: true });
+        document.addEventListener('wheel', clear, { once: true, passive: true });
         const container = row.closest('.table-container');
         if (container) {
             container.addEventListener('scroll', clear, { once: true, passive: true });
@@ -2296,24 +2344,47 @@ document.addEventListener('DOMContentLoaded', function() {
     function focusNewMaterialRow() {
         if (newMaterialHandled) return;
         if (!newMaterialData || !newMaterialData.type || !newMaterialData.id) return;
-        newMaterialHandled = true;
 
         const panel = document.querySelector(`.material-tab-panel[data-tab="${newMaterialData.type}"]`);
         if (panel) {
             setActiveTab(newMaterialData.type);
         }
 
-        const row = panel ? panel.querySelector(`tbody tr[data-material-id="${newMaterialData.id}"]`) : null;
-        if (!row) return;
+        const activePanel = panel || document.querySelector(`.material-tab-panel[data-tab="${newMaterialData.type}"]`);
+        let row = null;
+        if (activePanel) {
+            const directMatch = activePanel.querySelector(`tbody tr[data-material-id="${newMaterialData.id}"]`);
+            if (directMatch) {
+                row = directMatch;
+            } else {
+                const allRows = Array.from(activePanel.querySelectorAll('tbody tr[data-material-id]'));
+                row = allRows.find(item => String(item.dataset.materialId || '') === String(newMaterialData.id)) || null;
+            }
+        }
+        if (!row) {
+            newMaterialFocusAttempts += 1;
+            if (newMaterialFocusAttempts < 40) {
+                window.setTimeout(focusNewMaterialRow, 220);
+                return;
+            }
+            newMaterialHandled = true;
+            return;
+        }
+
+        newMaterialHandled = true;
+        clearPendingMaterialFocusStorage();
+        clearMaterialFocusQueryParams();
 
         newMaterialRow = row;
         row.classList.add('material-row-new');
-        scrollRowIntoContainer(row);
+        scrollRowIntoContainer(row, 'auto');
         window.setTimeout(() => {
             if (!newMaterialRow) return;
             newMaterialRow.__materialRowSweep = createMaterialRowSweep(newMaterialRow);
         }, 260);
-        bindNewMaterialClear(row);
+        window.setTimeout(() => {
+            bindNewMaterialClear(row);
+        }, 400);
     }
 
     window.deleteMaterial = async function(type, id) {
@@ -2673,7 +2744,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function scrollRowIntoContainer(row) {
+    function scrollRowIntoContainer(row, behavior = 'smooth') {
         if (!row) return;
         const container = row.closest('.table-container');
         if (!container) return;
@@ -2687,7 +2758,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         container.scrollTo({
             top: scrollTarget,
-            behavior: 'smooth'
+            behavior: behavior
         });
     }
 

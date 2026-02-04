@@ -679,26 +679,6 @@ class MaterialController extends Controller
             $sortBy = null;
         }
 
-        if ($sortBy) {
-            // Mapping for special columns if needed
-            $sortColumn = $sortBy;
-            if ($type == 'ceramic' && $sortBy == 'dimension_length') {
-                $query
-                    ->orderBy('dimension_length', $sortDirection)
-                    ->orderBy('dimension_width', $sortDirection)
-                    ->orderBy('dimension_thickness', $sortDirection);
-            } elseif (in_array($type, ['brick', 'sand']) && $sortBy == 'dimension_length') {
-                $query
-                    ->orderBy('dimension_length', $sortDirection)
-                    ->orderBy('dimension_width', $sortDirection)
-                    ->orderBy('dimension_height', $sortDirection);
-            } else {
-                $query->orderBy($sortColumn, $sortDirection);
-            }
-
-            return $query->limit(1000)->get();
-        }
-
         $defaultOrderBy = match ($type) {
             'brick' => [
                 'type',
@@ -799,6 +779,27 @@ class MaterialController extends Controller
                 'id',
             ],
         };
+
+        if ($sortBy) {
+            $primarySortColumns = match (true) {
+                $type === 'ceramic' && $sortBy === 'dimension_length' => ['dimension_length', 'dimension_width', 'dimension_thickness'],
+                in_array($type, ['brick', 'sand'], true) && $sortBy === 'dimension_length' => ['dimension_length', 'dimension_width', 'dimension_height'],
+                default => [$sortBy],
+            };
+
+            foreach ($primarySortColumns as $column) {
+                $query->orderBy($column, $sortDirection);
+            }
+
+            foreach ($defaultOrderBy as $column) {
+                if (in_array($column, $primarySortColumns, true)) {
+                    continue;
+                }
+                $query->orderBy($column, 'asc');
+            }
+
+            return $query->limit(1000)->get();
+        }
 
         foreach ($defaultOrderBy as $column) {
             $query->orderBy($column, 'asc');

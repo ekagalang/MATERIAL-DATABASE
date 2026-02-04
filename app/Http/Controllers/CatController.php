@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Cat;
 use App\Models\Unit;
+use App\Services\Material\MaterialDuplicateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class CatController extends Controller
 {
@@ -99,9 +101,16 @@ class CatController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cat', $data);
+        if ($duplicate) {
+            $message = 'Data Cat sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             // Debug logging
             \Log::info('CatController@store - Request data:', [
@@ -164,19 +173,34 @@ class CatController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('cats.index'));
+            $newMaterial = ['type' => 'cat', 'id' => $cat->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cat berhasil ditambahkan!',
+                    'redirect_url' => $redirectUrl,
+                    'new_material' => $newMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
                     ->with('success', 'Cat berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
+                    ->with('new_material', $newMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
                     ->with('success', 'Cat berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'cat', 'id' => $cat->id]);
+                    ->with('new_material', $newMaterial);
             }
 
             return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');
@@ -228,9 +252,16 @@ class CatController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cat', $data, $cat->id);
+        if ($duplicate) {
+            $message = 'Data Cat sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             // Debug logging
             \Log::info('CatController@update - Request data:', [
@@ -305,16 +336,40 @@ class CatController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('cats.index'));
+            $updatedMaterial = ['type' => 'cat', 'id' => $cat->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Cat berhasil diupdate!',
+                    'redirect_url' => $redirectUrl,
+                    'updated_material' => $updatedMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
-                return redirect()->to($request->input('_redirect_url'))->with('success', 'Cat berhasil diupdate!');
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Cat berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
-                return redirect()->route('materials.index')->with('success', 'Cat berhasil diupdate!');
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Cat berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
 
-            return redirect()->route('cats.index')->with('success', 'cat berhasil diupdate!');
+            return redirect()
+                ->route('cats.index')
+                ->with('success', 'cat berhasil diupdate!')
+                ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update cat: ' . $e->getMessage());

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cement;
+use App\Services\Material\MaterialDuplicateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class CementController extends Controller
 {
@@ -97,9 +99,16 @@ class CementController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cement', $data);
+        if ($duplicate) {
+            $message = 'Data Semen sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             // Upload foto
             if ($request->hasFile('photo')) {
@@ -156,19 +165,34 @@ class CementController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('cements.index'));
+            $newMaterial = ['type' => 'cement', 'id' => $cement->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Semen berhasil ditambahkan!',
+                    'redirect_url' => $redirectUrl,
+                    'new_material' => $newMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
                     ->with('success', 'Semen berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
+                    ->with('new_material', $newMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
                     ->with('success', 'Semen berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'cement', 'id' => $cement->id]);
+                    ->with('new_material', $newMaterial);
             }
 
             return redirect()->route('cements.index')->with('success', 'Semen berhasil ditambahkan!');
@@ -218,9 +242,16 @@ class CementController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cement', $data, $cement->id);
+        if ($duplicate) {
+            $message = 'Data Semen sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             // Auto-generate cement_name jika kosong
             if (empty($data['cement_name'])) {
@@ -287,16 +318,40 @@ class CementController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('cements.index'));
+            $updatedMaterial = ['type' => 'cement', 'id' => $cement->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Semen berhasil diupdate!',
+                    'redirect_url' => $redirectUrl,
+                    'updated_material' => $updatedMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
-                return redirect()->to($request->input('_redirect_url'))->with('success', 'Semen berhasil diupdate!');
+                return redirect()
+                    ->to($request->input('_redirect_url'))
+                    ->with('success', 'Semen berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
-                return redirect()->route('materials.index')->with('success', 'Semen berhasil diupdate!');
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Semen berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
 
-            return redirect()->route('cements.index')->with('success', 'Semen berhasil diupdate!');
+            return redirect()
+                ->route('cements.index')
+                ->with('success', 'Semen berhasil diupdate!')
+                ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update cement: ' . $e->getMessage());

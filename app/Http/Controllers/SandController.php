@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sand;
+use App\Services\Material\MaterialDuplicateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class SandController extends Controller
 {
@@ -92,9 +94,16 @@ class SandController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('sand', $data);
+        if ($duplicate) {
+            $message = 'Data Pasir sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             // Upload foto
             if ($request->hasFile('photo')) {
@@ -146,19 +155,34 @@ class SandController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('sands.index'));
+            $newMaterial = ['type' => 'sand', 'id' => $sand->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data Pasir berhasil ditambahkan!',
+                    'redirect_url' => $redirectUrl,
+                    'new_material' => $newMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
                     ->with('success', 'Data Pasir berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
+                    ->with('new_material', $newMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
                     ->with('success', 'Data Pasir berhasil ditambahkan!')
-                    ->with('new_material', ['type' => 'sand', 'id' => $sand->id]);
+                    ->with('new_material', $newMaterial);
             }
 
             return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil ditambahkan!');
@@ -206,9 +230,16 @@ class SandController extends Controller
             'store_location_id' => 'nullable|exists:store_locations,id',
         ]);
 
+        $data = $request->all();
+
+        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('sand', $data, $sand->id);
+        if ($duplicate) {
+            $message = 'Data Pasir sudah ada. Tidak bisa menyimpan data duplikat.';
+            throw ValidationException::withMessages(['duplicate' => $message]);
+        }
+
         DB::beginTransaction();
         try {
-            $data = $request->all();
 
             // Auto-generate sand_name jika kosong
             if (empty($data['sand_name'])) {
@@ -274,18 +305,40 @@ class SandController extends Controller
 
             DB::commit();
 
+            $redirectUrl = $request->filled('_redirect_url')
+                ? $request->input('_redirect_url')
+                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('sands.index'));
+            $updatedMaterial = ['type' => 'sand', 'id' => $sand->id];
+            $isAjaxRequest = $request->expectsJson() || $request->ajax();
+
+            if ($isAjaxRequest) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Data Pasir berhasil diupdate!',
+                    'redirect_url' => $redirectUrl,
+                    'updated_material' => $updatedMaterial,
+                ]);
+            }
+
             // Redirect back to the originating page if requested
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
-                    ->with('success', 'Data Pasir berhasil diupdate!');
+                    ->with('success', 'Data Pasir berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
-                return redirect()->route('materials.index')->with('success', 'Data Pasir berhasil diupdate!');
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Data Pasir berhasil diupdate!')
+                    ->with('updated_material', $updatedMaterial);
             }
 
-            return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil diupdate!');
+            return redirect()
+                ->route('sands.index')
+                ->with('success', 'Data Pasir berhasil diupdate!')
+                ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update sand: ' . $e->getMessage());

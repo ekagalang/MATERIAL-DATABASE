@@ -1084,6 +1084,204 @@
                 }, 150); // Increased timeout slightly for safety
             }
 
+            function ensureModalValidationStyle() {
+                if (document.getElementById('modal-validation-style')) return;
+                const style = document.createElement('style');
+                style.id = 'modal-validation-style';
+                style.textContent = `
+                    .modal-validation-alert {
+                        margin-bottom: 16px;
+                        padding: 12px 14px;
+                        border-radius: 10px;
+                        border: 1px solid #fecaca;
+                        background: #fef2f2;
+                        color: #991b1b;
+                        font-size: 13px;
+                        line-height: 1.5;
+                    }
+                    .modal-input-invalid {
+                        border-color: #ef4444 !important;
+                        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            function renderModalValidationErrors(form, errors) {
+                ensureModalValidationStyle();
+
+                const oldAlert = form.querySelector('.modal-validation-alert');
+                if (oldAlert) oldAlert.remove();
+                form.querySelectorAll('.modal-input-invalid').forEach(el => el.classList.remove('modal-input-invalid'));
+
+                const entries = Object.entries(errors || {});
+                const messages = entries.flatMap(([, value]) => Array.isArray(value) ? value : [value]).filter(Boolean);
+                if (!messages.length) return;
+
+                const alert = document.createElement('div');
+                alert.className = 'modal-validation-alert';
+                alert.innerHTML = `<strong>Perhatian:</strong><br>${messages.map(m => `- ${m}`).join('<br>')}`;
+                form.prepend(alert);
+
+                entries.forEach(([field]) => {
+                    if (field === 'duplicate') return;
+                    const escaped = field.replace(/"/g, '\\"');
+                    const input = form.querySelector(`[name="${escaped}"], [name="${escaped}[]"]`);
+                    if (input) {
+                        input.classList.add('modal-input-invalid');
+                    }
+                });
+
+                if (!form.__modalValidationCleanerBound) {
+                    form.__modalValidationCleanerBound = true;
+                    form.addEventListener('input', function(evt) {
+                        const target = evt.target;
+                        if (target && target.classList && target.classList.contains('modal-input-invalid')) {
+                            target.classList.remove('modal-input-invalid');
+                        }
+                    });
+                }
+            }
+
+            function setModalSubmitLoading(form, loading) {
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (!submitBtn) return;
+
+                if (loading) {
+                    if (!submitBtn.dataset.originalHtml) {
+                        submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+                    }
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
+                    return;
+                }
+
+                submitBtn.disabled = false;
+                if (submitBtn.dataset.originalHtml) {
+                    submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+                    delete submitBtn.dataset.originalHtml;
+                }
+            }
+
+            async function submitModalFormViaAjax(form) {
+                if (form.__modalSubmittingAjax) return;
+                form.__modalSubmittingAjax = true;
+                setModalSubmitLoading(form, true);
+
+                try {
+                    const response = await fetch(form.action, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        },
+                        body: new FormData(form),
+                        credentials: 'same-origin'
+                    });
+
+                    if (response.status === 422) {
+                        const payload = await response.json().catch(() => ({}));
+                        const errors = payload && payload.errors ? payload.errors : {};
+                        renderModalValidationErrors(form, errors);
+
+                        const firstMessage = Object.values(errors).flat()[0];
+                        if (firstMessage && typeof window.showToast === 'function') {
+                            window.showToast(firstMessage, 'error');
+                        }
+                        return;
+                    }
+
+                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                    if (contentType.includes('application/json')) {
+                        const payload = await response.json().catch(() => ({}));
+                        const focusMaterial = payload.new_material || payload.updated_material || null;
+                        let redirectUrl = payload.redirect_url || null;
+                        if (focusMaterial && focusMaterial.type && focusMaterial.id) {
+                            try {
+                                sessionStorage.setItem('pendingMaterialFocus', JSON.stringify(focusMaterial));
+                            } catch (e) {
+                                // Ignore storage errors
+                            }
+
+                            if (redirectUrl) {
+                                try {
+                                    const focusUrl = new URL(redirectUrl, window.location.origin);
+                                    focusUrl.searchParams.set('tab', String(focusMaterial.type));
+                                    focusUrl.searchParams.set('_focus_type', String(focusMaterial.type));
+                                    focusUrl.searchParams.set('_focus_id', String(focusMaterial.id));
+                                    redirectUrl = focusUrl.toString();
+                                } catch (e) {
+                                    // Keep original redirect URL if parsing fails
+                                }
+                            }
+                        }
+
+                        if (redirectUrl) {
+                            window.location.href = redirectUrl;
+                            return;
+                        }
+
+                        if (payload.success) {
+                            window.location.reload();
+                            return;
+                        }
+                    }
+
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                        return;
+                    }
+
+                    if (response.ok) {
+                        window.location.reload();
+                        return;
+                    }
+
+                    throw new Error('Gagal menyimpan data.');
+                } catch (error) {
+                    console.error('[Modal] AJAX submit error:', error);
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Gagal menyimpan data. Silakan coba lagi.', 'error');
+                    }
+                } finally {
+                    setModalSubmitLoading(form, false);
+                    form.__modalSubmittingAjax = false;
+                }
+            }
+
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (!(form instanceof HTMLFormElement)) return;
+                if (!form.closest('.floating-modal.active')) return;
+                if (form.dataset.disableAjaxModalSubmit === '1') return;
+                const htmlMethod = (form.getAttribute('method') || 'POST').toUpperCase();
+                if (htmlMethod === 'GET') return;
+
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                const methodInput = form.querySelector('input[name="_method"]');
+                const method = (methodInput?.value || form.method || 'POST').toUpperCase();
+                const requiresConfirm = method === 'PUT' || method === 'PATCH';
+
+                if (requiresConfirm && typeof window.showConfirm === 'function') {
+                    window.showConfirm({
+                        title: 'Simpan Perubahan?',
+                        message: 'Apakah Anda yakin ingin menyimpan perubahan data ini?',
+                        confirmText: 'Simpan',
+                        cancelText: 'Batal',
+                        type: 'primary'
+                    }).then(confirmed => {
+                        if (confirmed) {
+                            submitModalFormViaAjax(form);
+                        }
+                    });
+                    return;
+                }
+
+                submitModalFormViaAjax(form);
+            }, true);
+
             async function closeGlobalModal() {
                 if (isGlobalFormDirty) {
                     const confirmed = await window.showConfirm({

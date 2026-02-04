@@ -3,7 +3,18 @@
     $showStoreInfo = $showStoreInfo ?? true;
 @endphp
 @if(isset($material['is_loaded']) && !$material['is_loaded'])
-    <div class="material-tab-loading" data-url="{{ route('materials.tab', ['type' => $material['type']]) }}" style="position: relative; overflow: hidden; background: transparent; padding: 0;">
+    @php
+        $lazyTabParams = [
+            'type' => $material['type'],
+            'search' => request('search'),
+            'sort_by' => request('sort_by'),
+            'sort_direction' => request('sort_direction'),
+        ];
+        $lazyTabParams = array_filter($lazyTabParams, function ($value) {
+            return $value !== null && $value !== '';
+        });
+    @endphp
+    <div class="material-tab-loading" data-url="{{ route('materials.tab', $lazyTabParams) }}" style="position: relative; overflow: hidden; background: transparent; padding: 0;">
         {{-- Skeleton Loader CSS --}}
         <style>
             .material-skeleton-table {
@@ -442,6 +453,16 @@
                   if (!function_exists('getMaterialSortUrl')) {
                         function getMaterialSortUrl($column, $currentSortBy, $currentDirection, $isStoreLocation = false, $store = null, $location = null) {
                             $params = array_merge(request()->query(), []);
+                            $tabParam = request('tab');
+                            if (!$tabParam) {
+                                $routeType = request()->route('type');
+                                if (is_string($routeType) && $routeType !== '') {
+                                    $tabParam = $routeType;
+                                }
+                            }
+                            if ($tabParam) {
+                                $params['tab'] = $tabParam;
+                            }
                             unset($params['sort_by'], $params['sort_direction']);
                             if ($currentSortBy === $column) {
                                 if ($currentDirection === 'asc') {

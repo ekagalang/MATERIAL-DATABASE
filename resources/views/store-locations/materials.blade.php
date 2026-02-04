@@ -1565,7 +1565,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page state: restore from localStorage or show empty state
     console.log('[Restore] Calling updateTabVisibility');
-    const savedTab = window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+    const tabFromQuery = new URLSearchParams(window.location.search).get('tab');
+    const savedTab = tabFromQuery || window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
     updateTabVisibility(savedTab);
     document.documentElement.classList.remove('materials-booting');
 
