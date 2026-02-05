@@ -446,7 +446,16 @@
         </div>
     </div>
 @elseif($material['data']->count() > 0)
-    <div class="table-container text-nowrap">
+    <style>
+        .material-table-loaded th {
+            font-weight: 700 !important;
+        }
+
+        .material-table-loaded thead th span {
+            font-weight: 700 !important;
+        }
+    </style>
+    <div class="table-container text-nowrap material-table-loaded">
         <table>
             <thead class="{{ in_array($material['type'], ['brick','sand','ceramic','cement','cat']) ? 'has-dim-sub' : 'single-header' }}">
                 @php
@@ -571,7 +580,7 @@
                                         @if(request('sort_by') == 'type')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -582,7 +591,7 @@
                                         @if(request('sort_by') == 'brand')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -593,7 +602,7 @@
                                         @if(request('sort_by') == 'form')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -604,7 +613,7 @@
                                         @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -615,7 +624,7 @@
                                         @if(request('sort_by') == 'package_volume')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -627,7 +636,7 @@
                                         @if(request('sort_by') == 'store')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -638,7 +647,7 @@
                                         @if(request('sort_by') == 'address')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -650,7 +659,7 @@
                                         @if(request('sort_by') == 'price_per_piece')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -661,7 +670,7 @@
                                         @if(request('sort_by') == 'comparison_price_per_m3')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -685,7 +694,7 @@
                                         @if(request('sort_by') == 'type')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -696,7 +705,7 @@
                                         @if(request('sort_by') == 'brand')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -707,7 +716,7 @@
                                         @if(request('sort_by') == 'package_unit')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -718,7 +727,7 @@
                                         @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_height']))
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -729,7 +738,7 @@
                                         @if(request('sort_by') == 'package_volume')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -741,7 +750,7 @@
                                         @if(request('sort_by') == 'store')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -752,7 +761,7 @@
                                         @if(request('sort_by') == 'address')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -764,7 +773,7 @@
                                         @if(request('sort_by') == 'package_price')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -775,7 +784,7 @@
                                         @if(request('sort_by') == 'comparison_price_per_m3')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -799,7 +808,7 @@
                                         @if(request('sort_by') == 'type')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -810,7 +819,7 @@
                                         @if(request('sort_by') == 'brand')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -821,7 +830,7 @@
                                         @if(request('sort_by') == 'sub_brand')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -832,7 +841,7 @@
                                         @if(request('sort_by') == 'color_code')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -843,7 +852,7 @@
                                         @if(request('sort_by') == 'color_name')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -854,7 +863,7 @@
                                         @if(request('sort_by') == 'package_unit')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -865,7 +874,7 @@
                                         @if(request('sort_by') == 'volume')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -876,7 +885,7 @@
                                         @if(request('sort_by') == 'package_weight_net')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -888,7 +897,7 @@
                                         @if(request('sort_by') == 'store')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -899,7 +908,7 @@
                                         @if(request('sort_by') == 'address')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -911,7 +920,7 @@
                                         @if(request('sort_by') == 'purchase_price')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -922,7 +931,7 @@
                                         @if(request('sort_by') == 'comparison_price_per_kg')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -941,7 +950,7 @@
                                         @if(request('sort_by') == 'type')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -952,7 +961,7 @@
                                         @if(request('sort_by') == 'brand')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -963,7 +972,7 @@
                                         @if(request('sort_by') == 'sub_brand')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -974,7 +983,7 @@
                                         @if(request('sort_by') == 'code')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -985,7 +994,7 @@
                                         @if(request('sort_by') == 'color')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -996,7 +1005,7 @@
                                         @if(request('sort_by') == 'package_unit')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -1007,7 +1016,7 @@
                                         @if(request('sort_by') == 'package_weight_net')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -1019,7 +1028,7 @@
                                         @if(request('sort_by') == 'store')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -1030,7 +1039,7 @@
                                         @if(request('sort_by') == 'address')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -1042,7 +1051,7 @@
                                         @if(request('sort_by') == 'package_price')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -1053,7 +1062,7 @@
                                         @if(request('sort_by') == 'comparison_price_per_kg')
                                             <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                         @else
-                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                            <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                         @endif
                                     </a>
                                 </th>
@@ -1072,7 +1081,7 @@
                                     @if(request('sort_by') == 'type')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1083,7 +1092,7 @@
                                     @if(in_array(request('sort_by'), ['dimension_length','dimension_width','dimension_thickness']))
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1094,7 +1103,7 @@
                                     @if(request('sort_by') == 'brand')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1105,7 +1114,7 @@
                                     @if(request('sort_by') == 'sub_brand')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1116,7 +1125,7 @@
                                     @if(request('sort_by') == 'surface')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 12px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 12px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1127,7 +1136,7 @@
                                     @if(request('sort_by') == 'code')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1138,7 +1147,7 @@
                                     @if(request('sort_by') == 'color')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1149,7 +1158,7 @@
                                     @if(request('sort_by') == 'form')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1160,7 +1169,7 @@
                                     @if(request('sort_by') == 'packaging')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1171,7 +1180,7 @@
                                     @if(request('sort_by') == 'coverage_per_package')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1183,7 +1192,7 @@
                                                                     @if(request('sort_by') == 'store')
                                                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                                     @else
-                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                                                     @endif
                                                                 </a>
                                                             </th>
@@ -1194,7 +1203,7 @@
                                                                     @if(request('sort_by') == 'address')
                                                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="margin-left: 6px; font-size: 12px;"></i>
                                                                     @else
-                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.3;"></i>
+                                                                        <i class="bi bi-arrow-down-up sort-style" style="margin-left: 6px; font-size: 12px; opacity: 0.8 !important;"></i>
                                                                     @endif
                                                                 </a>
                                                             </th>
@@ -1205,7 +1214,7 @@
                                     @if(request('sort_by') == 'price_per_package')
                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                     @else
-                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                     @endif
                                 </a>
                             </th>
@@ -1216,7 +1225,7 @@
                                                                     @if(request('sort_by') == 'comparison_price_per_m2')
                                                                         <i class="bi bi-{{ request('sort_direction') == 'asc' ? 'sort-up-alt' : 'sort-down sort-style' }}" style="font-size: 12px;"></i>
                                                                     @else
-                                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.3;"></i>
+                                                                        <i class="bi bi-arrow-down-up sort-style" style="font-size: 12px; opacity: 0.8 !important;"></i>
                                                                     @endif
                                                                 </a>
                                                             </th>
@@ -1288,7 +1297,7 @@
                                 elseif($material['type'] == 'cat') $stickyClass = 'cat-sticky-col col-no';
                                 elseif(in_array($material['type'], ['cement', 'nat'])) $stickyClass = 'cement-sticky-col';
                             @endphp
-                    <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? $item->nat_name ?? '' }}" data-material-search="{{ $searchValue }}">
+                    <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? $item->nat_name ?? '' }}" data-material-search="{{ $searchValue }}" data-material-brand-letter="{{ $rowLetter }}">
                         {{--  ... ROW CONTENT ... --}}
                         {{--  I will include the row content here but simplified for brevity as it is huge and repetitive in the original file. 
                               Wait, I need to copy the FULL content to be correct. 
@@ -1332,13 +1341,58 @@
             @if(!(isset($isStoreLocation) && $isStoreLocation))
             <!-- Left Area: Pagination & Kanggo Logo (Only for materials/index) -->
             <div class="material-footer-left">
+                <!-- Hexagon Stats (moved to the left of Kanggo logo) -->
+                <div class="material-footer-right" style="justify-content: flex-start; gap: 4px;">
+                    <!-- HEXAGON PER MATERIAL -->
+                    <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                        title="Total {{ $material['label'] }}">
+
+                        <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ asset('assets/hex4.png') }}"
+                                alt="Hexagon {{ $material['label'] }}"
+                                style="width: 50px; height: 50px;">
+
+                            <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                <span class="material-footer-count" style="line-height: 1; transform: translateY(-0.6px);">
+                                    @format($material['db_count'])
+                                </span>
+                            </div>
+                        </div>
+
+                        <span class="material-footer-label">
+                            {{ $material['label'] }}
+                        </span>
+                    </div>
+
+                    <!-- HEXAGON TOTAL -->
+                    <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                        title="Total Semua Material">
+
+                        <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
+                            <img src="{{ asset('assets/hex4.png') }}"
+                                alt="Hexagon Total"
+                                style="width: 50px; height: 50px;">
+
+                            <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
+                                <span class="material-footer-count" style="line-height: 1; transform: translateY(-0.6px);">
+                                    @format($grandTotal)
+                                </span>
+                            </div>
+                        </div>
+
+                        <span class="material-footer-label">
+                            Total
+                        </span>
+                    </div>
+                </div>
+
                 <!-- Kanggo A-Z Pagination (Logo & Letters) -->
                 @if(!request('search'))
                 <div class="kanggo-container" style="padding-top: 0;">
                     <div class="kanggo-logo">
-                        <img src="/Pagination/kangg.png" alt="Kanggo" style="height: 70px; width: auto;">
+                        <img src="{{ asset('assets/kangg.png') }}" alt="Kanggo" style="height: 36px; width: auto;">
                     </div>
-                    <div class="kanggo-letters" style="justify-content: center; margin-top: 3.5px; height: 80px;">
+                    <div class="kanggo-letters" style="justify-content: center; margin-bottom: 3.5px; height: 80px;">
                         @php
                             $activeLetters = $material['active_letters'];
                             if ($activeLetters instanceof \Illuminate\Support\Collection) {
@@ -1397,51 +1451,6 @@
                         <span class="material-footer-label">{{ $mat['label'] }}</span>
                     </div>
                     @endforeach
-                </div>
-            @else
-                <!-- Right Area: Hexagon Stats (for materials/index) -->
-                <div class="material-footer-right">
-                    <!-- HEXAGON PER MATERIAL -->
-                    <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
-                        title="Total {{ $material['label'] }}">
-
-                        <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
-                            <img src="./assets/hex1.png"
-                                alt="Hexagon"
-                                style="width: 50px; height: 50px;">
-
-                            <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                <span class="material-footer-count" style="line-height: 1; transform: translateY(-0.6px);">
-                                    @format($material['db_count'])
-                                </span>
-                            </div>
-                        </div>
-
-                        <span class="material-footer-label">
-                            {{ $material['label'] }}
-                        </span>
-                    </div>
-
-                    <!-- HEXAGON TOTAL -->
-                    <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
-                        title="Total Semua Material">
-
-                        <div class="material-footer-hex" style="position: relative; display: flex; align-items: center; justify-content: center;">
-                            <img src="./assets/hex2.png"
-                                alt="Hexagon"
-                                style="width: 50px; height: 50px;">
-
-                            <div class="material-footer-hex-inner" style="position: absolute; display: flex; align-items: center; justify-content: center; width: 64px;">
-                                <span class="material-footer-count" style="line-height: 1; transform: translateY(-0.6px);">
-                                    @format($grandTotal)
-                                </span>
-                            </div>
-                        </div>
-
-                        <span class="material-footer-label">
-                            Total Material
-                        </span>
-                    </div>
                 </div>
             @endif
         </div>

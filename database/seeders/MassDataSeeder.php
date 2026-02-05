@@ -168,7 +168,7 @@ class MassDataSeeder extends Seeder
                 $weight = 1.0; 
 
                 Cement::create([
-                    'type' => 'Nat', 
+                    'type' => 'Indoor', 
                     'cement_name' => "Nat {$item['brand']} {$item['color']}",
                     'brand' => $item['brand'],
                     'sub_brand' => $item['sub'],

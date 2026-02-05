@@ -2798,227 +2798,6 @@ $paramValue = $isGroutTile
         <div class="card"
             style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden; position: relative; z-index: 1;">
             <div class="table-responsive detail-table-wrap">
-                <style>
-                    /* Global Text Styling */
-                    .table-preview th,
-                    .table-preview td,
-                    .table-preview span,
-                    .table-preview div,
-                    .table-preview a,
-                    .table-preview label,
-                    .table-preview button {
-                        font-family: 'Nunito', sans-serif !important;
-                        color: #000000 !important;
-                        font-weight: 700 !important;
-                    }
-
-                    /* Table Styling */
-                    .table-preview {
-                        width: 100%;
-                        border-collapse: separate;
-                        border-spacing: 0;
-                        font-size: 13px;
-                        margin: 0;
-                    }
-
-                    .table-preview th {
-                        background: #891313;
-                        color: #ffffff;
-                        text-align: center;
-                        font-weight: 900;
-                        padding: 14px 16px;
-                        border: 1px solid #d1d5db;
-                        font-size: 14px;
-                        letter-spacing: 0.3px;
-                        white-space: nowrap;
-                    }
-
-                    .table-preview td {
-                        padding: 14px 16px;
-                        border: 1px solid #f1f5f9;
-                        vertical-align: top;
-                        white-space: nowrap;
-                    }
-
-                    .table-preview td.preview-scroll-td {
-                        position: relative;
-                        overflow: hidden;
-                        white-space: nowrap;
-                        text-align: left;
-                    }
-
-                    .table-preview td.preview-store-cell {
-                        width: 150px;
-                        min-width: 150px;
-                        max-width: 150px;
-                    }
-
-                    .table-preview td.preview-address-cell {
-                        width: 200px;
-                        min-width: 200px;
-                        max-width: 200px;
-                    }
-
-                    .table-preview th.preview-store-cell {
-                        width: 150px;
-                        min-width: 150px;
-                        max-width: 150px;
-                    }
-
-                    .table-preview th.preview-address-cell {
-                        width: 200px;
-                        min-width: 200px;
-                        max-width: 200px;
-                    }
-
-                    .table-preview td.preview-scroll-td.is-scrollable::after {
-                        content: '...';
-                        position: absolute;
-                        right: 6px;
-                        top: 50%;
-                        transform: translateY(-50%);
-                        font-size: 12px;
-                        font-weight: 600;
-                        color: rgba(15, 23, 42, 0.85);
-                        background: linear-gradient(90deg, rgba(248, 250, 252, 0) 0%, rgba(248, 250, 252, 0.95) 40%, rgba(248, 250, 252, 1) 100%);
-                        padding-left: 8px;
-                        pointer-events: none;
-                    }
-
-                    .table-preview td.preview-scroll-td.is-scrolled-end::after {
-                        opacity: 0;
-                    }
-
-                    .table-preview .preview-scroll-cell {
-                        display: block;
-                        width: 100%;
-                        overflow-x: auto;
-                        overflow-y: hidden;
-                        scrollbar-width: none;
-                        scrollbar-color: transparent transparent;
-                        white-space: nowrap;
-                    }
-
-                    .table-preview .preview-scroll-cell::-webkit-scrollbar {
-                        height: 0;
-                    }
-
-                    .table-preview tbody tr:last-child td {
-                        border-bottom: none;
-                    }
-
-                    .table-preview tbody tr:hover td {
-                        background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
-                    }
-
-                    .bg-highlight {
-                        background: linear-gradient(to right, #f8fafc 0%, #f1f5f9 100%) !important;
-                    }
-
-                    .text-primary-dark {
-                        color: #891313;
-                        font-weight: 700;
-                    }
-
-                    .text-success-dark {
-                        color: #059669;
-                        font-weight: 700;
-                    }
-
-                    .sticky-col {
-                        position: sticky;
-                        left: 0;
-                        background-color: white;
-                        z-index: 1;
-                    }
-
-                    .sticky-col-1 {
-                        position: sticky;
-                        left: 0;
-                        background-color: white;
-                        z-index: 2;
-                        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                        min-width: 90px;
-                        max-width: 105px;
-                        width: 90px;
-                    }
-
-                    .sticky-col-2 {
-                        position: sticky;
-                        left: 105px;
-                        background-color: white;
-                        z-index: 2;
-                        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                        min-width: 80px;
-                    }
-
-                    .sticky-col-3 {
-                        position: sticky;
-                        left: 200px;
-                        background-color: white;
-                        z-index: 2;
-                        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                        min-width: 100px;
-                    }
-
-                    .table-preview thead th.sticky-col-1,
-                    .table-preview thead th.sticky-col-2,
-                    .table-preview thead th.sticky-col-3 {
-                        background-color: #891313;
-                        z-index: 3;
-                    }
-
-                    .table-preview tbody tr:hover td.sticky-col-1,
-                    .table-preview tbody tr:hover td.sticky-col-2,
-                    .table-preview tbody tr:hover td.sticky-col-3 {
-                        background: linear-gradient(to right, #fafbfc 0%, #f8fafc 100%);
-                    }
-
-                    .btn-select {
-                        background: linear-gradient(135deg, #891313 0%, #a61515 100%);
-                        color: #ffffff;
-                        border: none;
-                        padding: 6px 16px;
-                        border-radius: 8px;
-                        font-size: 12px;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        cursor: pointer;
-                        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 2px 4px rgba(137, 19, 19, 0.2);
-                    }
-
-                    .btn-select:hover {
-                        transform: translateY(-2px);
-                        box-shadow: 0 4px 8px rgba(137, 19, 19, 0.3);
-                    }
-
-                    .group-divider {
-                        border-top: 2px solid #891313 !important;
-                    }
-
-                    .group-end {
-                        border-bottom: 3px solid #891313 !important;
-                    }
-
-                    .group-end td {
-                        border-bottom: 3px solid #891313 !important;
-                    }
-
-                    .rowspan-cell {
-                        border-bottom: 3px solid #891313 !important;
-                    }
-
-                    .sticky-col-label {
-                        position: sticky;
-                        left: 0;
-                        z-index: 2;
-                        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                        min-width: 320px;
-                    }
-                </style>
-
                 <table class="table-preview">
                     <thead class="align-top">
                         <tr>
@@ -3043,6 +2822,15 @@ $paramValue = $isGroutTile
                             // Display them in the order of the recap table
                             $allFilteredCombinations = [];
 
+                            $workTypeForDetail = $requestData['work_type'] ?? null;
+                            $isBricklessDetailWork = in_array(
+                                $workTypeForDetail,
+                                ['grout_tile', 'painting', 'wall_painting'],
+                                true,
+                            );
+                            $isGroutTileDetailWork = $workTypeForDetail === 'grout_tile';
+                            $defaultProjectBrick = $projects[0]['brick'] ?? null;
+
                             foreach ($filterCategories as $filterType) {
                                 foreach ($getDisplayKeys($filterType) as $key) {
                                     // Check if this filter exists in global recap
@@ -3051,61 +2839,65 @@ $paramValue = $isGroutTile
 
                                         // Search through ALL projects to find the matching combination
                                         foreach ($projects as $project) {
-                                            // Check if this project uses the brick from recap
+                                            $projectBrickId =
+                                                isset($project['brick']) && $project['brick'] ? $project['brick']->id : null;
+                                            $rekapBrickId = $rekapData['brick_id'] ?? null;
+
+                                            // For brickless work types, do not require brick matching.
                                             if (
-                                                !empty($rekapData['brick_id']) &&
-                                                isset($project['brick']) &&
-                                                $project['brick'] &&
-                                                $rekapData['brick_id'] === $project['brick']->id
+                                                !$isBricklessDetailWork &&
+                                                (empty($rekapBrickId) ||
+                                                    empty($projectBrickId) ||
+                                                    $rekapBrickId !== $projectBrickId)
                                             ) {
-                                                // Find the matching combination in this project
-                                                foreach ($project['combinations'] as $label => $items) {
-                                                    foreach ($items as $item) {
-                                                        $match = false;
-                                                        if (isset($rekapData['cat_id']) && isset($item['cat'])) {
-                                                            // Match by Cat ID (for painting)
-                                                            if ($item['cat']->id === $rekapData['cat_id']) {
+                                                continue;
+                                            }
+
+                                            // Find the matching combination in this project
+                                            foreach ($project['combinations'] as $label => $items) {
+                                                foreach ($items as $item) {
+                                                    $match = false;
+
+                                                    if (isset($rekapData['cat_id']) && isset($item['cat'])) {
+                                                        // Match by Cat ID (for painting)
+                                                        if ($item['cat']->id === $rekapData['cat_id']) {
+                                                            $match = true;
+                                                        }
+                                                    } elseif (isset($rekapData['nat_id']) && isset($item['nat'])) {
+                                                        if ($isGroutTileDetailWork) {
+                                                            // For grout_tile, nat is the key matcher in recap/detail mapping.
+                                                            if ($item['nat']->id === $rekapData['nat_id']) {
                                                                 $match = true;
                                                             }
                                                         } elseif (
                                                             isset($rekapData['ceramic_id']) &&
-                                                            isset($rekapData['nat_id']) &&
                                                             isset($item['ceramic']) &&
-                                                            isset($item['nat'])
+                                                            $item['ceramic']->id === $rekapData['ceramic_id'] &&
+                                                            $item['nat']->id === $rekapData['nat_id']
                                                         ) {
-                                                            // Match by Ceramic & Nat ID (for tile_installation and grout_tile)
-                                                            if (
-                                                                $item['ceramic']->id === $rekapData['ceramic_id'] &&
-                                                                $item['nat']->id === $rekapData['nat_id']
-                                                            ) {
-                                                                $match = true;
-                                                            }
-                                                        } elseif (
-                                                            isset($rekapData['cement_id']) &&
-                                                            isset($item['cement'])
+                                                            // Match by Ceramic & Nat ID (for tile_installation).
+                                                            $match = true;
+                                                        }
+                                                    } elseif (isset($rekapData['cement_id']) && isset($item['cement'])) {
+                                                        // Match by Cement (and Sand if applicable)
+                                                        $rekapSandId = $rekapData['sand_id'] ?? null;
+                                                        $itemSandId = isset($item['sand']) ? $item['sand']->id : null;
+
+                                                        if (
+                                                            $item['cement']->id === $rekapData['cement_id'] &&
+                                                            $rekapSandId === $itemSandId
                                                         ) {
-                                                            // Match by Cement (and Sand if applicable)
-                                                            $rekapSandId = $rekapData['sand_id'] ?? null;
-                                                            $itemSandId = isset($item['sand'])
-                                                                ? $item['sand']->id
-                                                                : null;
-
-                                                            if (
-                                                                $item['cement']->id === $rekapData['cement_id'] &&
-                                                                $rekapSandId === $itemSandId
-                                                            ) {
-                                                                $match = true;
-                                                            }
+                                                            $match = true;
                                                         }
+                                                    }
 
-                                                        if ($match) {
-                                                            $allFilteredCombinations[] = [
-                                                                'label' => $key, // Use recap label
-                                                                'item' => $item,
-                                                                'brick' => $project['brick'],
-                                                            ];
-                                                            break 3; // Found it, move to next filter
-                                                        }
+                                                    if ($match) {
+                                                        $allFilteredCombinations[] = [
+                                                            'label' => $key, // Use recap label
+                                                            'item' => $item,
+                                                            'brick' => $project['brick'] ?? $defaultProjectBrick,
+                                                        ];
+                                                        break 3; // Found it, move to next filter
                                                     }
                                                 }
                                             }
@@ -3651,7 +3443,7 @@ $paramValue = $isGroutTile
                                             @endphp
                                             <a href="#preview-top" class="filter-back-top">
                                                 <span class="badge"
-                                                    style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: {{ $color['text'] }}; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
+                                                    style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: #000000 !important; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
                                                     {{ $singleLabel }}
                                                 </span>
                                             </a>
@@ -3675,21 +3467,17 @@ $paramValue = $isGroutTile
                                     $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                     $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                     $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
-                                    // Rumus baru: (Harga beli / ukuran per kemasan) * Qty per pekerjaan
-                                    $conversionFactor = 1;
-                                    if ($matKey === 'sand') {
-                                        $conversionFactor = $mat['detail_value'] ?? 1;
-                                    } elseif ($matKey === 'ceramic') {
-                                        $conversionFactor = $mat['object']->pieces_per_package ?? 1;
+                                    // Gunakan total hasil formula agar konsisten dengan Trace.
+                                    $hargaKomparasi = \App\Helpers\NumberHelper::normalize($mat['total_price'] ?? 0, 0);
+                                    if (
+                                        $hargaKomparasi <= 0 &&
+                                        !(isset($mat['is_special']) && $mat['is_special'])
+                                    ) {
+                                        $hargaKomparasi = \App\Helpers\NumberHelper::normalize(
+                                            ($pricePerUnit ?? 0) * ($priceCalcQty ?? 0),
+                                            0,
+                                        );
                                     }
-
-                                    $normalizedPrice = \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0);
-                                    $normalizedSize = \App\Helpers\NumberHelper::normalize($conversionFactor);
-                                    $normalizedQty = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
-
-                                    $unitPrice = $normalizedSize > 0 ? $normalizedPrice / $normalizedSize : 0;
-
-                                    $hargaKomparasi = \App\Helpers\NumberHelper::normalize($unitPrice * $normalizedQty);
                                     $comparisonUnit = $mat['comparison_unit'] ?? ($mat['unit'] ?? '');
                                     $detailValue = $mat['detail_value'] ?? 1;
 
@@ -4069,6 +3857,7 @@ $paramValue = $isGroutTile
                                             @endphp
                                             <div class="d-flex flex-column gap-2 align-items-center">
                                                 <a href="{{ $traceUrl }}" class="btn btn-outline-secondary btn-sm"
+                                                    style="--bs-btn-color: #000000; --bs-btn-hover-color: #000000; --bs-btn-active-color: #000000; color: #000000 !important;"
                                                     target="_blank" rel="noopener">
                                                     <i class="bi bi-diagram-3 me-1"></i> Trace
                                                 </a>
@@ -4573,9 +4362,11 @@ $paramValue = $isGroutTile
             background-color: white;
             z-index: 2;
             box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-            min-width: 90px;
+            min-width: 105px;
             max-width: 105px;
-            width: 90px;
+            width: 105px;
+            backface-visibility: hidden;
+            transform: translateZ(0);
         }
 
         .sticky-col-2 {
@@ -4584,16 +4375,24 @@ $paramValue = $isGroutTile
             background-color: white;
             z-index: 2;
             box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-            min-width: 80px;
+            min-width: 95px;
+            max-width: 95px;
+            width: 95px;
+            backface-visibility: hidden;
+            transform: translateZ(0);
         }
 
         .sticky-col-3 {
             position: sticky;
-            left: 202px;
+            left: 200px;
             background-color: white;
             z-index: 2;
             box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-            min-width: 100px;
+            min-width: 120px;
+            max-width: 120px;
+            width: 120px;
+            backface-visibility: hidden;
+            transform: translateZ(0);
         }
 
         .table-preview thead th.sticky-col-1,
@@ -5522,12 +5321,18 @@ $paramValue = $isGroutTile
                                     // Hide loading, show content
                                     $ceramicProject.find('.loading-placeholder').hide();
                                     const $content = $ceramicProject.find('.combinations-content');
-                                    $content.html(response.html).show();
+                                    const parsedNodes = $.parseHTML(response.html || '', document, false) || [];
+                                    const $fragment = $('<div>').append(parsedNodes);
+                                    // Prevent repeated global style injection from lazy-loaded partials.
+                                    $fragment.find('style, link[rel="stylesheet"]').remove();
+                                    $content.empty().append($fragment.contents()).show();
                                     ensureCeramicModals($content);
                                     $ceramicProject.data('loaded', 'true');
                                     if (typeof window.updatePreviewScrollIndicators ===
                                         'function') {
-                                        window.updatePreviewScrollIndicators();
+                                        requestAnimationFrame(function() {
+                                            window.updatePreviewScrollIndicators();
+                                        });
                                     }
                                 } else {
                                     showError($ceramicProject, response.message ||
@@ -5733,3 +5538,4 @@ $paramValue = $isGroutTile
         });
     </script>
 @endpush
+

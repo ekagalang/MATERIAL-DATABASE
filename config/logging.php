@@ -6,6 +6,8 @@ use Monolog\Handler\SyslogUdpHandler;
 use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
+    'source_timezone' => env('LOG_SOURCE_TIMEZONE', env('APP_TIMEZONE', 'Asia/Jakarta')),
+
     /*
     |--------------------------------------------------------------------------
     | Default Log Channel

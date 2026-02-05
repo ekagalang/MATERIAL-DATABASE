@@ -410,7 +410,7 @@
     }
 </style>
 
-<script src="/js/cat-form.js?v=2.0.2"></script>
+<script src="/js/cat-form.js?v=2.0.3"></script>
 <script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
     if (typeof initCatForm === 'function') {

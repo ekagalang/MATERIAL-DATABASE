@@ -27,6 +27,8 @@ function initCatForm() {
 
     // Auto-suggest dengan cascading logic
     const autosuggestInputs = document.querySelectorAll('.autocomplete-input');
+    const colorCodeInput = document.getElementById('color_code');
+    const colorNameInput = document.getElementById('color_name');
 
     // Helper function untuk mendapatkan filter values
     function getFilterParams(field) {
@@ -57,7 +59,54 @@ function initCatForm() {
             }
         }
 
+        // Pairing warna: kode <-> nama harus saling sesuai
+        if (field === 'color_name' && colorCodeInput && colorCodeInput.value.trim() !== '') {
+            params.append('color_code', colorCodeInput.value.trim());
+        }
+        if (field === 'color_code' && colorNameInput && colorNameInput.value.trim() !== '') {
+            params.append('color_name', colorNameInput.value.trim());
+        }
+
         return params;
+    }
+
+    function buildSuggestionUrl(field, term = '') {
+        const filterParams = getFilterParams(field);
+        filterParams.append('search', term);
+        filterParams.append('limit', '20');
+
+        // Untuk field store, gunakan endpoint getAllStores
+        if (field === 'store') {
+            // Jika tidak ada search term (user baru focus), tampilkan dari cat saja
+            // Jika ada search term (user mengetik), tampilkan dari semua material
+            if (term === '' || term.length === 0) {
+                filterParams.append('material_type', 'cat');
+            } else {
+                filterParams.append('material_type', 'all');
+            }
+            return `/api/cats/all-stores?${filterParams.toString()}`;
+        }
+
+        // Untuk field address, gunakan endpoint getAddressesByStore
+        if (field === 'address') {
+            const storeInput = document.getElementById('store');
+            if (storeInput && storeInput.value) {
+                filterParams.append('store', storeInput.value);
+                return `/api/cats/addresses-by-store?${filterParams.toString()}`;
+            }
+            // Jika toko belum dipilih, gunakan field-values biasa
+            return `/api/cats/field-values/${field}?${filterParams.toString()}`;
+        }
+
+        return `/api/cats/field-values/${field}?${filterParams.toString()}`;
+    }
+
+    function fetchSuggestions(field, term = '') {
+        const url = buildSuggestionUrl(field, term);
+        return fetch(url)
+            .then(resp => resp.json())
+            .then(values => (Array.isArray(values) ? values : []))
+            .catch(() => []);
     }
 
     autosuggestInputs.forEach(input => {
@@ -151,41 +200,7 @@ function initCatForm() {
         }
 
         function loadSuggestions(term = '') {
-            let url;
-            const filterParams = getFilterParams(field);
-            filterParams.append('search', term);
-            filterParams.append('limit', '20');
-
-            // Untuk field store, gunakan endpoint getAllStores
-            if (field === 'store') {
-                // Jika tidak ada search term (user baru focus), tampilkan dari cat saja
-                // Jika ada search term (user mengetik), tampilkan dari semua material
-                if (term === '' || term.length === 0) {
-                    filterParams.append('material_type', 'cat');
-                } else {
-                    filterParams.append('material_type', 'all');
-                }
-                url = `/api/cats/all-stores?${filterParams.toString()}`;
-            }
-            // Untuk field address, gunakan endpoint getAddressesByStore
-            else if (field === 'address') {
-                const storeInput = document.getElementById('store');
-                if (storeInput && storeInput.value) {
-                    filterParams.append('store', storeInput.value);
-                    url = `/api/cats/addresses-by-store?${filterParams.toString()}`;
-                } else {
-                    // Jika toko belum dipilih, gunakan field-values biasa
-                    url = `/api/cats/field-values/${field}?${filterParams.toString()}`;
-                }
-            }
-            else {
-                url = `/api/cats/field-values/${field}?${filterParams.toString()}`;
-            }
-
-            fetch(url)
-                .then(resp => resp.json())
-                .then(populate)
-                .catch(() => {});
+            fetchSuggestions(field, term).then(populate);
         }
 
         input.addEventListener('focus', () => {
@@ -198,6 +213,22 @@ function initCatForm() {
             if (isSelectingFromAutosuggest) {
                 return;
             }
+
+            // Saat user mengetik salah satu field warna, kosongkan pasangannya dulu
+            // agar sugesti untuk field aktif tidak terkunci oleh nilai pasangan lama.
+            if (field === 'color_code' || field === 'color_name') {
+                const oppositeInput = field === 'color_code' ? colorNameInput : colorCodeInput;
+                const oppositeField = field === 'color_code' ? 'color_name' : 'color_code';
+                if (oppositeInput && oppositeInput.value !== '') {
+                    oppositeInput.value = '';
+                    const oppositeList = document.getElementById(`${oppositeField}-list`);
+                    if (oppositeList) {
+                        oppositeList.innerHTML = '';
+                        oppositeList.style.display = 'none';
+                    }
+                }
+            }
+
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
@@ -216,7 +247,49 @@ function initCatForm() {
     });
 
     // Function untuk trigger reload dependent fields
+    function applyColorPairing(sourceField) {
+        const isCodeSource = sourceField === 'color_code';
+        const sourceInput = isCodeSource ? colorCodeInput : colorNameInput;
+        const targetInput = isCodeSource ? colorNameInput : colorCodeInput;
+        const targetField = isCodeSource ? 'color_name' : 'color_code';
+
+        if (!sourceInput || !targetInput) return;
+
+        const sourceValue = (sourceInput.value || '').trim();
+        if (sourceValue === '') return;
+
+        fetchSuggestions(targetField, '').then(values => {
+            const uniqueValues = Array.from(
+                new Set(
+                    values
+                        .map(v => (v ?? '').toString().trim())
+                        .filter(v => v !== ''),
+                ),
+            );
+
+            // Jika hanya 1 pasangan, langsung isi otomatis
+            if (uniqueValues.length === 1) {
+                targetInput.value = uniqueValues[0];
+                return;
+            }
+
+            // Jika pasangan > 1, kosongkan agar user pilih manual dari pasangan yang tersedia
+            if (uniqueValues.length > 1) {
+                targetInput.value = '';
+                const targetList = document.getElementById(`${targetField}-list`);
+                if (targetList) {
+                    targetList.innerHTML = '';
+                    targetList.style.display = 'none';
+                }
+            }
+        });
+    }
+
     function triggerDependentFieldsReload(changedField) {
+        if (changedField === 'color_code' || changedField === 'color_name') {
+            applyColorPairing(changedField);
+        }
+
         // Jika brand berubah, clear dan reload dependent fields
         if (changedField === 'brand') {
             const dependentFields = ['sub_brand', 'color_name', 'color_code', 'volume', 'package_weight_gross', 'package_weight_net'];
@@ -227,6 +300,12 @@ function initCatForm() {
                     // Tapi kita biarkan user mempertahankan input mereka untuk flexibility
                 }
             });
+
+            if (colorCodeInput && colorCodeInput.value.trim() !== '') {
+                applyColorPairing('color_code');
+            } else if (colorNameInput && colorNameInput.value.trim() !== '') {
+                applyColorPairing('color_name');
+            }
         }
 
         // Jika package_unit berubah, reload purchase_price suggestions

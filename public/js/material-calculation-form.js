@@ -16,6 +16,7 @@ function initMaterialCalculationForm(root, formData) {
         cement: 'Semen',
         sand: 'Pasir',
         cat: 'Cat',
+        ceramic_type: 'Keramik',
         ceramic: 'Keramik',
         nat: 'Nat'
     };
@@ -266,7 +267,7 @@ function initMaterialCalculationForm(root, formData) {
     function setupMaterialTypeFilters() {
         const groupEl = scope.querySelector('#materialTypeFilterGroup') || document.getElementById('materialTypeFilterGroup');
         const workTypeSelector = scope.querySelector('#workTypeSelector') || document.getElementById('workTypeSelector');
-        const materialTypes = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        const materialTypes = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'ceramic', 'nat'];
         const optionsByType = {};
 
         function normalize(text) {
@@ -309,6 +310,8 @@ function initMaterialCalculationForm(root, formData) {
                     return item.type || '';
                 case 'cat':
                     return item.type || '';
+                case 'ceramic_type':
+                    return item.type || '';
                 case 'ceramic':
                     return formatCeramicSize(item.dimension_length, item.dimension_width);
                 case 'nat':
@@ -324,6 +327,7 @@ function initMaterialCalculationForm(root, formData) {
             if (type === 'cement') source = cementsData;
             if (type === 'sand') source = sandsData;
             if (type === 'cat') source = catsData;
+            if (type === 'ceramic_type') source = ceramicsData;
             if (type === 'ceramic') source = ceramicsData;
             if (type === 'nat') source = natsData;
 
@@ -467,6 +471,9 @@ function initMaterialCalculationForm(root, formData) {
                 const displayInput = scope.querySelector(`#materialTypeDisplay-${type}`) || document.getElementById(`materialTypeDisplay-${type}`);
                 const hiddenInput = scope.querySelector(`#materialTypeSelector-${type}`) || document.getElementById(`materialTypeSelector-${type}`);
                 let shouldShow = hasRequired && required.includes(type);
+                if (type === 'ceramic_type') {
+                    shouldShow = hasRequired && workType === 'tile_installation';
+                }
                 if (workType === 'grout_tile' && type === 'ceramic') {
                     shouldShow = false;
                 }

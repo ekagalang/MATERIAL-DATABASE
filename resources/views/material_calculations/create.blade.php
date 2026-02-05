@@ -20,15 +20,21 @@
         ? ($formulaNames[$selectedWorkType] ?? $selectedWorkType)
         : '';
 
+    $selectedCeramicTypes = old('ceramic_types', request('ceramic_types', []));
+    $selectedCeramicTypes = is_array($selectedCeramicTypes) ? $selectedCeramicTypes : [$selectedCeramicTypes];
     $materialTypeLabels = [
         'brick' => 'Bata',
         'cement' => 'Semen',
         'sand' => 'Pasir',
         'cat' => 'Cat',
+        'ceramic_type' => 'Keramik',
         'ceramic' => 'Keramik',
         'nat' => 'Nat',
     ];
     $selectedMaterialTypeFilters = old('material_type_filters') ?? (request('material_type_filters') ?? []);
+    if (empty($selectedMaterialTypeFilters['ceramic_type']) && !empty($selectedCeramicTypes)) {
+        $selectedMaterialTypeFilters['ceramic_type'] = $selectedCeramicTypes;
+    }
     
     // Cek Single Brick (Carry Over)
     $isSingleCarryOver = request()->has('brick_id');
@@ -210,10 +216,14 @@
                                 @endphp
                         <div class="form-group material-type-filter-item" data-material-type="{{ $materialKey }}" style="display: none;">
                                     @php
-                                        $labelText = $materialKey === 'ceramic' ? 'Ukuran Keramik' : ('Jenis ' . $materialLabel);
+                                        $labelText = $materialKey === 'ceramic'
+                                            ? 'Ukuran Keramik'
+                                            : ($materialKey === 'ceramic_type' ? 'Jenis Keramik' : ('Jenis ' . $materialLabel));
                                         $placeholderText = $materialKey === 'ceramic'
                                             ? 'Pilih atau ketik ukuran keramik...'
-                                            : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...';
+                                            : ($materialKey === 'ceramic_type'
+                                                ? 'Pilih atau ketik jenis keramik...'
+                                                : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...');
                                     @endphp
                                     <label>{{ $labelText }}</label>
                                     <div class="material-type-rows" data-material-type="{{ $materialKey }}">
@@ -261,57 +271,7 @@
                         </div>
                     </div>
                 </div>
-
-
-            <!-- 
-                {{-- CERAMIC FILTERS - ONLY FOR TILE INSTALLATION --}}
-                <div class="filter-section" id="ceramicFilterSection" style="display: none;">
-                    <label class="filter-section-title">+ Filter Keramik:</label>
-
-                    {{-- Jenis Keramik - Dynamic from Database --}}
-                        @if(isset($ceramicTypes) && $ceramicTypes->count() > 0)
-                        <div class="form-group ceramic-filter-row">
-                            <label class="ceramic-filter-label">
-                                <i class="bi bi-grid-3x3-gap-fill"></i> Jenis Keramik
-                            </label>
-                            <div class="input-wrapper">
-                                <div class="filter-tickbox-list ceramic-tickbox-grid">
-                                    @foreach($ceramicTypes as $type)
-                                    <div class="tickbox-item">
-                                        <input type="checkbox" name="ceramic_types[]" id="ceramic_type_{{ Str::slug($type) }}" value="{{ $type }}">
-                                        <label for="ceramic_type_{{ Str::slug($type) }}">
-                                            <span class="tickbox-title">{{ $type }}</span>
-                                        </label>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
-                        {{-- Ukuran Keramik - Dynamic from Database --}}
-                        @if(isset($ceramicSizes) && $ceramicSizes->count() > 0)
-                        <div class="form-group ceramic-filter-row">
-                            <label class="ceramic-filter-label">
-                                <i class="bi bi-rulers"></i> Ukuran Keramik
-                            </label>
-                            <div class="input-wrapper">
-                                <div class="filter-tickbox-list ceramic-tickbox-grid">
-                                    @foreach($ceramicSizes as $size)
-                                    <div class="tickbox-item">
-                                        <input type="checkbox" name="ceramic_sizes[]" id="ceramic_size_{{ str_replace('x', '_', $size) }}" value="{{ $size }}">
-                                        <label for="ceramic_size_{{ str_replace('x', '_', $size) }}">
-                                            <span class="tickbox-title">{{ str_replace('x', ' x ', $size) }} cm</span>
-                                        </label>
-                                    </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-                    </div>
-                    -->
-                </div>
+            </div>
 
 
             {{-- RIGHT COLUMN: FILTERS --}}
@@ -802,7 +762,7 @@
 <script>
     const availableBestRecommendations = @json($bestRecommendations ?? []);
 </script>
-<script src="{{ asset('js/material-calculation-form.js') }}"></script>
+<script src="{{ asset('js/material-calculation-form.js') }}?v={{ @filemtime(public_path('js/material-calculation-form.js')) }}"></script>
 <script>
     (function() {
         const dataScript = document.getElementById('materialCalculationFormData');
@@ -848,12 +808,23 @@
             return `${minVal.toString().replace('.', ',')} x ${maxVal.toString().replace('.', ',')}`;
         }
 
+        function sortAlphabetic(values) {
+            const list = Array.isArray(values) ? [...values] : [];
+            try {
+                const collator = new Intl.Collator('id-ID', { numeric: true, sensitivity: 'base' });
+                return list.sort((a, b) => collator.compare(String(a ?? ''), String(b ?? '')));
+            } catch (error) {
+                return list.sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), 'id-ID'));
+            }
+        }
+
         function buildMaterialTypeOptionMap(formPayload) {
             const sourceMap = {
                 brick: formPayload?.bricks || [],
                 cement: formPayload?.cements || [],
                 sand: formPayload?.sands || [],
                 cat: formPayload?.cats || [],
+                ceramic_type: formPayload?.ceramics || [],
                 ceramic: formPayload?.ceramics || [],
                 nat: formPayload?.nats || [],
             };
@@ -863,6 +834,7 @@
                 cement: item => item?.type || '',
                 sand: item => item?.type || '',
                 cat: item => item?.type || '',
+                ceramic_type: item => item?.type || '',
                 ceramic: item => formatMaterialTypeSize(item?.dimension_length, item?.dimension_width),
                 nat: item => item?.type || '',
             };
@@ -872,7 +844,7 @@
                 const values = (sourceMap[type] || [])
                     .map(item => (valueResolver[type] ? valueResolver[type](item) : ''))
                     .filter(Boolean);
-                options[type] = uniqueFilterTokens(values).sort((a, b) => a.localeCompare(b, 'id-ID'));
+                options[type] = sortAlphabetic(uniqueFilterTokens(values));
             });
             return options;
         }
@@ -954,22 +926,24 @@
 
                 const getHiddenInputs = () => getRowStates().map(row => row.hiddenEl).filter(Boolean);
 
-                const getAvailableOptions = (term = '', currentHiddenEl = null) => {
+                const getAvailableOptions = (term = '', currentHiddenEl = null, includeCurrentSelection = false) => {
                     const query = normalizeOption(term);
                     const selectedSet = new Set();
                     getHiddenInputs().forEach(hiddenEl => {
-                        if (!hiddenEl || hiddenEl === currentHiddenEl) return;
+                        if (!hiddenEl) return;
+                        if (includeCurrentSelection && hiddenEl === currentHiddenEl) return;
                         const normalized = normalizeOption(hiddenEl.value);
                         if (normalized) {
                             selectedSet.add(normalized);
                         }
                     });
-                    return options.filter(option => {
+                    const available = options.filter(option => {
                         const normalized = normalizeOption(option);
                         if (!normalized || selectedSet.has(normalized)) return false;
                         if (!query) return true;
                         return normalized.includes(query);
                     });
+                    return sortAlphabetic(available);
                 };
 
                 const refreshOpenLists = () => {
@@ -1054,7 +1028,8 @@
                     const findExactAvailableOption = term => {
                         const query = normalizeOption(term);
                         if (!query) return null;
-                        const available = getAvailableOptions(term, hiddenEl);
+                        // Allow the current row's selected value to remain valid while typing.
+                        const available = getAvailableOptions(term, hiddenEl, true);
                         return available.find(option => normalizeOption(option) === query) || null;
                     };
 
@@ -1064,7 +1039,8 @@
 
                     displayEl.addEventListener('focus', function() {
                         if (displayEl.readOnly || displayEl.disabled) return;
-                        renderList(this.value || '');
+                        // On focus, show full available options (not filtered by current selected value).
+                        renderList('');
                     });
 
                     displayEl.addEventListener('input', function() {
@@ -1201,12 +1177,38 @@
                     return rowEl;
                 };
 
-                const removeLastExtraRow = () => {
-                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
-                    const lastRow = extraRows[extraRows.length - 1];
-                    if (lastRow) {
-                        lastRow.remove();
+                const removeBaseRow = () => {
+                    const extraRows = Array.from(extraRowsContainer.querySelectorAll('.material-type-row-extra'));
+
+                    // If there are extra rows, promote the first extra row value to base
+                    // so deleting on base behaves like deleting the clicked (first) row.
+                    if (extraRows.length > 0) {
+                        const firstExtraRow = extraRows[0];
+                        const firstState = firstExtraRow.__materialTypeRowState;
+                        const promotedValue = String(
+                            firstState?.hiddenEl?.value ??
+                            firstState?.displayEl?.value ??
+                            '',
+                        ).trim();
+
+                        baseDisplay.value = promotedValue;
+                        if (baseHidden.value !== promotedValue) {
+                            baseHidden.value = promotedValue;
+                            baseHidden.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+
+                        firstExtraRow.remove();
                         updateRowButtons();
+                        syncRows();
+                        return;
+                    }
+
+                    // If this is the only row, clear its value.
+                    if (baseDisplay.value || baseHidden.value) {
+                        baseDisplay.value = '';
+                        baseHidden.value = '';
+                        baseHidden.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
                         syncRows();
                     }
                 };
@@ -1216,7 +1218,7 @@
                 });
 
                 baseDeleteBtn.addEventListener('click', function() {
-                    removeLastExtraRow();
+                    removeBaseRow();
                 });
 
                 setupAutocomplete({
@@ -1297,6 +1299,147 @@
                 materialTypeFilterMultiApi.setValues(type, values);
             });
         }
+
+        function initCeramicTypeFilterAutocomplete() {
+            const displayEl = document.getElementById('ceramicTypeDisplay');
+            const hiddenEl = document.getElementById('ceramicTypeSelector');
+            const listEl = document.getElementById('ceramicType-list');
+            const options = sortAlphabetic(uniqueFilterTokens(@json(isset($ceramicTypes) ? $ceramicTypes->values()->all() : [])));
+
+            const emptyApi = {
+                clear() {},
+            };
+
+            if (!displayEl || !hiddenEl || !listEl) {
+                return emptyApi;
+            }
+
+            const normalizeOption = value => String(value ?? '').trim().toLowerCase();
+
+            const closeList = () => {
+                listEl.style.display = 'none';
+            };
+
+            const applySelection = optionValue => {
+                const finalValue = String(optionValue || '').trim();
+                displayEl.value = finalValue;
+                if (hiddenEl.value !== finalValue) {
+                    hiddenEl.value = finalValue;
+                    hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                closeList();
+            };
+
+            const getAvailableOptions = term => {
+                const query = normalizeOption(term);
+                const selected = normalizeOption(hiddenEl.value);
+                const available = options.filter(option => {
+                    const normalized = normalizeOption(option);
+                    if (!normalized) return false;
+                    if (selected && normalized === selected) return false;
+                    if (!query) return true;
+                    return normalized.includes(query);
+                });
+                return sortAlphabetic(available);
+            };
+
+            const renderList = (term = '') => {
+                listEl.innerHTML = '';
+
+                const emptyItem = document.createElement('div');
+                emptyItem.className = 'autocomplete-item';
+                emptyItem.textContent = '- Tidak Pilih -';
+                emptyItem.addEventListener('click', function() {
+                    applySelection('');
+                });
+                listEl.appendChild(emptyItem);
+
+                getAvailableOptions(term).forEach(option => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-item';
+                    item.textContent = option;
+                    item.addEventListener('click', function() {
+                        applySelection(option);
+                    });
+                    listEl.appendChild(item);
+                });
+
+                listEl.style.display = 'block';
+            };
+
+            const findExactOption = term => {
+                const query = normalizeOption(term);
+                if (!query) return null;
+                return options.find(option => normalizeOption(option) === query) || null;
+            };
+
+            displayEl.addEventListener('focus', function() {
+                if (displayEl.readOnly || displayEl.disabled) return;
+                renderList('');
+            });
+
+            displayEl.addEventListener('input', function() {
+                if (displayEl.readOnly || displayEl.disabled) return;
+                const term = this.value || '';
+                renderList(term);
+
+                if (!term.trim()) {
+                    if (hiddenEl.value) {
+                        hiddenEl.value = '';
+                        hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    return;
+                }
+
+                const exactMatch = findExactOption(term);
+                if (exactMatch) {
+                    if (hiddenEl.value !== exactMatch) {
+                        hiddenEl.value = exactMatch;
+                        hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                } else if (hiddenEl.value) {
+                    hiddenEl.value = '';
+                    hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            displayEl.addEventListener('keydown', function(event) {
+                if (event.key !== 'Enter') return;
+                const exactMatch = findExactOption(displayEl.value || '');
+                if (exactMatch) {
+                    applySelection(exactMatch);
+                    event.preventDefault();
+                }
+            });
+
+            displayEl.addEventListener('blur', function() {
+                setTimeout(closeList, 150);
+            });
+
+            document.addEventListener('click', function(event) {
+                if (event.target === displayEl || listEl.contains(event.target)) return;
+                closeList();
+            });
+
+            hiddenEl.addEventListener('change', function() {
+                if (displayEl.value !== hiddenEl.value) {
+                    displayEl.value = hiddenEl.value;
+                }
+            });
+
+            if (options.length === 0) {
+                displayEl.disabled = true;
+                displayEl.placeholder = 'Tidak ada data jenis keramik';
+            }
+
+            return {
+                clear() {
+                    applySelection('');
+                },
+            };
+        }
+
+        const ceramicTypeFilterApi = initCeramicTypeFilterAutocomplete();
 
         // Handle filter checkboxes (multiple selection)
         const filterCheckboxes = document.querySelectorAll('input[name="price_filters[]"]');
@@ -1671,12 +1814,9 @@
                 const showCeramicFilters = workTypeSelector.value === 'tile_installation';
                 ceramicFilterSection.style.display = showCeramicFilters ? 'block' : 'none';
                 if (!showCeramicFilters) {
-                    ceramicFilterSection.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                        if (cb.checked) {
-                            cb.checked = false;
-                            cb.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                    });
+                    if (ceramicTypeFilterApi && typeof ceramicTypeFilterApi.clear === 'function') {
+                        ceramicTypeFilterApi.clear();
+                    }
                 }
             }
         }
@@ -1778,6 +1918,9 @@
                 });
                 if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.clearAll === 'function') {
                     materialTypeFilterMultiApi.clearAll();
+                }
+                if (ceramicTypeFilterApi && typeof ceramicTypeFilterApi.clear === 'function') {
+                    ceramicTypeFilterApi.clear();
                 }
 
                 toggleCustomForm();

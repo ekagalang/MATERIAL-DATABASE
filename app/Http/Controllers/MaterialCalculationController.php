@@ -419,29 +419,22 @@ class MaterialCalculationController extends Controller
         $workType = $request->work_type ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
-        $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
         $materialTypeFilters = $request->input('material_type_filters', []);
 
-        // Check if multi-ceramic is selected
-        $hasCeramicFilters = $request->has('ceramic_types') || $request->has('ceramic_sizes');
-        $isMultiCeramic =
-            $isCeramicWork &&
-            $hasCeramicFilters &&
-            ((is_array($request->ceramic_types) && count($request->ceramic_types) > 0) ||
-                (is_array($request->ceramic_sizes) && count($request->ceramic_sizes) > 0));
+        // NEW LOGIC: "Jenis Keramik" now behaves like other single-value material type filters.
+        // It should use normal preview flow (projects in preview_combinations), not multi-ceramic tab lazy loader.
 
-        \Log::info('Multi-Ceramic check', [
-            'isCeramicWork' => $isCeramicWork,
-            'hasCeramicFilters' => $hasCeramicFilters,
-            'isMultiCeramic' => $isMultiCeramic,
-            'requiredMaterials' => $requiredMaterials,
-        ]);
-
-        // Handle Multi-Ceramic Selection
-        if ($isMultiCeramic) {
-            \Log::info('Calling generateMultiCeramicCombinations');
-            return $this->generateMultiCeramicCombinations($request);
-        }
+        // OLD LOGIC (disabled by request):
+        // $hasCeramicFilters = $request->has('ceramic_types') || $request->has('ceramic_sizes');
+        // $isMultiCeramic =
+        //     $isCeramicWork &&
+        //     $hasCeramicFilters &&
+        //     ((is_array($request->ceramic_types) && count($request->ceramic_types) > 0) ||
+        //         (is_array($request->ceramic_sizes) && count($request->ceramic_sizes) > 0));
+        //
+        // if ($isMultiCeramic) {
+        //     return $this->generateMultiCeramicCombinations($request);
+        // }
 
         if ($isBrickless) {
             $targetBricks = collect([$this->resolveFallbackBrick()]);
@@ -925,8 +918,14 @@ class MaterialCalculationController extends Controller
 
         $natQuery = Nat::query();
         $natFilterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['nat'] ?? null);
-        if (!empty($natFilterValues) && !in_array('Nat', $natFilterValues, true)) {
-            $natQuery->whereRaw('1 = 0');
+        // Backward compatibility: plain "Nat" means no specific nat type filter.
+        $natFilterValues = array_values(
+            array_filter($natFilterValues, static function ($value) {
+                return strtolower(trim((string) $value)) !== 'nat';
+            }),
+        );
+        if (!empty($natFilterValues)) {
+            $natQuery->whereIn('type', $natFilterValues);
         }
         $nats = $natQuery->orderBy('package_price')->get();
 
@@ -1205,6 +1204,70 @@ class MaterialCalculationController extends Controller
                 as $combo
             ) {
                 yield $combo;
+            }
+        }
+    }
+
+    /**
+     * Local generator for tile installation combinations.
+     * Kept in controller because group preview uses lazy/AJAX flow and needs a streamable generator.
+     */
+    protected function yieldTileInstallationCombinations(
+        array $paramsBase,
+        iterable $ceramics,
+        iterable $nats,
+        iterable $cements,
+        iterable $sands,
+        string $groupLabel,
+    ) {
+        foreach ($ceramics as $ceramic) {
+            foreach ($nats as $nat) {
+                foreach ($cements as $cement) {
+                    if (($cement->package_weight_net ?? 0) <= 0) {
+                        continue;
+                    }
+
+                    foreach ($sands as $sand) {
+                        $hasPricePerM3 = ($sand->comparison_price_per_m3 ?? 0) > 0;
+                        $hasPackageData = ($sand->package_volume ?? 0) > 0 && ($sand->package_price ?? 0) > 0;
+                        if (!$hasPricePerM3 && !$hasPackageData) {
+                            continue;
+                        }
+
+                        $natId = $nat->nat_id ?? $nat->id ?? null;
+                        if (!$natId) {
+                            continue;
+                        }
+
+                        $params = array_merge($paramsBase, [
+                            'ceramic_id' => $ceramic->id,
+                            'nat_id' => $natId,
+                            'cement_id' => $cement->id,
+                            'sand_id' => $sand->id,
+                        ]);
+
+                        try {
+                            $formula = FormulaRegistry::instance('tile_installation');
+                            if (!$formula) {
+                                continue;
+                            }
+
+                            $result = $formula->calculate($params);
+
+                            yield [
+                                'ceramic' => $ceramic,
+                                'nat' => $nat,
+                                'cement' => $cement,
+                                'sand' => $sand,
+                                'result' => $result,
+                                'total_cost' => $result['grand_total'],
+                                'filter_type' => $groupLabel,
+                            ];
+                        } catch (\Throwable $e) {
+                            continue;
+                        }
+                    }
+                }
             }
         }
     }
@@ -1601,7 +1664,7 @@ class MaterialCalculationController extends Controller
             'sand' => $model->type ?? null,
             'cat' => $model->type ?? null,
             'ceramic' => $this->formatCeramicSizeValue($model->dimension_length ?? null, $model->dimension_width ?? null),
-            'nat' => 'Nat',
+            'nat' => $model->type ?? null,
             default => null,
         };
     }

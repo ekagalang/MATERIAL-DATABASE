@@ -70,6 +70,23 @@ class CombinationGenerationService
         return array_values(array_unique($tokens));
     }
 
+    protected function normalizeNatTypeFilterValues($value): array
+    {
+        $values = $this->normalizeMaterialTypeFilterValues($value);
+        if (empty($values)) {
+            return [];
+        }
+
+        // Backward compatibility: plain "Nat" means no specific nat type filter.
+        $values = array_values(
+            array_filter($values, static function ($item) {
+                return strtolower(trim((string) $item)) !== 'nat';
+            }),
+        );
+
+        return array_values(array_unique($values));
+    }
+
     protected function normalizeCeramicSizeToken(string $value): string
     {
         return strtolower(str_replace(['Ã—', '×', ','], ['x', 'x', '.'], trim($value)));
@@ -305,6 +322,7 @@ class CombinationGenerationService
         $workType = $request['work_type'] ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $materialTypeFilters = $request['material_type_filters'] ?? [];
+        $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
 
         // DEBUG: Log material type filters in store-based combinations
         Log::info('getStoreBasedCombinations - Material Type Filters', [
@@ -356,8 +374,7 @@ class CombinationGenerationService
                 } elseif ($modelClass === Nat::class) {
                     $nat = Nat::find($modelId);
                     if ($nat) {
-                        // Nat currently treated as single logical type token: "Nat"
-                        if ($this->matchesMaterialTypeFilter('Nat', $materialTypeFilters['nat'] ?? null)) {
+                        if ($this->matchesMaterialTypeFilter($nat->type ?? null, $natTypeFilterValues)) {
                             $storeMaterials['nat']->push($nat);
                         }
                     }
@@ -611,7 +628,7 @@ class CombinationGenerationService
                 'cement' => $item->type ?? null,
                 'sand' => $item->type ?? null,
                 'cat' => $item->type ?? null,
-                'nat' => 'Nat',
+                'nat' => $item->type ?? null,
                 'ceramic' => $this->formatCeramicSize($item),
                 default => null,
             };
@@ -650,6 +667,7 @@ class CombinationGenerationService
         $workType = $request['work_type'] ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $materialTypeFilters = $request['material_type_filters'] ?? [];
+        $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
 
         // DEBUG: Log material type filters in popular store combinations
         Log::info('getPopularStoreCombinations - Material Type Filters', [
@@ -732,7 +750,7 @@ class CombinationGenerationService
                 $materials['nat'] = isset($combo->nat_id) ? Nat::find($combo->nat_id) : null;
                 if (!$materials['nat']) $validCombo = false;
                 // Apply nat filter
-                if ($validCombo && !$this->matchesMaterialTypeFilter('Nat', $materialTypeFilters['nat'] ?? null)) {
+                if ($validCombo && !$this->matchesMaterialTypeFilter($materials['nat']->type ?? null, $natTypeFilterValues)) {
                     $validCombo = false;
                 }
             }
@@ -1314,6 +1332,7 @@ class CombinationGenerationService
         $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
         $isCatWork = in_array('cat', $requiredMaterials, true);
         $materialTypeFilters = $request['material_type_filters'] ?? [];
+        $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
 
         Log::info('getCommonCombinations - Material Type Filters', [
             'filters' => $materialTypeFilters,
@@ -1380,7 +1399,7 @@ class CombinationGenerationService
                 if ($sand && !$this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
                     continue;
                 }
-                if ($nat && !$this->matchesMaterialTypeFilter('Nat', $materialTypeFilters['nat'] ?? null)) {
+                if ($nat && !$this->matchesMaterialTypeFilter($nat->type ?? null, $natTypeFilterValues)) {
                     continue;
                 }
                 if (!empty($materialTypeFilters['ceramic']) && $ceramic) {
@@ -1942,12 +1961,9 @@ class CombinationGenerationService
             $query = Nat::query()->orderBy('brand');
 
             // Apply material type filter for nat
-            if (!empty($materialTypeFilters['nat'])) {
-                // Nat currently treated as single logical type.
-                $filterValues = $this->normalizeMaterialTypeFilterValues($materialTypeFilters['nat']);
-                if (!empty($filterValues) && !in_array('Nat', $filterValues, true)) {
-                    $query->whereRaw('1 = 0');
-                }
+            $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
+            if (!empty($natTypeFilterValues)) {
+                $query->whereIn('type', $natTypeFilterValues);
             }
 
             $nats = $query->cursor(); // Lazy Loading
@@ -2053,12 +2069,10 @@ class CombinationGenerationService
         $query = Nat::query()
             ->where('package_price', '>', 0);
 
-        // Apply material type filter (nat is a fixed logical type)
-        if (!empty($typeFilter)) {
-            $filterValues = $this->normalizeMaterialTypeFilterValues($typeFilter);
-            if (!empty($filterValues) && !in_array('Nat', $filterValues, true)) {
-                $query->whereRaw('1 = 0');
-            }
+        // Apply nat type filter. Plain "Nat" means no specific type filtering.
+        $natTypeFilterValues = $this->normalizeNatTypeFilterValues($typeFilter);
+        if (!empty($natTypeFilterValues)) {
+            $query->whereIn('type', $natTypeFilterValues);
         }
 
         return $query->orderBy('package_price', $direction)
@@ -2119,8 +2133,17 @@ class CombinationGenerationService
             $query->whereNotNull('dimension_thickness')->where('dimension_thickness', '>', 0);
         }
 
-        // Apply material type filter for ceramic (size-based)
+        // Apply "Jenis Keramik" filter (single-value dropdown in form, but still normalized as list).
         $materialTypeFilters = $request['material_type_filters'] ?? [];
+        $ceramicTypeFilters = $this->normalizeMaterialTypeFilterValues(
+            $request['ceramic_types']
+                ?? ($request['ceramic_type'] ?? ($materialTypeFilters['ceramic_type'] ?? null)),
+        );
+        if (!empty($ceramicTypeFilters)) {
+            $query->whereIn('type', $ceramicTypeFilters);
+        }
+
+        // Apply material type filter for ceramic (size-based)
         if (!empty($materialTypeFilters['ceramic'])) {
             $this->applyCeramicSizeFilterToQuery($query, $materialTypeFilters['ceramic']);
         }
@@ -2136,10 +2159,10 @@ class CombinationGenerationService
 
     protected function yieldTileInstallationCombinations(
         array $paramsBase,
-        EloquentCollection $ceramics,
-        EloquentCollection $nats,
-        EloquentCollection $cements,
-        EloquentCollection $sands,
+        iterable $ceramics,
+        iterable $nats,
+        iterable $cements,
+        iterable $sands,
         string $groupLabel,
     ) {
         foreach ($ceramics as $ceramic) {

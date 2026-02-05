@@ -61,10 +61,42 @@
     @if(!empty($combinations))
         @php
             $requestedFilters = $requestData['price_filters'] ?? [];
-            $filterCategories = ['Preferensi', 'Populer', 'Ekonomis', 'Average', 'Termahal'];
-            if (in_array('custom', $requestedFilters, true)) {
+            if (!is_array($requestedFilters)) {
+                $requestedFilters = [$requestedFilters];
+            }
+            if (empty($requestedFilters)) {
+                $requestedFilters = ['best'];
+            }
+
+            $filterMap = [
+                'all' => 'Semua',
+                'best' => 'Preferensi',
+                'common' => 'Populer',
+                'cheapest' => 'Ekonomis',
+                'medium' => 'Average',
+                'expensive' => 'Termahal',
+                'custom' => 'Custom',
+            ];
+
+            $orderedFilters = ['best', 'common', 'cheapest', 'medium', 'expensive'];
+            $filterSet = in_array('all', $requestedFilters, true)
+                ? array_unique(array_merge($requestedFilters, $orderedFilters))
+                : array_unique($requestedFilters);
+
+            $filterCategories = [];
+            foreach ($filterSet as $filterKey) {
+                if (isset($filterMap[$filterKey])) {
+                    $filterCategories[] = $filterMap[$filterKey];
+                }
+            }
+
+            if (in_array('custom', $requestedFilters, true) && !in_array('Custom', $filterCategories, true)) {
                 $filterCategories[] = 'Custom';
             }
+            if (empty($filterCategories)) {
+                $filterCategories = ['Preferensi'];
+            }
+
             $priceRankMap = [];
             $needsPriceRanks = count(array_intersect($filterCategories, ['Ekonomis', 'Average', 'Termahal'])) > 0;
             if ($needsPriceRanks && !empty($combinations)) {
@@ -547,9 +579,11 @@
                 background-color: white;
                 z-index: 2;
                 box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                min-width: 90px;
+                min-width: 105px;
                 max-width: 105px;
-                width: 90px;
+                width: 105px;
+                backface-visibility: hidden;
+                transform: translateZ(0);
             }
             .sticky-col-2 {
                 position: sticky;
@@ -557,15 +591,23 @@
                 background-color: white;
                 z-index: 2;
                 box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                min-width: 80px;
+                min-width: 95px;
+                max-width: 95px;
+                width: 95px;
+                backface-visibility: hidden;
+                transform: translateZ(0);
             }
             .sticky-col-3 {
                 position: sticky;
-                left: 202px;
+                left: 200px;
                 background-color: white;
                 z-index: 2;
                 box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-                min-width: 100px;
+                min-width: 120px;
+                max-width: 120px;
+                width: 120px;
+                backface-visibility: hidden;
+                transform: translateZ(0);
             }
             .table-preview thead th.sticky-col-1,
             .table-preview thead th.sticky-col-2,
@@ -964,7 +1006,7 @@
                                             $color = $colorSet[$number];
                                         @endphp
                                         <a href="#preview-top" class="filter-back-top" style="text-decoration: none; color: inherit; display: inline-block;">
-                                            <span class="badge" style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: {{ $color['text'] }}; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
+                                            <span class="badge" style="background: {{ $color['bg'] }}; border: 1.5px solid {{ $color['border'] }}; color: #000000; padding: 3px 8px; border-radius: 5px; font-weight: 600; font-size: 10px; white-space: nowrap;">
                                                 {{ $singleLabel }}
                                             </span>
                                         </a>
@@ -991,22 +1033,11 @@
                                 $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                 $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                 $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
-                                // Rumus baru: (Harga beli / ukuran per kemasan) * Qty per pekerjaan
-                                $conversionFactor = 1;
-                                if ($matKey === 'sand') {
-                                     $conversionFactor = $mat['detail_value'] ?? 1;
-                                } elseif ($matKey === 'ceramic') {
-                                     $conversionFactor = $mat['object']->pieces_per_package ?? 1;
+                                // Gunakan total hasil formula agar konsisten dengan Trace.
+                                $hargaKomparasi = \App\Helpers\NumberHelper::normalize($mat['total_price'] ?? 0, 0);
+                                if ($hargaKomparasi <= 0 && !(isset($mat['is_special']) && $mat['is_special'])) {
+                                    $hargaKomparasi = \App\Helpers\NumberHelper::normalize(($pricePerUnit ?? 0) * ($priceCalcQty ?? 0), 0);
                                 }
-                                
-                                $normalizedPrice = \App\Helpers\NumberHelper::normalize($mat['package_price'] ?? 0);
-                                $normalizedSize = \App\Helpers\NumberHelper::normalize($conversionFactor);
-                                $normalizedQty = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
-                                
-                                $unitPrice = ($normalizedSize > 0) ? ($normalizedPrice / $normalizedSize) : 0;
-                                $unitPrice = \App\Helpers\NumberHelper::normalize($unitPrice);
-                                
-                                $hargaKomparasi = \App\Helpers\NumberHelper::normalize($unitPrice * $normalizedQty);
 
                                 $qtyTitleParts = [];
                                 if (!empty($mat['qty_debug'])) {
@@ -1071,9 +1102,19 @@
                                     <td class="text-center text-muted">-</td>
                                 @else
                                     @php
-                                        // Hitung harga komparasi: (harga / ukuran) * qty
                                         $hargaKomparasiDebugParts = [];
-                                        $hargaKomparasiDebugParts[] = "Rumus: (Rp " . $formatMoney($normalizedPrice) . " / " . $formatNum($normalizedSize) . ") x " . $formatNum($normalizedQty) . " = Rp " . $formatMoney($hargaKomparasi);
+                                        $hargaKomparasiDebugParts[] = 'Nilai formula: Rp ' . $formatMoney($hargaKomparasi);
+                                        if ($priceCalcQty > 0) {
+                                            $hargaKomparasiDebugParts[] =
+                                                'Rumus referensi: ' .
+                                                $formatNum($priceCalcQty) .
+                                                ' ' .
+                                                $priceCalcUnit .
+                                                ' x Rp ' .
+                                                $formatMoney($pricePerUnit) .
+                                                ' = Rp ' .
+                                                $formatMoney(\App\Helpers\NumberHelper::normalize($pricePerUnit * $priceCalcQty, 0));
+                                        }
                                         $hargaKomparasiDebug = implode(' | ', $hargaKomparasiDebugParts);
                                     @endphp
                                     <td class="text-nowrap" title="{{ $hargaKomparasiDebug }}">
@@ -1086,35 +1127,17 @@
 
                                 @if($isFirstMaterial)
                                     @php
-                                        // Build debug breakdown for grand_total (harga per kemasan × qty)
-                                        $grandTotalParts = [];
-                                        $calculatedGrandTotal = 0;
-                                        foreach($visibleMaterials as $debugMatKey => $debugMat) {
-                                            if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
-                                                // Rumus baru: (Harga beli / ukuran per kemasan) * Qty per pekerjaan
-                                                $debugConversionFactor = 1;
-                                                if ($debugMatKey === 'sand') {
-                                                     $debugConversionFactor = $debugMat['detail_value'] ?? 1;
-                                                } elseif ($debugMatKey === 'ceramic') {
-                                                     $debugConversionFactor = $debugMat['object']->pieces_per_package ?? 1;
+                                        $grandTotalValue = \App\Helpers\NumberHelper::normalize($res['grand_total'] ?? 0, 0);
+                                        if ($grandTotalValue <= 0) {
+                                            $fallbackGrandTotal = 0;
+                                            foreach($visibleMaterials as $debugMat) {
+                                                if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
+                                                    $fallbackGrandTotal += \App\Helpers\NumberHelper::normalize($debugMat['total_price'] ?? 0, 0);
                                                 }
-                                                
-                                                $debugNormalizedPrice = \App\Helpers\NumberHelper::normalize($debugMat['package_price'] ?? 0);
-                                                $debugNormalizedSize = \App\Helpers\NumberHelper::normalize($debugConversionFactor);
-                                                $debugNormalizedQty = \App\Helpers\NumberHelper::normalize($debugMat['qty'] ?? 0);
-                                                
-                                                $debugUnitPrice = ($debugNormalizedSize > 0) ? ($debugNormalizedPrice / $debugNormalizedSize) : 0;
-                                                $debugUnitPrice = \App\Helpers\NumberHelper::normalize($debugUnitPrice);
-                                                
-                                                $calcPrice = \App\Helpers\NumberHelper::normalize($debugUnitPrice * $debugNormalizedQty);
-                                                $calculatedGrandTotal += $calcPrice;
-                                                
-                                                $grandTotalParts[] = $debugMat['name'] . " ((Rp " . $formatMoney($debugNormalizedPrice) . " / " . $formatNum($debugNormalizedSize) . ") x " . $formatNum($debugNormalizedQty) . "): Rp " . $formatMoney($calcPrice);
                                             }
+                                            $grandTotalValue = \App\Helpers\NumberHelper::normalize($fallbackGrandTotal, 0);
                                         }
-                                        $grandTotalValue = \App\Helpers\NumberHelper::normalize($calculatedGrandTotal);
-                                        $grandTotalDebug = "Rumus: " . implode(' + ', $grandTotalParts);
-                                        $grandTotalDebug .= " | Total: Rp " . $formatMoney($grandTotalValue);
+                                        $grandTotalDebug = 'Nilai formula grand total: Rp ' . $formatMoney($grandTotalValue);
 
                                         // Build debug for costPerM2 (normalize areaForCost karena non-rupiah, normalize hasil pembagian)
                                         $normalizedAreaForCost = \App\Helpers\NumberHelper::normalize($areaForCost);
@@ -1250,7 +1273,7 @@
                                             }));
                                         @endphp
                                         <div class="d-flex flex-column gap-2 align-items-center">
-                                            <a href="{{ $traceUrl }}" class="btn btn-outline-secondary btn-sm" target="_blank" rel="noopener">
+                                            <a href="{{ $traceUrl }}" class="btn btn-outline-secondary btn-sm" style="--bs-btn-color: #000000; --bs-btn-hover-color: #000000; --bs-btn-active-color: #000000;" target="_blank" rel="noopener">
                                                 <i class="bi bi-diagram-3 me-1"></i> Trace
                                             </a>
                                             <form action="{{ route('material-calculations.store') }}" method="POST" style="margin: 0;">
@@ -1545,3 +1568,5 @@
         </div>
     </div>
 @endif
+
+

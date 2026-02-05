@@ -458,6 +458,8 @@ class CatController extends Controller
         $brand = $request->query('brand');
         $packageUnit = $request->query('package_unit');
         $store = $request->query('store');
+        $colorCode = trim((string) $request->query('color_code', ''));
+        $colorName = trim((string) $request->query('color_name', ''));
 
         $query = Cat::query()->whereNotNull($field)->where($field, '!=', '');
 
@@ -485,6 +487,14 @@ class CatController extends Controller
         // address bergantung pada store
         if ($field === 'address' && $store) {
             $query->where('store', $store);
+        }
+
+        // Pairing warna: kode dan nama warna harus saling terkait
+        if ($field === 'color_name' && $colorCode !== '') {
+            $query->where('color_code', $colorCode);
+        }
+        if ($field === 'color_code' && $colorName !== '') {
+            $query->where('color_name', $colorName);
         }
 
         if ($search !== '') {

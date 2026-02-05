@@ -133,10 +133,6 @@
                 </div>
             </div>
 
-            <a href="{{ route('nats.index') }}" class="{{ request()->routeIs('nats.*') ? 'active' : '' }}">
-                <i class="bi bi-grid-1x2"></i> Nat
-            </a>
-
             <style>
                 /* Hover Logic for Navbar Dropdowns */
                 .material-wrapper:hover .nav-dropdown-menu,
@@ -411,6 +407,7 @@
 
     <!-- Global Sanitizer Script -->
     <script src="{{ asset('js/form-sanitizer.js') }}"></script>
+    <script src="{{ asset('js/dynamic-dropdown-position.js') }}?v={{ @filemtime(public_path('js/dynamic-dropdown-position.js')) }}"></script>
 
     <!-- Custom scripts per halaman -->
     @stack('scripts')

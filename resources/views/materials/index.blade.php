@@ -467,7 +467,6 @@ html.materials-booting .page-content {
     background-color: rgba(37, 99, 235, 0.18) !important;
     transition: background-color 0.2s ease;
 }
-
 /* --- CERAMIC STICKY --- */
 #section-ceramic .ceramic-sticky-col {
     position: sticky;
@@ -548,19 +547,15 @@ html.materials-booting .page-content {
   .material-footer-count {
       display: inline-block;
       transform: translateY(2px);
-      color: var(--special-text-color) !important;
-      -webkit-text-stroke: var(--special-text-stroke) !important;
+      color: #91c6bc !important;
+      -webkit-text-stroke: 0 !important;
       font-weight: var(--special-font-weight) !important;
-      text-shadow: var(--special-text-shadow) !important;
-  }
-  .material-footer-label {
-      color: var(--text-color) !important;
-      font-weight: var(--special-font-weight) !important;
+      text-shadow: none !important;
   }
   .material-footer-left {
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 3px;
   }
   .material-footer-right {
       display: flex;
@@ -581,8 +576,9 @@ html.materials-booting .page-content {
   .material-footer-label {
       font-size: 10px;
       line-height: 1.2;
-      margin-top: 2px;
       text-align: center;
+      color: var(--text-color) !important;
+      font-weight: 700 !important;
   }
   .material-footer-hex img {
       width: 44px !important;
@@ -593,7 +589,7 @@ html.materials-booting .page-content {
       gap: 2px;
   }
   .material-footer-sticky .kanggo-logo img {
-      height: 48px !important;
+      height: 36px !important;
   }
   .material-footer-sticky .kanggo-letters {
       height: 50px !important;
@@ -1300,11 +1296,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!savedFilter.selected.includes(newMaterialData.type)) {
             savedFilter.selected.push(newMaterialData.type);
         }
-        if (!Array.isArray(materialOrder)) {
-            materialOrder = [];
-        }
-        materialOrder = materialOrder.filter(type => type !== newMaterialData.type);
-        materialOrder.unshift(newMaterialData.type);
+        // Keep existing tab order unchanged after create/edit.
+        // We only need to ensure the tab is visible and can be focused.
     }
 
     // Material Settings Dropdown
@@ -2196,20 +2189,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function highlightMaterialRowElement(row) {
+    function highlightMaterialRowElement(row, options = {}) {
         if (!row) return;
         const container = row.closest('.table-container');
         if (!container) return;
 
-        const existing = container.querySelector('.material-row-outline');
-        if (existing) {
-            existing.remove();
+        const preserveExisting = !!options.preserveExisting;
+        const outlineClass = options.outlineClass || 'material-row-outline';
+        const removeSelector = options.removeSelector || '.material-row-outline';
+
+        if (!preserveExisting) {
+            const existing = container.querySelector(removeSelector);
+            if (existing) {
+                existing.remove();
+            }
         }
 
         const containerRect = container.getBoundingClientRect();
         const rowRect = row.getBoundingClientRect();
         const outline = document.createElement('div');
-        outline.className = 'material-row-outline';
+        outline.className = outlineClass;
         outline.style.left = `${rowRect.left - containerRect.left + container.scrollLeft}px`;
         outline.style.top = `${rowRect.top - containerRect.top + container.scrollTop}px`;
         outline.style.width = `${rowRect.width}px`;
@@ -2228,6 +2227,71 @@ document.addEventListener('DOMContentLoaded', function() {
         const row = target.closest('tr');
         if (!row) return;
         highlightMaterialRowElement(row);
+    }
+
+    function parseAnchorBrandLetter(targetId) {
+        if (!targetId || typeof targetId !== 'string') return null;
+        const match = targetId.match(/^(.+?)-letter-(.+)$/i);
+        if (!match || !match[1] || !match[2]) return null;
+
+        const tabType = String(match[1]).trim();
+        let suffix = String(match[2]).trim().toUpperCase();
+        if (!tabType || !suffix) return null;
+
+        if (suffix === 'OTHER') {
+            suffix = '#';
+        }
+
+        const letter = /^[A-Z]$/.test(suffix) ? suffix : '#';
+        return { tabType, letter };
+    }
+
+    function isLetterAnchorTarget(targetId) {
+        return !!parseAnchorBrandLetter(targetId);
+    }
+
+    function blinkRowsByAnchorLetter(targetId) {
+        const parsed = parseAnchorBrandLetter(targetId);
+        if (!parsed) return;
+
+        const panel =
+            document.querySelector(`.material-tab-panel[data-tab="${parsed.tabType}"]`) ||
+            document.querySelector('.material-tab-panel.active');
+        if (!panel) return;
+
+        const rows = Array.from(panel.querySelectorAll('tbody tr')).filter(row => {
+            const brandCell = row.querySelector('.material-brand-cell');
+            if (!brandCell) return false;
+            const brandText = String(brandCell.textContent || '').trim();
+            if (!brandText) return parsed.letter === '#';
+            let firstChar = brandText.charAt(0).toUpperCase();
+            if (!/^[A-Z]$/.test(firstChar)) {
+                firstChar = '#';
+            }
+            return firstChar === parsed.letter;
+        });
+
+        if (!rows.length) return;
+
+        // Use the same visual effect as single-row skip highlight, but apply to all matching rows.
+        const containers = new Set();
+        rows.forEach(row => {
+            const container = row.closest('.table-container');
+            if (!container) return;
+            containers.add(container);
+        });
+
+        containers.forEach(container => {
+            container.querySelectorAll('.material-row-outline-group').forEach(el => el.remove());
+        });
+
+        rows.forEach(row => {
+            highlightMaterialRowElement(row, {
+                preserveExisting: true,
+                outlineClass: 'material-row-outline material-row-outline-group',
+                removeSelector: '.material-row-outline-group',
+            });
+        });
     }
 
     function normalizeMaterialSearchValue(value) {
@@ -2918,8 +2982,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Scroll to target in container
                 scrollToTargetInContainer(targetId);
 
-                // Highlight after scroll
-                window.setTimeout(() => highlightMaterialRow(targetId), 400);
+                // Highlight/blink after scroll
+                window.setTimeout(() => {
+                    if (isLetterAnchorTarget(targetId)) {
+                        blinkRowsByAnchorLetter(targetId);
+                    } else {
+                        highlightMaterialRow(targetId);
+                    }
+                }, 400);
 
             }
         });
@@ -2939,8 +3009,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateActivePaginationLetter(initialHash);
                 // Scroll to target in container (NOT window scroll)
                 scrollToTargetInContainer(targetId);
-                // Highlight row
-                window.setTimeout(() => highlightMaterialRow(targetId), 400);
+                // Highlight/blink row
+                window.setTimeout(() => {
+                    if (isLetterAnchorTarget(targetId)) {
+                        blinkRowsByAnchorLetter(targetId);
+                    } else {
+                        highlightMaterialRow(targetId);
+                    }
+                }, 400);
             }, 500);
 
             // Restore smooth scroll behavior
@@ -2961,8 +3037,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Scroll to target
         scrollToTargetInContainer(targetId);
 
-        // Highlight row
-        window.setTimeout(() => highlightMaterialRow(targetId), 400);
+        // Highlight/blink row
+        window.setTimeout(() => {
+            if (isLetterAnchorTarget(targetId)) {
+                blinkRowsByAnchorLetter(targetId);
+            } else {
+                highlightMaterialRow(targetId);
+            }
+        }, 400);
     });
 
     // Initial update of active pagination letter on page load
@@ -2972,6 +3054,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const rememberedHash = getRememberedLetterForTab(activeTabType);
         if (rememberedHash) {
             updateActivePaginationLetter(rememberedHash);
+            window.setTimeout(() => {
+                blinkRowsByAnchorLetter(rememberedHash.replace(/^#/, ''));
+            }, 320);
         }
     } else {
         updateActivePaginationLetter();

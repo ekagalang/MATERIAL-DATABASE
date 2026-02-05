@@ -6,7 +6,7 @@
         {{ $rowNumber }}
     </td>
     <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
-    <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+    <td class="material-brand-cell" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
     <td class="dim-cell border-right-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
         @if(!is_null($item->dimension_length))
@@ -69,7 +69,7 @@
         {{ $rowNumber }}
     </td>
     <td class="cat-sticky-col col-type" style="text-align: left;">{{ $item->type ?? '-' }}</td>
-    <td class="cat-sticky-col col-brand cat-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+    <td class="material-brand-cell cat-sticky-col col-brand cat-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: start;">{{ $item->sub_brand ?? '-' }}</td>
     <td style="text-align: right; font-size: 12px;">{{ $item->color_code ?? '-' }}</td>
     <td style="text-align: left;">{{ $item->color_name ?? '-' }}</td>
@@ -138,7 +138,7 @@
     <td class="cement-sticky-col" style="text-align: left;">
         {{ $material['type'] === 'nat' ? ($item->type ?? $item->nat_name ?? '-') : ($item->type ?? '-') }}
     </td>
-    <td class="cement-sticky-col cement-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+    <td class="material-brand-cell cement-sticky-col cement-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
     <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>
     <td style="text-align: left;">{{ $item->color ?? '-' }}</td>
@@ -189,7 +189,7 @@
         {{ $rowNumber }}
     </td>
     <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
-    <td style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+    <td class="material-brand-cell" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: center; font-size: 13px;">
         @if($item->package_unit)
             {{ $item->packageUnit?->name ?? $item->package_unit }}
@@ -279,7 +279,7 @@
             <span>-</span>
         @endif
     </td>
-    <td class="ceramic-sticky-col col-brand ceramic-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+    <td class="material-brand-cell ceramic-sticky-col col-brand ceramic-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: left;">{{ $item->sub_brand ?? '-' }}</td>
     <td style="text-align: left;">{{ $item->surface ?? '-' }}</td>
     <td style="text-align: right; font-size: 12px;">{{ $item->code ?? '-' }}</td>

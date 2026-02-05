@@ -4,6 +4,7 @@ use App\Http\Controllers\BrickController;
 use App\Http\Controllers\CatController;
 use App\Http\Controllers\CementController;
 use App\Http\Controllers\CeramicController;
+use App\Http\Controllers\LogViewerController;
 use App\Http\Controllers\MaterialCalculationController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\NatController;
@@ -20,6 +21,7 @@ use App\Models\BrickCalculation;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+Route::get('/log', [LogViewerController::class, 'index'])->name('logs.index');
 
 // Tambahkan sementara untuk testing:
 Route::get('/test-error/{code}', function ($code) {
