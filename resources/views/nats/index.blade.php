@@ -741,10 +741,10 @@ function initModalHandlers() {
 
             if (url.includes('/create')) {
                 modalTitle.textContent = 'Tambah Data Nat Baru';
-                closeBtn.style.display = 'none';
+                closeBtn.style.display = 'flex';
             } else if (url.includes('/edit')) {
                 modalTitle.textContent = 'Edit Data Nat';
-                closeBtn.style.display = 'none';
+                closeBtn.style.display = 'flex';
             } else {
                 modalTitle.textContent = 'Detail Data Nat';
                 closeBtn.style.display = 'flex';
@@ -824,6 +824,12 @@ function initModalHandlers() {
 
     closeBtn.addEventListener('click', window.closeFloatingModal);
     backdrop.addEventListener('click', window.closeFloatingModal);
+    modalBody.addEventListener('click', function(e) {
+        const cancelBtn = e.target.closest('.btn-cancel');
+        if (!cancelBtn) return;
+        e.preventDefault();
+        window.closeFloatingModal();
+    });
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {

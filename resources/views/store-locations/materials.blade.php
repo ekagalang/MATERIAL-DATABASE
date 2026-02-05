@@ -1901,13 +1901,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function closeModal() {
         if (isFormDirty) {
-            const confirmed = await window.showConfirm({
-                title: 'Batalkan Perubahan?',
-                message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
-                confirmText: 'Ya, Tutup',
-                cancelText: 'Kembali',
-                type: 'warning'
-            });
+            let confirmed = true;
+            if (typeof window.showConfirm === 'function') {
+                confirmed = await window.showConfirm({
+                    title: 'Batalkan Perubahan?',
+                    message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
+                    confirmText: 'Ya, Tutup',
+                    cancelText: 'Kembali',
+                    type: 'warning'
+                });
+            } else {
+                confirmed = window.confirm('Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?');
+            }
             if (!confirmed) return;
         }
 
@@ -1938,6 +1943,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     closeBtn.addEventListener('click', closeModal);
     backdrop.addEventListener('click', closeModal);
+    modalBody.addEventListener('click', function(e) {
+        const cancelBtn = e.target.closest('.btn-cancel');
+        if (!cancelBtn) return;
+        e.preventDefault();
+        closeModal();
+    });
 
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
@@ -2217,6 +2228,7 @@ document.addEventListener('DOMContentLoaded', function() {
             brick: 'bricks',
             cat: 'cats',
             cement: 'cements',
+            nat: 'nats',
             sand: 'sands',
             ceramic: 'ceramics',
         };
@@ -2224,6 +2236,7 @@ document.addEventListener('DOMContentLoaded', function() {
             brick: 'bata',
             cat: 'cat',
             cement: 'semen',
+            nat: 'nat',
             sand: 'pasir',
             ceramic: 'keramik',
         };

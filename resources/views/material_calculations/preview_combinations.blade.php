@@ -3586,17 +3586,18 @@ $paramValue = $isGroutTile
                                         <td class="text-center text-muted">-</td>
                                     @else
                                         @php
-                                            // Hitung harga komparasi: (harga / ukuran) * qty
+                                            // Harga komparasi mengikuti hasil formula (unit price x qty formula).
+                                            $normalizedPrice = \App\Helpers\NumberHelper::normalize($pricePerUnit ?? 0);
+                                            $normalizedQty = \App\Helpers\NumberHelper::normalize($priceCalcQty ?? 0);
+                                            $normalizedTotal = \App\Helpers\NumberHelper::normalize($hargaKomparasi ?? 0);
                                             $hargaKomparasiDebugParts = [];
                                             $hargaKomparasiDebugParts[] =
                                                 'Rumus: (Rp ' .
-                                                $formatMoney($normalizedPrice) .
-                                                ' / ' .
-                                                $formatNum($normalizedSize) .
-                                                ') x ' .
+                                                $formatNum($normalizedPrice) .
+                                                ' x ' .
                                                 $formatNum($normalizedQty) .
                                                 ' = Rp ' .
-                                                $formatMoney($hargaKomparasi);
+                                                $formatNum($normalizedTotal);
                                             $hargaKomparasiDebug = implode(' | ', $hargaKomparasiDebugParts);
                                         @endphp
                                         <td class="text-nowrap" title="{{ $hargaKomparasiDebug }}">
