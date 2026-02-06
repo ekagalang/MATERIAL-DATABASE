@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\MorphToMany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Helpers\NumberHelper;
 
 class Ceramic extends Model
 {
@@ -129,16 +128,16 @@ class Ceramic extends Model
     /**
      * Kalkulasi coverage per package dari dimensi dan jumlah pieces
      * Dimensi dalam CM, hasil dalam M²
-     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
+     * Menggunakan nilai float murni untuk perhitungan
      *
      * @return float
      */
     public function calculateCoverage(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->pieces_per_package) {
-            // Normalize dimensi terlebih dahulu
-            $length = NumberHelper::normalize($this->dimension_length);
-            $width = NumberHelper::normalize($this->dimension_width);
+            // Ambil dimensi sebagai float
+            $length = (float) $this->dimension_length;
+            $width = (float) $this->dimension_width;
 
             // Konversi dimensi dari CM ke M
             $lengthM = $length / 100;
@@ -150,8 +149,8 @@ class Ceramic extends Model
             // Total coverage = luas per piece × jumlah pieces
             $coverage = $areaPerPiece * $this->pieces_per_package;
 
-            // Normalize hasil coverage
-            $this->coverage_per_package = NumberHelper::normalize($coverage);
+            // Simpan hasil coverage
+            $this->coverage_per_package = (float) $coverage;
             return $this->coverage_per_package;
         }
 
@@ -160,20 +159,19 @@ class Ceramic extends Model
 
     /**
      * Kalkulasi harga komparasi per M²
-     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
+     * Menggunakan nilai float murni untuk perhitungan
      *
      * @return float
      */
     public function calculateComparisonPrice(): float
     {
         if ($this->price_per_package && $this->coverage_per_package && $this->coverage_per_package > 0) {
-            // Normalize coverage sebelum perhitungan
-            $normalizedCoverage = NumberHelper::normalize($this->coverage_per_package);
+            // Gunakan coverage sebagai float sebelum perhitungan
+            $coverage = (float) $this->coverage_per_package;
 
-            if ($normalizedCoverage > 0) {
-                $comparisonPrice = $this->price_per_package / $normalizedCoverage;
-                // Normalize hasil (0 decimal untuk harga)
-                $this->comparison_price_per_m2 = NumberHelper::normalize($comparisonPrice, 0);
+            if ($coverage > 0) {
+                $comparisonPrice = (float) $this->price_per_package / $coverage;
+                $this->comparison_price_per_m2 = (float) $comparisonPrice;
                 return $this->comparison_price_per_m2;
             }
         }

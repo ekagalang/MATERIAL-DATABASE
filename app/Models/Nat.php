@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Helpers\NumberHelper;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -109,8 +108,8 @@ class Nat extends Model
             }
 
             if ($unit) {
-                $netWeight = $this->package_weight_gross - ($unit->package_weight ?? 0);
-                $this->package_weight_net = NumberHelper::normalize(max($netWeight, 0));
+                $netWeight = (float) $this->package_weight_gross - (float) ($unit->package_weight ?? 0);
+                $this->package_weight_net = max($netWeight, 0.0);
 
                 return (float) $this->package_weight_net;
             }
@@ -122,11 +121,11 @@ class Nat extends Model
     public function calculateComparisonPrice(): float
     {
         if ($this->package_weight_net && $this->package_weight_net > 0 && $this->package_price) {
-            $normalizedWeight = NumberHelper::normalize($this->package_weight_net);
+            $weight = (float) $this->package_weight_net;
 
-            if ($normalizedWeight > 0) {
-                $comparisonPrice = $this->package_price / $normalizedWeight;
-                $this->comparison_price_per_kg = NumberHelper::normalize($comparisonPrice, 0);
+            if ($weight > 0) {
+                $comparisonPrice = (float) $this->package_price / $weight;
+                $this->comparison_price_per_kg = (float) $comparisonPrice;
 
                 return (float) $this->comparison_price_per_kg;
             }

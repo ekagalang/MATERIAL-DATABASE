@@ -63,7 +63,7 @@ class PaintingFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjang = $n($params['wall_length']); // m

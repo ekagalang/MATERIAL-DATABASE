@@ -273,7 +273,7 @@ class CalculationOrchestrationService
      */
     public function compareBricks(array $request): array
     {
-        $n = static fn($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
         $wallLength = $n($request['wall_length']);
         $workType = $request['work_type'] ?? 'brick_half';
         $bricks = $this->repository->getBricksByIds($request['brick_ids']);

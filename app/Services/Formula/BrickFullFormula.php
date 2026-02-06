@@ -60,7 +60,7 @@ class BrickFullFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangDinding = $n($params['wall_length']);
@@ -471,7 +471,7 @@ class BrickFullFormula implements FormulaInterface
             $cementKg = floor($kgSemenPekerjaan);
         }
 
-        // Water liters sudah di-normalize di line 405, tidak perlu pembulatan lagi
+        // Water liters sudah dihitung di line 405, tidak perlu pembulatan lagi
         $waterLiters = $literAirPekerjaan;
 
         // ============ Hitung Harga ============

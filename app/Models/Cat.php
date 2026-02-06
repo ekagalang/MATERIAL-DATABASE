@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Helpers\MaterialTypeDetector;
-use App\Helpers\NumberHelper;
 
 class Cat extends Model
 {
@@ -75,7 +74,7 @@ class Cat extends Model
 
     /**
      * Method untuk kalkulasi berat bersih
-     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
+     * Menggunakan nilai float murni untuk perhitungan
      */
     public function calculateNetWeight()
     {
@@ -87,8 +86,8 @@ class Cat extends Model
                 ->first();
 
             if ($unit) {
-                $netWeight = $this->package_weight_gross - $unit->package_weight;
-                $this->package_weight_net = NumberHelper::normalize($netWeight);
+                $netWeight = (float) $this->package_weight_gross - (float) $unit->package_weight;
+                $this->package_weight_net = (float) $netWeight;
                 return $this->package_weight_net;
             }
         }
@@ -98,18 +97,16 @@ class Cat extends Model
 
     /**
      * Method untuk kalkulasi harga komparasi per kg
-     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
+     * Menggunakan nilai float murni untuk perhitungan
      */
     public function calculateComparisonPrice()
     {
         if ($this->package_weight_net && $this->package_weight_net > 0 && $this->purchase_price) {
-            // Normalize berat sebelum perhitungan
-            $normalizedWeight = NumberHelper::normalize($this->package_weight_net);
+            $weight = (float) $this->package_weight_net;
 
-            if ($normalizedWeight > 0) {
-                $comparisonPrice = $this->purchase_price / $normalizedWeight;
-                // Normalize hasil (0 decimal untuk harga)
-                $this->comparison_price_per_kg = NumberHelper::normalize($comparisonPrice, 0);
+            if ($weight > 0) {
+                $comparisonPrice = (float) $this->purchase_price / $weight;
+                $this->comparison_price_per_kg = (float) $comparisonPrice;
                 return $this->comparison_price_per_kg;
             }
         }

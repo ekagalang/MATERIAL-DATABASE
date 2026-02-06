@@ -95,6 +95,21 @@ function initBrickForm(root) {
         return `${sign}0.${digits}`;
     }
 
+    function formatVolumePlain(value) {
+        if (value === '' || value === null || value === undefined) return '';
+        const num = Number(value);
+        if (!isFinite(num)) return '';
+        return num.toLocaleString('en-US', {
+            useGrouping: false,
+            maximumFractionDigits: 20,
+        });
+    }
+
+    function formatVolumeDisplay(value) {
+        const plain = formatVolumePlain(value);
+        return plain || '';
+    }
+
     function formatRupiah(num) {
         const plain = formatPlainNumber(num, 0);
         if (!plain) return '';
@@ -525,7 +540,8 @@ function initBrickForm(root) {
                 { key: 'volumeCm3', value: volumeCm3 },
                 { key: 'volumeM3', value: normalizedVolume },
             ]).then((formatted) => {
-                const volumeText = formatted.volumeM3?.formatted || '';
+                const volumeText = formatVolumeDisplay(normalizedVolume);
+                const volumePlain = formatVolumePlain(normalizedVolume);
                 if (volumeDisplay) {
                     volumeDisplay.textContent = volumeText;
                     volumeDisplay.style.color = '#27ae60';
@@ -534,7 +550,7 @@ function initBrickForm(root) {
                     volumeDisplayInput.value = volumeText;
                 }
                 if (packageVolume) {
-                    packageVolume.value = formatted.volumeM3?.plain || '';
+                    packageVolume.value = volumePlain || '';
                 }
                 if (volumeCalculationDisplay) {
                     const lengthText = formatted.length?.formatted || '';

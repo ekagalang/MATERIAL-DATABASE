@@ -41,7 +41,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ asset('css/global.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/global.css') }}?v={{ @filemtime(public_path('css/global.css')) }}">
     <script src="{{ asset('js/number-helper-client.js') }}"></script>
 </head>
 <body>
@@ -1294,6 +1294,7 @@
                 if(!globalModal) return;
                 globalModal.classList.remove('active');
                 document.body.style.overflow = '';
+                document.body.classList.remove('global-modal-open');
                 setTimeout(() => {
                     globalModalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
                     isGlobalFormDirty = false;
@@ -1313,16 +1314,33 @@
             window.openGlobalMaterialModal = function(url, prefillType = null) {
                 if (!globalModal || !globalModalBody || !globalModalTitle || !globalCloseBtn || !globalBackdrop) return;
 
+                // Ensure global modal is always rendered on top-most layer.
+                if (globalModal.parentElement !== document.body) {
+                    document.body.appendChild(globalModal);
+                } else {
+                    // Re-append to keep it as the latest body child (safest stacking fallback).
+                    document.body.appendChild(globalModal);
+                }
+                globalModal.style.setProperty('z-index', '2147483000', 'important');
+                globalBackdrop.style.setProperty('z-index', '2147483001', 'important');
+                const globalModalContent = globalModal.querySelector('.floating-modal-content');
+                if (globalModalContent) {
+                    globalModalContent.style.setProperty('z-index', '2147483002', 'important');
+                }
+
                 const { materialType, action, materialLabel } = getGlobalMaterialInfo(url);
                 pendingGlobalTypePrefill = prefillType || null;
                 isGlobalFormDirty = false;
 
                 globalModal.classList.add('active');
                 document.body.style.overflow = 'hidden';
+                document.body.classList.add('global-modal-open');
 
-                // Close dropdown menu if exists
-                const dropdownMenu = document.querySelector('.dropdown-menu.show');
-                if (dropdownMenu) dropdownMenu.classList.remove('show');
+                // Close open sidebar dropdown states to prevent overlap with modal.
+                document.querySelectorAll('.nav-dropdown-menu.show').forEach((menu) => menu.classList.remove('show'));
+                document.querySelectorAll('.nav-link-btn.dropdown-open').forEach((btn) =>
+                    btn.classList.remove('dropdown-open'),
+                );
 
                 if (action === 'create') {
                     globalModalTitle.textContent = `Tambah ${materialLabel} Baru`;

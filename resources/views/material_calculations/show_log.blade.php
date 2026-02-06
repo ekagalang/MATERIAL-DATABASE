@@ -289,6 +289,51 @@
                     max-width: 200px;
                     min-width: 150px;
                 }
+                .table-preview td.preview-scroll-td {
+                    overflow: hidden;
+                    white-space: nowrap;
+                }
+                .table-preview td.preview-scroll-td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3) {
+                    position: relative;
+                }
+                .table-preview td.preview-scroll-td.sticky-col-1,
+                .table-preview td.preview-scroll-td.sticky-col-2,
+                .table-preview td.preview-scroll-td.sticky-col-3 {
+                    position: sticky;
+                }
+                .table-preview td.preview-scroll-td.is-scrollable::after {
+                    content: '...';
+                    position: absolute;
+                    right: 6px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: rgba(15, 23, 42, 0.85);
+                    background: linear-gradient(
+                        90deg,
+                        rgba(255, 255, 255, 0) 0%,
+                        rgba(255, 255, 255, 0.9) 40%,
+                        rgba(255, 255, 255, 1) 100%
+                    );
+                    padding-left: 8px;
+                    pointer-events: none;
+                }
+                .table-preview td.preview-scroll-td.is-scrolled-end::after {
+                    opacity: 0;
+                }
+                .table-preview .preview-scroll-cell {
+                    display: block;
+                    width: 100%;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    scrollbar-width: none;
+                    scrollbar-color: transparent transparent;
+                    white-space: nowrap;
+                }
+                .table-preview .preview-scroll-cell::-webkit-scrollbar {
+                    height: 0;
+                }
                 .table-preview tbody tr:last-child td {
                     border-bottom: none;
                 }
@@ -387,7 +432,9 @@
                     {{-- ROW 1: BATA --}}
                     @if($hasBrick)
                     <tr class="text-nowrap">
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->brick_quantity)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->brick_quantity)</div>
+                        </td>
                         <td class="text-center sticky-col-2">Bh</td>
                         <td class="fw-bold sticky-col-3">Bata</td>
                         <td class="text-muted">{{ $brickType }}</td>
@@ -440,7 +487,9 @@
                     {{-- ROW 2: SEMEN --}}
                     @if($hasCement)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->cement_quantity_sak)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->cement_quantity_sak)</div>
+                        </td>
                         <td class="text-center sticky-col-2">Sak</td>
                         <td class="fw-bold sticky-col-3">Semen</td>
                         <td class="text-muted">{{ $materialCalculation->cement->type ?? '-' }}</td>
@@ -493,7 +542,9 @@
                     {{-- ROW 3: PASIR --}}
                     @if($hasSand)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->sand_m3)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->sand_m3)</div>
+                        </td>
                         <td class="text-center sticky-col-2">M3</td>
                         <td class="fw-bold sticky-col-3">Pasir</td>
                         <td class="text-muted">{{ $materialCalculation->sand->type ?? '-' }}</td>
@@ -546,7 +597,9 @@
                     {{-- ROW 4: CAT (NEW) --}}
                     @if($hasCat)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->cat_quantity)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->cat_quantity)</div>
+                        </td>
                         <td class="text-center sticky-col-2">{{ $materialCalculation->cat->package_unit ?? 'Kmsn' }}</td>
                         <td class="fw-bold sticky-col-3">Cat</td>
                         <td class="text-muted">{{ $materialCalculation->cat->type ?? '-' }}</td>
@@ -599,7 +652,9 @@
                     {{-- ROW CERAMIC (NEW) --}}
                     @if($showCeramicRow)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->ceramic_quantity)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->ceramic_quantity)</div>
+                        </td>
                         <td class="text-center sticky-col-2">Bh</td>
                         <td class="fw-bold sticky-col-3">Keramik</td>
                         <td class="text-muted">{{ optional($materialCalculation->ceramic)->type ?? ($isGroutOnly ? 'Referensi' : '-') }}</td>
@@ -612,7 +667,7 @@
                             <td class="text-nowrap fw-bold">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>@format(optional($materialCalculation->ceramic)->price_per_package ?? 0)</span>
+                                    <span>@price(optional($materialCalculation->ceramic)->price_per_package ?? 0)</span>
                                 </div>
                             </td>
                             <td class="text-muted text-nowrap ps-1">/ Dus</td>
@@ -649,7 +704,7 @@
                             <td class="text-nowrap">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>@format(optional($materialCalculation->ceramic)->price_per_package ?? 0)</span>
+                                    <span>@price(optional($materialCalculation->ceramic)->price_per_package ?? 0)</span>
                                 </div>
                             </td>
                             <td class="text-muted text-nowrap ps-1">/ Dus</td>
@@ -663,7 +718,9 @@
                     {{-- ROW NAT (NEW) --}}
                     @if($hasNat)
                     <tr>
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->nat_quantity)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->nat_quantity)</div>
+                        </td>
                         <td class="text-center sticky-col-2">Bks</td>
                         <td class="fw-bold sticky-col-3">Nat</td>
                         <td class="text-muted">{{ $materialCalculation->nat->nat_name ?? 'Nat' }}</td>
@@ -715,7 +772,9 @@
 
                     {{-- ROW 5: AIR (ALWAYS LAST) --}}
                     <tr class="group-end">
-                        <td class="text-end fw-bold sticky-col-1">@format($materialCalculation->water_liters)</td>
+                        <td class="text-end fw-bold sticky-col-1 preview-scroll-td">
+                            <div class="preview-scroll-cell">@formatResult($materialCalculation->water_liters)</div>
+                        </td>
                         <td class="text-center sticky-col-2">L</td>
                         <td class="fw-bold sticky-col-3">Air</td>
                         <td class="text-muted">Bersih</td>
@@ -858,4 +917,42 @@
         }
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        function updateScrollIndicators() {
+            const cells = document.querySelectorAll('.table-preview .preview-scroll-td');
+            cells.forEach(function (cell) {
+                const scroller = cell.querySelector('.preview-scroll-cell');
+                if (!scroller) return;
+                const isScrollable = scroller.scrollWidth > scroller.clientWidth + 1;
+                cell.classList.toggle('is-scrollable', isScrollable);
+                const atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 1;
+                cell.classList.toggle('is-scrolled-end', isScrollable && atEnd);
+            });
+        }
+
+        function bindScrollHandlers() {
+            const cells = document.querySelectorAll('.table-preview .preview-scroll-td');
+            cells.forEach(function (cell) {
+                const scroller = cell.querySelector('.preview-scroll-cell');
+                if (!scroller || scroller.__previewScrollBound) return;
+                scroller.__previewScrollBound = true;
+                scroller.addEventListener('scroll', updateScrollIndicators, {
+                    passive: true,
+                });
+            });
+        }
+
+        function refreshIndicators() {
+            updateScrollIndicators();
+            bindScrollHandlers();
+            requestAnimationFrame(updateScrollIndicators);
+            setTimeout(updateScrollIndicators, 60);
+        }
+
+        refreshIndicators();
+        window.addEventListener('resize', refreshIndicators);
+    });
+</script>
 @endsection

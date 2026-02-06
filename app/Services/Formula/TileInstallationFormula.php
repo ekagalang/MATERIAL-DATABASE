@@ -59,7 +59,7 @@ class TileInstallationFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangBidang = $n($params['wall_length']); // m
@@ -419,7 +419,7 @@ class TileInstallationFormula implements FormulaInterface
         $kubikNatPekerjaan = $n($kubikNatPerBungkus * $kebutuhanBungkusNat);
         $kubikAirNatPekerjaan = $n($kubikAirNatPerBungkus * $kebutuhanBungkusNat);
 
-        // Kebutuhan liter air per pekerjaan = Kubik Air Normalized * 1000
+        // Kebutuhan liter air per pekerjaan = Kubik Air * 1000
         $literAirNatPekerjaan = $kubikAirNatPekerjaan * 1000;
 
         $volumeAdukanNatPekerjaan = $n($volumeAdukanNatPerBungkus * $kebutuhanBungkusNat);

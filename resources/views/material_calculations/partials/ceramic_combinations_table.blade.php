@@ -497,10 +497,19 @@
                 white-space: nowrap;
             }
             .table-preview td.preview-scroll-td {
-                position: relative;
                 overflow: hidden;
                 white-space: nowrap;
                 text-align: left;
+            }
+
+            .table-preview td.preview-scroll-td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3) {
+                position: relative;
+            }
+
+            .table-preview td.preview-scroll-td.sticky-col-1,
+            .table-preview td.preview-scroll-td.sticky-col-2,
+            .table-preview td.preview-scroll-td.sticky-col-3 {
+                position: sticky;
             }
             .table-preview td.preview-store-cell {
                 width: 150px;
@@ -725,10 +734,16 @@
                                     {{ $primaryLabel }}
                                 </a>
                             </td>
-                            <td class="text-end fw-bold" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $bgColor }}; padding: 4px 8px; vertical-align: middle; width: 140px; min-width: 140px;">
+                            <td class="text-end fw-bold preview-scroll-td" style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $bgColor }}; padding: 4px 8px; vertical-align: middle; width: 140px; min-width: 140px;">
                                 <div class="d-flex justify-content-between w-100">
                                     <span>Rp</span>
-                                    <span>{{ $grandTotal !== null ? \App\Helpers\NumberHelper::format($grandTotal) : '-' }}</span>
+                                    <span class="preview-scroll-cell">
+                                        @if ($grandTotal !== null)
+                                            @formatResult($grandTotal)
+                                        @else
+                                            -
+                                        @endif
+                                    </span>
                                 </div>
                             </td>
                             @if($hasCement)
@@ -798,11 +813,8 @@
                             $item = $combo['item'];
                             $res = $item['result'];
                             $areaForCost = $area > 0 ? $area : (float)($requestData['area'] ?? 0);
-                            // Normalize areaForCost karena non-rupiah (M2), normalize hasil pembagian
-                            $normalizedArea = \App\Helpers\NumberHelper::normalize($areaForCost);
-                            $costPerM2 = $normalizedArea > 0
-                                ? \App\Helpers\NumberHelper::normalize($res['grand_total'] / $normalizedArea)
-                                : 0;
+                            $normalizedArea = (float) $areaForCost;
+                            $costPerM2 = $normalizedArea > 0 ? $res['grand_total'] / $normalizedArea : 0;
                             $cementWeight = isset($item['cement']) ? ($item['cement']->package_weight_net ?? 0) : 0;
                             if ($cementWeight <= 0) {
                                 $cementWeight = 1;
@@ -837,7 +849,7 @@
                                 return \App\Helpers\NumberHelper::format($num);
                             };
                             $formatMoney = function($num) {
-                                return \App\Helpers\NumberHelper::format($num, 0);
+                                return \App\Helpers\NumberHelper::formatFixed($num, 0);
                             };
                             $formatRaw = function($num, $decimals = 6) {
                                 return \App\Helpers\NumberHelper::format($num, $decimals);
@@ -1034,9 +1046,12 @@
                                 $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                 $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
                                 // Gunakan total hasil formula agar konsisten dengan Trace.
-                                $hargaKomparasi = \App\Helpers\NumberHelper::normalize($mat['total_price'] ?? 0, 0);
+                                $hargaKomparasi = round((float) ($mat['total_price'] ?? 0), 0);
                                 if ($hargaKomparasi <= 0 && !(isset($mat['is_special']) && $mat['is_special'])) {
-                                    $hargaKomparasi = \App\Helpers\NumberHelper::normalize(($pricePerUnit ?? 0) * ($priceCalcQty ?? 0), 0);
+                                    $hargaKomparasi = round(
+                                        (float) (($pricePerUnit ?? 0) * ($priceCalcQty ?? 0)),
+                                        0,
+                                    );
                                 }
 
                                 $qtyTitleParts = [];
@@ -1070,7 +1085,9 @@
                                 $packagePriceTitle = implode(' | ', $packagePriceTitleParts);
                             @endphp
                             <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
-                                <td class="text-end fw-bold sticky-col-1" title="{{ $qtyTitle }}">@format($mat['qty'])</td>
+                                <td class="text-end fw-bold sticky-col-1 preview-scroll-td" title="{{ $qtyTitle }}">
+                                    <div class="preview-scroll-cell">@formatResult($mat['qty'])</div>
+                                </td>
                                 <td class="text-center sticky-col-2">{{ $mat['unit'] }}</td>
                                 <td class="fw-bold sticky-col-3">{{ $mat['name'] }}</td>
 
@@ -1113,7 +1130,7 @@
                                                 ' x Rp ' .
                                                 $formatMoney($pricePerUnit) .
                                                 ' = Rp ' .
-                                                $formatMoney(\App\Helpers\NumberHelper::normalize($pricePerUnit * $priceCalcQty, 0));
+                                                $formatMoney(round((float) ($pricePerUnit * $priceCalcQty), 0));
                                         }
                                         $hargaKomparasiDebug = implode(' | ', $hargaKomparasiDebugParts);
                                     @endphp
@@ -1127,22 +1144,22 @@
 
                                 @if($isFirstMaterial)
                                     @php
-                                        $grandTotalValue = \App\Helpers\NumberHelper::normalize($res['grand_total'] ?? 0, 0);
+                                        $grandTotalValue = round((float) ($res['grand_total'] ?? 0), 0);
                                         if ($grandTotalValue <= 0) {
                                             $fallbackGrandTotal = 0;
                                             foreach($visibleMaterials as $debugMat) {
                                                 if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
-                                                    $fallbackGrandTotal += \App\Helpers\NumberHelper::normalize($debugMat['total_price'] ?? 0, 0);
+                                                    $fallbackGrandTotal += round((float) ($debugMat['total_price'] ?? 0), 0);
                                                 }
                                             }
-                                            $grandTotalValue = \App\Helpers\NumberHelper::normalize($fallbackGrandTotal, 0);
+                                            $grandTotalValue = round((float) $fallbackGrandTotal, 0);
                                         }
                                         $grandTotalDebug = 'Nilai formula grand total: Rp ' . $formatMoney($grandTotalValue);
 
-                                        // Build debug for costPerM2 (normalize areaForCost karena non-rupiah, normalize hasil pembagian)
-                                        $normalizedAreaForCost = \App\Helpers\NumberHelper::normalize($areaForCost);
+                                        // Build debug for costPerM2 (non-rupiah, gunakan float murni)
+                                        $normalizedAreaForCost = (float) $areaForCost;
                                         $calculatedCostPerM2 = $normalizedAreaForCost > 0
-                                            ? \App\Helpers\NumberHelper::normalize($grandTotalValue / $normalizedAreaForCost)
+                                            ? $grandTotalValue / $normalizedAreaForCost
                                             : 0;
                                         $costPerM2Debug = "Rumus: Rp " . $formatMoney($grandTotalValue) . " / " . $formatNum($normalizedAreaForCost) . " M2";
                                         $costPerM2Debug .= " | Nilai tampil: Rp " . $formatMoney($calculatedCostPerM2) . " / M2";
@@ -1167,25 +1184,19 @@
                                     <td></td>
                                 @else
                                     @php
-                                        // Normalize qty untuk konsistensi
-                                        $normalizedQtyValue = \App\Helpers\NumberHelper::normalize($mat['qty'] ?? 0);
-                                        // Gunakan harga komparasi yang sudah dihitung (sesuai formula)
-                                        // Normalize ke 0 decimal agar perhitungan backward (total / qty) sesuai dengan angka yang ditampilkan
-                                        $totalPriceValue = \App\Helpers\NumberHelper::normalize($hargaKomparasi, 0);
-
-                                        // Normalisasi nilai agar sesuai dengan yang ditampilkan (mengikuti aturan NumberHelper)
-                                        // Ini memastikan perhitungan menggunakan nilai yang sama dengan yang user lihat
-                                        $normalizedDetailValue = \App\Helpers\NumberHelper::normalize($detailValue);
+                                        $normalizedQtyValue = (float) ($mat['qty'] ?? 0);
+                                        $totalPriceValue = round((float) $hargaKomparasi, 0);
+                                        $normalizedDetailValue = (float) $detailValue;
 
                                         // Untuk sand, hanya hitung total_price / qty (tanpa pembagian detail_value)
                                         if ($matKey === 'sand') {
                                             $actualBuyPrice = ($normalizedQtyValue > 0)
-                                                ? \App\Helpers\NumberHelper::normalize($totalPriceValue / $normalizedQtyValue)
+                                                ? $totalPriceValue / $normalizedQtyValue
                                                 : 0;
                                             $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($normalizedQtyValue) . " " . $mat['unit'] . " = Rp " . $formatMoney($actualBuyPrice);
                                         } else {
                                             $actualBuyPrice = ($normalizedQtyValue > 0 && $normalizedDetailValue > 0)
-                                                ? \App\Helpers\NumberHelper::normalize($totalPriceValue / $normalizedQtyValue / $normalizedDetailValue)
+                                                ? $totalPriceValue / $normalizedQtyValue / $normalizedDetailValue
                                                 : 0;
                                             $hargaBeliAktualDebug = "Rumus: Rp " . $formatMoney($totalPriceValue) . " / " . $formatNum($normalizedQtyValue) . " " . $mat['unit'] . " / " . $formatNum($normalizedDetailValue) . " " . $comparisonUnit . " = Rp " . $formatMoney($actualBuyPrice);
                                         }
@@ -1506,7 +1517,7 @@
                                                 <td class="text-muted">{{ $index + 1 }}</td>
                                                 <td>{{ $row['display_label'] }}</td>
                                                 <td>{{ $row['brand'] }}</td>
-                                                <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                                <td class="text-end">Rp {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -1532,7 +1543,7 @@
                                                 <td class="text-muted">{{ $index + 1 }}</td>
                                                 <td>{{ $row['display_label'] }}</td>
                                                 <td>{{ $row['brand'] }}</td>
-                                                <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                                <td class="text-end">Rp {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -1557,7 +1568,7 @@
                                             <td class="text-muted">{{ $row['index'] }}</td>
                                             <td>{{ $row['display_label'] }}</td>
                                             <td>{{ $row['brand'] }}</td>
-                                            <td class="text-end">Rp {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                            <td class="text-end">Rp {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}</td>
                                         </tr>
                                     @endforeach
                                 </tbody>

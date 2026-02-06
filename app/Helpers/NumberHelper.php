@@ -4,203 +4,147 @@ namespace App\Helpers;
 
 class NumberHelper
 {
-    private const DEFAULT_DECIMALS = 2;
-    private const MAX_DECIMAL_PRECISION = 30;
+    private const DEFAULT_DECIMALS = 15;
+    private const RESULT_DECIMALS = 15;
+    private const FIXED_DECIMALS = 2;
 
-    private static function resolveDecimals(?int $decimals): int
+    private static function resolveDecimals(?int $decimals, int $fallback): int
     {
-        if ($decimals === null) {
-            return self::DEFAULT_DECIMALS;
-        }
-
-        return max(0, $decimals);
+        return max(0, $decimals ?? $fallback);
     }
 
-    private static function toPlainString(float $number, int $precision = self::MAX_DECIMAL_PRECISION): string
-    {
-        $precision = max(0, $precision);
-        return sprintf('%.' . $precision . 'F', $number);
-    }
-
-    private static function stabilizeFloat(float $number): float
-    {
-        if ($number == 0.0 || !is_finite($number)) {
-            return $number;
-        }
-
-        $abs = abs($number);
-        $epsilon = min($abs * 1.0e-12, 1.0e-6);
-        if ($epsilon === 0.0) {
-            return $number;
-        }
-
-        return $number + ($number >= 0 ? $epsilon : -$epsilon);
-    }
-
-    private static function truncateString(float $number, int $decimals): string
-    {
-        if (!is_finite($number)) {
-            return $decimals > 0 ? '0.' . str_repeat('0', $decimals) : '0';
-        }
-
-        $decimals = max(0, $decimals);
-        $sign = $number < 0 ? '-' : '';
-        $number = abs($number);
-
-        $plain = sprintf('%.20F', $number);
-        $parts = explode('.', $plain, 2);
-        $intPart = $parts[0] ?? '0';
-        $decPart = $parts[1] ?? '';
-        $decPart = substr($decPart, 0, $decimals);
-
-        if ($decimals === 0) {
-            return $sign . $intPart;
-        }
-
-        $decPart = str_pad($decPart, $decimals, '0');
-        return $sign . $intPart . '.' . $decPart;
-    }
-
-    private static function formatPlain(
-        string $plain,
+    private static function formatNumber(
+        ?float $number,
         int $decimals,
         string $decimalSeparator,
         string $thousandsSeparator,
     ): string {
-        $decimals = max(0, $decimals);
-        $sign = '';
-        if (str_starts_with($plain, '-')) {
-            $sign = '-';
-            $plain = substr($plain, 1);
-        }
-
-        $parts = explode('.', $plain, 2);
-        $intPart = $parts[0] ?? '0';
-        $decPart = $parts[1] ?? '';
-        $intPart = preg_replace('/\B(?=(\d{3})+(?!\d))/', $thousandsSeparator, $intPart);
-
-        if ($decimals === 0) {
-            return $sign . $intPart;
-        }
-
-        $decPart = str_pad(substr($decPart, 0, $decimals), $decimals, '0');
-        if (preg_match('/^0+$/', $decPart)) {
-            return $sign . $intPart;
-        }
-        return $sign . $intPart . $decimalSeparator . $decPart;
-    }
-
-    private static function formatDynamic(
-        ?float $number,
-        string $decimalSeparator,
-        string $thousandsSeparator,
-    ): string {
-        $plain = self::dynamicPlain($number);
-        $sign = '';
-        if (str_starts_with($plain, '-')) {
-            $sign = '-';
-            $plain = substr($plain, 1);
-        }
-
-        $parts = explode('.', $plain, 2);
-        $intPart = $parts[0] ?? '0';
-        $decPart = $parts[1] ?? '';
-        $intPart = preg_replace('/\B(?=(\d{3})+(?!\d))/', $thousandsSeparator, $intPart);
-
-        if ($decPart === '') {
-            return $sign . $intPart;
-        }
-
-        return $sign . $intPart . $decimalSeparator . $decPart;
-    }
-
-    private static function dynamicPlain(?float $number): string
-    {
         if ($number === null || !is_finite($number)) {
             return '0';
         }
 
-        $number = self::stabilizeFloat($number);
-        $sign = $number < 0 ? '-' : '';
-        $plain = self::toPlainString(abs($number));
-        $parts = explode('.', $plain, 2);
-        $intPart = $parts[0] ?? '0';
-        $decPart = $parts[1] ?? '';
+        $decimals = max(0, $decimals);
+        $formatted = number_format($number, $decimals, $decimalSeparator, $thousandsSeparator);
 
-        $intPart = ltrim($intPart, '0');
-        if ($intPart === '') {
-            $intPart = '0';
+        if ($decimals === 0) {
+            return $formatted;
         }
 
-        $decPart = rtrim($decPart, '0');
+        $formatted = rtrim($formatted, '0');
+        $formatted = rtrim($formatted, $decimalSeparator);
 
-        if ($intPart !== '0') {
-            $decPart = substr($decPart, 0, self::DEFAULT_DECIMALS);
-            $decPart = rtrim($decPart, '0');
-            if ($decPart === '') {
-                return $sign . $intPart;
-            }
-            return $sign . $intPart . '.' . $decPart;
-        }
-
-        if ($decPart === '') {
-            return $sign . '0';
-        }
-
-        $leadingZeros = strspn($decPart, '0');
-        if ($leadingZeros >= strlen($decPart)) {
-            return $sign . '0';
-        }
-
-        $cutLength = min(strlen($decPart), $leadingZeros + 2);
-        $decPart = substr($decPart, 0, $cutLength);
-        $decPart = rtrim($decPart, '0');
-
-        if ($decPart === '') {
-            return $sign . '0';
-        }
-
-        return $sign . '0.' . $decPart;
+        return $formatted;
     }
 
     /**
-     * Format angka tanpa pembulatan.
-     * Default: dinamis (>=1 tampil 2 digit, <1 sampai 2 digit setelah digit non-zero pertama).
-     *
-     * @param float|null $number
-     * @param int|null $decimals (Opsional: paksa jumlah desimal)
-     * @param string $decimalSeparator
-     * @param string $thousandsSeparator
-     * @return string
+     * Format angka untuk tampilan umum.
+     * Default: 2 desimal, nol di belakang disembunyikan.
      */
     public static function format(
-        ?float $number,
+        mixed $number,
         ?int $decimals = null,
         string $decimalSeparator = ',',
         string $thousandsSeparator = '.',
     ): string {
-        if ($decimals === null) {
-            return self::formatDynamic($number, $decimalSeparator, $thousandsSeparator);
-        }
-
-        if ($number === null) {
-            $decimals = self::resolveDecimals($decimals);
-            return self::formatPlain('0', $decimals, $decimalSeparator, $thousandsSeparator);
-        }
-
-        $decimals = self::resolveDecimals($decimals);
-        $plain = self::truncateString($number, $decimals);
-
-        return self::formatPlain($plain, $decimals, $decimalSeparator, $thousandsSeparator);
+        $decimals = self::resolveDecimals($decimals, self::DEFAULT_DECIMALS);
+        return self::formatPlain($number, $decimals, $decimalSeparator, $thousandsSeparator);
     }
 
     /**
-     * Normalisasi angka tanpa pembulatan (dipakai untuk perhitungan).
-     * Default: dinamis mengikuti aturan format().
-     *
-     * @param float|null $number
-     * @param int|null $decimals (Opsional: paksa jumlah desimal)
-     * @return float
+     * Format angka untuk hasil perhitungan (lebih detail).
+     * Default: 6 desimal, nol di belakang disembunyikan.
+     */
+    public static function formatResult(
+        mixed $number,
+        ?int $decimals = null,
+        string $decimalSeparator = ',',
+        string $thousandsSeparator = '.',
+    ): string {
+        $decimals = self::resolveDecimals($decimals, self::RESULT_DECIMALS);
+        return self::formatPlain($number, $decimals, $decimalSeparator, $thousandsSeparator);
+    }
+
+    /**
+     * Format angka dengan behavior lama (number_format + trim nol).
+     * Cocok untuk currency/angka yang tidak butuh presisi panjang.
+     */
+    public static function formatFixed(
+        mixed $number,
+        ?int $decimals = null,
+        string $decimalSeparator = ',',
+        string $thousandsSeparator = '.',
+    ): string {
+        $decimals = self::resolveDecimals($decimals, self::FIXED_DECIMALS);
+        $parsed = self::parseNumberValue($number, $decimalSeparator, $thousandsSeparator);
+        return self::formatNumber($parsed, $decimals, $decimalSeparator, $thousandsSeparator);
+    }
+
+    /**
+     * Format angka tanpa notasi ilmiah, menjaga presisi float.
+     * Default: desimal titik, tanpa pemisah ribuan.
+     */
+    public static function formatPlain(
+        mixed $number,
+        int $maxDecimals = 15,
+        string $decimalSeparator = ',',
+        string $thousandsSeparator = '.',
+    ): string {
+        $parsed = self::parseNumberValue($number, $decimalSeparator, $thousandsSeparator);
+        if ($parsed === null || !is_finite($parsed)) {
+            return '0';
+        }
+
+        $maxDecimals = max(0, $maxDecimals);
+        $base = $parsed;
+        $bestDecimals = $maxDecimals;
+        $bestValue = round($base, $maxDecimals);
+        $tolerance = max(abs($base) * 1e-12, 1e-12);
+
+        for ($d = $maxDecimals - 1; $d >= 0; $d--) {
+            $candidate = round($base, $d);
+            if (abs($candidate - $base) <= $tolerance) {
+                $bestDecimals = $d;
+                $bestValue = $candidate;
+                continue;
+            }
+            break;
+        }
+
+        $formatted = number_format($bestValue, $bestDecimals, '.', '');
+        if ($bestDecimals > 0) {
+            $formatted = rtrim($formatted, '0');
+            $formatted = rtrim($formatted, '.');
+        }
+
+        if ($formatted === '' || $formatted === '-0') {
+            $formatted = '0';
+        }
+
+        $sign = '';
+        if (str_starts_with($formatted, '-')) {
+            $sign = '-';
+            $formatted = substr($formatted, 1);
+        }
+
+        $parts = explode('.', $formatted, 2);
+        $intPart = $parts[0] ?? '0';
+        $decPart = $parts[1] ?? '';
+
+        if ($thousandsSeparator !== '') {
+            $intPart = preg_replace('/\B(?=(\d{3})+(?!\d))/', $thousandsSeparator, $intPart);
+        }
+
+        $formatted = $sign . $intPart;
+        if ($decPart !== '') {
+            $formatted .= $decimalSeparator . $decPart;
+        }
+
+        return $formatted;
+    }
+
+    /**
+     * Normalisasi angka sederhana (cast/round).
+     * Dipertahankan untuk kebutuhan API, bukan untuk perhitungan internal.
      */
     public static function normalize(?float $number, ?int $decimals = null): float
     {
@@ -209,42 +153,30 @@ class NumberHelper
         }
 
         if ($decimals === null) {
-            $plain = self::dynamicPlain($number);
-            if ($plain === '' || $plain === '-' || $plain === '-0') {
-                return 0.0;
-            }
-            return (float) $plain;
+            return (float) $number;
         }
 
-        $resolvedDecimals = self::resolveDecimals($decimals);
-        $plain = self::truncateString($number, $resolvedDecimals);
-        return (float) $plain;
+        return (float) round($number, max(0, $decimals));
     }
 
     /**
      * Format untuk currency (Rupiah)
-     *
-     * @param float|null $number
-     * @return string
      */
-    public static function currency(?float $number): string
+    public static function currency(mixed $number): string
     {
-        if ($number === null) {
+        if ($number === null || $number === '') {
             return 'Rp 0';
         }
 
-        return 'Rp ' . self::format($number, 0, ',', '.');
+        return 'Rp ' . self::formatFixed($number, 0, ',', '.');
     }
 
     /**
      * Format untuk weight (Kg)
-     *
-     * @param float|null $number
-     * @return string
      */
-    public static function weight(?float $number): string
+    public static function weight(mixed $number): string
     {
-        if ($number === null) {
+        if ($number === null || $number === '') {
             return '0 Kg';
         }
 
@@ -253,16 +185,85 @@ class NumberHelper
 
     /**
      * Format untuk volume (M3)
-     *
-     * @param float|null $number
-     * @return string
      */
-    public static function volume(?float $number): string
+    public static function volume(mixed $number): string
     {
-        if ($number === null) {
+        if ($number === null || $number === '') {
             return '0 M3';
         }
 
         return self::format($number, self::DEFAULT_DECIMALS, ',', '.') . ' M3';
+    }
+
+    private static function parseNumberValue(
+        mixed $value,
+        string $decimalSeparator,
+        string $thousandsSeparator,
+    ): ?float {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        $string = trim((string) $value);
+        if ($string === '') {
+            return null;
+        }
+
+        $string = str_replace(['Rp', 'rp', ' '], '', $string);
+
+        $negative = false;
+        if (str_starts_with($string, '-')) {
+            $negative = true;
+            $string = substr($string, 1);
+        }
+
+        $hasComma = str_contains($string, ',');
+        $hasDot = str_contains($string, '.');
+
+        if ($hasComma && $hasDot) {
+            $lastComma = strrpos($string, ',');
+            $lastDot = strrpos($string, '.');
+            if ($lastComma !== false && $lastDot !== false && $lastComma > $lastDot) {
+                // Comma as decimal, dot as thousands
+                $string = str_replace('.', '', $string);
+                $string = str_replace(',', '.', $string);
+            } else {
+                // Dot as decimal, comma as thousands
+                $string = str_replace(',', '', $string);
+            }
+        } elseif ($hasComma) {
+            $lastComma = strrpos($string, ',');
+            $digitsAfter = $lastComma === false ? 0 : (strlen($string) - $lastComma - 1);
+            if ($digitsAfter === 3 && preg_match('/^\d{1,3}(,\d{3})+$/', $string)) {
+                $string = str_replace(',', '', $string);
+            } else {
+                $string = str_replace(',', '.', $string);
+            }
+        } elseif ($hasDot) {
+            $lastDot = strrpos($string, '.');
+            $digitsAfter = $lastDot === false ? 0 : (strlen($string) - $lastDot - 1);
+            if ($digitsAfter === 3 && preg_match('/^\d{1,3}(\.\d{3})+$/', $string)) {
+                $string = str_replace('.', '', $string);
+            }
+        }
+
+        $string = preg_replace('/[^0-9.]/', '', $string);
+        if ($string === '' || $string === '.') {
+            return null;
+        }
+
+        if ($negative) {
+            $string = '-' . $string;
+        }
+
+        if (!is_numeric($string)) {
+            return null;
+        }
+
+        return (float) $string;
     }
 }

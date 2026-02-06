@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Helpers\MaterialTypeDetector;
-use App\Helpers\NumberHelper;
 
 class Brick extends Model
 {
@@ -66,15 +65,15 @@ class Brick extends Model
     /**
      * Kalkulasi volume dari dimensi (p x l x t)
      * Konversi dari cM3 ke M3
-     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
+     * Menggunakan nilai float murni untuk perhitungan
      */
     public function calculateVolume(): float
     {
         if ($this->dimension_length && $this->dimension_width && $this->dimension_height) {
-            // Normalize dimensi terlebih dahulu
-            $length = NumberHelper::normalize($this->dimension_length);
-            $width = NumberHelper::normalize($this->dimension_width);
-            $height = NumberHelper::normalize($this->dimension_height);
+            // Ambil dimensi sebagai float
+            $length = (float) $this->dimension_length;
+            $width = (float) $this->dimension_width;
+            $height = (float) $this->dimension_height;
 
             // Volume dalam cM3
             $volumeCm3 = $length * $width * $height;
@@ -82,8 +81,8 @@ class Brick extends Model
             // Konversi ke M3 (1 M3 = 1,000,000 cM3)
             $volumeM3 = $volumeCm3 / 1000000;
 
-            // Normalize hasil volume
-            $this->package_volume = NumberHelper::normalize($volumeM3);
+            // Simpan hasil volume
+            $this->package_volume = (float) $volumeM3;
             return $this->package_volume;
         }
 
@@ -92,18 +91,16 @@ class Brick extends Model
 
     /**
      * Kalkulasi harga komparasi per M3
-     * Menggunakan NumberHelper::normalize() untuk konsistensi dengan tampilan
+     * Menggunakan nilai float murni untuk perhitungan
      */
     public function calculateComparisonPrice(): float
     {
         if ($this->price_per_piece && $this->package_volume && $this->package_volume > 0) {
-            // Normalize volume sebelum perhitungan
-            $normalizedVolume = NumberHelper::normalize($this->package_volume);
+            $volume = (float) $this->package_volume;
 
-            if ($normalizedVolume > 0) {
-                $comparisonPrice = $this->price_per_piece / $normalizedVolume;
-                // Normalize hasil (0 decimal untuk harga)
-                $this->comparison_price_per_m3 = NumberHelper::normalize($comparisonPrice, 0);
+            if ($volume > 0) {
+                $comparisonPrice = (float) $this->price_per_piece / $volume;
+                $this->comparison_price_per_m3 = (float) $comparisonPrice;
                 return $this->comparison_price_per_m3;
             }
         }

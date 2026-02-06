@@ -150,7 +150,7 @@ class BrickCalculation extends Model
      */
     public static function performCalculation(array $params): self
     {
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // Get work_type from params (should match formula code)
         $formulaCode = $params['work_type'] ?? null;

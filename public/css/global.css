@@ -1699,15 +1699,31 @@
 
         /* Global Modal Specific Override */
         #globalFloatingModal.global-modal-layer {
-            z-index: 100000 !important; /* Super high z-index */
+            z-index: 2147483000 !important;
+            isolation: isolate;
         }
 
         #globalFloatingModal .floating-modal-backdrop {
-            z-index: 100001 !important; /* Backdrop above container */
+            z-index: 2147483001 !important;
         }
 
         #globalFloatingModal .floating-modal-content {
-            z-index: 100002 !important; /* Content topmost */
+            z-index: 2147483002 !important;
+        }
+
+        body.global-modal-open .nav-dropdown-menu,
+        body.global-modal-open .dropdown-sub-menu {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            transform: none !important;
+        }
+
+        body.global-modal-open .global-topbar,
+        body.global-modal-open .sidebar-nav,
+        body.global-modal-open .nav-overlay {
+            visibility: hidden !important;
+            pointer-events: none !important;
         }
         /* Unit Selector Styling - Simple seperti Volume suffix */
         .dimensi-input-with-unit {

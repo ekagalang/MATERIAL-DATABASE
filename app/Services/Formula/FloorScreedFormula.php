@@ -57,7 +57,7 @@ class FloorScreedFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjang = $n($params['wall_length']); // m
@@ -220,7 +220,7 @@ class FloorScreedFormula implements FormulaInterface
         // Kubik air pekerjaan
         $kubikAirPekerjaan = $n($kubikAirPer1M2 * $totalLuasPlesteran);
 
-        // Liter air pekerjaan (derived from M3 normalized)
+        // Liter air pekerjaan (derived from M3)
         $literAirPekerjaan = $kubikAirPekerjaan * 1000;
 
         // Volume adukan pekerjaan

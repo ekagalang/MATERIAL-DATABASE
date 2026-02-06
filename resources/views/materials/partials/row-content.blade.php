@@ -29,9 +29,11 @@
             <span>-</span>
         @endif
     </td>
-    <td class="border-right-none" style="text-align: right; width: 80px; min-width: 80px; font-size: 12px;">
-        @if($item->package_volume)
-            @format($item->package_volume)
+    <td class="border-right-none brick-scroll-td" style="text-align: left; width: 80px; min-width: 80px; font-size: 12px;">
+        @if(!is_null($item->package_volume))
+            <div class="brick-scroll-cell" style="max-width: 80px; width: 100%; white-space: nowrap;">
+                {{ \App\Helpers\NumberHelper::formatPlain($item->package_volume) }}
+            </div>
         @else
             <span>-</span>
         @endif
@@ -88,9 +90,9 @@
         @endif
     </td>
     <td class="border-left-none" style="text-align: left; width: 50px; min-width: 50px;">Kg  )</td>
-    <td class="border-right-none" style="text-align: right; width: 60px; min-width: 60px;">
+    <td class="border-right-none cat-scroll-td" style="text-align: right; width: 60px; min-width: 60px;">
         @if($item->volume)
-            @format($item->volume)
+            <div class="cat-scroll-cell" style="max-width: 60px; width: 100%; white-space: nowrap;">@format($item->volume)</div>
         @else
             <span>-</span>
         @endif
@@ -218,9 +220,9 @@
             <span>-</span>
         @endif
     </td>
-    <td class="border-right-none" style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
+    <td class="border-right-none sand-scroll-td" style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
         @if($item->package_volume)
-            @format($item->package_volume)
+            <div class="sand-scroll-cell" style="max-width: 60px; width: 100%; white-space: nowrap;">@format($item->package_volume)</div>
         @else
             <span>-</span>
         @endif

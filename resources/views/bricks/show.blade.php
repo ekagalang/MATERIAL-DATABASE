@@ -109,14 +109,14 @@
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
                                    color: #1e293b;">
-                            @if($brick->package_volume)
+                            @if(!is_null($brick->package_volume))
                                 <div style="display: inline-block; 
                                             padding: 6px 12px; 
                                             background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
                                             border: 1.5px solid #86efac; 
                                             border-radius: 8px;">
                                     <span style="font-weight: 700; color: #15803d;">
-                                        @format($brick->package_volume)
+                                        {{ \App\Helpers\NumberHelper::formatPlain($brick->package_volume) }}
                                     </span>
                                     <span style="font-weight: 600; color: #16a34a; font-size: 12px;"> M3</span>
                                 </div>

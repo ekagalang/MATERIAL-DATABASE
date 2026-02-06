@@ -50,6 +50,16 @@ class AppServiceProvider extends ServiceProvider
             return "<?php echo \App\Helpers\NumberHelper::format($expression); ?>";
         });
 
+        // Formatter for calculation results (scrollable extra decimals)
+        Blade::directive('formatResult', function ($expression) {
+            return "<?php echo \App\Helpers\NumberHelper::formatResult($expression); ?>";
+        });
+
+        // Alias for @formatResult
+        Blade::directive('numberResult', function ($expression) {
+            return "<?php echo \App\Helpers\NumberHelper::formatResult($expression); ?>";
+        });
+
         // Currency formatter (Rp prefix, no decimals)
         Blade::directive('currency', function ($expression) {
             return "<?php echo \App\Helpers\NumberHelper::currency($expression); ?>";
@@ -57,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Price formatter (no prefix, no decimals)
         Blade::directive('price', function ($expression) {
-            return "<?php echo \App\Helpers\NumberHelper::format($expression, 0); ?>";
+            return "<?php echo \App\Helpers\NumberHelper::formatFixed($expression, 0); ?>";
         });
     }
 }

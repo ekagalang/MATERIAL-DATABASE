@@ -670,6 +670,7 @@ html.materials-booting .page-content {
     top: 0;
     bottom: 0;
     padding-top: 2px;
+    z-index: 40;
 }
 .material-tab-header .material-settings-menu {
     left: 0;
@@ -682,6 +683,7 @@ html.materials-booting .page-content {
     border-top-left-radius: 0 !important;
     border-top-right-radius: 0 !important;
     transform: translateY(-5px) !important;
+    z-index: 50 !important;
 }
 
 /* Connect dropdown menu to the filter button seamlessly when active */
@@ -698,6 +700,7 @@ html.materials-booting .page-content {
     display: flex;
     align-items: flex-end;
     justify-content: flex-start;
+    z-index: 45;
 }
 /* Override global.css for filter button - use original yellow color */
 .material-tab-header .material-settings-btn {
@@ -788,6 +791,8 @@ html.materials-booting .page-content {
     align-items: flex-end;
     justify-content: flex-end;
     margin-left: auto;
+    position: relative;
+    z-index: 10;
 }
 .material-tab-action {
     display: none;
@@ -806,7 +811,7 @@ html.materials-booting .page-content {
     border-radius: 12px 12px 0 0;
     padding: 8px 12px 4px;
     margin-bottom: -1px;
-    z-index: 6;
+    z-index: 11;
     overflow: visible !important;
     min-height: 48px;
     box-sizing: border-box;
@@ -1057,7 +1062,7 @@ html.materials-booting .page-content {
                         <span>Filter</span>
                     </button>
                     <div class="material-settings-menu" id="materialSettingsMenu">
-                        <div style="padding: 12px 16px; border-bottom: 1px solid rgba(0, 0, 0, 0.05);">
+                        <div style="padding: 12px 16px; border-bottom: 1px solid rgba(0, 0, 0, 0.05); background: #f5f2c1;">
                             <div class="dropdown-header" style="margin-bottom: 0;">Pilih Material yang Ditampilkan</div>
                         </div>
                         <div class="material-settings-grid">
@@ -1073,7 +1078,7 @@ html.materials-booting .page-content {
                                 </label>
                             @endforeach
                         </div>
-                        <div class="nav-material-actions" style="border-top: 1px solid rgba(0, 0, 0, 0.05); margin-top: 0;">
+                        <div class="nav-material-actions" style="border-top: 1px solid rgba(0, 0, 0, 0.05); margin-top: 0; background: #f0f2f6;">
                             <button type="button" id="resetMaterialFilter" class="btn btn-sm nav-material-reset" style="width: 100%;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>

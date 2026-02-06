@@ -2925,12 +2925,8 @@ $paramValue = $isGroutTile
                                     $areaForCost =
                                         $wallLength > 0 && $brickLength > 0 ? $wallLength * ($brickLength / 100) : 0;
                                 }
-                                // Normalize areaForCost karena non-rupiah (M2), normalize hasil pembagian
-                                $normalizedArea = \App\Helpers\NumberHelper::normalize($areaForCost);
-                                $costPerM2 =
-                                    $normalizedArea > 0
-                                        ? \App\Helpers\NumberHelper::normalize($res['grand_total'] / $normalizedArea)
-                                        : 0;
+                                $normalizedArea = (float) $areaForCost;
+                                $costPerM2 = $normalizedArea > 0 ? $res['grand_total'] / $normalizedArea : 0;
                                 $brickVolume = 0;
                                 if (
                                     $brick &&
@@ -3014,8 +3010,11 @@ $paramValue = $isGroutTile
                                 $formatNum = function ($num, $decimals = null) {
                                     return \App\Helpers\NumberHelper::format($num);
                                 };
+                                $formatPlain = function ($num, $maxDecimals = 15) {
+                                    return \App\Helpers\NumberHelper::formatPlain($num, $maxDecimals, ',', '.');
+                                };
                                 $formatMoney = function ($num) {
-                                    return \App\Helpers\NumberHelper::format($num, 0);
+                                    return \App\Helpers\NumberHelper::formatFixed($num, 0);
                                 };
                                 $formatRaw = function ($num, $decimals = 6) {
                                     return \App\Helpers\NumberHelper::format($num, $decimals);
@@ -3092,7 +3091,7 @@ $paramValue = $isGroutTile
                                             ' x ' .
                                             $formatNum($brick->dimension_height) .
                                             ') / 1.000.000 = ' .
-                                            $formatNum($brickVolume) .
+                                            $formatPlain($brickVolume) .
                                             ' M3',
                                         'object' => $brick,
                                         'type_field' => 'type',
@@ -3105,7 +3104,7 @@ $paramValue = $isGroutTile
                                             $formatNum($brick->dimension_height) .
                                             ' cm',
                                         'detail_extra' => $brickVolumeDisplay
-                                            ? $formatNum($brickVolumeDisplay) . ' M3'
+                                            ? $formatPlain($brickVolumeDisplay) . ' M3'
                                             : '-',
                                         'store_field' => 'store',
                                         'address_field' => 'address',
@@ -3468,13 +3467,13 @@ $paramValue = $isGroutTile
                                     $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                     $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
                                     // Gunakan total hasil formula agar konsisten dengan Trace.
-                                    $hargaKomparasi = \App\Helpers\NumberHelper::normalize($mat['total_price'] ?? 0, 0);
+                                    $hargaKomparasi = round((float) ($mat['total_price'] ?? 0), 0);
                                     if (
                                         $hargaKomparasi <= 0 &&
                                         !(isset($mat['is_special']) && $mat['is_special'])
                                     ) {
-                                        $hargaKomparasi = \App\Helpers\NumberHelper::normalize(
-                                            ($pricePerUnit ?? 0) * ($priceCalcQty ?? 0),
+                                        $hargaKomparasi = round(
+                                            (float) (($pricePerUnit ?? 0) * ($priceCalcQty ?? 0)),
                                             0,
                                         );
                                     }
@@ -3535,9 +3534,12 @@ $paramValue = $isGroutTile
                                 @endphp
                                 <tr class="{{ $isLastMaterial ? 'group-end' : '' }}">
                                     {{-- Column 1-3: Qty, Unit, Material Name --}}
-                                    <td class="text-end fw-bold sticky-col-1" style="border-right: none;"
+                                    <td class="text-end fw-bold sticky-col-1 preview-scroll-td" style="border-right: none;"
                                         title="{{ $qtyTitle }}">
-                                        @format($mat['qty'])</td>
+                                        <div class="preview-scroll-cell">
+                                            @formatResult($mat['qty'])
+                                        </div>
+                                    </td>
                                     <td class="text-start sticky-col-2" style="border-left: none; border-right: none;">
                                         {{ $mat['unit'] }}
                                     </td>
@@ -3551,9 +3553,14 @@ $paramValue = $isGroutTile
                                     <td class="{{ $matKey === 'brick' ? 'text-start text-nowrap' : '' }}"
                                         style="border-left: none; border-right: none;">
                                         {{ $mat['detail_display'] }}</td>
-                                    <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }}"
+                                    <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }} {{ $matKey === 'brick' ? 'preview-scroll-td' : '' }}"
                                         title="{{ $detailTitle }}" style="border-left: none;">
-                                        {{ $mat['detail_extra'] ?? '' }}</td>
+                                        @if ($matKey === 'brick')
+                                            <div class="preview-scroll-cell">{{ $mat['detail_extra'] ?? '' }}</div>
+                                        @else
+                                            {{ $mat['detail_extra'] ?? '' }}
+                                        @endif
+                                    </td>
                                     <td class="preview-scroll-td preview-store-cell">
                                         <div class="preview-scroll-cell">
                                             {{ $mat['store_display'] ?? ($mat['object']->{$mat['store_field']} ?? '-') }}
@@ -3587,9 +3594,9 @@ $paramValue = $isGroutTile
                                     @else
                                         @php
                                             // Harga komparasi mengikuti hasil formula (unit price x qty formula).
-                                            $normalizedPrice = \App\Helpers\NumberHelper::normalize($pricePerUnit ?? 0);
-                                            $normalizedQty = \App\Helpers\NumberHelper::normalize($priceCalcQty ?? 0);
-                                            $normalizedTotal = \App\Helpers\NumberHelper::normalize($hargaKomparasi ?? 0);
+                                            $normalizedPrice = (float) ($pricePerUnit ?? 0);
+                                            $normalizedQty = (float) ($priceCalcQty ?? 0);
+                                            $normalizedTotal = (float) ($hargaKomparasi ?? 0);
                                             $hargaKomparasiDebugParts = [];
                                             $hargaKomparasiDebugParts[] =
                                                 'Rumus: (Rp ' .
@@ -3625,27 +3632,17 @@ $paramValue = $isGroutTile
                                                             $debugMat['object']->pieces_per_package ?? 1;
                                                     }
 
-                                                    $debugNormalizedPrice = \App\Helpers\NumberHelper::normalize(
-                                                        $debugMat['package_price'] ?? 0,
-                                                    );
-                                                    $debugNormalizedSize = \App\Helpers\NumberHelper::normalize(
-                                                        $debugConversionFactor,
-                                                    );
-                                                    $debugNormalizedQty = \App\Helpers\NumberHelper::normalize(
-                                                        $debugMat['qty'] ?? 0,
-                                                    );
+                                                    $debugNormalizedPrice = (float) ($debugMat['package_price'] ?? 0);
+                                                    $debugNormalizedSize = (float) $debugConversionFactor;
+                                                    $debugNormalizedQty = (float) ($debugMat['qty'] ?? 0);
 
                                                     $debugUnitPrice =
                                                         $debugNormalizedSize > 0
                                                             ? $debugNormalizedPrice / $debugNormalizedSize
                                                             : 0;
-                                                    $debugUnitPrice = \App\Helpers\NumberHelper::normalize(
-                                                        $debugUnitPrice,
-                                                    );
+                                                    $debugUnitPrice = (float) $debugUnitPrice;
 
-                                                    $calcPrice = \App\Helpers\NumberHelper::normalize(
-                                                        $debugUnitPrice * $debugNormalizedQty,
-                                                    );
+                                                    $calcPrice = (float) ($debugUnitPrice * $debugNormalizedQty);
                                                     $calculatedGrandTotal += $calcPrice;
 
                                                     $grandTotalParts[] =
@@ -3660,19 +3657,15 @@ $paramValue = $isGroutTile
                                                         $formatMoney($calcPrice);
                                                 }
                                             }
-                                            $grandTotalValue = \App\Helpers\NumberHelper::normalize(
-                                                $calculatedGrandTotal,
-                                            );
+                                            $grandTotalValue = (float) $calculatedGrandTotal;
                                             $grandTotalDebug = 'Rumus: ' . implode(' + ', $grandTotalParts);
                                             $grandTotalDebug .= ' | Total: Rp ' . $formatMoney($grandTotalValue);
 
-                                            // Build debug for costPerM2 (normalize areaForCost karena non-rupiah, normalize hasil pembagian)
-                                            $normalizedAreaForCost = \App\Helpers\NumberHelper::normalize($areaForCost);
+                                            // Build debug for costPerM2 (non-rupiah, gunakan float murni)
+                                            $normalizedAreaForCost = (float) $areaForCost;
                                             $calculatedCostPerM2 =
                                                 $normalizedAreaForCost > 0
-                                                    ? \App\Helpers\NumberHelper::normalize(
-                                                        $grandTotalValue / $normalizedAreaForCost,
-                                                    )
+                                                    ? $grandTotalValue / $normalizedAreaForCost
                                                     : 0;
                                             $costPerM2Debug =
                                                 'Rumus: Rp ' .
@@ -3712,25 +3705,15 @@ $paramValue = $isGroutTile
                                         <td style="border-left: none;"></td>
                                     @else
                                         @php
-                                            // Normalize qty untuk konsistensi
-                                            $normalizedQtyValue = \App\Helpers\NumberHelper::normalize(
-                                                $mat['qty'] ?? 0,
-                                            );
+                                            $normalizedQtyValue = (float) ($mat['qty'] ?? 0);
                                             // Gunakan harga komparasi yang sudah dihitung (sesuai formula)
-                                            // Normalize ke 0 decimal agar perhitungan backward (total / qty) sesuai dengan angka yang ditampilkan (formatMoney truncates)
-                                            $totalPriceValue = \App\Helpers\NumberHelper::normalize($hargaKomparasi, 0);
-                                            // Normalisasi nilai agar sesuai dengan yang ditampilkan (mengikuti aturan NumberHelper)
-                                            // Ini memastikan perhitungan menggunakan nilai yang sama dengan yang user lihat
-                                            $normalizedDetailValue = \App\Helpers\NumberHelper::normalize($detailValue);
+                                            $totalPriceValue = round((float) $hargaKomparasi, 0);
+                                            $normalizedDetailValue = (float) $detailValue;
 
                                             // Untuk sand, hanya hitung total_price / qty (tanpa pembagian detail_value)
                                             if ($matKey === 'sand') {
                                                 $actualBuyPrice =
-                                                    $normalizedQtyValue > 0
-                                                        ? \App\Helpers\NumberHelper::normalize(
-                                                            $totalPriceValue / $normalizedQtyValue,
-                                                        )
-                                                        : 0;
+                                                    $normalizedQtyValue > 0 ? $totalPriceValue / $normalizedQtyValue : 0;
                                                 $hargaBeliAktualDebug =
                                                     'Rumus: Rp ' .
                                                     $formatMoney($totalPriceValue) .
@@ -3743,11 +3726,9 @@ $paramValue = $isGroutTile
                                             } else {
                                                 $actualBuyPrice =
                                                     $normalizedQtyValue > 0 && $normalizedDetailValue > 0
-                                                        ? \App\Helpers\NumberHelper::normalize(
-                                                            $totalPriceValue /
-                                                                $normalizedQtyValue /
-                                                                $normalizedDetailValue,
-                                                        )
+                                                        ? $totalPriceValue /
+                                                            $normalizedQtyValue /
+                                                            $normalizedDetailValue
                                                         : 0;
                                                 $hargaBeliAktualDebug =
                                                     'Rumus: Rp ' .
@@ -4262,10 +4243,19 @@ $paramValue = $isGroutTile
         }
 
         .table-preview td.preview-scroll-td {
-            position: relative;
             overflow: hidden;
             white-space: nowrap;
             text-align: left;
+        }
+
+        .table-preview td.preview-scroll-td:not(.sticky-col-1):not(.sticky-col-2):not(.sticky-col-3) {
+            position: relative;
+        }
+
+        .table-preview td.preview-scroll-td.sticky-col-1,
+        .table-preview td.preview-scroll-td.sticky-col-2,
+        .table-preview td.preview-scroll-td.sticky-col-3 {
+            position: sticky;
         }
 
         .table-preview td.preview-store-cell {
@@ -4700,7 +4690,7 @@ $paramValue = $isGroutTile
                                                         <td>{{ $row['brick'] ?: '-' }}</td>
                                                     @endif
                                                     <td class="text-end">Rp
-                                                        {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}
+                                                        {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -4732,7 +4722,7 @@ $paramValue = $isGroutTile
                                                         <td>{{ $row['brick'] ?: '-' }}</td>
                                                     @endif
                                                     <td class="text-end">Rp
-                                                        {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}
+                                                        {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -4794,7 +4784,7 @@ $paramValue = $isGroutTile
                                                     </div>
                                                 </td>
                                                 <td class="text-end fw-bold">Rp
-                                                    {{ \App\Helpers\NumberHelper::format($row['grand_total'], 0) }}</td>
+                                                    {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>

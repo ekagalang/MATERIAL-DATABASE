@@ -60,7 +60,7 @@ class BrickHalfFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => NumberHelper::normalize($value, $decimals);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangDinding = $n($params['wall_length']);
@@ -488,15 +488,15 @@ class BrickHalfFormula implements FormulaInterface
                     ' = ' .
                     NumberHelper::format($kubikPasirPekerjaan) .
                     ' M3',
-                'Kubik Air Pekerjaan (Before Normalize)' =>
+                'Kubik Air Pekerjaan (Raw)' =>
                     NumberHelper::format($kubikAir1M3) .
                     ' × ' .
                     NumberHelper::format($volumeAdukanPekerjaan) .
                     ' = ' .
                     sprintf('%.30F', $kubikAirPekerjaanBeforeNormalize) .
                     ' M3',
-                'Kubik Air Pekerjaan (After Normalize)' =>
-                    'normalize(' . sprintf('%.30F', $kubikAirPekerjaanBeforeNormalize) . ') = ' .
+                'Kubik Air Pekerjaan (Float)' =>
+                    'float(' . sprintf('%.30F', $kubikAirPekerjaanBeforeNormalize) . ') = ' .
                     NumberHelper::format($kubikAirPekerjaan) .
                     ' M3',
                 'Liter Air Pekerjaan' =>
@@ -517,7 +517,7 @@ class BrickHalfFormula implements FormulaInterface
             $cementKg = floor($kgSemenPekerjaan);
         }
 
-        // Water liters sudah di-normalize di line 405, tidak perlu pembulatan lagi
+        // Water liters sudah dihitung di line 405, tidak perlu pembulatan lagi
         $waterLiters = $literAirPekerjaan;
 
         // ============ Hitung Harga ============
@@ -554,9 +554,9 @@ class BrickHalfFormula implements FormulaInterface
                 NumberHelper::format($kubikAir1M3) .
                 ' M3 | Volume Adukan: ' .
                 NumberHelper::format($volumeAdukanPekerjaan) .
-                ' M3 | Before Normalize: ' .
+                ' M3 | Raw: ' .
                 sprintf('%.15F', $kubikAirPekerjaanBeforeNormalize) .
-                ' M3 | After Normalize: ' .
+                ' M3 | Float: ' .
                 NumberHelper::format($kubikAirPekerjaan) .
                 ' M3 | × 1000 = ' .
                 NumberHelper::format($literAirPekerjaan) .
