@@ -1498,7 +1498,7 @@
                 @if(!request('search'))
                 <div class="kanggo-container" style="padding-top: 0;">
                     <div class="kanggo-logo">
-                        <img src="{{ asset('pagination/kangg.png') }}" alt="Kanggo" style="height: 36px; width: auto;">
+                        <img src="{{ asset('/Pagination/kangg.png') }}" alt="Kanggo" style="height: 36px; width: auto;">
                     </div>
                     <div class="kanggo-letters" style="justify-content: center; margin-top: 3px; height: 80px;">
                         @php
