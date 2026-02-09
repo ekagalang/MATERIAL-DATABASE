@@ -77,7 +77,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px;">Panjang</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_length_input"
                                            class="autocomplete-input"
                                            data-field="dimension_length"
@@ -100,7 +100,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px;">Lebar</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_width_input"
                                            class="autocomplete-input"
                                            data-field="dimension_width"
@@ -123,7 +123,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px;">Tinggi</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_height_input"
                                            class="autocomplete-input"
                                            data-field="dimension_height"
@@ -300,3 +300,4 @@
         initStoreAutocomplete(document.getElementById('brickForm')?.parentElement);
     }
 </script>
+

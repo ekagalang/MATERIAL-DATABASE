@@ -18,11 +18,55 @@ function initCatForm() {
         return plain.replace('.', ',');
     }
 
-    // Parse decimal value handling both dot and comma as decimal separator
+    // Parse decimal value handling dot/comma and thousands separators (flexible input)
     function parseDecimal(value) {
-        if (typeof value === 'number') return isFinite(value) ? value : 0;
-        if (typeof value !== 'string' || value.trim() === '') return 0;
-        return parseFloat(value.replace(',', '.')) || 0;
+        if (typeof value === 'number') return isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let str = value.trim();
+        if (str === '') return NaN;
+
+        // Remove spaces and NBSP
+        str = str.replace(/[\s\u00A0]/g, '');
+
+        let negative = false;
+        if (str.startsWith('-')) {
+            negative = true;
+            str = str.slice(1);
+        }
+
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                // Indo: 1.234,56
+                str = str.replace(/\./g, '');
+                str = str.replace(/,/g, '.');
+            } else {
+                // US: 1,234.56
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+                // US thousands with comma
+                str = str.replace(/,/g, '');
+            } else {
+                // Comma as decimal
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                // Indo thousands with dot
+                str = str.replace(/\./g, '');
+            }
+            // else dot as decimal
+        }
+
+        str = str.replace(/[^0-9.]/g, '');
+        if (str === '' || str === '.') return NaN;
+        const num = Number(str);
+        if (!isFinite(num)) return NaN;
+        return negative ? -num : num;
     }
 
     // Auto-suggest dengan cascading logic
@@ -444,7 +488,7 @@ function initCatForm() {
         if (!grossInput || !unitSelect || !netInput) return 0;
 
         const gross = parseDecimal(grossInput.value);
-        const tare = parseFloat(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
+        const tare = parseDecimal(unitSelect.selectedOptions[0]?.dataset?.weight) || 0;
         const netCalc = Math.max(gross - tare, 0);
         const normalizedNetCalc = normalizeSmartDecimal(netCalc);
 
@@ -508,7 +552,7 @@ function initCatForm() {
         }
         
         // Kalkulasi dari berat kotor - berat kemasan
-        const tare = parseFloat(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
+        const tare = parseDecimal(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
         return Math.max(gross - tare, 0);
     }
 
@@ -518,7 +562,7 @@ function initCatForm() {
         if (net <= 0) return;
 
         // Jika ada harga satuan, kalkulasi comparison price
-        const priceValue = parseFloat(purchasePrice?.value) || 0;
+        const priceValue = parseDecimal(purchasePrice?.value) || 0;
         if (priceValue > 0) {
             const calcComparison = priceValue / net;
             const calcPlain = formatPlainNumber(calcComparison, 0);
@@ -527,7 +571,7 @@ function initCatForm() {
         }
         // Jika ada comparison price, kalkulasi harga satuan
         else {
-            const compValue = parseFloat(comparisonPrice?.value) || 0;
+            const compValue = parseDecimal(comparisonPrice?.value) || 0;
             if (compValue > 0) {
                 const calcPrice = compValue * net;
                 const calcPlain = formatPlainNumber(calcPrice, 0);
@@ -734,14 +778,16 @@ function initCatForm() {
                 // Convert package_weight_gross
                 if (grossInput && grossInput.value) {
                     const original = grossInput.value;
-                    grossInput.value = grossInput.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(grossInput.value);
+                    grossInput.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed);
                     console.log('[CatForm] Converted package_weight_gross:', original, '→', grossInput.value);
                 }
 
                 // Convert package_weight_net
                 if (netInput && netInput.value) {
                     const original = netInput.value;
-                    netInput.value = netInput.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(netInput.value);
+                    netInput.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed);
                     console.log('[CatForm] Converted package_weight_net:', original, '→', netInput.value);
                 }
 
@@ -749,7 +795,8 @@ function initCatForm() {
                 const volumeInput = document.getElementById('volume');
                 if (volumeInput && volumeInput.value) {
                     const original = volumeInput.value;
-                    volumeInput.value = volumeInput.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(volumeInput.value);
+                    volumeInput.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed);
                     console.log('[CatForm] Converted volume:', original, '→', volumeInput.value);
                 }
 

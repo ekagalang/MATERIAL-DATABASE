@@ -2,6 +2,23 @@
     $showActions = $showActions ?? true;
     $showStoreInfo = $showStoreInfo ?? true;
 @endphp
+@once
+    <script>
+        (function () {
+            if (!window.__materialSkipPage || window.__materialSkipSortHandled) return;
+            window.__materialSkipSortHandled = true;
+            const url = new URL(window.location.href);
+            const sortBy = url.searchParams.get('sort_by');
+            const sortDirection = url.searchParams.get('sort_direction');
+            if (sortBy !== 'brand' || sortDirection !== 'asc') {
+                url.searchParams.set('sort_by', 'brand');
+                url.searchParams.set('sort_direction', 'asc');
+                url.hash = '#skip-page';
+                window.location.replace(url.toString());
+            }
+        })();
+    </script>
+@endonce
 @if(isset($material['is_loaded']) && !$material['is_loaded'])
     @php
         $lazyTabParams = [
@@ -1336,14 +1353,15 @@
                 </tbody>
             </table>
         </div>
+
         <div class="material-footer-sticky">
 
             @if(!(isset($isStoreLocation) && $isStoreLocation))
             <!-- Left Area: Pagination & Kanggo Logo (Only for materials/index) -->
             <div class="material-footer-left">
-                <!-- Hexagon Stats (moved to the left of Kanggo logo) -->
+            <!-- Hexagon Stats (moved to the left of Kanggo logo) 
                 <div class="material-footer-right" style="justify-content: flex-start; gap: 4px;">
-                    <!-- HEXAGON PER MATERIAL -->
+                    
                     <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                         title="Total {{ $material['label'] }}">
 
@@ -1364,7 +1382,6 @@
                         </span>
                     </div>
 
-                    <!-- HEXAGON TOTAL -->
                     <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
                         title="Total Semua Material">
 
@@ -1384,15 +1401,106 @@
                             Total
                         </span>
                     </div>
+
+                    @php
+                        $grandTotalPadded = sprintf('%05d', $grandTotal);
+                        $grandTotalDigits = strlen($grandTotalPadded);
+                        $grandTotalFontSize = match (true) {
+                            $grandTotalDigits >= 9 => 10,
+                            $grandTotalDigits >= 8 => 11,
+                            $grandTotalDigits >= 7 => 12,
+                            $grandTotalDigits >= 6 => 13,
+                            $grandTotalDigits >= 5 => 14,
+                            default => 16,
+                        };
+                    @endphp
+
+                    <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                        title="Total">
+                        <div class="material-footer-hex"
+                            style="
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            min-height: 50px;
+                            height: 50px;
+                            min-width: 50px;
+                            width: auto !important;
+                            padding: 0 16px;
+                            position: relative;
+                            ">
+                            <img src="{{ asset('assets/hex5.png') }}"
+                                style="
+                                position: absolute;
+                                inset: 0;
+                                width: 100% !important;
+                                height: 100% !important;
+                                object-fit: fill;
+                                z-index: 1;
+                                ">
+                            <span class="material-footer-count"
+                                style="
+                                    position: relative;
+                                    z-index: 2;
+                                    white-space: nowrap;
+                                    line-height: 1;
+                                    font-weight: bold;
+                                ">
+                                {{ $grandTotalPadded }}
+                            </span>
+                        </div>
+                        <span class="material-footer-label">
+                            Total
+                        </span>
+                    </div>
+
+                    <div class="material-footer-hex-block" style="display: flex; flex-direction: column; align-items: center; justify-content: flex-start;"
+                        title="Total">
+                        <div class="material-footer-hex"
+                            style="
+                            display: inline-flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 50px !important;
+                            height: 50px !important;
+                            box-sizing: border-box;
+                            position: relative;
+                            ">
+                            <img src="{{ asset('assets/hex5.png') }}"
+                                style="
+                                position: absolute;
+                                inset: 0;
+                                width: 100% !important;
+                                height: 100% !important;
+                                object-fit: fill;
+                                z-index: 1;
+                                ">
+                            <span class="material-footer-count"
+                                style="
+                                    position: relative;
+                                    z-index: 2;
+                                    white-space: nowrap;
+                                    line-height: 1;
+                                    font-weight: bold;
+                                    font-size: {{ $grandTotalFontSize }}px !important;
+                                ">
+                                {{ $grandTotalPadded }}
+                            </span>
+                        </div>
+                        <span class="material-footer-label">
+                            Total
+                        </span>
+                    </div>
                 </div>
+            -->
 
                 <!-- Kanggo A-Z Pagination (Logo & Letters) -->
                 @if(!request('search'))
                 <div class="kanggo-container" style="padding-top: 0;">
                     <div class="kanggo-logo">
-                        <img src="{{ asset('assets/kangg.png') }}" alt="Kanggo" style="height: 36px; width: auto;">
+                        <img src="{{ asset('pagination/kangg.png') }}" alt="Kanggo" style="height: 36px; width: auto;">
                     </div>
-                    <div class="kanggo-letters" style="justify-content: center; margin-bottom: 3.5px; height: 80px;">
+                    <div class="kanggo-letters" style="justify-content: center; margin-top: 3px; height: 80px;">
                         @php
                             $activeLetters = $material['active_letters'];
                             if ($activeLetters instanceof \Illuminate\Support\Collection) {

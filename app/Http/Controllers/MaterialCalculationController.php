@@ -61,6 +61,22 @@ class MaterialCalculationController extends Controller
     }
 
     /**
+     * Redirect index to last preview (if available) or create form.
+     */
+    public function indexRedirect()
+    {
+        $cacheKey = session('material_calc_last_key');
+        if ($cacheKey) {
+            $cachedPayload = Cache::get($cacheKey);
+            if (is_array($cachedPayload)) {
+                return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
+            }
+        }
+
+        return redirect()->route('material-calculations.create');
+    }
+
+    /**
      * Show the form for creating a new calculation
      */
     public function create(Request $request)
@@ -620,19 +636,16 @@ class MaterialCalculationController extends Controller
             'ceramicProjects' => [],
         ];
 
-        // DISABLE CACHE FOR DEBUGGING - Don't store and render directly
-        // $this->storeCalculationCachePayload($cacheKey, $payload);
+        $this->storeCalculationCachePayload($cacheKey, $payload);
 
-        \Log::info('RENDERING DIRECTLY (Cache disabled for debugging)', [
+        \Log::info('Preview payload cached', [
+            'cacheKey' => $cacheKey,
             'projects_count' => count($payload['projects'] ?? []),
-            'has_combinations' => !empty($payload['projects'])
+            'has_combinations' => !empty($payload['projects']),
         ]);
 
-        // Render directly without cache
-        return view('material_calculations.preview_combinations', $payload);
-
         // Redirect to GET route untuk support pagination dan refresh
-        // return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
+        return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
     }
 
     /**
@@ -734,18 +747,15 @@ class MaterialCalculationController extends Controller
             'totalCeramics' => $targetCeramics->count(),
         ]);
 
-        // DISABLE CACHE FOR DEBUGGING
-        // $this->storeCalculationCachePayload($cacheKey, $payload);
+        $this->storeCalculationCachePayload($cacheKey, $payload);
 
-        \Log::info('RENDERING DIRECTLY (Cache disabled - Multi Ceramic)', [
-            'ceramicProjectsCount' => count($payload['ceramicProjects'] ?? [])
+        \Log::info('Preview payload cached (Multi Ceramic)', [
+            'cacheKey' => $cacheKey,
+            'ceramicProjectsCount' => count($payload['ceramicProjects'] ?? []),
         ]);
 
-        // Render directly without cache
-        return view('material_calculations.preview_combinations', $payload);
-
         // Redirect to GET route untuk support pagination dan refresh
-        // return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
+        return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
     }
 
     protected function buildCalculationCacheKey(Request $request): string
@@ -787,12 +797,6 @@ class MaterialCalculationController extends Controller
 
     protected function getCalculationCachePayload(string $cacheKey): ?array
     {
-        // DISABLE CACHE FOR DEBUGGING MATERIAL TYPE FILTERS
-        return null;
-
-        if (app()->environment('local') && config('app.debug')) {
-            return null;
-        }
         $cached = Cache::get($cacheKey);
         return is_array($cached) ? $cached : null;
     }

@@ -56,7 +56,7 @@
                                 <div class="col-lg-3 col-md-6">
                                     <label class="form-label fw-semibold">Panjang Dinding</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
                                             name="wall_length" value="6.2" step="0.01" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             meter
@@ -67,7 +67,7 @@
                                 <div class="col-lg-3 col-md-6" id="wallHeightGroup">
                                     <label class="form-label fw-semibold">Tinggi Dinding</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5" 
                                             name="wall_height" value="3.0" step="0.01" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             meter
@@ -78,7 +78,7 @@
                                 <div class="col-lg-3 col-md-6" id="mortarThicknessGroup">
                                     <label class="form-label fw-semibold">Tebal Adukan</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="mortar_thickness" value="1.0" step="0.01">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             cm
@@ -90,7 +90,7 @@
                                 <div class="col-lg-3 col-md-6" id="layerCountGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Tingkat</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="layer_count" value="1" step="1" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             lapis
@@ -102,7 +102,7 @@
                                 <div class="col-lg-3 col-md-6" id="plasterSidesGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Sisi Plesteran</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="plaster_sides" value="1" step="1" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             sisi
@@ -114,7 +114,7 @@
                                 <div class="col-lg-3 col-md-6" id="skimSidesGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Sisi Aci</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="skim_sides" value="1" step="1" required>
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             sisi
@@ -126,7 +126,7 @@
                                 <div class="col-lg-3 col-md-6" id="groutThicknessGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Tebal Nat</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="grout_thickness" value="3" step="0.1">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             mm
@@ -138,7 +138,7 @@
                                 <div class="col-lg-3 col-md-6" id="ceramicLengthGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Panjang Keramik</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="ceramic_length" value="30" step="0.1" min="1">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             cm
@@ -150,7 +150,7 @@
                                 <div class="col-lg-3 col-md-6" id="ceramicWidthGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Lebar Keramik</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="ceramic_width" value="30" step="0.1" min="1">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             cm
@@ -160,7 +160,7 @@
                                 <div class="col-lg-3 col-md-6" id="ceramicThicknessGroup" style="display: none;">
                                     <label class="form-label fw-semibold">Tebal Keramik</label>
                                     <div class="position-relative">
-                                        <input type="number" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
+                                        <input type="text" inputmode="decimal" class="form-control form-control-lg rounded-3 shadow-sm pe-5"
                                             name="ceramic_thickness" value="8" step="0.1" min="0.1">
                                         <span class="position-absolute end-0 top-50 translate-middle-y pe-3 text-muted fw-medium">
                                             mm
@@ -1122,3 +1122,4 @@ code {
     }
 </style>
 @endsection
+

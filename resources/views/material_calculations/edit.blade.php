@@ -56,7 +56,7 @@
                     <div class="dimension-group">
                         <label>Panjang</label>
                         <div class="input-with-unit">
-                            <input type="number" name="wall_length" step="0.01" min="0.01" 
+                            <input type="text" inputmode="decimal" name="wall_length" step="0.01" min="0.01" 
                                 value="{{ old('wall_length', $materialCalculation->wall_length) }}">
                             <span class="unit">M</span>
                         </div>
@@ -65,7 +65,7 @@
                     <div class="dimension-group" id="wallHeightGroup">
                         <label id="wallHeightLabel">Tinggi</label>
                         <div class="input-with-unit">
-                            <input type="number" name="wall_height" step="0.01" min="0.01" 
+                            <input type="text" inputmode="decimal" name="wall_height" step="0.01" min="0.01" 
                                 value="{{ old('wall_height', $materialCalculation->wall_height) }}">
                             <span class="unit">M</span>
                         </div>
@@ -73,7 +73,7 @@
                     <div class="dimension-group">
                         <label>Tebal</label>
                         <div class="input-with-unit">
-                            <input type="number" name="mortar_thickness" step="0.1" min="0.1"
+                            <input type="text" inputmode="decimal" name="mortar_thickness" step="0.1" min="0.1"
                                 value="{{ old('mortar_thickness', $materialCalculation->mortar_thickness) }}">
                             <span class="unit">cm</span>
                         </div>
@@ -86,7 +86,7 @@
                     <div class="dimension-group" id="layerCountGroup" style="display: none;">
                         <label>Tingkat</label>
                         <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
-                            <input type="number" name="layer_count" step="1" min="1" value="{{ old('layer_count', $calculationParams['layer_count'] ?? 1) }}">
+                            <input type="text" inputmode="decimal" name="layer_count" step="1" min="1" value="{{ old('layer_count', $calculationParams['layer_count'] ?? 1) }}">
                             <span class="unit" style="background-color: #fef3c7;">Lapis</span>
                         </div>
                     </div>
@@ -95,7 +95,7 @@
                     <div class="dimension-group" id="plasterSidesGroup" style="display: none;">
                         <label>Sisi Plesteran</label>
                         <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                            <input type="number" name="plaster_sides" step="1" min="1" value="{{ old('plaster_sides', $calculationParams['plaster_sides'] ?? 1) }}">
+                            <input type="text" inputmode="decimal" name="plaster_sides" step="1" min="1" value="{{ old('plaster_sides', $calculationParams['plaster_sides'] ?? 1) }}">
                             <span class="unit" style="background-color: #bae6fd;">Sisi</span>
                         </div>
                     </div>
@@ -104,7 +104,7 @@
                     <div class="dimension-group" id="skimSidesGroup" style="display: none;">
                         <label>Sisi Aci</label>
                         <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
-                            <input type="number" name="skim_sides" step="1" min="1" value="{{ old('skim_sides', $calculationParams['skim_sides'] ?? 1) }}">
+                            <input type="text" inputmode="decimal" name="skim_sides" step="1" min="1" value="{{ old('skim_sides', $calculationParams['skim_sides'] ?? 1) }}">
                             <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
                         </div>
                     </div>
@@ -795,3 +795,4 @@
     })();
 </script>
 @endpush
+

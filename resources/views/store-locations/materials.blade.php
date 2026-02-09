@@ -21,11 +21,21 @@
     }
     if (window.location.hash) {
         const h = window.location.hash;
-        // Always strip hash from URL immediately
-        history.replaceState(null, null, window.location.pathname + window.location.search);
         
         if (h === '#skip-page') {
             // Aggressively force top for #skip-page
+            window.__materialSkipPage = true;
+            const skipUrl = new URL(window.location.href);
+            const skipSortBy = skipUrl.searchParams.get('sort_by');
+            const skipSortDirection = skipUrl.searchParams.get('sort_direction');
+            if (skipSortBy !== 'brand' || skipSortDirection !== 'asc') {
+                skipUrl.searchParams.set('sort_by', 'brand');
+                skipUrl.searchParams.set('sort_direction', 'asc');
+                skipUrl.hash = '#skip-page';
+                window.location.replace(skipUrl.toString());
+                return;
+            }
+            history.replaceState(null, null, window.location.pathname + window.location.search);
             document.documentElement.style.scrollBehavior = 'auto';
             window.scrollTo(0, 0);
             document.documentElement.scrollTop = 0;
@@ -39,6 +49,9 @@
             
             return;
         }
+
+        // Always strip hash from URL for non skip-page anchors
+        history.replaceState(null, null, window.location.pathname + window.location.search);
         
         window.__materialHash = h;
     }
@@ -704,9 +717,26 @@ html.materials-booting .page-content {
 }
 .material-tab-btn {
     overflow: visible !important;
+    position: relative;
 }
 .material-tab-btn.active {
     --tab-border-color: #91C6BC;
+}
+.material-tab-badge {
+    position: absolute;
+    top: -4px;
+    right: 8px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 3px 6px;
+    border-radius: 999px;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    z-index: 20;
+    pointer-events: none;
+    white-space: nowrap;
 }
 /* Kaki cekung untuk TAB MATERIAL (Bata, Cat, dll) - BENAR SEKARANG */
 .material-tab-btn.active::before {
@@ -978,6 +1008,9 @@ html.materials-booting .page-content {
                                 data-search-count="{{ $material['count'] }}"
                                 aria-selected="{{ $material['type'] === $activeTab ? 'true' : 'false' }}">
                             <span>{{ $material['label'] }}</span>
+                            <span class="material-tab-badge">
+                                @format($material['db_count'] ?? $material['count'])
+                            </span>
                         </button>
                     @endforeach
 
@@ -2704,6 +2737,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
+                const url = new URL(window.location.href);
+                const sortBy = url.searchParams.get('sort_by');
+                const sortDirection = url.searchParams.get('sort_direction');
+                if (sortBy !== 'brand' || sortDirection !== 'asc') {
+                    url.searchParams.set('sort_by', 'brand');
+                    url.searchParams.set('sort_direction', 'asc');
+                    url.hash = href;
+                    window.location.href = url.toString();
+                    return;
+                }
                 const targetId = href.slice(1);
 
                 // Update URL

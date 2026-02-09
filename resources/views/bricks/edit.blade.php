@@ -78,7 +78,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Panjang</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_length_input"
                                            value="{{ old('dimension_length', $brick->dimension_length) }}"
                                            class="autocomplete-input"
@@ -102,7 +102,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Lebar</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_width_input"
                                            value="{{ old('dimension_width', $brick->dimension_width) }}"
                                            class="autocomplete-input"
@@ -126,7 +126,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px; color: inherit;">Tinggi</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_height_input"
                                            value="{{ old('dimension_height', $brick->dimension_height) }}"
                                            class="autocomplete-input"
@@ -451,3 +451,4 @@
         initStoreAutocomplete(document.getElementById('brickForm')?.parentElement);
     }
 </script>
+

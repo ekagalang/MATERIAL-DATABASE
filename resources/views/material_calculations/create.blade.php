@@ -123,7 +123,7 @@
                             <div class="dimension-item">
                                 <label>Panjang</label>
                                 <div class="input-with-unit">
-                                    <input type="number" name="wall_length" id="wallLength" step="0.01" min="0.01"
+                                    <input type="text" inputmode="decimal" name="wall_length" id="wallLength" step="0.01" min="0.01"
                                         value="{{ request('wall_length') }}" required>
                                     <span class="unit">M</span>
                                 </div>
@@ -132,7 +132,7 @@
                             <div class="dimension-item" id="wallHeightGroup">
                                 <label id="wallHeightLabel">Tinggi</label>
                                 <div class="input-with-unit">
-                                    <input type="number" name="wall_height" id="wallHeight" step="0.01" min="0.01"
+                                    <input type="text" inputmode="decimal" name="wall_height" id="wallHeight" step="0.01" min="0.01"
                                         value="{{ request('wall_height') }}" required>
                                     <span class="unit">M</span>
                                 </div>
@@ -141,7 +141,7 @@
                             <div class="dimension-item" id="mortarThicknessGroup">
                                 <label id="mortarThicknessLabel">Tebal Adukan</label>
                                 <div class="input-with-unit">
-                                    <input type="number" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
+                                    <input type="text" inputmode="decimal" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
                                         value="{{ request('mortar_thickness', 2) }}">
                                     <span class="unit" id="mortarThicknessUnit">cm</span>
                                 </div>
@@ -151,7 +151,7 @@
                             <div class="dimension-item" id="layerCountGroup" style="display: none;">
                                 <label id="layerCountLabel">Tingkat</label>
                                 <div class="input-with-unit" id="layerCountInputWrapper" style="background-color: #fffbeb; border-color: #fcd34d;">
-                                    <input type="number" name="layer_count" id="layerCount" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
+                                    <input type="text" inputmode="decimal" name="layer_count" id="layerCount" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
                                     <span class="unit" id="layerCountUnit" style="background-color: #fef3c7;">Lapis</span>
                                 </div>
                             </div>
@@ -160,7 +160,7 @@
                             <div class="dimension-item" id="plasterSidesGroup" style="display: none;">
                                 <label>Sisi Plesteran</label>
                                 <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                                    <input type="number" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
+                                    <input type="text" inputmode="decimal" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
                                     <span class="unit" style="background-color: #bae6fd;">Sisi</span>
                                 </div>
                             </div>
@@ -169,7 +169,7 @@
                             <div class="dimension-item" id="skimSidesGroup" style="display: none;">
                                 <label>Sisi Acian</label>
                                 <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
-                                    <input type="number" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
+                                    <input type="text" inputmode="decimal" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
                                     <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
                                 </div>
                             </div>
@@ -178,7 +178,7 @@
                             <div class="dimension-item" id="groutThicknessGroup" style="display: none;">
                                 <label>Tebal Nat</label>
                                 <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
-                                    <input type="number" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ request('grout_thickness', 2) }}">
+                                    <input type="text" inputmode="decimal" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ request('grout_thickness', 2) }}">
                                     <span class="unit" style="background-color: #e2e8f0;">mm</span>
                                 </div>
                             </div>
@@ -187,7 +187,7 @@
                             <div class="dimension-item" id="ceramicLengthGroup" style="display: none;">
                                 <label>Panjang Keramik</label>
                                 <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="number" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ request('ceramic_length', 30) }}">
+                                    <input type="text" inputmode="decimal" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ request('ceramic_length', 30) }}">
                                     <span class="unit" style="background-color: #fef08a;">cm</span>
                                 </div>
                             </div>
@@ -195,7 +195,7 @@
                             <div class="dimension-item" id="ceramicWidthGroup" style="display: none;">
                                 <label>Lebar Keramik</label>
                                 <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="number" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ request('ceramic_width', 30) }}">
+                                    <input type="text" inputmode="decimal" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ request('ceramic_width', 30) }}">
                                     <span class="unit" style="background-color: #fef08a;">cm</span>
                                 </div>
                             </div>
@@ -203,7 +203,7 @@
                             <div class="dimension-item" id="ceramicThicknessGroup" style="display: none;">
                                 <label>Tebal Keramik</label>
                                 <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="number" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ request('ceramic_thickness', 8) }}">
+                                    <input type="text" inputmode="decimal" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ request('ceramic_thickness', 8) }}">
                                     <span class="unit" style="background-color: #fef08a;">mm</span>
                                 </div>
                             </div>
@@ -2195,9 +2195,24 @@
             if (subtitle) subtitle.textContent = 'Mohon tunggu, kami sedang menyiapkan data Anda.';
         }
 
-        // Handle Back/Forward Navigation
+        // Handle Back/Forward Navigation (BFCache)
         window.addEventListener('pageshow', function(event) {
             resetLoadingState();
+
+            // If page was restored from BFCache and has resume parameter
+            if (event.persisted && shouldRestoreCalculationSession()) {
+                const formContainer = document.querySelector('.two-column-layout');
+                if (formContainer) {
+                    formContainer.style.opacity = '0';
+                }
+
+                setTimeout(() => {
+                    restoreCalculationSession();
+                    if (formContainer) {
+                        formContainer.style.opacity = '1';
+                    }
+                }, 50);
+            }
         });
 
         // Handle Cancel Button
@@ -2398,7 +2413,28 @@
             }
         });
 
-        restoreCalculationSession();
+        // Restore session BEFORE showing page to prevent flicker
+        if (shouldRestoreCalculationSession()) {
+            // Hide content during restoration
+            const formContainer = document.querySelector('.two-column-layout');
+            if (formContainer) {
+                formContainer.style.opacity = '0';
+                formContainer.style.transition = 'opacity 0.2s ease-in';
+            }
+
+            // Restore session
+            restoreCalculationSession();
+
+            // Show content after restoration
+            requestAnimationFrame(() => {
+                if (formContainer) {
+                    formContainer.style.opacity = '1';
+                }
+            });
+        } else {
+            restoreCalculationSession();
+        }
     })();
 </script>
 @endpush
+

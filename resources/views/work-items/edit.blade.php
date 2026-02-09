@@ -64,7 +64,7 @@
                 <div style="flex: 1;">
                     <div style="display: flex; align-items: center; position: relative;">
                         <span style="position: absolute; left: 14px; font-weight: 600; color: #64748b;">Rp</span>
-                        <input type="number" 
+                        <input type="text" inputmode="decimal" 
                                name="price" 
                                id="price" 
                                value="{{ old('price', $workItem->price) }}" 
@@ -103,3 +103,4 @@
         </div>
     </form>
 </div>
+

@@ -121,6 +121,57 @@ function initMaterialCalculationForm(root, formData) {
         return plain.replace('.', ',');
     }
 
+    // Parse decimal value handling dot/comma and thousands separators (flexible input)
+    function parseDecimal(value) {
+        if (typeof value === 'number') return isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let str = value.trim();
+        if (str === '') return NaN;
+
+        // Remove spaces and NBSP
+        str = str.replace(/[\s\u00A0]/g, '');
+
+        let negative = false;
+        if (str.startsWith('-')) {
+            negative = true;
+            str = str.slice(1);
+        }
+
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                // Indo: 1.234,56
+                str = str.replace(/\./g, '');
+                str = str.replace(/,/g, '.');
+            } else {
+                // US: 1,234.56
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+                // US thousands with comma
+                str = str.replace(/,/g, '');
+            } else {
+                // Comma as decimal
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                // Indo thousands with dot
+                str = str.replace(/\./g, '');
+            }
+            // else dot as decimal
+        }
+
+        str = str.replace(/[^0-9.]/g, '');
+        if (str === '' || str === '.') return NaN;
+        const num = Number(str);
+        if (!isFinite(num)) return NaN;
+        return negative ? -num : num;
+    }
+
     // Helper function to calculate area
     function calculateArea() {
         const lengthEl = scope.querySelector('#wallLength') || document.getElementById('wallLength');
@@ -128,8 +179,8 @@ function initMaterialCalculationForm(root, formData) {
         const areaEl = scope.querySelector('#wallArea') || document.getElementById('wallArea');
 
         if (lengthEl && heightEl && areaEl) {
-            const length = parseFloat(lengthEl.value) || 0;
-            const height = parseFloat(heightEl.value) || 0;
+            const length = parseDecimal(lengthEl.value) || 0;
+            const height = parseDecimal(heightEl.value) || 0;
             const area = length * height;
             const normalizedArea = normalizeSmartDecimal(area);
             areaEl.value = normalizedArea > 0 ? formatSmartDecimal(normalizedArea) : '';

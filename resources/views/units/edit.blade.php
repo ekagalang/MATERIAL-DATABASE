@@ -100,7 +100,7 @@
                 <label>Berat Kemasan <span style="color: #ef4444;">*</span></label>
                 <div style="flex: 1;">
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="number" 
+                        <input type="text" inputmode="decimal" 
                                name="package_weight" 
                                id="package_weight" 
                                value="{{ old('package_weight', $unit->package_weight) }}" 

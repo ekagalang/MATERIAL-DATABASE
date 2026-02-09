@@ -5,7 +5,63 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
-    
+
+    function parseDecimal(value) {
+        if (value === null || value === undefined) return NaN;
+        if (typeof value === 'number') return isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let str = value.trim();
+        if (str === '') return NaN;
+
+        str = str.replace(/[\s\u00A0]/g, '');
+
+        let negative = false;
+        if (str.startsWith('-')) {
+            negative = true;
+            str = str.slice(1);
+        }
+
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                str = str.replace(/\./g, '');
+                str = str.replace(/,/g, '.');
+            } else {
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+                str = str.replace(/,/g, '');
+            } else {
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                str = str.replace(/\./g, '');
+            }
+        }
+
+        str = str.replace(/[^0-9.]/g, '');
+        if (str === '' || str === '.') return NaN;
+        const num = Number(str);
+        if (!isFinite(num)) return NaN;
+        return negative ? -num : num;
+    }
+
+    function formatPlain(value, maxDecimals = 15) {
+        if (!isFinite(value)) return '';
+        const resolved = Math.max(0, maxDecimals);
+        let formatted = value.toFixed(resolved);
+        if (resolved > 0) {
+            formatted = formatted.replace(/0+$/, '').replace(/\.$/, '');
+        }
+        if (formatted === '' || formatted === '-0') {
+            formatted = '0';
+        }
+        return formatted;
+    }
     function sanitizePaste(e) {
         const input = e.target;
         
@@ -16,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (input.tagName === 'INPUT' && (
             input.type === 'number' || 
             input.inputmode === 'numeric' || 
+            input.inputmode === 'decimal' ||
             input.classList.contains('numeric-input')
         )) {
             // Mencegah paste default browser agar kita bisa memproses datanya dulu
@@ -27,19 +84,13 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (!pastedText) return;
 
-            // --- LOGIKA PEMBERSIHAN (Sesuai format Indonesia) ---
-            // 1. Hapus semua titik (.) yang biasanya adalah pemisah ribuan di ID
-            // 2. Ganti koma (,) menjadi titik (.) agar menjadi desimal format standar pemrograman
-            // 3. Hapus semua karakter yang bukan angka 0-9 atau titik desimal
-            
-            let cleanText = pastedText
-                .replace(/\./g, '')       // Hapus titik ribuan (10.000 -> 10000)
-                .replace(/,/g, '.')       // Ubah koma desimal jadi titik (10,5 -> 10.5)
-                .replace(/[^0-9.]/g, ''); // Hapus mata uang dan teks (Rp, /kg, spasi)
-
-            // Validasi hasil akhir
-            if (cleanText === '' || isNaN(parseFloat(cleanText))) {
-                // Fallback: Jika logika di atas gagal total, ambil digitnya saja
+            // --- LOGIKA PEMBERSIHAN (Fleksibel: koma atau titik) ---
+            let cleanText = '';
+            const parsed = parseDecimal(pastedText);
+            if (!isNaN(parsed)) {
+                cleanText = formatPlain(parsed);
+            } else {
+                // Fallback: ambil digitnya saja
                 cleanText = pastedText.replace(/\D/g, '');
             }
 
@@ -79,4 +130,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Gunakan Event Delegation (listener di document) 
     // agar input di dalam Modal atau yang dibuat dinamis tetap terdeteksi
     document.addEventListener('paste', sanitizePaste, true); // Use capture phase
+
+    // Normalize numeric inputs on submit (comma/dot flexible)
+    document.addEventListener('submit', function(e) {
+        const form = e.target;
+        if (!form || form.tagName !== 'FORM') return;
+
+        const inputs = form.querySelectorAll('input');
+        inputs.forEach((input) => {
+            if (input.disabled) return;
+
+            const id = input.id || '';
+            const name = input.name || '';
+            const isNumericField = input.type === 'number' ||
+                input.inputmode === 'numeric' ||
+                input.inputmode === 'decimal' ||
+                input.classList.contains('numeric-input') ||
+                /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga|length|width|height|thickness|ratio|count/i.test(id) ||
+                /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga|length|width|height|thickness|ratio|count/i.test(name);
+
+            if (!isNumericField) return;
+            if (!input.value) return;
+
+            const parsed = parseDecimal(input.value);
+            if (isNaN(parsed)) return;
+
+            input.value = formatPlain(parsed);
+        });
+    }, false);
 });

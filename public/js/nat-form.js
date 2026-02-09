@@ -28,6 +28,57 @@ function initNatForm(root) {
         return plain.replace('.', ',');
     }
 
+    // Parse decimal value handling dot/comma and thousands separators (flexible input)
+    function parseDecimal(value) {
+        if (typeof value === 'number') return isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let str = value.trim();
+        if (str === '') return NaN;
+
+        // Remove spaces and NBSP
+        str = str.replace(/[\s\u00A0]/g, '');
+
+        let negative = false;
+        if (str.startsWith('-')) {
+            negative = true;
+            str = str.slice(1);
+        }
+
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                // Indo: 1.234,56
+                str = str.replace(/\./g, '');
+                str = str.replace(/,/g, '.');
+            } else {
+                // US: 1,234.56
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+                // US thousands with comma
+                str = str.replace(/,/g, '');
+            } else {
+                // Comma as decimal
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                // Indo thousands with dot
+                str = str.replace(/\./g, '');
+            }
+            // else dot as decimal
+        }
+
+        str = str.replace(/[^0-9.]/g, '');
+        if (str === '' || str === '.') return NaN;
+        const num = Number(str);
+        if (!isFinite(num)) return NaN;
+        return negative ? -num : num;
+    }
+
     // Auto-suggest with cascading logic
     const autosuggestInputs = scope.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
@@ -264,8 +315,8 @@ function initNatForm(root) {
     let isUpdatingPrice = false;
 
     function getCurrentWeight() {
-        const gross = parseFloat(grossInput?.value) || 0;
-        const tare = parseFloat(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
+        const gross = parseDecimal(grossInput?.value) || 0;
+        const tare = parseDecimal(unitSelect?.selectedOptions[0]?.dataset?.weight) || 0;
         return normalizeSmartDecimal(Math.max(gross - tare, 0));
     }
 
@@ -291,7 +342,7 @@ function initNatForm(root) {
         // Priority 1: Harga Kemasan -> Hitung Komparasi
         // Kita anggap jika user mengisi harga kemasan, dia mau itu yang jadi acuan
         const priceRaw = unformatRupiah(packagePriceDisplay?.value || '');
-        const priceValue = parseFloat(priceRaw);
+        const priceValue = parseDecimal(priceRaw);
 
         if (!isNaN(priceValue) && priceValue > 0) {
             const calcComparison = priceValue / net;
@@ -302,7 +353,7 @@ function initNatForm(root) {
         // Priority 2: Jika harga kemasan kosong, tapi ada harga komparasi -> Hitung Harga Kemasan
         else {
             const compRaw = unformatRupiah(comparisonPriceDisplay?.value || '');
-            const compValue = parseFloat(compRaw);
+            const compValue = parseDecimal(compRaw);
             
             if (!isNaN(compValue) && compValue > 0) {
                 const calcPrice = compValue * net;
@@ -496,7 +547,7 @@ function initNatForm(root) {
 
     // ========== VALIDASI DAN KONVERSI DIMENSI ==========
     function convertToMeters(value, unit) {
-        const num = parseFloat(value);
+        const num = parseDecimal(value);
         if (isNaN(num) || num < 0) return null;
         switch(unit) {
             case 'mm': return num / 1000;
@@ -557,9 +608,9 @@ function initNatForm(root) {
     function calculateVolume() {
         if (!dimensionLength || !dimensionWidth || !dimensionHeight || !volumeDisplay) return;
 
-        const lengthM = parseFloat(dimensionLength.value) || 0;
-        const widthM = parseFloat(dimensionWidth.value) || 0;
-        const heightM = parseFloat(dimensionHeight.value) || 0;
+        const lengthM = parseDecimal(dimensionLength.value) || 0;
+        const widthM = parseDecimal(dimensionWidth.value) || 0;
+        const heightM = parseDecimal(dimensionHeight.value) || 0;
 
         if (lengthM > 0 && widthM > 0 && heightM > 0) {
             const volume = lengthM * widthM * heightM;

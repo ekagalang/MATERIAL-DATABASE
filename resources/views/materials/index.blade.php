@@ -2,6 +2,17 @@
 
 @section('title', 'Semua Material')
 
+@php
+    $grandTotalTopbar = $grandTotal
+        ?? collect($materials)->sum(function ($mat) {
+            return $mat['db_count'] ?? $mat['count'] ?? 0;
+        });
+@endphp
+
+@section('topbar-badge')
+    <span class="topbar-material-badge">Total: @format($grandTotalTopbar)</span>
+@endsection
+
 @section('content')
 <!-- Inline script to restore tab ASAP before page render -->
 <script>
@@ -26,6 +37,16 @@
         if (h === '#skip-page') {
             // Aggressively force top for #skip-page and do NOT pass to main logic
             window.__materialSkipPage = true;
+            const skipUrl = new URL(window.location.href);
+            const skipSortBy = skipUrl.searchParams.get('sort_by');
+            const skipSortDirection = skipUrl.searchParams.get('sort_direction');
+            if (skipSortBy !== 'brand' || skipSortDirection !== 'asc') {
+                skipUrl.searchParams.set('sort_by', 'brand');
+                skipUrl.searchParams.set('sort_direction', 'asc');
+                skipUrl.hash = '#skip-page';
+                window.location.replace(skipUrl.toString());
+                return;
+            }
             document.documentElement.style.scrollBehavior = 'auto';
             window.scrollTo(0, 0);
             document.documentElement.scrollTop = 0;
@@ -589,7 +610,7 @@ html.materials-booting .page-content {
       gap: 2px;
   }
   .material-footer-sticky .kanggo-logo img {
-      height: 36px !important;
+      height: 50px !important;
   }
   .material-footer-sticky .kanggo-letters {
       height: 50px !important;
@@ -688,7 +709,6 @@ html.materials-booting .page-content {
 
 /* Connect dropdown menu to the filter button seamlessly when active */
 .material-tab-header .material-settings-menu.active {
-    border: 2px solid #891313 !important;
     border-top: none !important;
     transform: translateY(0) !important;
     box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.15) !important;
@@ -704,7 +724,6 @@ html.materials-booting .page-content {
 }
 /* Override global.css for filter button - use original yellow color */
 .material-tab-header .material-settings-btn {
-    border: 1px solid #891313 !important;
     border-bottom: none !important;
     border-radius: 12px 12px 0 0 !important;
     background: transparent !important;
@@ -727,11 +746,9 @@ html.materials-booting .page-content {
 .material-tab-header .material-settings-btn.active {
     background: #F6F3C2 !important;
     color: #891313 !important;
-    border: 1px solid #891313 !important;
     border-bottom: none !important;
     font-weight: 700 !important;
     z-index: 5 !important;
-    --tab-border-color: #891313 !important;
     box-shadow: none !important;
 }
 
@@ -829,9 +846,39 @@ html.materials-booting .page-content {
 }
 .material-tab-btn {
     overflow: visible !important;
+    position: relative;
 }
 .material-tab-btn.active {
     --tab-border-color: #91C6BC;
+}
+.material-tab-badge {
+    position: absolute;
+    top: -4px;
+    right: 8px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 3px 6px;
+    border-radius: 999px;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    z-index: 20;
+    pointer-events: none;
+    white-space: nowrap;
+}
+.topbar-material-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    background: #ef4444;
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
 }
 /* Kaki cekung untuk TAB MATERIAL (Bata, Cat, dll) - BENAR SEKARANG */
 .material-tab-btn.active::before {
@@ -1053,6 +1100,9 @@ html.materials-booting .page-content {
                             data-search-count="{{ $material['count'] }}"
                             aria-selected="{{ $material['type'] === $activeTab ? 'true' : 'false' }}">
                         <span>{{ $material['label'] }}</span>
+                        <span class="material-tab-badge">
+                            @format($material['db_count'] ?? $material['count'])
+                        </span>
                     </button>
                 @endforeach
 
@@ -1078,7 +1128,7 @@ html.materials-booting .page-content {
                                 </label>
                             @endforeach
                         </div>
-                        <div class="nav-material-actions" style="border-top: 1px solid rgba(0, 0, 0, 0.05); margin-top: 0; background: #f0f2f6;">
+                        <div class="nav-material-actions" style="border-top: 1px solid rgba(0, 0, 0, 0.05); margin-top: 0; background: #f5f2c1; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px;">
                             <button type="button" id="resetMaterialFilter" class="btn btn-sm nav-material-reset" style="width: 100%;">
                                 <i class="bi bi-arrow-counterclockwise"></i> Reset Filter
                             </button>
@@ -2986,6 +3036,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const href = link.getAttribute('href');
             if (href && href.startsWith('#')) {
+                const url = new URL(window.location.href);
+                const sortBy = url.searchParams.get('sort_by');
+                const sortDirection = url.searchParams.get('sort_direction');
+                if (sortBy !== 'brand' || sortDirection !== 'asc') {
+                    url.searchParams.set('sort_by', 'brand');
+                    url.searchParams.set('sort_direction', 'asc');
+                    url.hash = href;
+                    window.location.href = url.toString();
+                    return;
+                }
                 const targetId = href.slice(1);
                 const activeTabType = activeTab && activeTab.dataset ? activeTab.dataset.tab : '';
                 rememberLetterForTab(activeTabType, href);

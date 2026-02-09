@@ -46,7 +46,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px;">Panjang</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_length_input"
                                            class="autocomplete-input"
                                            data-field="dimension_length"
@@ -70,7 +70,7 @@
                             <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 1; position: relative;">
                                 <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px;">Lebar</span>
                                 <div class="dimensi-input-with-unit">
-                                    <input type="number"
+                                    <input type="text" inputmode="decimal"
                                            id="dimension_width_input"
                                            class="autocomplete-input"
                                            data-field="dimension_width"
@@ -93,7 +93,7 @@
                         <div class="dimensi-item" style="display: flex; flex-direction: column; flex: 0.8; position: relative;">
                             <span class="dimensi-label" style="font-style: italic; font-size: 13px; margin-bottom: 2px;">Tebal</span>
                             <div class="dimensi-input-with-unit">
-                                <input type="number"
+                                <input type="text" inputmode="decimal"
                                        id="dimension_thickness_input"
                                        class="autocomplete-input"
                                        data-field="dimension_thickness"
@@ -245,7 +245,7 @@
                         <div style="flex: 2; display: flex; flex-direction: column;">
                             <span style="font-size: 13px; font-style: italic; margin-bottom: 4px;">Isi per Kemasan</span>
                             <div style="position: relative;">
-                                <input type="number"
+                                <input type="text" inputmode="decimal"
                                        name="pieces_per_package"
                                        id="pieces_per_package"
                                        class="autocomplete-input"
@@ -399,3 +399,4 @@
         initStoreAutocomplete(document.getElementById('ceramicForm')?.parentElement);
     }
 </script>
+

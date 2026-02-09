@@ -21,11 +21,55 @@ function initSandForm(root) {
         return plain.replace('.', ',');
     }
 
-    // Parse decimal value handling both dot and comma as decimal separator
+    // Parse decimal value handling dot/comma and thousands separators (flexible input)
     function parseDecimal(value) {
-        if (typeof value === 'number') return isFinite(value) ? value : 0;
-        if (typeof value !== 'string' || value.trim() === '') return 0;
-        return parseFloat(value.replace(',', '.')) || 0;
+        if (typeof value === 'number') return isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let str = value.trim();
+        if (str === '') return NaN;
+
+        // Remove spaces and NBSP
+        str = str.replace(/[\s\u00A0]/g, '');
+
+        let negative = false;
+        if (str.startsWith('-')) {
+            negative = true;
+            str = str.slice(1);
+        }
+
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                // Indo: 1.234,56
+                str = str.replace(/\./g, '');
+                str = str.replace(/,/g, '.');
+            } else {
+                // US: 1,234.56
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+                // US thousands with comma
+                str = str.replace(/,/g, '');
+            } else {
+                // Comma as decimal
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                // Indo thousands with dot
+                str = str.replace(/\./g, '');
+            }
+            // else dot as decimal
+        }
+
+        str = str.replace(/[^0-9.]/g, '');
+        if (str === '' || str === '.') return NaN;
+        const num = Number(str);
+        if (!isFinite(num)) return NaN;
+        return negative ? -num : num;
     }
 
     // Auto-suggest with cascading logic
@@ -306,7 +350,7 @@ function initSandForm(root) {
     // ========== VALIDASI DAN KONVERSI DIMENSI ==========
 
     function convertToMeters(value, unit) {
-        const num = parseFloat(value);
+        const num = parseDecimal(value);
         if (isNaN(num) || num < 0) return null;
 
         switch(unit) {
@@ -340,7 +384,9 @@ function initSandForm(root) {
 
             if (metersValue !== null) {
                 const normalizedMeters = normalizeSmartDecimal(metersValue);
-                hiddenElement.value = isNaN(normalizedMeters) ? '' : normalizedMeters.toString();
+                hiddenElement.value = isNaN(normalizedMeters)
+                    ? ''
+                    : formatDynamicPlain(normalizedMeters, 15, '.', '');
                 inputElement.style.borderColor = '#e2e8f0';
             } else {
                 hiddenElement.value = '';
@@ -356,9 +402,9 @@ function initSandForm(root) {
         inputElement.addEventListener('blur', function() {
             const rawValue = this.value.trim();
             if (rawValue !== '') {
-                const num = parseFloat(rawValue);
+                const num = parseDecimal(rawValue);
                 if (!isNaN(num) && num >= 0) {
-                    this.value = num.toString();
+                    this.value = formatSmartDecimal(num);
                 }
             }
         });
@@ -372,9 +418,9 @@ function initSandForm(root) {
     setupDimensionInput('dimension_height_input', 'dimension_height_unit', 'dimension_height');
 
     function calculateVolume() {
-        const lengthM = parseFloat(dimLength?.value) || 0;
-        const widthM = parseFloat(dimWidth?.value) || 0;
-        const heightM = parseFloat(dimHeight?.value) || 0;
+        const lengthM = parseDecimal(dimLength?.value) || 0;
+        const widthM = parseDecimal(dimWidth?.value) || 0;
+        const heightM = parseDecimal(dimHeight?.value) || 0;
 
         if (lengthM > 0 && widthM > 0 && heightM > 0) {
             // Already in meters, just multiply to get M3
@@ -408,8 +454,8 @@ function initSandForm(root) {
     }
 
     function recalculatePrices() {
-        const priceValue = parseFloat(packagePrice?.value) || 0;
-        const compValue = parseFloat(comparisonPrice?.value) || 0;
+        const priceValue = parseDecimal(packagePrice?.value) || 0;
+        const compValue = parseDecimal(comparisonPrice?.value) || 0;
         if (priceValue > 0 && currentVolume > 0) {
             const calcComparison = priceValue / currentVolume;
             applyPriceFormatting(priceValue, calcComparison);
@@ -448,50 +494,55 @@ function initSandForm(root) {
         return `${sign}${intPart}.${decPart}`;
     }
 
-    function formatDynamicPlain(value) {
+    function formatDynamicPlain(value, maxDecimals = 15, decimalSeparator = '.', thousandsSeparator = '') {
         if (value === '' || value === null || value === undefined) return '';
         const num = Number(value);
         if (!isFinite(num)) return '';
-        if (num === 0) return '0';
 
-        const absValue = Math.abs(num);
-        const epsilon = Math.min(absValue * 1e-12, 1e-6);
-        const adjusted = num + (num >= 0 ? epsilon : -epsilon);
-        const sign = adjusted < 0 ? '-' : '';
-        const abs = Math.abs(adjusted);
-        const intPart = Math.trunc(abs);
+        const resolvedDecimals = Math.max(0, maxDecimals);
+        const base = num;
+        let bestDecimals = resolvedDecimals;
+        let bestValue = Math.round(base * (10 ** resolvedDecimals)) / (10 ** resolvedDecimals);
+        const tolerance = Math.max(Math.abs(base) * 1e-12, 1e-12);
 
-        if (intPart > 0) {
-            const scaled = Math.trunc(abs * 100);
-            const intDisplay = Math.trunc(scaled / 100).toString();
-            let decPart = String(scaled % 100).padStart(2, '0');
-            decPart = decPart.replace(/0+$/, '');
-            return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
+        for (let d = resolvedDecimals - 1; d >= 0; d--) {
+            const factor = 10 ** d;
+            const candidate = Math.round(base * factor) / factor;
+            if (Math.abs(candidate - base) <= tolerance) {
+                bestDecimals = d;
+                bestValue = candidate;
+                continue;
+            }
+            break;
         }
 
-        let fraction = abs;
-        let digits = '';
-        let firstNonZeroIndex = null;
-        const maxDigits = 30;
-
-        for (let i = 0; i < maxDigits; i++) {
-            fraction *= 10;
-            const digit = Math.floor(fraction + 1e-12);
-            fraction -= digit;
-            digits += String(digit);
-
-            if (digit !== 0 && firstNonZeroIndex === null) {
-                firstNonZeroIndex = i;
-            }
-
-            if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
-                break;
-            }
+        let formatted = bestValue.toFixed(bestDecimals);
+        if (bestDecimals > 0) {
+            formatted = formatted.replace(/0+$/, '').replace(/\.$/, '');
+        }
+        if (formatted === '' || formatted === '-0') {
+            formatted = '0';
         }
 
-        digits = digits.replace(/0+$/, '');
-        if (!digits) return '0';
-        return `${sign}0.${digits}`;
+        let sign = '';
+        if (formatted.startsWith('-')) {
+            sign = '-';
+            formatted = formatted.slice(1);
+        }
+
+        const parts = formatted.split('.');
+        let intPart = parts[0] || '0';
+        const decPart = parts[1] || '';
+
+        if (thousandsSeparator) {
+            intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, thousandsSeparator);
+        }
+
+        let output = sign + intPart;
+        if (decPart) {
+            output += decimalSeparator + decPart;
+        }
+        return output;
     }
 
     function formatRupiah(num) {
@@ -654,28 +705,32 @@ function initSandForm(root) {
                 console.log('[SandForm] Synced package_volume:', packageVolume.value);
             }
 
-            // Convert comma decimals to dot decimals for weight and dimension fields
+            // Normalize decimal inputs (accept dot/comma) for weight and dimension fields
             try {
                 const grossInput = scope.querySelector('#package_weight_gross') || document.getElementById('package_weight_gross');
                 if (grossInput && grossInput.value) {
                     const original = grossInput.value;
-                    grossInput.value = grossInput.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(grossInput.value);
+                    grossInput.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed, 15, '.', '');
                     console.log('[SandForm] Converted package_weight_gross:', original, '→', grossInput.value);
                 }
 
                 if (dimLength && dimLength.value) {
                     const original = dimLength.value;
-                    dimLength.value = dimLength.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(dimLength.value);
+                    dimLength.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed, 15, '.', '');
                     console.log('[SandForm] Converted dimension_length:', original, '→', dimLength.value);
                 }
                 if (dimWidth && dimWidth.value) {
                     const original = dimWidth.value;
-                    dimWidth.value = dimWidth.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(dimWidth.value);
+                    dimWidth.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed, 15, '.', '');
                     console.log('[SandForm] Converted dimension_width:', original, '→', dimWidth.value);
                 }
                 if (dimHeight && dimHeight.value) {
                     const original = dimHeight.value;
-                    dimHeight.value = dimHeight.value.replace(/,/g, '.');
+                    const parsed = parseDecimal(dimHeight.value);
+                    dimHeight.value = isNaN(parsed) ? '' : formatDynamicPlain(parsed, 15, '.', '');
                     console.log('[SandForm] Converted dimension_height:', original, '→', dimHeight.value);
                 }
             } catch (error) {

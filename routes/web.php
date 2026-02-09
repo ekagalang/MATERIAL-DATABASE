@@ -266,6 +266,7 @@ Route::resource('ceramics', CeramicController::class);
 Route::prefix('material-calculations')
     ->name('material-calculations.')
     ->group(function () {
+        Route::get('/', [MaterialCalculationController::class, 'indexRedirect'])->name('index');
         Route::get('/log', [MaterialCalculationController::class, 'log'])->name('log');
         Route::get('/create', [MaterialCalculationController::class, 'create'])->name('create');
         Route::post('/', [MaterialCalculationController::class, 'store'])->name('store');

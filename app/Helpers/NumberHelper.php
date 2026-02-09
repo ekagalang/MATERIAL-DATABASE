@@ -75,7 +75,7 @@ class NumberHelper
         string $thousandsSeparator = '.',
     ): string {
         $decimals = self::resolveDecimals($decimals, self::FIXED_DECIMALS);
-        $parsed = self::parseNumberValue($number, $decimalSeparator, $thousandsSeparator);
+        $parsed = self::parseNullable($number);
         return self::formatNumber($parsed, $decimals, $decimalSeparator, $thousandsSeparator);
     }
 
@@ -89,7 +89,7 @@ class NumberHelper
         string $decimalSeparator = ',',
         string $thousandsSeparator = '.',
     ): string {
-        $parsed = self::parseNumberValue($number, $decimalSeparator, $thousandsSeparator);
+        $parsed = self::parseNullable($number);
         if ($parsed === null || !is_finite($parsed)) {
             return '0';
         }
@@ -195,11 +195,22 @@ class NumberHelper
         return self::format($number, self::DEFAULT_DECIMALS, ',', '.') . ' M3';
     }
 
-    private static function parseNumberValue(
-        mixed $value,
-        string $decimalSeparator,
-        string $thousandsSeparator,
-    ): ?float {
+    /**
+     * Parse input value to float (smart detection).
+     * Returns 0.0 if invalid or null.
+     */
+    public static function parse(mixed $value): float
+    {
+        return self::parseNullable($value) ?? 0.0;
+    }
+
+    /**
+     * Parse input user menjadi float standard.
+     * Support format Indonesia (1.234,56) dan US (1,234.56).
+     * Fleksibel mengenali titik dan koma.
+     */
+    public static function parseNullable(mixed $value): ?float
+    {
         if ($value === null || $value === '') {
             return null;
         }
@@ -213,7 +224,8 @@ class NumberHelper
             return null;
         }
 
-        $string = str_replace(['Rp', 'rp', ' '], '', $string);
+        // Hapus Rp, spasi non-breaking, dll
+        $string = str_replace(['Rp', 'rp', ' ', "\xc2\xa0"], '', $string);
 
         $negative = false;
         if (str_starts_with($string, '-')) {
@@ -224,46 +236,56 @@ class NumberHelper
         $hasComma = str_contains($string, ',');
         $hasDot = str_contains($string, '.');
 
+        // Case 1: Mixed separators (e.g. 1.234,56 or 1,234.56)
         if ($hasComma && $hasDot) {
             $lastComma = strrpos($string, ',');
             $lastDot = strrpos($string, '.');
-            if ($lastComma !== false && $lastDot !== false && $lastComma > $lastDot) {
-                // Comma as decimal, dot as thousands
+
+            if ($lastComma > $lastDot) {
+                // Indo: 1.234,56
                 $string = str_replace('.', '', $string);
                 $string = str_replace(',', '.', $string);
             } else {
-                // Dot as decimal, comma as thousands
+                // US: 1,234.56
                 $string = str_replace(',', '', $string);
             }
-        } elseif ($hasComma) {
-            $lastComma = strrpos($string, ',');
-            $digitsAfter = $lastComma === false ? 0 : (strlen($string) - $lastComma - 1);
-            if ($digitsAfter === 3 && preg_match('/^\d{1,3}(,\d{3})+$/', $string)) {
+        }
+        // Case 2: Only Comma (e.g. 12,5 or 1,234)
+        elseif ($hasComma) {
+            // Regex: Start, 1-3 digits, groups of (, followed by 3 digits)
+            if (preg_match('/^\d{1,3}(,\d{3})+$/', $string)) {
+                // US Thousands (1,234)
                 $string = str_replace(',', '', $string);
             } else {
+                // Indo Decimal (12,5)
                 $string = str_replace(',', '.', $string);
             }
-        } elseif ($hasDot) {
-            $lastDot = strrpos($string, '.');
-            $digitsAfter = $lastDot === false ? 0 : (strlen($string) - $lastDot - 1);
-            if ($digitsAfter === 3 && preg_match('/^\d{1,3}(\.\d{3})+$/', $string)) {
+        }
+        // Case 3: Only Dot (e.g. 12.5 or 1.234)
+        elseif ($hasDot) {
+            // Special Case: 0.xxx is ALWAYS decimal
+            if (str_starts_with($string, '0.') || str_starts_with($string, '-0.')) {
+                // Already valid float format
+            }
+            // Check if strictly thousands (1.234.567 or 1.234)
+            elseif (preg_match('/^\d{1,3}(\.\d{3})+$/', $string)) {
+                // Indo Thousands
                 $string = str_replace('.', '', $string);
             }
+            // Else assume decimal (12.5 or 1.2345 or user typed 1.5 for 1,5)
         }
 
         $string = preg_replace('/[^0-9.]/', '', $string);
+
         if ($string === '' || $string === '.') {
             return null;
-        }
-
-        if ($negative) {
-            $string = '-' . $string;
         }
 
         if (!is_numeric($string)) {
             return null;
         }
 
-        return (float) $string;
+        $result = (float) $string;
+        return $negative ? -$result : $result;
     }
 }

@@ -29,7 +29,7 @@
             <span>-</span>
         @endif
     </td>
-    <td class="border-right-none brick-scroll-td" style="text-align: left; width: 80px; min-width: 80px; font-size: 12px;">
+    <td class="border-right-none brick-scroll-td" style="text-align: right; width: 80px; min-width: 80px; font-size: 12px;">
         @if(!is_null($item->package_volume))
             <div class="brick-scroll-cell" style="max-width: 80px; width: 100%; white-space: nowrap;">
                 {{ \App\Helpers\NumberHelper::formatPlain($item->package_volume) }}
@@ -222,7 +222,9 @@
     </td>
     <td class="border-right-none sand-scroll-td" style="text-align: right; width: 60px; min-width: 60px; font-size: 12px;">
         @if($item->package_volume)
-            <div class="sand-scroll-cell" style="max-width: 60px; width: 100%; white-space: nowrap;">@format($item->package_volume)</div>
+            <div class="sand-scroll-cell" style="max-width: 60px; width: 100%; white-space: nowrap;">
+                {{ \App\Helpers\NumberHelper::formatPlain($item->package_volume) }}
+            </div>
         @else
             <span>-</span>
         @endif

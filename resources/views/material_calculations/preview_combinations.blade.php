@@ -44,7 +44,19 @@
             </div>
         </div>
 
-        @if (empty($projects) && empty($ceramicProjects ?? []))
+        @php
+            $hasProjectCombinations = false;
+            if (!empty($projects)) {
+                foreach ($projects as $project) {
+                    if (!empty($project['combinations']) && count($project['combinations']) > 0) {
+                        $hasProjectCombinations = true;
+                        break;
+                    }
+                }
+            }
+        @endphp
+
+        @if (!$hasProjectCombinations && empty($ceramicProjects ?? []))
             <div class="container">
                 <div class="alert"
                     style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 12px; padding: 16px 20px; color: #856404;">
@@ -525,6 +537,42 @@ $paramValue = $isGroutTile
                 if (in_array('custom', $filterSet, true)) {
                     $filterCategories[] = 'Custom';
                     $rekapCategories[] = 'Custom';
+                }
+                $availableFilterTypes = [];
+                if (!empty($projects)) {
+                    foreach ($projects as $project) {
+                        foreach (($project['combinations'] ?? []) as $label => $items) {
+                            $labelParts = array_map('trim', explode('=', (string) $label));
+                            foreach ($labelParts as $singleLabel) {
+                                if (preg_match('/^(.+?)\s+\d+/', $singleLabel, $matches)) {
+                                    $type = trim($matches[1]);
+                                    if ($type !== '') {
+                                        $availableFilterTypes[$type] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                $availableFilterTypes = array_keys($availableFilterTypes);
+                if (!empty($availableFilterTypes)) {
+                    $hasOverlap = count(array_intersect($filterCategories, $availableFilterTypes)) > 0;
+                    if (empty($filterCategories) || !$hasOverlap) {
+                        $filterCategories = $availableFilterTypes;
+                    }
+                    foreach ($availableFilterTypes as $type) {
+                        if (!in_array($type, $rekapCategories, true)) {
+                            $rekapCategories[] = $type;
+                        }
+                    }
+                }
+
+                // BUGFIX: Ensure both tables use the same filter categories
+                // Use whichever array has more items (typically $rekapCategories after above processing)
+                if (count($rekapCategories) > count($filterCategories)) {
+                    $filterCategories = $rekapCategories;
+                } else {
+                    $rekapCategories = $filterCategories;
                 }
                 $globalRekapData = [];
                 $hasBrick = false;
@@ -1049,6 +1097,7 @@ $paramValue = $isGroutTile
 
                 // Collect Populer candidates based on per-material rank (can create new combinations)
                 $populerRankedEntries = [];
+                $populerDetailMap = [];
                 $requiredMaterials = \App\Services\FormulaRegistry::materialsFor($workType);
                 if (empty($requiredMaterials)) {
                     $requiredMaterials = ['brick', 'cement', 'sand'];
@@ -1625,6 +1674,7 @@ $paramValue = $isGroutTile
                     foreach ($populerRankedEntries as $entry) {
                         $rank++;
                         $newKey = 'Populer ' . $rank;
+                        $populerDetailMap[$newKey] = $entry;
                         if (!empty($entry['partial_entry'])) {
                             // Check if item has valid grand_total
                             $grandTotal = $entry['item']['result']['grand_total'] ?? null;
@@ -2836,6 +2886,7 @@ $paramValue = $isGroutTile
                                     // Check if this filter exists in global recap
                                     if (isset($globalRekapData[$key])) {
                                         $rekapData = $globalRekapData[$key];
+                                        $foundCombination = false;
 
                                         // Search through ALL projects to find the matching combination
                                         foreach ($projects as $project) {
@@ -2897,10 +2948,29 @@ $paramValue = $isGroutTile
                                                             'item' => $item,
                                                             'brick' => $project['brick'] ?? $defaultProjectBrick,
                                                         ];
+                                                        $foundCombination = true;
                                                         break 3; // Found it, move to next filter
                                                     }
                                                 }
                                             }
+                                        }
+
+                                        if (
+                                            !$foundCombination &&
+                                            isset($populerDetailMap[$key]) &&
+                                            !empty($populerDetailMap[$key]['item'])
+                                        ) {
+                                            $fallbackEntry = $populerDetailMap[$key];
+                                            $fallbackBrick =
+                                                $fallbackEntry['project']['brick'] ??
+                                                $fallbackEntry['brick'] ??
+                                                $defaultProjectBrick;
+
+                                            $allFilteredCombinations[] = [
+                                                'label' => $key,
+                                                'item' => $fallbackEntry['item'],
+                                                'brick' => $fallbackBrick,
+                                            ];
                                         }
                                     }
                                 }
@@ -3949,6 +4019,33 @@ $paramValue = $isGroutTile
     </div>
 
     <style>
+        /* Anti-Flicker: Prevent content flash during page load */
+        .preview-combinations-page {
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
+
+        .preview-combinations-page.page-loaded {
+            opacity: 1;
+        }
+
+        /* Prevent table layout shift */
+        .table-responsive {
+            min-height: 200px;
+            position: relative;
+        }
+
+        .table-preview,
+        .table-rekap-global {
+            table-layout: auto;
+            visibility: hidden;
+        }
+
+        .table-preview.table-ready,
+        .table-rekap-global.table-ready {
+            visibility: visible;
+        }
+
         /* Global Text Styling for All Elements */
         .preview-combinations-page h1,
         .preview-combinations-page h2,
@@ -4837,6 +4934,29 @@ $paramValue = $isGroutTile
         // Mark this page as a "Skip Page" for history navigation
         document.body.classList.add('skip-history');
 
+        // Anti-Flicker: Mark page and tables as ready
+        function initPageVisibility() {
+            // Mark all tables as ready
+            document.querySelectorAll('.table-preview, .table-rekap-global').forEach(table => {
+                table.classList.add('table-ready');
+            });
+
+            // Mark page as loaded
+            const pageContainer = document.querySelector('.preview-combinations-page');
+            if (pageContainer) {
+                requestAnimationFrame(() => {
+                    pageContainer.classList.add('page-loaded');
+                });
+            }
+        }
+
+        // Run immediately if DOM is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPageVisibility);
+        } else {
+            initPageVisibility();
+        }
+
         // Robust "Skip" Logic:
         // When submitting the form (moving forward to Result), replace the CURRENT history entry (Preview)
         // with the URL of the Create page. This ensures that hitting "Back" from Result goes straight to Create.
@@ -4887,6 +5007,7 @@ $paramValue = $isGroutTile
                     const stickyHead = rekapHead.cloneNode(true);
                     stickyTable.appendChild(stickyHead);
                     stickyContainer.appendChild(stickyTable);
+                    stickyContainer.style.display = 'none';
                     document.body.appendChild(stickyContainer);
 
                     const syncWidths = () => {
@@ -4931,13 +5052,23 @@ $paramValue = $isGroutTile
                         const stickyTop = getStickyTop();
                         const headHeight = rekapHead.offsetHeight || 0;
                         const scrollLeft = rekapWrap ? rekapWrap.scrollLeft : 0;
+                        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
                         stickyContainer.style.top = `${stickyTop}px`;
                         stickyContainer.style.left = `${wrapRect.left}px`;
                         stickyContainer.style.width = `${wrapRect.width}px`;
                         stickyTable.style.transform = `translateX(${-scrollLeft}px)`;
-                        const isActive = rect.top <= stickyTop && rect.bottom > stickyTop + headHeight;
+                        const detailWrap = document.querySelector('.detail-table-wrap');
+                        const detailRect = detailWrap ? detailWrap.getBoundingClientRect() : null;
+                        const detailAtTop = detailRect ? detailRect.top <= stickyTop + headHeight : false;
+                        const inViewport = rect.bottom > 0 && rect.top < viewportHeight;
+                        const isActive =
+                            inViewport &&
+                            rect.top <= stickyTop &&
+                            rect.bottom > stickyTop + headHeight &&
+                            !detailAtTop;
                         stickyContainer.classList.toggle('is-active', isActive);
                         rekapTable.classList.toggle('rekap-sticky-active', isActive);
+                        stickyContainer.style.display = isActive ? 'block' : 'none';
                     };
 
                     let rafId = null;
@@ -5525,6 +5656,17 @@ $paramValue = $isGroutTile
             const backdrop = document.querySelector('.modal-backdrop');
             if (backdrop) {
                 backdrop.classList.remove('modal-high-backdrop');
+            }
+        });
+
+        // Handle Back/Forward Navigation (BFCache) for Preview Page
+        window.addEventListener('pageshow', function(event) {
+            // If page was restored from BFCache, re-initialize visibility
+            if (event.persisted) {
+                const pageContainer = document.querySelector('.preview-combinations-page');
+                if (pageContainer && !pageContainer.classList.contains('page-loaded')) {
+                    initPageVisibility();
+                }
             }
         });
     </script>

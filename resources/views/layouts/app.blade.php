@@ -43,13 +43,58 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ asset('css/global.css') }}?v={{ @filemtime(public_path('css/global.css')) }}">
     <script src="{{ asset('js/number-helper-client.js') }}"></script>
+
+    {{-- Anti-Flicker / FOUC Prevention --}}
+    <style>
+        /* Hide body until page is ready */
+        html:not(.page-ready) body {
+            opacity: 0;
+            transition: opacity 0.15s ease-in;
+        }
+
+        html.page-ready body {
+            opacity: 1;
+        }
+
+        /* Prevent table layout shift */
+        table {
+            table-layout: fixed;
+        }
+
+        .table-preview,
+        .table-rekap-global {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* Prevent form input flicker */
+        input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+        select,
+        textarea {
+            will-change: contents;
+        }
+    </style>
+
+    {{-- Page Ready Script - Run ASAP --}}
+    <script>
+        // Mark page as ready after DOM and critical resources load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                requestAnimationFrame(function() {
+                    document.documentElement.classList.add('page-ready');
+                });
+            });
+        } else {
+            document.documentElement.classList.add('page-ready');
+        }
+    </script>
 </head>
 <body>
     <div class="global-topbar" id="globalTopbar">
         <button type="button" class="topbar-logo-btn" id="navLogoToggle" aria-label="Buka menu">
             <img src="/kanggo.png" alt="Kanggo">
         </button>
-        <div class="topbar-title"><i class="bi bi-caret-right-fill"></i> {{ $topbarTitle }}</div>
+        <div class="topbar-title"><i class="bi bi-caret-right-fill"></i> {{ $topbarTitle }} @yield('topbar-badge')</div>
         <div class="topbar-account">
             <span class="topbar-role">Admin</span>
             <span class="topbar-avatar" aria-hidden="true">
@@ -414,6 +459,19 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            function insertAtCursor(input, text) {
+                try {
+                    if (typeof input.setRangeText === 'function') {
+                        const start = input.selectionStart ?? input.value.length;
+                        const end = input.selectionEnd ?? input.value.length;
+                        input.setRangeText(text, start, end, 'end');
+                        return;
+                    }
+                } catch (err) {
+                    // Fallback below
+                }
+                input.value = (input.value || '') + text;
+            }
             const navToggle = document.getElementById('navToggle');
             const navOverlay = document.getElementById('navOverlay');
             const navLogoToggle = document.getElementById('navLogoToggle');
@@ -1478,9 +1536,11 @@
 
                 // Identify target fields: type="number" OR fields with specific keywords in ID/Name
                 // Keywords: dimension, weight, berat, panjang, lebar, tinggi, volume, price, harga
-                const isNumericField = target.type === 'number' || 
-                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.id || '') ||
-                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.name || '');
+                const isNumericField = target.type === 'number' ||
+                                       target.inputMode === 'numeric' ||
+                                       target.inputMode === 'decimal' ||
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga|length|width|height|thickness|ratio|count|sides/i.test(target.id || '') ||
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga|length|width|height|thickness|ratio|count|sides/i.test(target.name || '');
 
                 if (isNumericField) {
                     // Allow: Backspace, Delete, Tab, Escape, Enter
@@ -1500,12 +1560,18 @@
 
                     // Handle Decimal Point (Allow only one)
                     // 190 = Period (.), 110 = Decimal Point (numpad), 188 = Comma (,)
-                    if ([190, 110, 188].includes(e.keyCode)) {
-                        // If value already contains . or , prevent adding another
-                        if (target.value.includes('.') || target.value.includes(',')) {
+                    const isCommaKey = e.key === ',';
+                    const isDotKey = e.key === '.';
+                    const isNumpadDecimal = e.code === 'NumpadDecimal';
+                    const isDecimalKey = isCommaKey || isDotKey || isNumpadDecimal || [190, 110, 188].includes(e.keyCode);
+
+                    if (isDecimalKey) {
+                        // If user types comma in number input, convert to dot
+                        if (isCommaKey && target.type === 'number') {
                             e.preventDefault();
+                            insertAtCursor(target, '.');
                         }
-                        return; // Allow the first decimal point
+                        return; // Allow decimal separator
                     }
 
                     // Ensure that it is a number (0-9)
@@ -1517,12 +1583,15 @@
 
             // Sanitize paste events to remove non-numeric characters
             document.body.addEventListener('paste', function(e) {
+                if (e.defaultPrevented) return;
                 const target = e.target;
                 if (target.tagName !== 'INPUT') return;
 
-                const isNumericField = target.type === 'number' || 
-                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.id || '') ||
-                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga/i.test(target.name || '');
+                const isNumericField = target.type === 'number' ||
+                                       target.inputMode === 'numeric' ||
+                                       target.inputMode === 'decimal' ||
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga|length|width|height|thickness|ratio|count|sides/i.test(target.id || '') ||
+                                       /dimension|weight|berat|panjang|lebar|tinggi|volume|price|harga|length|width|height|thickness|ratio|count|sides/i.test(target.name || '');
 
                 if (isNumericField) {
                     // Get pasted data via clipboard API

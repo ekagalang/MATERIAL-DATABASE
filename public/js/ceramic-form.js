@@ -116,6 +116,57 @@ function initCeramicForm(root) {
         return plain.replace('.', ',');
     }
 
+    // Parse decimal value handling dot/comma and thousands separators (flexible input)
+    function parseDecimal(value) {
+        if (typeof value === 'number') return isFinite(value) ? value : NaN;
+        if (typeof value !== 'string') return NaN;
+        let str = value.trim();
+        if (str === '') return NaN;
+
+        // Remove spaces and NBSP
+        str = str.replace(/[\s\u00A0]/g, '');
+
+        let negative = false;
+        if (str.startsWith('-')) {
+            negative = true;
+            str = str.slice(1);
+        }
+
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                // Indo: 1.234,56
+                str = str.replace(/\./g, '');
+                str = str.replace(/,/g, '.');
+            } else {
+                // US: 1,234.56
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            if (/^\d{1,3}(,\d{3})+$/.test(str)) {
+                // US thousands with comma
+                str = str.replace(/,/g, '');
+            } else {
+                // Comma as decimal
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^\d{1,3}(\.\d{3})+$/.test(str)) {
+                // Indo thousands with dot
+                str = str.replace(/\./g, '');
+            }
+            // else dot as decimal
+        }
+
+        str = str.replace(/[^0-9.]/g, '');
+        if (str === '' || str === '.') return NaN;
+        const num = Number(str);
+        if (!isFinite(num)) return NaN;
+        return negative ? -num : num;
+    }
+
     function formatNumberTrim(value) {
         return formatSmartDecimal(value);
     }
@@ -162,14 +213,14 @@ function initCeramicForm(root) {
         const dimWidthInput = getElement('dimension_width_input');
 
         // Get length and width in cm
-        let length = parseFloat(dimLength?.value) || 0;
-        let width = parseFloat(dimWidth?.value) || 0;
+        let length = parseDecimal(dimLength?.value) || 0;
+        let width = parseDecimal(dimWidth?.value) || 0;
 
         // If using input fields with unit selectors
         const usesUnitSelectors = !!dimLengthInput;
         if (usesUnitSelectors && !length && !width) {
-            const rawLength = parseFloat(dimLengthInput?.value);
-            const rawWidth = parseFloat(dimWidthInput?.value);
+            const rawLength = parseDecimal(dimLengthInput?.value);
+            const rawWidth = parseDecimal(dimWidthInput?.value);
             const normalizedLength = normalizeSmartDecimal(rawLength);
             const normalizedWidth = normalizeSmartDecimal(rawWidth);
             length = (!isNaN(normalizedLength) && normalizedLength > 0) ? normalizedLength : 0;
@@ -265,8 +316,8 @@ function initCeramicForm(root) {
     function recalculatePrices() {
         if (currentCoverage <= 0) return;
 
-        const priceValue = parseFloat(pricePerPackage?.value) || 0;
-        const compValue = parseFloat(comparisonPrice?.value) || 0;
+        const priceValue = parseDecimal(pricePerPackage?.value) || 0;
+        const compValue = parseDecimal(comparisonPrice?.value) || 0;
 
         // Recalculate based on which field was edited last
         if (lastEditedPriceField === 'price' && priceValue > 0) {
@@ -307,15 +358,15 @@ function initCeramicForm(root) {
 
     function calculateCoverage() {
         // Get dimension values
-        let length = parseFloat(dimLength?.value) || 0;
-        let width = parseFloat(dimWidth?.value) || 0;
-        let pieces = parseFloat(piecesPerPackage?.value) || 0;
+        let length = parseDecimal(dimLength?.value) || 0;
+        let width = parseDecimal(dimWidth?.value) || 0;
+        let pieces = parseDecimal(piecesPerPackage?.value) || 0;
 
         // If using unit selectors
         const usesUnitSelectors = !!dimLengthInput;
         if (usesUnitSelectors && !length && !width) {
-            const rawLength = parseFloat(dimLengthInput?.value);
-            const rawWidth = parseFloat(dimWidthInput?.value);
+            const rawLength = parseDecimal(dimLengthInput?.value);
+            const rawWidth = parseDecimal(dimWidthInput?.value);
             const normalizedLength = normalizeSmartDecimal(rawLength);
             const normalizedWidth = normalizeSmartDecimal(rawWidth);
 
@@ -377,7 +428,7 @@ function initCeramicForm(root) {
     // ========== UNIT CONVERSION ==========
 
     function convertToCm(value, unit) {
-        const num = parseFloat(value);
+        const num = parseDecimal(value);
         if (isNaN(num) || num < 0) {
             return null;
         }
@@ -432,9 +483,9 @@ function initCeramicForm(root) {
         inputElement.addEventListener('blur', function() {
             const rawValue = this.value.trim();
             if (rawValue !== '') {
-                const num = parseFloat(rawValue);
+                const num = parseDecimal(rawValue);
                 if (!isNaN(num) && num >= 0) {
-                    this.value = num.toString();
+                    this.value = formatSmartDecimal(num);
                 }
             }
         });
@@ -458,7 +509,7 @@ function initCeramicForm(root) {
         const rawValue = (inputElement.value || '').trim();
         if (!rawValue) return;
 
-        const cmValue = unitElement ? convertToCm(rawValue, unitElement.value) : parseFloat(rawValue);
+        const cmValue = unitElement ? convertToCm(rawValue, unitElement.value) : parseDecimal(rawValue);
         if (cmValue !== null && !isNaN(cmValue)) {
             const normalizedCm = normalizeSmartDecimal(cmValue);
             hiddenElement.value = isNaN(normalizedCm) ? '' : normalizedCm.toString();
