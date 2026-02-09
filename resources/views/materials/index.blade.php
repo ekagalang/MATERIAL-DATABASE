@@ -272,6 +272,9 @@ html.materials-booting .page-content {
       border-collapse: separate !important;
       border-spacing: 0 !important;
   }
+  .material-tab-panel table {
+      table-layout: auto !important;
+  }
   .table-container thead th {
       border: 1px solid #cbd5e1 !important;
       z-index: 20; /* Ensure borders sit above content */
@@ -2317,6 +2320,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function blinkRowsByAnchorLetter(targetId) {
+        blinkFirstRowByAnchorLetter(targetId);
+    }
+
+    function blinkFirstRowByAnchorLetter(targetId) {
         const parsed = parseAnchorBrandLetter(targetId);
         if (!parsed) return;
 
@@ -2337,27 +2344,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return firstChar === parsed.letter;
         });
 
-        if (!rows.length) return;
-
-        // Use the same visual effect as single-row skip highlight, but apply to all matching rows.
-        const containers = new Set();
-        rows.forEach(row => {
-            const container = row.closest('.table-container');
-            if (!container) return;
-            containers.add(container);
-        });
-
-        containers.forEach(container => {
-            container.querySelectorAll('.material-row-outline-group').forEach(el => el.remove());
-        });
-
-        rows.forEach(row => {
-            highlightMaterialRowElement(row, {
-                preserveExisting: true,
-                outlineClass: 'material-row-outline material-row-outline-group',
-                removeSelector: '.material-row-outline-group',
-            });
-        });
+        const firstRow = rows[0];
+        if (!firstRow) return;
+        highlightMaterialRowElement(firstRow);
     }
 
     function normalizeMaterialSearchValue(value) {
@@ -3133,7 +3122,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (rememberedHash) {
             updateActivePaginationLetter(rememberedHash);
             window.setTimeout(() => {
-                blinkRowsByAnchorLetter(rememberedHash.replace(/^#/, ''));
+                blinkFirstRowByAnchorLetter(rememberedHash.replace(/^#/, ''));
             }, 320);
         }
     } else {

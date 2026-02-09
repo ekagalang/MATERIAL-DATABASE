@@ -2852,7 +2852,7 @@ $paramValue = $isGroutTile
                     <thead class="align-top">
                         <tr>
                             <th class="sticky-col-1">Qty<br>/ Pekerjaan</th>
-                            <th class="sticky-col-2">Satuan</th>
+                            <th class="sticky-col-2">Sat.</th>
                             <th class="sticky-col-3">Material</th>
                             <th colspan="4">Detail</th>
                             <th class="preview-store-cell">Toko</th>
@@ -3649,7 +3649,7 @@ $paramValue = $isGroutTile
                                     @else
                                         <td class="text-nowrap fw-bold" title="{{ $packagePriceTitle }}"
                                             style="border-right: none;">
-                                            <div class="d-flex justify-content-between w-100">
+                                            <div class="d-flex justify-content-between" style="width: 100px;">
                                                 <span>Rp</span>
                                                 <span>{{ $formatMoney($mat['package_price']) }}</span>
                                             </div>
@@ -3692,40 +3692,28 @@ $paramValue = $isGroutTile
                                             $grandTotalParts = [];
                                             $calculatedGrandTotal = 0;
                                             foreach ($visibleMaterials as $debugMatKey => $debugMat) {
-                                                if (!isset($debugMat['is_special']) || !$debugMat['is_special']) {
-                                                    // Rumus baru: (Harga beli / ukuran per kemasan) * Qty per pekerjaan
-                                                    $debugConversionFactor = 1;
-                                                    if ($debugMatKey === 'sand') {
-                                                        $debugConversionFactor = $debugMat['detail_value'] ?? 1;
-                                                    } elseif ($debugMatKey === 'ceramic') {
-                                                        $debugConversionFactor =
-                                                            $debugMat['object']->pieces_per_package ?? 1;
-                                                    }
-
-                                                    $debugNormalizedPrice = (float) ($debugMat['package_price'] ?? 0);
-                                                    $debugNormalizedSize = (float) $debugConversionFactor;
-                                                    $debugNormalizedQty = (float) ($debugMat['qty'] ?? 0);
-
-                                                    $debugUnitPrice =
-                                                        $debugNormalizedSize > 0
-                                                            ? $debugNormalizedPrice / $debugNormalizedSize
-                                                            : 0;
-                                                    $debugUnitPrice = (float) $debugUnitPrice;
-
-                                                    $calcPrice = (float) ($debugUnitPrice * $debugNormalizedQty);
-                                                    $calculatedGrandTotal += $calcPrice;
-
-                                                    $grandTotalParts[] =
-                                                        $debugMat['name'] .
-                                                        ' ((Rp ' .
-                                                        $formatMoney($debugNormalizedPrice) .
-                                                        ' / ' .
-                                                        $formatNum($debugNormalizedSize) .
-                                                        ') x ' .
-                                                        $formatNum($debugNormalizedQty) .
-                                                        '): Rp ' .
-                                                        $formatMoney($calcPrice);
+                                                if (isset($debugMat['is_special']) && $debugMat['is_special']) {
+                                                    continue;
                                                 }
+
+                                                $debugPricePerUnit = (float) ($debugMat['price_per_unit'] ?? ($debugMat['package_price'] ?? 0));
+                                                $debugPriceCalcQty = (float) ($debugMat['price_calc_qty'] ?? ($debugMat['qty'] ?? 0));
+                                                $debugTotal = round((float) ($debugMat['total_price'] ?? 0), 0);
+                                                if ($debugTotal <= 0) {
+                                                    $debugTotal = round((float) ($debugPricePerUnit * $debugPriceCalcQty), 0);
+                                                }
+
+                                                $calculatedGrandTotal += $debugTotal;
+
+                                                $grandTotalParts[] =
+                                                    $debugMat['name'] .
+                                                    ' (Rp ' .
+                                                    $formatMoney($debugPricePerUnit) .
+                                                    ' x ' .
+                                                    $formatNum($debugPriceCalcQty) .
+                                                    ' = Rp ' .
+                                                    $formatMoney($debugTotal) .
+                                                    ')';
                                             }
                                             $grandTotalValue = (float) $calculatedGrandTotal;
                                             $grandTotalDebug = 'Rumus: ' . implode(' + ', $grandTotalParts);
@@ -4459,20 +4447,20 @@ $paramValue = $isGroutTile
 
         .sticky-col-2 {
             position: sticky;
-            left: 105px;
+            left: 117px;
             background-color: white;
             z-index: 2;
             box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
-            min-width: 95px;
+            min-width: 60px;
             max-width: 95px;
-            width: 95px;
+            width: 60px;
             backface-visibility: hidden;
             transform: translateZ(0);
         }
 
         .sticky-col-3 {
             position: sticky;
-            left: 200px;
+            left: 185px;
             background-color: white;
             z-index: 2;
             box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);

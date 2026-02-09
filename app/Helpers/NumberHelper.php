@@ -4,8 +4,8 @@ namespace App\Helpers;
 
 class NumberHelper
 {
-    private const DEFAULT_DECIMALS = 15;
-    private const RESULT_DECIMALS = 15;
+    private const DEFAULT_DECIMALS = 11;
+    private const RESULT_DECIMALS = 11;
     private const FIXED_DECIMALS = 2;
 
     private static function resolveDecimals(?int $decimals, int $fallback): int
@@ -85,7 +85,7 @@ class NumberHelper
      */
     public static function formatPlain(
         mixed $number,
-        int $maxDecimals = 15,
+        int $maxDecimals = 11,
         string $decimalSeparator = ',',
         string $thousandsSeparator = '.',
     ): string {
