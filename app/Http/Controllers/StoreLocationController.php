@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/StoreLocationController.php
 
 namespace App\Http\Controllers;
@@ -7,7 +8,6 @@ use App\Models\Store;
 use App\Models\StoreLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\MaterialController;
 
 class StoreLocationController extends Controller
 {
@@ -42,8 +42,9 @@ class StoreLocationController extends Controller
             return redirect()->route('stores.show', $store)->with('success', 'Lokasi berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
-                ->with('error', 'Gagal menambah lokasi: ' . $e->getMessage())
+                ->with('error', 'Gagal menambah lokasi: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -79,8 +80,9 @@ class StoreLocationController extends Controller
             return redirect()->route('stores.show', $store)->with('success', 'Lokasi berhasil diupdate!');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()
-                ->with('error', 'Gagal update lokasi: ' . $e->getMessage())
+                ->with('error', 'Gagal update lokasi: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -99,7 +101,8 @@ class StoreLocationController extends Controller
             return redirect()->route('stores.show', $store)->with('success', 'Lokasi berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal menghapus lokasi: ' . $e->getMessage());
+
+            return back()->with('error', 'Gagal menghapus lokasi: '.$e->getMessage());
         }
     }
 
@@ -115,7 +118,7 @@ class StoreLocationController extends Controller
         $query = $location->materialAvailabilities()->with('materialable');
 
         $availabilities = $query->get();
-        
+
         // Group by material type
         $bricks = collect();
         $cements = collect();
@@ -123,11 +126,13 @@ class StoreLocationController extends Controller
         $cats = collect();
         $ceramics = collect();
         $nats = collect();
-        
+
         foreach ($availabilities as $availability) {
             $material = $availability->materialable;
-            if (!$material) continue;
-            
+            if (! $material) {
+                continue;
+            }
+
             // Categorize based on class type
             $type = class_basename($material);
 
@@ -147,7 +152,7 @@ class StoreLocationController extends Controller
                     }
 
                     // Convert value to string and search
-                    $valueStr = strtolower((string)$value);
+                    $valueStr = strtolower((string) $value);
                     if (stripos($valueStr, $searchLower) !== false) {
                         $found = true;
                         break;
@@ -161,14 +166,14 @@ class StoreLocationController extends Controller
                     'Cement' => ['cement_name'],
                     'Nat' => ['nat_name'],
                     'Ceramic' => ['material_name'],
-                    default => []
+                    default => [],
                 };
 
-                if (!$found) {
+                if (! $found) {
                     foreach ($computedFields as $field) {
                         try {
                             $value = $material->{$field} ?? null;
-                            if ($value && stripos(strtolower((string)$value), $searchLower) !== false) {
+                            if ($value && stripos(strtolower((string) $value), $searchLower) !== false) {
                                 $found = true;
                                 break;
                             }
@@ -180,7 +185,7 @@ class StoreLocationController extends Controller
                 }
 
                 // Search in packageUnit relationship (for "karung", "sak", etc.)
-                if (!$found && in_array($type, ['Sand', 'Cat', 'Cement', 'Nat'])) {
+                if (! $found && in_array($type, ['Sand', 'Cat', 'Cement', 'Nat'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -194,7 +199,7 @@ class StoreLocationController extends Controller
                 }
 
                 // Search in unit labels that appear in display (M3, Kg, M2)
-                if (!$found) {
+                if (! $found) {
                     $unitLabels = [];
                     if (isset($material->comparison_price_per_m3) && $material->comparison_price_per_m3) {
                         $unitLabels[] = 'm3';
@@ -215,16 +220,30 @@ class StoreLocationController extends Controller
                     }
                 }
 
-                if (!$found) continue;
+                if (! $found) {
+                    continue;
+                }
             }
-            
-            switch($type) {
-                case 'Brick': $bricks->push($material); break;
-                case 'Cement': $cements->push($material); break;
-                case 'Sand': $sands->push($material); break;
-                case 'Cat': $cats->push($material); break;
-                case 'Ceramic': $ceramics->push($material); break;
-                case 'Nat': $nats->push($material); break;
+
+            switch ($type) {
+                case 'Brick':
+                    $bricks->push($material);
+                    break;
+                case 'Cement':
+                    $cements->push($material);
+                    break;
+                case 'Sand':
+                    $sands->push($material);
+                    break;
+                case 'Cat':
+                    $cats->push($material);
+                    break;
+                case 'Ceramic':
+                    $ceramics->push($material);
+                    break;
+                case 'Nat':
+                    $nats->push($material);
+                    break;
             }
         }
 
@@ -251,7 +270,7 @@ class StoreLocationController extends Controller
             'count' => $bricks->count(),
             'db_count' => $bricks->count(),
             'data' => $bricks,
-            'active_letters' => $this->getActiveLetters($bricks)
+            'active_letters' => $this->getActiveLetters($bricks),
         ];
 
         // Always include cement
@@ -261,7 +280,7 @@ class StoreLocationController extends Controller
             'count' => $cements->count(),
             'db_count' => $cements->count(),
             'data' => $cements,
-            'active_letters' => $this->getActiveLetters($cements)
+            'active_letters' => $this->getActiveLetters($cements),
         ];
 
         // Always include nat
@@ -271,7 +290,7 @@ class StoreLocationController extends Controller
             'count' => $nats->count(),
             'db_count' => $nats->count(),
             'data' => $nats,
-            'active_letters' => $this->getActiveLetters($nats)
+            'active_letters' => $this->getActiveLetters($nats),
         ];
 
         // Always include sand
@@ -281,7 +300,7 @@ class StoreLocationController extends Controller
             'count' => $sands->count(),
             'db_count' => $sands->count(),
             'data' => $sands,
-            'active_letters' => $this->getActiveLetters($sands)
+            'active_letters' => $this->getActiveLetters($sands),
         ];
 
         // Always include cat
@@ -291,7 +310,7 @@ class StoreLocationController extends Controller
             'count' => $cats->count(),
             'db_count' => $cats->count(),
             'data' => $cats,
-            'active_letters' => $this->getActiveLetters($cats)
+            'active_letters' => $this->getActiveLetters($cats),
         ];
 
         // Always include ceramic
@@ -301,13 +320,11 @@ class StoreLocationController extends Controller
             'count' => $ceramics->count(),
             'db_count' => $ceramics->count(),
             'data' => $ceramics,
-            'active_letters' => $this->getActiveLetters($ceramics)
+            'active_letters' => $this->getActiveLetters($ceramics),
         ];
-        
+
         // Get all settings for filter dropdown (required by the view structure)
-        $allSettings = \App\Models\MaterialSetting::where('is_visible', true)
-            ->orderBy('display_order')
-            ->get();
+        $allSettings = \App\Models\MaterialSetting::where('is_visible', true)->orderBy('display_order')->get();
 
         return view('store-locations.materials', compact('store', 'location', 'materials', 'allSettings'));
     }
@@ -318,23 +335,23 @@ class StoreLocationController extends Controller
     public function fetchTab(Request $request, Store $store, StoreLocation $location, $type)
     {
         // Validate type
-        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
+        if (! in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
             abort(404);
         }
 
         $search = $request->get('search');
-        
+
         // Base query for this location
         $query = $location->materialAvailabilities()->with('materialable');
-        
+
         // Get all availabilities first (filtering happens in memory due to polymorphic relation)
         // Optimization: In a real large-scale app, we might want to filter by type in DB query if possible
         // But since materialAvailabilities is polymorphic, we fetch and filter.
         $availabilities = $query->get();
-        
+
         $materialsCollection = collect();
-        
-        $targetClass = match($type) {
+
+        $targetClass = match ($type) {
             'brick' => 'Brick',
             'cat' => 'Cat',
             'cement' => 'Cement',
@@ -345,10 +362,14 @@ class StoreLocationController extends Controller
 
         foreach ($availabilities as $availability) {
             $material = $availability->materialable;
-            if (!$material) continue;
-            
+            if (! $material) {
+                continue;
+            }
+
             // Filter by type
-            if (class_basename($material) !== $targetClass) continue;
+            if (class_basename($material) !== $targetClass) {
+                continue;
+            }
 
             // Search Filter
             if ($search) {
@@ -358,36 +379,40 @@ class StoreLocationController extends Controller
                 // 1. Attribute Search
                 $attributes = $material->getAttributes();
                 foreach ($attributes as $key => $value) {
-                    if (in_array($key, ['id', 'created_at', 'updated_at']) || $value === null) continue;
-                    if (stripos(strtolower((string)$value), $searchLower) !== false) {
+                    if (in_array($key, ['id', 'created_at', 'updated_at']) || $value === null) {
+                        continue;
+                    }
+                    if (stripos(strtolower((string) $value), $searchLower) !== false) {
                         $found = true;
                         break;
                     }
                 }
 
                 // 2. Computed Properties Search
-                if (!$found) {
+                if (! $found) {
                     $computedFields = match ($type) {
                         'sand' => ['sand_name'],
                         'cat' => ['cat_name'],
                         'cement' => ['cement_name'],
                         'nat' => ['nat_name'],
                         'ceramic' => ['material_name'],
-                        default => []
+                        default => [],
                     };
                     foreach ($computedFields as $field) {
                         try {
                             $value = $material->{$field} ?? null;
-                            if ($value && stripos(strtolower((string)$value), $searchLower) !== false) {
+                            if ($value && stripos(strtolower((string) $value), $searchLower) !== false) {
                                 $found = true;
                                 break;
                             }
-                        } catch (\Exception $e) { continue; }
+                        } catch (\Exception $e) {
+                            continue;
+                        }
                     }
                 }
 
                 // 3. Relationship Search (Package Unit)
-                if (!$found && in_array($type, ['sand', 'cat', 'cement', 'nat'])) {
+                if (! $found && in_array($type, ['sand', 'cat', 'cement', 'nat'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -395,18 +420,23 @@ class StoreLocationController extends Controller
                                 $found = true;
                             }
                         }
-                    } catch (\Exception $e) {}
+                    } catch (\Exception $e) {
+                    }
                 }
 
                 // 4. Unit Labels Search
-                if (!$found) {
+                if (! $found) {
                     $unitLabels = [];
-                    if (isset($material->comparison_price_per_m3) && $material->comparison_price_per_m3) $unitLabels[] = 'm3';
+                    if (isset($material->comparison_price_per_m3) && $material->comparison_price_per_m3) {
+                        $unitLabels[] = 'm3';
+                    }
                     if (isset($material->comparison_price_per_kg) && $material->comparison_price_per_kg) {
                         $unitLabels[] = 'kg';
                         $unitLabels[] = 'kilogram';
                     }
-                    if (isset($material->comparison_price_per_m2) && $material->comparison_price_per_m2) $unitLabels[] = 'm2';
+                    if (isset($material->comparison_price_per_m2) && $material->comparison_price_per_m2) {
+                        $unitLabels[] = 'm2';
+                    }
 
                     foreach ($unitLabels as $label) {
                         if (stripos($label, $searchLower) !== false) {
@@ -416,7 +446,9 @@ class StoreLocationController extends Controller
                     }
                 }
 
-                if (!$found) continue;
+                if (! $found) {
+                    continue;
+                }
             }
 
             $materialsCollection->push($material);
@@ -478,7 +510,7 @@ class StoreLocationController extends Controller
                 $sortPlan[] = ['column' => $column, 'direction' => $normalizedDirection];
             }
             foreach ($priorityColumns as $column) {
-                if (!in_array($column, $primaryColumns, true)) {
+                if (! in_array($column, $primaryColumns, true)) {
                     $sortPlan[] = ['column' => $column, 'direction' => 'asc'];
                 }
             }
@@ -496,7 +528,7 @@ class StoreLocationController extends Controller
                     }
                 }
 
-                return (($left->id ?? 0) <=> ($right->id ?? 0));
+                return ($left->id ?? 0) <=> ($right->id ?? 0);
             })
             ->values();
     }
@@ -634,8 +666,12 @@ class StoreLocationController extends Controller
 
     private function getActiveLetters($collection)
     {
-        return $collection->map(function ($item) {
-            return strtoupper(substr($item->brand ?? '#', 0, 1));
-        })->unique()->sort()->values();
+        return $collection
+            ->map(function ($item) {
+                return strtoupper(substr($item->brand ?? '#', 0, 1));
+            })
+            ->unique()
+            ->sort()
+            ->values();
     }
 }

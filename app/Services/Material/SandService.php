@@ -32,7 +32,9 @@ class SandService extends BaseService
     {
         $sand = $this->repository->findOrFail($id);
         if ($photo) {
-            if ($sand->photo) $this->fileUploadService->delete($sand->photo);
+            if ($sand->photo) {
+                $this->fileUploadService->delete($sand->photo);
+            }
             $data['photo'] = $this->fileUploadService->upload($photo, 'sands');
         }
         $sand->update($data);
@@ -44,12 +46,18 @@ class SandService extends BaseService
     public function delete(int $id): bool
     {
         $sand = $this->repository->findOrFail($id);
-        if ($sand->photo) $this->fileUploadService->delete($sand->photo);
+        if ($sand->photo) {
+            $this->fileUploadService->delete($sand->photo);
+        }
         return $this->repository->delete($id);
     }
 
-    public function search(string $query, int $perPage = 15, ?string $sortBy = 'created_at', string $sortDirection = 'desc')
-    {
+    public function search(
+        string $query,
+        int $perPage = 15,
+        ?string $sortBy = 'created_at',
+        string $sortDirection = 'desc',
+    ) {
         return $this->repository->search($query, $perPage, $sortBy, $sortDirection);
     }
 
@@ -75,7 +83,11 @@ class SandService extends BaseService
 
     protected function calculateDerivedFields(Sand $sand): void
     {
-        if ((!$sand->package_weight_net || $sand->package_weight_net <= 0) && $sand->package_weight_gross && $sand->package_unit) {
+        if (
+            (!$sand->package_weight_net || $sand->package_weight_net <= 0) &&
+            $sand->package_weight_gross &&
+            $sand->package_unit
+        ) {
             $sand->calculateNetWeight();
         }
         if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {

@@ -23,19 +23,22 @@ class LogViewerController extends Controller
         $logDirectory = storage_path('logs');
         $logFiles = File::isDirectory($logDirectory)
             ? collect(File::files($logDirectory))
-                ->filter(static fn($file) => strtolower($file->getExtension()) === 'log')
-                ->sortByDesc(static fn($file) => $file->getMTime())
+                ->filter(static fn ($file) => strtolower($file->getExtension()) === 'log')
+                ->sortByDesc(static fn ($file) => $file->getMTime())
                 ->values()
             : collect();
 
-        $fileOptions = $logFiles->map(static fn($file) => $file->getFilename())->values();
-        $selectedFiles = $fileFilter === 'all'
-            ? $fileOptions
-            : $fileOptions->filter(static fn($filename) => $filename === $fileFilter)->values();
+        $fileOptions = $logFiles->map(static fn ($file) => $file->getFilename())->values();
+        $selectedFiles =
+            $fileFilter === 'all'
+                ? $fileOptions
+                : $fileOptions->filter(static fn ($filename) => $filename === $fileFilter)->values();
 
         $entries = collect();
         foreach ($selectedFiles as $filename) {
-            $entries = $entries->merge($this->parseLogFile(storage_path('logs/' . $filename), $filename, $sourceTimezone));
+            $entries = $entries->merge(
+                $this->parseLogFile(storage_path('logs/'.$filename), $filename, $sourceTimezone),
+            );
         }
 
         $entries = $entries
@@ -43,6 +46,7 @@ class LogViewerController extends Controller
             ->values()
             ->map(static function (array $entry) {
                 unset($entry['sortable_timestamp']);
+
                 return $entry;
             });
 
@@ -72,7 +76,7 @@ class LogViewerController extends Controller
                         ]),
                     );
 
-                    if (!str_contains($haystack, strtolower($searchFilter))) {
+                    if (! str_contains($haystack, strtolower($searchFilter))) {
                         return false;
                     }
                 }
@@ -83,23 +87,17 @@ class LogViewerController extends Controller
 
         $perPageOptions = [25, 50, 100, 200];
         $perPage = (int) $request->input('per_page', 50);
-        if (!in_array($perPage, $perPageOptions, true)) {
+        if (! in_array($perPage, $perPageOptions, true)) {
             $perPage = 50;
         }
 
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
         $currentItems = $filteredEntries->slice(($currentPage - 1) * $perPage, $perPage)->values();
 
-        $logs = new LengthAwarePaginator(
-            $currentItems,
-            $filteredEntries->count(),
-            $perPage,
-            $currentPage,
-            [
-                'path' => $request->url(),
-                'query' => $request->query(),
-            ],
-        );
+        $logs = new LengthAwarePaginator($currentItems, $filteredEntries->count(), $perPage, $currentPage, [
+            'path' => $request->url(),
+            'query' => $request->query(),
+        ]);
 
         $statusOptions = [
             'all' => 'Semua Status',
@@ -147,7 +145,7 @@ class LogViewerController extends Controller
 
     protected function parseLogFile(string $path, string $filename, string $sourceTimezone): Collection
     {
-        if (!File::exists($path)) {
+        if (! File::exists($path)) {
             return collect();
         }
 
@@ -155,7 +153,7 @@ class LogViewerController extends Controller
         $currentEntry = null;
 
         $logFile = new \SplFileObject($path, 'r');
-        while (!$logFile->eof()) {
+        while (! $logFile->eof()) {
             $line = rtrim((string) $logFile->fgets(), "\r\n");
 
             if ($this->isLogHeader($line, $parsedHeader)) {
@@ -190,8 +188,9 @@ class LogViewerController extends Controller
     {
         $pattern = '/^\[(?<timestamp>[^\]]+)\]\s+(?<channel>[A-Za-z0-9_.-]+)\.(?<level>[A-Z]+):\s*(?<message>.*)$/';
 
-        if (!preg_match($pattern, $line, $matches)) {
+        if (! preg_match($pattern, $line, $matches)) {
             $parsedHeader = null;
+
             return false;
         }
 
@@ -228,7 +227,9 @@ class LogViewerController extends Controller
         $status = $this->resolveStatus($level, $message, $details);
 
         return [
-            'timestamp' => $parsedTimestamp ? $parsedTimestamp->format('Y-m-d H:i:s') : (string) ($entry['timestamp'] ?? '-'),
+            'timestamp' => $parsedTimestamp
+                ? $parsedTimestamp->format('Y-m-d H:i:s')
+                : (string) ($entry['timestamp'] ?? '-'),
             'date' => $parsedTimestamp ? $parsedTimestamp->format('Y-m-d') : '',
             'sortable_timestamp' => $parsedTimestamp ? $parsedTimestamp->getTimestamp() : 0,
             'channel' => (string) ($entry['channel'] ?? '-'),
@@ -254,12 +255,8 @@ class LogViewerController extends Controller
             return 'debug';
         }
 
-        $text = strtolower($message . ' ' . $details);
-        if (
-            str_contains($text, 'success') ||
-            str_contains($text, 'sukses') ||
-            str_contains($text, 'berhasil')
-        ) {
+        $text = strtolower($message.' '.$details);
+        if (str_contains($text, 'success') || str_contains($text, 'sukses') || str_contains($text, 'berhasil')) {
             return 'success';
         }
 

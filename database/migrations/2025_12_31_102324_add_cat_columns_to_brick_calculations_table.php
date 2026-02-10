@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -16,7 +15,7 @@ return new class extends Migration
             $table->decimal('cat_quantity', 10, 2)->nullable()->comment('Jumlah kemasan cat');
             $table->decimal('cat_kg', 10, 2)->nullable()->comment('Total berat cat dalam kg');
             $table->decimal('paint_liters', 10, 2)->nullable()->comment('Total volume cat dalam liter (jika ada)');
-            
+
             // Optional: Add price columns if needed for detailed history
             $table->decimal('cat_price_per_package', 12, 2)->nullable();
             $table->decimal('cat_total_cost', 15, 2)->nullable();
@@ -36,7 +35,7 @@ return new class extends Migration
                 'cat_kg',
                 'paint_liters',
                 'cat_price_per_package',
-                'cat_total_cost'
+                'cat_total_cost',
             ]);
         });
     }

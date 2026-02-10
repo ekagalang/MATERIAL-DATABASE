@@ -56,7 +56,7 @@ class SkimCoatingFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjang = $n($params['wall_length']); // m
@@ -137,7 +137,8 @@ class SkimCoatingFormula implements FormulaInterface
             'info' => 'Berapa M2 yang bisa diaci dengan 1 sak semen',
             'calculations' => [
                 'Tebal Adukan' => $tebalAdukanMM . ' mm',
-                'Perhitungan' => NumberHelper::format($volumeAdukanKubikPerKemasan) . ' / (' . $tebalAdukanMM . ' / 1000)',
+                'Perhitungan' =>
+                    NumberHelper::format($volumeAdukanKubikPerKemasan) . ' / (' . $tebalAdukanMM . ' / 1000)',
                 'Hasil' => NumberHelper::format($luasAcianPer1Kemasan) . ' M2',
             ],
         ];

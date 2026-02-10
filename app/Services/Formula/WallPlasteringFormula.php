@@ -20,7 +20,7 @@ class WallPlasteringFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Plester Dinding';
+        return 'Plester Dinding Saja';
     }
 
     public static function getDescription(): string
@@ -57,7 +57,7 @@ class WallPlasteringFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjang = $n($params['wall_length']); // m
@@ -144,7 +144,9 @@ class WallPlasteringFormula implements FormulaInterface
             'info' => 'Berapa M2 yang bisa diplester dengan 1 sak semen',
             'calculations' => [
                 'Perhitungan' =>
-                    NumberHelper::format($volumeAdukanKubikPerKemasan) . ' / ' . NumberHelper::format($tebalAdukanMeter),
+                    NumberHelper::format($volumeAdukanKubikPerKemasan) .
+                    ' / ' .
+                    NumberHelper::format($tebalAdukanMeter),
                 'Hasil' => NumberHelper::format($luasPlesteranPer1Kemasan) . ' M2',
             ],
         ];

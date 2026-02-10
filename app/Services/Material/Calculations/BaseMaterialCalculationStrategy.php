@@ -11,4 +11,3 @@ class BaseMaterialCalculationStrategy implements MaterialCalculationStrategyInte
         return $data;
     }
 }
-

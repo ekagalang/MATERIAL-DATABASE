@@ -328,5 +328,7 @@ Route::prefix('stores/{store}/locations')
         Route::put('/{location}', [StoreLocationController::class, 'update'])->name('update');
         Route::delete('/{location}', [StoreLocationController::class, 'destroy'])->name('destroy');
         Route::get('/{location}/materials', [StoreLocationController::class, 'materials'])->name('materials');
-        Route::get('/{location}/materials/tab/{type}', [StoreLocationController::class, 'fetchTab'])->name('materials.tab');
+        Route::get('/{location}/materials/tab/{type}', [StoreLocationController::class, 'fetchTab'])->name(
+            'materials.tab',
+        );
     });

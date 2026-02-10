@@ -20,9 +20,8 @@ class WorkItemApiController extends Controller
 {
     public function __construct(
         private WorkItemRepository $repository,
-        private WorkItemAnalyticsService $analyticsService
-    ) {
-    }
+        private WorkItemAnalyticsService $analyticsService,
+    ) {}
 
     /**
      * Get paginated work items with optional analytics
@@ -35,9 +34,6 @@ class WorkItemApiController extends Controller
      * - sort_direction: asc|desc (default: desc)
      * - per_page: int (default: 20)
      * - include_analytics: bool (default: false)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -49,7 +45,7 @@ class WorkItemApiController extends Controller
             ];
 
             $perPage = (int) $request->input('per_page', 20);
-            $perPage = ($perPage > 0 && $perPage <= 100) ? $perPage : 20;
+            $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
 
             $workItems = $this->repository->getWorkItems($filters, $perPage);
 
@@ -77,11 +73,14 @@ class WorkItemApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve work items',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve work items',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -89,8 +88,6 @@ class WorkItemApiController extends Controller
      * Get analytics summary for all work types
      *
      * GET /api/v1/work-items/analytics
-     *
-     * @return JsonResponse
      */
     public function getAllAnalytics(): JsonResponse
     {
@@ -111,11 +108,14 @@ class WorkItemApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve analytics',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve analytics',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -124,8 +124,7 @@ class WorkItemApiController extends Controller
      *
      * GET /api/v1/work-items/analytics/{code}
      *
-     * @param string $code Work type code (brick_half, wall_plastering, etc.)
-     * @return JsonResponse
+     * @param  string  $code  Work type code (brick_half, wall_plastering, etc.)
      */
     public function getAnalyticsByCode(string $code): JsonResponse
     {
@@ -134,11 +133,14 @@ class WorkItemApiController extends Controller
             $formulas = FormulaRegistry::all();
             $formula = collect($formulas)->firstWhere('code', $code);
 
-            if (!$formula) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Work type not found',
-                ], 404);
+            if (! $formula) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Work type not found',
+                    ],
+                    404,
+                );
             }
 
             $analytics = $this->analyticsService->generateDetailedAnalytics($code);
@@ -159,11 +161,14 @@ class WorkItemApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve analytics',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve analytics',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -171,9 +176,6 @@ class WorkItemApiController extends Controller
      * Create new work item
      *
      * POST /api/v1/work-items
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -188,28 +190,37 @@ class WorkItemApiController extends Controller
 
             $workItem = $this->repository->createWorkItem($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Work item created successfully',
-                'data' => $workItem,
-            ], 201);
+            return response()->json(
+                [
+                    'success' => true,
+                    'message' => 'Work item created successfully',
+                    'data' => $workItem,
+                ],
+                201,
+            );
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Create Work Item Error:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create work item',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to create work item',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -217,20 +228,20 @@ class WorkItemApiController extends Controller
      * Get single work item by ID
      *
      * GET /api/v1/work-items/{id}
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         try {
             $workItem = $this->repository->findWorkItem($id);
 
-            if (!$workItem) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Work item not found',
-                ], 404);
+            if (! $workItem) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Work item not found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -244,11 +255,14 @@ class WorkItemApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve work item',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve work item',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -256,21 +270,20 @@ class WorkItemApiController extends Controller
      * Update work item
      *
      * PUT /api/v1/work-items/{id}
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function update(Request $request, int $id): JsonResponse
     {
         try {
             $workItem = $this->repository->findWorkItem($id);
 
-            if (!$workItem) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Work item not found',
-                ], 404);
+            if (! $workItem) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Work item not found',
+                    ],
+                    404,
+                );
             }
 
             $validated = $request->validate([
@@ -289,11 +302,14 @@ class WorkItemApiController extends Controller
                 'data' => $workItem->fresh(),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Update Work Item Error:', [
                 'id' => $id,
@@ -301,11 +317,14 @@ class WorkItemApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update work item',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to update work item',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -313,20 +332,20 @@ class WorkItemApiController extends Controller
      * Delete work item
      *
      * DELETE /api/v1/work-items/{id}
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
         try {
             $workItem = $this->repository->findWorkItem($id);
 
-            if (!$workItem) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Work item not found',
-                ], 404);
+            if (! $workItem) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Work item not found',
+                    ],
+                    404,
+                );
             }
 
             $this->repository->deleteWorkItem($workItem);
@@ -342,11 +361,14 @@ class WorkItemApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete work item',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete work item',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

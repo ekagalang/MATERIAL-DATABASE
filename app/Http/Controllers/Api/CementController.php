@@ -33,7 +33,7 @@ class CementController extends Controller
 
         return $this->paginatedResponse(
             CementResource::collection($cements)->resource,
-            'Cements retrieved successfully'
+            'Cements retrieved successfully',
         );
     }
 
@@ -61,17 +61,14 @@ class CementController extends Controller
 
         $cement = $this->cementService->create($validated, $request->file('photo'));
 
-        return $this->createdResponse(
-            new CementResource($cement),
-            'Cement created successfully'
-        );
+        return $this->createdResponse(new CementResource($cement), 'Cement created successfully');
     }
 
     public function show(int $id): JsonResponse
     {
         $cement = $this->cementService->find($id);
 
-        if (!$cement) {
+        if (! $cement) {
             return $this->notFoundResponse('Cement not found');
         }
 
@@ -102,19 +99,14 @@ class CementController extends Controller
 
         $cement = $this->cementService->update($id, $validated, $request->file('photo'));
 
-        return $this->successResponse(
-            new CementResource($cement),
-            'Cement updated successfully'
-        );
+        return $this->successResponse(new CementResource($cement), 'Cement updated successfully');
     }
 
     public function destroy(int $id): JsonResponse
     {
         $this->cementService->delete($id);
-        return $this->successResponse(
-            null,
-            'Cement deleted successfully'
-        );
+
+        return $this->successResponse(null, 'Cement deleted successfully');
     }
 
     public function getFieldValues(string $field, Request $request): JsonResponse
@@ -145,7 +137,7 @@ class CementController extends Controller
         $search = $request->get('search');
         $limit = $request->get('limit', 20);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([]);
         }
 

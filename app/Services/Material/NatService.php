@@ -14,10 +14,8 @@ class NatService extends BaseService
 {
     protected FileUploadService $fileUploadService;
 
-    public function __construct(
-        NatRepository $repository,
-        FileUploadService $fileUploadService
-    ) {
+    public function __construct(NatRepository $repository, FileUploadService $fileUploadService)
+    {
         $this->repository = $repository;
         $this->fileUploadService = $fileUploadService;
     }
@@ -92,7 +90,7 @@ class NatService extends BaseService
         string $query,
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         return $this->repository->search($query, $perPage, $sortBy, $sortDirection);
     }
@@ -100,7 +98,7 @@ class NatService extends BaseService
     public function paginateWithSort(
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         return $this->repository->paginateWithSort($perPage, $sortBy, $sortDirection);
     }
@@ -109,7 +107,7 @@ class NatService extends BaseService
         string $field,
         array $filters = [],
         ?string $search = null,
-        int $limit = 20
+        int $limit = 20,
     ): Collection {
         return $this->repository->getFieldValues($field, $filters, $search, $limit);
     }
@@ -126,9 +124,11 @@ class NatService extends BaseService
 
     protected function calculateDerivedFields(Nat $nat): void
     {
-        if ((!$nat->package_weight_net || $nat->package_weight_net <= 0)
-            && $nat->package_weight_gross
-            && $nat->package_unit) {
+        if (
+            (!$nat->package_weight_net || $nat->package_weight_net <= 0) &&
+            $nat->package_weight_gross &&
+            $nat->package_unit
+        ) {
             $nat->calculateNetWeight();
         }
 

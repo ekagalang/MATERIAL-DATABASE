@@ -85,29 +85,19 @@ class DashboardService
         $recents = collect();
 
         // Get recent bricks
-        $recents = $recents->concat(
-            $this->getRecentBricks(3)
-        );
+        $recents = $recents->concat($this->getRecentBricks(3));
 
         // Get recent cats
-        $recents = $recents->concat(
-            $this->getRecentCats(3)
-        );
+        $recents = $recents->concat($this->getRecentCats(3));
 
         // Get recent cements
-        $recents = $recents->concat(
-            $this->getRecentCements(3)
-        );
+        $recents = $recents->concat($this->getRecentCements(3));
 
         // Get recent sands
-        $recents = $recents->concat(
-            $this->getRecentSands(3)
-        );
+        $recents = $recents->concat($this->getRecentSands(3));
 
         // Get recent ceramics
-        $recents = $recents->concat(
-            $this->getRecentCeramics(3)
-        );
+        $recents = $recents->concat($this->getRecentCeramics(3));
 
         // Sort by created_at desc and take top 5
         return $recents->sortByDesc('created_at')->take(5);
@@ -245,7 +235,13 @@ class DashboardService
                 'recentActivities' => $this->getRecentActivities(),
                 'chartData' => [
                     'labels' => ['Bata', 'Cat', 'Semen', 'Pasir', 'Keramik'],
-                    'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['sand'], $counts['ceramic']],
+                    'data' => [
+                        $counts['brick'],
+                        $counts['cat'],
+                        $counts['cement'],
+                        $counts['sand'],
+                        $counts['ceramic'],
+                    ],
                 ],
             ];
         });

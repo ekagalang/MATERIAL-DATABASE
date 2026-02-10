@@ -9,7 +9,7 @@ class MaterialCalculationStrategyRegistry
     public static function resolve(string $materialType): MaterialCalculationStrategyInterface
     {
         $map = config('material_calculation_strategies', []);
-        $className = is_array($map) ? ($map[$materialType] ?? null) : null;
+        $className = is_array($map) ? $map[$materialType] ?? null : null;
 
         if (is_string($className) && class_exists($className)) {
             $strategy = app($className);
@@ -26,4 +26,3 @@ class MaterialCalculationStrategyRegistry
         return self::resolve($materialType)->apply($data, $existing);
     }
 }
-

@@ -26,8 +26,6 @@ class BrickController extends Controller
 
     /**
      * BrickController constructor
-     *
-     * @param BrickService $brickService
      */
     public function __construct(BrickService $brickService)
     {
@@ -36,9 +34,6 @@ class BrickController extends Controller
 
     /**
      * Display a listing of bricks
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -51,17 +46,11 @@ class BrickController extends Controller
             ? $this->brickService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->brickService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return $this->paginatedResponse(
-            BrickResource::collection($bricks)->resource,
-            'Bricks retrieved successfully'
-        );
+        return $this->paginatedResponse(BrickResource::collection($bricks)->resource, 'Bricks retrieved successfully');
     }
 
     /**
      * Store a newly created brick
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -79,28 +68,19 @@ class BrickController extends Controller
             'price_per_piece' => 'nullable|numeric|min:0',
         ]);
 
-        $brick = $this->brickService->create(
-            $validated,
-            $request->file('photo')
-        );
+        $brick = $this->brickService->create($validated, $request->file('photo'));
 
-        return $this->createdResponse(
-            new BrickResource($brick),
-            'Brick created successfully'
-        );
+        return $this->createdResponse(new BrickResource($brick), 'Brick created successfully');
     }
 
     /**
      * Display the specified brick
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         $brick = $this->brickService->find($id);
 
-        if (!$brick) {
+        if (! $brick) {
             return $this->notFoundResponse('Brick not found');
         }
 
@@ -109,10 +89,6 @@ class BrickController extends Controller
 
     /**
      * Update the specified brick
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -130,40 +106,23 @@ class BrickController extends Controller
             'price_per_piece' => 'nullable|numeric|min:0',
         ]);
 
-        $brick = $this->brickService->update(
-            $id,
-            $validated,
-            $request->file('photo')
-        );
+        $brick = $this->brickService->update($id, $validated, $request->file('photo'));
 
-        return $this->successResponse(
-            new BrickResource($brick),
-            'Brick updated successfully'
-        );
+        return $this->successResponse(new BrickResource($brick), 'Brick updated successfully');
     }
 
     /**
      * Remove the specified brick
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
         $this->brickService->delete($id);
 
-        return $this->successResponse(
-            null,
-            'Brick deleted successfully'
-        );
+        return $this->successResponse(null, 'Brick deleted successfully');
     }
 
     /**
      * Get field values untuk autocomplete
-     *
-     * @param string $field
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getFieldValues(string $field, Request $request): JsonResponse
     {
@@ -179,9 +138,6 @@ class BrickController extends Controller
     /**
      * Get all stores
      * Supports material_type parameter for cross-material queries
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getAllStores(Request $request): JsonResponse
     {
@@ -196,9 +152,6 @@ class BrickController extends Controller
 
     /**
      * Get addresses by store
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function getAddressesByStore(Request $request): JsonResponse
     {
@@ -206,7 +159,7 @@ class BrickController extends Controller
         $search = $request->get('search');
         $limit = $request->get('limit', 20);
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([]);
         }
 

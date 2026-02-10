@@ -31,11 +31,16 @@
     if ('scrollRestoration' in history) {
         history.scrollRestoration = 'manual';
     }
+
+    // CRITICAL: Force window to top IMMEDIATELY before browser can scroll
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
     if (window.location.hash) {
         const h = window.location.hash;
 
         if (h === '#skip-page') {
-            // Aggressively force top for #skip-page and do NOT pass to main logic
             window.__materialSkipPage = true;
             const skipUrl = new URL(window.location.href);
             const skipSortBy = skipUrl.searchParams.get('sort_by');
@@ -49,30 +54,23 @@
             }
             document.documentElement.style.scrollBehavior = 'auto';
             window.scrollTo(0, 0);
-            document.documentElement.scrollTop = 0;
-            document.body.scrollTop = 0;
-            // Strip hash only for skip-page
             history.replaceState(null, null, window.location.pathname + window.location.search);
             return;
         }
 
-        // PREVENT browser from scrolling to anchor on page load
-        // Lock scroll position temporarily
-        const scrollY = window.scrollY || window.pageYOffset || 0;
-        window.__preventScrollToAnchor = true;
-        window.__savedScrollY = scrollY;
-
-        // Disable scroll behaviors that trigger on hash
-        document.documentElement.style.scrollBehavior = 'auto';
-        document.documentElement.style.scrollPaddingTop = '0';
-
-        // Keep current hash in JS state and handle scroll manually
+        // Save hash to state
         window.__materialHash = h;
 
-        // Immediately restore scroll position if browser tries to scroll
-        requestAnimationFrame(() => {
-            window.scrollTo(0, scrollY);
-        });
+        // IMMEDIATELY remove hash from URL to prevent browser scroll
+        history.replaceState(null, null, window.location.pathname + window.location.search);
+
+        // Disable scroll behaviors
+        document.documentElement.style.scrollBehavior = 'auto';
+
+        // Force window to stay at top
+        window.scrollTo(0, 0);
+        document.documentElement.scrollTop = 0;
+        document.body.scrollTop = 0;
     }
 })();
 (function() {
@@ -89,6 +87,52 @@
 document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.add('materials-lock');
 });
+
+// CRITICAL: Prevent ANY window scroll attempts
+(function() {
+    let preventingScroll = false;
+
+    const forceWindowTop = () => {
+        if (preventingScroll) return;
+        preventingScroll = true;
+        if (window.scrollY !== 0 || document.documentElement.scrollTop !== 0 || document.body.scrollTop !== 0) {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        }
+        preventingScroll = false;
+    };
+
+    // Listen to scroll events and force back to top
+    window.addEventListener('scroll', forceWindowTop, { passive: true });
+    document.addEventListener('scroll', forceWindowTop, { passive: true });
+
+    // Also prevent on various other events that might trigger scroll
+    ['wheel', 'touchmove', 'keydown'].forEach(eventType => {
+        window.addEventListener(eventType, (e) => {
+            // Allow scrolling inside .table-container
+            const target = e.target;
+            const container = target.closest('.table-container');
+            if (container) return; // Allow scroll in container
+
+            // Prevent window scroll for arrow keys, page up/down, space, home, end
+            if (eventType === 'keydown') {
+                const key = e.key;
+                if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', ' ', 'Home', 'End'].includes(key)) {
+                    const activeElement = document.activeElement;
+                    const inContainer = activeElement && activeElement.closest('.table-container');
+                    if (!inContainer) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        }, { passive: false });
+    });
+
+    // Force top on any attempt
+    forceWindowTop();
+    setInterval(forceWindowTop, 100);
+})();
 
 (function() {
     function updateCeramicScrollIndicators() {
@@ -133,13 +177,24 @@ document.addEventListener('DOMContentLoaded', function() {
 :root {
     --tab-foot-radius: 18px;
     --tab-active-bg: #91C6BC;
-    overflow: hidden;
+}
+
+/* CRITICAL: Prevent any scroll on html/body for this page */
+html, body {
+    overflow: hidden !important;
+    height: 100% !important;
+    position: relative !important;
 }
 
 /* Global scroll offset untuk fixed topbar */
 html {
+    scroll-padding-top: 0;
+    scroll-behavior: auto;
+}
+
+/* Scroll padding untuk table container */
+.table-container {
     scroll-padding-top: 80px;
-    scroll-behavior: smooth;
 }
 
 html.materials-booting .material-tab-panel,
@@ -1422,6 +1477,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function setActiveTab(materialType) {
         console.log('[Tab] Setting active tab:', materialType);
 
+        // CRITICAL: Force window to stay at top when switching tabs
+        const lockWindowTop = () => {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        };
+
+        lockWindowTop();
+
         // Deactivate all
         document.querySelectorAll('.material-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.material-tab-panel').forEach(panel => {
@@ -1430,6 +1494,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         // Deactivate all tab actions (search form + Tambah button)
         document.querySelectorAll('.material-tab-action').forEach(action => action.classList.remove('active'));
+
+        lockWindowTop();
 
         // Activate target
         const btn = document.querySelector(`.material-tab-btn[data-tab="${materialType}"]`);
@@ -1445,6 +1511,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // But for simple visibility switch, direct add is fine.
             panel.classList.add('active');
 
+            lockWindowTop();
+
             // Activate corresponding tab action
             if (tabAction) {
                 tabAction.classList.add('active');
@@ -1455,11 +1523,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (loadingEl) {
                 const url = loadingEl.getAttribute('data-url');
                 const card = panel.querySelector('.material-tab-card');
-                
+
                 // Only fetch if URL exists and not already fetching
                 if (url && card && !card.dataset.fetching) {
                     card.dataset.fetching = "true";
-                    
+
                     fetch(url, {
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest'
@@ -1472,6 +1540,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(html => {
                         card.innerHTML = html;
 
+                        lockWindowTop();
+
                         // Re-initialize sticky headers
                         if (typeof applyAllStickyOffsets === 'function') {
                             window.requestAnimationFrame(() => applyAllStickyOffsets());
@@ -1479,7 +1549,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                         // Ensure default letter state is applied after lazy content is rendered.
                         updateActivePaginationLetter();
-                        
+
+                        lockWindowTop();
+
                         // Re-run search setup if search query exists
                         // Note: We might need to extract this logic to be reusable
                         if (typeof setupSearchEnhancements === 'function' && typeof hasSearchQuery !== 'undefined' && hasSearchQuery) {
@@ -1494,6 +1566,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         ) {
                             window.setTimeout(focusNewMaterialRow, 80);
                         }
+
+                        lockWindowTop();
                     })
                     .catch(err => {
                         console.error('Failed to load tab:', err);
@@ -1501,6 +1575,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .finally(() => {
                         delete card.dataset.fetching;
+                        lockWindowTop();
                     });
                 }
             }
@@ -1511,9 +1586,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 tableContainer.scrollLeft = 0;
             }
 
+            lockWindowTop();
+
             // Recalculate sticky offsets when tab becomes visible
             if (typeof applyAllStickyOffsets === 'function') {
-                window.requestAnimationFrame(() => applyAllStickyOffsets());
+                window.requestAnimationFrame(() => {
+                    applyAllStickyOffsets();
+                    lockWindowTop();
+                });
             }
 
             try {
@@ -1525,6 +1605,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) {
                 // Ignore
             }
+
+            // Final lock after all operations
+            requestAnimationFrame(lockWindowTop);
+            setTimeout(lockWindowTop, 50);
+            setTimeout(lockWindowTop, 100);
         }
     }
 
@@ -2645,12 +2730,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const header = container.querySelector('thead');
         const headerHeight = header ? header.getBoundingClientRect().height : 0;
-        const offset = headerHeight + 12;
+
+        // Add extra offset for visual breathing room
+        const extraOffset = 60;
+        const offset = headerHeight + extraOffset;
         const scrollTarget = currentScroll + relativeTop - offset;
 
-        // Smooth scroll the container
+        // Smooth scroll the container only (not window)
         container.scrollTo({
-            top: scrollTarget,
+            top: Math.max(0, scrollTarget),
             behavior: 'smooth'
         });
     }
@@ -3012,85 +3100,136 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add click handlers to pagination links to preserve current tab
     document.querySelectorAll('.kanggo-img-link').forEach(link => {
         link.addEventListener('click', function(e) {
-            e.preventDefault(); // Prevent default anchor behavior
+            e.preventDefault();
             e.stopPropagation();
 
-            // Save current active tab before navigation
+            const href = link.getAttribute('href');
+            if (!href || !href.startsWith('#')) return false;
+
+            // Save current active tab
             const activeTab = document.querySelector('.material-tab-btn.active');
             if (activeTab) {
-                const currentTab = activeTab.dataset.tab;
-                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, currentTab);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, activeTab.dataset.tab);
             }
 
-            const href = link.getAttribute('href');
-            if (href && href.startsWith('#')) {
-                const url = new URL(window.location.href);
-                const sortBy = url.searchParams.get('sort_by');
-                const sortDirection = url.searchParams.get('sort_direction');
-                if (sortBy !== 'brand' || sortDirection !== 'asc') {
-                    url.searchParams.set('sort_by', 'brand');
-                    url.searchParams.set('sort_direction', 'asc');
-                    url.hash = href;
-                    window.location.href = url.toString();
-                    return;
+            // Check if need to reload with sort params
+            const url = new URL(window.location.href);
+            const sortBy = url.searchParams.get('sort_by');
+            const sortDirection = url.searchParams.get('sort_direction');
+            if (sortBy !== 'brand' || sortDirection !== 'asc') {
+                url.searchParams.set('sort_by', 'brand');
+                url.searchParams.set('sort_direction', 'asc');
+                url.hash = href;
+                window.location.href = url.toString();
+                return false;
+            }
+
+            const targetId = href.slice(1);
+            const activeTabType = activeTab && activeTab.dataset ? activeTab.dataset.tab : '';
+
+            // Remember this letter for the tab
+            rememberLetterForTab(activeTabType, href);
+            window.__materialHash = href;
+            link.blur();
+
+            // Update pagination UI
+            updateActivePaginationLetter(href);
+
+            // FORCE window to stay at position 0 (top)
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+
+            // Find target and scroll ONLY the container (not window)
+            const targetElement = document.getElementById(targetId);
+            if (!targetElement) return false;
+
+            const container = targetElement.closest('.table-container');
+            if (!container) return false;
+
+            // FORCE window again before container scroll
+            window.scrollTo(0, 0);
+
+            // Get positions
+            const header = container.querySelector('thead');
+            const headerHeight = header ? header.offsetHeight : 0;
+
+            // Calculate where target is relative to container's scrollable area
+            const targetOffsetTop = targetElement.offsetTop;
+
+            // Scroll to position: target position minus header height minus small gap
+            const scrollToPosition = targetOffsetTop - headerHeight - 10;
+
+            // Do the scroll (instant to avoid animation issues)
+            container.scrollTop = Math.max(0, scrollToPosition);
+
+            // FORCE window to stay at 0 after scroll
+            requestAnimationFrame(() => {
+                window.scrollTo(0, 0);
+                document.documentElement.scrollTop = 0;
+                document.body.scrollTop = 0;
+            });
+
+            // Highlight after scroll
+            window.setTimeout(() => {
+                if (isLetterAnchorTarget(targetId)) {
+                    blinkRowsByAnchorLetter(targetId);
+                } else {
+                    highlightMaterialRow(targetId);
                 }
-                const targetId = href.slice(1);
-                const activeTabType = activeTab && activeTab.dataset ? activeTab.dataset.tab : '';
-                rememberLetterForTab(activeTabType, href);
+            }, 100);
 
-                // Keep hash in JS state only to avoid native page jump.
-                window.__materialHash = href;
-                link.blur();
-
-                // Update active pagination letter
-                updateActivePaginationLetter(href);
-
-                // Scroll to target in container
-                scrollToTargetInContainer(targetId);
-
-                // Highlight/blink after scroll
-                window.setTimeout(() => {
-                    if (isLetterAnchorTarget(targetId)) {
-                        blinkRowsByAnchorLetter(targetId);
-                    } else {
-                        highlightMaterialRow(targetId);
-                    }
-                }, 400);
-
-            }
+            return false;
         });
     });
 
-    // Handle page load with hash (prevent native jump)
-    const initialHash = window.__materialHash || window.location.hash;
-    if (initialHash) {
-        if (initialHash !== '#skip-page') {
-            // Keep window at current position (prevent scroll to anchor)
-            const savedScrollY = window.__savedScrollY || 0;
-            window.scrollTo(0, savedScrollY);
+    // Handle page load with hash (that was saved in __materialHash)
+    const initialHash = window.__materialHash;
+    if (initialHash && initialHash !== '#skip-page') {
+        window.setTimeout(() => {
+            const targetId = initialHash.slice(1);
 
-            window.setTimeout(() => {
-                const targetId = initialHash.slice(1);
-                // Update active pagination letter
-                updateActivePaginationLetter(initialHash);
-                // Scroll to target in container (NOT window scroll)
-                scrollToTargetInContainer(targetId);
-                // Highlight/blink row
-                window.setTimeout(() => {
-                    if (isLetterAnchorTarget(targetId)) {
-                        blinkRowsByAnchorLetter(targetId);
-                    } else {
-                        highlightMaterialRow(targetId);
-                    }
-                }, 400);
-            }, 500);
+            // Force window at top
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
 
-            // Restore smooth scroll behavior
+            // Update pagination UI
+            updateActivePaginationLetter(initialHash);
+
+            // Force window at top after UI update
+            requestAnimationFrame(() => {
+                window.scrollTo(0, 0);
+            });
+
+            // Scroll ONLY container to target
+            const targetElement = document.getElementById(targetId);
+            if (targetElement) {
+                const container = targetElement.closest('.table-container');
+                if (container) {
+                    const header = container.querySelector('thead');
+                    const headerHeight = header ? header.offsetHeight : 0;
+                    const targetOffsetTop = targetElement.offsetTop;
+                    const scrollToPosition = targetOffsetTop - headerHeight - 10;
+
+                    container.scrollTop = Math.max(0, scrollToPosition);
+
+                    // Force window at top after container scroll
+                    requestAnimationFrame(() => {
+                        window.scrollTo(0, 0);
+                    });
+                }
+            }
+
+            // Highlight/blink row
             window.setTimeout(() => {
-                document.documentElement.style.scrollBehavior = '';
-                document.documentElement.style.scrollPaddingTop = '';
-            }, 600);
-        }
+                if (isLetterAnchorTarget(targetId)) {
+                    blinkRowsByAnchorLetter(targetId);
+                } else {
+                    highlightMaterialRow(targetId);
+                }
+            }, 100);
+        }, 300);
     }
 
     // Handle hash change events
@@ -3100,7 +3239,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update active pagination letter
         updateActivePaginationLetter(window.location.hash);
 
-        // Scroll to target
+        // Scroll to target (container scroll only)
         scrollToTargetInContainer(targetId);
 
         // Highlight/blink row

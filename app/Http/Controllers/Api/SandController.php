@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 class SandController extends Controller
 {
     use ApiResponse;
+
     protected $sandService;
 
     public function __construct(SandService $sandService)
@@ -30,10 +31,7 @@ class SandController extends Controller
             ? $this->sandService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->sandService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return $this->paginatedResponse(
-            SandResource::collection($sands)->resource,
-            'Sands retrieved successfully'
-        );
+        return $this->paginatedResponse(SandResource::collection($sands)->resource, 'Sands retrieved successfully');
     }
 
     public function store(Request $request): JsonResponse
@@ -55,13 +53,17 @@ class SandController extends Controller
         ]);
 
         $sand = $this->sandService->create($validated, $request->file('photo'));
+
         return $this->createdResponse(new SandResource($sand), 'Sand created successfully');
     }
 
     public function show(int $id): JsonResponse
     {
         $sand = $this->sandService->find($id);
-        if (!$sand) return $this->notFoundResponse('Sand not found');
+        if (! $sand) {
+            return $this->notFoundResponse('Sand not found');
+        }
+
         return $this->successResponse(new SandResource($sand));
     }
 
@@ -84,35 +86,52 @@ class SandController extends Controller
         ]);
 
         $sand = $this->sandService->update($id, $validated, $request->file('photo'));
+
         return $this->successResponse(new SandResource($sand), 'Sand updated successfully');
     }
 
     public function destroy(int $id): JsonResponse
     {
         $this->sandService->delete($id);
-        return $this->successResponse(
-            null,
-            'Sand deleted successfully'
-        );
+
+        return $this->successResponse(null, 'Sand deleted successfully');
     }
 
     public function getFieldValues(string $field, Request $request): JsonResponse
     {
-        $values = $this->sandService->getFieldValues($field, $request->only(['brand', 'store']), $request->get('search'), $request->get('limit', 20));
+        $values = $this->sandService->getFieldValues(
+            $field,
+            $request->only(['brand', 'store']),
+            $request->get('search'),
+            $request->get('limit', 20),
+        );
+
         return response()->json($values);
     }
 
     public function getAllStores(Request $request): JsonResponse
     {
-        $stores = $this->sandService->getAllStores($request->get('search'), $request->get('limit', 20), $request->get('material_type', 'sand'));
+        $stores = $this->sandService->getAllStores(
+            $request->get('search'),
+            $request->get('limit', 20),
+            $request->get('material_type', 'sand'),
+        );
+
         return response()->json($stores);
     }
 
     public function getAddressesByStore(Request $request): JsonResponse
     {
         $store = $request->get('store');
-        if (!$store) return response()->json([]);
-        $addresses = $this->sandService->getAddressesByStore($store, $request->get('search'), $request->get('limit', 20));
+        if (! $store) {
+            return response()->json([]);
+        }
+        $addresses = $this->sandService->getAddressesByStore(
+            $store,
+            $request->get('search'),
+            $request->get('limit', 20),
+        );
+
         return response()->json($addresses);
     }
 }

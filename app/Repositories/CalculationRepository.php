@@ -63,9 +63,6 @@ class CalculationRepository
 
     /**
      * Get selected bricks by IDs
-     *
-     * @param array $brickIds
-     * @return EloquentCollection
      */
     public function getBricksByIds(array $brickIds): EloquentCollection
     {
@@ -74,9 +71,6 @@ class CalculationRepository
 
     /**
      * Get single brick by ID
-     *
-     * @param int $brickId
-     * @return Brick|null
      */
     public function getBrickById(int $brickId): ?Brick
     {
@@ -86,8 +80,7 @@ class CalculationRepository
     /**
      * Get cements ordered by price
      *
-     * @param string $direction 'asc' or 'desc'
-     * @return EloquentCollection
+     * @param  string  $direction  'asc' or 'desc'
      */
     public function getCementsByPrice(string $direction = 'asc'): EloquentCollection
     {
@@ -97,8 +90,7 @@ class CalculationRepository
     /**
      * Get sands ordered by price
      *
-     * @param string $direction 'asc' or 'desc'
-     * @return EloquentCollection
+     * @param  string  $direction  'asc' or 'desc'
      */
     public function getSandsByPrice(string $direction = 'asc'): EloquentCollection
     {
@@ -107,8 +99,6 @@ class CalculationRepository
 
     /**
      * Get cements with non-null brand (for combinations)
-     *
-     * @return EloquentCollection
      */
     public function getCementsForCombination(): EloquentCollection
     {
@@ -121,8 +111,6 @@ class CalculationRepository
 
     /**
      * Get sands with non-null brand (for combinations)
-     *
-     * @return EloquentCollection
      */
     public function getSandsForCombination(): EloquentCollection
     {
@@ -135,9 +123,6 @@ class CalculationRepository
 
     /**
      * Get recommended combinations by work type
-     *
-     * @param string $workType
-     * @return EloquentCollection
      */
     public function getRecommendedCombinations(string $workType): EloquentCollection
     {
@@ -150,29 +135,21 @@ class CalculationRepository
     /**
      * Get recommended brick IDs by type
      *
-     * @param string $type 'best', 'common', etc.
-     * @return Collection
+     * @param  string  $type  'best', 'common', etc.
      */
     public function getRecommendedBrickIds(string $type, ?string $workType = null): Collection
     {
-        $query = RecommendedCombination::where('type', $type)
-            ->where('is_active', true);
+        $query = RecommendedCombination::where('type', $type)->where('is_active', true);
 
         if ($workType) {
             $query->where('work_type', $workType);
         }
 
-        return $query->pluck('brick_id')
-            ->unique()
-            ->filter();
+        return $query->pluck('brick_id')->unique()->filter();
     }
 
     /**
      * Get most frequent brick IDs from calculation history for a work type
-     *
-     * @param string $workType
-     * @param int $limit
-     * @return Collection
      */
     public function getCommonBrickIdsByWorkType(string $workType, int $limit = 10): Collection
     {
@@ -198,23 +175,16 @@ class CalculationRepository
 
     /**
      * Get cheapest bricks (for recommendations fallback)
-     *
-     * @param int $limit
-     * @return EloquentCollection
      */
     public function getCheapestBricks(int $limit = 5): EloquentCollection
     {
-        return Brick::orderBy('price_per_piece', 'asc')
-            ->limit($limit)
-            ->get();
+        return Brick::orderBy('price_per_piece', 'asc')->limit($limit)->get();
     }
 
     /**
      * Get calculation log with pagination and filters
      *
-     * @param array $filters ['search', 'work_type', 'date_from', 'date_to']
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * @param  array  $filters  ['search', 'work_type', 'date_from', 'date_to']
      */
     public function getCalculationLog(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
@@ -228,7 +198,7 @@ class CalculationRepository
         ]);
 
         // Enhanced search filter - searches in multiple fields and relationships
-        if (!empty($filters['search'])) {
+        if (! empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 // Search in calculation fields
@@ -255,22 +225,22 @@ class CalculationRepository
                 if (is_numeric(str_replace(['.', ','], '', $search))) {
                     $numericSearch = (float) str_replace(['.', ','], '', $search);
                     $q->orWhereRaw('FLOOR(wall_area) = ?', [floor($numericSearch)])
-                      ->orWhere('total_material_cost', 'like', "%{$search}%")
-                      ->orWhere('total_material_cost', '=', $numericSearch);
+                        ->orWhere('total_material_cost', 'like', "%{$search}%")
+                        ->orWhere('total_material_cost', '=', $numericSearch);
                 }
             });
         }
 
         // Work type filter (from JSON field)
-        if (!empty($filters['work_type'])) {
+        if (! empty($filters['work_type'])) {
             $query->whereRaw("JSON_EXTRACT(calculation_params, '$.work_type') = ?", [$filters['work_type']]);
         }
 
         // Date range filters
-        if (!empty($filters['date_from'])) {
+        if (! empty($filters['date_from'])) {
             $query->whereDate('created_at', '>=', $filters['date_from']);
         }
-        if (!empty($filters['date_to'])) {
+        if (! empty($filters['date_to'])) {
             $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
@@ -279,9 +249,6 @@ class CalculationRepository
 
     /**
      * Find calculation by ID with relationships
-     *
-     * @param int $id
-     * @return BrickCalculation|null
      */
     public function findCalculation(int $id): ?BrickCalculation
     {
@@ -297,22 +264,14 @@ class CalculationRepository
 
     /**
      * Get mortar formula by cement and sand ratio
-     *
-     * @param int $cementRatio
-     * @param int $sandRatio
-     * @return MortarFormula|null
      */
     public function getMortarFormulaByRatio(int $cementRatio, int $sandRatio): ?MortarFormula
     {
-        return MortarFormula::where('cement_ratio', $cementRatio)
-            ->where('sand_ratio', $sandRatio)
-            ->first();
+        return MortarFormula::where('cement_ratio', $cementRatio)->where('sand_ratio', $sandRatio)->first();
     }
 
     /**
      * Get first active mortar formula (fallback)
-     *
-     * @return MortarFormula|null
      */
     public function getFirstMortarFormula(): ?MortarFormula
     {
@@ -321,21 +280,17 @@ class CalculationRepository
 
     /**
      * Get first active installation type (fallback)
-     *
-     * @return BrickInstallationType|null
      */
     public function getFirstInstallationType(): ?BrickInstallationType
     {
-        return BrickInstallationType::where('is_active', true)
-            ->orderBy('id')
-            ->first();
+        return BrickInstallationType::where('is_active', true)->orderBy('id')->first();
     }
 
     /**
      * Select materials by price filter
      * Helper for auto-selection based on cheapest/expensive filter
      *
-     * @param string $filter 'cheapest' or 'expensive'
+     * @param  string  $filter  'cheapest' or 'expensive'
      * @return array ['brick_id', 'cement_id', 'sand_id']
      */
     public function selectMaterialsByPrice(string $filter): array
@@ -361,13 +316,13 @@ class CalculationRepository
             ->first();
 
         // Fallback to first available if no price data
-        if (!$brick) {
+        if (! $brick) {
             $brick = Brick::first();
         }
-        if (!$cement) {
+        if (! $cement) {
             $cement = Cement::first();
         }
-        if (!$sand) {
+        if (! $sand) {
             $sand = Sand::first();
         }
 
@@ -380,9 +335,6 @@ class CalculationRepository
 
     /**
      * Get cements by specific IDs
-     *
-     * @param array $cementIds
-     * @return EloquentCollection
      */
     public function getCementsByIds(array $cementIds): EloquentCollection
     {
@@ -391,9 +343,6 @@ class CalculationRepository
 
     /**
      * Get sands by specific IDs
-     *
-     * @param array $sandIds
-     * @return EloquentCollection
      */
     public function getSandsByIds(array $sandIds): EloquentCollection
     {
@@ -402,9 +351,6 @@ class CalculationRepository
 
     /**
      * Find cement by ID
-     *
-     * @param int $cementId
-     * @return Cement|null
      */
     public function findCement(int $cementId): ?Cement
     {
@@ -413,9 +359,6 @@ class CalculationRepository
 
     /**
      * Find sand by ID
-     *
-     * @param int $sandId
-     * @return Sand|null
      */
     public function findSand(int $sandId): ?Sand
     {

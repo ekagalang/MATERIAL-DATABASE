@@ -20,7 +20,6 @@ class DatabaseSeeder extends Seeder
             MortarFormulaSeeder::class,
             NatSeeder::class,
             NatTableSeeder::class,
-            
 
             // Uncomment untuk create sample calculation (opsional)
             // $this->call([

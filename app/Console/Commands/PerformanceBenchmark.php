@@ -33,13 +33,15 @@ class PerformanceBenchmark extends Command
     protected $description = 'Run performance benchmarks to measure optimization improvements';
 
     protected DashboardService $dashboardService;
+
     protected WorkItemAnalyticsService $analyticsService;
+
     protected CacheService $cacheService;
 
     public function __construct(
         DashboardService $dashboardService,
         WorkItemAnalyticsService $analyticsService,
-        CacheService $cacheService
+        CacheService $cacheService,
     ) {
         parent::__construct();
         $this->dashboardService = $dashboardService;
@@ -58,8 +60,8 @@ class PerformanceBenchmark extends Command
         $this->info('===========================================');
         $this->info('  PERFORMANCE BENCHMARK REPORT');
         $this->info('===========================================');
-        $this->info('Date: ' . now()->format('Y-m-d H:i:s'));
-        $this->info('Iterations: ' . $iterations);
+        $this->info('Date: '.now()->format('Y-m-d H:i:s'));
+        $this->info('Iterations: '.$iterations);
         $this->info('');
 
         if ($this->option('clear-cache')) {
@@ -111,7 +113,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['material_queries']['avg']}ms | Min: {$results['material_queries']['min']}ms | Max: {$results['material_queries']['max']}ms");
+        $this->info(
+            "  Avg: {$results['material_queries']['avg']}ms | Min: {$results['material_queries']['min']}ms | Max: {$results['material_queries']['max']}ms",
+        );
 
         // Test 2: Complex queries with joins (eager loading)
         $this->line('Testing: Complex queries with eager loading...');
@@ -128,7 +132,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['eager_loading']['avg']}ms | Min: {$results['eager_loading']['min']}ms | Max: {$results['eager_loading']['max']}ms");
+        $this->info(
+            "  Avg: {$results['eager_loading']['avg']}ms | Min: {$results['eager_loading']['min']}ms | Max: {$results['eager_loading']['max']}ms",
+        );
 
         // Test 3: JSON virtual column query
         $this->line('Testing: JSON virtual column queries...');
@@ -146,7 +152,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['json_virtual_column']['avg']}ms | Min: {$results['json_virtual_column']['min']}ms | Max: {$results['json_virtual_column']['max']}ms");
+        $this->info(
+            "  Avg: {$results['json_virtual_column']['avg']}ms | Min: {$results['json_virtual_column']['min']}ms | Max: {$results['json_virtual_column']['max']}ms",
+        );
 
         return $results;
     }
@@ -178,7 +186,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['cold_cache']['avg']}ms | Min: {$results['cold_cache']['min']}ms | Max: {$results['cold_cache']['max']}ms");
+        $this->info(
+            "  Avg: {$results['cold_cache']['avg']}ms | Min: {$results['cold_cache']['min']}ms | Max: {$results['cold_cache']['max']}ms",
+        );
 
         // Test 2: Warm cache (cached data)
         $this->line('Testing: Warm cache (cached data)...');
@@ -195,10 +205,15 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['warm_cache']['avg']}ms | Min: {$results['warm_cache']['min']}ms | Max: {$results['warm_cache']['max']}ms");
+        $this->info(
+            "  Avg: {$results['warm_cache']['avg']}ms | Min: {$results['warm_cache']['min']}ms | Max: {$results['warm_cache']['max']}ms",
+        );
 
         // Calculate cache improvement
-        $improvement = round((($results['cold_cache']['avg'] - $results['warm_cache']['avg']) / $results['cold_cache']['avg']) * 100, 1);
+        $improvement = round(
+            (($results['cold_cache']['avg'] - $results['warm_cache']['avg']) / $results['cold_cache']['avg']) * 100,
+            1,
+        );
         $this->comment("  Cache Improvement: {$improvement}% faster with warm cache");
 
         return $results;
@@ -232,7 +247,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['dashboard_generation']['avg']}ms | Min: {$results['dashboard_generation']['min']}ms | Max: {$results['dashboard_generation']['max']}ms");
+        $this->info(
+            "  Avg: {$results['dashboard_generation']['avg']}ms | Min: {$results['dashboard_generation']['min']}ms | Max: {$results['dashboard_generation']['max']}ms",
+        );
 
         return $results;
     }
@@ -251,8 +268,9 @@ class PerformanceBenchmark extends Command
 
         // Check if we have data
         $hasData = BrickCalculation::exists();
-        if (!$hasData) {
+        if (! $hasData) {
             $this->warn('  No calculation data found - skipping analytics benchmark');
+
             return [];
         }
 
@@ -273,7 +291,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['analytics_summary']['avg']}ms | Min: {$results['analytics_summary']['min']}ms | Max: {$results['analytics_summary']['max']}ms");
+        $this->info(
+            "  Avg: {$results['analytics_summary']['avg']}ms | Min: {$results['analytics_summary']['min']}ms | Max: {$results['analytics_summary']['max']}ms",
+        );
 
         // Test 2: Analytics detail (cold cache)
         $this->line('Testing: Analytics detail generation...');
@@ -292,7 +312,9 @@ class PerformanceBenchmark extends Command
             'min' => round(min($times), 2),
             'max' => round(max($times), 2),
         ];
-        $this->info("  Avg: {$results['analytics_detail']['avg']}ms | Min: {$results['analytics_detail']['min']}ms | Max: {$results['analytics_detail']['max']}ms");
+        $this->info(
+            "  Avg: {$results['analytics_detail']['avg']}ms | Min: {$results['analytics_detail']['min']}ms | Max: {$results['analytics_detail']['max']}ms",
+        );
 
         return $results;
     }
@@ -331,7 +353,12 @@ class PerformanceBenchmark extends Command
             $this->line("  - Cold cache: {$results['cache']['cold_cache']['avg']}ms avg");
             $this->line("  - Warm cache: {$results['cache']['warm_cache']['avg']}ms avg");
 
-            $improvement = round((($results['cache']['cold_cache']['avg'] - $results['cache']['warm_cache']['avg']) / $results['cache']['cold_cache']['avg']) * 100, 1);
+            $improvement = round(
+                (($results['cache']['cold_cache']['avg'] - $results['cache']['warm_cache']['avg']) /
+                    $results['cache']['cold_cache']['avg']) *
+                    100,
+                1,
+            );
             $this->info("  Improvement: {$improvement}% faster with cache");
 
             if ($improvement > 80) {
@@ -346,7 +373,9 @@ class PerformanceBenchmark extends Command
         // Overall assessment
         $this->info('');
         $this->comment('Overall Performance Status:');
-        $avgDbTime = isset($results['database']['material_queries']) ? $results['database']['material_queries']['avg'] : 0;
+        $avgDbTime = isset($results['database']['material_queries'])
+            ? $results['database']['material_queries']['avg']
+            : 0;
         $avgCacheTime = isset($results['cache']['warm_cache']) ? $results['cache']['warm_cache']['avg'] : 0;
 
         if ($avgDbTime < 50 && $avgCacheTime < 5) {

@@ -82,7 +82,8 @@ class MaterialSelectionService
 
         // If 'best' filter, get bricks with recommendations
         if (in_array('best', $priceFilters)) {
-            $recommendedBrickIds = $this->repository->getRecommendedBrickIds('best', $workType)
+            $recommendedBrickIds = $this->repository
+                ->getRecommendedBrickIds('best', $workType)
                 ->filter(function ($brickId) use ($workType) {
                     // Additional filtering by work_type could be added here
                     return true;
@@ -167,7 +168,7 @@ class MaterialSelectionService
     public function getCementsForCombination(
         array $priceFilters,
         ?string $workType = null,
-        ?int $specificCementId = null
+        ?int $specificCementId = null,
     ): EloquentCollection {
         // Custom filter - specific cement ID
         if (in_array('custom', $priceFilters) && $specificCementId) {
@@ -210,7 +211,7 @@ class MaterialSelectionService
     public function getSandsForCombination(
         array $priceFilters,
         ?string $workType = null,
-        ?int $specificSandId = null
+        ?int $specificSandId = null,
     ): EloquentCollection {
         // Custom filter - specific sand ID
         if (in_array('custom', $priceFilters) && $specificSandId) {

@@ -32,7 +32,9 @@ class CatService extends BaseService
     {
         $cat = $this->repository->findOrFail($id);
         if ($photo) {
-            if ($cat->photo) $this->fileUploadService->delete($cat->photo);
+            if ($cat->photo) {
+                $this->fileUploadService->delete($cat->photo);
+            }
             $data['photo'] = $this->fileUploadService->upload($photo, 'cats');
         }
         $cat->update($data);
@@ -44,12 +46,18 @@ class CatService extends BaseService
     public function delete(int $id): bool
     {
         $cat = $this->repository->findOrFail($id);
-        if ($cat->photo) $this->fileUploadService->delete($cat->photo);
+        if ($cat->photo) {
+            $this->fileUploadService->delete($cat->photo);
+        }
         return $this->repository->delete($id);
     }
 
-    public function search(string $query, int $perPage = 15, ?string $sortBy = 'created_at', string $sortDirection = 'desc')
-    {
+    public function search(
+        string $query,
+        int $perPage = 15,
+        ?string $sortBy = 'created_at',
+        string $sortDirection = 'desc',
+    ) {
         return $this->repository->search($query, $perPage, $sortBy, $sortDirection);
     }
 
@@ -75,7 +83,11 @@ class CatService extends BaseService
 
     protected function calculateDerivedFields(Cat $cat): void
     {
-        if ((!$cat->package_weight_net || $cat->package_weight_net <= 0) && $cat->package_weight_gross && $cat->package_unit) {
+        if (
+            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+            $cat->package_weight_gross &&
+            $cat->package_unit
+        ) {
             $cat->calculateNetWeight();
         }
         // IMPORTANT: Set to NULL if conditions not met (same as old controller)

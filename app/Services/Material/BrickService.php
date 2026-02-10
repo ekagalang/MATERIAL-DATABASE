@@ -30,10 +30,8 @@ class BrickService extends BaseService
      * @param BrickRepository $repository
      * @param FileUploadService $fileUploadService
      */
-    public function __construct(
-        BrickRepository $repository,
-        FileUploadService $fileUploadService
-    ) {
+    public function __construct(BrickRepository $repository, FileUploadService $fileUploadService)
+    {
         $this->repository = $repository;
         $this->fileUploadService = $fileUploadService;
     }
@@ -131,7 +129,7 @@ class BrickService extends BaseService
         string $query,
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         return $this->repository->search($query, $perPage, $sortBy, $sortDirection);
     }
@@ -147,7 +145,7 @@ class BrickService extends BaseService
     public function paginateWithSort(
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         return $this->repository->paginateWithSort($perPage, $sortBy, $sortDirection);
     }
@@ -165,7 +163,7 @@ class BrickService extends BaseService
         string $field,
         array $filters = [],
         ?string $search = null,
-        int $limit = 20
+        int $limit = 20,
     ): Collection {
         return $this->repository->getFieldValues($field, $filters, $search, $limit);
     }

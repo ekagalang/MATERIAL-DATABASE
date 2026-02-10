@@ -233,7 +233,8 @@ class BrickQuarterFormula implements FormulaInterface
                 '(Luas Adukan * (lebar bata / 100)) + ((Luas Rollag * (tebal adukan / 100)) * Jumlah tingkat bata)',
             'calculations' => [
                 'Part 1' => "$luasAdukan * ($lebarBata / 100) = " . NumberHelper::format($part1),
-                'Part 2' => "($luasRollag * ($tebalAdukan / 100)) * $jumlahTingkatBata = " . NumberHelper::format($part2),
+                'Part 2' =>
+                    "($luasRollag * ($tebalAdukan / 100)) * $jumlahTingkatBata = " . NumberHelper::format($part2),
                 'Hasil' => NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
             ],
         ];

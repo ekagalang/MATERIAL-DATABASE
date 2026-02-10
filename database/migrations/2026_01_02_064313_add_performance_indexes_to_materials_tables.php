@@ -5,8 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      *
@@ -106,7 +105,9 @@ return new class extends Migration
         // JSON index untuk work_type queries
         // MySQL 5.7+ supports virtual columns for JSON indexing
         // Create a virtual generated column first, then index it
-        DB::statement('ALTER TABLE brick_calculations ADD work_type_virtual VARCHAR(50) AS (JSON_UNQUOTE(JSON_EXTRACT(calculation_params, "$.work_type"))) VIRTUAL');
+        DB::statement(
+            'ALTER TABLE brick_calculations ADD work_type_virtual VARCHAR(50) AS (JSON_UNQUOTE(JSON_EXTRACT(calculation_params, "$.work_type"))) VIRTUAL',
+        );
         DB::statement('CREATE INDEX idx_brick_calc_work_type ON brick_calculations(work_type_virtual)');
 
         // ============================================
@@ -204,4 +205,3 @@ return new class extends Migration
         });
     }
 };
-

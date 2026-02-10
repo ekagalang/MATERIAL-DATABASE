@@ -18,8 +18,6 @@ class InstallationTypeApiController extends Controller
      * Get all active installation types
      *
      * GET /api/v1/installation-types
-     *
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
@@ -34,11 +32,14 @@ class InstallationTypeApiController extends Controller
                 'data' => $installationTypes,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve installation types',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve installation types',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -46,20 +47,20 @@ class InstallationTypeApiController extends Controller
      * Get single installation type by ID
      *
      * GET /api/v1/installation-types/{id}
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         try {
             $installationType = BrickInstallationType::find($id);
 
-            if (!$installationType) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Installation type not found',
-                ], 404);
+            if (! $installationType) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Installation type not found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -67,11 +68,14 @@ class InstallationTypeApiController extends Controller
                 'data' => $installationType,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve installation type',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve installation type',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -79,19 +83,20 @@ class InstallationTypeApiController extends Controller
      * Get default installation type
      *
      * GET /api/v1/installation-types/default
-     *
-     * @return JsonResponse
      */
     public function getDefault(): JsonResponse
     {
         try {
             $defaultType = BrickInstallationType::getDefault();
 
-            if (!$defaultType) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No default installation type found',
-                ], 404);
+            if (! $defaultType) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'No default installation type found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -99,11 +104,14 @@ class InstallationTypeApiController extends Controller
                 'data' => $defaultType,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve default installation type',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve default installation type',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

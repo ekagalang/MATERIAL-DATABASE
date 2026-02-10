@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class MaterialGeneratorCommand extends Command
 {
@@ -18,16 +18,27 @@ class MaterialGeneratorCommand extends Command
     protected $description = 'Generate complete material CRUD (Model, Controller, Service, Repository, Views, JS)';
 
     protected $materialName;
+
     protected $materialNamePlural;
+
     protected $materialLabel;
+
     protected $materialIcon;
+
     protected $hasPackageUnit = false;
+
     protected $selectedTemplate = null;
+
     protected $fields = [];
+
     protected $generatedFiles = [];
+
     protected $fileBackups = [];
+
     protected $dryRun = false;
+
     protected $manifestRunId;
+
     protected $manifestFiles = [];
 
     public function handle()
@@ -50,8 +61,9 @@ class MaterialGeneratorCommand extends Command
             $this->materialName = $this->ask('Material name (singular, e.g., Tile)');
         }
 
-        if (!$this->materialName) {
+        if (! $this->materialName) {
             $this->error('Material name is required!');
+
             return 1;
         }
 
@@ -67,9 +79,13 @@ class MaterialGeneratorCommand extends Command
         $this->newLine();
 
         // Check if files already exist
-        if (!$this->option('force') && $this->checkExistingFiles()) {
-            if (!$this->input->isInteractive() || !$this->confirm('Some files already exist. Do you want to overwrite?', false)) {
+        if (! $this->option('force') && $this->checkExistingFiles()) {
+            if (
+                ! $this->input->isInteractive() ||
+                ! $this->confirm('Some files already exist. Do you want to overwrite?', false)
+            ) {
                 $this->warn('Operation cancelled.');
+
                 return 1;
             }
         }
@@ -80,7 +96,7 @@ class MaterialGeneratorCommand extends Command
         if ($this->input->isInteractive()) {
             $this->collectMaterialInfo();
         } else {
-            if (!$this->collectMaterialInfoNonInteractive()) {
+            if (! $this->collectMaterialInfoNonInteractive()) {
                 return 1;
             }
         }
@@ -88,8 +104,9 @@ class MaterialGeneratorCommand extends Command
         // Confirm generation
         $this->displaySummary();
 
-        if ($this->input->isInteractive() && !$this->confirm('Generate material files?', true)) {
+        if ($this->input->isInteractive() && ! $this->confirm('Generate material files?', true)) {
             $this->warn('Operation cancelled.');
+
             return 1;
         }
 
@@ -130,11 +147,12 @@ class MaterialGeneratorCommand extends Command
 
             return 0;
         } catch (\Exception $e) {
-            $this->error('❌ Generation failed: ' . $e->getMessage());
-            if (!$this->dryRun) {
+            $this->error('❌ Generation failed: '.$e->getMessage());
+            if (! $this->dryRun) {
                 $this->warn('Rolling back generated files...');
                 $this->rollbackGeneratedChanges();
             }
+
             return 1;
         }
     }
@@ -151,13 +169,14 @@ class MaterialGeneratorCommand extends Command
     {
         $profileKey = $this->resolveRequestedProfileKey();
 
-        if (!$profileKey) {
+        if (! $profileKey) {
             $profileKey = Str::snake($this->materialName);
         }
 
         $profile = $this->getMaterialProfile($profileKey);
-        if (!$profile) {
+        if (! $profile) {
             $this->error('Non-interactive mode requires a valid --profile option.');
+
             return false;
         }
 
@@ -166,6 +185,7 @@ class MaterialGeneratorCommand extends Command
 
         if (empty($this->fields)) {
             $this->error("Profile '{$profileKey}' has no fields defined.");
+
             return false;
         }
 
@@ -173,7 +193,7 @@ class MaterialGeneratorCommand extends Command
         $this->materialIcon = $profile['icon'] ?? '📦';
         $this->hasPackageUnit = (bool) ($profile['has_package_unit'] ?? false);
 
-        if ($this->hasPackageUnit && !isset($this->fields['package_unit'])) {
+        if ($this->hasPackageUnit && ! isset($this->fields['package_unit'])) {
             $this->fields['package_unit'] = [
                 'type' => 'string',
                 'nullable' => true,
@@ -189,7 +209,8 @@ class MaterialGeneratorCommand extends Command
         $this->info('Define fields (press Enter with empty name to finish):');
         $this->defineFields();
 
-        $profile = $this->getMaterialProfile($this->selectedTemplate) ??
+        $profile =
+            $this->getMaterialProfile($this->selectedTemplate) ??
             $this->getMaterialProfile(Str::snake($this->materialName));
 
         $defaultLabel = $profile['label'] ?? $this->materialName;
@@ -204,7 +225,7 @@ class MaterialGeneratorCommand extends Command
             $defaultHasPackageUnit,
         );
 
-        if ($this->hasPackageUnit && !isset($this->fields['package_unit'])) {
+        if ($this->hasPackageUnit && ! isset($this->fields['package_unit'])) {
             $this->fields['package_unit'] = [
                 'type' => 'string',
                 'nullable' => true,
@@ -220,7 +241,10 @@ class MaterialGeneratorCommand extends Command
         if ($requestedProfile) {
             $this->selectedTemplate = $requestedProfile;
             $this->fields = $this->getTemplateFields($requestedProfile);
-            $this->info('Loaded ' . count($this->fields) . ' fields from ' . Str::headline($requestedProfile) . ' profile.');
+            $this->info(
+                'Loaded '.count($this->fields).' fields from '.Str::headline($requestedProfile).' profile.',
+            );
+
             return;
         }
 
@@ -229,17 +253,14 @@ class MaterialGeneratorCommand extends Command
             $choiceMap[$profile['display_name'] ?? Str::headline($profileKey)] = $profileKey;
         }
 
-        $useTemplate = $this->choice(
-            'Use existing material as template?',
-            array_keys($choiceMap),
-            0,
-        );
+        $useTemplate = $this->choice('Use existing material as template?', array_keys($choiceMap), 0);
 
         $this->selectedTemplate = $choiceMap[$useTemplate] ?? null;
 
         if ($this->selectedTemplate !== null) {
             $this->fields = $this->getTemplateFields($this->selectedTemplate);
-            $this->info('Loaded ' . count($this->fields) . ' fields from ' . $useTemplate . ' template.');
+            $this->info('Loaded '.count($this->fields).' fields from '.$useTemplate.' template.');
+
             return;
         }
 
@@ -253,18 +274,21 @@ class MaterialGeneratorCommand extends Command
 
             $fieldName = Str::snake($fieldName);
 
-            if (!preg_match('/^[a-z][a-z0-9_]*$/', $fieldName)) {
+            if (! preg_match('/^[a-z][a-z0-9_]*$/', $fieldName)) {
                 $this->warn('Invalid field name. Use snake_case format (example: price_per_package).');
+
                 continue;
             }
 
             if (isset($this->fields[$fieldName])) {
                 $this->warn("Field '{$fieldName}' already exists, skipped.");
+
                 continue;
             }
 
             if (in_array($fieldName, ['id', 'created_at', 'updated_at'], true)) {
                 $this->warn("Field '{$fieldName}' is reserved by Laravel, skipped.");
+
                 continue;
             }
 
@@ -292,7 +316,7 @@ class MaterialGeneratorCommand extends Command
         $profile = $this->getMaterialProfile($template);
         $fields = $profile['fields'] ?? [];
 
-        if (!is_array($fields)) {
+        if (! is_array($fields)) {
             return [];
         }
 
@@ -302,12 +326,13 @@ class MaterialGeneratorCommand extends Command
     protected function getMaterialProfileDefinitions(): array
     {
         $profiles = config('material_profiles.profiles', []);
+
         return is_array($profiles) ? $profiles : [];
     }
 
     protected function getMaterialProfile(?string $key): ?array
     {
-        if (!is_string($key) || $key === '') {
+        if (! is_string($key) || $key === '') {
             return null;
         }
 
@@ -325,7 +350,7 @@ class MaterialGeneratorCommand extends Command
         }
 
         $profileKey = Str::snake($requested);
-        if (!$this->getMaterialProfile($profileKey)) {
+        if (! $this->getMaterialProfile($profileKey)) {
             throw new \InvalidArgumentException("Profile '{$requested}' was not found in config/material_profiles.php");
         }
 
@@ -334,7 +359,7 @@ class MaterialGeneratorCommand extends Command
 
     protected function checkExistingFiles()
     {
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
 
         $paths = [
             app_path("Models/{$this->materialName}.php"),
@@ -357,7 +382,7 @@ class MaterialGeneratorCommand extends Command
             }
         }
 
-        return !empty(File::glob(database_path("migrations/*_create_{$this->materialNamePlural}_table.php")));
+        return ! empty(File::glob(database_path("migrations/*_create_{$this->materialNamePlural}_table.php")));
     }
 
     protected function writeGeneratedFile(string $path, string $content): void
@@ -365,12 +390,12 @@ class MaterialGeneratorCommand extends Command
         $exists = File::exists($path);
         $backupPath = null;
 
-        if ($exists && !array_key_exists($path, $this->fileBackups)) {
+        if ($exists && ! array_key_exists($path, $this->fileBackups)) {
             $original = File::get($path);
             $this->fileBackups[$path] = $original;
             $backupPath = $this->getBackupPathForFile($path);
 
-            if (!$this->dryRun) {
+            if (! $this->dryRun) {
                 File::ensureDirectoryExists(dirname($backupPath));
                 File::put($backupPath, $original);
             }
@@ -385,16 +410,17 @@ class MaterialGeneratorCommand extends Command
         ];
 
         if ($this->dryRun) {
-            if (!in_array($path, $this->generatedFiles, true)) {
+            if (! in_array($path, $this->generatedFiles, true)) {
                 $this->generatedFiles[] = $path;
             }
+
             return;
         }
 
         File::ensureDirectoryExists(dirname($path));
         File::put($path, $content);
 
-        if (!in_array($path, $this->generatedFiles, true)) {
+        if (! in_array($path, $this->generatedFiles, true)) {
             $this->generatedFiles[] = $path;
         }
     }
@@ -405,6 +431,7 @@ class MaterialGeneratorCommand extends Command
             if (array_key_exists($path, $this->fileBackups)) {
                 File::put($path, $this->fileBackups[$path]);
                 $this->line("↩️  Restored: {$path}");
+
                 continue;
             }
 
@@ -434,6 +461,7 @@ class MaterialGeneratorCommand extends Command
     {
         $materialType = $this->getMaterialType();
         $safeName = preg_replace('/[^A-Za-z0-9_.-]+/', '_', str_replace(['\\', '/'], '__', $path));
+
         return base_path(".material-generator/backups/{$materialType}/{$this->manifestRunId}/{$safeName}.bak");
     }
 
@@ -450,10 +478,7 @@ class MaterialGeneratorCommand extends Command
         ];
 
         File::ensureDirectoryExists(dirname($manifestPath));
-        File::put(
-            $manifestPath,
-            json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-        );
+        File::put($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
     protected function displayDryRunSummary(): void
@@ -488,7 +513,7 @@ class MaterialGeneratorCommand extends Command
 
     protected function displayNextSteps()
     {
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
 
         $this->newLine();
         $this->info('🎉 Material berhasil di-generate!');
@@ -502,7 +527,9 @@ class MaterialGeneratorCommand extends Command
         $this->comment('💡 Tips:');
         $this->line('   - MaterialSettingSeeder dan DatabaseSeeder sudah auto-update');
         $this->line('   - Profile material & strategy registry sudah auto-update');
-        $this->line("   - Edit strategy: app/Services/Material/Calculations/{$this->materialName}CalculationStrategy.php");
+        $this->line(
+            "   - Edit strategy: app/Services/Material/Calculations/{$this->materialName}CalculationStrategy.php",
+        );
         $this->line("   - Test scaffold: tests/Feature/Materials/{$this->materialName}CrudScaffoldTest.php");
         $this->line('   - Untuk delete: php artisan make:material --delete');
         $this->newLine();
@@ -572,7 +599,7 @@ class MaterialGeneratorCommand extends Command
 
     protected function getModelStub()
     {
-        $fillable = collect($this->fields)->keys()->map(fn($k) => "'{$k}'")->join(",\n        ");
+        $fillable = collect($this->fields)->keys()->map(fn ($k) => "'{$k}'")->join(",\n        ");
 
         $casts = [];
         foreach ($this->fields as $name => $config) {
@@ -586,7 +613,7 @@ class MaterialGeneratorCommand extends Command
                 $casts[] = "'{$name}' => 'boolean'";
             }
         }
-        $castsStr = !empty($casts) ? implode(",\n            ", $casts) : '';
+        $castsStr = ! empty($casts) ? implode(",\n            ", $casts) : '';
 
         $packageUnitRelation = $this->hasPackageUnit
             ? <<<'PHP'
@@ -654,7 +681,7 @@ class MaterialGeneratorCommand extends Command
             ->keys()
             ->values()
             ->all();
-        $hasSearchableFields = !empty($searchableFields);
+        $hasSearchableFields = ! empty($searchableFields);
 
         $searchWhere = '';
         if ($hasSearchableFields) {
@@ -662,11 +689,12 @@ class MaterialGeneratorCommand extends Command
                 $method = $index === 0 ? 'where' : 'orWhere';
                 $searchWhere .= "                    \$query->{$method}('{$field}', 'like', \"%{\$keyword}%\");\n";
             }
-            $searchFilter = "\n                if (!empty(\$keyword)) {\n"
-                . "                    \$query->where(function (\$query) {\n"
-                . $searchWhere
-                . "                    });\n"
-                . "                }\n";
+            $searchFilter =
+                "\n                if (!empty(\$keyword)) {\n".
+                "                    \$query->where(function (\$query) {\n".
+                $searchWhere.
+                "                    });\n".
+                "                }\n";
         } else {
             $searchFilter = "\n                // No searchable text columns were defined for this material.\n";
         }
@@ -775,11 +803,11 @@ class MaterialGeneratorCommand extends Command
         $photoUploadMethod = $hasPhoto
             ? <<<PHP
 
-            protected function handlePhotoUpload(UploadedFile \$photo): string
-            {
-                return \$photo->store('{$this->materialNamePlural}', 'public');
-            }
-        PHP
+                protected function handlePhotoUpload(UploadedFile \$photo): string
+                {
+                    return \$photo->store('{$this->materialNamePlural}', 'public');
+                }
+            PHP
             : '';
 
         return <<<PHP
@@ -845,11 +873,10 @@ class MaterialGeneratorCommand extends Command
 
     protected function getControllerStub()
     {
-        $sortableColumns = array_values(array_unique(array_merge(
-            $this->getSortableColumns(),
-            ['id', 'created_at', 'updated_at'],
-        )));
-        $allowedSorts = implode(",\n                    ", array_map(fn($column) => "'{$column}'", $sortableColumns));
+        $sortableColumns = array_values(
+            array_unique(array_merge($this->getSortableColumns(), ['id', 'created_at', 'updated_at'])),
+        );
+        $allowedSorts = implode(",\n                    ", array_map(fn ($column) => "'{$column}'", $sortableColumns));
 
         return <<<PHP
         <?php
@@ -1009,6 +1036,7 @@ class MaterialGeneratorCommand extends Command
         foreach ($this->fields as $name => $config) {
             if ($name === 'photo') {
                 $resourceFields .= "            'photo_url' => \$this->photo ? Storage::url(\$this->photo) : null,\n";
+
                 continue;
             }
             $resourceFields .= "            '{$name}' => \$this->{$name},\n";
@@ -1052,6 +1080,7 @@ class MaterialGeneratorCommand extends Command
 
             if ($type === 'file') {
                 $rules[] = "                    '{$name}' => '{$nullableOrRequired}|image|max:2048',";
+
                 continue;
             }
 
@@ -1077,7 +1106,7 @@ class MaterialGeneratorCommand extends Command
 
     protected function generateSeeder()
     {
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
         $path = database_path("seeders/{$seederClass}.php");
 
         $stub = $this->getSeederStub();
@@ -1088,7 +1117,7 @@ class MaterialGeneratorCommand extends Command
     protected function getSeederStub()
     {
         $modelName = $this->materialName;
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
 
         // Build sample data based on fields
         $sampleData = $this->generateSampleData();
@@ -1140,17 +1169,17 @@ class MaterialGeneratorCommand extends Command
                 } elseif ($type === 'boolean') {
                     $sample[$name] = true;
                 } elseif (in_array($name, ['brand', 'type', 'color', 'form'])) {
-                    $sample[$name] = ucfirst($name) . ' ' . chr(64 + $i); // "Brand A", "Brand B"
+                    $sample[$name] = ucfirst($name).' '.chr(64 + $i); // "Brand A", "Brand B"
                 } elseif ($name === 'code') {
-                    $sample[$name] = 'CODE-' . str_pad($i, 3, '0', STR_PAD_LEFT);
+                    $sample[$name] = 'CODE-'.str_pad($i, 3, '0', STR_PAD_LEFT);
                 } elseif (Str::startsWith($name, 'price_')) {
                     $sample[$name] = $i * 50000;
                 } elseif ($name === 'store') {
-                    $sample[$name] = 'Toko ' . chr(64 + $i);
+                    $sample[$name] = 'Toko '.chr(64 + $i);
                 } elseif ($name === 'address') {
-                    $sample[$name] = 'Jl. Sample No. ' . $i;
+                    $sample[$name] = 'Jl. Sample No. '.$i;
                 } else {
-                    $sample[$name] = ucfirst(str_replace('_', ' ', $name)) . ' ' . $i;
+                    $sample[$name] = ucfirst(str_replace('_', ' ', $name)).' '.$i;
                 }
             }
             $samples[] = $sample;
@@ -1164,7 +1193,7 @@ class MaterialGeneratorCommand extends Command
                 if (is_string($value)) {
                     $output .= "                '{$key}' => '{$value}',\n";
                 } elseif (is_bool($value)) {
-                    $output .= "                '{$key}' => " . ($value ? 'true' : 'false') . ",\n";
+                    $output .= "                '{$key}' => ".($value ? 'true' : 'false').",\n";
                 } else {
                     $output .= "                '{$key}' => {$value},\n";
                 }
@@ -1249,6 +1278,7 @@ class MaterialGeneratorCommand extends Command
 
         if (isset($config['profiles'][$materialType])) {
             $this->line('⏭️  Material profile already exists in config/material_profiles.php');
+
             return;
         }
 
@@ -1272,7 +1302,10 @@ class MaterialGeneratorCommand extends Command
         $className = "App\\\\Services\\\\Material\\\\Calculations\\\\{$this->materialName}CalculationStrategy";
 
         if (isset($config[$materialType])) {
-            $this->line('⏭️  Material calculation strategy already exists in config/material_calculation_strategies.php');
+            $this->line(
+                '⏭️  Material calculation strategy already exists in config/material_calculation_strategies.php',
+            );
+
             return;
         }
 
@@ -1283,17 +1316,18 @@ class MaterialGeneratorCommand extends Command
 
     protected function readPhpConfig(string $path): array
     {
-        if (!File::exists($path)) {
+        if (! File::exists($path)) {
             return [];
         }
 
         $config = require $path;
+
         return is_array($config) ? $config : [];
     }
 
     protected function writePhpConfig(string $path, array $config): void
     {
-        $content = "<?php\n\nreturn " . var_export($config, true) . ";\n";
+        $content = "<?php\n\nreturn ".var_export($config, true).";\n";
         $this->writeGeneratedFile($path, $content);
     }
 
@@ -1305,7 +1339,7 @@ class MaterialGeneratorCommand extends Command
 
         $content = File::get($routePath);
 
-        if (!Str::contains($content, $route) && !Str::contains($content, $legacyRoute)) {
+        if (! Str::contains($content, $route) && ! Str::contains($content, $legacyRoute)) {
             $content .= "\n{$route}\n";
             $this->writeGeneratedFile($routePath, $content);
             $this->line('✅ Updated: routes/web.php');
@@ -1318,8 +1352,9 @@ class MaterialGeneratorCommand extends Command
     {
         $seederPath = database_path('seeders/MaterialSettingSeeder.php');
 
-        if (!File::exists($seederPath)) {
+        if (! File::exists($seederPath)) {
             $this->warn('⚠️  MaterialSettingSeeder.php not found, skipping...');
+
             return;
         }
 
@@ -1329,12 +1364,13 @@ class MaterialGeneratorCommand extends Command
         // Check if already exists
         if (Str::contains($content, "'material_type' => '{$materialType}'")) {
             $this->line('⏭️  Material already exists in MaterialSettingSeeder');
+
             return;
         }
 
         // Find the last display_order
         preg_match_all("/'display_order' => (\d+)/", $content, $matches);
-        $nextOrder = !empty($matches[1]) ? max($matches[1]) + 1 : 1;
+        $nextOrder = ! empty($matches[1]) ? max($matches[1]) + 1 : 1;
 
         // Create new material entry (multi-line format to match existing style)
         $newMaterial = <<<PHP
@@ -1346,8 +1382,9 @@ class MaterialGeneratorCommand extends Command
         PHP;
 
         $pattern = '/(\$materials\s*=\s*\[)(.*?)(\n\s*\];)/s';
-        if (!preg_match($pattern, $content)) {
+        if (! preg_match($pattern, $content)) {
             $this->warn('⚠️  Could not find $materials array in MaterialSettingSeeder');
+
             return;
         }
 
@@ -1357,6 +1394,7 @@ class MaterialGeneratorCommand extends Command
                 $header = $matches[1];
                 $body = rtrim($matches[2]);
                 $footer = $matches[3];
+
                 return "{$header}{$body}\n{$newMaterial}{$footer}";
             },
             $content,
@@ -1365,6 +1403,7 @@ class MaterialGeneratorCommand extends Command
 
         if ($updated === null || $updated === $content) {
             $this->warn('⚠️  Could not update MaterialSettingSeeder');
+
             return;
         }
 
@@ -1376,17 +1415,19 @@ class MaterialGeneratorCommand extends Command
     {
         $seederPath = database_path('seeders/DatabaseSeeder.php');
 
-        if (!File::exists($seederPath)) {
+        if (! File::exists($seederPath)) {
             $this->warn('⚠️  DatabaseSeeder.php not found, skipping...');
+
             return;
         }
 
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
         $content = File::get($seederPath);
 
         // Check if already exists
         if (Str::contains($content, "{$seederClass}::class")) {
             $this->line("⏭️  {$seederClass} already registered in DatabaseSeeder");
+
             return;
         }
 
@@ -1422,7 +1463,7 @@ class MaterialGeneratorCommand extends Command
 
         $columns = [];
         foreach ($this->fields as $name => $config) {
-            if (!in_array($name, $excludedFields) && $config['type'] !== 'text') {
+            if (! in_array($name, $excludedFields) && $config['type'] !== 'text') {
                 $columns[$name] = $config;
             }
         }
@@ -1439,6 +1480,7 @@ class MaterialGeneratorCommand extends Command
                 $sortable[] = $name;
             }
         }
+
         return $sortable;
     }
 
@@ -1489,6 +1531,7 @@ class MaterialGeneratorCommand extends Command
                 $dimensions[$name] = $config;
             }
         }
+
         return $dimensions;
     }
 
@@ -1500,6 +1543,7 @@ class MaterialGeneratorCommand extends Command
                 $prices[$name] = $config;
             }
         }
+
         return $prices;
     }
 
@@ -1511,10 +1555,11 @@ class MaterialGeneratorCommand extends Command
 
         $regular = [];
         foreach ($this->fields as $name => $config) {
-            if (!in_array($name, $excluded)) {
+            if (! in_array($name, $excluded)) {
                 $regular[$name] = $config;
             }
         }
+
         return $regular;
     }
 
@@ -1830,7 +1875,7 @@ class MaterialGeneratorCommand extends Command
 
         // 2. Dimension Fields (grouped)
         $dimensionFields = $this->getDimensionFields();
-        if (!empty($dimensionFields)) {
+        if (! empty($dimensionFields)) {
             $html .= "                                <div class=\"mb-3\">\n";
             $html .= "                                    <label class=\"form-label\">Dimensi (cm)</label>\n";
             $html .= "                                    <div class=\"row\">\n";
@@ -1876,7 +1921,7 @@ class MaterialGeneratorCommand extends Command
         $label = $this->getFieldLabel($name);
         $required = $config['nullable'] ? '' : 'required';
         $type = $config['type'];
-        $isRequiredOnCreateOnly = in_array($type, ['file'], true) && !$config['nullable'];
+        $isRequiredOnCreateOnly = in_array($type, ['file'], true) && ! $config['nullable'];
         if ($isEdit && $isRequiredOnCreateOnly) {
             $required = '';
         }
@@ -1901,8 +1946,18 @@ class MaterialGeneratorCommand extends Command
             // Boolean select
             $html .= "                                    <select class=\"form-select\" name=\"{$name}\" {$required}>\n";
             $html .= "                                        <option value=\"\">Pilih...</option>\n";
-            $html .= "                                        <option value=\"1\" " . ($isEdit ? "{{ \${$this->materialNameSingular()}->{$name} ? 'selected' : '' }}" : "{{ old('{$name}') == '1' ? 'selected' : '' }}") . ">Ya</option>\n";
-            $html .= "                                        <option value=\"0\" " . ($isEdit ? "{{ \${$this->materialNameSingular()}->{$name} == 0 ? 'selected' : '' }}" : "{{ old('{$name}') == '0' ? 'selected' : '' }}") . ">Tidak</option>\n";
+            $html .=
+                '                                        <option value="1" '.
+                ($isEdit
+                    ? "{{ \${$this->materialNameSingular()}->{$name} ? 'selected' : '' }}"
+                    : "{{ old('{$name}') == '1' ? 'selected' : '' }}").
+                ">Ya</option>\n";
+            $html .=
+                '                                        <option value="0" '.
+                ($isEdit
+                    ? "{{ \${$this->materialNameSingular()}->{$name} == 0 ? 'selected' : '' }}"
+                    : "{{ old('{$name}') == '0' ? 'selected' : '' }}").
+                ">Tidak</option>\n";
             $html .= "                                    </select>\n";
         } elseif ($type === 'date') {
             // Date input
@@ -1925,7 +1980,7 @@ class MaterialGeneratorCommand extends Command
 
     protected function generatePhotoUploadSection($isEdit = false)
     {
-        if (!isset($this->fields['photo'])) {
+        if (! isset($this->fields['photo'])) {
             return '';
         }
 
@@ -2010,24 +2065,29 @@ class MaterialGeneratorCommand extends Command
         $this->newLine();
 
         $name = $this->argument('name');
-        if (!$name && $this->input->isInteractive()) {
+        if (! $name && $this->input->isInteractive()) {
             $name = $this->ask('Material name to delete (e.g., Tile)');
         }
 
-        if (!$name) {
+        if (! $name) {
             $this->error('Material name is required!');
+
             return 1;
         }
 
         $this->materialName = ucfirst(Str::camel($name));
         $this->materialNamePlural = Str::plural(Str::snake($this->materialName));
 
-        if ($this->input->isInteractive() && !$this->confirm("Are you sure you want to delete ALL files for '{$this->materialName}'?", false)) {
+        if (
+            $this->input->isInteractive() &&
+            ! $this->confirm("Are you sure you want to delete ALL files for '{$this->materialName}'?", false)
+        ) {
             $this->warn('Operation cancelled.');
+
             return 1;
         }
 
-        if (!$this->rollbackFromManifest()) {
+        if (! $this->rollbackFromManifest()) {
             $this->rollback();
         }
 
@@ -2038,7 +2098,7 @@ class MaterialGeneratorCommand extends Command
 
     protected function rollback()
     {
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
 
         $filesToDelete = [
             app_path("Models/{$this->materialName}.php"),
@@ -2088,13 +2148,14 @@ class MaterialGeneratorCommand extends Command
     protected function rollbackFromManifest(): bool
     {
         $manifestPath = $this->getManifestPathForMaterial($this->getMaterialType());
-        if (!File::exists($manifestPath)) {
+        if (! File::exists($manifestPath)) {
             return false;
         }
 
         $decoded = json_decode((string) File::get($manifestPath), true);
-        if (!is_array($decoded) || !is_array($decoded['files'] ?? null)) {
+        if (! is_array($decoded) || ! is_array($decoded['files'] ?? null)) {
             $this->warn('Manifest exists but invalid, fallback to legacy rollback.');
+
             return false;
         }
 
@@ -2104,7 +2165,7 @@ class MaterialGeneratorCommand extends Command
             $action = $file['action'] ?? null;
             $backupPath = $file['backup_path'] ?? null;
 
-            if (!is_string($path) || $path === '') {
+            if (! is_string($path) || $path === '') {
                 continue;
             }
 
@@ -2112,6 +2173,7 @@ class MaterialGeneratorCommand extends Command
                 File::put($path, File::get($backupPath));
                 $this->line("↩️  Restored: {$path}");
                 $backupFiles[] = $backupPath;
+
                 continue;
             }
 
@@ -2142,7 +2204,7 @@ class MaterialGeneratorCommand extends Command
     protected function removeFromMaterialSettingSeeder()
     {
         $seederPath = database_path('seeders/MaterialSettingSeeder.php');
-        if (!File::exists($seederPath)) {
+        if (! File::exists($seederPath)) {
             return;
         }
 
@@ -2159,11 +2221,11 @@ class MaterialGeneratorCommand extends Command
     protected function removeFromDatabaseSeeder()
     {
         $seederPath = database_path('seeders/DatabaseSeeder.php');
-        if (!File::exists($seederPath)) {
+        if (! File::exists($seederPath)) {
             return;
         }
 
-        $seederClass = ucfirst(Str::camel($this->materialName)) . 'Seeder';
+        $seederClass = ucfirst(Str::camel($this->materialName)).'Seeder';
         $content = File::get($seederPath);
 
         // Remove the line with this seeder
@@ -2181,7 +2243,7 @@ class MaterialGeneratorCommand extends Command
         $materialType = Str::snake($this->materialName);
         $profiles = is_array($config['profiles'] ?? null) ? $config['profiles'] : [];
 
-        if (!isset($profiles[$materialType])) {
+        if (! isset($profiles[$materialType])) {
             return;
         }
 
@@ -2197,7 +2259,7 @@ class MaterialGeneratorCommand extends Command
         $config = $this->readPhpConfig($configPath);
         $materialType = Str::snake($this->materialName);
 
-        if (!isset($config[$materialType])) {
+        if (! isset($config[$materialType])) {
             return;
         }
 
@@ -2209,7 +2271,7 @@ class MaterialGeneratorCommand extends Command
     protected function removeFromRoutes()
     {
         $routePath = base_path('routes/web.php');
-        if (!File::exists($routePath)) {
+        if (! File::exists($routePath)) {
             return;
         }
 

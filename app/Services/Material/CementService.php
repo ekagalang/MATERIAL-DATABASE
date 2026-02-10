@@ -18,10 +18,8 @@ class CementService extends BaseService
 {
     protected $fileUploadService;
 
-    public function __construct(
-        CementRepository $repository,
-        FileUploadService $fileUploadService
-    ) {
+    public function __construct(CementRepository $repository, FileUploadService $fileUploadService)
+    {
         $this->repository = $repository;
         $this->fileUploadService = $fileUploadService;
     }
@@ -78,7 +76,7 @@ class CementService extends BaseService
         string $query,
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         return $this->repository->search($query, $perPage, $sortBy, $sortDirection);
     }
@@ -86,7 +84,7 @@ class CementService extends BaseService
     public function paginateWithSort(
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         return $this->repository->paginateWithSort($perPage, $sortBy, $sortDirection);
     }
@@ -95,7 +93,7 @@ class CementService extends BaseService
         string $field,
         array $filters = [],
         ?string $search = null,
-        int $limit = 20
+        int $limit = 20,
     ): Collection {
         return $this->repository->getFieldValues($field, $filters, $search, $limit);
     }
@@ -113,9 +111,11 @@ class CementService extends BaseService
     protected function calculateDerivedFields(Cement $cement): void
     {
         // Calculate net weight
-        if ((!$cement->package_weight_net || $cement->package_weight_net <= 0)
-            && $cement->package_weight_gross
-            && $cement->package_unit) {
+        if (
+            (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
+            $cement->package_weight_gross &&
+            $cement->package_unit
+        ) {
             $cement->calculateNetWeight();
         }
 

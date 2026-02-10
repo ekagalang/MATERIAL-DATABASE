@@ -196,8 +196,5 @@ Route::prefix('v1')->group(function () {
     // NUMBER FORMATTING APIs
     // ========================================
 
-    Route::post('/number-helper/format', [
-        \App\Http\Controllers\Api\V1\NumberHelperApiController::class,
-        'format',
-    ]);
+    Route::post('/number-helper/format', [\App\Http\Controllers\Api\V1\NumberHelperApiController::class, 'format']);
 });

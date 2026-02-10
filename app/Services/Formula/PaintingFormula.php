@@ -19,7 +19,7 @@ class PaintingFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Pengecatan Dinding';
+        return 'Pengecatan Dinding Saja';
     }
 
     public static function getDescription(): string
@@ -63,7 +63,7 @@ class PaintingFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjang = $n($params['wall_length']); // m
@@ -201,7 +201,9 @@ class PaintingFormula implements FormulaInterface
                 'info' => 'Volume kemasan cat: ' . $volumeKemasan . ' ' . ($cat->volume_unit ?? 'liter'),
                 'calculations' => [
                     'Perhitungan' =>
-                        NumberHelper::format($volumeKemasan) . ' / ' . NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                        NumberHelper::format($volumeKemasan) .
+                        ' / ' .
+                        NumberHelper::format($luasPengecatanPerLapisPerKemasan),
                     'Hasil' => NumberHelper::format($literPer1M2) . ' liter',
                 ],
             ];
@@ -217,7 +219,9 @@ class PaintingFormula implements FormulaInterface
             'formula' => 'Berat bersih / Luas pengecatan per lapis per kemasan',
             'calculations' => [
                 'Perhitungan' =>
-                    NumberHelper::format($beratBersihCat) . ' / ' . NumberHelper::format($luasPengecatanPerLapisPerKemasan),
+                    NumberHelper::format($beratBersihCat) .
+                    ' / ' .
+                    NumberHelper::format($luasPengecatanPerLapisPerKemasan),
                 'Hasil' => NumberHelper::format($kgCatPer1M2) . ' kg',
             ],
         ];
@@ -294,7 +298,8 @@ class PaintingFormula implements FormulaInterface
             'title' => 'Kg Cat Per Pekerjaan (1 Lapis)',
             'formula' => 'Kg per 1M2 × Luas bidang',
             'calculations' => [
-                'Perhitungan' => NumberHelper::format($beratBersihCat) . ' × ' . NumberHelper::format($galonPerPekerjaanPerLapis),
+                'Perhitungan' =>
+                    NumberHelper::format($beratBersihCat) . ' × ' . NumberHelper::format($galonPerPekerjaanPerLapis),
                 'Hasil' => NumberHelper::format($kgCatPerPekerjaanPerLapis) . ' kg',
             ],
         ];

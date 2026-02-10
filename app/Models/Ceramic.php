@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -81,7 +81,7 @@ class Ceramic extends Model
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (!$this->photo) {
+        if (! $this->photo) {
             return null;
         }
 
@@ -104,7 +104,7 @@ class Ceramic extends Model
         }
 
         // Default: assume it's in storage
-        return asset('storage/' . ltrim($path, '/'));
+        return asset('storage/'.ltrim($path, '/'));
     }
 
     /**
@@ -129,8 +129,6 @@ class Ceramic extends Model
      * Kalkulasi coverage per package dari dimensi dan jumlah pieces
      * Dimensi dalam CM, hasil dalam M²
      * Menggunakan nilai float murni untuk perhitungan
-     *
-     * @return float
      */
     public function calculateCoverage(): float
     {
@@ -151,6 +149,7 @@ class Ceramic extends Model
 
             // Simpan hasil coverage
             $this->coverage_per_package = (float) $coverage;
+
             return $this->coverage_per_package;
         }
 
@@ -160,8 +159,6 @@ class Ceramic extends Model
     /**
      * Kalkulasi harga komparasi per M²
      * Menggunakan nilai float murni untuk perhitungan
-     *
-     * @return float
      */
     public function calculateComparisonPrice(): float
     {
@@ -172,6 +169,7 @@ class Ceramic extends Model
             if ($coverage > 0) {
                 $comparisonPrice = (float) $this->price_per_package / $coverage;
                 $this->comparison_price_per_m2 = (float) $comparisonPrice;
+
                 return $this->comparison_price_per_m2;
             }
         }

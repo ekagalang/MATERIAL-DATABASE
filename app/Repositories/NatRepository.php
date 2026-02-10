@@ -17,7 +17,7 @@ class NatRepository extends BaseRepository
         string $query,
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         [$sortColumn, $sortDir] = $this->resolveSort($sortBy, $sortDirection);
 
@@ -39,38 +39,34 @@ class NatRepository extends BaseRepository
     public function paginateWithSort(
         int $perPage = 15,
         ?string $sortBy = 'created_at',
-        string $sortDirection = 'desc'
+        string $sortDirection = 'desc',
     ): LengthAwarePaginator {
         [$sortColumn, $sortDir] = $this->resolveSort($sortBy, $sortDirection);
 
-        return $this->model
-            ->orderBy($sortColumn, $sortDir)
-            ->paginate($perPage);
+        return $this->model->orderBy($sortColumn, $sortDir)->paginate($perPage);
     }
 
     public function getFieldValues(
         string $field,
         array $filters = [],
         ?string $search = null,
-        int $limit = 20
+        int $limit = 20,
     ): Collection {
         $fieldMap = $this->fieldMap();
-        if (!isset($fieldMap[$field])) {
+        if (! isset($fieldMap[$field])) {
             return collect([]);
         }
 
         $column = $fieldMap[$field];
-        $limit = ($limit > 0 && $limit <= 100) ? $limit : 20;
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
-        $query = $this->model->query()
-            ->whereNotNull($column)
-            ->where($column, '!=', '');
+        $query = $this->model->query()->whereNotNull($column)->where($column, '!=', '');
 
         foreach ($filters as $key => $value) {
             if ($value === null || $value === '') {
                 continue;
             }
-            if (!isset($fieldMap[$key])) {
+            if (! isset($fieldMap[$key])) {
                 continue;
             }
             $query->where($fieldMap[$key], $value);
@@ -80,61 +76,56 @@ class NatRepository extends BaseRepository
             $query->where($column, 'like', "%{$search}%");
         }
 
-        return $query->select($column)
-            ->groupBy($column)
-            ->orderBy($column)
-            ->limit($limit)
-            ->pluck($column);
+        return $query->select($column)->groupBy($column)->orderBy($column)->limit($limit)->pluck($column);
     }
 
     public function getAllStores(?string $search = null, int $limit = 20, string $materialType = 'nat'): Collection
     {
-        $limit = ($limit > 0 && $limit <= 100) ? $limit : 20;
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
-        if ($materialType === 'nat' || ($search === '' && $materialType === 'all') || (is_null($search) && $materialType === 'all')) {
-            $query = $this->model->query()
-                ->whereNotNull('store')
-                ->where('store', '!=', '');
+        if (
+            $materialType === 'nat' ||
+            ($search === '' && $materialType === 'all') ||
+            (is_null($search) && $materialType === 'all')
+        ) {
+            $query = $this->model->query()->whereNotNull('store')->where('store', '!=', '');
 
             if ($search) {
                 $query->where('store', 'like', "%{$search}%");
             }
 
-            return $query->select('store')
-                ->groupBy('store')
-                ->orderBy('store')
-                ->limit($limit)
-                ->pluck('store');
+            return $query->select('store')->groupBy('store')->orderBy('store')->limit($limit)->pluck('store');
         }
 
-        $natStores = $this->model->query()
+        $natStores = $this->model
+            ->query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $brickStores = \App\Models\Brick::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $catStores = \App\Models\Cat::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $cementStores = \App\Models\Cement::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $sandStores = \App\Models\Sand::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         return collect()
@@ -151,41 +142,42 @@ class NatRepository extends BaseRepository
 
     public function getAddressesByStore(string $store, ?string $search = null, int $limit = 20): Collection
     {
-        $limit = ($limit > 0 && $limit <= 100) ? $limit : 20;
+        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
 
-        $natAddresses = $this->model->query()
+        $natAddresses = $this->model
+            ->query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $brickAddresses = \App\Models\Brick::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $cementAddresses = \App\Models\Cement::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         return collect()
@@ -222,9 +214,7 @@ class NatRepository extends BaseRepository
         ];
 
         $column = $sortMap[$sortBy] ?? 'created_at';
-        $direction = in_array(strtolower($sortDirection), ['asc', 'desc'], true)
-            ? strtolower($sortDirection)
-            : 'desc';
+        $direction = in_array(strtolower($sortDirection), ['asc', 'desc'], true) ? strtolower($sortDirection) : 'desc';
 
         return [$column, $direction];
     }

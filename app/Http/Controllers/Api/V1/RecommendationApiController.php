@@ -23,10 +23,7 @@ use Illuminate\Support\Facades\Log;
  */
 class RecommendationApiController extends Controller
 {
-    public function __construct(
-        private RecommendationRepository $repository
-    ) {
-    }
+    public function __construct(private RecommendationRepository $repository) {}
 
     /**
      * Get all recommendations grouped by work_type
@@ -35,9 +32,6 @@ class RecommendationApiController extends Controller
      *
      * Query params:
      * - include_materials: bool (default: false) - Include available materials for dropdowns
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -69,11 +63,14 @@ class RecommendationApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve recommendations',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve recommendations',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -95,9 +92,6 @@ class RecommendationApiController extends Controller
      *     ...
      *   ]
      * }
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function bulkUpdate(Request $request): JsonResponse
     {
@@ -126,22 +120,28 @@ class RecommendationApiController extends Controller
                 'data' => $groupedRecommendations,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Bulk Update Recommendations Error:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update recommendations',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to update recommendations',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

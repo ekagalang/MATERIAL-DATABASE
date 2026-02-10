@@ -22,7 +22,7 @@ class TileInstallationFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Pasang Keramik';
+        return 'Pasang Keramik Lantai Komplit';
     }
 
     public static function getDescription(): string
@@ -59,7 +59,7 @@ class TileInstallationFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangBidang = $n($params['wall_length']); // m

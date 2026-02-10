@@ -31,10 +31,7 @@ class NatController extends Controller
             ? $this->natService->search($search, $perPage, $sortBy, $sortDirection)
             : $this->natService->paginateWithSort($perPage, $sortBy, $sortDirection);
 
-        return $this->paginatedResponse(
-            NatResource::collection($nats)->resource,
-            'Nats retrieved successfully'
-        );
+        return $this->paginatedResponse(NatResource::collection($nats)->resource, 'Nats retrieved successfully');
     }
 
     public function store(Request $request): JsonResponse
@@ -60,17 +57,14 @@ class NatController extends Controller
 
         $nat = $this->natService->create($validated, $request->file('photo'));
 
-        return $this->createdResponse(
-            new NatResource($nat),
-            'Nat created successfully'
-        );
+        return $this->createdResponse(new NatResource($nat), 'Nat created successfully');
     }
 
     public function show(int $id): JsonResponse
     {
         $nat = $this->natService->find($id);
 
-        if (!$nat) {
+        if (! $nat) {
             return $this->notFoundResponse('Nat not found');
         }
 
@@ -100,20 +94,14 @@ class NatController extends Controller
 
         $nat = $this->natService->update($id, $validated, $request->file('photo'));
 
-        return $this->successResponse(
-            new NatResource($nat),
-            'Nat updated successfully'
-        );
+        return $this->successResponse(new NatResource($nat), 'Nat updated successfully');
     }
 
     public function destroy(int $id): JsonResponse
     {
         $this->natService->delete($id);
 
-        return $this->successResponse(
-            null,
-            'Nat deleted successfully'
-        );
+        return $this->successResponse(null, 'Nat deleted successfully');
     }
 
     public function getFieldValues(string $field, Request $request): JsonResponse

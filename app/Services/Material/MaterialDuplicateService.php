@@ -29,12 +29,7 @@ class MaterialDuplicateService
                 'address',
                 'price_per_piece',
             ],
-            'numeric' => [
-                'dimension_length',
-                'dimension_width',
-                'dimension_height',
-                'price_per_piece',
-            ],
+            'numeric' => ['dimension_length', 'dimension_width', 'dimension_height', 'price_per_piece'],
         ],
         'cement' => [
             'model' => Cement::class,
@@ -52,11 +47,7 @@ class MaterialDuplicateService
                 'package_price',
                 'price_unit',
             ],
-            'numeric' => [
-                'package_weight_gross',
-                'package_weight_net',
-                'package_price',
-            ],
+            'numeric' => ['package_weight_gross', 'package_weight_net', 'package_price'],
         ],
         'sand' => [
             'model' => Sand::class,
@@ -101,12 +92,7 @@ class MaterialDuplicateService
                 'purchase_price',
                 'price_unit',
             ],
-            'numeric' => [
-                'package_weight_gross',
-                'package_weight_net',
-                'volume',
-                'purchase_price',
-            ],
+            'numeric' => ['package_weight_gross', 'package_weight_net', 'volume', 'purchase_price'],
         ],
         'ceramic' => [
             'model' => Ceramic::class,
@@ -155,11 +141,7 @@ class MaterialDuplicateService
                 'package_price',
                 'price_unit',
             ],
-            'numeric' => [
-                'package_weight_gross',
-                'package_weight_net',
-                'package_price',
-            ],
+            'numeric' => ['package_weight_gross', 'package_weight_net', 'package_price'],
         ],
     ];
 
@@ -196,8 +178,7 @@ class MaterialDuplicateService
             $normalized = $this->normalizeString($value);
             if ($normalized === '') {
                 $query->where(function ($q) use ($field) {
-                    $q->whereNull($field)
-                        ->orWhereRaw("TRIM(COALESCE({$field}, '')) = ''");
+                    $q->whereNull($field)->orWhereRaw("TRIM(COALESCE({$field}, '')) = ''");
                 });
             } else {
                 $query->whereRaw("LOWER(TRIM(COALESCE({$field}, ''))) = ?", [$normalized]);

@@ -3,18 +3,18 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Symfony\Component\Process\Process;
 
 class RunningCommand extends Command
 {
     protected $signature = 'gass';
+
     protected $description = 'Run Laravel server and Vite (npm run dev) together';
 
     public function handle()
     {
         $host = '127.0.0.1';
         $port = '8000';
-        $url  = "http://{$host}:{$port}";
+        $url = "http://{$host}:{$port}";
 
         $this->info('🔥 Starting Laravel server...');
         $this->info('🔥 Starting npm dev...');
@@ -30,18 +30,14 @@ class RunningCommand extends Command
             'artisan',
             'serve',
             "--host={$host}",
-            "--port={$port}"
+            "--port={$port}",
         ]);
 
         $artisan->setTimeout(null);
         $artisan->start();
 
         // NPM Dev (Windows)
-        $npm = new \Symfony\Component\Process\Process([
-            'npm.cmd',
-            'run',
-            'dev'
-        ]);
+        $npm = new \Symfony\Component\Process\Process(['npm.cmd', 'run', 'dev']);
 
         $npm->setTimeout(null);
         $npm->start();

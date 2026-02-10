@@ -47,10 +47,7 @@ class MaterialSettingSeeder extends Seeder
         ];
 
         foreach ($materials as $material) {
-            MaterialSetting::updateOrCreate(
-                ['material_type' => $material['material_type']],
-                $material
-            );
+            MaterialSetting::updateOrCreate(['material_type' => $material['material_type']], $material);
         }
 
         $this->command->info('MaterialSettings seeded successfully!');

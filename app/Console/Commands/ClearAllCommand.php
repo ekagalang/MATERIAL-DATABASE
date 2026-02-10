@@ -29,10 +29,10 @@ class ClearAllCommand extends Command
         $this->newLine();
 
         $commands = [
-            'cache:clear'    => '✔ Application cache cleared',
-            'config:clear'   => '✔ Configuration cache cleared',
-            'route:clear'    => '✔ Route cache cleared',
-            'view:clear'     => '✔ View cache cleared',
+            'cache:clear' => '✔ Application cache cleared',
+            'config:clear' => '✔ Configuration cache cleared',
+            'route:clear' => '✔ Route cache cleared',
+            'view:clear' => '✔ View cache cleared',
             'optimize:clear' => '✔ Optimization cache cleared',
         ];
 

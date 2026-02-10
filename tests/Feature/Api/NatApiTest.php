@@ -38,10 +38,7 @@ class NatApiTest extends TestCase
 
         $response = $this->getJson('/api/v1/nats?per_page=10');
 
-        $response
-            ->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonCount(2, 'data');
+        $response->assertOk()->assertJsonPath('success', true)->assertJsonCount(2, 'data');
     }
 
     public function test_can_create_nat(): void
@@ -59,10 +56,7 @@ class NatApiTest extends TestCase
             'store' => 'TB Maju',
         ]);
 
-        $response
-            ->assertStatus(201)
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.brand', 'Alpha');
+        $response->assertStatus(201)->assertJsonPath('success', true)->assertJsonPath('data.brand', 'Alpha');
 
         $this->assertDatabaseHas('nats', [
             'brand' => 'Alpha',
@@ -87,10 +81,7 @@ class NatApiTest extends TestCase
             'price_unit' => 'Bks',
         ]);
 
-        $response
-            ->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.brand', 'Brand Baru');
+        $response->assertOk()->assertJsonPath('success', true)->assertJsonPath('data.brand', 'Brand Baru');
 
         $this->assertDatabaseHas('nats', [
             'id' => $nat->id,
@@ -108,9 +99,7 @@ class NatApiTest extends TestCase
 
         $response = $this->deleteJson('/api/v1/nats/' . $nat->id);
 
-        $response
-            ->assertOk()
-            ->assertJsonPath('success', true);
+        $response->assertOk()->assertJsonPath('success', true);
 
         $this->assertDatabaseMissing('nats', [
             'id' => $nat->id,

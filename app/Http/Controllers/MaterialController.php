@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\MaterialSetting;
 use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
-use App\Models\Sand;
 use App\Models\Ceramic;
+use App\Models\MaterialSetting;
 use App\Models\Nat;
+use App\Models\Sand;
+use Illuminate\Http\Request;
 
 class MaterialController extends Controller
 {
@@ -29,7 +29,7 @@ class MaterialController extends Controller
 
         // Determine active tab from request or default to the first one
         $activeTab = $request->query('tab');
-        
+
         // If no tab is specified, we'll load the first one by default.
         // However, we don't know the user's preference order on server-side.
         // We'll trust that if 'tab' is missing, we load the first one in the list.
@@ -69,8 +69,8 @@ class MaterialController extends Controller
             $activeLetters = $this->getActiveLetters($type);
 
             // Lazy Load Logic: Only fetch data if it's the target tab
-            $isLoaded = ($type === $targetTab);
-            
+            $isLoaded = $type === $targetTab;
+
             if ($isLoaded) {
                 $data = $this->getMaterialData($type, $request);
             } else {
@@ -95,7 +95,7 @@ class MaterialController extends Controller
     public function fetchTab(Request $request, $type)
     {
         // Validate type
-        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
+        if (! in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
             abort(404);
         }
 
@@ -106,29 +106,29 @@ class MaterialController extends Controller
         $grandTotal = 0;
         $allSettings = MaterialSetting::query()->get();
         foreach ($allSettings as $setting) {
-             $modelClass = match($setting->material_type) {
-                 'brick' => Brick::class,
-                 'cat' => Cat::class,
-                 'ceramic' => Ceramic::class,
-                 'sand' => Sand::class,
-                 'cement' => Cement::class,
-                 'nat' => Nat::class,
-                 default => null
-             };
-             if ($modelClass) {
-                 $grandTotal += $modelClass::count();
-             }
+            $modelClass = match ($setting->material_type) {
+                'brick' => Brick::class,
+                'cat' => Cat::class,
+                'ceramic' => Ceramic::class,
+                'sand' => Sand::class,
+                'cement' => Cement::class,
+                'nat' => Nat::class,
+                default => null,
+            };
+            if ($modelClass) {
+                $grandTotal += $modelClass::count();
+            }
         }
 
         $data = $this->getMaterialData($type, $request);
-        $model = match($type) {
-             'brick' => Brick::class,
-             'cat' => Cat::class,
-             'ceramic' => Ceramic::class,
-             'sand' => Sand::class,
-             'cement' => Cement::class,
-             'nat' => Nat::class,
-             default => null
+        $model = match ($type) {
+            'brick' => Brick::class,
+            'cat' => Cat::class,
+            'ceramic' => Ceramic::class,
+            'sand' => Sand::class,
+            'cement' => Cement::class,
+            'nat' => Nat::class,
+            default => null,
         };
         $dbCount = $model ? $model::count() : 0;
 
@@ -193,8 +193,8 @@ class MaterialController extends Controller
             $items = collect();
             foreach ($models as $materialType => $model) {
                 $typeColumn = $typeColumns[$materialType] ?? 'type';
-                $types = $model
-                    ::query()->selectRaw($typeColumn . ' as type')
+                $types = $model::query()
+                    ->selectRaw($typeColumn.' as type')
                     ->whereNotNull($typeColumn)
                     ->where($typeColumn, '!=', '')
                     ->distinct()
@@ -240,7 +240,7 @@ class MaterialController extends Controller
 
         $items = collect();
         foreach ($models as $materialType => $model) {
-            if (!empty($targetMaterialTypes) && !in_array($materialType, $targetMaterialTypes, true)) {
+            if (! empty($targetMaterialTypes) && ! in_array($materialType, $targetMaterialTypes, true)) {
                 continue;
             }
             $materialLabel = $materialLabels[$materialType] ?? ucfirst($materialType);
@@ -251,9 +251,9 @@ class MaterialController extends Controller
             $query = $model::query()->select($columns)->whereNotNull($typeColumn)->where($typeColumn, '!=', '');
 
             $columns = $searchColumns[$materialType] ?? [];
-            if (!empty($searchTokens)) {
+            if (! empty($searchTokens)) {
                 foreach ($searchTokens as $token) {
-                    $like = '%' . $token . '%';
+                    $like = '%'.$token.'%';
                     $query->where(function ($builder) use ($like, $columns) {
                         foreach ($columns as $column) {
                             $builder->orWhere($column, 'like', $like);
@@ -263,7 +263,7 @@ class MaterialController extends Controller
             }
 
             $results = collect();
-            if (!empty($searchTokens)) {
+            if (! empty($searchTokens)) {
                 $results = $query->orderBy('type')->limit(20)->get();
             }
             foreach ($results as $row) {
@@ -280,9 +280,12 @@ class MaterialController extends Controller
 
             if ($search !== '') {
                 $labelMatches = stripos($materialLabel, $search) !== false || stripos($materialType, $search) !== false;
-                if (!$labelMatches && !empty($tokens)) {
+                if (! $labelMatches && ! empty($tokens)) {
                     foreach ($tokens as $token) {
-                        if ($token !== '' && (stripos($materialLabel, $token) !== false || stripos($materialType, $token) !== false)) {
+                        if (
+                            $token !== '' &&
+                            (stripos($materialLabel, $token) !== false || stripos($materialType, $token) !== false)
+                        ) {
                             $labelMatches = true;
                             break;
                         }
@@ -297,8 +300,8 @@ class MaterialController extends Controller
                 }
 
                 if (empty($searchTokens)) {
-                    $typeMatches = $model
-                        ::query()->selectRaw($typeColumn . ' as type')
+                    $typeMatches = $model::query()
+                        ->selectRaw($typeColumn.' as type')
                         ->whereNotNull($typeColumn)
                         ->where($typeColumn, '!=', '')
                         ->distinct()
@@ -307,11 +310,11 @@ class MaterialController extends Controller
                         ->pluck('type');
                 } else {
                     $typeQuery = $model::query()
-                        ->selectRaw($typeColumn . ' as type')
+                        ->selectRaw($typeColumn.' as type')
                         ->whereNotNull($typeColumn)
                         ->where($typeColumn, '!=', '');
                     foreach ($searchTokens as $token) {
-                        $like = '%' . $token . '%';
+                        $like = '%'.$token.'%';
                         $typeQuery->where($typeColumn, 'like', $like);
                     }
                     $typeMatches = $typeQuery->distinct()->orderBy($typeColumn)->limit(10)->pluck('type');
@@ -329,7 +332,7 @@ class MaterialController extends Controller
 
         $items = $items
             ->unique(function ($item) {
-                return $item['material_type'] . '|' . $item['label'];
+                return $item['material_type'].'|'.$item['label'];
             })
             ->sortBy('label')
             ->values();
@@ -344,19 +347,10 @@ class MaterialController extends Controller
         $parts = [];
         switch ($materialType) {
             case 'brick':
-                $parts = [
-                    $row->type ?? null,
-                    $row->brand ?? null,
-                    $row->form ?? null,
-                ];
+                $parts = [$row->type ?? null, $row->brand ?? null, $row->form ?? null];
                 break;
             case 'cat':
-                $parts = [
-                    $row->brand ?? null,
-                    $row->sub_brand ?? null,
-                    $row->color_name ?? null,
-                    $row->type ?? null,
-                ];
+                $parts = [$row->brand ?? null, $row->sub_brand ?? null, $row->color_name ?? null, $row->type ?? null];
                 break;
             case 'cement':
                 $parts = [
@@ -368,10 +362,7 @@ class MaterialController extends Controller
                 ];
                 break;
             case 'sand':
-                $parts = [
-                    $row->type ?? null,
-                    $row->brand ?? null,
-                ];
+                $parts = [$row->type ?? null, $row->brand ?? null];
                 break;
             case 'ceramic':
                 $parts = [
@@ -398,11 +389,14 @@ class MaterialController extends Controller
                 break;
         }
 
-        $parts = array_values(array_filter($parts, function ($value) {
-            return !is_null($value) && trim((string) $value) !== '';
-        }));
+        $parts = array_values(
+            array_filter($parts, function ($value) {
+                return ! is_null($value) && trim((string) $value) !== '';
+            }),
+        );
 
         $parts = array_slice($parts, 0, 3);
+
         return trim(implode(' - ', $parts));
     }
 
@@ -430,7 +424,7 @@ class MaterialController extends Controller
                 break;
         }
 
-        if (!$model) {
+        if (! $model) {
             return [];
         }
 
@@ -438,8 +432,7 @@ class MaterialController extends Controller
         $letterColumn = 'brand';
 
         // Get distinct first letters, uppercase
-        return $model
-            ::selectRaw(sprintf('DISTINCT UPPER(SUBSTRING(%s, 1, 1)) as letter', $letterColumn))
+        return $model::selectRaw(sprintf('DISTINCT UPPER(SUBSTRING(%s, 1, 1)) as letter', $letterColumn))
             ->whereNotNull($letterColumn)
             ->where($letterColumn, '!=', '')
             ->orderBy('letter')
@@ -477,7 +470,7 @@ class MaterialController extends Controller
                 break;
         }
 
-        if (!$query) {
+        if (! $query) {
             return null;
         }
 
@@ -675,7 +668,7 @@ class MaterialController extends Controller
             default => [],
         };
 
-        if ($sortBy && !in_array($sortBy, $allowedSortBy, true)) {
+        if ($sortBy && ! in_array($sortBy, $allowedSortBy, true)) {
             $sortBy = null;
         }
 
@@ -773,17 +766,21 @@ class MaterialController extends Controller
                 'comparison_price_per_kg',
                 'id',
             ],
-            default => [
-                'type',
-                'created_at',
-                'id',
-            ],
+            default => ['type', 'created_at', 'id'],
         };
 
         if ($sortBy) {
             $primarySortColumns = match (true) {
-                $type === 'ceramic' && $sortBy === 'dimension_length' => ['dimension_length', 'dimension_width', 'dimension_thickness'],
-                in_array($type, ['brick', 'sand'], true) && $sortBy === 'dimension_length' => ['dimension_length', 'dimension_width', 'dimension_height'],
+                $type === 'ceramic' && $sortBy === 'dimension_length' => [
+                    'dimension_length',
+                    'dimension_width',
+                    'dimension_thickness',
+                ],
+                in_array($type, ['brick', 'sand'], true) && $sortBy === 'dimension_length' => [
+                    'dimension_length',
+                    'dimension_width',
+                    'dimension_height',
+                ],
                 default => [$sortBy],
             };
 

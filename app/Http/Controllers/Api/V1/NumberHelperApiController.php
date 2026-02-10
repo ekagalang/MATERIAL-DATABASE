@@ -22,16 +22,19 @@ class NumberHelperApiController extends Controller
                 ]);
             }
 
-            if (!is_array($values)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid payload format.',
-                ], 422);
+            if (! is_array($values)) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Invalid payload format.',
+                    ],
+                    422,
+                );
             }
 
             $formatted = [];
             foreach ($values as $item) {
-                if (!is_array($item)) {
+                if (! is_array($item)) {
                     continue;
                 }
                 $key = $item['key'] ?? null;
@@ -51,10 +54,13 @@ class NumberHelperApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to format number.',
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to format number.',
+                ],
+                500,
+            );
         }
     }
 
@@ -107,7 +113,7 @@ class NumberHelperApiController extends Controller
             $string = str_replace(',', '.', $string);
         }
 
-        if (!is_numeric($string)) {
+        if (! is_numeric($string)) {
             return null;
         }
 

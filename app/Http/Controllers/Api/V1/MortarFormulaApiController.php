@@ -18,27 +18,25 @@ class MortarFormulaApiController extends Controller
      * Get all active mortar formulas
      *
      * GET /api/v1/mortar-formulas
-     *
-     * @return JsonResponse
      */
     public function index(): JsonResponse
     {
         try {
-            $formulas = MortarFormula::where('is_active', true)
-                ->orderBy('is_default', 'desc')
-                ->orderBy('name')
-                ->get();
+            $formulas = MortarFormula::where('is_active', true)->orderBy('is_default', 'desc')->orderBy('name')->get();
 
             return response()->json([
                 'success' => true,
                 'data' => $formulas,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve mortar formulas',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve mortar formulas',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -46,20 +44,20 @@ class MortarFormulaApiController extends Controller
      * Get single mortar formula by ID
      *
      * GET /api/v1/mortar-formulas/{id}
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         try {
             $formula = MortarFormula::find($id);
 
-            if (!$formula) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Mortar formula not found',
-                ], 404);
+            if (! $formula) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Mortar formula not found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -67,11 +65,14 @@ class MortarFormulaApiController extends Controller
                 'data' => $formula,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve mortar formula',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve mortar formula',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -79,19 +80,20 @@ class MortarFormulaApiController extends Controller
      * Get default mortar formula
      *
      * GET /api/v1/mortar-formulas/default
-     *
-     * @return JsonResponse
      */
     public function getDefault(): JsonResponse
     {
         try {
             $defaultFormula = MortarFormula::getDefault();
 
-            if (!$defaultFormula) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No default mortar formula found',
-                ], 404);
+            if (! $defaultFormula) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'No default mortar formula found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -99,11 +101,14 @@ class MortarFormulaApiController extends Controller
                 'data' => $defaultFormula,
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve default mortar formula',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve default mortar formula',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

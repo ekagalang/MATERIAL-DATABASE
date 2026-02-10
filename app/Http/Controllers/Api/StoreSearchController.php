@@ -1,11 +1,11 @@
 <?php
+
 // app/Http/Controllers/Api/StoreSearchController.php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Store;
-use App\Models\StoreLocation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -31,15 +31,15 @@ class StoreSearchController extends Controller
             ->where('name', 'like', "%{$storeName}%")
             ->limit(10)
             ->get()
-            ->map(function ($store) use ($query) {
-                return $store->locations->map(function ($location) use ($store, $query) {
+            ->map(function ($store) {
+                return $store->locations->map(function ($location) use ($store) {
                     return [
                         'id' => $location->id,
                         'store_id' => $store->id,
                         'store_name' => $store->name,
                         'address' => $location->address,
                         'full_address' => $location->full_address,
-                        'display_text' => $store->name . ($location->address ? ' - ' . $location->address : ''),
+                        'display_text' => $store->name.($location->address ? ' - '.$location->address : ''),
                         'is_incomplete' => $location->is_incomplete,
                     ];
                 });
@@ -65,7 +65,7 @@ class StoreSearchController extends Controller
 
         $query = Store::query()->orderBy('name');
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where('name', 'like', "%{$search}%");
         }
 
@@ -90,13 +90,13 @@ class StoreSearchController extends Controller
 
         $store = Store::where('name', $storeName)->first();
 
-        if (!$store) {
+        if (! $store) {
             return response()->json([]);
         }
 
         $query = $store->locations();
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where('address', 'like', "%{$search}%");
         }
 
@@ -135,16 +135,17 @@ class StoreSearchController extends Controller
             // Find or create store (case-insensitive search)
             $store = Store::whereRaw('LOWER(name) = ?', [strtolower($storeName)])->first();
 
-            if (!$store) {
+            if (! $store) {
                 $store = Store::create(['name' => $storeName]);
             }
 
             // Find or create location (case-insensitive search for address)
-            $location = $store->locations()
+            $location = $store
+                ->locations()
                 ->whereRaw('LOWER(COALESCE(address, \'\')) = ?', [strtolower($address)])
                 ->first();
 
-            if (!$location) {
+            if (! $location) {
                 $location = $store->locations()->create([
                     'address' => $address ?: null,
                 ]);
@@ -158,11 +159,12 @@ class StoreSearchController extends Controller
                 'store_name' => $store->name,
                 'address' => $location->address,
                 'full_address' => $location->full_address ?? $location->address,
-                'display_text' => $store->name . ($location->address ? ' - ' . $location->address : ''),
+                'display_text' => $store->name.($location->address ? ' - '.$location->address : ''),
                 'is_new' => $location->wasRecentlyCreated,
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

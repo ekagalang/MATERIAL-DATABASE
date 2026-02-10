@@ -23,7 +23,7 @@ class CeramicSeeder extends Seeder
                 'surface' => 'Glossy',
                 'form' => 'Persegi', // Lebih deskriptif dari 'Lbr'
                 'dimension_length' => 30.0, // cm
-                'dimension_width' => 30.0,  // cm
+                'dimension_width' => 30.0, // cm
                 'dimension_thickness' => 0.8, // cm (8mm)
                 'packaging' => 'Dus',
                 'pieces_per_package' => 11,
@@ -160,7 +160,7 @@ class CeramicSeeder extends Seeder
                     'address' => $data['address'],
                     'price_per_package' => $data['price_per_package'],
                     'comparison_price_per_m2' => $comparisonPrice,
-                ]
+                ],
             );
         }
 

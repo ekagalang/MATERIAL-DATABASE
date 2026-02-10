@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -38,11 +37,13 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('recommended_combinations') && Schema::hasColumn('recommended_combinations', 'nat_id_v2')) {
+        if (
+            Schema::hasTable('recommended_combinations') &&
+            Schema::hasColumn('recommended_combinations', 'nat_id_v2')
+        ) {
             Schema::table('recommended_combinations', function (Blueprint $table) {
                 $table->dropConstrainedForeignId('nat_id_v2');
             });
         }
     }
 };
-

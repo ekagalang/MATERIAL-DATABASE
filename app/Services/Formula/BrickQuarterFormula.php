@@ -59,7 +59,7 @@ class BrickQuarterFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangDinding = $n($params['wall_length']);
@@ -191,7 +191,9 @@ class BrickQuarterFormula implements FormulaInterface
 
         // ============ STEP 7: Hitung kolom vertikal adukan ============
         // kolom vertikal adukan = (Panjang dinding / ((Panjang bata + tebal adukan) / 100)) + 1. (jika hasilnya desimal maka dibulatkan keatas)
-        $kolomVertikalAdukanRaw = $n(($panjangDinding - $tebalAdukan / 100) / (($panjangBata + $tebalAdukan) / 100) + 1);
+        $kolomVertikalAdukanRaw = $n(
+            ($panjangDinding - $tebalAdukan / 100) / (($panjangBata + $tebalAdukan) / 100) + 1,
+        );
         $decimal = $kolomVertikalAdukanRaw - floor($kolomVertikalAdukanRaw);
         $kolomVertikalAdukan = floor($kolomVertikalAdukanRaw);
         if ($decimal > 0) {
@@ -235,7 +237,10 @@ class BrickQuarterFormula implements FormulaInterface
             'info' => 'Hasil dibulatkan ke bawah. Jika desimal Baris Horizontal Bata 0-0.5 maka tambahan adukan = 0',
             'calculations' => [
                 'Desimal Baris Horizontal Bata (Step 4)' => NumberHelper::format($decimalStep4),
-                'Perhitungan' => $decimalStep4 > 0.5 ? "($kolomVertikalBata / 2) = " . NumberHelper::format($tambahanAdukanRaw) : 'Desimal ≤ 0.5, tambahan adukan = 0',
+                'Perhitungan' =>
+                    $decimalStep4 > 0.5
+                        ? "($kolomVertikalBata / 2) = " . NumberHelper::format($tambahanAdukanRaw)
+                        : 'Desimal ≤ 0.5, tambahan adukan = 0',
                 'Desimal Tambahan Adukan' => $decimalStep4 > 0.5 ? NumberHelper::format($tambahanAdukanDecimal) : 'N/A',
                 'Hasil Tambahan Adukan' => NumberHelper::format($tambahanAdukan) . ' baris',
             ],
@@ -261,7 +266,12 @@ class BrickQuarterFormula implements FormulaInterface
                     "($kolomVertikalAdukan × ($kolomVertikalBata × ($tinggiBata / 100))) = " .
                     NumberHelper::format($part2) .
                     ' m',
-                'Part 3' => '(' . NumberHelper::format($tambahanAdukan) . " × ($tinggiBata / 100)) = " . NumberHelper::format($part3) . ' m',
+                'Part 3' =>
+                    '(' .
+                    NumberHelper::format($tambahanAdukan) .
+                    " × ($tinggiBata / 100)) = " .
+                    NumberHelper::format($part3) .
+                    ' m',
                 'Hasil Panjang Adukan' => NumberHelper::format($panjangAdukan) . ' m',
             ],
         ];

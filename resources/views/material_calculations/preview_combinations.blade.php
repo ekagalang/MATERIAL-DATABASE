@@ -341,8 +341,10 @@
                 $heightValue = $isRollag ? null : $requestData['wall_height'] ?? null;
                 $groutValue = $requestData['grout_thickness'] ?? null;
                 $areaValue = $isRollag ? null : $requestData['area'] ?? null;
+                $isPlinthArea = isset($requestData['work_type']) && $requestData['work_type'] === 'plinth_ceramic';
                 if (!$isRollag && !$areaValue && $lengthValue !== null && $heightValue !== null) {
-                    $areaValue = $lengthValue * $heightValue;
+                    // For plinth ceramic, height is in cm, convert to meters for area calculation
+                    $areaValue = $isPlinthArea ? ($lengthValue * ($heightValue / 100)) : ($lengthValue * $heightValue);
                 }
                 $formulaDisplay = $formulaName ?? ($requestData['formula_name'] ?? null);
                 $mortarValue = $requestData['mortar_thickness'] ?? null;
@@ -1103,6 +1105,9 @@ $paramValue = $isGroutTile
                         'grand_total' => $item['result']['grand_total'] ?? null,
                         'filter_label' => $key,
                     ];
+                    if (isset($item['frequency'])) {
+                        $rekapEntry['frequency'] = $item['frequency'];
+                    }
 
                     // Only add brick data if brick exists in project
                     if (isset($project['brick'])) {
@@ -1547,8 +1552,9 @@ $paramValue = $isGroutTile
                 $getRankedId = function (array $list, int $index) {
                     return $list[$index] ?? null;
                 };
+                $useStoreValidatedPopularRows = true;
 
-                if (in_array('Populer', $filterCategories, true) && $hasHistoricalUsage) {
+                if (!$useStoreValidatedPopularRows && in_array('Populer', $filterCategories, true) && $hasHistoricalUsage) {
                     $comboService = app(\App\Services\Calculation\CombinationGenerationService::class);
                     $isBricklessWork = $isBrickless ?? false;
                     $emptyEloquent = new \Illuminate\Database\Eloquent\Collection();
@@ -1891,6 +1897,29 @@ $paramValue = $isGroutTile
                     }
 
                     if ($filterType === 'Populer') {
+                        $selectedCombination = null;
+                        foreach ($combinations as $combo) {
+                            $currentTotal = $combo['item']['result']['grand_total'] ?? null;
+                            if ($currentTotal === null) {
+                                continue;
+                            }
+                            if (
+                                !$selectedCombination ||
+                                $currentTotal < ($selectedCombination['item']['result']['grand_total'] ?? PHP_INT_MAX)
+                            ) {
+                                $selectedCombination = $combo;
+                            }
+                        }
+
+                        if ($selectedCombination) {
+                            $filterTypeNumbers[$filterType]++;
+                            $newKey = $filterType . ' ' . $filterTypeNumbers[$filterType];
+                            $project = $selectedCombination['project'];
+                            $item = $selectedCombination['item'];
+                            $populerDetailMap[$newKey] = $selectedCombination;
+                            $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                        }
+
                         continue;
                     } else {
                         // For other filter types: use price-based selection
@@ -1930,64 +1959,142 @@ $paramValue = $isGroutTile
                     }
                 }
 
-                if (!empty($populerRankedEntries)) {
+                if (!$useStoreValidatedPopularRows && !empty($populerRankedEntries)) {
                     $rank = 0;
+                    $populerHasCompleteMaterials = function ($item, $project) use ($requiredMaterials, $isBricklessWork, $workType) {
+                        if (empty($item) || empty($item['result']) || !isset($item['result']['grand_total'])) {
+                            return false;
+                        }
+                        if ($item['result']['grand_total'] === null) {
+                            return false;
+                        }
+                        foreach ($requiredMaterials as $matType) {
+                            if ($matType === 'brick') {
+                                if ($isBricklessWork) {
+                                    continue;
+                                }
+                                if (empty($project['brick'])) {
+                                    return false;
+                                }
+                                continue;
+                            }
+                            if ($matType === 'ceramic' && ($workType ?? '') === 'grout_tile') {
+                                if (empty($item['ceramic'])) {
+                                    return false;
+                                }
+                                continue;
+                            }
+                            if (empty($item[$matType])) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    };
                     foreach ($populerRankedEntries as $entry) {
+                        $project = $entry['project'] ?? [];
+                        $item = $entry['item'] ?? null;
+                        if (!$populerHasCompleteMaterials($item, $project)) {
+                            continue;
+                        }
                         $rank++;
                         $newKey = 'Populer ' . $rank;
                         $populerDetailMap[$newKey] = $entry;
-                        if (!empty($entry['partial_entry'])) {
-                            // Check if item has valid grand_total
-                            $grandTotal = $entry['item']['result']['grand_total'] ?? null;
-                            $rekapEntry = array_merge($entry['partial_entry'], ['filter_label' => $newKey]);
+                        $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                    }
+                }
 
-                            // If grand_total is still null, try to find it from existing combinations with same material signature
-                            if ($grandTotal === null) {
-                                // For grout_tile, ignore ceramic_id in signature (only dimensions matter, not ceramic selection)
-                                $isGroutTile = ($workType ?? '') === 'grout_tile';
-                                $searchSignature = implode('-', [
-                                    $isBricklessWork ? 0 : $rekapEntry['brick_id'] ?? 0,
-                                    $rekapEntry['cement_id'] ?? 0,
-                                    $rekapEntry['sand_id'] ?? 0,
-                                    $rekapEntry['cat_id'] ?? 0,
-                                    $isGroutTile ? 0 : $rekapEntry['ceramic_id'] ?? 0,
-                                    $rekapEntry['nat_id'] ?? 0,
-                                ]);
+                // Fallback visual rank untuk Populer di Rekap Global:
+                // tetap tampilkan identitas material populer dari histori walau belum lolos one-stop.
+                if (in_array('Populer', $filterCategories, true)) {
+                    $populerRankedIdsForDisplay = [
+                        'brick' => in_array('brick', $requiredMaterials, true)
+                            ? $resolveRankedUniqueIds(
+                                'brick',
+                                $materialUsage['brick'],
+                                $fallbackMaterialIds['brick'],
+                                \App\Models\Brick::class,
+                            )
+                            : [],
+                        'cement' => in_array('cement', $requiredMaterials, true)
+                            ? $resolveRankedUniqueIds(
+                                'cement',
+                                $materialUsage['cement'],
+                                $fallbackMaterialIds['cement'],
+                                \App\Models\Cement::class,
+                            )
+                            : [],
+                        'sand' => in_array('sand', $requiredMaterials, true)
+                            ? $resolveRankedUniqueIds(
+                                'sand',
+                                $materialUsage['sand'],
+                                $fallbackMaterialIds['sand'],
+                                \App\Models\Sand::class,
+                            )
+                            : [],
+                        'cat' => in_array('cat', $requiredMaterials, true)
+                            ? $resolveRankedUniqueIds(
+                                'cat',
+                                $materialUsage['cat'],
+                                $fallbackMaterialIds['cat'],
+                                \App\Models\Cat::class,
+                            )
+                            : [],
+                        'ceramic' => in_array('ceramic', $requiredMaterials, true)
+                            ? $resolveRankedUniqueIds(
+                                'ceramic',
+                                $materialUsage['ceramic'],
+                                $fallbackMaterialIds['ceramic'],
+                                \App\Models\Ceramic::class,
+                            )
+                            : [],
+                        'nat' => in_array('nat', $requiredMaterials, true)
+                            ? $resolveRankedUniqueIds(
+                                'nat',
+                                $materialUsage['nat'],
+                                $fallbackMaterialIds['nat'],
+                                \App\Models\Nat::class,
+                            )
+                            : [],
+                    ];
 
-                                // Search in all projects combinations for matching material signature
-                                foreach ($projects as $searchProject) {
-                                    foreach ($searchProject['combinations'] as $searchLabel => $searchItems) {
-                                        foreach ($searchItems as $searchItem) {
-                                            $itemSignature = implode('-', [
-                                                $isBricklessWork ? 0 : $searchProject['brick']->id ?? 0,
-                                                $searchItem['cement']->id ?? 0,
-                                                $searchItem['sand']->id ?? 0,
-                                                $searchItem['cat']->id ?? 0,
-                                                $isGroutTile ? 0 : $searchItem['ceramic']->id ?? 0,
-                                                $searchItem['nat']->id ?? 0,
-                                            ]);
-
-                                            if (
-                                                $itemSignature === $searchSignature &&
-                                                isset($searchItem['result']['grand_total'])
-                                            ) {
-                                                $grandTotal = $searchItem['result']['grand_total'];
-                                                break 3; // Break out of all three loops
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if ($grandTotal !== null) {
-                                $rekapEntry['grand_total'] = $grandTotal;
-                            }
-                            $globalRekapData[$newKey] = $rekapEntry;
-                        } else {
-                            $project = $entry['project'];
-                            $item = $entry['item'];
-                            $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                    for ($rankIndex = 0; $rankIndex < 3; $rankIndex++) {
+                        $newKey = 'Populer ' . ($rankIndex + 1);
+                        if (isset($globalRekapData[$newKey])) {
+                            continue;
                         }
+
+                        $models = [
+                            'brick' => null,
+                            'cement' => null,
+                            'sand' => null,
+                            'cat' => null,
+                            'ceramic' => null,
+                            'nat' => null,
+                        ];
+
+                        foreach (['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'] as $matType) {
+                            if (!in_array($matType, $requiredMaterials, true)) {
+                                continue;
+                            }
+                            $materialId = $getRankedId($populerRankedIdsForDisplay[$matType] ?? [], $rankIndex);
+                            $modelClass = $materialModelMap[$matType] ?? null;
+                            if ($materialId && $modelClass) {
+                                $models[$matType] = $modelClass::find($materialId);
+                            }
+                        }
+
+                        $hasAnyIdentity = false;
+                        foreach ($models as $model) {
+                            if (!empty($model)) {
+                                $hasAnyIdentity = true;
+                                break;
+                            }
+                        }
+                        if (!$hasAnyIdentity) {
+                            continue;
+                        }
+
+                        $globalRekapData[$newKey] = $buildPartialRekapEntry($newKey, $models);
                     }
                 }
 
@@ -2087,6 +2194,27 @@ $paramValue = $isGroutTile
                     }
                     return $fallback;
                 };
+
+                $workTypeForGlobalRekap = $requestData['work_type'] ?? '';
+                $forceShowEmptyPopularRows = in_array(
+                    $workTypeForGlobalRekap,
+                    ['tile_installation', 'plinth_ceramic'],
+                    true,
+                );
+                if ($forceShowEmptyPopularRows) {
+                    $requiredMaterialsForForcedColumns = \App\Services\FormulaRegistry::materialsFor(
+                        $workTypeForGlobalRekap,
+                    );
+                    if (empty($requiredMaterialsForForcedColumns)) {
+                        $requiredMaterialsForForcedColumns = ['brick', 'cement', 'sand'];
+                    }
+                    $hasBrick = $hasBrick || in_array('brick', $requiredMaterialsForForcedColumns, true);
+                    $hasCement = $hasCement || in_array('cement', $requiredMaterialsForForcedColumns, true);
+                    $hasSand = $hasSand || in_array('sand', $requiredMaterialsForForcedColumns, true);
+                    $hasCat = $hasCat || in_array('cat', $requiredMaterialsForForcedColumns, true);
+                    $hasCeramic = $hasCeramic || in_array('ceramic', $requiredMaterialsForForcedColumns, true);
+                    $hasNat = $hasNat || in_array('nat', $requiredMaterialsForForcedColumns, true);
+                }
 
                 if (($workType ?? '') === 'grout_tile') {
                     $hasBrick = false;
@@ -2508,10 +2636,16 @@ $paramValue = $isGroutTile
                 <div class="container mb-4">
                     @php
                         $isRollag = isset($requestData['work_type']) && $requestData['work_type'] === 'brick_rollag';
+                        $isPlinthCeramic = isset($requestData['work_type']) && $requestData['work_type'] === 'plinth_ceramic';
                         if (!isset($area)) {
-                            $area = $isRollag
-                                ? 0
-                                : ($requestData['wall_length'] ?? 0) * ($requestData['wall_height'] ?? 0);
+                            if ($isRollag) {
+                                $area = 0;
+                            } elseif ($isPlinthCeramic) {
+                                // For plinth ceramic, height is in cm, convert to meters
+                                $area = ($requestData['wall_length'] ?? 0) * (($requestData['wall_height'] ?? 0) / 100);
+                            } else {
+                                $area = ($requestData['wall_length'] ?? 0) * ($requestData['wall_height'] ?? 0);
+                            }
                         }
                     @endphp
                     @php
@@ -2522,6 +2656,7 @@ $paramValue = $isGroutTile
                         )
                             ? 'LEBAR'
                             : 'TINGGI';
+                        // Plinth ceramic uses TINGGI (already in else block, so no change needed)
                     @endphp
                     <div class="card p-3 shadow-sm border-0 preview-params-sticky"
                         style="background-color: #fdfdfd; border-radius: 12px;">
@@ -2564,7 +2699,7 @@ $paramValue = $isGroutTile
                                         <div class="form-control fw-bold text-center px-1"
                                             style="background-color: #e9ecef;">@format($requestData['wall_height'])</div>
                                         <span class="input-group-text bg-light small px-1"
-                                            style="font-size: 0.7rem;">M</span>
+                                            style="font-size: 0.7rem;">{{ isset($requestData['work_type']) && $requestData['work_type'] === 'plinth_ceramic' ? 'cm' : 'M' }}</span>
                                     </div>
                                 </div>
 
@@ -2683,9 +2818,9 @@ $paramValue = $isGroutTile
                                 </div>
                             @endif
 
-                            {{-- Tebal Nat (untuk Pasang Keramik dan Pasang Nat) --}}
+                            {{-- Tebal Nat (untuk Pasang Keramik, Pasang Nat, dan Plint Keramik) --}}
                             @if (isset($requestData['work_type']) &&
-                                    ($requestData['work_type'] === 'tile_installation' || $requestData['work_type'] === 'grout_tile'))
+                                    ($requestData['work_type'] === 'tile_installation' || $requestData['work_type'] === 'grout_tile' || $requestData['work_type'] === 'plinth_ceramic'))
                                 <div style="flex: 0 0 auto; width: 100px;">
                                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
                                         style="font-size: 0.75rem;">
@@ -2833,9 +2968,25 @@ $paramValue = $isGroutTile
                                 </tr>
                             </thead>
                             <tbody>
+                                @php
+                                    $requiredMaterialsForRekap = $requiredMaterials ?? \App\Services\FormulaRegistry::materialsFor($requestData['work_type'] ?? '');
+                                    if (empty($requiredMaterialsForRekap)) {
+                                        $requiredMaterialsForRekap = ['brick', 'cement', 'sand'];
+                                    }
+                                    $rekapFieldMap = [
+                                        'brick' => 'brick_brand',
+                                        'cement' => 'cement_brand',
+                                        'sand' => 'sand_brand',
+                                        'cat' => 'cat_brand',
+                                        'ceramic' => 'ceramic_brand',
+                                        'nat' => 'nat_brand',
+                                    ];
+                                @endphp
                                 @foreach ($rekapCategories as $filterType)
                                     @foreach ($getDisplayKeys($filterType) as $displayIndex => $key)
                                         @php
+                                            $rekapEntry = $globalRekapData[$key] ?? null;
+                                            $shouldSkipRow = false;
                                             $rank = $displayIndex + 1;
                                             $bgColor = $globalColorMap[$key] ?? '#ffffff';
                                             $grandTotalBg =
@@ -2892,6 +3043,7 @@ $paramValue = $isGroutTile
                                                 'text' => '#000000',
                                             ];
                                         @endphp
+                                        @continue($shouldSkipRow)
                                         <tr>
                                             {{-- Column 1: Filter Label --}}
                                             <td
@@ -2914,19 +3066,6 @@ $paramValue = $isGroutTile
                                                                 style="font-size: 0.65rem;">
                                                                 Dipakai {{ $globalRekapData[$key]['frequency'] }}x
                                                             </span>
-                                                        @endif
-
-                                                        {{-- Store Info --}}
-                                                        @if (isset($globalRekapData[$key]['store_label']))
-                                                            <div class="text-secondary small mb-1 text-end"
-                                                                style="font-size: 0.7rem; line-height: 1.1;">
-                                                                <div class="fw-bold">
-                                                                    {{ Str::before($globalRekapData[$key]['store_label'], ' (') }}
-                                                                </div>
-                                                                <div class="fw-light">
-                                                                    {{ Str::after($globalRekapData[$key]['store_label'], '(') }}
-                                                                </div>
-                                                            </div>
                                                         @endif
 
                                                         @if (isset($globalRekapData[$key]['grand_total']) && $globalRekapData[$key]['grand_total'] !== null)
@@ -3177,6 +3316,27 @@ $paramValue = $isGroutTile
                                     // Check if this filter exists in global recap
                                     if (isset($globalRekapData[$key])) {
                                         $rekapData = $globalRekapData[$key];
+                                        if (str_starts_with($key, 'Populer')) {
+                                            if (
+                                                isset($populerDetailMap[$key]) &&
+                                                !empty($populerDetailMap[$key]['item'])
+                                            ) {
+                                                $fallbackEntry = $populerDetailMap[$key];
+                                                $fallbackBrick =
+                                                    $fallbackEntry['project']['brick'] ??
+                                                    $fallbackEntry['brick'] ??
+                                                    $defaultProjectBrick;
+
+                                                if ($hasCompleteMaterialsForCombo($fallbackEntry['item'], $fallbackBrick)) {
+                                                    $allFilteredCombinations[] = [
+                                                        'label' => $key,
+                                                        'item' => $fallbackEntry['item'],
+                                                        'brick' => $fallbackBrick,
+                                                    ];
+                                                }
+                                            }
+                                            continue;
+                                        }
                                         $foundCombination = false;
 
                                         // Search through ALL projects to find the matching combination
@@ -5955,4 +6115,3 @@ $paramValue = $isGroutTile
         });
     </script>
 @endpush
-

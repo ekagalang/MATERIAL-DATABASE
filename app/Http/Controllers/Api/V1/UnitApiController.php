@@ -16,10 +16,7 @@ use Illuminate\Support\Facades\Log;
  */
 class UnitApiController extends Controller
 {
-    public function __construct(
-        private UnitRepository $repository
-    ) {
-    }
+    public function __construct(private UnitRepository $repository) {}
 
     /**
      * Get paginated units with optional filters
@@ -31,9 +28,6 @@ class UnitApiController extends Controller
      * - sort_by: string (code, name, package_weight, created_at)
      * - sort_direction: asc|desc
      * - per_page: int (default: 20)
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function index(Request $request): JsonResponse
     {
@@ -45,7 +39,7 @@ class UnitApiController extends Controller
             ];
 
             $perPage = (int) $request->input('per_page', 20);
-            $perPage = ($perPage > 0 && $perPage <= 100) ? $perPage : 20;
+            $perPage = $perPage > 0 && $perPage <= 100 ? $perPage : 20;
 
             $units = $this->repository->getUnits($filters, $perPage);
 
@@ -65,11 +59,14 @@ class UnitApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve units',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve units',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -77,8 +74,6 @@ class UnitApiController extends Controller
      * Get available material types with labels
      *
      * GET /api/v1/units/material-types
-     *
-     * @return JsonResponse
      */
     public function getMaterialTypes(): JsonResponse
     {
@@ -95,11 +90,14 @@ class UnitApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve material types',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve material types',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -107,8 +105,6 @@ class UnitApiController extends Controller
      * Get units grouped by material type
      *
      * GET /api/v1/units/grouped
-     *
-     * @return JsonResponse
      */
     public function getGrouped(): JsonResponse
     {
@@ -125,11 +121,14 @@ class UnitApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve grouped units',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve grouped units',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -137,9 +136,6 @@ class UnitApiController extends Controller
      * Create new unit
      *
      * POST /api/v1/units
-     *
-     * @param Request $request
-     * @return JsonResponse
      */
     public function store(Request $request): JsonResponse
     {
@@ -155,28 +151,37 @@ class UnitApiController extends Controller
 
             $unit = $this->repository->createUnit($validated);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Unit created successfully',
-                'data' => $unit,
-            ], 201);
+            return response()->json(
+                [
+                    'success' => true,
+                    'message' => 'Unit created successfully',
+                    'data' => $unit,
+                ],
+                201,
+            );
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Create Unit Error:', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create unit',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to create unit',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -184,20 +189,20 @@ class UnitApiController extends Controller
      * Get single unit by ID
      *
      * GET /api/v1/units/{id}
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function show(int $id): JsonResponse
     {
         try {
             $unit = $this->repository->findUnit($id);
 
-            if (!$unit) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unit not found',
-                ], 404);
+            if (! $unit) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Unit not found',
+                    ],
+                    404,
+                );
             }
 
             return response()->json([
@@ -211,11 +216,14 @@ class UnitApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve unit',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to retrieve unit',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -223,25 +231,24 @@ class UnitApiController extends Controller
      * Update unit
      *
      * PUT /api/v1/units/{id}
-     *
-     * @param Request $request
-     * @param int $id
-     * @return JsonResponse
      */
     public function update(Request $request, int $id): JsonResponse
     {
         try {
             $unit = $this->repository->findUnit($id);
 
-            if (!$unit) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unit not found',
-                ], 404);
+            if (! $unit) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Unit not found',
+                    ],
+                    404,
+                );
             }
 
             $validated = $request->validate([
-                'code' => 'required|string|max:20|unique:units,code,' . $id,
+                'code' => 'required|string|max:20|unique:units,code,'.$id,
                 'material_types' => 'required|array',
                 'material_types.*' => 'string',
                 'name' => 'required|string|max:100',
@@ -257,11 +264,14 @@ class UnitApiController extends Controller
                 'data' => $unit,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors(),
-            ], 422);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors(),
+                ],
+                422,
+            );
         } catch (\Exception $e) {
             Log::error('Update Unit Error:', [
                 'id' => $id,
@@ -269,11 +279,14 @@ class UnitApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update unit',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to update unit',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 
@@ -281,20 +294,20 @@ class UnitApiController extends Controller
      * Delete unit
      *
      * DELETE /api/v1/units/{id}
-     *
-     * @param int $id
-     * @return JsonResponse
      */
     public function destroy(int $id): JsonResponse
     {
         try {
             $unit = $this->repository->findUnit($id);
 
-            if (!$unit) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unit not found',
-                ], 404);
+            if (! $unit) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Unit not found',
+                    ],
+                    404,
+                );
             }
 
             $this->repository->deleteUnit($unit);
@@ -310,11 +323,14 @@ class UnitApiController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete unit',
-                'error' => $e->getMessage(),
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Failed to delete unit',
+                    'error' => $e->getMessage(),
+                ],
+                500,
+            );
         }
     }
 }

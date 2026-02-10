@@ -19,7 +19,7 @@ class GroutTileFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Pasang Nat';
+        return 'Pasang Nat Saja';
     }
 
     public static function getDescription(): string
@@ -66,7 +66,7 @@ class GroutTileFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangBidang = $n($params['wall_length']); // m
@@ -102,7 +102,9 @@ class GroutTileFormula implements FormulaInterface
         $tebalKeramikCm = $n($tebalKeramikMm / 10); // cm
 
         if ($panjangKeramik <= 0 || $lebarKeramik <= 0 || $tebalKeramikMm <= 0) {
-            throw new \RuntimeException('Data dimensi keramik tidak valid. Pastikan Panjang, Lebar, dan Tebal Keramik sudah diisi.');
+            throw new \RuntimeException(
+                'Data dimensi keramik tidak valid. Pastikan Panjang, Lebar, dan Tebal Keramik sudah diisi.',
+            );
         }
 
         // Grout parameters from database

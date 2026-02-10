@@ -60,7 +60,7 @@ class BrickFullFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangDinding = $n($params['wall_length']);
@@ -159,7 +159,9 @@ class BrickFullFormula implements FormulaInterface
 
         // ============ STEP 6: Hitung baris horizontal adukan ============
         // baris horizontal adukan = (tinggi dinding / ((tinggi bata + tebal adukan) / 100)) + 1. (jika hasilnya desimal maka dibulatkan keatas)
-        $barisHorizontalAdukanRaw = $n(($tinggiDinding - $tebalAdukan / 100) / (($tinggiBata + $tebalAdukan) / 100) + 1);
+        $barisHorizontalAdukanRaw = $n(
+            ($tinggiDinding - $tebalAdukan / 100) / (($tinggiBata + $tebalAdukan) / 100) + 1,
+        );
         $decimal = $barisHorizontalAdukanRaw - floor($barisHorizontalAdukanRaw);
         $barisHorizontalAdukan = floor($barisHorizontalAdukanRaw);
         if ($decimal > 0) {

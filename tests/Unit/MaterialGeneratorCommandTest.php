@@ -13,7 +13,5 @@ test('material generator loads template fields from config profile', function ()
 
     $fields = $method->invoke($command, 'ceramic');
 
-    expect($fields)->toBeArray()
-        ->and($fields)->toHaveKey('brand')
-        ->and($fields['brand']['type'])->toBe('string');
+    expect($fields)->toBeArray()->and($fields)->toHaveKey('brand')->and($fields['brand']['type'])->toBe('string');
 });

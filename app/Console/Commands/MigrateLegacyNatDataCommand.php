@@ -21,20 +21,19 @@ class MigrateLegacyNatDataCommand extends Command
 
     public function handle(): int
     {
-        if (!Schema::hasTable('nats') || !Schema::hasColumn('nats', 'legacy_cement_id')) {
+        if (! Schema::hasTable('nats') || ! Schema::hasColumn('nats', 'legacy_cement_id')) {
             $this->warn('Legacy mapping column `nats.legacy_cement_id` is not available.');
             $this->line('Nat has been finalized as standalone material. This command is no longer applicable.');
+
             return self::SUCCESS;
         }
 
         $dryRun = (bool) $this->option('dry-run');
         $limit = max(0, (int) $this->option('limit'));
         $chunk = max(1, (int) $this->option('chunk'));
-        $matchExisting = !$this->option('skip-match-existing');
+        $matchExisting = ! $this->option('skip-match-existing');
 
-        $query = Cement::query()
-            ->where('type', 'Nat')
-            ->orderBy('id');
+        $query = Cement::query()->where('type', 'Nat')->orderBy('id');
 
         $totalLegacyRows = (clone $query)->count();
         $total = $limit > 0 ? min($limit, $totalLegacyRows) : $totalLegacyRows;
@@ -45,17 +44,19 @@ class MigrateLegacyNatDataCommand extends Command
 
         if ($total === 0) {
             $this->warn('No legacy Nat rows found in cements table.');
+
             return self::SUCCESS;
         }
 
-        $this->info('Legacy Nat rows found: ' . $total);
-        $this->line('Mode: ' . ($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
-        $this->line('Chunk size: ' . $chunk);
-        $this->line('Match existing unmapped rows: ' . ($matchExisting ? 'yes' : 'no'));
+        $this->info('Legacy Nat rows found: '.$total);
+        $this->line('Mode: '.($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
+        $this->line('Chunk size: '.$chunk);
+        $this->line('Match existing unmapped rows: '.($matchExisting ? 'yes' : 'no'));
 
-        if (!$dryRun && !$this->option('force')) {
-            if (!$this->confirm('Proceed with migrating legacy Nat data into nats table?', true)) {
+        if (! $dryRun && ! $this->option('force')) {
+            if (! $this->confirm('Proceed with migrating legacy Nat data into nats table?', true)) {
                 $this->warn('Migration cancelled.');
+
                 return self::SUCCESS;
             }
         }
@@ -72,16 +73,14 @@ class MigrateLegacyNatDataCommand extends Command
 
         $processor = function (Collection $cements) use (&$stats, $progress, $dryRun, $matchExisting): void {
             $legacyIds = $cements->pluck('id')->all();
-            $existing = Nat::query()
-                ->whereIn('legacy_cement_id', $legacyIds)
-                ->pluck('id', 'legacy_cement_id');
+            $existing = Nat::query()->whereIn('legacy_cement_id', $legacyIds)->pluck('id', 'legacy_cement_id');
 
             foreach ($cements as $cement) {
                 $payload = $this->mapCementToNatPayload($cement);
                 $hasExisting = $existing->has($cement->id);
                 $matchedNat = null;
 
-                if (!$hasExisting && $matchExisting) {
+                if (! $hasExisting && $matchExisting) {
                     $matchedNat = Nat::query()
                         ->whereNull('legacy_cement_id')
                         ->where('brand', $cement->brand)
@@ -108,19 +107,26 @@ class MigrateLegacyNatDataCommand extends Command
                     $stats[$action]++;
                     $stats['processed']++;
                     $progress->advance();
+
                     continue;
                 }
 
                 if ($hasExisting) {
-                    Nat::query()->whereKey($existing[$cement->id])->update($payload);
+                    Nat::query()
+                        ->whereKey($existing[$cement->id])
+                        ->update($payload);
                 } elseif ($matchedNat) {
-                    $matchedNat->update(array_merge($payload, [
-                        'legacy_cement_id' => $cement->id,
-                    ]));
+                    $matchedNat->update(
+                        array_merge($payload, [
+                            'legacy_cement_id' => $cement->id,
+                        ]),
+                    );
                 } else {
-                    Nat::query()->create(array_merge($payload, [
-                        'legacy_cement_id' => $cement->id,
-                    ]));
+                    Nat::query()->create(
+                        array_merge($payload, [
+                            'legacy_cement_id' => $cement->id,
+                        ]),
+                    );
                 }
 
                 $stats[$action]++;

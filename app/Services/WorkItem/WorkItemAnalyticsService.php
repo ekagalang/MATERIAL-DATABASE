@@ -15,10 +15,7 @@ use Illuminate\Support\Collection;
  */
 class WorkItemAnalyticsService
 {
-    public function __construct(
-        private WorkItemRepository $repository
-    ) {
-    }
+    public function __construct(private WorkItemRepository $repository) {}
 
     /**
      * Generate analytics for all work types
@@ -135,7 +132,8 @@ class WorkItemAnalyticsService
                     ];
                 }
                 $monthlyData[$monthKey]['count']++;
-                $monthlyData[$monthKey]['total_cost'] += ($calc->brick_total_cost ?? 0) + ($calc->cement_total_cost ?? 0) + ($calc->sand_total_cost ?? 0);
+                $monthlyData[$monthKey]['total_cost'] +=
+                    ($calc->brick_total_cost ?? 0) + ($calc->cement_total_cost ?? 0) + ($calc->sand_total_cost ?? 0);
                 $monthlyData[$monthKey]['total_area'] += $calc->wall_area ?? 0;
             }
         }
@@ -161,12 +159,17 @@ class WorkItemAnalyticsService
         $costBreakdownData = [$totalBrickCost, $totalCementCost, $totalSandCost];
 
         // Area distribution (top calculations)
-        $areaDistribution = $calculations->sortByDesc('wall_area')->take(10)->map(function ($calc) {
-            return [
-                'label' => 'Calc #' . $calc->id,
-                'area' => $calc->wall_area ?? 0,
-            ];
-        })->values()->toArray();
+        $areaDistribution = $calculations
+            ->sortByDesc('wall_area')
+            ->take(10)
+            ->map(function ($calc) {
+                return [
+                    'label' => 'Calc #' . $calc->id,
+                    'area' => $calc->wall_area ?? 0,
+                ];
+            })
+            ->values()
+            ->toArray();
 
         return [
             'total_calculations' => $totalCalculations,

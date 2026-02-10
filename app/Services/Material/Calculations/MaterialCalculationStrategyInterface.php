@@ -11,4 +11,3 @@ interface MaterialCalculationStrategyInterface
      */
     public function apply(array $data, ?Model $existing = null): array;
 }
-

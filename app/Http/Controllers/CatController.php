@@ -54,12 +54,12 @@ class CatController extends Controller
         ];
 
         // Default sorting jika tidak ada atau tidak valid
-        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
+        if (! $sortBy || ! in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
             $sortDirection = 'desc';
         } else {
             // Validasi direction
-            if (!in_array($sortDirection, ['asc', 'desc'])) {
+            if (! in_array($sortDirection, ['asc', 'desc'])) {
                 $sortDirection = 'asc';
             }
         }
@@ -72,6 +72,7 @@ class CatController extends Controller
     public function create()
     {
         $units = Cat::getAvailableUnits();
+
         return view('cats.create', compact('units'));
     }
 
@@ -111,7 +112,6 @@ class CatController extends Controller
 
         DB::beginTransaction();
         try {
-
             // Debug logging
             \Log::info('CatController@store - Request data:', [
                 'package_weight_gross' => $request->input('package_weight_gross'),
@@ -123,16 +123,16 @@ class CatController extends Controller
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
                 if ($photo->isValid()) {
-                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $filename = time().'_'.$photo->getClientOriginalName();
                     $path = $photo->storeAs('cats', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: ' . $path);
+                        \Log::info('Photo uploaded successfully: '.$path);
                     } else {
                         \Log::error('Failed to store photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
+                    \Log::error('Invalid photo file: '.$photo->getErrorMessage());
                 }
             }
 
@@ -143,7 +143,7 @@ class CatController extends Controller
                     $data['brand'] ?? '',
                     $data['sub_brand'] ?? '',
                     $data['color_name'] ?? '',
-                    ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
+                    ($data['volume'] ?? '').($data['volume_unit'] ?? ''),
                 ]);
                 $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
             }
@@ -153,7 +153,7 @@ class CatController extends Controller
 
             // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
             if (
-                (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+                (! $cat->package_weight_net || $cat->package_weight_net <= 0) &&
                 $cat->package_weight_gross &&
                 $cat->package_unit
             ) {
@@ -175,7 +175,9 @@ class CatController extends Controller
 
             $redirectUrl = $request->filled('_redirect_url')
                 ? $request->input('_redirect_url')
-                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('cats.index'));
+                : ($request->input('_redirect_to_materials')
+                    ? route('materials.index')
+                    : route('cats.index'));
             $newMaterial = ['type' => 'cat', 'id' => $cat->id];
             $isAjaxRequest = $request->expectsJson() || $request->ajax();
 
@@ -206,9 +208,10 @@ class CatController extends Controller
             return redirect()->route('cats.index')->with('success', 'cat berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to create cat: ' . $e->getMessage());
+            \Log::error('Failed to create cat: '.$e->getMessage());
+
             return back()
-                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
+                ->with('error', 'Gagal menyimpan data: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -216,6 +219,7 @@ class CatController extends Controller
     public function show(Cat $cat)
     {
         $cat->load('packageUnit', 'storeLocations.store'); // UPDATED
+
         return view('cats.show', compact('cat'));
     }
 
@@ -223,6 +227,7 @@ class CatController extends Controller
     {
         $cat->load('storeLocations.store'); // NEW
         $units = Cat::getAvailableUnits();
+
         return view('cats.edit', compact('cat', 'units'));
     }
 
@@ -262,7 +267,6 @@ class CatController extends Controller
 
         DB::beginTransaction();
         try {
-
             // Debug logging
             \Log::info('CatController@update - Request data:', [
                 'id' => $cat->id,
@@ -278,7 +282,7 @@ class CatController extends Controller
                     $data['brand'] ?? '',
                     $data['sub_brand'] ?? '',
                     $data['color_name'] ?? '',
-                    ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
+                    ($data['volume'] ?? '').($data['volume_unit'] ?? ''),
                 ]);
                 $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
             }
@@ -292,16 +296,16 @@ class CatController extends Controller
                         Storage::disk('public')->delete($cat->photo);
                     }
 
-                    $filename = time() . '_' . $photo->getClientOriginalName();
+                    $filename = time().'_'.$photo->getClientOriginalName();
                     $path = $photo->storeAs('cats', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: ' . $path);
+                        \Log::info('Photo updated successfully: '.$path);
                     } else {
                         \Log::error('Failed to update photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+                    \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
                 }
             }
 
@@ -311,7 +315,7 @@ class CatController extends Controller
             // Kalkulasi berat bersih dari berat kotor dan berat kemasan
             // HANYA jika berat bersih belum diisi manual oleh user
             if (
-                (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+                (! $cat->package_weight_net || $cat->package_weight_net <= 0) &&
                 $cat->package_weight_gross &&
                 $cat->package_unit
             ) {
@@ -338,7 +342,9 @@ class CatController extends Controller
 
             $redirectUrl = $request->filled('_redirect_url')
                 ? $request->input('_redirect_url')
-                : ($request->input('_redirect_to_materials') ? route('materials.index') : route('cats.index'));
+                : ($request->input('_redirect_to_materials')
+                    ? route('materials.index')
+                    : route('cats.index'));
             $updatedMaterial = ['type' => 'cat', 'id' => $cat->id];
             $isAjaxRequest = $request->expectsJson() || $request->ajax();
 
@@ -372,9 +378,10 @@ class CatController extends Controller
                 ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to update cat: ' . $e->getMessage());
+            \Log::error('Failed to update cat: '.$e->getMessage());
+
             return back()
-                ->with('error', 'Gagal update data: ' . $e->getMessage())
+                ->with('error', 'Gagal update data: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -398,8 +405,9 @@ class CatController extends Controller
             return redirect()->route('cats.index')->with('success', 'Cat berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to delete cat: ' . $e->getMessage());
-            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+            \Log::error('Failed to delete cat: '.$e->getMessage());
+
+            return back()->with('error', 'Gagal menghapus data: '.$e->getMessage());
         }
     }
 
@@ -446,7 +454,7 @@ class CatController extends Controller
             'purchase_price',
         ];
 
-        if (!in_array($field, $allowedFields)) {
+        if (! in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
@@ -524,7 +532,7 @@ class CatController extends Controller
             $catStores = Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores->merge($catStores)->unique()->sort()->values()->take($limit);
@@ -533,25 +541,25 @@ class CatController extends Controller
             $catStores = Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $brickStores = \App\Models\Brick::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $cementStores = \App\Models\Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $sandStores = \App\Models\Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             // Gabungkan semua stores dan ambil unique values
@@ -591,7 +599,7 @@ class CatController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari brick
@@ -599,7 +607,7 @@ class CatController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari cement
@@ -607,7 +615,7 @@ class CatController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari sand
@@ -615,7 +623,7 @@ class CatController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Gabungkan semua addresses dan ambil unique values

@@ -16,11 +16,11 @@ class CacheService
      * Cache TTL (Time To Live) in seconds
      */
     protected const CACHE_TTL = [
-        'materials' => 3600,        // 1 hour - material lists don't change often
-        'dashboard' => 300,          // 5 minutes - dashboard needs fresher data
-        'analytics' => 1800,         // 30 minutes - analytics can be slightly stale
-        'calculations' => 600,       // 10 minutes - calculation history
-        'combinations' => 3600,      // 1 hour - recommended combinations
+        'materials' => 3600, // 1 hour - material lists don't change often
+        'dashboard' => 300, // 5 minutes - dashboard needs fresher data
+        'analytics' => 1800, // 30 minutes - analytics can be slightly stale
+        'calculations' => 600, // 10 minutes - calculation history
+        'combinations' => 3600, // 1 hour - recommended combinations
     ];
 
     /**
@@ -37,9 +37,7 @@ class CacheService
     /**
      * Get or cache material index
      *
-     * @param string $materialType 'bricks', 'cements', 'sands', 'cats'
-     * @param array $filters
-     * @param callable $callback
+     * @param  string  $materialType  'bricks', 'cements', 'sands', 'cats'
      * @return mixed
      */
     public function getMaterialIndex(string $materialType, array $filters, callable $callback)
@@ -52,7 +50,6 @@ class CacheService
     /**
      * Get or cache dashboard data
      *
-     * @param callable $callback
      * @return mixed
      */
     public function getDashboardData(callable $callback)
@@ -65,9 +62,7 @@ class CacheService
     /**
      * Get or cache analytics data
      *
-     * @param string $workType
-     * @param string $type 'summary' or 'detailed'
-     * @param callable $callback
+     * @param  string  $type  'summary' or 'detailed'
      * @return mixed
      */
     public function getAnalytics(string $workType, string $type, callable $callback)
@@ -80,14 +75,15 @@ class CacheService
     /**
      * Get or cache calculation log
      *
-     * @param array $filters
-     * @param int $page
-     * @param callable $callback
      * @return mixed
      */
     public function getCalculationLog(array $filters, int $page, callable $callback)
     {
-        $cacheKey = $this->buildCacheKey(self::CACHE_KEYS['calculations'], 'log', array_merge($filters, ['page' => $page]));
+        $cacheKey = $this->buildCacheKey(
+            self::CACHE_KEYS['calculations'],
+            'log',
+            array_merge($filters, ['page' => $page]),
+        );
 
         return Cache::remember($cacheKey, self::CACHE_TTL['calculations'], $callback);
     }
@@ -95,8 +91,6 @@ class CacheService
     /**
      * Get or cache recommended combinations
      *
-     * @param string $workType
-     * @param callable $callback
      * @return mixed
      */
     public function getRecommendedCombinations(string $workType, callable $callback)
@@ -109,8 +103,7 @@ class CacheService
     /**
      * Invalidate material cache
      *
-     * @param string|null $materialType Specific type or null for all
-     * @return void
+     * @param  string|null  $materialType  Specific type or null for all
      */
     public function invalidateMaterialCache(?string $materialType = null): void
     {
@@ -128,7 +121,7 @@ class CacheService
                 Cache::tags([self::CACHE_KEYS['materials']])->flush();
             } else {
                 // Flush by pattern (not all drivers support this)
-                $this->flushByPattern(self::CACHE_KEYS['materials'] . ':*');
+                $this->flushByPattern(self::CACHE_KEYS['materials'].':*');
             }
         }
 
@@ -138,8 +131,6 @@ class CacheService
 
     /**
      * Invalidate dashboard cache
-     *
-     * @return void
      */
     public function invalidateDashboardCache(): void
     {
@@ -153,8 +144,7 @@ class CacheService
     /**
      * Invalidate analytics cache
      *
-     * @param string|null $workType Specific work type or null for all
-     * @return void
+     * @param  string|null  $workType  Specific work type or null for all
      */
     public function invalidateAnalyticsCache(?string $workType = null): void
     {
@@ -164,24 +154,20 @@ class CacheService
         }
 
         if ($this->supportsTagging()) {
-            $tags = $workType
-                ? [self::CACHE_KEYS['analytics'], $workType]
-                : [self::CACHE_KEYS['analytics']];
+            $tags = $workType ? [self::CACHE_KEYS['analytics'], $workType] : [self::CACHE_KEYS['analytics']];
             Cache::tags($tags)->flush();
         }
     }
 
     /**
      * Invalidate calculation cache
-     *
-     * @return void
      */
     public function invalidateCalculationCache(): void
     {
         if ($this->supportsTagging()) {
             Cache::tags([self::CACHE_KEYS['calculations']])->flush();
         } else {
-            $this->flushByPattern(self::CACHE_KEYS['calculations'] . ':*');
+            $this->flushByPattern(self::CACHE_KEYS['calculations'].':*');
         }
 
         // Also invalidate analytics since calculations affect analytics
@@ -190,9 +176,6 @@ class CacheService
 
     /**
      * Invalidate recommended combinations cache
-     *
-     * @param string|null $workType
-     * @return void
      */
     public function invalidateCombinationsCache(?string $workType = null): void
     {
@@ -201,33 +184,26 @@ class CacheService
         }
 
         if ($this->supportsTagging()) {
-            $tags = $workType
-                ? [self::CACHE_KEYS['combinations'], $workType]
-                : [self::CACHE_KEYS['combinations']];
+            $tags = $workType ? [self::CACHE_KEYS['combinations'], $workType] : [self::CACHE_KEYS['combinations']];
             Cache::tags($tags)->flush();
         }
     }
 
     /**
      * Build cache key from components
-     *
-     * @param string $prefix
-     * @param string $identifier
-     * @param array $params
-     * @return string
      */
     protected function buildCacheKey(string $prefix, string $identifier = '', array $params = []): string
     {
         $key = $prefix;
 
         if ($identifier) {
-            $key .= ':' . $identifier;
+            $key .= ':'.$identifier;
         }
 
-        if (!empty($params)) {
+        if (! empty($params)) {
             // Sort params for consistent cache keys
             ksort($params);
-            $key .= ':' . md5(serialize($params));
+            $key .= ':'.md5(serialize($params));
         }
 
         return $key;
@@ -235,21 +211,17 @@ class CacheService
 
     /**
      * Check if cache driver supports tagging
-     *
-     * @return bool
      */
     protected function supportsTagging(): bool
     {
         $driver = config('cache.default');
+
         return in_array($driver, ['redis', 'memcached', 'array']);
     }
 
     /**
      * Flush cache by pattern
      * Note: Only works with some drivers
-     *
-     * @param string $pattern
-     * @return void
      */
     protected function flushByPattern(string $pattern): void
     {
@@ -261,17 +233,13 @@ class CacheService
 
         if ($driver === 'database') {
             // For database cache, delete matching keys
-            \DB::table('cache')
-                ->where('key', 'LIKE', str_replace('*', '%', $pattern))
-                ->delete();
+            \DB::table('cache')->where('key', 'LIKE', str_replace('*', '%', $pattern))->delete();
         }
     }
 
     /**
      * Clear all application cache
      * Use with caution!
-     *
-     * @return void
      */
     public function clearAllCache(): void
     {

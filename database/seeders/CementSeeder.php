@@ -26,7 +26,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'package_price' => 42000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1050, 
+                'comparison_price_per_kg' => 1050,
             ],
             // Semen Gresik
             [
@@ -44,7 +44,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'package_price' => 62000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1240, 
+                'comparison_price_per_kg' => 1240,
             ],
             [
                 'cement_name' => 'Semen Gresik Merah',
@@ -61,7 +61,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Pasar Minggu No. 67, Jakarta Selatan',
                 'package_price' => 56000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1400, 
+                'comparison_price_per_kg' => 1400,
             ],
 
             // Semen Padang
@@ -80,7 +80,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Depok No. 123, Depok',
                 'package_price' => 64000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1280, 
+                'comparison_price_per_kg' => 1280,
             ],
             [
                 'cement_name' => 'Semen Padang Acian',
@@ -97,7 +97,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Depok No. 123, Depok',
                 'package_price' => 72000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1800, 
+                'comparison_price_per_kg' => 1800,
             ],
 
             // Semen Holcim
@@ -116,7 +116,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Condet No. 45, Jakarta Timur',
                 'package_price' => 65000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1300, 
+                'comparison_price_per_kg' => 1300,
             ],
 
             // Semen Tiga Roda
@@ -135,7 +135,7 @@ class CementSeeder extends Seeder
                 'address' => 'Jl. Raya Bekasi No. 88, Bekasi',
                 'package_price' => 61000,
                 'price_unit' => 'Sak',
-                'comparison_price_per_kg' => 1220, 
+                'comparison_price_per_kg' => 1220,
             ],
         ];
 

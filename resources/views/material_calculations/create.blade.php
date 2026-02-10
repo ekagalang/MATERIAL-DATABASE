@@ -1524,7 +1524,6 @@
         const wallHeightLabel = document.getElementById('wallHeightLabel');
         const wallHeightGroup = document.getElementById('wallHeightGroup');
         const wallHeightInput = document.getElementById('wallHeight');
-        const ceramicFilterSection = document.getElementById('ceramicFilterSection');
         const mortarThicknessInput = document.getElementById('mortarThickness');
         const mortarThicknessUnit = document.getElementById('mortarThicknessUnit');
         const mortarThicknessLabel = document.getElementById('mortarThicknessLabel');
@@ -1650,7 +1649,6 @@
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
 
                     // Update label and unit for Rollag
                     if (layerCountLabel) layerCountLabel.textContent = 'Tingkat';
@@ -1674,7 +1672,6 @@
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     // Restore label to "Tinggi" for Plastering
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -1691,7 +1688,6 @@
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     // Restore label to "Tinggi" for Skim Coating
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
@@ -1708,7 +1704,6 @@
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
 
                     // Update label and unit for Painting
                     if (layerCountLabel) layerCountLabel.textContent = 'Lapis';
@@ -1744,7 +1739,6 @@
                     }
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
 
                     // Change label to "Lebar" for Floor types
                     if (wallHeightLabel) {
@@ -1763,10 +1757,19 @@
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'block';
                     // Change label to "Lebar" for tile installation
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Lebar';
+                    }
+                    // Restore wall height to meters
+                    if (wallHeightInput) {
+                        wallHeightInput.step = '0.01';
+                        wallHeightInput.min = '0.01';
+                        wallHeightInput.placeholder = '';
+                    }
+                    const wallHeightUnitTile = document.querySelector('#wallHeightGroup .unit');
+                    if (wallHeightUnitTile) {
+                        wallHeightUnitTile.textContent = 'M';
                     }
                 } else if (workTypeSelector.value === 'grout_tile') {
                     layerCountGroup.style.display = 'none';
@@ -1783,11 +1786,39 @@
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'flex';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'flex';
                     if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'flex';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
 
                     // Change label to "Lebar" for grout tile
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Lebar';
+                    }
+                } else if (workTypeSelector.value === 'plinth_ceramic') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
+
+                    // Change label to "Tinggi" and unit to "cm" for plinth ceramic
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
+                    // Change wall height input unit to cm for plinth
+                    if (wallHeightInput) {
+                        wallHeightInput.step = '1';
+                        wallHeightInput.min = '1';
+                        wallHeightInput.placeholder = 'Tinggi plint (10-20)';
+                    }
+                    // Update unit display to cm
+                    const wallHeightUnit = document.querySelector('#wallHeightGroup .unit');
+                    if (wallHeightUnit) {
+                        wallHeightUnit.textContent = 'cm';
                     }
                 } else {
                     layerCountGroup.style.display = 'none';
@@ -1797,7 +1828,6 @@
                     if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
                     if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
                     if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
-                    if (ceramicFilterSection) ceramicFilterSection.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('cm');
                     if (mortarModeChanged && mortarThicknessInput) {
@@ -1807,15 +1837,15 @@
                     if (wallHeightLabel) {
                         wallHeightLabel.textContent = 'Tinggi';
                     }
-                }
-            }
-
-            if (ceramicFilterSection && workTypeSelector) {
-                const showCeramicFilters = workTypeSelector.value === 'tile_installation';
-                ceramicFilterSection.style.display = showCeramicFilters ? 'block' : 'none';
-                if (!showCeramicFilters) {
-                    if (ceramicTypeFilterApi && typeof ceramicTypeFilterApi.clear === 'function') {
-                        ceramicTypeFilterApi.clear();
+                    // Restore wall height unit to "M"
+                    if (wallHeightInput) {
+                        wallHeightInput.step = '0.01';
+                        wallHeightInput.min = '0.01';
+                        wallHeightInput.placeholder = '';
+                    }
+                    const wallHeightUnit = document.querySelector('#wallHeightGroup .unit');
+                    if (wallHeightUnit) {
+                        wallHeightUnit.textContent = 'M';
                     }
                 }
             }
