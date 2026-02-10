@@ -57,11 +57,272 @@
         @endphp
 
         @if (!$hasProjectCombinations && empty($ceramicProjects ?? []))
+            @php
+                $workType = $requestData['work_type'] ?? ($requestData['work_type_select'] ?? '');
+                $requiredMaterials = \App\Services\FormulaRegistry::materialsFor($workType);
+                if (empty($requiredMaterials)) {
+                    $requiredMaterials = ['brick', 'cement', 'sand'];
+                }
+                $materialTypeFilters = $requestData['material_type_filters'] ?? [];
+                if (!is_array($materialTypeFilters)) {
+                    $materialTypeFilters = [];
+                }
+                $priceFilters = $requestData['price_filters'] ?? [];
+                if (!is_array($priceFilters)) {
+                    $priceFilters = [$priceFilters];
+                }
+                $hasCustomFilter = in_array('custom', $priceFilters, true);
+                $labels = [
+                    'brick' => 'Bata',
+                    'cement' => 'Semen',
+                    'sand' => 'Pasir',
+                    'cat' => 'Cat',
+                    'ceramic' => 'Keramik',
+                    'nat' => 'Nat',
+                ];
+                $normalizeFilterValues = function ($value) use (&$normalizeFilterValues) {
+                    if (is_array($value)) {
+                        $flattened = [];
+                        foreach ($value as $item) {
+                            $flattened = array_merge($flattened, $normalizeFilterValues($item));
+                        }
+                        return array_values(array_unique($flattened));
+                    }
+                    if ($value === null) {
+                        return [];
+                    }
+                    $text = trim((string) $value);
+                    if ($text === '') {
+                        return [];
+                    }
+                    $parts = preg_split('/\s*\|\s*/', $text) ?: [];
+                    $tokens = array_values(
+                        array_filter(
+                            array_map(static fn($part) => trim((string) $part), $parts),
+                            static fn($part) => $part !== '',
+                        ),
+                    );
+                    return array_values(array_unique($tokens));
+                };
+                $applyTypeFilter = function ($query, $filterValue) use ($normalizeFilterValues) {
+                    $values = $normalizeFilterValues($filterValue);
+                    if (!empty($values)) {
+                        $query->whereIn('type', $values);
+                    }
+                };
+                $applyCeramicSizeFilter = function ($query, $filterValue) use ($normalizeFilterValues) {
+                    $values = $normalizeFilterValues($filterValue);
+                    if (empty($values)) {
+                        return;
+                    }
+                    $dimensionsList = [];
+                    foreach ($values as $sizeFilter) {
+                        $normalized = str_replace(',', '.', (string) $sizeFilter);
+                        $normalized = str_replace(['Ãƒâ€”', 'Ã—'], 'x', $normalized);
+                        $dimensions = array_map('trim', explode('x', strtolower($normalized)));
+                        if (count($dimensions) !== 2) {
+                            continue;
+                        }
+                        $dim1 = (float) $dimensions[0];
+                        $dim2 = (float) $dimensions[1];
+                        if ($dim1 > 0 && $dim2 > 0) {
+                            $dimensionsList[] = [$dim1, $dim2];
+                        }
+                    }
+                    if (empty($dimensionsList)) {
+                        return;
+                    }
+                    $query->where(function ($q) use ($dimensionsList) {
+                        foreach ($dimensionsList as [$dim1, $dim2]) {
+                            $q->orWhere(function ($sq) use ($dim1, $dim2) {
+                                $sq->where('dimension_length', $dim1)->where('dimension_width', $dim2);
+                            })->orWhere(function ($sq) use ($dim1, $dim2) {
+                                $sq->where('dimension_length', $dim2)->where('dimension_width', $dim1);
+                            });
+                        }
+                    });
+                };
+
+                $missingMaterials = [];
+                $missingDetails = [];
+                $missingCustom = [];
+                $materialCounts = [];
+                $lowThresholdExempt = ['Keramik (dimensi)', 'Nat (tebal)'];
+
+                $addMissing = function (string $label) use (&$missingMaterials) {
+                    if (!in_array($label, $missingMaterials, true)) {
+                        $missingMaterials[] = $label;
+                    }
+                };
+
+                $markMissing = function (string $type, int $count) use (&$missingMaterials, &$missingDetails, $labels) {
+                    if ($count <= 0) {
+                        $label = $labels[$type] ?? $type;
+                        $missingMaterials[] = $label;
+                        $missingDetails[] = $label . ' (0 data cocok)';
+                    }
+                };
+
+                if ($hasCustomFilter) {
+                    if (in_array('brick', $requiredMaterials, true)) {
+                        $hasBrickSelection = !empty($requestData['brick_id']) || !empty($requestData['brick_ids']);
+                        if (!$hasBrickSelection) {
+                            $addMissing($labels['brick']);
+                            $missingCustom[] = $labels['brick'];
+                        }
+                    }
+                    if (in_array('cement', $requiredMaterials, true) && empty($requestData['cement_id'])) {
+                        $addMissing($labels['cement']);
+                        $missingCustom[] = $labels['cement'];
+                    }
+                    if (in_array('sand', $requiredMaterials, true) && empty($requestData['sand_id'])) {
+                        $addMissing($labels['sand']);
+                        $missingCustom[] = $labels['sand'];
+                    }
+                    if (in_array('cat', $requiredMaterials, true) && empty($requestData['cat_id'])) {
+                        $addMissing($labels['cat']);
+                        $missingCustom[] = $labels['cat'];
+                    }
+                    if (in_array('ceramic', $requiredMaterials, true) && $workType !== 'grout_tile') {
+                        if (empty($requestData['ceramic_id'])) {
+                            $addMissing($labels['ceramic']);
+                            $missingCustom[] = $labels['ceramic'];
+                        }
+                    }
+                    if (in_array('nat', $requiredMaterials, true) && empty($requestData['nat_id'])) {
+                        $addMissing($labels['nat']);
+                        $missingCustom[] = $labels['nat'];
+                    }
+                }
+
+                if (in_array('brick', $requiredMaterials, true)) {
+                    $brickQuery = \App\Models\Brick::query();
+                    $applyTypeFilter($brickQuery, $materialTypeFilters['brick'] ?? null);
+                    $brickCount = $brickQuery->count();
+                    $materialCounts[$labels['brick']] = $brickCount;
+                    $markMissing('brick', $brickCount);
+                }
+
+                if (in_array('cement', $requiredMaterials, true)) {
+                    $cementQuery = \App\Models\Cement::query()
+                        ->where('package_price', '>', 0)
+                        ->where('package_weight_net', '>', 0);
+                    $applyTypeFilter($cementQuery, $materialTypeFilters['cement'] ?? null);
+                    $cementCount = $cementQuery->count();
+                    $materialCounts[$labels['cement']] = $cementCount;
+                    $markMissing('cement', $cementCount);
+                }
+
+                if (in_array('sand', $requiredMaterials, true)) {
+                    $sandQuery = \App\Models\Sand::query();
+                    $applyTypeFilter($sandQuery, $materialTypeFilters['sand'] ?? null);
+                    $sandQuery->where(function ($q) {
+                        $q->where('comparison_price_per_m3', '>', 0)
+                            ->orWhere(function ($sq) {
+                                $sq->where('package_volume', '>', 0)->where('package_price', '>', 0);
+                            });
+                    });
+                    $sandCount = $sandQuery->count();
+                    $materialCounts[$labels['sand']] = $sandCount;
+                    $markMissing('sand', $sandCount);
+                }
+
+                if (in_array('cat', $requiredMaterials, true)) {
+                    $catQuery = \App\Models\Cat::query()->where('purchase_price', '>', 0);
+                    $applyTypeFilter($catQuery, $materialTypeFilters['cat'] ?? null);
+                    $catCount = $catQuery->count();
+                    $materialCounts[$labels['cat']] = $catCount;
+                    $markMissing('cat', $catCount);
+                }
+
+                if (in_array('ceramic', $requiredMaterials, true)) {
+                    if ($workType === 'grout_tile') {
+                        $ceramicLength = (float) ($requestData['ceramic_length'] ?? 0);
+                        $ceramicWidth = (float) ($requestData['ceramic_width'] ?? 0);
+                        $ceramicThickness = (float) ($requestData['ceramic_thickness'] ?? 0);
+                        if ($ceramicLength <= 0 || $ceramicWidth <= 0 || $ceramicThickness <= 0) {
+                            $addMissing('Keramik (dimensi)');
+                        }
+                        $materialCounts['Keramik (dimensi)'] =
+                            $ceramicLength > 0 && $ceramicWidth > 0 && $ceramicThickness > 0 ? 1 : 0;
+                    } else {
+                        $ceramicQuery = \App\Models\Ceramic::query()->whereNotNull('price_per_package');
+                        $applyCeramicSizeFilter($ceramicQuery, $materialTypeFilters['ceramic'] ?? null);
+                        $ceramicCount = $ceramicQuery->count();
+                        $materialCounts[$labels['ceramic']] = $ceramicCount;
+                        $markMissing('ceramic', $ceramicCount);
+                    }
+                }
+
+                if (in_array('nat', $requiredMaterials, true)) {
+                    if ($workType === 'grout_tile') {
+                        $groutThickness = (float) ($requestData['grout_thickness'] ?? 0);
+                        if ($groutThickness <= 0) {
+                            $addMissing('Nat (tebal)');
+                        }
+                        $materialCounts['Nat (tebal)'] = $groutThickness > 0 ? 1 : 0;
+                    }
+                    $natQuery = \App\Models\Nat::query();
+                    if ($workType !== 'grout_tile') {
+                        $natQuery->where('package_price', '>', 0);
+                    }
+                    $applyTypeFilter($natQuery, $materialTypeFilters['nat'] ?? null);
+                    $natCount = $natQuery->count();
+                    $materialCounts[$labels['nat']] = $natCount;
+                    $markMissing('nat', $natCount);
+                }
+
+                $useStoreFilter = (bool) data_get($requestData ?? [], 'use_store_filter', true);
+                $allowMixedStore = (bool) data_get($requestData ?? [], 'allow_mixed_store', false);
+                $showStoreNote = $useStoreFilter && !$allowMixedStore && $workType !== 'grout_tile';
+
+                $missingList = [];
+                $minRequiredCount = 2;
+                foreach ($materialCounts as $label => $count) {
+                    if ($count <= 0) {
+                        $missingList[] = $label . ' (0)';
+                        continue;
+                    }
+                    if (in_array($label, $lowThresholdExempt, true)) {
+                        continue;
+                    }
+                    if ($count < $minRequiredCount) {
+                        $missingList[] = $label . ' (' . $count . ')';
+                    }
+                }
+
+            @endphp
             <div class="container">
-                <div class="alert"
+                <div class="alert shadow-sm"
                     style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 12px; padding: 16px 20px; color: #856404;">
-                    <i class="bi bi-exclamation-triangle me-2"></i> Tidak ditemukan data material yang cocok dengan filter
-                    Anda.
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle fs-5"></i>
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">Tidak ditemukan data material yang cocok dengan filter Anda.</div>
+                            <div class="mt-2 small text-muted">
+                                <div class="d-flex flex-wrap align-items-center gap-2">
+                                    <span class="badge bg-light text-dark border">Material tidak tersedia</span>
+                                    <span>{{ !empty($missingList) ? implode(', ', $missingList) : '-' }}</span>
+                                </div>
+                                @if (!empty($missingCustom))
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                        <span class="badge bg-light text-dark border">Belum dipilih (Custom)</span>
+                                        <span>{{ implode(', ', array_unique($missingCustom)) }}</span>
+                                    </div>
+                                @endif
+                                @if (!empty($materialCounts))
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                        <span class="badge bg-light text-dark border">Ketersediaan</span>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            @foreach ($materialCounts as $label => $count)
+                                                <span class="badge bg-white text-dark border">{{ $label }}: {{ $count }}</span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         @elseif(isset($isMultiCeramic) && $isMultiCeramic && isset($groupedCeramics))
@@ -2879,7 +3140,37 @@ $paramValue = $isGroutTile
                                 true,
                             );
                             $isGroutTileDetailWork = $workTypeForDetail === 'grout_tile';
+                            $requiredMaterialsDetail = \App\Services\FormulaRegistry::materialsFor($workTypeForDetail ?? '');
+                            if (empty($requiredMaterialsDetail)) {
+                                $requiredMaterialsDetail = ['brick', 'cement', 'sand'];
+                            }
                             $defaultProjectBrick = $projects[0]['brick'] ?? null;
+                            $hasCompleteMaterialsForCombo = function ($item, $brick) use ($requiredMaterialsDetail, $isBricklessDetailWork, $isGroutTileDetailWork) {
+                                foreach ($requiredMaterialsDetail as $matType) {
+                                    if ($matType === 'brick') {
+                                        if ($isBricklessDetailWork) {
+                                            continue;
+                                        }
+                                        if (empty($brick)) {
+                                            return false;
+                                        }
+                                        continue;
+                                    }
+                                    if ($matType === 'ceramic' && $isGroutTileDetailWork) {
+                                        if (empty($item['ceramic'])) {
+                                            return false;
+                                        }
+                                        continue;
+                                    }
+                                    if (empty($item[$matType])) {
+                                        return false;
+                                    }
+                                }
+                                if (empty($item['result']) || !array_key_exists('grand_total', $item['result']) || $item['result']['grand_total'] === null) {
+                                    return false;
+                                }
+                                return true;
+                            };
 
                             foreach ($filterCategories as $filterType) {
                                 foreach ($getDisplayKeys($filterType) as $key) {
@@ -2943,11 +3234,14 @@ $paramValue = $isGroutTile
                                                     }
 
                                                     if ($match) {
-                                                        $allFilteredCombinations[] = [
-                                                            'label' => $key, // Use recap label
-                                                            'item' => $item,
-                                                            'brick' => $project['brick'] ?? $defaultProjectBrick,
-                                                        ];
+                                                        $comboBrick = $project['brick'] ?? $defaultProjectBrick;
+                                                        if (!str_starts_with($key, 'Populer') || $hasCompleteMaterialsForCombo($item, $comboBrick)) {
+                                                            $allFilteredCombinations[] = [
+                                                                'label' => $key, // Use recap label
+                                                                'item' => $item,
+                                                                'brick' => $comboBrick,
+                                                            ];
+                                                        }
                                                         $foundCombination = true;
                                                         break 3; // Found it, move to next filter
                                                     }
@@ -2966,11 +3260,13 @@ $paramValue = $isGroutTile
                                                 $fallbackEntry['brick'] ??
                                                 $defaultProjectBrick;
 
-                                            $allFilteredCombinations[] = [
-                                                'label' => $key,
-                                                'item' => $fallbackEntry['item'],
-                                                'brick' => $fallbackBrick,
-                                            ];
+                                            if (!str_starts_with($key, 'Populer') || $hasCompleteMaterialsForCombo($fallbackEntry['item'], $fallbackBrick)) {
+                                                $allFilteredCombinations[] = [
+                                                    'label' => $key,
+                                                    'item' => $fallbackEntry['item'],
+                                                    'brick' => $fallbackBrick,
+                                                ];
+                                            }
                                         }
                                     }
                                 }
@@ -3880,7 +4176,7 @@ $paramValue = $isGroutTile
                                                 if (isset($item['cat'])) {
                                                     $traceParams['cat_id'] = $item['cat']->id;
                                                 }
-                                                if (isset($item['ceramic'])) {
+                                                if (isset($item['ceramic']) && ($requestData['work_type'] ?? '') !== 'grout_tile') {
                                                     $traceParams['ceramic_id'] = $item['ceramic']->id;
                                                 }
                                                 if (isset($item['nat'])) {
@@ -3971,7 +4267,7 @@ $paramValue = $isGroutTile
                                                         <input type="hidden" name="cat_id"
                                                             value="{{ $item['cat']->id }}">
                                                     @endif
-                                                    @if (isset($item['ceramic']))
+                                                    @if (isset($item['ceramic']) && ($requestData['work_type'] ?? '') !== 'grout_tile')
                                                         <input type="hidden" name="ceramic_id"
                                                             value="{{ $item['ceramic']->id }}">
                                                     @endif

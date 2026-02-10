@@ -219,6 +219,9 @@ class MaterialCalculationController extends Controller
 
             // NEW LOGIC: Dynamic Material Validation based on Work Type
             $workType = $request->work_type;
+            if ($workType === 'grout_tile') {
+                $request->request->remove('ceramic_id');
+            }
             $requiredMaterials = $this->resolveRequiredMaterials($workType);
             $needsBrick = in_array('brick', $requiredMaterials, true);
             $needsSand = in_array('sand', $requiredMaterials, true);
@@ -263,7 +266,9 @@ class MaterialCalculationController extends Controller
 
             // Ceramic Validation
             if ($needsCeramic) {
-                if (in_array('custom', $request->price_filters ?? [])) {
+                if ($workType === 'grout_tile') {
+                    $rules['ceramic_id'] = 'nullable|exists:ceramics,id';
+                } elseif (in_array('custom', $request->price_filters ?? [])) {
                     $rules['ceramic_id'] = 'required|exists:ceramics,id';
                 } else {
                     $rules['ceramic_id'] = 'nullable|exists:ceramics,id';

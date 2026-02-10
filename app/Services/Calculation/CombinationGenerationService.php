@@ -88,6 +88,20 @@ class CombinationGenerationService
         return array_values(array_unique($values));
     }
 
+    protected function buildGroutTileFallbackCeramic(array $params): Ceramic
+    {
+        $ceramic = new Ceramic();
+        $ceramic->brand = 'Input Keramik';
+        $ceramic->type = 'Input';
+        $ceramic->dimension_length = $params['ceramic_length'] ?? null;
+        $ceramic->dimension_width = $params['ceramic_width'] ?? null;
+        $ceramic->dimension_thickness = $params['ceramic_thickness'] ?? null;
+        $ceramic->price_per_package = $params['ceramic_price_per_package'] ?? 0;
+        $ceramic->pieces_per_package = $params['ceramic_pieces_per_package'] ?? 0;
+
+        return $ceramic;
+    }
+
     protected function normalizeStoreName(?string $value): string
     {
         $text = trim((string) $value);
@@ -231,7 +245,11 @@ class CombinationGenerationService
         // This logic is moved from Controller to here
         
         // Feature: Store-Based Combination (One Stop Shopping)
+        $workType = $request->input('work_type') ?? $request->input('work_type_select');
         $useStoreFilter = $request->boolean('use_store_filter', true);
+        if ($workType === 'grout_tile') {
+            $useStoreFilter = false;
+        }
 
         if ($useStoreFilter) {
             $storeResults = $this->getStoreBasedCombinations($request, $constraints);
@@ -1248,6 +1266,10 @@ class CombinationGenerationService
         $cats = $cats ?? collect();
         $ceramics = $ceramics ?? collect();
         $nats = $nats ?? collect();
+
+        if ($workType === 'grout_tile') {
+            $ceramics = collect([$this->buildGroutTileFallbackCeramic($paramsBase)]);
+        }
         
         // Determine sorting direction based on group label for optimization
         $sortDesc = ($groupLabel === 'Termahal');
@@ -2007,6 +2029,14 @@ class CombinationGenerationService
             $materialLimit,
         );
         $nats = $this->resolveNatsByPrice('asc', $materialLimit, $materialTypeFilters['nat'] ?? null);
+        if ($workType === 'grout_tile' && $nats->isEmpty()) {
+            $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
+            $fallbackQuery = Nat::query();
+            if (!empty($natTypeFilterValues)) {
+                $fallbackQuery->whereIn('type', $natTypeFilterValues);
+            }
+            $nats = $fallbackQuery->orderBy('brand')->limit($materialLimit)->get();
+        }
 
         Log::info('getCheapestCombinations - Materials Retrieved', [
             'cements_count' => $cements->count(),
@@ -2054,6 +2084,14 @@ class CombinationGenerationService
             $materialLimit,
         );
         $nats = $this->resolveNatsByPrice('asc', $materialLimit, $materialTypeFilters['nat'] ?? null);
+        if ($workType === 'grout_tile' && $nats->isEmpty()) {
+            $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
+            $fallbackQuery = Nat::query();
+            if (!empty($natTypeFilterValues)) {
+                $fallbackQuery->whereIn('type', $natTypeFilterValues);
+            }
+            $nats = $fallbackQuery->orderBy('brand')->limit($materialLimit)->get();
+        }
 
         $allResults = $this->calculateCombinationsFromMaterials(
             $brick,
@@ -2102,6 +2140,14 @@ class CombinationGenerationService
             $materialLimit,
         );
         $nats = $this->resolveNatsByPrice('desc', $materialLimit, $materialTypeFilters['nat'] ?? null);
+        if ($workType === 'grout_tile' && $nats->isEmpty()) {
+            $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
+            $fallbackQuery = Nat::query();
+            if (!empty($natTypeFilterValues)) {
+                $fallbackQuery->whereIn('type', $natTypeFilterValues);
+            }
+            $nats = $fallbackQuery->orderBy('brand')->limit($materialLimit)->get();
+        }
 
         $allResults = $this->calculateCombinationsFromMaterials(
             $brick,
@@ -2148,9 +2194,9 @@ class CombinationGenerationService
                 );
             }
         } elseif ($workType === 'grout_tile') {
-            if (!empty($request['ceramic_id']) && !empty($request['nat_id'])) {
-                $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
+            if (!empty($request['nat_id'])) {
                 $nats = Nat::where('id', $request['nat_id'])->get();
+                $ceramics = collect([$this->buildGroutTileFallbackCeramic($request)]);
                 return $this->calculateCombinationsFromMaterials(
                     $brick,
                     $request,

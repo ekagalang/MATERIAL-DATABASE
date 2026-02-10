@@ -879,9 +879,8 @@ html.materials-booting .page-content {
     color: #ffffff;
     padding: 4px 10px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
-    line-height: 1;
 }
 /* Kaki cekung untuk TAB MATERIAL (Bata, Cat, dll) - BENAR SEKARANG */
 .material-tab-btn.active::before {
