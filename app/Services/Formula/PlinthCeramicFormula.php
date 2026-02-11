@@ -70,11 +70,12 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 1,
             'title' => 'Input Parameters',
+            'info' => 'Parameter dasar yang dimasukkan pengguna untuk perhitungan plint keramik',
             'calculations' => [
-                'Panjang Bidang' => $panjangBidang.' m',
-                'Tinggi Bidang' => $tinggiBidangCm.' cm',
-                'Tebal Adukan' => $tebalAdukan.' cm',
-                'Tebal Nat' => $tebalNat.' mm',
+                'Panjang Bidang (P)' => NumberHelper::format($panjangBidang).' m',
+                'Tinggi Bidang (T)' => NumberHelper::format($tinggiBidangCm).' cm',
+                'Tebal Adukan (Ta)' => NumberHelper::format($tebalAdukan).' cm',
+                'Tebal Nat (Tn)' => NumberHelper::format($tebalNat).' mm',
             ],
         ];
 
@@ -120,19 +121,19 @@ class PlinthCeramicFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 2,
-            'title' => 'Data Material',
+            'title' => 'Data Material dari Database',
+            'info' => 'Material yang dipilih beserta spesifikasi dan konstanta yang digunakan',
             'calculations' => [
-                'Semen' => $cement->brand.' ('.$kemasanSemen.' kg)',
-                'Pasir' => $sand->brand,
-                'Keramik' => $ceramic->brand.' ('.$panjangKeramik.'x'.$lebarKeramik.' cm)',
-                'Isi per Dus Keramik' => $isiPerDus.' pcs',
-                'Tebal Keramik' => $tebalKeramikMm.' mm',
-                'Nat' => $nat->brand.' ('.$beratKemasanNat.' kg)',
-                'Berat Kemasan Nat' => $beratKemasanNat.' kg',
-                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus).' M3',
-                'Harga Nat per Bungkus' => NumberHelper::currency($hargaNatPerBungkus),
+                'Semen' => $cement->brand.' (Kemasan: '.NumberHelper::format($kemasanSemen).' kg, Harga: '.NumberHelper::currency($cement->package_price ?? 0).')',
+                'Pasir' => $sand->brand.' (Harga/M3: '.NumberHelper::currency($sand->comparison_price_per_m3 ?? 0).')',
+                'Keramik' => $ceramic->brand.' (Dimensi: '.NumberHelper::format($panjangKeramik).'×'.NumberHelper::format($lebarKeramik).'×'.NumberHelper::format($tebalKeramikCm).' cm, Isi: '.$isiPerDus.' pcs/dus, Harga: '.NumberHelper::currency($ceramic->price_per_package ?? 0).'/dus)',
+                'Nat' => $nat->brand.' (Kemasan: '.NumberHelper::format($beratKemasanNat).' kg, Harga: '.NumberHelper::currency($hargaNatPerBungkus).'/bungkus)',
+                '--- Konstanta ---' => '',
                 'Densitas Semen' => $densitySemen.' kg/M3',
                 'Densitas Nat' => $densityNat.' kg/M3',
+                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus).' M3',
+                'Tebal Keramik' => NumberHelper::format($tebalKeramikCm).' cm = '.NumberHelper::format($tebalKeramikMm).' mm',
+                '--- Rasio Adukan ---' => '',
                 'Rasio Adukan Semen' => '1 : 3 : 30% (Semen : Pasir : Air)',
                 'Rasio Adukan Nat' => '1 : 33% (Nat : Air)',
             ],
@@ -145,12 +146,12 @@ class PlinthCeramicFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 3,
-            'title' => 'Luas Bidang',
-            'formula' => 'Panjang × (Tinggi / 100)',
+            'title' => 'Luas Bidang Pekerjaan',
+            'formula' => 'Luas Bidang = Panjang Bidang × (Tinggi Bidang / 100)',
+            'info' => 'Konversi tinggi dari cm ke meter, lalu kalikan dengan panjang',
             'calculations' => [
-                'Tinggi (meter)' => NumberHelper::format($tinggiBidangM).' m',
-                'Perhitungan' => "$panjangBidang × $tinggiBidangM",
-                'Hasil' => NumberHelper::format($luasBidang).' M2',
+                'Konversi Tinggi' => NumberHelper::format($tinggiBidangCm).' cm ÷ 100 = '.NumberHelper::format($tinggiBidangM).' m',
+                'Luas Bidang' => NumberHelper::format($panjangBidang).' m × '.NumberHelper::format($tinggiBidangM).' m = '.NumberHelper::format($luasBidang).' M2',
             ],
         ];
 
@@ -161,15 +162,20 @@ class PlinthCeramicFormula implements FormulaInterface
         $panjangKeramikDenganNat = $n(($panjangKeramik + $tebalNat / 10) / 100);
         $totalKeramikUtuhPerPanjang = ceil($panjangBidang / $panjangKeramikDenganNat);
 
+        $tebalNatCm = $n($tebalNat / 10);
+        $panjangKeramikPlusNatCm = $n($panjangKeramik + $tebalNatCm);
+
         $trace['steps'][] = [
             'step' => 4,
             'title' => 'Total Keramik Utuh per Panjang',
-            'formula' => 'ceil(Panjang bidang / ((Panjang keramik + (ketebalan nat / 10)) / 100))',
-            'info' => 'Jumlah keramik yang dibutuhkan sepanjang bidang',
+            'formula' => 'Total Keramik Utuh = ceil(Panjang Bidang / ((Panjang Keramik + (Tebal Nat / 10)) / 100))',
+            'info' => 'Menghitung jumlah potongan keramik yang dibutuhkan sepanjang bidang, dengan memperhitungkan celah nat',
             'calculations' => [
-                'Panjang Keramik + Nat' => NumberHelper::format($panjangKeramikDenganNat * 100).' cm (= '.$panjangKeramik.' + '.$tebalNat / 10 .')',
-                'Perhitungan' => "$panjangBidang / ".NumberHelper::format($panjangKeramikDenganNat),
-                'Hasil' => NumberHelper::format($totalKeramikUtuhPerPanjang).' pcs',
+                'Tebal Nat dalam cm' => NumberHelper::format($tebalNat).' mm ÷ 10 = '.NumberHelper::format($tebalNatCm).' cm',
+                'Panjang Keramik + Nat' => NumberHelper::format($panjangKeramik).' cm + '.NumberHelper::format($tebalNatCm).' cm = '.NumberHelper::format($panjangKeramikPlusNatCm).' cm',
+                'Konversi ke meter' => NumberHelper::format($panjangKeramikPlusNatCm).' cm ÷ 100 = '.NumberHelper::format($panjangKeramikDenganNat).' m',
+                'Pembagian' => NumberHelper::format($panjangBidang).' m ÷ '.NumberHelper::format($panjangKeramikDenganNat).' m = '.NumberHelper::format($panjangBidang / $panjangKeramikDenganNat),
+                'Pembulatan ke atas (ceil)' => 'ceil('.NumberHelper::format($panjangBidang / $panjangKeramikDenganNat).') = '.NumberHelper::format($totalKeramikUtuhPerPanjang).' pcs',
             ],
         ];
 
@@ -180,11 +186,11 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 5,
             'title' => 'Total Lembar Keramik Utuh per Panjang',
-            'formula' => 'Total keramik utuh per Panjang / 2',
-            'info' => 'Pembagian untuk pola pemasangan plint',
+            'formula' => 'Total Lembar = Total Keramik Utuh per Panjang / 2',
+            'info' => '1 lembar keramik utuh dipotong menjadi 2 potongan plint (separuh lebar), sehingga kebutuhan lembar utuh = setengah dari total potongan',
             'calculations' => [
-                'Perhitungan' => "$totalKeramikUtuhPerPanjang / 2",
-                'Hasil' => NumberHelper::format($totalLembarKeramikUtuh).' pcs',
+                'Total Keramik Utuh per Panjang' => NumberHelper::format($totalKeramikUtuhPerPanjang).' pcs',
+                'Dibagi 2' => NumberHelper::format($totalKeramikUtuhPerPanjang).' ÷ 2 = '.NumberHelper::format($totalLembarKeramikUtuh).' lembar',
             ],
         ];
 
@@ -195,11 +201,12 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 6,
             'title' => 'Kebutuhan Dus Keramik per Pekerjaan',
-            'formula' => 'Total lembar keramik utuh / isi keramik per kemasan',
+            'formula' => 'Kebutuhan Dus = Total Lembar Keramik Utuh / Isi Keramik per Kemasan',
+            'info' => 'Menghitung berapa dus keramik yang diperlukan berdasarkan jumlah lembar utuh',
             'calculations' => [
-                'Isi per Dus' => $isiPerDus.' pcs',
-                'Perhitungan' => NumberHelper::format($totalLembarKeramikUtuh).' / '.$isiPerDus,
-                'Hasil' => NumberHelper::format($kebutuhanDusUtuhPekerjaan).' dus',
+                'Total Lembar Keramik Utuh' => NumberHelper::format($totalLembarKeramikUtuh).' lembar',
+                'Isi per Dus' => $isiPerDus.' pcs/dus',
+                'Kebutuhan Dus' => NumberHelper::format($totalLembarKeramikUtuh).' ÷ '.$isiPerDus.' = '.NumberHelper::format($kebutuhanDusUtuhPekerjaan).' dus',
             ],
         ];
 
@@ -213,9 +220,11 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 7,
             'title' => 'Kebutuhan Keramik per M2',
+            'formula' => 'Dus/M2 = Kebutuhan Dus per Pekerjaan / Luas Bidang; Lembar/M2 = Dus/M2 × Isi per Dus',
+            'info' => 'Normalisasi kebutuhan keramik ke satuan per M2',
             'calculations' => [
-                'Kebutuhan Dus per M2' => NumberHelper::format($kebutuhanDusPerM2).' dus/M2',
-                'Kebutuhan Lembar per M2' => NumberHelper::format($kebutuhanKeramikPerM2).' pcs/M2',
+                'Kebutuhan Dus per M2' => NumberHelper::format($kebutuhanDusUtuhPekerjaan).' dus ÷ '.NumberHelper::format($luasBidang).' M2 = '.NumberHelper::format($kebutuhanDusPerM2).' dus/M2',
+                'Kebutuhan Lembar per M2' => NumberHelper::format($kebutuhanDusPerM2).' dus/M2 × '.$isiPerDus.' pcs/dus = '.NumberHelper::format($kebutuhanKeramikPerM2).' pcs/M2',
             ],
         ];
 
@@ -228,13 +237,26 @@ class PlinthCeramicFormula implements FormulaInterface
         // Jumlah baris nat per pekerjaan = (tinggi bidang / ((lebar keramik + (tebal nat / 10)) / 100)) + 1
         $jumlahBarisNat = (int) ceil($tinggiBidangM / (($lebarKeramik + $tebalNat / 10) / 100)) + 1;
 
+        $lebarKeramikPlusNatCm = $n($lebarKeramik + $tebalNatCm);
+        $lebarKeramikDenganNatM = $n(($lebarKeramik + $tebalNatCm) / 100);
+
+        $rawKolom = $panjangBidang / $panjangKeramikDenganNat;
+        $rawBaris = $tinggiBidangM / $lebarKeramikDenganNatM;
+
         $trace['steps'][] = [
             'step' => 8,
             'title' => 'Jumlah Kolom dan Baris Nat',
-            'formula' => 'ceil(Bidang / ((Dimensi Keramik + Tebal Nat/10) / 100)) + 1',
+            'formula' => 'Kolom = ceil(Panjang Bidang / ((Panjang Keramik + Tebal Nat/10) / 100)) + 1; Baris = ceil(Tinggi Bidang / ((Lebar Keramik + Tebal Nat/10) / 100)) + 1',
+            'info' => 'Jumlah garis nat vertikal (kolom) dan horizontal (baris). Ditambah 1 karena nat ada di kedua sisi keramik',
             'calculations' => [
-                'Jumlah Kolom Nat' => NumberHelper::format($jumlahKolomNat).' garis',
-                'Jumlah Baris Nat' => NumberHelper::format($jumlahBarisNat).' garis',
+                '--- Kolom Nat (Vertikal) ---' => '',
+                'Panjang Keramik + Nat' => NumberHelper::format($panjangKeramik).' + '.NumberHelper::format($tebalNatCm).' = '.NumberHelper::format($panjangKeramikPlusNatCm).' cm = '.NumberHelper::format($panjangKeramikDenganNat).' m',
+                'Pembagian Kolom' => NumberHelper::format($panjangBidang).' m ÷ '.NumberHelper::format($panjangKeramikDenganNat).' m = '.NumberHelper::format($rawKolom),
+                'Jumlah Kolom Nat' => 'ceil('.NumberHelper::format($rawKolom).') + 1 = '.NumberHelper::format($jumlahKolomNat).' garis',
+                '--- Baris Nat (Horizontal) ---' => '',
+                'Lebar Keramik + Nat' => NumberHelper::format($lebarKeramik).' + '.NumberHelper::format($tebalNatCm).' = '.NumberHelper::format($lebarKeramikPlusNatCm).' cm = '.NumberHelper::format($lebarKeramikDenganNatM).' m',
+                'Pembagian Baris' => NumberHelper::format($tinggiBidangM).' m ÷ '.NumberHelper::format($lebarKeramikDenganNatM).' m = '.NumberHelper::format($rawBaris),
+                'Jumlah Baris Nat' => 'ceil('.NumberHelper::format($rawBaris).') + 1 = '.NumberHelper::format($jumlahBarisNat).' garis',
             ],
         ];
 
@@ -242,21 +264,18 @@ class PlinthCeramicFormula implements FormulaInterface
         // Panjang bentangan nat per pekerjaan = (jumlah kolom nat per pekerjaan * tinggi bidang) + (jumlah baris nat per pekerjaan * Panjang bidang)
         $panjangBentanganNat = $n($jumlahKolomNat * $tinggiBidangM + $jumlahBarisNat * $panjangBidang);
 
+        $panjangNatVertikal = $n($jumlahKolomNat * $tinggiBidangM);
+        $panjangNatHorizontal = $n($jumlahBarisNat * $panjangBidang);
+
         $trace['steps'][] = [
             'step' => 9,
-            'title' => 'Panjang Bentangan Nat',
-            'formula' => '(Jumlah Kolom Nat × Tinggi Bidang) + (Jumlah Baris Nat × Panjang Bidang)',
+            'title' => 'Panjang Bentangan Nat per Pekerjaan',
+            'formula' => 'Panjang Bentangan = (Jumlah Kolom Nat × Tinggi Bidang) + (Jumlah Baris Nat × Panjang Bidang)',
+            'info' => 'Total panjang seluruh garis nat (vertikal + horizontal) dalam meter',
             'calculations' => [
-                'Perhitungan' => '('.
-                    $jumlahKolomNat.
-                    ' × '.
-                    NumberHelper::format($tinggiBidangM).
-                    ') + ('.
-                    $jumlahBarisNat.
-                    ' × '.
-                    $panjangBidang.
-                    ')',
-                'Hasil' => NumberHelper::format($panjangBentanganNat).' m',
+                'Panjang Nat Vertikal' => $jumlahKolomNat.' garis × '.NumberHelper::format($tinggiBidangM).' m = '.NumberHelper::format($panjangNatVertikal).' m',
+                'Panjang Nat Horizontal' => $jumlahBarisNat.' garis × '.NumberHelper::format($panjangBidang).' m = '.NumberHelper::format($panjangNatHorizontal).' m',
+                'Total Panjang Bentangan' => NumberHelper::format($panjangNatVertikal).' + '.NumberHelper::format($panjangNatHorizontal).' = '.NumberHelper::format($panjangBentanganNat).' m',
             ],
         ];
 
@@ -264,15 +283,19 @@ class PlinthCeramicFormula implements FormulaInterface
         // Volume nat per pekerjaan = Panjang bentangan nat per pekerjaan * ketebalan nat * tebal keramik / 1000000
         $volumeNatPekerjaan = $n(($panjangBentanganNat * $tebalNat * $tebalKeramikMm) / 1000000);
 
+        $volumeNatSebelumKonversi = $n($panjangBentanganNat * $tebalNat * $tebalKeramikMm);
+
         $trace['steps'][] = [
             'step' => 10,
             'title' => 'Volume Nat per Pekerjaan',
-            'formula' => 'Panjang Bentangan × Tebal Nat × Tebal Keramik / 1000000',
+            'formula' => 'Volume Nat = Panjang Bentangan (m) × Tebal Nat (mm) × Tebal Keramik (mm) / 1.000.000',
+            'info' => 'Konversi dari m×mm×mm ke M3: bagi 1.000.000 (1m = 1000mm, jadi mm² ke m² = /1.000.000)',
             'calculations' => [
                 'Panjang Bentangan' => NumberHelper::format($panjangBentanganNat).' m',
-                'Tebal Nat' => $tebalNat.' mm',
-                'Tebal Keramik' => $tebalKeramikMm.' mm',
-                'Volume Nat' => NumberHelper::format($volumeNatPekerjaan).' M3',
+                'Tebal Nat' => NumberHelper::format($tebalNat).' mm',
+                'Tebal Keramik' => NumberHelper::format($tebalKeramikMm).' mm',
+                'Perkalian' => NumberHelper::format($panjangBentanganNat).' × '.NumberHelper::format($tebalNat).' × '.NumberHelper::format($tebalKeramikMm).' = '.NumberHelper::format($volumeNatSebelumKonversi),
+                'Volume Nat' => NumberHelper::format($volumeNatSebelumKonversi).' ÷ 1.000.000 = '.NumberHelper::format($volumeNatPekerjaan).' M3',
             ],
         ];
 
@@ -285,12 +308,14 @@ class PlinthCeramicFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 11,
-            'title' => 'Kebutuhan Kemasan Nat',
-            'formula' => 'Volume Nat / Volume Pasta Nat per Bungkus',
+            'title' => 'Kebutuhan Kemasan Nat per Pekerjaan',
+            'formula' => 'Bungkus = Volume Nat / Volume Pasta Nat per Bungkus; Kg = Bungkus × Berat per Kemasan',
+            'info' => 'Menghitung berapa bungkus nat yang diperlukan berdasarkan volume celah nat',
             'calculations' => [
-                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus).' M3',
-                'Kebutuhan Bungkus' => NumberHelper::format($kebutuhanBungkusNat).' bungkus',
-                'Kebutuhan (Kg)' => NumberHelper::format($kebutuhanKgNat).' kg',
+                'Volume Nat per Pekerjaan' => NumberHelper::format($volumeNatPekerjaan).' M3',
+                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus).' M3/bungkus',
+                'Kebutuhan Bungkus' => NumberHelper::format($volumeNatPekerjaan).' ÷ '.NumberHelper::format($volumePastaNatPerBungkus).' = '.NumberHelper::format($kebutuhanBungkusNat).' bungkus',
+                'Kebutuhan Kg' => NumberHelper::format($kebutuhanBungkusNat).' bungkus × '.NumberHelper::format($beratKemasanNat).' kg/bungkus = '.NumberHelper::format($kebutuhanKgNat).' kg',
             ],
         ];
 
@@ -317,17 +342,19 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 12,
             'title' => 'Volume Adukan Nat',
-            'info' => 'Ratio 1 : 33% (Nat : Air)',
+            'formula' => 'Kubik Nat = (1/Densitas) × Berat; Air = 33% × Kubik Nat; Volume Adukan = Kubik Nat + Air',
+            'info' => 'Rasio adukan nat 1 : 33% (Nat : Air). Perhitungan per kemasan lalu dikalikan kebutuhan bungkus.',
             'calculations' => [
-                'Kubik Nat per Kemasan' => NumberHelper::format($kubikNatPerBungkus).' M3 (= (1/1440) × '.$beratKemasanNat.' kg)',
-                'Kubik Air per Kemasan Nat' => NumberHelper::format($kubikAirNatPerBungkus).' M3 (= 33% × kubik nat)',
-                'Liter Air per Bungkus' => NumberHelper::format($literAirNatPerBungkus).' liter',
-                'Volume Adukan per Bungkus' => NumberHelper::format($volumeAdukanNatPerBungkus).' M3',
-                '---' => '---',
-                'Total Kubik Nat Pekerjaan' => NumberHelper::format($kubikNatPekerjaan).' M3',
-                'Total Kubik Air Pekerjaan' => NumberHelper::format($kubikAirNatPekerjaan).' M3',
-                'Total Liter Air Pekerjaan' => NumberHelper::format($literAirNatPekerjaan).' liter',
-                'Total Volume Adukan Nat' => NumberHelper::format($volumeAdukanNatPekerjaan).' M3',
+                '--- Per Kemasan ---' => '',
+                'Kubik Nat per Kemasan' => '(1 ÷ '.$densityNat.') × '.NumberHelper::format($beratKemasanNat).' kg = '.NumberHelper::format($kubikNatPerBungkus).' M3',
+                'Kubik Air per Kemasan' => '33% × '.NumberHelper::format($kubikNatPerBungkus).' M3 = '.NumberHelper::format($kubikAirNatPerBungkus).' M3',
+                'Liter Air per Bungkus' => NumberHelper::format($kubikAirNatPerBungkus).' M3 × 1000 = '.NumberHelper::format($literAirNatPerBungkus).' liter',
+                'Volume Adukan per Bungkus' => NumberHelper::format($kubikNatPerBungkus).' + '.NumberHelper::format($kubikAirNatPerBungkus).' = '.NumberHelper::format($volumeAdukanNatPerBungkus).' M3',
+                '--- Per Pekerjaan (× '.NumberHelper::format($kebutuhanBungkusNat).' bungkus) ---' => '',
+                'Total Kubik Nat' => NumberHelper::format($kubikNatPerBungkus).' × '.NumberHelper::format($kebutuhanBungkusNat).' = '.NumberHelper::format($kubikNatPekerjaan).' M3',
+                'Total Kubik Air' => NumberHelper::format($kubikAirNatPerBungkus).' × '.NumberHelper::format($kebutuhanBungkusNat).' = '.NumberHelper::format($kubikAirNatPekerjaan).' M3',
+                'Total Liter Air' => NumberHelper::format($kubikAirNatPekerjaan).' M3 × 1000 = '.NumberHelper::format($literAirNatPekerjaan).' liter',
+                'Total Volume Adukan Nat' => NumberHelper::format($volumeAdukanNatPerBungkus).' × '.NumberHelper::format($kebutuhanBungkusNat).' = '.NumberHelper::format($volumeAdukanNatPekerjaan).' M3',
             ],
         ];
 
@@ -343,14 +370,17 @@ class PlinthCeramicFormula implements FormulaInterface
         // kubik per kemasan air = (Kubik per kemasan semen + Kubik per kemasan pasir) * 30%
         $kubikPerKemasanAir = $n(($kubikPerKemasanSemen + $kubikPerKemasanPasir) * 0.3);
 
+        $kubikSemenPlusPasir = $n($kubikPerKemasanSemen + $kubikPerKemasanPasir);
+
         $trace['steps'][] = [
             'step' => 13,
             'title' => 'Kubik per Kemasan (Semen, Pasir, Air)',
-            'info' => 'Ratio 1 : 3 : 30% (Semen : Pasir : Air)',
+            'formula' => 'Semen = Kemasan × (1/Densitas); Pasir = 3 × Semen; Air = 30% × (Semen + Pasir)',
+            'info' => 'Rasio adukan semen 1 : 3 : 30% (Semen : Pasir : Air)',
             'calculations' => [
-                'Kubik per Kemasan Semen' => NumberHelper::format($kubikPerKemasanSemen).' M3 (= '.$kemasanSemen.' × (1/1440))',
-                'Kubik per Kemasan Pasir' => NumberHelper::format($kubikPerKemasanPasir).' M3 (= 3 × kubik semen)',
-                'Kubik per Kemasan Air' => NumberHelper::format($kubikPerKemasanAir).' M3 (= 30% × (semen + pasir))',
+                'Kubik Semen per Kemasan' => NumberHelper::format($kemasanSemen).' kg × (1 ÷ '.$densitySemen.') = '.NumberHelper::format($kubikPerKemasanSemen).' M3',
+                'Kubik Pasir per Kemasan' => '3 × '.NumberHelper::format($kubikPerKemasanSemen).' M3 = '.NumberHelper::format($kubikPerKemasanPasir).' M3',
+                'Kubik Air per Kemasan' => '30% × ('.NumberHelper::format($kubikPerKemasanSemen).' + '.NumberHelper::format($kubikPerKemasanPasir).') = 30% × '.NumberHelper::format($kubikSemenPlusPasir).' = '.NumberHelper::format($kubikPerKemasanAir).' M3',
             ],
         ];
 
@@ -361,14 +391,13 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 14,
             'title' => 'Volume Adukan per Kemasan Semen',
-            'formula' => 'Kubik Semen + Kubik Pasir + Kubik Air',
+            'formula' => 'Volume Adukan = Kubik Semen + Kubik Pasir + Kubik Air',
+            'info' => 'Total volume campuran adukan yang dihasilkan dari 1 kemasan semen',
             'calculations' => [
-                'Perhitungan' => NumberHelper::format($kubikPerKemasanSemen).
-                    ' + '.
-                    NumberHelper::format($kubikPerKemasanPasir).
-                    ' + '.
-                    NumberHelper::format($kubikPerKemasanAir),
-                'Hasil' => NumberHelper::format($volumeAdukanPerKemasan).' M3',
+                'Kubik Semen' => NumberHelper::format($kubikPerKemasanSemen).' M3',
+                'Kubik Pasir' => NumberHelper::format($kubikPerKemasanPasir).' M3',
+                'Kubik Air' => NumberHelper::format($kubikPerKemasanAir).' M3',
+                'Volume Adukan' => NumberHelper::format($kubikPerKemasanSemen).' + '.NumberHelper::format($kubikPerKemasanPasir).' + '.NumberHelper::format($kubikPerKemasanAir).' = '.NumberHelper::format($volumeAdukanPerKemasan).' M3',
             ],
         ];
 
@@ -380,12 +409,11 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 15,
             'title' => 'Luas Screedan per Kemasan Semen',
-            'formula' => 'Volume adukan per kemasan / (tebal adukan / 100)',
-            'info' => 'Berapa M2 yang bisa di-screed dengan 1 kemasan semen',
+            'formula' => 'Luas Screedan = Volume Adukan per Kemasan / (Tebal Adukan / 100)',
+            'info' => 'Berapa M2 bidang yang bisa di-screed (dilapis adukan) dengan 1 kemasan semen',
             'calculations' => [
-                'Tebal Adukan (meter)' => NumberHelper::format($tebalAdukanMeter).' m',
-                'Perhitungan' => NumberHelper::format($volumeAdukanPerKemasan).' / '.NumberHelper::format($tebalAdukanMeter),
-                'Hasil' => NumberHelper::format($luasScreedanPerKemasan).' M2',
+                'Konversi Tebal Adukan' => NumberHelper::format($tebalAdukan).' cm ÷ 100 = '.NumberHelper::format($tebalAdukanMeter).' m',
+                'Luas Screedan' => NumberHelper::format($volumeAdukanPerKemasan).' M3 ÷ '.NumberHelper::format($tebalAdukanMeter).' m = '.NumberHelper::format($luasScreedanPerKemasan).' M2',
             ],
         ];
 
@@ -403,17 +431,24 @@ class PlinthCeramicFormula implements FormulaInterface
         $kebutuhanAirPerM2Liter = $n(($kubikPerKemasanAir * 1000) / $luasScreedanPerKemasan);
         $kebutuhanAirPerM2M3 = $n($kubikPerKemasanAir / $luasScreedanPerKemasan);
 
+        $kubikAirPerKemasanLiter = $n($kubikPerKemasanAir * 1000);
+
         $trace['steps'][] = [
             'step' => 16,
             'title' => 'Kebutuhan Adukan per M2',
+            'formula' => 'Kebutuhan per M2 = Nilai per Kemasan / Luas Screedan per Kemasan',
+            'info' => 'Normalisasi kebutuhan adukan dari per-kemasan menjadi per-M2. Luas Screedan = '.NumberHelper::format($luasScreedanPerKemasan).' M2',
             'calculations' => [
-                'Semen per M2 (kemasan)' => NumberHelper::format($kebutuhanSemenPerM2Kemasan).' kemasan/M2',
-                'Semen per M2 (kg)' => NumberHelper::format($kebutuhanSemenPerM2Kg).' kg/M2',
-                'Semen per M2 (M3)' => NumberHelper::format($kebutuhanSemenPerM2M3).' M3/M2',
-                'Pasir per M2 (M3)' => NumberHelper::format($kebutuhanPasirPerM2M3).' M3/M2',
-                'Pasir per M2 (sak)' => NumberHelper::format($kebutuhanPasirPerM2Sak).' sak/M2',
-                'Air per M2 (liter)' => NumberHelper::format($kebutuhanAirPerM2Liter).' liter/M2',
-                'Air per M2 (M3)' => NumberHelper::format($kebutuhanAirPerM2M3).' M3/M2',
+                '--- Semen ---' => '',
+                'Semen (kemasan/M2)' => '1 ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanSemenPerM2Kemasan).' kemasan/M2',
+                'Semen (kg/M2)' => NumberHelper::format($kemasanSemen).' kg ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanSemenPerM2Kg).' kg/M2',
+                'Semen (M3/M2)' => NumberHelper::format($kubikPerKemasanSemen).' M3 ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanSemenPerM2M3).' M3/M2',
+                '--- Pasir ---' => '',
+                'Pasir (M3/M2)' => NumberHelper::format($kubikPerKemasanPasir).' M3 ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanPasirPerM2M3).' M3/M2',
+                'Pasir (sak/M2)' => '3 ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanPasirPerM2Sak).' sak/M2',
+                '--- Air ---' => '',
+                'Air (liter/M2)' => '('.NumberHelper::format($kubikPerKemasanAir).' × 1000) ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kubikAirPerKemasanLiter).' ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanAirPerM2Liter).' liter/M2',
+                'Air (M3/M2)' => NumberHelper::format($kubikPerKemasanAir).' M3 ÷ '.NumberHelper::format($luasScreedanPerKemasan).' = '.NumberHelper::format($kebutuhanAirPerM2M3).' M3/M2',
             ],
         ];
 
@@ -435,16 +470,21 @@ class PlinthCeramicFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 17,
             'title' => 'Kebutuhan Adukan per Pekerjaan',
-            'info' => 'Total Luas: '.NumberHelper::format($luasBidang).' M2',
+            'formula' => 'Kebutuhan per Pekerjaan = Kebutuhan per M2 × Luas Bidang',
+            'info' => 'Mengalikan kebutuhan per M2 dengan total luas bidang ('.NumberHelper::format($luasBidang).' M2)',
             'calculations' => [
-                'Semen (kemasan)' => NumberHelper::format($kebutuhanSemenKemasanPekerjaan).' kemasan',
-                'Semen (kg)' => NumberHelper::format($kebutuhanSemenKgPekerjaan).' kg',
-                'Semen (M3)' => NumberHelper::format($kebutuhanSemenM3Pekerjaan).' M3',
-                'Pasir (M3)' => NumberHelper::format($kebutuhanPasirM3Pekerjaan).' M3',
-                'Pasir (sak)' => NumberHelper::format($kebutuhanPasirSakPekerjaan).' sak',
-                'Air (liter)' => NumberHelper::format($kebutuhanAirLiterPekerjaan).' liter',
-                'Air (M3)' => NumberHelper::format($kebutuhanAirM3Pekerjaan).' M3',
-                'Volume Adukan Total' => NumberHelper::format($volumeAdukanPekerjaan).' M3',
+                '--- Semen ---' => '',
+                'Semen (kemasan)' => NumberHelper::format($kebutuhanSemenPerM2Kemasan).' × '.NumberHelper::format($luasBidang).' = '.NumberHelper::format($kebutuhanSemenKemasanPekerjaan).' kemasan',
+                'Semen (kg)' => NumberHelper::format($kebutuhanSemenPerM2Kg).' × '.NumberHelper::format($luasBidang).' = '.NumberHelper::format($kebutuhanSemenKgPekerjaan).' kg',
+                'Semen (M3)' => NumberHelper::format($kebutuhanSemenPerM2M3).' × '.NumberHelper::format($luasBidang).' = '.NumberHelper::format($kebutuhanSemenM3Pekerjaan).' M3',
+                '--- Pasir ---' => '',
+                'Pasir (M3)' => NumberHelper::format($kebutuhanPasirPerM2M3).' × '.NumberHelper::format($luasBidang).' = '.NumberHelper::format($kebutuhanPasirM3Pekerjaan).' M3',
+                'Pasir (sak)' => NumberHelper::format($kebutuhanPasirPerM2Sak).' × '.NumberHelper::format($luasBidang).' = '.NumberHelper::format($kebutuhanPasirSakPekerjaan).' sak',
+                '--- Air ---' => '',
+                'Air (M3)' => NumberHelper::format($kebutuhanAirPerM2M3).' × '.NumberHelper::format($luasBidang).' = '.NumberHelper::format($kebutuhanAirM3Pekerjaan).' M3',
+                'Air (liter)' => NumberHelper::format($kebutuhanAirM3Pekerjaan).' M3 × 1000 = '.NumberHelper::format($kebutuhanAirLiterPekerjaan).' liter',
+                '--- Total ---' => '',
+                'Volume Adukan Total' => NumberHelper::format($kebutuhanSemenM3Pekerjaan).' + '.NumberHelper::format($kebutuhanPasirM3Pekerjaan).' + '.NumberHelper::format($kebutuhanAirM3Pekerjaan).' = '.NumberHelper::format($volumeAdukanPekerjaan).' M3',
             ],
         ];
 
@@ -469,17 +509,24 @@ class PlinthCeramicFormula implements FormulaInterface
 
         $trace['steps'][] = [
             'step' => 18,
-            'title' => 'Perhitungan Harga',
+            'title' => 'Perhitungan Harga Komparasi',
+            'formula' => 'Total Harga = Kebutuhan per Pekerjaan × Harga Satuan',
+            'info' => 'Harga komparasi total material untuk seluruh pekerjaan',
             'calculations' => [
+                '--- Semen ---' => '',
                 'Harga Semen per Kemasan' => NumberHelper::currency($cementPrice),
-                'Total Harga Semen' => NumberHelper::currency($totalCementPrice),
+                'Total Harga Semen' => NumberHelper::format($kebutuhanSemenKemasanPekerjaan).' kemasan × '.NumberHelper::currency($cementPrice).' = '.NumberHelper::currency($totalCementPrice),
+                '--- Pasir ---' => '',
                 'Harga Pasir per M3' => NumberHelper::currency($sandPricePerM3),
-                'Total Harga Pasir' => NumberHelper::currency($totalSandPrice),
+                'Total Harga Pasir' => NumberHelper::format($kebutuhanPasirM3Pekerjaan).' M3 × '.NumberHelper::currency($sandPricePerM3).' = '.NumberHelper::currency($totalSandPrice),
+                '--- Keramik ---' => '',
                 'Harga Keramik per Dus' => NumberHelper::currency($ceramicPricePerDus),
-                'Total Harga Keramik' => NumberHelper::currency($totalCeramicPrice),
+                'Total Harga Keramik' => NumberHelper::format($kebutuhanDusUtuhPekerjaan).' dus × '.NumberHelper::currency($ceramicPricePerDus).' = '.NumberHelper::currency($totalCeramicPrice),
+                '--- Nat ---' => '',
                 'Harga Nat per Bungkus' => NumberHelper::currency($hargaNatPerBungkus),
-                'Total Harga Nat' => NumberHelper::currency($totalGroutPrice),
-                'Grand Total' => NumberHelper::currency($grandTotal),
+                'Total Harga Nat' => NumberHelper::format($kebutuhanBungkusNat).' bungkus × '.NumberHelper::currency($hargaNatPerBungkus).' = '.NumberHelper::currency($totalGroutPrice),
+                '--- Grand Total ---' => '',
+                'Grand Total' => NumberHelper::currency($totalCementPrice).' + '.NumberHelper::currency($totalSandPrice).' + '.NumberHelper::currency($totalCeramicPrice).' + '.NumberHelper::currency($totalGroutPrice).' = '.NumberHelper::currency($grandTotal),
             ],
         ];
 

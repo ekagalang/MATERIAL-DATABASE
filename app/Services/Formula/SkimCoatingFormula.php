@@ -19,7 +19,7 @@ class SkimCoatingFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Aci Dinding';
+        return 'Acian Dinding';
     }
 
     public static function getDescription(): string

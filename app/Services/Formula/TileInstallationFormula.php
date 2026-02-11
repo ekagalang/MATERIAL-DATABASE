@@ -3,11 +3,10 @@
 namespace App\Services\Formula;
 
 use App\Helpers\NumberHelper;
-
 use App\Models\Cement;
-use App\Models\Sand;
 use App\Models\Ceramic;
 use App\Models\Nat;
+use App\Models\Sand;
 
 /**
  * Formula - Perhitungan Pasang Keramik
@@ -40,7 +39,7 @@ class TileInstallationFormula implements FormulaInterface
         $required = ['wall_length', 'wall_height', 'mortar_thickness', 'grout_thickness'];
 
         foreach ($required as $field) {
-            if (!isset($params[$field]) || !is_numeric($params[$field]) || (float) $params[$field] <= 0) {
+            if (! isset($params[$field]) || ! is_numeric($params[$field]) || (float) $params[$field] <= 0) {
                 return false;
             }
         }
@@ -51,6 +50,7 @@ class TileInstallationFormula implements FormulaInterface
     public function calculate(array $params): array
     {
         $trace = $this->trace($params);
+
         return $trace['final_result'];
     }
 
@@ -59,7 +59,7 @@ class TileInstallationFormula implements FormulaInterface
         $trace = [];
         $trace['mode'] = self::getName();
         $trace['steps'] = [];
-        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
 
         // ============ STEP 1: Load Input Parameters ============
         $panjangBidang = $n($params['wall_length']); // m
@@ -71,10 +71,10 @@ class TileInstallationFormula implements FormulaInterface
             'step' => 1,
             'title' => 'Input Parameters',
             'calculations' => [
-                'Panjang Bidang' => $panjangBidang . ' m',
-                'Lebar Bidang' => $lebarBidang . ' m',
-                'Tebal Adukan' => $tebalAdukan . ' cm',
-                'Tebal Nat' => $tebalNat . ' mm',
+                'Panjang Bidang' => NumberHelper::format($panjangBidang).' m',
+                'Lebar Bidang' => NumberHelper::format($lebarBidang).' m',
+                'Tebal Adukan' => NumberHelper::format($tebalAdukan).' cm',
+                'Tebal Nat' => NumberHelper::format($tebalNat).' mm',
             ],
         ];
 
@@ -89,11 +89,11 @@ class TileInstallationFormula implements FormulaInterface
         $ceramic = $ceramic ?: Ceramic::first();
         $nat = $nat ?: Nat::query()->orderBy('id')->first();
 
-        if (!$cement || !$sand || !$ceramic) {
+        if (! $cement || ! $sand || ! $ceramic) {
             throw new \RuntimeException('Data material (semen/pasir/keramik) tidak tersedia di database.');
         }
 
-        if (!$nat) {
+        if (! $nat) {
             throw new \RuntimeException(
                 'Data material nat tidak tersedia di database. Pastikan ada data di tabel nats.',
             );
@@ -122,17 +122,17 @@ class TileInstallationFormula implements FormulaInterface
             'step' => 2,
             'title' => 'Data Material',
             'calculations' => [
-                'Semen' => $cement->brand . ' (' . $kemasanSemen . ' kg)',
+                'Semen' => $cement->brand.' ('.NumberHelper::format($kemasanSemen).' kg)',
                 'Pasir' => $sand->brand,
-                'Keramik' => $ceramic->brand . ' (' . $panjangKeramik . 'x' . $lebarKeramik . ' cm)',
-                'Isi per Dus Keramik' => $isiPerDus . ' pcs',
-                'Tebal Keramik' => $tebalKeramikMm . ' mm',
-                'Nat' => $nat->brand . ' (' . $beratKemasanNat . ' kg)',
-                'Berat Kemasan Nat' => $beratKemasanNat . ' kg',
-                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus) . ' M3',
+                'Keramik' => $ceramic->brand.' ('.NumberHelper::format($panjangKeramik).'x'.NumberHelper::format($lebarKeramik).' cm)',
+                'Isi per Dus Keramik' => $isiPerDus.' pcs',
+                'Tebal Keramik' => NumberHelper::format($tebalKeramikMm).' mm',
+                'Nat' => $nat->brand.' ('.NumberHelper::format($beratKemasanNat).' kg)',
+                'Berat Kemasan Nat' => NumberHelper::format($beratKemasanNat).' kg',
+                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus).' M3',
                 'Harga Nat per Bungkus' => NumberHelper::currency($hargaNatPerBungkus),
-                'Densitas Semen' => $densitySemen . ' kg/M3',
-                'Densitas Nat' => $densityNat . ' kg/M3',
+                'Densitas Semen' => $densitySemen.' kg/M3',
+                'Densitas Nat' => $densityNat.' kg/M3',
                 'Rasio Adukan Semen' => '1 : 3 : 30% (Semen : Pasir : Air)',
                 'Rasio Adukan Nat' => '1 : 33% (Nat : Air)',
             ],
@@ -146,8 +146,8 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Luas Bidang',
             'formula' => 'Panjang × Lebar',
             'calculations' => [
-                'Perhitungan' => "$panjangBidang × $lebarBidang",
-                'Hasil' => NumberHelper::format($luasBidang) . ' M2',
+                'Perhitungan' => NumberHelper::format($panjangBidang).' × '.NumberHelper::format($lebarBidang),
+                'Hasil' => NumberHelper::format($luasBidang).' M2',
             ],
         ];
 
@@ -168,10 +168,9 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Kubik per Kemasan (Semen, Pasir, Air)',
             'info' => 'Ratio 1 : 3 : 30% (Semen : Pasir : Air)',
             'calculations' => [
-                'Kubik per Kemasan Semen' =>
-                    NumberHelper::format($kubikPerKemasanSemen) . ' M3 (= ' . $kemasanSemen . ' × (1/1440))',
-                'Kubik per Kemasan Pasir' => NumberHelper::format($kubikPerKemasanPasir) . ' M3 (= 3 × kubik semen)',
-                'Kubik per Kemasan Air' => NumberHelper::format($kubikPerKemasanAir) . ' M3 (= 30% × (semen + pasir))',
+                'Kubik per Kemasan Semen' => NumberHelper::format($kubikPerKemasanSemen).' M3 (= '.NumberHelper::format($kemasanSemen).' × (1/1440))',
+                'Kubik per Kemasan Pasir' => NumberHelper::format($kubikPerKemasanPasir).' M3 (= 3 × kubik semen)',
+                'Kubik per Kemasan Air' => NumberHelper::format($kubikPerKemasanAir).' M3 (= 30% × (semen + pasir))',
             ],
         ];
 
@@ -184,13 +183,12 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Volume Adukan per Kemasan Semen',
             'formula' => 'Kubik Semen + Kubik Pasir + Kubik Air',
             'calculations' => [
-                'Perhitungan' =>
-                    NumberHelper::format($kubikPerKemasanSemen) .
-                    ' + ' .
-                    NumberHelper::format($kubikPerKemasanPasir) .
-                    ' + ' .
+                'Perhitungan' => NumberHelper::format($kubikPerKemasanSemen).
+                    ' + '.
+                    NumberHelper::format($kubikPerKemasanPasir).
+                    ' + '.
                     NumberHelper::format($kubikPerKemasanAir),
-                'Hasil' => NumberHelper::format($volumeAdukanPerKemasan) . ' M3',
+                'Hasil' => NumberHelper::format($volumeAdukanPerKemasan).' M3',
             ],
         ];
 
@@ -205,10 +203,9 @@ class TileInstallationFormula implements FormulaInterface
             'formula' => 'Volume adukan per kemasan / (tebal adukan / 100)',
             'info' => 'Berapa M2 yang bisa di-screed dengan 1 kemasan semen',
             'calculations' => [
-                'Tebal Adukan (meter)' => NumberHelper::format($tebalAdukanMeter) . ' m',
-                'Perhitungan' =>
-                    NumberHelper::format($volumeAdukanPerKemasan) . ' / ' . NumberHelper::format($tebalAdukanMeter),
-                'Hasil' => NumberHelper::format($luasScreedanPerKemasan) . ' M2',
+                'Tebal Adukan (meter)' => NumberHelper::format($tebalAdukanMeter).' m',
+                'Perhitungan' => NumberHelper::format($volumeAdukanPerKemasan).' / '.NumberHelper::format($tebalAdukanMeter),
+                'Hasil' => NumberHelper::format($luasScreedanPerKemasan).' M2',
             ],
         ];
 
@@ -230,13 +227,13 @@ class TileInstallationFormula implements FormulaInterface
             'step' => 7,
             'title' => 'Kebutuhan Adukan per M2',
             'calculations' => [
-                'Semen per M2 (kemasan)' => NumberHelper::format($kebutuhanSemenPerM2Kemasan) . ' kemasan/M2',
-                'Semen per M2 (kg)' => NumberHelper::format($kebutuhanSemenPerM2Kg) . ' kg/M2',
-                'Semen per M2 (M3)' => NumberHelper::format($kebutuhanSemenPerM2M3) . ' M3/M2',
-                'Pasir per M2 (M3)' => NumberHelper::format($kebutuhanPasirPerM2M3) . ' M3/M2',
-                'Pasir per M2 (sak)' => NumberHelper::format($kebutuhanPasirPerM2Sak) . ' sak/M2',
-                'Air per M2 (liter)' => NumberHelper::format($kebutuhanAirPerM2Liter) . ' liter/M2',
-                'Air per M2 (M3)' => NumberHelper::format($kebutuhanAirPerM2M3) . ' M3/M2',
+                'Semen per M2 (kemasan)' => NumberHelper::format($kebutuhanSemenPerM2Kemasan).' kemasan/M2',
+                'Semen per M2 (kg)' => NumberHelper::format($kebutuhanSemenPerM2Kg).' kg/M2',
+                'Semen per M2 (M3)' => NumberHelper::format($kebutuhanSemenPerM2M3).' M3/M2',
+                'Pasir per M2 (M3)' => NumberHelper::format($kebutuhanPasirPerM2M3).' M3/M2',
+                'Pasir per M2 (sak)' => NumberHelper::format($kebutuhanPasirPerM2Sak).' sak/M2',
+                'Air per M2 (liter)' => NumberHelper::format($kebutuhanAirPerM2Liter).' liter/M2',
+                'Air per M2 (M3)' => NumberHelper::format($kebutuhanAirPerM2M3).' M3/M2',
             ],
         ];
 
@@ -257,16 +254,16 @@ class TileInstallationFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 8,
             'title' => 'Kebutuhan Adukan per Pekerjaan',
-            'info' => 'Total Luas: ' . NumberHelper::format($luasBidang) . ' M2',
+            'info' => 'Total Luas: '.NumberHelper::format($luasBidang).' M2',
             'calculations' => [
-                'Semen (kemasan)' => NumberHelper::format($kebutuhanSemenKemasanPekerjaan) . ' kemasan',
-                'Semen (kg)' => NumberHelper::format($kebutuhanSemenKgPekerjaan) . ' kg',
-                'Semen (M3)' => NumberHelper::format($kebutuhanSemenM3Pekerjaan) . ' M3',
-                'Pasir (M3)' => NumberHelper::format($kebutuhanPasirM3Pekerjaan) . ' M3',
-                'Pasir (sak)' => NumberHelper::format($kebutuhanPasirSakPekerjaan) . ' sak',
-                'Air (liter)' => NumberHelper::format($kebutuhanAirLiterPekerjaan) . ' liter',
-                'Air (M3)' => NumberHelper::format($kebutuhanAirM3Pekerjaan) . ' M3',
-                'Volume Adukan Total' => NumberHelper::format($volumeAdukanPekerjaan) . ' M3',
+                'Semen (kemasan)' => NumberHelper::format($kebutuhanSemenKemasanPekerjaan).' kemasan',
+                'Semen (kg)' => NumberHelper::format($kebutuhanSemenKgPekerjaan).' kg',
+                'Semen (M3)' => NumberHelper::format($kebutuhanSemenM3Pekerjaan).' M3',
+                'Pasir (M3)' => NumberHelper::format($kebutuhanPasirM3Pekerjaan).' M3',
+                'Pasir (sak)' => NumberHelper::format($kebutuhanPasirSakPekerjaan).' sak',
+                'Air (liter)' => NumberHelper::format($kebutuhanAirLiterPekerjaan).' liter',
+                'Air (M3)' => NumberHelper::format($kebutuhanAirM3Pekerjaan).' M3',
+                'Volume Adukan Total' => NumberHelper::format($volumeAdukanPekerjaan).' M3',
             ],
         ];
 
@@ -285,22 +282,20 @@ class TileInstallationFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 9,
             'title' => 'Jumlah Keramik yang Dibutuhkan',
-            'formula' =>
-                'ceil(Panjang / ((Panjang Keramik + Tebal Nat/10) / 100)) × ceil(Lebar / ((Lebar Keramik + Tebal Nat/10) / 100))',
+            'formula' => 'ceil(Panjang / ((Panjang Keramik + Tebal Nat/10) / 100)) × ceil(Lebar / ((Lebar Keramik + Tebal Nat/10) / 100))',
             'calculations' => [
-                'Dimensi Keramik + Nat' =>
-                    '(' .
-                    $panjangKeramik .
-                    ' + ' .
-                    $tebalNat / 10 .
-                    ') cm × (' .
-                    $lebarKeramik .
-                    ' + ' .
-                    $tebalNat / 10 .
+                'Dimensi Keramik + Nat' => '('.
+                    NumberHelper::format($panjangKeramik).
+                    ' + '.
+                    NumberHelper::format($tebalNat / 10).
+                    ') cm × ('.
+                    NumberHelper::format($lebarKeramik).
+                    ' + '.
+                    NumberHelper::format($tebalNat / 10).
                     ') cm',
-                'Jumlah Keramik per Baris' => NumberHelper::format($jumlahKeramikPerBaris) . ' pcs',
-                'Jumlah Keramik per Kolom' => NumberHelper::format($jumlahKeramikPerKolom) . ' pcs',
-                'Total Keramik Utuh' => NumberHelper::format($totalKeramikUtuh) . ' pcs',
+                'Jumlah Keramik per Baris' => NumberHelper::format($jumlahKeramikPerBaris).' pcs',
+                'Jumlah Keramik per Kolom' => NumberHelper::format($jumlahKeramikPerKolom).' pcs',
+                'Total Keramik Utuh' => NumberHelper::format($totalKeramikUtuh).' pcs',
             ],
         ];
 
@@ -319,10 +314,10 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Kebutuhan Dus Keramik',
             'formula' => 'ceil(Total Keramik Utuh / Isi per Dus)',
             'calculations' => [
-                'Isi per Dus' => $isiPerDus . ' pcs',
-                'Kebutuhan Dus per Pekerjaan' => NumberHelper::format($kebutuhanDusUtuhPekerjaan) . ' dus',
-                'Kebutuhan Dus per M2' => NumberHelper::format($kebutuhanDusPerM2) . ' dus/M2',
-                'Kebutuhan Keramik per M2' => NumberHelper::format($kebutuhanKeramikPerM2) . ' pcs/M2',
+                'Isi per Dus' => $isiPerDus.' pcs',
+                'Kebutuhan Dus per Pekerjaan' => NumberHelper::format($kebutuhanDusUtuhPekerjaan).' dus',
+                'Kebutuhan Dus per M2' => NumberHelper::format($kebutuhanDusPerM2).' dus/M2',
+                'Kebutuhan Keramik per M2' => NumberHelper::format($kebutuhanKeramikPerM2).' pcs/M2',
             ],
         ];
 
@@ -340,8 +335,8 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Jumlah Kolom dan Baris Nat',
             'formula' => 'ceil(Bidang / ((Dimensi Keramik + Tebal Nat/10) / 100)) + 1',
             'calculations' => [
-                'Jumlah Kolom Nat' => NumberHelper::format($jumlahKolomNat) . ' garis',
-                'Jumlah Baris Nat' => NumberHelper::format($jumlahBarisNat) . ' garis',
+                'Jumlah Kolom Nat' => NumberHelper::format($jumlahKolomNat).' garis',
+                'Jumlah Baris Nat' => NumberHelper::format($jumlahBarisNat).' garis',
             ],
         ];
 
@@ -354,17 +349,16 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Panjang Bentangan Nat',
             'formula' => '(Jumlah Kolom Nat × Lebar Bidang) + (Jumlah Baris Nat × Panjang Bidang)',
             'calculations' => [
-                'Perhitungan' =>
-                    '(' .
-                    $jumlahKolomNat .
-                    ' × ' .
-                    $lebarBidang .
-                    ') + (' .
-                    $jumlahBarisNat .
-                    ' × ' .
-                    $panjangBidang .
+                'Perhitungan' => '('.
+                    $jumlahKolomNat.
+                    ' × '.
+                    NumberHelper::format($lebarBidang).
+                    ') + ('.
+                    $jumlahBarisNat.
+                    ' × '.
+                    NumberHelper::format($panjangBidang).
                     ')',
-                'Hasil' => NumberHelper::format($panjangBentanganNat) . ' m',
+                'Hasil' => NumberHelper::format($panjangBentanganNat).' m',
             ],
         ];
 
@@ -377,10 +371,10 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Volume Nat per Pekerjaan',
             'formula' => 'Panjang Bentangan × Tebal Nat × Tebal Keramik / 1000000',
             'calculations' => [
-                'Panjang Bentangan' => NumberHelper::format($panjangBentanganNat) . ' m',
-                'Tebal Nat' => $tebalNat . ' mm',
-                'Tebal Keramik' => $tebalKeramikMm . ' mm',
-                'Volume Nat' => NumberHelper::format($volumeNatPekerjaan) . ' M3',
+                'Panjang Bentangan' => NumberHelper::format($panjangBentanganNat).' m',
+                'Tebal Nat' => NumberHelper::format($tebalNat).' mm',
+                'Tebal Keramik' => NumberHelper::format($tebalKeramikMm).' mm',
+                'Volume Nat' => NumberHelper::format($volumeNatPekerjaan).' M3',
             ],
         ];
 
@@ -396,9 +390,9 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Kebutuhan Bungkus Nat',
             'formula' => 'Volume Nat / Volume Pasta Nat per Bungkus',
             'calculations' => [
-                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus) . ' M3',
-                'Kebutuhan Bungkus' => NumberHelper::format($kebutuhanBungkusNat) . ' bungkus',
-                'Kebutuhan (Kg)' => NumberHelper::format($kebutuhanKgNat) . ' kg',
+                'Volume Pasta Nat per Bungkus' => NumberHelper::format($volumePastaNatPerBungkus).' M3',
+                'Kebutuhan Bungkus' => NumberHelper::format($kebutuhanBungkusNat).' bungkus',
+                'Kebutuhan (Kg)' => NumberHelper::format($kebutuhanKgNat).' kg',
             ],
         ];
 
@@ -429,16 +423,15 @@ class TileInstallationFormula implements FormulaInterface
             'title' => 'Volume Adukan Nat',
             'info' => 'Ratio 1 : 33% (Nat : Air)',
             'calculations' => [
-                'Kubik Nat per Bungkus' =>
-                    NumberHelper::format($kubikNatPerBungkus) . ' M3 (= (1/1440) × ' . $beratKemasanNat . ' kg)',
-                'Kubik Air per Ratio' => NumberHelper::format($kubikAirNatPerBungkus) . ' M3 (= 33% × kubik nat)',
-                'Liter Air per Ratio' => NumberHelper::format($literAirNatPerBungkus) . ' liter',
-                'Volume Adukan per Bungkus' => NumberHelper::format($volumeAdukanNatPerBungkus) . ' M3',
+                'Kubik Nat per Bungkus' => NumberHelper::format($kubikNatPerBungkus).' M3 (= (1/1440) × '.NumberHelper::format($beratKemasanNat).' kg)',
+                'Kubik Air per Ratio' => NumberHelper::format($kubikAirNatPerBungkus).' M3 (= 33% × kubik nat)',
+                'Liter Air per Ratio' => NumberHelper::format($literAirNatPerBungkus).' liter',
+                'Volume Adukan per Bungkus' => NumberHelper::format($volumeAdukanNatPerBungkus).' M3',
                 '---' => '---',
-                'Total Kubik Nat Pekerjaan' => NumberHelper::format($kubikNatPekerjaan) . ' M3',
-                'Total Kubik Air Pekerjaan' => NumberHelper::format($kubikAirNatPekerjaan) . ' M3',
-                'Total Liter Air Pekerjaan' => NumberHelper::format($literAirNatPekerjaan) . ' liter',
-                'Total Volume Adukan Nat' => NumberHelper::format($volumeAdukanNatPekerjaan) . ' M3',
+                'Total Kubik Nat Pekerjaan' => NumberHelper::format($kubikNatPekerjaan).' M3',
+                'Total Kubik Air Pekerjaan' => NumberHelper::format($kubikAirNatPekerjaan).' M3',
+                'Total Liter Air Pekerjaan' => NumberHelper::format($literAirNatPekerjaan).' liter',
+                'Total Volume Adukan Nat' => NumberHelper::format($volumeAdukanNatPekerjaan).' M3',
             ],
         ];
 

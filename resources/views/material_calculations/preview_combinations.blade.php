@@ -1037,7 +1037,8 @@ $paramValue = $isGroutTile
                         }
                     }
                 }
-                // Keep Populer rows visible even if no historical usage; show "-" placeholders instead.
+                // Note: Populer column is kept in $rekapCategories so the header always appears,
+                // but data rows are only populated when $hasHistoricalUsage is true.
 
                 // Definisi warna label untuk kolom Rekap (sama dengan yang di tabel utama)
                 $rekapLabelColors = [
@@ -2004,8 +2005,8 @@ $paramValue = $isGroutTile
                 }
 
                 // Fallback visual rank untuk Populer di Rekap Global:
-                // tetap tampilkan identitas material populer dari histori walau belum lolos one-stop.
-                if (in_array('Populer', $filterCategories, true)) {
+                // Tampilkan identitas material populer HANYA dari histori, bukan fallback.
+                if (in_array('Populer', $filterCategories, true) && $hasHistoricalUsage) {
                     $populerRankedIdsForDisplay = [
                         'brick' => in_array('brick', $requiredMaterials, true)
                             ? $resolveRankedUniqueIds(

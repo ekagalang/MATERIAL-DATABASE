@@ -3,6 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class RunningCommand extends Command
 {
@@ -24,8 +26,8 @@ class RunningCommand extends Command
         $this->info("❌ Press 'Q' then ENTER to stop server");
         $this->newLine();
 
-        // Artisan Serve
-        $artisan = new \Symfony\Component\Process\Process([
+        // Artisan serve
+        $artisan = new Process([
             'php',
             'artisan',
             'serve',
@@ -33,28 +35,71 @@ class RunningCommand extends Command
             "--port={$port}",
         ]);
 
+        // npm dev
+        $npmCmd = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN'
+            ? 'npm.cmd'
+            : 'npm';
+
+        $npm = new Process([$npmCmd, 'run', 'dev']);
+
+
         $artisan->setTimeout(null);
-        $artisan->start();
-
-        // NPM Dev (Windows)
-        $npm = new \Symfony\Component\Process\Process(['npm.cmd', 'run', 'dev']);
-
         $npm->setTimeout(null);
+
+        // Start processes
+        $artisan->start();
         $npm->start();
 
-        // Listen for "q"
+        // Non blocking input
+        stream_set_blocking(STDIN, false);
+
         while (true) {
-            $input = trim(fgets(STDIN));
 
-            if (strtolower($input) === 'q') {
-                $this->warn('🛑 Stopping servers...');
+            // Laravel output
+            $artisanOut = $artisan->getIncrementalOutput();
+            $artisanErr = $artisan->getIncrementalErrorOutput();
 
-                $artisan->stop();
-                $npm->stop();
+            if ($artisanOut) {
+                echo "[LARAVEL] " . $artisanOut;
+            }
+
+            if ($artisanErr) {
+                echo "[LARAVEL-ERR] " . $artisanErr;
+            }
+
+            // NPM output
+            $npmOut = $npm->getIncrementalOutput();
+            $npmErr = $npm->getIncrementalErrorOutput();
+
+            if ($npmOut) {
+                echo "[VITE] " . $npmOut;
+            }
+
+            if ($npmErr) {
+                echo "[VITE-ERR] " . $npmErr;
+            }
+
+            // Stop if process died
+            if (!$artisan->isRunning() || !$npm->isRunning()) {
+                $this->error("\n❌ One process stopped unexpectedly.");
+                break;
+            }
+
+            // Read input
+            $input = fgets(STDIN);
+
+            if ($input !== false && strtolower(trim($input)) === 'q') {
+
+                $this->warn("\n🛑 Stopping servers...");
+
+                $artisan->stop(1);
+                $npm->stop(1);
 
                 $this->info('✅ Server stopped.');
                 break;
             }
+
+            usleep(100000); // 0.1s
         }
 
         return self::SUCCESS;

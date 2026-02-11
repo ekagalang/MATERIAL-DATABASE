@@ -19,7 +19,7 @@ class CoatingFloorFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Aci Lantai';
+        return 'Acian Lantai';
     }
 
     public static function getDescription(): string

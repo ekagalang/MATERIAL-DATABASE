@@ -20,7 +20,7 @@ class WallPlasteringFormula implements FormulaInterface
 
     public static function getName(): string
     {
-        return 'Plester Dinding Saja';
+        return 'Plesteran Dinding Saja';
     }
 
     public static function getDescription(): string
