@@ -53,7 +53,7 @@ class NatRepository extends BaseRepository
         int $limit = 20,
     ): Collection {
         $fieldMap = $this->fieldMap();
-        if (! isset($fieldMap[$field])) {
+        if (!isset($fieldMap[$field])) {
             return collect([]);
         }
 
@@ -66,7 +66,7 @@ class NatRepository extends BaseRepository
             if ($value === null || $value === '') {
                 continue;
             }
-            if (! isset($fieldMap[$key])) {
+            if (!isset($fieldMap[$key])) {
                 continue;
             }
             $query->where($fieldMap[$key], $value);
@@ -101,31 +101,31 @@ class NatRepository extends BaseRepository
             ->query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $brickStores = \App\Models\Brick::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $catStores = \App\Models\Cat::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $cementStores = \App\Models\Cement::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         $sandStores = \App\Models\Sand::query()
             ->whereNotNull('store')
             ->where('store', '!=', '')
-            ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
             ->pluck('store');
 
         return collect()
@@ -149,35 +149,35 @@ class NatRepository extends BaseRepository
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $brickAddresses = \App\Models\Brick::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $cementAddresses = \App\Models\Cement::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         return collect()

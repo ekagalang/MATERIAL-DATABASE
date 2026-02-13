@@ -121,7 +121,7 @@ class CacheService
                 Cache::tags([self::CACHE_KEYS['materials']])->flush();
             } else {
                 // Flush by pattern (not all drivers support this)
-                $this->flushByPattern(self::CACHE_KEYS['materials'].':*');
+                $this->flushByPattern(self::CACHE_KEYS['materials'] . ':*');
             }
         }
 
@@ -167,7 +167,7 @@ class CacheService
         if ($this->supportsTagging()) {
             Cache::tags([self::CACHE_KEYS['calculations']])->flush();
         } else {
-            $this->flushByPattern(self::CACHE_KEYS['calculations'].':*');
+            $this->flushByPattern(self::CACHE_KEYS['calculations'] . ':*');
         }
 
         // Also invalidate analytics since calculations affect analytics
@@ -197,13 +197,13 @@ class CacheService
         $key = $prefix;
 
         if ($identifier) {
-            $key .= ':'.$identifier;
+            $key .= ':' . $identifier;
         }
 
-        if (! empty($params)) {
+        if (!empty($params)) {
             // Sort params for consistent cache keys
             ksort($params);
-            $key .= ':'.md5(serialize($params));
+            $key .= ':' . md5(serialize($params));
         }
 
         return $key;

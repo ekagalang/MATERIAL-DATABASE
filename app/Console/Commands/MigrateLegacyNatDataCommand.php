@@ -21,7 +21,7 @@ class MigrateLegacyNatDataCommand extends Command
 
     public function handle(): int
     {
-        if (! Schema::hasTable('nats') || ! Schema::hasColumn('nats', 'legacy_cement_id')) {
+        if (!Schema::hasTable('nats') || !Schema::hasColumn('nats', 'legacy_cement_id')) {
             $this->warn('Legacy mapping column `nats.legacy_cement_id` is not available.');
             $this->line('Nat has been finalized as standalone material. This command is no longer applicable.');
 
@@ -31,7 +31,7 @@ class MigrateLegacyNatDataCommand extends Command
         $dryRun = (bool) $this->option('dry-run');
         $limit = max(0, (int) $this->option('limit'));
         $chunk = max(1, (int) $this->option('chunk'));
-        $matchExisting = ! $this->option('skip-match-existing');
+        $matchExisting = !$this->option('skip-match-existing');
 
         $query = Cement::query()->where('type', 'Nat')->orderBy('id');
 
@@ -48,13 +48,13 @@ class MigrateLegacyNatDataCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->info('Legacy Nat rows found: '.$total);
-        $this->line('Mode: '.($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
-        $this->line('Chunk size: '.$chunk);
-        $this->line('Match existing unmapped rows: '.($matchExisting ? 'yes' : 'no'));
+        $this->info('Legacy Nat rows found: ' . $total);
+        $this->line('Mode: ' . ($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
+        $this->line('Chunk size: ' . $chunk);
+        $this->line('Match existing unmapped rows: ' . ($matchExisting ? 'yes' : 'no'));
 
-        if (! $dryRun && ! $this->option('force')) {
-            if (! $this->confirm('Proceed with migrating legacy Nat data into nats table?', true)) {
+        if (!$dryRun && !$this->option('force')) {
+            if (!$this->confirm('Proceed with migrating legacy Nat data into nats table?', true)) {
                 $this->warn('Migration cancelled.');
 
                 return self::SUCCESS;
@@ -80,7 +80,7 @@ class MigrateLegacyNatDataCommand extends Command
                 $hasExisting = $existing->has($cement->id);
                 $matchedNat = null;
 
-                if (! $hasExisting && $matchExisting) {
+                if (!$hasExisting && $matchExisting) {
                     $matchedNat = Nat::query()
                         ->whereNull('legacy_cement_id')
                         ->where('brand', $cement->brand)

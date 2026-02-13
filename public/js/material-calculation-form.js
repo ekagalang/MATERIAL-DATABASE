@@ -187,6 +187,32 @@ function initMaterialCalculationForm(root, formData) {
         }
     }
 
+    function setupProjectLocationMap() {
+        const mapElement = scope.querySelector('#projectLocationMap') || document.getElementById('projectLocationMap');
+        if (!mapElement) {
+            return;
+        }
+
+        if (!window.GoogleMapsPicker || typeof window.GoogleMapsPicker.initAddressPicker !== 'function') {
+            console.warn('GoogleMapsPicker helper is not available for material calculation form.');
+            return;
+        }
+
+        window.GoogleMapsPicker.initAddressPicker({
+            scope,
+            apiKey: mapElement.dataset.googleMapsApiKey || '',
+            searchInput: '#projectLocationSearch',
+            mapElement: '#projectLocationMap',
+            addressInput: '#projectAddress',
+            latitudeInput: '#projectLatitude',
+            longitudeInput: '#projectLongitude',
+            placeIdInput: '#projectPlaceId',
+            formattedAddressInput: '#projectAddress',
+        }).catch((error) => {
+            console.error('Failed to initialize project location map picker:', error);
+        });
+    }
+
     function setupWorkTypeAutocomplete() {
         const displayInput = scope.querySelector('#workTypeDisplay') || document.getElementById('workTypeDisplay');
         const hiddenInput = scope.querySelector('#workTypeSelector') || document.getElementById('workTypeSelector');
@@ -523,7 +549,7 @@ function initMaterialCalculationForm(root, formData) {
                 const hiddenInput = scope.querySelector(`#materialTypeSelector-${type}`) || document.getElementById(`materialTypeSelector-${type}`);
                 let shouldShow = hasRequired && required.includes(type);
                 if (type === 'ceramic_type') {
-                    shouldShow = hasRequired && (workType === 'tile_installation' || workType === 'plinth_ceramic');
+                    shouldShow = hasRequired && (workType === 'tile_installation' || workType === 'plinth_ceramic' || workType === 'adhesive_mix' || workType === 'plinth_adhesive_mix');
                 }
                 if (workType === 'grout_tile' && type === 'ceramic') {
                     shouldShow = false;
@@ -653,6 +679,7 @@ function initMaterialCalculationForm(root, formData) {
     setupWorkTypeAutocomplete();
     setupMaterialTypeFilters();
     setupCustomFormLinking();
+    setupProjectLocationMap();
 
     // Auto-calculate area when length or height changes
     const wallLength = scope.querySelector('#wallLength') || document.getElementById('wallLength');

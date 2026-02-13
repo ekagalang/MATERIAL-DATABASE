@@ -198,7 +198,7 @@ class CalculationRepository
         ]);
 
         // Enhanced search filter - searches in multiple fields and relationships
-        if (! empty($filters['search'])) {
+        if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
                 // Search in calculation fields
@@ -232,15 +232,15 @@ class CalculationRepository
         }
 
         // Work type filter (from JSON field)
-        if (! empty($filters['work_type'])) {
+        if (!empty($filters['work_type'])) {
             $query->whereRaw("JSON_EXTRACT(calculation_params, '$.work_type') = ?", [$filters['work_type']]);
         }
 
         // Date range filters
-        if (! empty($filters['date_from'])) {
+        if (!empty($filters['date_from'])) {
             $query->whereDate('created_at', '>=', $filters['date_from']);
         }
-        if (! empty($filters['date_to'])) {
+        if (!empty($filters['date_to'])) {
             $query->whereDate('created_at', '<=', $filters['date_to']);
         }
 
@@ -316,13 +316,13 @@ class CalculationRepository
             ->first();
 
         // Fallback to first available if no price data
-        if (! $brick) {
+        if (!$brick) {
             $brick = Brick::first();
         }
-        if (! $cement) {
+        if (!$cement) {
             $cement = Cement::first();
         }
-        if (! $sand) {
+        if (!$sand) {
             $sand = Sand::first();
         }
 

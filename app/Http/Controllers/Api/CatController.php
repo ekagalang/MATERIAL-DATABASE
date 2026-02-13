@@ -64,7 +64,7 @@ class CatController extends Controller
     public function show(int $id): JsonResponse
     {
         $cat = $this->catService->find($id);
-        if (! $cat) {
+        if (!$cat) {
             return $this->notFoundResponse('Cat not found');
         }
 
@@ -131,7 +131,7 @@ class CatController extends Controller
     public function getAddressesByStore(Request $request): JsonResponse
     {
         $store = $request->get('store');
-        if (! $store) {
+        if (!$store) {
             return response()->json([]);
         }
         $addresses = $this->catService->getAddressesByStore(

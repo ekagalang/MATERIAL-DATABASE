@@ -80,7 +80,7 @@ class BrickController extends Controller
     {
         $brick = $this->brickService->find($id);
 
-        if (! $brick) {
+        if (!$brick) {
             return $this->notFoundResponse('Brick not found');
         }
 
@@ -159,7 +159,7 @@ class BrickController extends Controller
         $search = $request->get('search');
         $limit = $request->get('limit', 20);
 
-        if (! $store) {
+        if (!$store) {
             return response()->json([]);
         }
 

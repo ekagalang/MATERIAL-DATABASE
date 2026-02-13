@@ -51,6 +51,7 @@ return new class extends Migration {
         Schema::table('units', function (Blueprint $table) {
             // Drop unique constraint lama
             $table->dropUnique('units_code_material_type_unique');
+            $table->dropIndex('units_material_type_index');
 
             // Drop kolom material_type
             $table->dropColumn('material_type');
@@ -118,6 +119,7 @@ return new class extends Migration {
         Schema::table('units', function (Blueprint $table) {
             $table->string('material_type', 50)->nullable(false)->change(); // make required again
             $table->unique(['code', 'material_type'], 'units_code_material_type_unique');
+            $table->index('material_type', 'units_material_type_index');
         });
     }
 };

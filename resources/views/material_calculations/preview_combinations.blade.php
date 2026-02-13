@@ -332,7 +332,7 @@
                 $isGroutTile = $workType === 'grout_tile';
                 $heightLabel = in_array(
                     $workType,
-                    ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'],
+                    ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor', 'adhesive_mix'],
                     true,
                 )
                     ? 'LEBAR'
@@ -2819,9 +2819,9 @@ $paramValue = $isGroutTile
                                 </div>
                             @endif
 
-                            {{-- Tebal Nat (untuk Pasang Keramik, Pasang Nat, dan Plint Keramik) --}}
+                            {{-- Tebal Nat (untuk Pasang Keramik, Pasang Nat, Plint Keramik, Pasang Keramik Saja, dan Pasang Plint Keramik Saja) --}}
                             @if (isset($requestData['work_type']) &&
-                                    ($requestData['work_type'] === 'tile_installation' || $requestData['work_type'] === 'grout_tile' || $requestData['work_type'] === 'plinth_ceramic'))
+                                    ($requestData['work_type'] === 'tile_installation' || $requestData['work_type'] === 'grout_tile' || $requestData['work_type'] === 'plinth_ceramic' || $requestData['work_type'] === 'adhesive_mix' || $requestData['work_type'] === 'plinth_adhesive_mix'))
                                 <div style="flex: 0 0 auto; width: 100px;">
                                     <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
                                         style="font-size: 0.75rem;">
@@ -3879,6 +3879,12 @@ $paramValue = $isGroutTile
 
                                 // Calculate rowspan based on visible materials
                                 $rowCount = count($visibleMaterials);
+                                $storePlan = is_array($item['store_plan'] ?? null) ? $item['store_plan'] : [];
+                                $storeCostBreakdown = is_array($item['store_cost_breakdown'] ?? null)
+                                    ? $item['store_cost_breakdown']
+                                    : [];
+                                $storeCoverageMode = $item['store_coverage_mode'] ?? null;
+                                $showStorePlan = !empty($storePlan);
                             @endphp
 
                             {{-- ROW 0: GROUP NAME / LABEL --}}
@@ -3981,6 +3987,47 @@ $paramValue = $isGroutTile
                                 </td>
                                 <td colspan="18" style="background: #f8fafc;"></td>
                             </tr>
+
+                            @if ($showStorePlan)
+                                <tr class="store-plan-row" data-store-coverage-mode="{{ $storeCoverageMode }}">
+                                    <td colspan="21" style="background: #f8fafc; padding: 8px 12px 10px 12px; border-top: 0;">
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <span class="badge rounded-pill text-bg-light border">Sumber Toko</span>
+                                            @if ($storeCoverageMode === 'nearest_radius_chain')
+                                                <span class="badge rounded-pill text-bg-success">Nearest Radius Chain</span>
+                                            @elseif ($storeCoverageMode)
+                                                <span class="badge rounded-pill text-bg-secondary">{{ $storeCoverageMode }}</span>
+                                            @endif
+                                            @foreach ($storePlan as $storePlanEntry)
+                                                @php
+                                                    $providedMaterials = $storePlanEntry['provided_materials'] ?? [];
+                                                    $materialsText = !empty($providedMaterials)
+                                                        ? implode(', ', array_map('ucfirst', $providedMaterials))
+                                                        : '-';
+                                                @endphp
+                                                <span class="badge rounded-pill border text-dark bg-white">
+                                                    {{ $storePlanEntry['store_name'] ?? 'Toko' }}
+                                                    @if (!empty($storePlanEntry['distance_km']))
+                                                        ({{ $storePlanEntry['distance_km'] }} km)
+                                                    @endif
+                                                    : {{ $materialsText }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                        @if (!empty($storeCostBreakdown))
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                                <span class="badge rounded-pill text-bg-light border">Biaya per Toko</span>
+                                                @foreach ($storeCostBreakdown as $costEntry)
+                                                    <span class="badge rounded-pill border text-dark bg-white">
+                                                        {{ $costEntry['store_name'] ?? 'Toko' }}:
+                                                        Rp {{ \App\Helpers\NumberHelper::formatFixed((float) ($costEntry['estimated_cost'] ?? 0), 0) }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endif
 
                             {{-- DYNAMIC MATERIAL ROWS --}}
                             @php $matIndex = 0; @endphp

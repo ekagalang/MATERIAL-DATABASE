@@ -21,7 +21,7 @@ class VerifyCombinations extends Command
         $workType = $this->argument('work_type');
 
         $brick = Brick::find($brickId);
-        if (! $brick) {
+        if (!$brick) {
             $this->error("Brick ID $brickId not found.");
 
             return;
@@ -38,7 +38,7 @@ class VerifyCombinations extends Command
         $this->info('Raw Data Availability:');
         $this->info("Valid Cements: $cements");
         $this->info("Valid Sands:   $sands");
-        $this->info('Potential Combinations (Cement x Sand): '.$cements * $sands);
+        $this->info('Potential Combinations (Cement x Sand): ' . $cements * $sands);
         $this->info('------------------------------------------------');
 
         // 2. Run Service Calculation
@@ -58,7 +58,7 @@ class VerifyCombinations extends Command
         $duration = round((microtime(true) - $start) * 1000, 2);
 
         $this->info("Service Calculation Duration: {$duration}ms");
-        $this->info('Total Result Groups: '.count($results));
+        $this->info('Total Result Groups: ' . count($results));
 
         $totalCombos = 0;
         foreach ($results as $label => $group) {

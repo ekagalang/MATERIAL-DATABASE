@@ -50,7 +50,7 @@ class MortarFormulaApiController extends Controller
         try {
             $formula = MortarFormula::find($id);
 
-            if (! $formula) {
+            if (!$formula) {
                 return response()->json(
                     [
                         'success' => false,
@@ -86,7 +86,7 @@ class MortarFormulaApiController extends Controller
         try {
             $defaultFormula = MortarFormula::getDefault();
 
-            if (! $defaultFormula) {
+            if (!$defaultFormula) {
                 return response()->json(
                     [
                         'success' => false,

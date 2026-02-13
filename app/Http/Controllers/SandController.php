@@ -51,12 +51,12 @@ class SandController extends Controller
         ];
 
         // Default sorting jika tidak ada atau tidak valid
-        if (! $sortBy || ! in_array($sortBy, $allowedSorts)) {
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
             $sortDirection = 'desc';
         } else {
             // Validasi direction
-            if (! in_array($sortDirection, ['asc', 'desc'])) {
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
                 $sortDirection = 'asc';
             }
         }
@@ -109,16 +109,16 @@ class SandController extends Controller
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
                 if ($photo->isValid()) {
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('sands', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: '.$path);
+                        \Log::info('Photo uploaded successfully: ' . $path);
                     } else {
                         \Log::error('Failed to store photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file: '.$photo->getErrorMessage());
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
             }
 
@@ -190,10 +190,10 @@ class SandController extends Controller
             return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to create sand: '.$e->getMessage());
+            \Log::error('Failed to create sand: ' . $e->getMessage());
 
             return back()
-                ->with('error', 'Gagal menyimpan data: '.$e->getMessage())
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -260,16 +260,16 @@ class SandController extends Controller
                         Storage::disk('public')->delete($sand->photo);
                     }
 
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('sands', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: '.$path);
+                        \Log::info('Photo updated successfully: ' . $path);
                     } else {
                         \Log::error('Failed to update photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
                 }
             }
 
@@ -279,7 +279,7 @@ class SandController extends Controller
             // Kalkulasi berat bersih dari berat kotor dan berat kemasan
             // HANYA jika berat bersih belum diisi manual oleh user
             if (
-                (! $sand->package_weight_net || $sand->package_weight_net <= 0) &&
+                (!$sand->package_weight_net || $sand->package_weight_net <= 0) &&
                 $sand->package_weight_gross &&
                 $sand->package_unit
             ) {
@@ -347,10 +347,10 @@ class SandController extends Controller
                 ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to update sand: '.$e->getMessage());
+            \Log::error('Failed to update sand: ' . $e->getMessage());
 
             return back()
-                ->with('error', 'Gagal update data: '.$e->getMessage())
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -374,9 +374,9 @@ class SandController extends Controller
             return redirect()->route('sands.index')->with('success', 'Data Pasir berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to delete sand: '.$e->getMessage());
+            \Log::error('Failed to delete sand: ' . $e->getMessage());
 
-            return back()->with('error', 'Gagal menghapus data: '.$e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
@@ -418,7 +418,7 @@ class SandController extends Controller
             'package_price',
         ];
 
-        if (! in_array($field, $allowedFields)) {
+        if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
@@ -463,7 +463,7 @@ class SandController extends Controller
             // Get from sands
             $sandStores = Sand::whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search !== '', fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->select('store')
                 ->groupBy('store')
                 ->pluck('store');
@@ -475,7 +475,7 @@ class SandController extends Controller
             if (class_exists(\App\Models\Cement::class)) {
                 $cementStores = \App\Models\Cement::whereNotNull('store')
                     ->where('store', '!=', '')
-                    ->when($search !== '', fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                    ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
                     ->select('store')
                     ->groupBy('store')
                     ->pluck('store');
@@ -486,7 +486,7 @@ class SandController extends Controller
             if (class_exists(\App\Models\Brick::class)) {
                 $brickStores = \App\Models\Brick::whereNotNull('store')
                     ->where('store', '!=', '')
-                    ->when($search !== '', fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                    ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
                     ->select('store')
                     ->groupBy('store')
                     ->pluck('store');
@@ -497,7 +497,7 @@ class SandController extends Controller
             if (class_exists(\App\Models\Cat::class)) {
                 $catStores = \App\Models\Cat::whereNotNull('store')
                     ->where('store', '!=', '')
-                    ->when($search !== '', fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                    ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
                     ->select('store')
                     ->groupBy('store')
                     ->pluck('store');
@@ -536,7 +536,7 @@ class SandController extends Controller
             $sandStores = Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores->merge($sandStores)->unique()->sort()->values()->take($limit);
@@ -545,25 +545,25 @@ class SandController extends Controller
             $catStores = \App\Models\Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $brickStores = \App\Models\Brick::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $cementStores = \App\Models\Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $sandStores = Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores
@@ -602,7 +602,7 @@ class SandController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari cat
@@ -610,7 +610,7 @@ class SandController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari brick
@@ -618,7 +618,7 @@ class SandController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari cement
@@ -626,7 +626,7 @@ class SandController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Gabungkan semua addresses dan ambil unique values

@@ -19,7 +19,7 @@ class CleanupLegacyNatDataCommand extends Command
 
     public function handle(): int
     {
-        if (! Schema::hasTable('nats') || ! Schema::hasColumn('nats', 'legacy_cement_id')) {
+        if (!Schema::hasTable('nats') || !Schema::hasColumn('nats', 'legacy_cement_id')) {
             $this->warn('Legacy mapping column `nats.legacy_cement_id` is not available.');
             $this->line('Nat has been finalized as standalone material. Legacy cleanup command is no longer needed.');
 
@@ -60,13 +60,13 @@ class CleanupLegacyNatDataCommand extends Command
             ],
         );
 
-        $this->line('Mode: '.($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
-        $this->line('Delete mode: '.($includeUnmapped ? 'ALL legacy Nat rows' : 'MAPPED ONLY (safe default)'));
-        $this->line('Chunk size: '.$chunk);
+        $this->line('Mode: ' . ($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
+        $this->line('Delete mode: ' . ($includeUnmapped ? 'ALL legacy Nat rows' : 'MAPPED ONLY (safe default)'));
+        $this->line('Chunk size: ' . $chunk);
 
-        if (! $includeUnmapped && $unmappedTotal > 0) {
+        if (!$includeUnmapped && $unmappedTotal > 0) {
             $this->warn(
-                'There are unmapped legacy Nat rows. They will be kept. '.
+                'There are unmapped legacy Nat rows. They will be kept. ' .
                     'Use --include-unmapped only if you are sure they are no longer needed.',
             );
         }
@@ -77,8 +77,8 @@ class CleanupLegacyNatDataCommand extends Command
             return self::SUCCESS;
         }
 
-        if (! $dryRun && ! $this->option('force')) {
-            if (! $this->confirm('Proceed with deleting the targeted legacy Nat rows from cements?', false)) {
+        if (!$dryRun && !$this->option('force')) {
+            if (!$this->confirm('Proceed with deleting the targeted legacy Nat rows from cements?', false)) {
                 $this->warn('Cleanup cancelled.');
 
                 return self::SUCCESS;

@@ -39,7 +39,7 @@ class StoreSearchController extends Controller
                         'store_name' => $store->name,
                         'address' => $location->address,
                         'full_address' => $location->full_address,
-                        'display_text' => $store->name.($location->address ? ' - '.$location->address : ''),
+                        'display_text' => $store->name . ($location->address ? ' - ' . $location->address : ''),
                         'is_incomplete' => $location->is_incomplete,
                     ];
                 });
@@ -65,7 +65,7 @@ class StoreSearchController extends Controller
 
         $query = Store::query()->orderBy('name');
 
-        if (! empty($search)) {
+        if (!empty($search)) {
             $query->where('name', 'like', "%{$search}%");
         }
 
@@ -90,13 +90,13 @@ class StoreSearchController extends Controller
 
         $store = Store::where('name', $storeName)->first();
 
-        if (! $store) {
+        if (!$store) {
             return response()->json([]);
         }
 
         $query = $store->locations();
 
-        if (! empty($search)) {
+        if (!empty($search)) {
             $query->where('address', 'like', "%{$search}%");
         }
 
@@ -135,7 +135,7 @@ class StoreSearchController extends Controller
             // Find or create store (case-insensitive search)
             $store = Store::whereRaw('LOWER(name) = ?', [strtolower($storeName)])->first();
 
-            if (! $store) {
+            if (!$store) {
                 $store = Store::create(['name' => $storeName]);
             }
 
@@ -145,7 +145,7 @@ class StoreSearchController extends Controller
                 ->whereRaw('LOWER(COALESCE(address, \'\')) = ?', [strtolower($address)])
                 ->first();
 
-            if (! $location) {
+            if (!$location) {
                 $location = $store->locations()->create([
                     'address' => $address ?: null,
                 ]);
@@ -159,7 +159,7 @@ class StoreSearchController extends Controller
                 'store_name' => $store->name,
                 'address' => $location->address,
                 'full_address' => $location->full_address ?? $location->address,
-                'display_text' => $store->name.($location->address ? ' - '.$location->address : ''),
+                'display_text' => $store->name . ($location->address ? ' - ' . $location->address : ''),
                 'is_new' => $location->wasRecentlyCreated,
             ]);
         } catch (\Exception $e) {

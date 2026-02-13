@@ -11,10 +11,14 @@ use Tests\TestCase;
 uses(TestCase::class, RefreshDatabase::class);
 
 test('formula has correct metadata', function () {
-    expect(PlinthCeramicFormula::getCode())->toBe('plinth_ceramic')
-        ->and(PlinthCeramicFormula::getName())->toBe('Pasang Plint Keramik')
-        ->and(PlinthCeramicFormula::getDescription())->toContain('plint keramik')
-        ->and(PlinthCeramicFormula::getMaterialRequirements())->toBe(['cement', 'sand', 'ceramic', 'nat']);
+    expect(PlinthCeramicFormula::getCode())
+        ->toBe('plinth_ceramic')
+        ->and(PlinthCeramicFormula::getName())
+        ->toBe('Pasang Plint Keramik')
+        ->and(PlinthCeramicFormula::getDescription())
+        ->toContain('plint keramik')
+        ->and(PlinthCeramicFormula::getMaterialRequirements())
+        ->toBe(['cement', 'sand', 'ceramic', 'nat']);
 });
 
 test('formula validates required parameters', function () {
@@ -24,20 +28,24 @@ test('formula validates required parameters', function () {
     expect($formula->validate([]))->toBeFalse();
 
     // Invalid parameters should fail
-    expect($formula->validate([
-        'wall_length' => 0,
-        'wall_height' => 10,
-        'mortar_thickness' => 2,
-        'grout_thickness' => 3,
-    ]))->toBeFalse();
+    expect(
+        $formula->validate([
+            'wall_length' => 0,
+            'wall_height' => 10,
+            'mortar_thickness' => 2,
+            'grout_thickness' => 3,
+        ]),
+    )->toBeFalse();
 
     // Valid parameters should pass
-    expect($formula->validate([
-        'wall_length' => 5,
-        'wall_height' => 15,
-        'mortar_thickness' => 2,
-        'grout_thickness' => 3,
-    ]))->toBeTrue();
+    expect(
+        $formula->validate([
+            'wall_length' => 5,
+            'wall_height' => 15,
+            'mortar_thickness' => 2,
+            'grout_thickness' => 3,
+        ]),
+    )->toBeTrue();
 });
 
 test('formula calculates material requirements correctly', function () {
@@ -93,12 +101,18 @@ test('formula calculates material requirements correctly', function () {
     ]);
 
     // Verify numeric results are non-negative
-    expect($result['total_tiles'])->toBeGreaterThan(0)
-        ->and($result['tiles_packages'])->toBeGreaterThan(0)
-        ->and($result['cement_sak'])->toBeGreaterThan(0)
-        ->and($result['sand_m3'])->toBeGreaterThan(0)
-        ->and($result['grout_packages'])->toBeGreaterThan(0)
-        ->and($result['grand_total'])->toBeGreaterThan(0);
+    expect($result['total_tiles'])
+        ->toBeGreaterThan(0)
+        ->and($result['tiles_packages'])
+        ->toBeGreaterThan(0)
+        ->and($result['cement_sak'])
+        ->toBeGreaterThan(0)
+        ->and($result['sand_m3'])
+        ->toBeGreaterThan(0)
+        ->and($result['grout_packages'])
+        ->toBeGreaterThan(0)
+        ->and($result['grand_total'])
+        ->toBeGreaterThan(0);
 });
 
 test('formula trace provides detailed calculation steps', function () {
@@ -128,12 +142,18 @@ test('formula trace provides detailed calculation steps', function () {
     $trace = $formula->trace($params);
 
     // Verify trace structure
-    expect($trace)->toHaveKeys(['mode', 'steps', 'final_result'])
-        ->and($trace['mode'])->toBe('Pasang Plint Keramik')
-        ->and($trace['steps'])->toBeArray()
-        ->and(count($trace['steps']))->toBeGreaterThan(10); // Should have many calculation steps
+    expect($trace)
+        ->toHaveKeys(['mode', 'steps', 'final_result'])
+        ->and($trace['mode'])
+        ->toBe('Pasang Plint Keramik')
+        ->and($trace['steps'])
+        ->toBeArray()
+        ->and(count($trace['steps']))
+        ->toBeGreaterThan(10); // Should have many calculation steps
 
     // Verify first step is input parameters
-    expect($trace['steps'][0])->toHaveKey('title')
-        ->and($trace['steps'][0]['title'])->toBe('Input Parameters');
+    expect($trace['steps'][0])
+        ->toHaveKey('title')
+        ->and($trace['steps'][0]['title'])
+        ->toBe('Input Parameters');
 });

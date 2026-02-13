@@ -82,7 +82,7 @@ class BrickRepository extends BaseRepository
         ];
 
         // Return empty if field not allowed
-        if (! in_array($field, $allowedFields)) {
+        if (!in_array($field, $allowedFields)) {
             return collect([]);
         }
 
@@ -142,25 +142,25 @@ class BrickRepository extends BaseRepository
                 ->query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $catStores = \App\Models\Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $cementStores = \App\Models\Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $sandStores = \App\Models\Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             return $stores
@@ -194,28 +194,28 @@ class BrickRepository extends BaseRepository
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $cementAddresses = \App\Models\Cement::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         return $addresses

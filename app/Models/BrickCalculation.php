@@ -11,6 +11,10 @@ class BrickCalculation extends Model
     protected $fillable = [
         'project_name',
         'notes',
+        'project_address',
+        'project_latitude',
+        'project_longitude',
+        'project_place_id',
         'wall_length',
         'wall_height',
         'wall_area',
@@ -100,6 +104,8 @@ class BrickCalculation extends Model
         'custom_sand_ratio' => 'decimal:4',
         'custom_water_ratio' => 'decimal:4',
         'use_custom_ratio' => 'boolean',
+        'project_latitude' => 'float',
+        'project_longitude' => 'float',
     ];
 
     /**
@@ -150,13 +156,13 @@ class BrickCalculation extends Model
      */
     public static function performCalculation(array $params): self
     {
-        $n = static fn ($value, $decimals = null) => (float) ($value ?? 0);
+        $n = static fn($value, $decimals = null) => (float) ($value ?? 0);
 
         // Get work_type from params (should match formula code)
         $formulaCode = $params['work_type'] ?? null;
 
         // Fallback: if work_type not provided or invalid, use first available formula
-        if (! $formulaCode || ! \App\Services\FormulaRegistry::has($formulaCode)) {
+        if (!$formulaCode || !\App\Services\FormulaRegistry::has($formulaCode)) {
             $availableFormulas = \App\Services\FormulaRegistry::all();
             if (empty($availableFormulas)) {
                 throw new \Exception('Tidak ada formula yang tersedia di sistem');
@@ -167,9 +173,9 @@ class BrickCalculation extends Model
         // Get formula instance from Formula Bank
         $formula = \App\Services\FormulaRegistry::instance($formulaCode);
 
-        if (! $formula) {
+        if (!$formula) {
             throw new \Exception(
-                "Formula '{$formulaCode}' tidak ditemukan di Formula Bank. Formula yang tersedia: ".
+                "Formula '{$formulaCode}' tidak ditemukan di Formula Bank. Formula yang tersedia: " .
                     implode(', ', \App\Services\FormulaRegistry::codes()),
             );
         }
@@ -195,9 +201,9 @@ class BrickCalculation extends Model
         $ceramic = null;
         if (
             in_array($workType, ['tile_installation', 'grout_tile'], true) ||
-            ! empty($params['ceramic_id']) ||
-            ! empty($params['ceramic_length']) ||
-            ! empty($params['ceramic_width'])
+            !empty($params['ceramic_id']) ||
+            !empty($params['ceramic_length']) ||
+            !empty($params['ceramic_width'])
         ) {
             $ceramic = isset($params['ceramic_id']) ? Ceramic::find($params['ceramic_id']) : Ceramic::first();
         }
@@ -256,7 +262,7 @@ class BrickCalculation extends Model
             $calculationParams['grout_thickness'] = $groutThickness;
         }
 
-        if (! empty($params['nat_id'])) {
+        if (!empty($params['nat_id'])) {
             $calculationParams['nat_id'] = $params['nat_id'];
         }
 
@@ -268,10 +274,14 @@ class BrickCalculation extends Model
         }
 
         // Create calculation record
-        $calculation = new self;
+        $calculation = new self();
         $calculation->fill([
             'project_name' => $params['project_name'] ?? null,
             'notes' => $params['notes'] ?? null,
+            'project_address' => $params['project_address'] ?? null,
+            'project_latitude' => $params['project_latitude'] ?? null,
+            'project_longitude' => $params['project_longitude'] ?? null,
+            'project_place_id' => $params['project_place_id'] ?? null,
             'wall_length' => $wallLength,
             'wall_height' => $wallHeight,
             'wall_area' => $wallArea,
@@ -474,53 +484,54 @@ class BrickCalculation extends Model
     {
         return [
             'wall_info' => [
-                'length' => $this->wall_length.' m',
-                'height' => $this->wall_height.' m',
-                'area' => $this->wall_area.' M2',
+                'length' => $this->wall_length . ' m',
+                'height' => $this->wall_height . ' m',
+                'area' => $this->wall_area . ' M2',
             ],
             'brick_info' => [
-                'quantity' => NumberHelper::format($this->brick_quantity).' buah',
+                'quantity' => NumberHelper::format($this->brick_quantity) . ' buah',
                 'type' => $this->installationType->name ?? '-',
                 'cost' => NumberHelper::currency($this->brick_total_cost),
             ],
             'mortar_info' => [
-                'volume' => NumberHelper::format($this->mortar_volume).' M3',
+                'volume' => NumberHelper::format($this->mortar_volume) . ' M3',
                 'formula' => $this->mortarFormula->name ?? '-',
-                'thickness' => $this->mortar_thickness.' cm',
+                'thickness' => $this->mortar_thickness . ' cm',
             ],
             'materials' => [
                 'cement' => [
                     'package_weight' => $this->cement_package_weight ?? 50,
-                    'quantity_sak' => NumberHelper::format($this->cement_quantity_sak ?? $this->cement_quantity_50kg).' sak',
-                    '40kg' => NumberHelper::format($this->cement_quantity_40kg).' sak',
-                    '50kg' => NumberHelper::format($this->cement_quantity_50kg).' sak',
-                    'kg' => NumberHelper::format($this->cement_kg).' kg',
+                    'quantity_sak' =>
+                        NumberHelper::format($this->cement_quantity_sak ?? $this->cement_quantity_50kg) . ' sak',
+                    '40kg' => NumberHelper::format($this->cement_quantity_40kg) . ' sak',
+                    '50kg' => NumberHelper::format($this->cement_quantity_50kg) . ' sak',
+                    'kg' => NumberHelper::format($this->cement_kg) . ' kg',
                     'cost' => NumberHelper::currency($this->cement_total_cost),
                 ],
                 'sand' => [
-                    'sak' => NumberHelper::format($this->sand_sak).' karung',
-                    'kg' => NumberHelper::format($this->sand_kg).' kg',
-                    'm3' => NumberHelper::format($this->sand_m3).' M3',
+                    'sak' => NumberHelper::format($this->sand_sak) . ' karung',
+                    'kg' => NumberHelper::format($this->sand_kg) . ' kg',
+                    'm3' => NumberHelper::format($this->sand_m3) . ' M3',
                     'cost' => NumberHelper::currency($this->sand_total_cost),
                 ],
                 'cat' => [
-                    'quantity' => NumberHelper::format($this->cat_quantity).' kemasan',
-                    'kg' => NumberHelper::format($this->cat_kg).' kg',
-                    'liters' => NumberHelper::format($this->paint_liters).' liter',
+                    'quantity' => NumberHelper::format($this->cat_quantity) . ' kemasan',
+                    'kg' => NumberHelper::format($this->cat_kg) . ' kg',
+                    'liters' => NumberHelper::format($this->paint_liters) . ' liter',
                     'cost' => NumberHelper::currency($this->cat_total_cost),
                 ],
                 'ceramic' => [
-                    'quantity' => NumberHelper::format($this->ceramic_quantity).' pcs',
-                    'packages' => NumberHelper::format($this->ceramic_packages).' dus',
+                    'quantity' => NumberHelper::format($this->ceramic_quantity) . ' pcs',
+                    'packages' => NumberHelper::format($this->ceramic_packages) . ' dus',
                     'cost' => NumberHelper::currency($this->ceramic_total_cost),
                 ],
                 'nat' => [
-                    'quantity' => NumberHelper::format($this->nat_quantity).' bks',
-                    'kg' => NumberHelper::format($this->nat_kg).' kg',
+                    'quantity' => NumberHelper::format($this->nat_quantity) . ' bks',
+                    'kg' => NumberHelper::format($this->nat_kg) . ' kg',
                     'cost' => NumberHelper::currency($this->nat_total_cost),
                 ],
                 'water' => [
-                    'liters' => NumberHelper::format($this->water_liters).' liter',
+                    'liters' => NumberHelper::format($this->water_liters) . ' liter',
                 ],
             ],
             'total_cost' => NumberHelper::currency($this->total_material_cost),

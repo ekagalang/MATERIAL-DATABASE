@@ -45,7 +45,7 @@ class MigrateStoresToNewSystem extends Command
             $this->warn('⚡ FORCE MODE - Will re-link all materials');
         }
 
-        if (! $linkOnly) {
+        if (!$linkOnly) {
             $this->info('📦 Step 1: Extracting unique stores and addresses from materials...');
             $this->extractAndCreateStores($isDryRun);
         }
@@ -77,7 +77,7 @@ class MigrateStoresToNewSystem extends Command
                 ->get();
 
             foreach ($pairs as $pair) {
-                $key = strtolower(trim($pair->store)).'|'.strtolower(trim($pair->address ?? ''));
+                $key = strtolower(trim($pair->store)) . '|' . strtolower(trim($pair->address ?? ''));
                 $storeAddressPairs[$key] = [
                     'store' => trim($pair->store),
                     'address' => trim($pair->address ?? ''),
@@ -104,8 +104,8 @@ class MigrateStoresToNewSystem extends Command
             // Check if store already exists
             $store = Store::whereRaw('LOWER(name) = ?', [$storeKey])->first();
 
-            if (! $store) {
-                if (! $isDryRun) {
+            if (!$store) {
+                if (!$isDryRun) {
                     $store = Store::create(['name' => $storeName]);
                 }
                 $storesCreated++;
@@ -133,22 +133,22 @@ class MigrateStoresToNewSystem extends Command
                             ->first();
                     }
 
-                    if (! $existingLocation) {
-                        if (! $isDryRun) {
+                    if (!$existingLocation) {
+                        if (!$isDryRun) {
                             StoreLocation::create([
                                 'store_id' => $store->id,
                                 'address' => $address ?: null,
                             ]);
                         }
                         $locationsCreated++;
-                        $this->line('      + Location: '.($address ?: '(no address)'));
+                        $this->line('      + Location: ' . ($address ?: '(no address)'));
                     } else {
-                        $this->line('      = Location exists: '.($address ?: '(no address)'));
+                        $this->line('      = Location exists: ' . ($address ?: '(no address)'));
                     }
                 } else {
                     // Dry run - just count
                     $locationsCreated++;
-                    $this->line('      + Location: '.($address ?: '(no address)'));
+                    $this->line('      + Location: ' . ($address ?: '(no address)'));
                 }
             }
         }
@@ -181,7 +181,7 @@ class MigrateStoresToNewSystem extends Command
                 // Find the store (case-insensitive)
                 $store = Store::whereRaw('LOWER(name) = ?', [strtolower($storeName)])->first();
 
-                if (! $store) {
+                if (!$store) {
                     $this->line("      ⚠ Store not found: {$storeName}");
                     $skipped++;
 
@@ -206,7 +206,7 @@ class MigrateStoresToNewSystem extends Command
                 }
 
                 // Fallback: if no exact match, try to find any location for this store
-                if (! $location) {
+                if (!$location) {
                     $location = StoreLocation::where('store_id', $store->id)->first();
                     if ($location) {
                         $this->line("      ⚠ Address mismatch for '{$storeName}', using first location");
@@ -214,11 +214,11 @@ class MigrateStoresToNewSystem extends Command
                 }
 
                 if ($location) {
-                    if (! $isDryRun) {
+                    if (!$isDryRun) {
                         $needsUpdate = false;
 
                         // Update direct column if not set OR force mode
-                        if (! $material->store_location_id || $force) {
+                        if (!$material->store_location_id || $force) {
                             $material->store_location_id = $location->id;
                             $material->save();
                             $needsUpdate = true;
@@ -229,7 +229,7 @@ class MigrateStoresToNewSystem extends Command
                             ->storeLocations()
                             ->where('store_location_id', $location->id)
                             ->exists();
-                        if (! $alreadyAttached || $force) {
+                        if (!$alreadyAttached || $force) {
                             if ($force) {
                                 // Force mode: sync to ensure only the correct location is attached
                                 $material->storeLocations()->sync([$location->id]);
@@ -250,7 +250,7 @@ class MigrateStoresToNewSystem extends Command
                             ->storeLocations()
                             ->where('store_location_id', $location->id)
                             ->exists();
-                        if (! $material->store_location_id || ! $alreadyAttached || $force) {
+                        if (!$material->store_location_id || !$alreadyAttached || $force) {
                             $linked++;
                         } else {
                             $alreadyLinked++;

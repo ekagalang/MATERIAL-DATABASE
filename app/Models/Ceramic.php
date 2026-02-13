@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SyncsStoreLocationSnapshot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,7 @@ use Illuminate\Support\Str;
 class Ceramic extends Model
 {
     use HasFactory;
+    use SyncsStoreLocationSnapshot;
 
     protected $fillable = [
         'material_name',
@@ -81,7 +83,7 @@ class Ceramic extends Model
      */
     public function getPhotoUrlAttribute(): ?string
     {
-        if (! $this->photo) {
+        if (!$this->photo) {
             return null;
         }
 
@@ -104,7 +106,7 @@ class Ceramic extends Model
         }
 
         // Default: assume it's in storage
-        return asset('storage/'.ltrim($path, '/'));
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**

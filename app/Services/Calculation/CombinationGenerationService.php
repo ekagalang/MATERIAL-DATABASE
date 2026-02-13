@@ -32,15 +32,22 @@ class CombinationGenerationService
 
     protected MaterialSelectionService $materialSelection;
 
+    protected StoreProximityService $storeProximityService;
+
     protected array $storeMaterialCache = [];
 
     // Default limit for combinations per category
     public const DEFAULT_LIMIT = 5;
 
-    public function __construct(CalculationRepository $repository, MaterialSelectionService $materialSelection)
+    public function __construct(
+        CalculationRepository $repository,
+        MaterialSelectionService $materialSelection,
+        StoreProximityService $storeProximityService,
+    )
     {
         $this->repository = $repository;
         $this->materialSelection = $materialSelection;
+        $this->storeProximityService = $storeProximityService;
     }
 
     protected function normalizeMaterialTypeFilterValues($value): array
@@ -65,10 +72,7 @@ class CombinationGenerationService
 
         $parts = preg_split('/\s*\|\s*/', $text) ?: [];
         $tokens = array_values(
-            array_filter(
-                array_map(static fn ($part) => trim((string) $part), $parts),
-                static fn ($part) => $part !== '',
-            ),
+            array_filter(array_map(static fn($part) => trim((string) $part), $parts), static fn($part) => $part !== ''),
         );
 
         return array_values(array_unique($tokens));
@@ -93,7 +97,7 @@ class CombinationGenerationService
 
     protected function buildGroutTileFallbackCeramic(array $params): Ceramic
     {
-        $ceramic = new Ceramic;
+        $ceramic = new Ceramic();
         $ceramic->brand = 'Input Keramik';
         $ceramic->type = 'Input';
         $ceramic->dimension_length = $params['ceramic_length'] ?? null;
@@ -124,10 +128,8 @@ class CombinationGenerationService
             return collect();
         }
 
-        if (! isset($this->storeMaterialCache[$modelClass])) {
-            $this->storeMaterialCache[$modelClass] = $modelClass::query()
-                ->whereNotNull('store')
-                ->get();
+        if (!isset($this->storeMaterialCache[$modelClass])) {
+            $this->storeMaterialCache[$modelClass] = $modelClass::query()->whereNotNull('store')->get();
         }
 
         return $this->storeMaterialCache[$modelClass]
@@ -254,24 +256,33 @@ class CombinationGenerationService
         }
 
         if ($useStoreFilter) {
-            $storeResults = $this->getStoreBasedCombinations($request, $constraints);
+            $hasProjectCoordinates = is_numeric($request->input('project_latitude')) &&
+                is_numeric($request->input('project_longitude'));
 
-            // FALLBACK: If no stores have all materials, fall back to non-store combinations
-            if (empty($storeResults)) {
-                $allowMixedStore = $request->boolean('allow_mixed_store', false);
-                Log::info('Store-based combinations empty', [
+            if (!$hasProjectCoordinates) {
+                Log::info('Store-based combinations skipped due to missing project coordinates', [
                     'brick_id' => $brick?->id,
                     'brick_brand' => $brick?->brand,
                     'material_type_filters' => $request['material_type_filters'] ?? [],
-                    'allow_mixed_store' => $allowMixedStore,
                 ]);
-                if (! $allowMixedStore) {
-                    return [];
-                }
-                // Continue to non-store combination logic below only if mixed store is allowed
-            } else {
+
+                return [];
+            }
+
+            $storeResults = $this->getStoreBasedCombinations($request, $constraints);
+            if (!empty($storeResults)) {
                 return $storeResults;
             }
+
+            Log::info('Store-based combinations empty', [
+                'brick_id' => $brick?->id,
+                'brick_brand' => $brick?->brand,
+                'material_type_filters' => $request['material_type_filters'] ?? [],
+                'allow_mixed_store' => $request->boolean('allow_mixed_store', false),
+            ]);
+
+            // Keep strict store/radius behavior: never fallback to global non-store combinations.
+            return [];
         }
 
         $requestedFilters = $request->price_filters ?? ['best'];
@@ -280,7 +291,7 @@ class CombinationGenerationService
             $bestCombinations = $this->getBestCombinations($brick, $request->all(), $fixedCeramic);
             $finalResults = [];
             foreach ($bestCombinations as $index => $combo) {
-                $label = 'Preferensi '.($index + 1);
+                $label = 'Preferensi ' . ($index + 1);
                 $finalResults[$label] = [array_merge($combo, ['filter_label' => $label])];
             }
 
@@ -301,7 +312,7 @@ class CombinationGenerationService
         $allCombinations = [];
         foreach ($filtersToCalculate as $filter) {
             // Optimization: Skip expensive calculations if not requested and not 'all'
-            if (! $hasAll && ! in_array($filter, $requestedFilters)) {
+            if (!$hasAll && !in_array($filter, $requestedFilters)) {
                 continue;
             }
 
@@ -338,7 +349,7 @@ class CombinationGenerationService
 
             if (count($intersect) > 0) {
                 $labels = $combo['all_labels'] ?? [$combo['filter_label']];
-                if (! empty($priorityLabels)) {
+                if (!empty($priorityLabels)) {
                     usort($labels, function ($a, $b) use ($priorityLabels) {
                         $aScore = 0;
                         foreach ($priorityLabels as $pl) {
@@ -403,109 +414,69 @@ class CombinationGenerationService
             'work_type' => $workType,
         ]);
 
-        // 1. Identify valid stores (must have all required materials)
-        // We start by getting all locations that have at least one material type
-        // Optimization: In real app, we should use a smarter query.
-        // For now, we iterate all locations to be safe.
         $locations = \App\Models\StoreLocation::with(['materialAvailabilities', 'store'])->get();
         if ($locations->isEmpty()) {
             return $this->getStoreBasedCombinationsByStoreName($request, $constraints);
         }
 
-        $allStoreCombinations = [];
+        $hasProjectCoordinates = is_numeric($request->input('project_latitude')) &&
+            is_numeric($request->input('project_longitude'));
+        $projectLatitude = $hasProjectCoordinates ? (float) $request->input('project_latitude') : null;
+        $projectLongitude = $hasProjectCoordinates ? (float) $request->input('project_longitude') : null;
+        $allowStoreNameFallback = !$hasProjectCoordinates;
+        $allowMixedStore = $request->boolean('allow_mixed_store', false);
 
-        foreach ($locations as $location) {
-            // Check Availability
-            $storeMaterials = [
-                'cement' => collect(),
-                'sand' => collect(),
-                'cat' => collect(),
-                'ceramic' => collect(),
-                'nat' => collect(),
+        $rankedLocations = $locations->map(function ($location) {
+            return [
+                'location' => $location,
+                'distance_km' => null,
             ];
+        });
 
-            $isComplete = true;
+        if ($hasProjectCoordinates) {
+            $rankedLocations = $this->storeProximityService->sortReachableLocations(
+                $locations,
+                $projectLatitude,
+                $projectLongitude,
+            );
+        }
 
-            // Load materials available in this store
-            // Note: This logic assumes 'materialAvailabilities' links polymorphic to materials
-            // In a production app with huge data, this loop is N+1 risky.
-            // Ideally we filter stores via query first.
+        if ($rankedLocations->isEmpty()) {
+            return [];
+        }
 
-            // Optimization: Pre-fetch materials via relation if possible or simple IDs
-            // For MVP, we iterate availabilities.
-            foreach ($location->materialAvailabilities as $availability) {
-                // Determine type based on materialable_type
+        $allStoreCombinations = [];
+        $preparedLocations = [];
 
-                $modelClass = $availability->materialable_type;
-                $modelId = $availability->materialable_id;
-
-                if ($modelClass === Cement::class) {
-                    $cement = Cement::find($modelId);
-                    if ($cement) {
-                        // Apply cement filter
-                        if ($this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
-                            $storeMaterials['cement']->push($cement);
-                        }
-                    }
-                } elseif ($modelClass === Nat::class) {
-                    $nat = Nat::find($modelId);
-                    if ($nat) {
-                        if ($this->matchesMaterialTypeFilter($nat->type ?? null, $natTypeFilterValues)) {
-                            $storeMaterials['nat']->push($nat);
-                        }
-                    }
-                } elseif ($modelClass === Sand::class) {
-                    $sand = Sand::find($modelId);
-                    if ($sand) {
-                        // Apply sand filter
-                        if ($this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
-                            $storeMaterials['sand']->push($sand);
-                        }
-                    }
-                } elseif ($modelClass === Cat::class) {
-                    $cat = Cat::find($modelId);
-                    if ($cat) {
-                        // Apply cat filter
-                        if ($this->matchesMaterialTypeFilter($cat->type, $materialTypeFilters['cat'] ?? null)) {
-                            $storeMaterials['cat']->push($cat);
-                        }
-                    }
-                } elseif ($modelClass === Ceramic::class) {
-                    $ceramic = Ceramic::find($modelId);
-                    if ($ceramic) {
-                        // Apply ceramic filter (size-based)
-                        $shouldInclude = true;
-                        if (! empty($materialTypeFilters['ceramic'])) {
-                            $ceramicSize = $this->formatCeramicSize($ceramic);
-                            $shouldInclude = $this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic']);
-                        }
-                        if ($shouldInclude) {
-                            $storeMaterials['ceramic']->push($ceramic);
-                        }
-                    }
-                } elseif ($modelClass === Brick::class) {
-                    $brickModel = Brick::find($modelId);
-                    if ($brickModel) {
-                        // We store bricks but we also need to check if it matches the current brick we are calculating for
-                        // But for now just populate the inventory
-                        // We will check match later
-                        // Actually, let's just use a simple check below
-                    }
-                }
-            }
+        foreach ($rankedLocations as $row) {
+            $location = $row['location'];
+            $distanceKm = isset($row['distance_km']) ? (float) $row['distance_km'] : null;
+            $storeMaterials = $this->extractStoreMaterialsFromAvailability(
+                $location,
+                $materialTypeFilters,
+                $natTypeFilterValues,
+            );
 
             // Fallback: if availability mapping is incomplete, load materials by store_location_id/store name
-            $fallbackMaterials = $this->loadStoreMaterialsForLocation($location, $materialTypeFilters, $natTypeFilterValues);
+            $fallbackMaterials = $this->loadStoreMaterialsForLocation(
+                $location,
+                $materialTypeFilters,
+                $natTypeFilterValues,
+                $allowStoreNameFallback,
+            );
             foreach (['cement', 'sand', 'cat', 'ceramic', 'nat'] as $type) {
                 if ($storeMaterials[$type]->isEmpty() && $fallbackMaterials[$type]->isNotEmpty()) {
                     $storeMaterials[$type] = $fallbackMaterials[$type];
                 }
             }
 
+            $hasBrickAtLocation = $this->storeHasBrick($location, $brick, $allowStoreNameFallback);
+
             // DEBUG: Log filtered store materials
             Log::info('Store materials after filtering', [
                 'store' => $location->store->name ?? 'Unknown',
                 'location' => $location->city ?? 'Unknown',
+                'distance_km' => $distanceKm,
                 'cement_count' => $storeMaterials['cement']->count(),
                 'sand_count' => $storeMaterials['sand']->count(),
                 'cat_count' => $storeMaterials['cat']->count(),
@@ -513,57 +484,11 @@ class CombinationGenerationService
                 'nat_count' => $storeMaterials['nat']->count(),
                 'cement_types' => $storeMaterials['cement']->pluck('type')->unique()->values()->toArray(),
                 'sand_types' => $storeMaterials['sand']->pluck('type')->unique()->values()->toArray(),
+                'has_brick' => $hasBrickAtLocation,
             ]);
 
-            // Validation: Must have all required materials
-            foreach ($requiredMaterials as $req) {
-                // Modified Logic: Brick IS required to be in store
-                if ($req === 'brick') {
-                    // Check if THIS store has the specific brick we are calculating for
-                    // Check availability for this specific brick ID
-
-                    // If no brick constraint is passed, we check if store has ANY brick?
-                    // No, usually we iterate per brick.
-                    // But if we are in "Truly Dynamic" mode (Populer), maybe brick is not passed yet?
-                    // For now assume brick is passed.
-
-                    if ($brick) {
-                        $hasBrickLocationInfo = ! empty($brick->store_location_id) || ! empty($brick->store);
-                        if ($hasBrickLocationInfo) {
-                            $hasBrick = $location->materialAvailabilities()
-                                ->where('materialable_type', Brick::class)
-                                ->where('materialable_id', $brick->id)
-                                ->exists();
-                            if (! $hasBrick && ! empty($brick->store_location_id)) {
-                                $hasBrick = (int) $brick->store_location_id === (int) $location->id;
-                            }
-                            if (! $hasBrick) {
-                                $storeName = $this->normalizeStoreName($location->store->name ?? '');
-                                if ($storeName !== '' && $this->normalizeStoreName($brick->store ?? '') === $storeName) {
-                                    $hasBrick = true;
-                                }
-                            }
-
-                            if (! $hasBrick) {
-                                $isComplete = false;
-                                break;
-                            }
-                        }
-                    } else {
-                        // If logic is "Find Popular Brick in this store", we don't constrain by specific ID yet.
-                        // We will iterate popular bricks later or check store inventory.
-                    }
-
-                    continue;
-                }
-
-                if ($storeMaterials[$req]->isEmpty()) {
-                    $isComplete = false;
-                    break;
-                }
-            }
-
             // Special handling: Fixed Ceramic override
+            $isComplete = true;
             if ($fixedCeramic) {
                 // If fixed ceramic is requested, the store MUST have it (or we skip store check if ceramic is 'brought by user')
                 // Let's strict: Store must have this specific ceramic
@@ -575,30 +500,54 @@ class CombinationGenerationService
                 // Logic: If fixedCeramic is passed, we override the store's ceramic list with just this one,
                 // IF the store actually stocks it.
                 $hasFixedCeramic = $storeMaterials['ceramic']->contains('id', $fixedCeramic->id);
-                if (! $hasFixedCeramic && ! empty($fixedCeramic->store_location_id)) {
+                if (!$hasFixedCeramic && !empty($fixedCeramic->store_location_id)) {
                     $hasFixedCeramic = (int) $fixedCeramic->store_location_id === (int) $location->id;
                 }
-                if (! $hasFixedCeramic) {
+                if ($allowStoreNameFallback && !$hasFixedCeramic) {
                     $storeName = trim((string) ($location->store->name ?? ''));
                     if ($storeName !== '' && trim((string) ($fixedCeramic->store ?? '')) === $storeName) {
                         $hasFixedCeramic = true;
                     }
                 }
 
-                if (! $hasFixedCeramic) {
+                if (!$hasFixedCeramic) {
                     $isComplete = false;
                 } else {
                     $storeMaterials['ceramic'] = collect([$fixedCeramic]);
                 }
             }
 
-            if (! $isComplete) {
+            $preparedLocations[] = [
+                'location' => $location,
+                'distance_km' => $distanceKm,
+                'has_brick' => $hasBrickAtLocation,
+                'materials' => $storeMaterials,
+            ];
+
+            // Validation: Must have all required materials in one store
+            foreach ($requiredMaterials as $req) {
+                if ($req === 'brick') {
+                    if (!$hasBrickAtLocation) {
+                        $isComplete = false;
+                        break;
+                    }
+
+                    continue;
+                }
+
+                if (($storeMaterials[$req] ?? collect())->isEmpty()) {
+                    $isComplete = false;
+                    break;
+                }
+            }
+
+            if (!$isComplete) {
                 continue;
             }
 
             // Calculate Local Combinations
             // We only need Cheapest & Expensive per store to represent range
-            if (! $brick && in_array('brick', $requiredMaterials)) {
+            if (!$brick && in_array('brick', $requiredMaterials)) {
                 continue;
             }
 
@@ -606,15 +555,15 @@ class CombinationGenerationService
             $storeMaterials = $this->capStoreMaterials($storeMaterials, $workType);
 
             $localResults = $this->calculateCombinationsFromMaterials(
-                $brick ?? new Brick, // Fallback if not required
+                $brick ?? new Brick(), // Fallback if not required
                 $request->all(),
                 $storeMaterials['cement'],
                 $storeMaterials['sand'],
                 $storeMaterials['cat'],
                 $storeMaterials['ceramic'],
                 $storeMaterials['nat'],
-                'Store: '.$location->store->name,
-                10
+                'Store: ' . $location->store->name,
+                10,
             );
 
             if (empty($localResults)) {
@@ -622,23 +571,37 @@ class CombinationGenerationService
             }
 
             // Sort by Price
-            usort($localResults, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+            usort($localResults, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
 
-            $storeLabelBase = $location->store->name.' ('.$location->city.')';
+            $storeLabelBase = $this->formatStoreLabelBase($location, $distanceKm);
             $isSingleMaterialWork = count($requiredMaterials) <= 1;
+            $singleStorePlan = [[
+                'store_location_id' => $location->id ?? null,
+                'store_name' => $location->store->name ?? 'Unknown',
+                'city' => $location->city ?? null,
+                'distance_km' => $distanceKm !== null ? round($distanceKm, 3) : null,
+                'service_radius_km' => $location->service_radius_km ?? null,
+                'provided_materials' => $requiredMaterials,
+            ]];
 
             if ($isSingleMaterialWork) {
                 // For single-material work, keep more options per store
                 foreach ($localResults as $result) {
                     $result['store_label'] = $storeLabelBase;
                     $result['store_location'] = $location;
+                    $result['store_plan'] = $singleStorePlan;
+                    $result['store_coverage_mode'] = 'single_store';
+                    $result['store_cost_breakdown'] = $this->buildStoreCostBreakdown($result, $singleStorePlan);
                     $allStoreCombinations[] = $result;
                 }
             } else {
                 // 1. CHEAPEST Champion
                 $cheapest = $localResults[0];
-                $cheapest['store_label'] = $storeLabelBase.' [Hemat]';
+                $cheapest['store_label'] = $storeLabelBase . ' [Hemat]';
                 $cheapest['store_location'] = $location;
+                $cheapest['store_plan'] = $singleStorePlan;
+                $cheapest['store_coverage_mode'] = 'single_store';
+                $cheapest['store_cost_breakdown'] = $this->buildStoreCostBreakdown($cheapest, $singleStorePlan);
                 $allStoreCombinations[] = $cheapest;
 
                 // 2. EXPENSIVE Champion (if different)
@@ -647,12 +610,56 @@ class CombinationGenerationService
                     $expensive = end($localResults);
                     // Check uniqueness based on total cost to avoid spamming same result
                     if ($expensive['total_cost'] > $cheapest['total_cost']) {
-                        $expensive['store_label'] = $storeLabelBase.' [Premium]';
+                        $expensive['store_label'] = $storeLabelBase . ' [Premium]';
                         $expensive['store_location'] = $location;
+                        $expensive['store_plan'] = $singleStorePlan;
+                        $expensive['store_coverage_mode'] = 'single_store';
+                        $expensive['store_cost_breakdown'] = $this->buildStoreCostBreakdown($expensive, $singleStorePlan);
                         $allStoreCombinations[] = $expensive;
                     }
                 }
             }
+        }
+
+        if ($allowMixedStore && empty($allStoreCombinations) && $hasProjectCoordinates) {
+            $requiresBrick = in_array('brick', $requiredMaterials, true) &&
+                $brick !== null &&
+                (!empty($brick->store_location_id) || !empty($brick->store));
+            $coverage = $this->storeProximityService->buildNearestCoveragePlan(
+                collect($preparedLocations),
+                $requiredMaterials,
+                $requiresBrick,
+            );
+
+            if ($coverage['is_complete'] ?? false) {
+                $selectedMaterials = $this->capStoreMaterials($coverage['selected_materials'], $workType);
+                $localResults = $this->calculateCombinationsFromMaterials(
+                    $brick ?? new Brick(),
+                    $request->all(),
+                    $selectedMaterials['cement'] ?? collect(),
+                    $selectedMaterials['sand'] ?? collect(),
+                    $selectedMaterials['cat'] ?? collect(),
+                    $selectedMaterials['ceramic'] ?? collect(),
+                    $selectedMaterials['nat'] ?? collect(),
+                    'Store: Gabungan Toko Terdekat',
+                    10,
+                );
+
+                foreach ($localResults as $result) {
+                    $result['store_label'] = 'Gabungan Toko Terdekat';
+                    $result['store_plan'] = $coverage['store_plan'] ?? [];
+                    $result['store_coverage_mode'] = 'nearest_radius_chain';
+                    $result['store_cost_breakdown'] = $this->buildStoreCostBreakdown(
+                        $result,
+                        $coverage['store_plan'] ?? [],
+                    );
+                    $allStoreCombinations[] = $result;
+                }
+            }
+        }
+
+        if (empty($allStoreCombinations) && $hasProjectCoordinates) {
+            return [];
         }
 
         if (empty($allStoreCombinations)) {
@@ -660,7 +667,7 @@ class CombinationGenerationService
         }
 
         // Global Sort of Store Leaders (Cheapest to Expensive)
-        usort($allStoreCombinations, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+        usort($allStoreCombinations, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
 
         $finalResults = [];
         $count = count($allStoreCombinations);
@@ -701,7 +708,7 @@ class CombinationGenerationService
 
             // 3. AVERAGE (Average) - Middle Price
             // If we have remaining items in the middle
-            if ($count > ($limitEkonomis + ($count - $startTermahal))) {
+            if ($count > $limitEkonomis + ($count - $startTermahal)) {
                 // Pick one median
                 $midIndex = floor(($count - 1) / 2);
                 if ($midIndex >= $limitEkonomis && $midIndex < $startTermahal) {
@@ -715,7 +722,7 @@ class CombinationGenerationService
                 // If not enough items for separate Average, maybe aliasing the middle one?
                 // Or just skip.
                 // Let's try to populate Average 1 if we have at least 3 items and it wasn't picked?
-                if ($count >= 3 && ! isset($finalResults['Average 1'])) {
+                if ($count >= 3 && !isset($finalResults['Average 1'])) {
                     // Just pick the middle one even if it overlaps (duplicates are handled by view usually or it's fine)
                     // Actually, let's avoid overlap if possible.
                     // If count is 3: 0->Ekonomis1, 1->Ekonomis2, 2->Ekonomis3.
@@ -729,17 +736,217 @@ class CombinationGenerationService
         return $finalResults;
     }
 
+    protected function extractStoreMaterialsFromAvailability(
+        \App\Models\StoreLocation $location,
+        array $materialTypeFilters,
+        array $natTypeFilterValues,
+    ): array {
+        $storeMaterials = [
+            'cement' => collect(),
+            'sand' => collect(),
+            'cat' => collect(),
+            'ceramic' => collect(),
+            'nat' => collect(),
+        ];
+
+        foreach ($location->materialAvailabilities as $availability) {
+            $modelClass = $availability->materialable_type;
+            $modelId = $availability->materialable_id;
+
+            if ($modelClass === Cement::class) {
+                $cement = Cement::find($modelId);
+                if ($cement && $this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
+                    $storeMaterials['cement']->push($cement);
+                }
+                continue;
+            }
+
+            if ($modelClass === Nat::class) {
+                $nat = Nat::find($modelId);
+                if ($nat && $this->matchesMaterialTypeFilter($nat->type ?? null, $natTypeFilterValues)) {
+                    $storeMaterials['nat']->push($nat);
+                }
+                continue;
+            }
+
+            if ($modelClass === Sand::class) {
+                $sand = Sand::find($modelId);
+                if ($sand && $this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
+                    $storeMaterials['sand']->push($sand);
+                }
+                continue;
+            }
+
+            if ($modelClass === Cat::class) {
+                $cat = Cat::find($modelId);
+                if ($cat && $this->matchesMaterialTypeFilter($cat->type, $materialTypeFilters['cat'] ?? null)) {
+                    $storeMaterials['cat']->push($cat);
+                }
+                continue;
+            }
+
+            if ($modelClass !== Ceramic::class) {
+                continue;
+            }
+
+            $ceramic = Ceramic::find($modelId);
+            if (!$ceramic) {
+                continue;
+            }
+
+            $shouldInclude = true;
+            if (!empty($materialTypeFilters['ceramic'])) {
+                $ceramicSize = $this->formatCeramicSize($ceramic);
+                $shouldInclude = $this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic']);
+            }
+            if ($shouldInclude) {
+                $storeMaterials['ceramic']->push($ceramic);
+            }
+        }
+
+        return $storeMaterials;
+    }
+
+    protected function storeHasBrick(\App\Models\StoreLocation $location, ?Brick $brick, bool $allowStoreNameFallback = true): bool
+    {
+        if (!$brick) {
+            return false;
+        }
+
+        $hasBrickLocationInfo = !empty($brick->store_location_id) || !empty($brick->store);
+        if (!$hasBrickLocationInfo) {
+            return true;
+        }
+
+        $hasBrick = $location
+            ->materialAvailabilities()
+            ->where('materialable_type', Brick::class)
+            ->where('materialable_id', $brick->id)
+            ->exists();
+
+        if (!$hasBrick && !empty($brick->store_location_id)) {
+            $hasBrick = (int) $brick->store_location_id === (int) $location->id;
+        }
+
+        if ($allowStoreNameFallback && !$hasBrick) {
+            $storeName = $this->normalizeStoreName($location->store->name ?? '');
+            if ($storeName !== '' && $this->normalizeStoreName($brick->store ?? '') === $storeName) {
+                $hasBrick = true;
+            }
+        }
+
+        return $hasBrick;
+    }
+
+    protected function formatStoreLabelBase(\App\Models\StoreLocation $location, ?float $distanceKm = null): string
+    {
+        $label = ($location->store->name ?? 'Toko') . ' (' . ($location->city ?? '-') . ')';
+
+        if ($distanceKm === null) {
+            return $label;
+        }
+
+        return $label . ' - ' . round($distanceKm, 2) . ' km';
+    }
+
+    protected function buildStoreCostBreakdown(array $combination, array $storePlan): array
+    {
+        if (empty($storePlan)) {
+            return [];
+        }
+
+        $materialCosts = $this->extractMaterialCostsByType($combination['result'] ?? []);
+        $hasCost = array_sum($materialCosts) > 0;
+        if (!$hasCost) {
+            return [];
+        }
+
+        $breakdown = [];
+        foreach ($storePlan as $index => $entry) {
+            $breakdown[$index] = [
+                'store_location_id' => $entry['store_location_id'] ?? null,
+                'store_name' => $entry['store_name'] ?? ('Toko ' . ($index + 1)),
+                'distance_km' => $entry['distance_km'] ?? null,
+                'provided_materials' => $entry['provided_materials'] ?? [],
+                'estimated_cost' => 0.0,
+                'material_costs' => [],
+            ];
+        }
+
+        foreach ($materialCosts as $type => $cost) {
+            if ($cost <= 0) {
+                continue;
+            }
+
+            $allocated = false;
+            foreach ($breakdown as $index => $entry) {
+                if (in_array($type, $entry['provided_materials'] ?? [], true)) {
+                    $breakdown[$index]['estimated_cost'] += $cost;
+                    $breakdown[$index]['material_costs'][$type] = round($cost, 2);
+                    $allocated = true;
+                    break;
+                }
+            }
+
+            if (!$allocated && isset($breakdown[0])) {
+                $breakdown[0]['estimated_cost'] += $cost;
+                $breakdown[0]['material_costs'][$type] = round($cost, 2);
+            }
+        }
+
+        return array_values(
+            array_filter(
+                array_map(function (array $entry) {
+                    $entry['estimated_cost'] = round((float) ($entry['estimated_cost'] ?? 0), 2);
+                    $entry['material_costs'] = $entry['material_costs'] ?? [];
+
+                    return $entry;
+                }, $breakdown),
+                fn(array $entry) => ($entry['estimated_cost'] ?? 0) > 0,
+            ),
+        );
+    }
+
+    protected function extractMaterialCostsByType(array $result): array
+    {
+        return [
+            'brick' => $this->resolveNumericResultValue($result, ['total_brick_cost']),
+            'cement' => $this->resolveNumericResultValue($result, ['total_cement_price']),
+            'sand' => $this->resolveNumericResultValue($result, ['total_sand_price']),
+            'cat' => $this->resolveNumericResultValue($result, ['total_cat_price']),
+            'ceramic' => $this->resolveNumericResultValue($result, ['total_ceramic_price']),
+            'nat' => $this->resolveNumericResultValue($result, ['total_grout_price', 'total_nat_price']),
+        ];
+    }
+
+    protected function resolveNumericResultValue(array $result, array $candidateKeys): float
+    {
+        foreach ($candidateKeys as $key) {
+            if (!array_key_exists($key, $result)) {
+                continue;
+            }
+            if (!is_numeric($result[$key])) {
+                continue;
+            }
+
+            return max(0.0, (float) $result[$key]);
+        }
+
+        return 0.0;
+    }
+
     protected function loadStoreMaterialsForLocation(
         \App\Models\StoreLocation $location,
         array $materialTypeFilters,
-        array $natTypeFilterValues
+        array $natTypeFilterValues,
+        bool $allowStoreNameFallback = true,
     ): array {
         $storeNameNorm = $this->normalizeStoreName($location->store->name ?? '');
 
-        $loadByLocationOrStore = function (string $modelClass, callable $filter) use ($location, $storeNameNorm) {
+        $loadByLocationOrStore = function (string $modelClass, callable $filter) use ($location, $storeNameNorm, $allowStoreNameFallback) {
             $items = collect();
             $items = $items->merge($modelClass::query()->where('store_location_id', $location->id)->get());
-            if ($storeNameNorm !== '') {
+            if ($allowStoreNameFallback && $storeNameNorm !== '') {
                 $items = $items->merge($this->getMaterialsByStoreName($modelClass, $storeNameNorm));
             }
             if ($items->isEmpty()) {
@@ -786,24 +993,51 @@ class CombinationGenerationService
             ->groupBy(function ($location) {
                 return $this->normalizeStoreName($location->store->name ?? '');
             })
-            ->map(fn ($items) => $items->pluck('id')->map(fn ($id) => (int) $id)->values());
+            ->map(fn($items) => $items->pluck('id')->map(fn($id) => (int) $id)->values());
 
         $storeNames = collect();
-        if ($brick && ! empty($brick->store)) {
+        if ($brick && !empty($brick->store)) {
             $storeNames->push($this->normalizeStoreName($brick->store));
         } else {
             $storeNames = $storeNames
-                ->merge(Brick::query()->whereNotNull('store')->pluck('store')->map(fn ($name) => $this->normalizeStoreName($name)))
-                ->merge(Cement::query()->whereNotNull('store')->pluck('store')->map(fn ($name) => $this->normalizeStoreName($name)))
-                ->merge(Sand::query()->whereNotNull('store')->pluck('store')->map(fn ($name) => $this->normalizeStoreName($name)))
-                ->merge(Cat::query()->whereNotNull('store')->pluck('store')->map(fn ($name) => $this->normalizeStoreName($name)))
-                ->merge(Ceramic::query()->whereNotNull('store')->pluck('store')->map(fn ($name) => $this->normalizeStoreName($name)))
-                ->merge(Nat::query()->whereNotNull('store')->pluck('store')->map(fn ($name) => $this->normalizeStoreName($name)));
+                ->merge(
+                    Brick::query()
+                        ->whereNotNull('store')
+                        ->pluck('store')
+                        ->map(fn($name) => $this->normalizeStoreName($name)),
+                )
+                ->merge(
+                    Cement::query()
+                        ->whereNotNull('store')
+                        ->pluck('store')
+                        ->map(fn($name) => $this->normalizeStoreName($name)),
+                )
+                ->merge(
+                    Sand::query()
+                        ->whereNotNull('store')
+                        ->pluck('store')
+                        ->map(fn($name) => $this->normalizeStoreName($name)),
+                )
+                ->merge(
+                    Cat::query()
+                        ->whereNotNull('store')
+                        ->pluck('store')
+                        ->map(fn($name) => $this->normalizeStoreName($name)),
+                )
+                ->merge(
+                    Ceramic::query()
+                        ->whereNotNull('store')
+                        ->pluck('store')
+                        ->map(fn($name) => $this->normalizeStoreName($name)),
+                )
+                ->merge(
+                    Nat::query()
+                        ->whereNotNull('store')
+                        ->pluck('store')
+                        ->map(fn($name) => $this->normalizeStoreName($name)),
+                );
         }
-        $storeNames = $storeNames
-            ->filter(fn ($name) => $name !== '')
-            ->unique()
-            ->values();
+        $storeNames = $storeNames->filter(fn($name) => $name !== '')->unique()->values();
 
         if ($storeNames->isEmpty()) {
             return [];
@@ -821,41 +1055,54 @@ class CombinationGenerationService
             ];
 
             // Apply filters
-            $storeMaterials['cement'] = $storeMaterials['cement']->filter(function ($item) use ($materialTypeFilters) {
-                return $this->matchesMaterialTypeFilter($item->type ?? null, $materialTypeFilters['cement'] ?? null);
-            })->values();
-            $storeMaterials['sand'] = $storeMaterials['sand']->filter(function ($item) use ($materialTypeFilters) {
-                return $this->matchesMaterialTypeFilter($item->type ?? null, $materialTypeFilters['sand'] ?? null);
-            })->values();
-            $storeMaterials['cat'] = $storeMaterials['cat']->filter(function ($item) use ($materialTypeFilters) {
-                return $this->matchesMaterialTypeFilter($item->type ?? null, $materialTypeFilters['cat'] ?? null);
-            })->values();
-            $storeMaterials['ceramic'] = $storeMaterials['ceramic']->filter(function ($item) use ($materialTypeFilters) {
-                if (empty($materialTypeFilters['ceramic'])) {
-                    return true;
-                }
-                $ceramicSize = $this->formatCeramicSize($item);
+            $storeMaterials['cement'] = $storeMaterials['cement']
+                ->filter(function ($item) use ($materialTypeFilters) {
+                    return $this->matchesMaterialTypeFilter(
+                        $item->type ?? null,
+                        $materialTypeFilters['cement'] ?? null,
+                    );
+                })
+                ->values();
+            $storeMaterials['sand'] = $storeMaterials['sand']
+                ->filter(function ($item) use ($materialTypeFilters) {
+                    return $this->matchesMaterialTypeFilter($item->type ?? null, $materialTypeFilters['sand'] ?? null);
+                })
+                ->values();
+            $storeMaterials['cat'] = $storeMaterials['cat']
+                ->filter(function ($item) use ($materialTypeFilters) {
+                    return $this->matchesMaterialTypeFilter($item->type ?? null, $materialTypeFilters['cat'] ?? null);
+                })
+                ->values();
+            $storeMaterials['ceramic'] = $storeMaterials['ceramic']
+                ->filter(function ($item) use ($materialTypeFilters) {
+                    if (empty($materialTypeFilters['ceramic'])) {
+                        return true;
+                    }
+                    $ceramicSize = $this->formatCeramicSize($item);
 
-                return $this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic']);
-            })->values();
-            $storeMaterials['nat'] = $storeMaterials['nat']->filter(function ($item) use ($natTypeFilterValues) {
-                return $this->matchesMaterialTypeFilter($item->type ?? null, $natTypeFilterValues);
-            })->values();
+                    return $this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic']);
+                })
+                ->values();
+            $storeMaterials['nat'] = $storeMaterials['nat']
+                ->filter(function ($item) use ($natTypeFilterValues) {
+                    return $this->matchesMaterialTypeFilter($item->type ?? null, $natTypeFilterValues);
+                })
+                ->values();
 
             $isComplete = true;
             foreach ($requiredMaterials as $req) {
                 if ($req === 'brick') {
                     if ($brick) {
-                        $hasBrickLocationInfo = ! empty($brick->store_location_id) || ! empty($brick->store);
+                        $hasBrickLocationInfo = !empty($brick->store_location_id) || !empty($brick->store);
                         if ($hasBrickLocationInfo) {
                             $hasBrick = false;
                             if ($this->normalizeStoreName($brick->store ?? '') === $storeName) {
                                 $hasBrick = true;
                             }
-                            if (! $hasBrick && $locationIdsForStore->isNotEmpty() && ! empty($brick->store_location_id)) {
+                            if (!$hasBrick && $locationIdsForStore->isNotEmpty() && !empty($brick->store_location_id)) {
                                 $hasBrick = $locationIdsForStore->contains((int) $brick->store_location_id);
                             }
-                            if (! $hasBrick) {
+                            if (!$hasBrick) {
                                 $isComplete = false;
                                 break;
                             }
@@ -878,11 +1125,11 @@ class CombinationGenerationService
                 }
             }
 
-            if (! $isComplete) {
+            if (!$isComplete) {
                 continue;
             }
 
-            if (! $brick && in_array('brick', $requiredMaterials, true)) {
+            if (!$brick && in_array('brick', $requiredMaterials, true)) {
                 continue;
             }
 
@@ -890,22 +1137,22 @@ class CombinationGenerationService
             $storeMaterials = $this->capStoreMaterials($storeMaterials, $workType);
 
             $localResults = $this->calculateCombinationsFromMaterials(
-                $brick ?? new Brick,
+                $brick ?? new Brick(),
                 $request->all(),
                 $storeMaterials['cement'],
                 $storeMaterials['sand'],
                 $storeMaterials['cat'],
                 $storeMaterials['ceramic'],
                 $storeMaterials['nat'],
-                'Store: '.$storeName,
-                10
+                'Store: ' . $storeName,
+                10,
             );
 
             if (empty($localResults)) {
                 continue;
             }
 
-            usort($localResults, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+            usort($localResults, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
             $isSingleMaterialWork = count($requiredMaterials) <= 1;
 
             if ($isSingleMaterialWork) {
@@ -915,13 +1162,13 @@ class CombinationGenerationService
                 }
             } else {
                 $cheapest = $localResults[0];
-                $cheapest['store_label'] = $storeName.' [Hemat]';
+                $cheapest['store_label'] = $storeName . ' [Hemat]';
                 $allStoreCombinations[] = $cheapest;
 
                 if (count($localResults) > 1) {
                     $expensive = end($localResults);
                     if ($expensive['total_cost'] > $cheapest['total_cost']) {
-                        $expensive['store_label'] = $storeName.' [Premium]';
+                        $expensive['store_label'] = $storeName . ' [Premium]';
                         $allStoreCombinations[] = $expensive;
                     }
                 }
@@ -932,14 +1179,14 @@ class CombinationGenerationService
             return [];
         }
 
-        usort($allStoreCombinations, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+        usort($allStoreCombinations, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
 
         $finalResults = [];
         $count = count($allStoreCombinations);
         $limitEkonomis = min(3, $count);
         for ($i = 0; $i < $limitEkonomis; $i++) {
             $combo = $allStoreCombinations[$i];
-            $label = 'Ekonomis '.($i + 1);
+            $label = 'Ekonomis ' . ($i + 1);
             $combo['filter_label'] = $label;
             $combo['filter_type'] = 'cheapest';
             $finalResults[$label] = [$combo];
@@ -957,7 +1204,7 @@ class CombinationGenerationService
             $termahalRank++;
         }
 
-        if ($count > 0 && ! isset($finalResults['Average 1'])) {
+        if ($count > 0 && !isset($finalResults['Average 1'])) {
             $midIndex = floor(($count - 1) / 2);
             $combo = $allStoreCombinations[$midIndex];
             $label = 'Average 1';
@@ -1013,7 +1260,7 @@ class CombinationGenerationService
         $min = min($length, $width);
         $max = max($length, $width);
 
-        return \App\Helpers\NumberHelper::format($min).' x '.\App\Helpers\NumberHelper::format($max);
+        return \App\Helpers\NumberHelper::format($min) . ' x ' . \App\Helpers\NumberHelper::format($max);
     }
 
     protected function normalizeIdentityText(?string $value): string
@@ -1040,15 +1287,15 @@ class CombinationGenerationService
 
     protected function materialUnitPrice(string $type, $material): float
     {
-        if (! $material) {
+        if (!$material) {
             return INF;
         }
 
         return match ($type) {
             'brick' => (float) ($material->price_per_piece ?? 0),
             'cement' => (float) ($material->package_price ?? 0),
-            'sand' => (float) ($material->comparison_price_per_m3
-                ?? (((float) ($material->package_volume ?? 0)) > 0
+            'sand' => (float) ($material->comparison_price_per_m3 ??
+                (((float) ($material->package_volume ?? 0)) > 0
                     ? ((float) ($material->package_price ?? 0)) / ((float) ($material->package_volume ?? 0))
                     : 0)),
             'cat' => (float) ($material->purchase_price ?? 0),
@@ -1060,7 +1307,7 @@ class CombinationGenerationService
 
     protected function materialIdentityMatches(string $type, $candidate, $reference, bool $strict = true): bool
     {
-        if (! $candidate || ! $reference) {
+        if (!$candidate || !$reference) {
             return false;
         }
 
@@ -1073,66 +1320,75 @@ class CombinationGenerationService
 
         return match ($type) {
             'brick' => $sameText($candidate->brand ?? '', $reference->brand ?? '') &&
-                (! $strict || (
-                    $sameText($candidate->type ?? '', $reference->type ?? '') &&
-                    $sameFloat($candidate->dimension_length ?? 0, $reference->dimension_length ?? 0) &&
-                    $sameFloat($candidate->dimension_width ?? 0, $reference->dimension_width ?? 0) &&
-                    $sameFloat($candidate->dimension_height ?? 0, $reference->dimension_height ?? 0)
-                )),
+                (!$strict ||
+                    ($sameText($candidate->type ?? '', $reference->type ?? '') &&
+                        $sameFloat($candidate->dimension_length ?? 0, $reference->dimension_length ?? 0) &&
+                        $sameFloat($candidate->dimension_width ?? 0, $reference->dimension_width ?? 0) &&
+                        $sameFloat($candidate->dimension_height ?? 0, $reference->dimension_height ?? 0))),
             'cement' => $sameText($candidate->brand ?? '', $reference->brand ?? '') &&
-                (! $strict || (
-                    $sameText($candidate->type ?? '', $reference->type ?? '') &&
-                    $sameFloat($candidate->package_weight_net ?? 0, $reference->package_weight_net ?? 0)
-                )),
+                (!$strict ||
+                    ($sameText($candidate->type ?? '', $reference->type ?? '') &&
+                        $sameFloat($candidate->package_weight_net ?? 0, $reference->package_weight_net ?? 0))),
             'sand' => $sameText($candidate->brand ?? '', $reference->brand ?? '') &&
-                (! $strict || $sameText($candidate->type ?? '', $reference->type ?? '')),
+                (!$strict || $sameText($candidate->type ?? '', $reference->type ?? '')),
             'cat' => $sameText($candidate->brand ?? '', $reference->brand ?? '') &&
-                (! $strict || (
-                    $sameText($candidate->type ?? '', $reference->type ?? '') &&
-                    $sameText($candidate->sub_brand ?? '', $reference->sub_brand ?? '') &&
-                    $sameText($candidate->color_code ?? '', $reference->color_code ?? '') &&
-                    $sameText($candidate->color_name ?? '', $reference->color_name ?? '')
-                )),
+                (!$strict ||
+                    ($sameText($candidate->type ?? '', $reference->type ?? '') &&
+                        $sameText($candidate->sub_brand ?? '', $reference->sub_brand ?? '') &&
+                        $sameText($candidate->color_code ?? '', $reference->color_code ?? '') &&
+                        $sameText($candidate->color_name ?? '', $reference->color_name ?? ''))),
             'ceramic' => $sameText($candidate->brand ?? '', $reference->brand ?? '') &&
-                (! $strict || (
-                    $sameText($candidate->type ?? '', $reference->type ?? '') &&
-                    $sameFloat(min((float) ($candidate->dimension_length ?? 0), (float) ($candidate->dimension_width ?? 0)), min((float) ($reference->dimension_length ?? 0), (float) ($reference->dimension_width ?? 0))) &&
-                    $sameFloat(max((float) ($candidate->dimension_length ?? 0), (float) ($candidate->dimension_width ?? 0)), max((float) ($reference->dimension_length ?? 0), (float) ($reference->dimension_width ?? 0)))
-                )),
+                (!$strict ||
+                    ($sameText($candidate->type ?? '', $reference->type ?? '') &&
+                        $sameFloat(
+                            min(
+                                (float) ($candidate->dimension_length ?? 0),
+                                (float) ($candidate->dimension_width ?? 0),
+                            ),
+                            min(
+                                (float) ($reference->dimension_length ?? 0),
+                                (float) ($reference->dimension_width ?? 0),
+                            ),
+                        ) &&
+                        $sameFloat(
+                            max(
+                                (float) ($candidate->dimension_length ?? 0),
+                                (float) ($candidate->dimension_width ?? 0),
+                            ),
+                            max(
+                                (float) ($reference->dimension_length ?? 0),
+                                (float) ($reference->dimension_width ?? 0),
+                            ),
+                        ))),
             'nat' => $sameText($candidate->brand ?? '', $reference->brand ?? '') &&
-                (! $strict || (
-                    $sameText($candidate->type ?? '', $reference->type ?? '') &&
-                    $sameText($candidate->color ?? '', $reference->color ?? '')
-                )),
+                (!$strict ||
+                    ($sameText($candidate->type ?? '', $reference->type ?? '') &&
+                        $sameText($candidate->color ?? '', $reference->color ?? ''))),
             default => false,
         };
     }
 
     protected function pickEquivalentMaterialForStore(string $type, $reference, $storeCandidates)
     {
-        if (! $reference || ! $storeCandidates || $storeCandidates->isEmpty()) {
+        if (!$reference || !$storeCandidates || $storeCandidates->isEmpty()) {
             return null;
         }
 
         $strictMatches = $storeCandidates
-            ->filter(fn ($candidate) => $this->materialIdentityMatches($type, $candidate, $reference, true))
+            ->filter(fn($candidate) => $this->materialIdentityMatches($type, $candidate, $reference, true))
             ->values();
         if ($strictMatches->isNotEmpty()) {
-            return $strictMatches
-                ->sortBy(fn ($candidate) => $this->materialUnitPrice($type, $candidate))
-                ->first();
+            return $strictMatches->sortBy(fn($candidate) => $this->materialUnitPrice($type, $candidate))->first();
         }
 
         $fallbackMatches = $storeCandidates
-            ->filter(fn ($candidate) => $this->materialIdentityMatches($type, $candidate, $reference, false))
+            ->filter(fn($candidate) => $this->materialIdentityMatches($type, $candidate, $reference, false))
             ->values();
         if ($fallbackMatches->isEmpty()) {
             return null;
         }
 
-        return $fallbackMatches
-            ->sortBy(fn ($candidate) => $this->materialUnitPrice($type, $candidate))
-            ->first();
+        return $fallbackMatches->sortBy(fn($candidate) => $this->materialUnitPrice($type, $candidate))->first();
     }
 
     /**
@@ -1197,65 +1453,86 @@ class CombinationGenerationService
 
             if (in_array('brick', $requiredMaterials)) {
                 $materials['brick'] = Brick::find($combo->brick_id);
-                if (! $materials['brick']) {
+                if (!$materials['brick']) {
                     $validCombo = false;
                 }
             }
             if (in_array('cement', $requiredMaterials)) {
                 $materials['cement'] = Cement::find($combo->cement_id);
-                if (! $materials['cement']) {
+                if (!$materials['cement']) {
                     $validCombo = false;
                 }
                 // Apply cement filter
-                if ($validCombo && ! $this->matchesMaterialTypeFilter($materials['cement']->type ?? null, $materialTypeFilters['cement'] ?? null)) {
+                if (
+                    $validCombo &&
+                    !$this->matchesMaterialTypeFilter(
+                        $materials['cement']->type ?? null,
+                        $materialTypeFilters['cement'] ?? null,
+                    )
+                ) {
                     $validCombo = false;
                 }
             }
             if (in_array('sand', $requiredMaterials)) {
                 $materials['sand'] = Sand::find($combo->sand_id);
-                if (! $materials['sand']) {
+                if (!$materials['sand']) {
                     $validCombo = false;
                 }
                 // Apply sand filter
-                if ($validCombo && ! $this->matchesMaterialTypeFilter($materials['sand']->type ?? null, $materialTypeFilters['sand'] ?? null)) {
+                if (
+                    $validCombo &&
+                    !$this->matchesMaterialTypeFilter(
+                        $materials['sand']->type ?? null,
+                        $materialTypeFilters['sand'] ?? null,
+                    )
+                ) {
                     $validCombo = false;
                 }
             }
             if (in_array('cat', $requiredMaterials)) {
                 $materials['cat'] = Cat::find($combo->cat_id);
-                if (! $materials['cat']) {
+                if (!$materials['cat']) {
                     $validCombo = false;
                 }
                 // Apply cat filter
-                if ($validCombo && ! $this->matchesMaterialTypeFilter($materials['cat']->type ?? null, $materialTypeFilters['cat'] ?? null)) {
+                if (
+                    $validCombo &&
+                    !$this->matchesMaterialTypeFilter(
+                        $materials['cat']->type ?? null,
+                        $materialTypeFilters['cat'] ?? null,
+                    )
+                ) {
                     $validCombo = false;
                 }
             }
             if (in_array('ceramic', $requiredMaterials)) {
                 $materials['ceramic'] = Ceramic::find($combo->ceramic_id);
-                if (! $materials['ceramic']) {
+                if (!$materials['ceramic']) {
                     $validCombo = false;
                 }
                 // Apply ceramic filter (size-based)
-                if ($validCombo && ! empty($materialTypeFilters['ceramic'])) {
+                if ($validCombo && !empty($materialTypeFilters['ceramic'])) {
                     $ceramicSize = $this->formatCeramicSize($materials['ceramic']);
-                    if (! $this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic'])) {
+                    if (!$this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic'])) {
                         $validCombo = false;
                     }
                 }
             }
             if (in_array('nat', $requiredMaterials)) {
                 $materials['nat'] = isset($combo->nat_id) ? Nat::find($combo->nat_id) : null;
-                if (! $materials['nat']) {
+                if (!$materials['nat']) {
                     $validCombo = false;
                 }
                 // Apply nat filter
-                if ($validCombo && ! $this->matchesMaterialTypeFilter($materials['nat']->type ?? null, $natTypeFilterValues)) {
+                if (
+                    $validCombo &&
+                    !$this->matchesMaterialTypeFilter($materials['nat']->type ?? null, $natTypeFilterValues)
+                ) {
                     $validCombo = false;
                 }
             }
 
-            if (! $validCombo) {
+            if (!$validCombo) {
                 continue;
             }
 
@@ -1267,7 +1544,7 @@ class CombinationGenerationService
                 $storeMaterials = $this->loadStoreMaterialsForLocation(
                     $location,
                     $materialTypeFilters,
-                    $natTypeFilterValues
+                    $natTypeFilterValues,
                 );
                 $selectedStoreMaterials = [];
 
@@ -1276,9 +1553,9 @@ class CombinationGenerationService
                     $matchedBrick = $this->pickEquivalentMaterialForStore(
                         'brick',
                         $materials['brick'] ?? null,
-                        $brickCandidates
+                        $brickCandidates,
                     );
-                    if (! $matchedBrick) {
+                    if (!$matchedBrick) {
                         $hasAll = false;
                     } else {
                         $selectedStoreMaterials['brick'] = $matchedBrick;
@@ -1286,15 +1563,15 @@ class CombinationGenerationService
                 }
 
                 foreach (['cement', 'sand', 'cat', 'ceramic', 'nat'] as $type) {
-                    if (! $hasAll || ! in_array($type, $requiredMaterials, true)) {
+                    if (!$hasAll || !in_array($type, $requiredMaterials, true)) {
                         continue;
                     }
                     $matched = $this->pickEquivalentMaterialForStore(
                         $type,
                         $materials[$type] ?? null,
-                        $storeMaterials[$type] ?? collect()
+                        $storeMaterials[$type] ?? collect(),
                     );
-                    if (! $matched) {
+                    if (!$matched) {
                         $hasAll = false;
                         break;
                     }
@@ -1303,12 +1580,22 @@ class CombinationGenerationService
 
                 if ($hasAll) {
                     // Calculate Cost at this store using store-scoped material IDs.
-                    $cements = isset($selectedStoreMaterials['cement']) ? collect([$selectedStoreMaterials['cement']]) : collect();
-                    $sands = isset($selectedStoreMaterials['sand']) ? collect([$selectedStoreMaterials['sand']]) : collect();
-                    $cats = isset($selectedStoreMaterials['cat']) ? collect([$selectedStoreMaterials['cat']]) : collect();
-                    $ceramics = isset($selectedStoreMaterials['ceramic']) ? collect([$selectedStoreMaterials['ceramic']]) : collect();
-                    $nats = isset($selectedStoreMaterials['nat']) ? collect([$selectedStoreMaterials['nat']]) : collect();
-                    $brick = $selectedStoreMaterials['brick'] ?? ($materials['brick'] ?? new Brick);
+                    $cements = isset($selectedStoreMaterials['cement'])
+                        ? collect([$selectedStoreMaterials['cement']])
+                        : collect();
+                    $sands = isset($selectedStoreMaterials['sand'])
+                        ? collect([$selectedStoreMaterials['sand']])
+                        : collect();
+                    $cats = isset($selectedStoreMaterials['cat'])
+                        ? collect([$selectedStoreMaterials['cat']])
+                        : collect();
+                    $ceramics = isset($selectedStoreMaterials['ceramic'])
+                        ? collect([$selectedStoreMaterials['ceramic']])
+                        : collect();
+                    $nats = isset($selectedStoreMaterials['nat'])
+                        ? collect([$selectedStoreMaterials['nat']])
+                        : collect();
+                    $brick = $selectedStoreMaterials['brick'] ?? ($materials['brick'] ?? new Brick());
 
                     $result = $this->calculateCombinationsFromMaterials(
                         $brick,
@@ -1319,12 +1606,12 @@ class CombinationGenerationService
                         $ceramics,
                         $nats,
                         'Populer Store',
-                        1
+                        1,
                     );
 
-                    if (! empty($result)) {
+                    if (!empty($result)) {
                         $res = $result[0];
-                        $res['store_label'] = $location->store->name.' ('.$location->city.')';
+                        $res['store_label'] = $location->store->name . ' (' . $location->city . ')';
                         $res['store_location'] = $location;
                         $res['frequency'] = (int) $combo->frequency;
                         $validStores[] = $res;
@@ -1333,11 +1620,11 @@ class CombinationGenerationService
             }
 
             // If we found valid stores for this popular combo, pick the cheapest one
-            if (! empty($validStores)) {
-                usort($validStores, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+            if (!empty($validStores)) {
+                usort($validStores, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
                 $winner = $validStores[0];
 
-                $label = 'Populer '.$rank;
+                $label = 'Populer ' . $rank;
                 $winner['filter_label'] = $label;
                 $winner['filter_type'] = 'common';
 
@@ -1352,8 +1639,12 @@ class CombinationGenerationService
     /**
      * Get combinations by filter
      */
-    public function getCombinationsByFilter(Brick $brick, array $requestData, string $filter, ?Ceramic $fixedCeramic = null): array
-    {
+    public function getCombinationsByFilter(
+        Brick $brick,
+        array $requestData,
+        string $filter,
+        ?Ceramic $fixedCeramic = null,
+    ): array {
         switch ($filter) {
             case 'best':
                 return $this->getBestCombinations($brick, $requestData);
@@ -1441,7 +1732,7 @@ class CombinationGenerationService
         }
 
         // Determine sorting direction based on group label for optimization
-        $sortDesc = ($groupLabel === 'Termahal');
+        $sortDesc = $groupLabel === 'Termahal';
 
         $generator = $this->yieldCombinations(
             $paramsBase,
@@ -1451,7 +1742,7 @@ class CombinationGenerationService
             $cats,
             $ceramics,
             $nats,
-            $groupLabel
+            $groupLabel,
         );
 
         // If limit is set, use bounded buffer to save memory
@@ -1474,9 +1765,7 @@ class CombinationGenerationService
 
             // Final Sort and Slice
             usort($results, function ($a, $b) use ($sortDesc) {
-                return $sortDesc
-                    ? $b['total_cost'] <=> $a['total_cost']
-                    : $a['total_cost'] <=> $b['total_cost'];
+                return $sortDesc ? $b['total_cost'] <=> $a['total_cost'] : $a['total_cost'] <=> $b['total_cost'];
             });
 
             return array_slice($results, 0, $limit);
@@ -1487,9 +1776,7 @@ class CombinationGenerationService
         $results = iterator_to_array($generator);
 
         usort($results, function ($a, $b) use ($sortDesc) {
-            return $sortDesc
-               ? $b['total_cost'] <=> $a['total_cost']
-               : $a['total_cost'] <=> $b['total_cost'];
+            return $sortDesc ? $b['total_cost'] <=> $a['total_cost'] : $a['total_cost'] <=> $b['total_cost'];
         });
 
         return $results;
@@ -1506,7 +1793,7 @@ class CombinationGenerationService
         iterable $cats,
         iterable $ceramics,
         iterable $nats,
-        string $groupLabel
+        string $groupLabel,
     ) {
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
 
@@ -1517,7 +1804,15 @@ class CombinationGenerationService
             in_array('cement', $requiredMaterials, true) &&
             in_array('sand', $requiredMaterials, true)
         ) {
-            yield from $this->yieldCeramicNatCementSandCombinations($paramsBase, $workType, $ceramics, $nats, $cements, $sands, $groupLabel);
+            yield from $this->yieldCeramicNatCementSandCombinations(
+                $paramsBase,
+                $workType,
+                $ceramics,
+                $nats,
+                $cements,
+                $sands,
+                $groupLabel,
+            );
 
             return;
         }
@@ -1532,7 +1827,7 @@ class CombinationGenerationService
 
                 try {
                     $formula = FormulaRegistry::instance($workType);
-                    if (! $formula) {
+                    if (!$formula) {
                         continue;
                     }
 
@@ -1550,8 +1845,8 @@ class CombinationGenerationService
         } elseif (
             in_array('ceramic', $requiredMaterials, true) &&
             in_array('nat', $requiredMaterials, true) &&
-            ! in_array('cement', $requiredMaterials, true) &&
-            ! in_array('sand', $requiredMaterials, true)
+            !in_array('cement', $requiredMaterials, true) &&
+            !in_array('sand', $requiredMaterials, true)
         ) {
             // This handles grout_tile work type
             // Note: ceramic dimensions come from request params (user input), not from ceramic model
@@ -1565,7 +1860,7 @@ class CombinationGenerationService
 
                     try {
                         $formula = FormulaRegistry::instance($workType);
-                        if (! $formula) {
+                        if (!$formula) {
                             continue;
                         }
 
@@ -1589,7 +1884,44 @@ class CombinationGenerationService
                     }
                 }
             }
-        } elseif (in_array('cement', $requiredMaterials, true) && ! in_array('sand', $requiredMaterials, true)) {
+        } elseif (
+            in_array('ceramic', $requiredMaterials, true) &&
+            in_array('cement', $requiredMaterials, true) &&
+            !in_array('nat', $requiredMaterials, true) &&
+            !in_array('sand', $requiredMaterials, true)
+        ) {
+            // Cement + Ceramic only (e.g., adhesive_mix / pasang keramik saja)
+            foreach ($ceramics as $ceramic) {
+                foreach ($cements as $cement) {
+                    if ($cement->package_weight_net <= 0) {
+                        continue;
+                    }
+
+                    $params = array_merge($paramsBase, [
+                        'cement_id' => $cement->id,
+                        'ceramic_id' => $ceramic->id,
+                    ]);
+
+                    try {
+                        $formula = FormulaRegistry::instance($workType);
+                        if (!$formula) {
+                            continue;
+                        }
+
+                        $result = $formula->calculate($params);
+
+                        yield [
+                            'cement' => $cement,
+                            'ceramic' => $ceramic,
+                            'result' => $result,
+                            'total_cost' => $result['grand_total'],
+                        ];
+                    } catch (\Exception $e) {
+                        continue;
+                    }
+                }
+            }
+        } elseif (in_array('cement', $requiredMaterials, true) && !in_array('sand', $requiredMaterials, true)) {
             foreach ($cements as $cement) {
                 if ($cement->package_weight_net <= 0) {
                     continue;
@@ -1599,7 +1931,7 @@ class CombinationGenerationService
 
                 try {
                     $formula = FormulaRegistry::instance($workType);
-                    if (! $formula) {
+                    if (!$formula) {
                         continue;
                     }
 
@@ -1624,7 +1956,7 @@ class CombinationGenerationService
                     $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
                     $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
 
-                    if (! $hasPricePerM3 && ! $hasPackageData) {
+                    if (!$hasPricePerM3 && !$hasPackageData) {
                         continue;
                     }
 
@@ -1635,7 +1967,7 @@ class CombinationGenerationService
 
                     try {
                         $formula = FormulaRegistry::instance($workType);
-                        if (! $formula) {
+                        if (!$formula) {
                             continue;
                         }
 
@@ -1667,25 +1999,25 @@ class CombinationGenerationService
 
         foreach ($combinations as $combo) {
             if (isset($combo['cat'])) {
-                $key = 'cat-'.$combo['cat']->id;
+                $key = 'cat-' . $combo['cat']->id;
             } elseif (isset($combo['ceramic'])) {
                 $key =
-                    'cer-'.
-                    ($combo['ceramic']->id ?? 0).
-                    '-nat-'.
-                    ($combo['nat']->id ?? 0).
-                    '-cem-'.
-                    ($combo['cement']->id ?? 0).
-                    '-snd-'.
+                    'cer-' .
+                    ($combo['ceramic']->id ?? 0) .
+                    '-nat-' .
+                    ($combo['nat']->id ?? 0) .
+                    '-cem-' .
+                    ($combo['cement']->id ?? 0) .
+                    '-snd-' .
                     ($combo['sand']->id ?? 0);
-            } elseif (isset($combo['cement']) && ! isset($combo['sand'])) {
-                $key = 'cement-'.($combo['cement']->id ?? 0);
+            } elseif (isset($combo['cement']) && !isset($combo['sand'])) {
+                $key = 'cement-' . ($combo['cement']->id ?? 0);
             } else {
-                $key = ($combo['cement']->id ?? 0).'-'.($combo['sand']->id ?? 0);
+                $key = ($combo['cement']->id ?? 0) . '-' . ($combo['sand']->id ?? 0);
             }
 
             // Ensure source_filters is initialized
-            if (! isset($combo['source_filters'])) {
+            if (!isset($combo['source_filters'])) {
                 $combo['source_filters'] = [$combo['filter_type']];
             }
 
@@ -1699,10 +2031,10 @@ class CombinationGenerationService
                 $uniqueCombos[$existingIndex]['all_labels'][] = $currentLabel;
 
                 // Keep default string merging (will be overwritten by display logic later)
-                $uniqueCombos[$existingIndex]['filter_label'] .= ' = '.$currentLabel;
+                $uniqueCombos[$existingIndex]['filter_label'] .= ' = ' . $currentLabel;
 
                 // Merge Source Filters
-                if (! in_array($combo['filter_type'], $uniqueCombos[$existingIndex]['source_filters'])) {
+                if (!in_array($combo['filter_type'], $uniqueCombos[$existingIndex]['source_filters'])) {
                     $uniqueCombos[$existingIndex]['source_filters'][] = $combo['filter_type'];
                 }
             } else {
@@ -1729,7 +2061,7 @@ class CombinationGenerationService
         // Get work_type from request
         $workType = $request['work_type'] ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
-        $isBrickless = ! in_array('brick', $requiredMaterials, true);
+        $isBrickless = !in_array('brick', $requiredMaterials, true);
 
         $recommendations = $this->repository->getRecommendedCombinations($workType)->where('type', 'best');
 
@@ -1740,11 +2072,11 @@ class CombinationGenerationService
         }
 
         Log::info(
-            'GetBestCombinations: Found '.
-                $recommendations->count().
-                ' recommendations for brick ID: '.
-                $brick->id.
-                ' and work_type: '.
+            'GetBestCombinations: Found ' .
+                $recommendations->count() .
+                ' recommendations for brick ID: ' .
+                $brick->id .
+                ' and work_type: ' .
                 $workType,
         );
 
@@ -1814,7 +2146,7 @@ class CombinationGenerationService
                 1,
             );
 
-            Log::info('Calculation result count: '.count($results));
+            Log::info('Calculation result count: ' . count($results));
 
             foreach ($results as &$res) {
                 $res['source_filter'] = 'best';
@@ -1822,8 +2154,8 @@ class CombinationGenerationService
             }
         }
 
-        if (! empty($allRecommendedResults)) {
-            Log::info('Returning '.count($allRecommendedResults)." admin-defined 'best' combinations.");
+        if (!empty($allRecommendedResults)) {
+            Log::info('Returning ' . count($allRecommendedResults) . " admin-defined 'best' combinations.");
 
             return $allRecommendedResults;
         }
@@ -1865,7 +2197,7 @@ class CombinationGenerationService
     {
         $workType = $request['work_type'] ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
-        $isBrickless = ! in_array('brick', $requiredMaterials, true);
+        $isBrickless = !in_array('brick', $requiredMaterials, true);
         $isCeramicWork = in_array('ceramic', $requiredMaterials, true);
         $isCatWork = in_array('cat', $requiredMaterials, true);
         $materialTypeFilters = $request['material_type_filters'] ?? [];
@@ -1892,7 +2224,7 @@ class CombinationGenerationService
             if (in_array('sand', $requiredMaterials, true)) {
                 $query->whereNotNull('sand_id');
             }
-            if (! empty($request['ceramic_id'])) {
+            if (!empty($request['ceramic_id'])) {
                 $query->where('ceramic_id', $request['ceramic_id']);
             }
 
@@ -1913,35 +2245,38 @@ class CombinationGenerationService
                 $cement = $combo->cement_id ? Cement::find($combo->cement_id) : null;
                 $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
-                if (! $ceramic || ! $nat) {
+                if (!$ceramic || !$nat) {
                     continue;
                 }
-                if (in_array('cement', $requiredMaterials, true) && ! $cement) {
+                if (in_array('cement', $requiredMaterials, true) && !$cement) {
                     continue;
                 }
-                if ($combo->cement_id && ! $cement) {
+                if ($combo->cement_id && !$cement) {
                     continue;
                 }
-                if (in_array('sand', $requiredMaterials, true) && ! $sand) {
+                if (in_array('sand', $requiredMaterials, true) && !$sand) {
                     continue;
                 }
-                if ($combo->sand_id && ! $sand) {
+                if ($combo->sand_id && !$sand) {
                     continue;
                 }
 
                 // Apply material type filters
-                if ($cement && ! $this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
+                if (
+                    $cement &&
+                    !$this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)
+                ) {
                     continue;
                 }
-                if ($sand && ! $this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
+                if ($sand && !$this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
                     continue;
                 }
-                if ($nat && ! $this->matchesMaterialTypeFilter($nat->type ?? null, $natTypeFilterValues)) {
+                if ($nat && !$this->matchesMaterialTypeFilter($nat->type ?? null, $natTypeFilterValues)) {
                     continue;
                 }
-                if (! empty($materialTypeFilters['ceramic']) && $ceramic) {
+                if (!empty($materialTypeFilters['ceramic']) && $ceramic) {
                     $ceramicSize = $this->formatCeramicSize($ceramic);
-                    if (! $this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic'])) {
+                    if (!$this->matchesCeramicSizeFilter($ceramicSize, $materialTypeFilters['ceramic'])) {
                         continue;
                     }
                 }
@@ -1955,7 +2290,7 @@ class CombinationGenerationService
 
                 try {
                     $formula = FormulaRegistry::instance($workType);
-                    if (! $formula) {
+                    if (!$formula) {
                         continue;
                     }
                     $trace = $formula->trace($params);
@@ -1996,19 +2331,19 @@ class CombinationGenerationService
             $results = [];
             foreach ($commonCombos as $combo) {
                 $cat = Cat::find($combo->cat_id);
-                if (! $cat) {
+                if (!$cat) {
                     continue;
                 }
 
                 // Apply material type filter for cat
-                if (! $this->matchesMaterialTypeFilter($cat->type, $materialTypeFilters['cat'] ?? null)) {
+                if (!$this->matchesMaterialTypeFilter($cat->type, $materialTypeFilters['cat'] ?? null)) {
                     continue;
                 }
 
                 $params = array_merge($paramsBase, ['cat_id' => $cat->id]);
                 try {
                     $formula = FormulaRegistry::instance($workType);
-                    if (! $formula) {
+                    if (!$formula) {
                         continue;
                     }
                     $trace = $formula->trace($params);
@@ -2048,21 +2383,21 @@ class CombinationGenerationService
                 $cement = Cement::find($combo->cement_id);
                 $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
-                if (! $cement) {
+                if (!$cement) {
                     continue;
                 }
-                if (in_array('sand', $requiredMaterials, true) && ! $sand) {
+                if (in_array('sand', $requiredMaterials, true) && !$sand) {
                     continue;
                 }
-                if ($combo->sand_id && ! $sand) {
+                if ($combo->sand_id && !$sand) {
                     continue;
                 }
 
                 // Apply material type filters
-                if (! $this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
+                if (!$this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
                     continue;
                 }
-                if ($sand && ! $this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
+                if ($sand && !$this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
                     continue;
                 }
 
@@ -2073,7 +2408,7 @@ class CombinationGenerationService
 
                 try {
                     $formula = FormulaRegistry::instance($workType);
-                    if (! $formula) {
+                    if (!$formula) {
                         continue;
                     }
                     $trace = $formula->trace($params);
@@ -2115,18 +2450,18 @@ class CombinationGenerationService
             $cement = Cement::find($combo->cement_id);
             $sand = $combo->sand_id ? Sand::find($combo->sand_id) : null;
 
-            if (! $cement) {
+            if (!$cement) {
                 continue;
             }
-            if (in_array('sand', $requiredMaterials, true) && ! $sand) {
+            if (in_array('sand', $requiredMaterials, true) && !$sand) {
                 continue;
             }
-            if ($combo->sand_id && ! $sand) {
+            if ($combo->sand_id && !$sand) {
                 continue;
             }
 
             // Apply material type filters
-            if (! $this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
+            if (!$this->matchesMaterialTypeFilter($cement->type, $materialTypeFilters['cement'] ?? null)) {
                 Log::info('getCommonCombinations - Skipping cement', [
                     'cement_type' => $cement->type,
                     'filter' => $materialTypeFilters['cement'] ?? null,
@@ -2134,7 +2469,7 @@ class CombinationGenerationService
 
                 continue;
             }
-            if ($sand && ! $this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
+            if ($sand && !$this->matchesMaterialTypeFilter($sand->type, $materialTypeFilters['sand'] ?? null)) {
                 Log::info('getCommonCombinations - Skipping sand', [
                     'sand_type' => $sand->type,
                     'filter' => $materialTypeFilters['sand'] ?? null,
@@ -2150,7 +2485,7 @@ class CombinationGenerationService
 
             try {
                 $formula = FormulaRegistry::instance($workType);
-                if (! $formula) {
+                if (!$formula) {
                     continue;
                 }
                 $trace = $formula->trace($params);
@@ -2194,14 +2529,20 @@ class CombinationGenerationService
             'sand_filter_value' => $materialTypeFilters['sand'] ?? 'NONE',
             'available_cement_types_in_db' => $availableCementTypes,
             'available_sand_types_in_db' => $availableSandTypes,
-            'cement_filter_exists_in_db' => count(array_intersect(
-                $this->normalizeMaterialTypeFilterValues($materialTypeFilters['cement'] ?? null),
-                $availableCementTypes,
-            )) > 0,
-            'sand_filter_exists_in_db' => count(array_intersect(
-                $this->normalizeMaterialTypeFilterValues($materialTypeFilters['sand'] ?? null),
-                $availableSandTypes,
-            )) > 0,
+            'cement_filter_exists_in_db' =>
+                count(
+                    array_intersect(
+                        $this->normalizeMaterialTypeFilterValues($materialTypeFilters['cement'] ?? null),
+                        $availableCementTypes,
+                    ),
+                ) > 0,
+            'sand_filter_exists_in_db' =>
+                count(
+                    array_intersect(
+                        $this->normalizeMaterialTypeFilterValues($materialTypeFilters['sand'] ?? null),
+                        $availableSandTypes,
+                    ),
+                ) > 0,
         ]);
 
         $cements = $this->resolveCementsByPrice('asc', $materialLimit, $materialTypeFilters['cement'] ?? null);
@@ -2218,7 +2559,7 @@ class CombinationGenerationService
         if ($workType === 'grout_tile' && $nats->isEmpty()) {
             $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
             $fallbackQuery = Nat::query();
-            if (! empty($natTypeFilterValues)) {
+            if (!empty($natTypeFilterValues)) {
                 $fallbackQuery->whereIn('type', $natTypeFilterValues);
             }
             $nats = $fallbackQuery->orderBy('brand')->limit($materialLimit)->get();
@@ -2269,7 +2610,7 @@ class CombinationGenerationService
         if ($workType === 'grout_tile' && $nats->isEmpty()) {
             $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
             $fallbackQuery = Nat::query();
-            if (! empty($natTypeFilterValues)) {
+            if (!empty($natTypeFilterValues)) {
                 $fallbackQuery->whereIn('type', $natTypeFilterValues);
             }
             $nats = $fallbackQuery->orderBy('brand')->limit($materialLimit)->get();
@@ -2322,7 +2663,7 @@ class CombinationGenerationService
         if ($workType === 'grout_tile' && $nats->isEmpty()) {
             $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
             $fallbackQuery = Nat::query();
-            if (! empty($natTypeFilterValues)) {
+            if (!empty($natTypeFilterValues)) {
                 $fallbackQuery->whereIn('type', $natTypeFilterValues);
             }
             $nats = $fallbackQuery->orderBy('brand')->limit($materialLimit)->get();
@@ -2354,7 +2695,7 @@ class CombinationGenerationService
         $workType = $request['work_type'] ?? 'brick_half';
 
         if ($workType === 'painting') {
-            if (! empty($request['cat_id'])) {
+            if (!empty($request['cat_id'])) {
                 $cats = Cat::where('id', $request['cat_id'])->get();
 
                 return $this->calculateCombinationsFromMaterials(
@@ -2370,7 +2711,7 @@ class CombinationGenerationService
                 );
             }
         } elseif ($workType === 'grout_tile') {
-            if (! empty($request['nat_id'])) {
+            if (!empty($request['nat_id'])) {
                 $nats = Nat::where('id', $request['nat_id'])->get();
                 $ceramics = collect([$this->buildGroutTileFallbackCeramic($request)]);
 
@@ -2388,10 +2729,10 @@ class CombinationGenerationService
             }
         } elseif ($workType === 'tile_installation') {
             if (
-                ! empty($request['ceramic_id']) &&
-                ! empty($request['nat_id']) &&
-                ! empty($request['cement_id']) &&
-                ! empty($request['sand_id'])
+                !empty($request['ceramic_id']) &&
+                !empty($request['nat_id']) &&
+                !empty($request['cement_id']) &&
+                !empty($request['sand_id'])
             ) {
                 $ceramics = Ceramic::where('id', $request['ceramic_id'])->get();
                 $nats = Nat::where('id', $request['nat_id'])->get();
@@ -2410,7 +2751,7 @@ class CombinationGenerationService
                     1,
                 );
             }
-        } elseif (! empty($request['cement_id']) && ! empty($request['sand_id'])) {
+        } elseif (!empty($request['cement_id']) && !empty($request['sand_id'])) {
             $cements = $this->repository->getCementsByIds([$request['cement_id']]);
             $sands = $this->repository->getSandsByIds([$request['sand_id']]);
 
@@ -2443,20 +2784,18 @@ class CombinationGenerationService
         Log::info('getAllCombinations - Material Type Filters', [
             'filters' => $materialTypeFilters,
             'work_type' => $workType,
-            'has_cement_filter' => ! empty($materialTypeFilters['cement']),
-            'has_sand_filter' => ! empty($materialTypeFilters['sand']),
+            'has_cement_filter' => !empty($materialTypeFilters['cement']),
+            'has_sand_filter' => !empty($materialTypeFilters['sand']),
         ]);
 
         // Use cursor() for memory efficiency on large datasets
 
         $cements = collect();
         if (in_array('cement', $requiredMaterials, true)) {
-            $query = Cement::query()
-                ->where('package_price', '>', 0)
-                ->where('package_weight_net', '>', 0);
+            $query = Cement::query()->where('package_price', '>', 0)->where('package_weight_net', '>', 0);
 
             // Apply material type filter for cement
-            if (! empty($materialTypeFilters['cement'])) {
+            if (!empty($materialTypeFilters['cement'])) {
                 Log::info('Applying cement filter', ['type' => $materialTypeFilters['cement']]);
                 $this->applyTypeFilterToQuery($query, $materialTypeFilters['cement']);
             }
@@ -2469,7 +2808,7 @@ class CombinationGenerationService
             $query = Sand::where('package_price', '>', 0);
 
             // Apply material type filter for sand
-            if (! empty($materialTypeFilters['sand'])) {
+            if (!empty($materialTypeFilters['sand'])) {
                 $this->applyTypeFilterToQuery($query, $materialTypeFilters['sand']);
             }
 
@@ -2481,7 +2820,7 @@ class CombinationGenerationService
             $query = Cat::where('purchase_price', '>', 0)->orderBy('brand');
 
             // Apply material type filter for cat
-            if (! empty($materialTypeFilters['cat'])) {
+            if (!empty($materialTypeFilters['cat'])) {
                 $this->applyTypeFilterToQuery($query, $materialTypeFilters['cat']);
             }
 
@@ -2497,7 +2836,7 @@ class CombinationGenerationService
             $query->whereNotNull('price_per_package')->orderBy('price_per_package', 'asc');
 
             // Apply material type filter for ceramic (size-based)
-            if (! empty($materialTypeFilters['ceramic'])) {
+            if (!empty($materialTypeFilters['ceramic'])) {
                 $this->applyCeramicSizeFilterToQuery($query, $materialTypeFilters['ceramic']);
             }
 
@@ -2510,7 +2849,7 @@ class CombinationGenerationService
 
             // Apply material type filter for nat
             $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
-            if (! empty($natTypeFilterValues)) {
+            if (!empty($natTypeFilterValues)) {
                 $query->whereIn('type', $natTypeFilterValues);
             }
 
@@ -2531,7 +2870,7 @@ class CombinationGenerationService
 
     protected function normalizeNatRequestIds(array $request): array
     {
-        if (! empty($request['nat_id'])) {
+        if (!empty($request['nat_id'])) {
             $request['nat_id'] = (int) $request['nat_id'];
         }
 
@@ -2540,7 +2879,7 @@ class CombinationGenerationService
 
     protected function extractNatIdFromModel($nat): ?int
     {
-        if (! $nat) {
+        if (!$nat) {
             return null;
         }
 
@@ -2568,7 +2907,7 @@ class CombinationGenerationService
     {
         $materials = FormulaRegistry::materialsFor($workType);
 
-        return ! empty($materials) ? $materials : ['brick', 'cement', 'sand'];
+        return !empty($materials) ? $materials : ['brick', 'cement', 'sand'];
     }
 
     protected function resolveMaterialLimit(string $workType): int
@@ -2628,14 +2967,15 @@ class CombinationGenerationService
         return $storeMaterials;
     }
 
-    protected function resolveCementsByPrice(string $direction, int $limit, string|array|null $typeFilter = null): EloquentCollection
-    {
-        $query = Cement::query()
-            ->where('package_price', '>', 0)
-            ->where('package_weight_net', '>', 0);
+    protected function resolveCementsByPrice(
+        string $direction,
+        int $limit,
+        string|array|null $typeFilter = null,
+    ): EloquentCollection {
+        $query = Cement::query()->where('package_price', '>', 0)->where('package_weight_net', '>', 0);
 
         // Apply material type filter
-        if (! empty($typeFilter)) {
+        if (!empty($typeFilter)) {
             Log::info('resolveCementsByPrice - Applying filter', [
                 'direction' => $direction,
                 'typeFilter' => $typeFilter,
@@ -2654,33 +2994,34 @@ class CombinationGenerationService
             ]);
         }
 
-        return $query->orderBy('package_price', $direction)
-            ->limit($limit)
-            ->get();
+        return $query->orderBy('package_price', $direction)->limit($limit)->get();
     }
 
-    protected function resolveNatsByPrice(string $direction, int $limit, string|array|null $typeFilter = null): EloquentCollection
-    {
-        $query = Nat::query()
-            ->where('package_price', '>', 0);
+    protected function resolveNatsByPrice(
+        string $direction,
+        int $limit,
+        string|array|null $typeFilter = null,
+    ): EloquentCollection {
+        $query = Nat::query()->where('package_price', '>', 0);
 
         // Apply nat type filter. Plain "Nat" means no specific type filtering.
         $natTypeFilterValues = $this->normalizeNatTypeFilterValues($typeFilter);
-        if (! empty($natTypeFilterValues)) {
+        if (!empty($natTypeFilterValues)) {
             $query->whereIn('type', $natTypeFilterValues);
         }
 
-        return $query->orderBy('package_price', $direction)
-            ->limit($limit)
-            ->get();
+        return $query->orderBy('package_price', $direction)->limit($limit)->get();
     }
 
-    protected function resolveSandsByPrice(string $direction, int $limit, string|array|null $typeFilter = null): EloquentCollection
-    {
+    protected function resolveSandsByPrice(
+        string $direction,
+        int $limit,
+        string|array|null $typeFilter = null,
+    ): EloquentCollection {
         $query = Sand::where('package_price', '>', 0);
 
         // Apply material type filter
-        if (! empty($typeFilter)) {
+        if (!empty($typeFilter)) {
             Log::info('resolveSandsByPrice - Applying filter', [
                 'direction' => $direction,
                 'typeFilter' => $typeFilter,
@@ -2697,12 +3038,15 @@ class CombinationGenerationService
         return $query->orderBy('package_price', $direction)->limit($limit)->get();
     }
 
-    protected function resolveCatsByPrice(string $direction, int $limit, string|array|null $typeFilter = null): EloquentCollection
-    {
+    protected function resolveCatsByPrice(
+        string $direction,
+        int $limit,
+        string|array|null $typeFilter = null,
+    ): EloquentCollection {
         $query = Cat::where('purchase_price', '>', 0);
 
         // Apply material type filter
-        if (! empty($typeFilter)) {
+        if (!empty($typeFilter)) {
             $this->applyTypeFilterToQuery($query, $typeFilter);
         }
 
@@ -2717,7 +3061,7 @@ class CombinationGenerationService
         ?int $limit,
         int $skip = 0,
     ): EloquentCollection {
-        if (! empty($request['ceramic_id'])) {
+        if (!empty($request['ceramic_id'])) {
             $ceramic = Ceramic::find($request['ceramic_id']);
 
             return $ceramic ? collect([$ceramic]) : collect();
@@ -2732,15 +3076,14 @@ class CombinationGenerationService
         // Apply "Jenis Keramik" filter (single-value dropdown in form, but still normalized as list).
         $materialTypeFilters = $request['material_type_filters'] ?? [];
         $ceramicTypeFilters = $this->normalizeMaterialTypeFilterValues(
-            $request['ceramic_types']
-                ?? ($request['ceramic_type'] ?? ($materialTypeFilters['ceramic_type'] ?? null)),
+            $request['ceramic_types'] ?? ($request['ceramic_type'] ?? ($materialTypeFilters['ceramic_type'] ?? null)),
         );
-        if (! empty($ceramicTypeFilters)) {
+        if (!empty($ceramicTypeFilters)) {
             $query->whereIn('type', $ceramicTypeFilters);
         }
 
         // Apply material type filter for ceramic (size-based)
-        if (! empty($materialTypeFilters['ceramic'])) {
+        if (!empty($materialTypeFilters['ceramic'])) {
             $this->applyCeramicSizeFilterToQuery($query, $materialTypeFilters['ceramic']);
         }
 
@@ -2772,7 +3115,7 @@ class CombinationGenerationService
                     foreach ($sands as $sand) {
                         $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
                         $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
-                        if (! $hasPricePerM3 && ! $hasPackageData) {
+                        if (!$hasPricePerM3 && !$hasPackageData) {
                             continue;
                         }
 
@@ -2785,7 +3128,7 @@ class CombinationGenerationService
 
                         try {
                             $formula = FormulaRegistry::instance($workType);
-                            if (! $formula) {
+                            if (!$formula) {
                                 continue;
                             }
 
@@ -2820,12 +3163,12 @@ class CombinationGenerationService
             $results[] = $combination;
 
             if (count($results) >= $batchSize) {
-                usort($results, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+                usort($results, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
                 $results = array_slice($results, 0, $keepSize);
             }
         }
 
-        usort($results, fn ($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+        usort($results, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
 
         if ($limit) {
             $results = array_slice($results, 0, $limit);
@@ -2834,3 +3177,9 @@ class CombinationGenerationService
         return $results;
     }
 }
+
+
+
+
+
+

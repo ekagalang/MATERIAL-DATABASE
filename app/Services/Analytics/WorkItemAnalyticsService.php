@@ -178,7 +178,7 @@ class WorkItemAnalyticsService
                 // Count Bricks with full object
                 if ($calc->brick) {
                     $brickKey = $calc->brick->brand;
-                    if (! isset($brickCounts[$brickKey])) {
+                    if (!isset($brickCounts[$brickKey])) {
                         $brickCounts[$brickKey] = [
                             'count' => 0,
                             'brick' => $calc->brick,
@@ -190,7 +190,7 @@ class WorkItemAnalyticsService
                 // Count Cement with full object
                 if ($calc->cement) {
                     $cementKey = $calc->cement->brand;
-                    if (! isset($cementCounts[$cementKey])) {
+                    if (!isset($cementCounts[$cementKey])) {
                         $cementCounts[$cementKey] = [
                             'count' => 0,
                             'cement' => $calc->cement,
@@ -202,7 +202,7 @@ class WorkItemAnalyticsService
                 // Count Sand with full object
                 if ($calc->sand) {
                     $sandKey = $calc->sand->brand;
-                    if (! isset($sandCounts[$sandKey])) {
+                    if (!isset($sandCounts[$sandKey])) {
                         $sandCounts[$sandKey] = [
                             'count' => 0,
                             'sand' => $calc->sand,
@@ -220,7 +220,7 @@ class WorkItemAnalyticsService
                 // Monthly trend data
                 if ($calc->created_at) {
                     $monthKey = $calc->created_at->format('Y-m');
-                    if (! isset($monthlyData[$monthKey])) {
+                    if (!isset($monthlyData[$monthKey])) {
                         $monthlyData[$monthKey] = [
                             'count' => 0,
                             'total_cost' => 0,
@@ -237,9 +237,9 @@ class WorkItemAnalyticsService
             }
 
             // Sort by count descending
-            uasort($brickCounts, fn ($a, $b) => $b['count'] <=> $a['count']);
-            uasort($cementCounts, fn ($a, $b) => $b['count'] <=> $a['count']);
-            uasort($sandCounts, fn ($a, $b) => $b['count'] <=> $a['count']);
+            uasort($brickCounts, fn($a, $b) => $b['count'] <=> $a['count']);
+            uasort($cementCounts, fn($a, $b) => $b['count'] <=> $a['count']);
+            uasort($sandCounts, fn($a, $b) => $b['count'] <=> $a['count']);
 
             // Sort monthly data by date
             ksort($monthlyData);
@@ -262,7 +262,7 @@ class WorkItemAnalyticsService
                 ->take(10)
                 ->map(function ($calc) {
                     return [
-                        'label' => 'Calc #'.$calc->id,
+                        'label' => 'Calc #' . $calc->id,
                         'area' => $calc->wall_area ?? 0,
                     ];
                 })
@@ -276,7 +276,8 @@ class WorkItemAnalyticsService
                 'total_cement_cost' => $totalCementCost,
                 'total_sand_cost' => $totalSandCost,
                 'total_area' => $totalArea,
-                'avg_cost_per_m2' => $totalArea > 0 ? ($totalBrickCost + $totalCementCost + $totalSandCost) / $totalArea : 0,
+                'avg_cost_per_m2' =>
+                    $totalArea > 0 ? ($totalBrickCost + $totalCementCost + $totalSandCost) / $totalArea : 0,
                 'brick_counts' => $brickCounts,
                 'cement_counts' => $cementCounts,
                 'sand_counts' => $sandCounts,

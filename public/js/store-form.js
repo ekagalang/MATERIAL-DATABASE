@@ -1,12 +1,35 @@
 function initStoreForm(root) {
-    // Basic initialization for Store Form
     const scope = root || document;
-    
-    // Focus on name input
+
     const nameInput = scope.querySelector('#name');
     if (nameInput) {
         setTimeout(() => nameInput.focus(), 300);
     }
 
-    console.log('Store form initialized');
+    const mapElement = scope.querySelector('#storeLocationMap');
+    if (!mapElement) {
+        return;
+    }
+
+    if (!window.GoogleMapsPicker || typeof window.GoogleMapsPicker.initAddressPicker !== 'function') {
+        console.warn('GoogleMapsPicker helper is not available.');
+        return;
+    }
+
+    window.GoogleMapsPicker.initAddressPicker({
+        scope,
+        apiKey: mapElement.dataset.googleMapsApiKey || '',
+        searchInput: '#storeLocationSearch',
+        mapElement: '#storeLocationMap',
+        addressInput: '#address',
+        districtInput: '#district',
+        cityInput: '#city',
+        provinceInput: '#province',
+        latitudeInput: '#latitude',
+        longitudeInput: '#longitude',
+        placeIdInput: '#place_id',
+        formattedAddressInput: '#formatted_address',
+    }).catch((error) => {
+        console.error('Failed to initialize store map picker:', error);
+    });
 }

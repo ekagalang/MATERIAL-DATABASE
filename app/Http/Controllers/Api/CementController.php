@@ -68,7 +68,7 @@ class CementController extends Controller
     {
         $cement = $this->cementService->find($id);
 
-        if (! $cement) {
+        if (!$cement) {
             return $this->notFoundResponse('Cement not found');
         }
 
@@ -137,7 +137,7 @@ class CementController extends Controller
         $search = $request->get('search');
         $limit = $request->get('limit', 20);
 
-        if (! $store) {
+        if (!$store) {
             return response()->json([]);
         }
 

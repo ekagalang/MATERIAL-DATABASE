@@ -49,11 +49,11 @@ class NatController extends Controller
             'created_at' => 'created_at',
         ];
 
-        if (! $sortBy || ! isset($sortMap[$sortBy])) {
+        if (!$sortBy || !isset($sortMap[$sortBy])) {
             $sortBy = 'created_at';
             $sortDirection = 'desc';
         } else {
-            if (! in_array($sortDirection, ['asc', 'desc'], true)) {
+            if (!in_array($sortDirection, ['asc', 'desc'], true)) {
                 $sortDirection = 'asc';
             }
             $sortBy = $sortMap[$sortBy];
@@ -105,7 +105,7 @@ class NatController extends Controller
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
                 if ($photo->isValid()) {
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('nats', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
@@ -131,7 +131,7 @@ class NatController extends Controller
             }
 
             if (
-                (! $nat->package_weight_net || $nat->package_weight_net <= 0) &&
+                (!$nat->package_weight_net || $nat->package_weight_net <= 0) &&
                 $nat->package_weight_gross &&
                 $nat->package_unit
             ) {
@@ -183,7 +183,7 @@ class NatController extends Controller
             DB::rollBack();
 
             return back()
-                ->with('error', 'Gagal menyimpan data: '.$e->getMessage())
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -252,7 +252,7 @@ class NatController extends Controller
                         Storage::disk('public')->delete($nat->photo);
                     }
 
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('nats', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
@@ -267,7 +267,7 @@ class NatController extends Controller
             }
 
             if (
-                (! $nat->package_weight_net || $nat->package_weight_net <= 0) &&
+                (!$nat->package_weight_net || $nat->package_weight_net <= 0) &&
                 $nat->package_weight_gross &&
                 $nat->package_unit
             ) {
@@ -322,7 +322,7 @@ class NatController extends Controller
             DB::rollBack();
 
             return back()
-                ->with('error', 'Gagal update data: '.$e->getMessage())
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -343,7 +343,7 @@ class NatController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'Gagal menghapus data: '.$e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
@@ -363,7 +363,7 @@ class NatController extends Controller
             'package_price' => 'package_price',
         ];
 
-        if (! isset($fieldMap[$field])) {
+        if (!isset($fieldMap[$field])) {
             return response()->json([]);
         }
 
@@ -418,7 +418,7 @@ class NatController extends Controller
             $natStores = Nat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores->merge($natStores)->unique()->sort()->values()->take($limit);
@@ -426,31 +426,31 @@ class NatController extends Controller
             $catStores = \App\Models\Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $brickStores = \App\Models\Brick::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $cementStores = \App\Models\Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $sandStores = \App\Models\Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $natStores = Nat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores
@@ -485,35 +485,35 @@ class NatController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $catAddresses = \App\Models\Cat::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $brickAddresses = \App\Models\Brick::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $cementAddresses = \App\Models\Cement::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $sandAddresses = \App\Models\Sand::query()
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         $allAddresses = $addresses

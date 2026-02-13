@@ -53,12 +53,12 @@ class CementController extends Controller
         ];
 
         // Default sorting jika tidak ada atau tidak valid
-        if (! $sortBy || ! in_array($sortBy, $allowedSorts)) {
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
             $sortDirection = 'desc';
         } else {
             // Validasi direction
-            if (! in_array($sortDirection, ['asc', 'desc'])) {
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
                 $sortDirection = 'asc';
             }
         }
@@ -113,16 +113,16 @@ class CementController extends Controller
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
                 if ($photo->isValid()) {
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('cements', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: '.$path);
+                        \Log::info('Photo uploaded successfully: ' . $path);
                     } else {
                         \Log::error('Failed to store photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file: '.$photo->getErrorMessage());
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
             }
 
@@ -143,7 +143,7 @@ class CementController extends Controller
 
             // Kalkulasi berat bersih jika belum diisi
             if (
-                (! $cement->package_weight_net || $cement->package_weight_net <= 0) &&
+                (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
                 $cement->package_weight_gross &&
                 $cement->package_unit
             ) {
@@ -199,10 +199,10 @@ class CementController extends Controller
             return redirect()->route('cements.index')->with('success', 'Semen berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to create cement: '.$e->getMessage());
+            \Log::error('Failed to create cement: ' . $e->getMessage());
 
             return back()
-                ->with('error', 'Gagal menyimpan data: '.$e->getMessage())
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -277,16 +277,16 @@ class CementController extends Controller
                         Storage::disk('public')->delete($cement->photo);
                     }
 
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('cements', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: '.$path);
+                        \Log::info('Photo updated successfully: ' . $path);
                     } else {
                         \Log::error('Failed to update photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
                 }
             }
 
@@ -296,7 +296,7 @@ class CementController extends Controller
             // Kalkulasi berat bersih dari berat kotor dan berat kemasan
             // HANYA jika berat bersih belum diisi manual oleh user
             if (
-                (! $cement->package_weight_net || $cement->package_weight_net <= 0) &&
+                (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
                 $cement->package_weight_gross &&
                 $cement->package_unit
             ) {
@@ -359,10 +359,10 @@ class CementController extends Controller
                 ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to update cement: '.$e->getMessage());
+            \Log::error('Failed to update cement: ' . $e->getMessage());
 
             return back()
-                ->with('error', 'Gagal update data: '.$e->getMessage())
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -386,9 +386,9 @@ class CementController extends Controller
             return redirect()->route('cements.index')->with('success', 'Semen berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to delete cement: '.$e->getMessage());
+            \Log::error('Failed to delete cement: ' . $e->getMessage());
 
-            return back()->with('error', 'Gagal menghapus data: '.$e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
@@ -430,7 +430,7 @@ class CementController extends Controller
             'package_price',
         ];
 
-        if (! in_array($field, $allowedFields)) {
+        if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
@@ -475,7 +475,7 @@ class CementController extends Controller
             // Get from cements
             $cementStores = Cement::whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search !== '', fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->select('store')
                 ->groupBy('store')
                 ->pluck('store');
@@ -518,7 +518,7 @@ class CementController extends Controller
             $cementStores = Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores->merge($cementStores)->unique()->sort()->values()->take($limit);
@@ -527,25 +527,25 @@ class CementController extends Controller
             $catStores = \App\Models\Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $brickStores = \App\Models\Brick::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $cementStores = Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $sandStores = \App\Models\Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores
@@ -584,7 +584,7 @@ class CementController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari cat
@@ -592,7 +592,7 @@ class CementController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari brick
@@ -600,7 +600,7 @@ class CementController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari sand
@@ -608,7 +608,7 @@ class CementController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Gabungkan semua addresses dan ambil unique values

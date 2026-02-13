@@ -19,6 +19,10 @@
 
     <form action="{{ route('store-locations.store', $store) }}" method="POST">
         @csrf
+        <input type="hidden" name="latitude" id="latitude" value="{{ old('latitude') }}">
+        <input type="hidden" name="longitude" id="longitude" value="{{ old('longitude') }}">
+        <input type="hidden" name="place_id" id="place_id" value="{{ old('place_id') }}">
+        <input type="hidden" name="formatted_address" id="formatted_address" value="{{ old('formatted_address') }}">
 
         <div class="form-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; max-width: 1100px; width: 100%; margin: 0 auto; padding: 20px;">
 
@@ -37,6 +41,28 @@
                                   rows="3"
                                   placeholder="Jl. Merpati No. 123, RT 001/RW 002">{{ old('address') }}</textarea>
                         <small class="text-muted d-block mt-1">Alamat lengkap termasuk nomor dan RT/RW</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label>Cari Lokasi</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="text"
+                               id="storeLocationSearch"
+                               class="autocomplete-input"
+                               data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                               placeholder="Cari alamat lokasi toko di Google Maps..."
+                               value="{{ old('formatted_address', old('address')) }}">
+                        <small class="text-muted d-block mt-1">Pilih alamat dari Google Maps atau sesuaikan pin pada peta.</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label>Peta Lokasi</label>
+                    <div style="flex: 1;">
+                        <div id="storeLocationMap"
+                             data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                             style="width: 100%; height: 260px; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc;"></div>
                     </div>
                 </div>
 
@@ -78,6 +104,21 @@
                                class="autocomplete-input"
                                placeholder="contoh: Banten">
                         <small class="text-muted d-block mt-1">Dibutuhkan untuk data lengkap</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <label>Radius Layanan (KM)</label>
+                    <div style="flex: 1; position: relative;">
+                        <input type="number"
+                               name="service_radius_km"
+                               id="service_radius_km"
+                               min="0"
+                               step="0.1"
+                               value="{{ old('service_radius_km', 10) }}"
+                               class="autocomplete-input"
+                               placeholder="contoh: 10">
+                        <small class="text-muted d-block mt-1">Bebas tentukan radius layanan lokasi ini.</small>
                     </div>
                 </div>
             </div>
@@ -136,3 +177,14 @@
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script src="{{ asset('js/store-location-form.js') }}?v={{ @filemtime(public_path('js/store-location-form.js')) }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof initStoreLocationForm === 'function') {
+            initStoreLocationForm(document);
+        }
+    });
+</script>
+@endpush

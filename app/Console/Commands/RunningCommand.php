@@ -27,21 +27,12 @@ class RunningCommand extends Command
         $this->newLine();
 
         // Artisan serve
-        $artisan = new Process([
-            'php',
-            'artisan',
-            'serve',
-            "--host={$host}",
-            "--port={$port}",
-        ]);
+        $artisan = new Process(['php', 'artisan', 'serve', "--host={$host}", "--port={$port}"]);
 
         // npm dev
-        $npmCmd = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN'
-            ? 'npm.cmd'
-            : 'npm';
+        $npmCmd = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ? 'npm.cmd' : 'npm';
 
         $npm = new Process([$npmCmd, 'run', 'dev']);
-
 
         $artisan->setTimeout(null);
         $npm->setTimeout(null);
@@ -54,17 +45,16 @@ class RunningCommand extends Command
         stream_set_blocking(STDIN, false);
 
         while (true) {
-
             // Laravel output
             $artisanOut = $artisan->getIncrementalOutput();
             $artisanErr = $artisan->getIncrementalErrorOutput();
 
             if ($artisanOut) {
-                echo "[LARAVEL] " . $artisanOut;
+                echo '[LARAVEL] ' . $artisanOut;
             }
 
             if ($artisanErr) {
-                echo "[LARAVEL-ERR] " . $artisanErr;
+                echo '[LARAVEL-ERR] ' . $artisanErr;
             }
 
             // NPM output
@@ -72,11 +62,11 @@ class RunningCommand extends Command
             $npmErr = $npm->getIncrementalErrorOutput();
 
             if ($npmOut) {
-                echo "[VITE] " . $npmOut;
+                echo '[VITE] ' . $npmOut;
             }
 
             if ($npmErr) {
-                echo "[VITE-ERR] " . $npmErr;
+                echo '[VITE-ERR] ' . $npmErr;
             }
 
             // Stop if process died
@@ -89,7 +79,6 @@ class RunningCommand extends Command
             $input = fgets(STDIN);
 
             if ($input !== false && strtolower(trim($input)) === 'q') {
-
                 $this->warn("\n🛑 Stopping servers...");
 
                 $artisan->stop(1);

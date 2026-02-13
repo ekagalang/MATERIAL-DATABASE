@@ -13,7 +13,26 @@ class StoreLocation extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['store_id', 'address', 'district', 'city', 'province', 'contact_name', 'contact_phone'];
+    protected $fillable = [
+        'store_id',
+        'address',
+        'district',
+        'city',
+        'province',
+        'latitude',
+        'longitude',
+        'place_id',
+        'formatted_address',
+        'service_radius_km',
+        'contact_name',
+        'contact_phone',
+    ];
+
+    protected $casts = [
+        'latitude' => 'float',
+        'longitude' => 'float',
+        'service_radius_km' => 'float',
+    ];
 
     /**
      * Relationship: Lokasi milik satu toko

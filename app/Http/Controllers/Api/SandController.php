@@ -60,7 +60,7 @@ class SandController extends Controller
     public function show(int $id): JsonResponse
     {
         $sand = $this->sandService->find($id);
-        if (! $sand) {
+        if (!$sand) {
             return $this->notFoundResponse('Sand not found');
         }
 
@@ -123,7 +123,7 @@ class SandController extends Controller
     public function getAddressesByStore(Request $request): JsonResponse
     {
         $store = $request->get('store');
-        if (! $store) {
+        if (!$store) {
             return response()->json([]);
         }
         $addresses = $this->sandService->getAddressesByStore(

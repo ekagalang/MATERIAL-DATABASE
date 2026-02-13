@@ -71,6 +71,11 @@ class StoreController extends Controller
             'district' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'place_id' => 'nullable|string|max:255',
+            'formatted_address' => 'nullable|string',
+            'service_radius_km' => 'nullable|numeric|min:0',
             'contact_name' => 'nullable|string|max:255',
             'contact_phone' => 'nullable|string|max:255',
         ]);
@@ -84,13 +89,31 @@ class StoreController extends Controller
             // Create store
             $store = Store::create($storeData);
 
-            // Create initial location if any location data is provided
-            if ($request->filled(['address', 'city', 'province', 'contact_phone'])) {
+            // Create initial location if any location-related data is provided
+            $hasInitialLocationData =
+                $request->filled('address') ||
+                $request->filled('district') ||
+                $request->filled('city') ||
+                $request->filled('province') ||
+                $request->filled('latitude') ||
+                $request->filled('longitude') ||
+                $request->filled('place_id') ||
+                $request->filled('formatted_address') ||
+                $request->filled('service_radius_km') ||
+                $request->filled('contact_name') ||
+                $request->filled('contact_phone');
+
+            if ($hasInitialLocationData) {
                 $store->locations()->create([
                     'address' => $request->address,
                     'district' => $request->district,
                     'city' => $request->city,
                     'province' => $request->province,
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'place_id' => $request->place_id,
+                    'formatted_address' => $request->formatted_address,
+                    'service_radius_km' => $request->service_radius_km,
                     'contact_name' => $request->contact_name,
                     'contact_phone' => $request->contact_phone,
                 ]);

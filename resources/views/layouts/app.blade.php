@@ -453,6 +453,7 @@
     <!-- Global Sanitizer Script -->
     <script src="{{ asset('js/form-sanitizer.js') }}"></script>
     <script src="{{ asset('js/dynamic-dropdown-position.js') }}?v={{ @filemtime(public_path('js/dynamic-dropdown-position.js')) }}"></script>
+    <script src="{{ asset('js/google-maps-picker.js') }}?v={{ @filemtime(public_path('js/google-maps-picker.js')) }}"></script>
 
     <!-- Custom scripts per halaman -->
     @stack('scripts')

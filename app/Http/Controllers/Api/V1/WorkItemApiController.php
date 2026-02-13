@@ -133,7 +133,7 @@ class WorkItemApiController extends Controller
             $formulas = FormulaRegistry::all();
             $formula = collect($formulas)->firstWhere('code', $code);
 
-            if (! $formula) {
+            if (!$formula) {
                 return response()->json(
                     [
                         'success' => false,
@@ -234,7 +234,7 @@ class WorkItemApiController extends Controller
         try {
             $workItem = $this->repository->findWorkItem($id);
 
-            if (! $workItem) {
+            if (!$workItem) {
                 return response()->json(
                     [
                         'success' => false,
@@ -276,7 +276,7 @@ class WorkItemApiController extends Controller
         try {
             $workItem = $this->repository->findWorkItem($id);
 
-            if (! $workItem) {
+            if (!$workItem) {
                 return response()->json(
                     [
                         'success' => false,
@@ -338,7 +338,7 @@ class WorkItemApiController extends Controller
         try {
             $workItem = $this->repository->findWorkItem($id);
 
-            if (! $workItem) {
+            if (!$workItem) {
                 return response()->json(
                     [
                         'success' => false,

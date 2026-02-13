@@ -94,6 +94,60 @@
         <div class="two-column-layout">
             {{-- LEFT COLUMN: FORM INPUTS --}}
             <div class="left-column">
+                <div class="form-group project-location-group">
+                    <label>Lokasi Proyek</label>
+                    <div class="input-wrapper project-location-input-wrapper">
+                        <input type="text"
+                               id="projectLocationSearch"
+                               class="autocomplete-input"
+                               data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                               placeholder="Cari alamat proyek di Google Maps..."
+                               autocomplete="off"
+                               value="{{ old('project_address') }}">
+                        <input type="hidden" id="projectAddress" name="project_address" value="{{ old('project_address') }}">
+                        <input type="hidden" id="projectLatitude" name="project_latitude" value="{{ old('project_latitude') }}">
+                        <input type="hidden" id="projectLongitude" name="project_longitude" value="{{ old('project_longitude') }}">
+                        <input type="hidden" id="projectPlaceId" name="project_place_id" value="{{ old('project_place_id') }}">
+                    </div>
+                </div>
+
+                <div class="project-map-group">
+                    <div class="project-map-content">
+                        <div id="projectLocationMap"
+                             data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                             class="project-location-map"></div>
+                        <small class="text-muted d-block mb-0">Pilih alamat proyek dari Google Maps, lalu sesuaikan pin jika diperlukan.</small>
+                    </div>
+                </div>
+
+                <div class="form-group store-search-mode-group">
+                    <label>Mode Pencarian Toko</label>
+                    <input type="hidden" name="use_store_filter" value="0">
+                    <input type="hidden" name="allow_mixed_store" value="0">
+                    <div class="store-search-options">
+                        <label class="store-search-option">
+                            <input type="checkbox"
+                                   name="use_store_filter"
+                                   value="1"
+                                   {{ old('use_store_filter', '1') == '1' ? 'checked' : '' }}>
+                            <span class="store-search-option-text">
+                                <strong>Prioritaskan toko dalam radius proyek</strong>
+                                <small class="text-muted">Hitung berdasarkan toko terdekat yang radius layanannya menjangkau lokasi proyek.</small>
+                            </span>
+                        </label>
+                        <label class="store-search-option">
+                            <input type="checkbox"
+                                   name="allow_mixed_store"
+                                   value="1"
+                                   {{ old('allow_mixed_store') == '1' ? 'checked' : '' }}>
+                            <span class="store-search-option-text">
+                                <strong>Izinkan kombinasi lintas toko</strong>
+                                <small class="text-muted">Jika satu toko tidak lengkap, material akan diambil berurutan dari toko terdekat berikutnya.</small>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
                 {{-- WORK TYPE --}}
                 <div class="form-group work-type-group">
                     <label>Item Pekerjaan</label>
@@ -719,6 +773,92 @@
         background-color: transparent !important;
     }
 
+    .project-map-group {
+        display: block;
+        width: 100%;
+        margin-bottom: 12px;
+    }
+
+    .project-map-content {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .project-location-group {
+        gap: 8px;
+    }
+
+    .project-location-group .project-location-input-wrapper {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .store-search-mode-group {
+        gap: 8px;
+    }
+
+    .two-column-layout .store-search-mode-group > label {
+        flex: 0 0 106px;
+        margin-right: 0;
+        padding-top: 6px;
+    }
+
+    .store-search-options {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+        margin-top: 0;
+    }
+
+    .store-search-option {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        line-height: 1.2;
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .store-search-option input[type="checkbox"] {
+        margin-top: 0;
+    }
+
+    .store-search-option-text {
+        display: inline;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .store-search-option-text strong {
+        line-height: 1.2;
+    }
+
+    .store-search-option-text small {
+        display: inline;
+        margin-left: 4px;
+        line-height: 1.2;
+    }
+
+    .store-search-option-text small::before {
+        content: "- ";
+    }
+
+    .project-location-map {
+        width: 100%;
+        height: 260px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
     .material-type-row:focus-within .material-type-row-actions {
         border-color: #891313;
         box-shadow: none;
@@ -742,6 +882,25 @@
     /* CSS untuk warna abu-abu (jika tidak pakai Bootstrap, class text-muted bisa dihapus dan pakai ini) */
     .desc-text {
         color: #6c757d; /* Kode warna abu-abu */
+    }
+
+    @media (max-width: 768px) {
+        .two-column-layout .store-search-mode-group > label {
+            flex: unset;
+            width: 100%;
+            padding-top: 0;
+        }
+
+        .store-search-options {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .store-search-option {
+            width: 100%;
+            align-items: flex-start;
+        }
     }
 </style>
 
@@ -1820,6 +1979,62 @@
                     if (wallHeightUnit) {
                         wallHeightUnit.textContent = 'cm';
                     }
+                } else if (workTypeSelector.value === 'adhesive_mix') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
+
+                    // Change label to "Lebar" for adhesive_mix (Pasang Keramik Saja)
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Lebar';
+                    }
+                    // Keep wall height in meters
+                    if (wallHeightInput) {
+                        wallHeightInput.step = '0.01';
+                        wallHeightInput.min = '0.01';
+                        wallHeightInput.placeholder = '';
+                    }
+                    const wallHeightUnitAdhesive = document.querySelector('#wallHeightGroup .unit');
+                    if (wallHeightUnitAdhesive) {
+                        wallHeightUnitAdhesive.textContent = 'M';
+                    }
+                } else if (workTypeSelector.value === 'plinth_adhesive_mix') {
+                    layerCountGroup.style.display = 'none';
+                    plasterSidesGroup.style.display = 'none';
+                    skimSidesGroup.style.display = 'none';
+                    if (groutThicknessGroup) groutThicknessGroup.style.display = 'flex';
+                    if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
+                    setMortarThicknessUnit('cm');
+                    if (mortarModeChanged && mortarThicknessInput) {
+                        mortarThicknessInput.value = formatThicknessValue(2);
+                    }
+                    if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
+                    if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';
+                    if (ceramicThicknessGroup) ceramicThicknessGroup.style.display = 'none';
+
+                    // Change label to "Tinggi" and unit to "cm" for plinth_adhesive_mix (Pasang Plint Keramik Saja)
+                    if (wallHeightLabel) {
+                        wallHeightLabel.textContent = 'Tinggi';
+                    }
+                    // Change wall height input unit to cm for plinth
+                    if (wallHeightInput) {
+                        wallHeightInput.step = '1';
+                        wallHeightInput.min = '1';
+                        wallHeightInput.placeholder = 'Tinggi plint (10-20)';
+                    }
+                    const wallHeightUnitPlinthAdhesive = document.querySelector('#wallHeightGroup .unit');
+                    if (wallHeightUnitPlinthAdhesive) {
+                        wallHeightUnitPlinthAdhesive.textContent = 'cm';
+                    }
                 } else {
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
@@ -2112,10 +2327,22 @@
                 if (!fields.length) return;
 
                 const values = Array.isArray(value) ? value.map(String) : [String(value)];
-                fields.forEach(field => {
-                    if (field.type === 'checkbox' || field.type === 'radio') {
+                const fieldList = Array.from(fields);
+                const checkableFields = fieldList.filter(field => field.type === 'checkbox' || field.type === 'radio');
+                const nonCheckableFields = fieldList.filter(field => field.type !== 'checkbox' && field.type !== 'radio');
+
+                if (checkableFields.length > 0) {
+                    checkableFields.forEach(field => {
                         field.checked = values.includes(String(field.value));
-                    } else if (field.multiple && field.options) {
+                        field.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+
+                    // Keep hidden fallback inputs (value="0") untouched when same name also has checkboxes.
+                    return;
+                }
+
+                nonCheckableFields.forEach(field => {
+                    if (field.multiple && field.options) {
                         Array.from(field.options).forEach(option => {
                             option.selected = values.includes(String(option.value));
                         });
@@ -2123,9 +2350,7 @@
                         field.value = values[0];
                     }
                     field.dispatchEvent(new Event('change', { bubbles: true }));
-                    if (field.type !== 'checkbox' && field.type !== 'radio') {
-                        field.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
+                    field.dispatchEvent(new Event('input', { bubbles: true }));
                 });
             });
 

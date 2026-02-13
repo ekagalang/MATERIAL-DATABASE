@@ -64,7 +64,7 @@ class NatController extends Controller
     {
         $nat = $this->natService->find($id);
 
-        if (! $nat) {
+        if (!$nat) {
             return $this->notFoundResponse('Nat not found');
         }
 

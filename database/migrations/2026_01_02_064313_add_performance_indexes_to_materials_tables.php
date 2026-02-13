@@ -105,10 +105,12 @@ return new class extends Migration {
         // JSON index untuk work_type queries
         // MySQL 5.7+ supports virtual columns for JSON indexing
         // Create a virtual generated column first, then index it
-        DB::statement(
-            'ALTER TABLE brick_calculations ADD work_type_virtual VARCHAR(50) AS (JSON_UNQUOTE(JSON_EXTRACT(calculation_params, "$.work_type"))) VIRTUAL',
-        );
-        DB::statement('CREATE INDEX idx_brick_calc_work_type ON brick_calculations(work_type_virtual)');
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement(
+                'ALTER TABLE brick_calculations ADD work_type_virtual VARCHAR(50) AS (JSON_UNQUOTE(JSON_EXTRACT(calculation_params, "$.work_type"))) VIRTUAL',
+            );
+            DB::statement('CREATE INDEX idx_brick_calc_work_type ON brick_calculations(work_type_virtual)');
+        }
 
         // ============================================
         // RECOMMENDED_COMBINATIONS TABLE INDEXES
@@ -187,8 +189,10 @@ return new class extends Migration {
         });
 
         // Drop JSON virtual column index and column
-        DB::statement('DROP INDEX idx_brick_calc_work_type ON brick_calculations');
-        DB::statement('ALTER TABLE brick_calculations DROP COLUMN work_type_virtual');
+        if (DB::connection()->getDriverName() === 'mysql') {
+            DB::statement('DROP INDEX idx_brick_calc_work_type ON brick_calculations');
+            DB::statement('ALTER TABLE brick_calculations DROP COLUMN work_type_virtual');
+        }
 
         // Drop RECOMMENDED_COMBINATIONS indexes
         Schema::table('recommended_combinations', function (Blueprint $table) {

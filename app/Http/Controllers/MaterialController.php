@@ -95,7 +95,7 @@ class MaterialController extends Controller
     public function fetchTab(Request $request, $type)
     {
         // Validate type
-        if (! in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
             abort(404);
         }
 
@@ -193,8 +193,9 @@ class MaterialController extends Controller
             $items = collect();
             foreach ($models as $materialType => $model) {
                 $typeColumn = $typeColumns[$materialType] ?? 'type';
-                $types = $model::query()
-                    ->selectRaw($typeColumn.' as type')
+                $types = $model
+                    ::query()
+                    ->selectRaw($typeColumn . ' as type')
                     ->whereNotNull($typeColumn)
                     ->where($typeColumn, '!=', '')
                     ->distinct()
@@ -240,7 +241,7 @@ class MaterialController extends Controller
 
         $items = collect();
         foreach ($models as $materialType => $model) {
-            if (! empty($targetMaterialTypes) && ! in_array($materialType, $targetMaterialTypes, true)) {
+            if (!empty($targetMaterialTypes) && !in_array($materialType, $targetMaterialTypes, true)) {
                 continue;
             }
             $materialLabel = $materialLabels[$materialType] ?? ucfirst($materialType);
@@ -251,9 +252,9 @@ class MaterialController extends Controller
             $query = $model::query()->select($columns)->whereNotNull($typeColumn)->where($typeColumn, '!=', '');
 
             $columns = $searchColumns[$materialType] ?? [];
-            if (! empty($searchTokens)) {
+            if (!empty($searchTokens)) {
                 foreach ($searchTokens as $token) {
-                    $like = '%'.$token.'%';
+                    $like = '%' . $token . '%';
                     $query->where(function ($builder) use ($like, $columns) {
                         foreach ($columns as $column) {
                             $builder->orWhere($column, 'like', $like);
@@ -263,7 +264,7 @@ class MaterialController extends Controller
             }
 
             $results = collect();
-            if (! empty($searchTokens)) {
+            if (!empty($searchTokens)) {
                 $results = $query->orderBy('type')->limit(20)->get();
             }
             foreach ($results as $row) {
@@ -280,7 +281,7 @@ class MaterialController extends Controller
 
             if ($search !== '') {
                 $labelMatches = stripos($materialLabel, $search) !== false || stripos($materialType, $search) !== false;
-                if (! $labelMatches && ! empty($tokens)) {
+                if (!$labelMatches && !empty($tokens)) {
                     foreach ($tokens as $token) {
                         if (
                             $token !== '' &&
@@ -300,8 +301,9 @@ class MaterialController extends Controller
                 }
 
                 if (empty($searchTokens)) {
-                    $typeMatches = $model::query()
-                        ->selectRaw($typeColumn.' as type')
+                    $typeMatches = $model
+                        ::query()
+                        ->selectRaw($typeColumn . ' as type')
                         ->whereNotNull($typeColumn)
                         ->where($typeColumn, '!=', '')
                         ->distinct()
@@ -309,12 +311,13 @@ class MaterialController extends Controller
                         ->limit(10)
                         ->pluck('type');
                 } else {
-                    $typeQuery = $model::query()
-                        ->selectRaw($typeColumn.' as type')
+                    $typeQuery = $model
+                        ::query()
+                        ->selectRaw($typeColumn . ' as type')
                         ->whereNotNull($typeColumn)
                         ->where($typeColumn, '!=', '');
                     foreach ($searchTokens as $token) {
-                        $like = '%'.$token.'%';
+                        $like = '%' . $token . '%';
                         $typeQuery->where($typeColumn, 'like', $like);
                     }
                     $typeMatches = $typeQuery->distinct()->orderBy($typeColumn)->limit(10)->pluck('type');
@@ -332,7 +335,7 @@ class MaterialController extends Controller
 
         $items = $items
             ->unique(function ($item) {
-                return $item['material_type'].'|'.$item['label'];
+                return $item['material_type'] . '|' . $item['label'];
             })
             ->sortBy('label')
             ->values();
@@ -391,7 +394,7 @@ class MaterialController extends Controller
 
         $parts = array_values(
             array_filter($parts, function ($value) {
-                return ! is_null($value) && trim((string) $value) !== '';
+                return !is_null($value) && trim((string) $value) !== '';
             }),
         );
 
@@ -424,7 +427,7 @@ class MaterialController extends Controller
                 break;
         }
 
-        if (! $model) {
+        if (!$model) {
             return [];
         }
 
@@ -432,7 +435,8 @@ class MaterialController extends Controller
         $letterColumn = 'brand';
 
         // Get distinct first letters, uppercase
-        return $model::selectRaw(sprintf('DISTINCT UPPER(SUBSTRING(%s, 1, 1)) as letter', $letterColumn))
+        return $model
+            ::selectRaw(sprintf('DISTINCT UPPER(SUBSTRING(%s, 1, 1)) as letter', $letterColumn))
             ->whereNotNull($letterColumn)
             ->where($letterColumn, '!=', '')
             ->orderBy('letter')
@@ -470,7 +474,7 @@ class MaterialController extends Controller
                 break;
         }
 
-        if (! $query) {
+        if (!$query) {
             return null;
         }
 
@@ -668,7 +672,7 @@ class MaterialController extends Controller
             default => [],
         };
 
-        if ($sortBy && ! in_array($sortBy, $allowedSortBy, true)) {
+        if ($sortBy && !in_array($sortBy, $allowedSortBy, true)) {
             $sortBy = null;
         }
 

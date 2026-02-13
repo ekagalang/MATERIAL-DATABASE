@@ -22,7 +22,7 @@ class NumberHelperApiController extends Controller
                 ]);
             }
 
-            if (! is_array($values)) {
+            if (!is_array($values)) {
                 return response()->json(
                     [
                         'success' => false,
@@ -34,7 +34,7 @@ class NumberHelperApiController extends Controller
 
             $formatted = [];
             foreach ($values as $item) {
-                if (! is_array($item)) {
+                if (!is_array($item)) {
                     continue;
                 }
                 $key = $item['key'] ?? null;
@@ -113,7 +113,7 @@ class NumberHelperApiController extends Controller
             $string = str_replace(',', '.', $string);
         }
 
-        if (! is_numeric($string)) {
+        if (!is_numeric($string)) {
             return null;
         }
 

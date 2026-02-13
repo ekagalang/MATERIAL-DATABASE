@@ -676,13 +676,28 @@ html.materials-booting .page-content {
   .material-footer-sticky .kanggo-img-link img {
       height: 17px !important;
   }
-  html.materials-skip-page .kanggo-img-link:not(.current) .kanggo-img {
-      filter: grayscale(100%) !important;
-      opacity: 0.6 !important;
+  /* Normalize alphabet footer colors to avoid inconsistent tint while images are loading */
+  .material-tab-panel .kanggo-img-link {
+      text-decoration: none !important;
+      color: #cbd5e1 !important;
+      line-height: 0;
+      font-size: 0;
   }
-  html.materials-skip-page .kanggo-img-link:not(.current):hover .kanggo-img {
-      filter: grayscale(100%) !important;
-      opacity: 0.6 !important;
+  .material-tab-panel .kanggo-img-link:not(.current) .kanggo-img {
+      filter: brightness(0) saturate(100%) invert(50%) !important;
+      opacity: 0.95 !important;
+      transform: none !important;
+      animation: none !important;
+  }
+  .material-tab-panel .kanggo-img-link:not(.current):hover .kanggo-img {
+      filter: brightness(0) saturate(100%) invert(50%) !important;
+      opacity: 0.95 !important;
+      transform: none !important;
+      animation: none !important;
+  }
+  .material-tab-panel .kanggo-img-link.current .kanggo-img {
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)) grayscale(0%) !important;
+      opacity: 1 !important;
   }
   html.materials-lock body,
   body.materials-lock {
@@ -913,17 +928,22 @@ html.materials-booting .page-content {
     position: absolute;
     top: -4px;
     right: 8px;
-    background: #ef4444;
+    background: rgba(239, 68, 68, 0.5);
     color: #ffffff;
     font-size: 10px;
     font-weight: 700;
     line-height: 1;
     padding: 3px 6px;
     border-radius: 999px;
-    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);
     z-index: 20;
     pointer-events: none;
     white-space: nowrap;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.material-tab-btn.active .material-tab-badge {
+    background: #ef4444;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
 }
 .topbar-material-badge {
     display: inline-flex;
@@ -1026,6 +1046,9 @@ html.materials-booting .page-content {
 }
 .material-tab-action > .btn {
     flex: 0 0 auto;
+}
+.material-tab-action > a.open-modal {
+    margin-right: 8px;
 }
 .material-search-input {
     flex: 1 1 auto;

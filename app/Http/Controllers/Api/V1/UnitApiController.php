@@ -195,7 +195,7 @@ class UnitApiController extends Controller
         try {
             $unit = $this->repository->findUnit($id);
 
-            if (! $unit) {
+            if (!$unit) {
                 return response()->json(
                     [
                         'success' => false,
@@ -237,7 +237,7 @@ class UnitApiController extends Controller
         try {
             $unit = $this->repository->findUnit($id);
 
-            if (! $unit) {
+            if (!$unit) {
                 return response()->json(
                     [
                         'success' => false,
@@ -248,7 +248,7 @@ class UnitApiController extends Controller
             }
 
             $validated = $request->validate([
-                'code' => 'required|string|max:20|unique:units,code,'.$id,
+                'code' => 'required|string|max:20|unique:units,code,' . $id,
                 'material_types' => 'required|array',
                 'material_types.*' => 'string',
                 'name' => 'required|string|max:100',
@@ -300,7 +300,7 @@ class UnitApiController extends Controller
         try {
             $unit = $this->repository->findUnit($id);
 
-            if (! $unit) {
+            if (!$unit) {
                 return response()->json(
                     [
                         'success' => false,

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\SyncsStoreLocationSnapshot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 class Cement extends Model
 {
     use HasFactory;
+    use SyncsStoreLocationSnapshot;
 
     protected $table = 'cements';
 

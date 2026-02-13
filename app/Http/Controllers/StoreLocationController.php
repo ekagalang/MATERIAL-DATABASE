@@ -4,10 +4,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Brick;
+use App\Models\Cat;
+use App\Models\Cement;
+use App\Models\Ceramic;
+use App\Models\Nat;
+use App\Models\Sand;
 use App\Models\Store;
 use App\Models\StoreLocation;
+use App\Models\StoreMaterialAvailability;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class StoreLocationController extends Controller
 {
@@ -29,13 +37,32 @@ class StoreLocationController extends Controller
             'district' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'place_id' => 'nullable|string|max:255',
+            'formatted_address' => 'nullable|string',
+            'service_radius_km' => 'nullable|numeric|min:0',
             'contact_name' => 'nullable|string|max:255',
             'contact_phone' => 'nullable|string|max:255',
         ]);
 
         DB::beginTransaction();
         try {
-            $store->locations()->create($request->all());
+            $locationData = $request->only([
+                'address',
+                'district',
+                'city',
+                'province',
+                'latitude',
+                'longitude',
+                'place_id',
+                'formatted_address',
+                'service_radius_km',
+                'contact_name',
+                'contact_phone',
+            ]);
+
+            $store->locations()->create($locationData);
 
             DB::commit();
 
@@ -44,7 +71,7 @@ class StoreLocationController extends Controller
             DB::rollBack();
 
             return back()
-                ->with('error', 'Gagal menambah lokasi: '.$e->getMessage())
+                ->with('error', 'Gagal menambah lokasi: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -67,13 +94,33 @@ class StoreLocationController extends Controller
             'district' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+            'place_id' => 'nullable|string|max:255',
+            'formatted_address' => 'nullable|string',
+            'service_radius_km' => 'nullable|numeric|min:0',
             'contact_name' => 'nullable|string|max:255',
             'contact_phone' => 'nullable|string|max:255',
         ]);
 
         DB::beginTransaction();
         try {
-            $location->update($request->all());
+            $locationData = $request->only([
+                'address',
+                'district',
+                'city',
+                'province',
+                'latitude',
+                'longitude',
+                'place_id',
+                'formatted_address',
+                'service_radius_km',
+                'contact_name',
+                'contact_phone',
+            ]);
+
+            $location->update($locationData);
+            $this->syncMaterialLocationSnapshot($store, $location);
 
             DB::commit();
 
@@ -82,7 +129,7 @@ class StoreLocationController extends Controller
             DB::rollBack();
 
             return back()
-                ->with('error', 'Gagal update lokasi: '.$e->getMessage())
+                ->with('error', 'Gagal update lokasi: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -102,7 +149,7 @@ class StoreLocationController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'Gagal menghapus lokasi: '.$e->getMessage());
+            return back()->with('error', 'Gagal menghapus lokasi: ' . $e->getMessage());
         }
     }
 
@@ -129,7 +176,7 @@ class StoreLocationController extends Controller
 
         foreach ($availabilities as $availability) {
             $material = $availability->materialable;
-            if (! $material) {
+            if (!$material) {
                 continue;
             }
 
@@ -169,7 +216,7 @@ class StoreLocationController extends Controller
                     default => [],
                 };
 
-                if (! $found) {
+                if (!$found) {
                     foreach ($computedFields as $field) {
                         try {
                             $value = $material->{$field} ?? null;
@@ -185,7 +232,7 @@ class StoreLocationController extends Controller
                 }
 
                 // Search in packageUnit relationship (for "karung", "sak", etc.)
-                if (! $found && in_array($type, ['Sand', 'Cat', 'Cement', 'Nat'])) {
+                if (!$found && in_array($type, ['Sand', 'Cat', 'Cement', 'Nat'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -199,7 +246,7 @@ class StoreLocationController extends Controller
                 }
 
                 // Search in unit labels that appear in display (M3, Kg, M2)
-                if (! $found) {
+                if (!$found) {
                     $unitLabels = [];
                     if (isset($material->comparison_price_per_m3) && $material->comparison_price_per_m3) {
                         $unitLabels[] = 'm3';
@@ -220,7 +267,7 @@ class StoreLocationController extends Controller
                     }
                 }
 
-                if (! $found) {
+                if (!$found) {
                     continue;
                 }
             }
@@ -335,7 +382,7 @@ class StoreLocationController extends Controller
     public function fetchTab(Request $request, Store $store, StoreLocation $location, $type)
     {
         // Validate type
-        if (! in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
             abort(404);
         }
 
@@ -362,7 +409,7 @@ class StoreLocationController extends Controller
 
         foreach ($availabilities as $availability) {
             $material = $availability->materialable;
-            if (! $material) {
+            if (!$material) {
                 continue;
             }
 
@@ -389,7 +436,7 @@ class StoreLocationController extends Controller
                 }
 
                 // 2. Computed Properties Search
-                if (! $found) {
+                if (!$found) {
                     $computedFields = match ($type) {
                         'sand' => ['sand_name'],
                         'cat' => ['cat_name'],
@@ -412,7 +459,7 @@ class StoreLocationController extends Controller
                 }
 
                 // 3. Relationship Search (Package Unit)
-                if (! $found && in_array($type, ['sand', 'cat', 'cement', 'nat'])) {
+                if (!$found && in_array($type, ['sand', 'cat', 'cement', 'nat'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -425,7 +472,7 @@ class StoreLocationController extends Controller
                 }
 
                 // 4. Unit Labels Search
-                if (! $found) {
+                if (!$found) {
                     $unitLabels = [];
                     if (isset($material->comparison_price_per_m3) && $material->comparison_price_per_m3) {
                         $unitLabels[] = 'm3';
@@ -446,7 +493,7 @@ class StoreLocationController extends Controller
                     }
                 }
 
-                if (! $found) {
+                if (!$found) {
                     continue;
                 }
             }
@@ -510,7 +557,7 @@ class StoreLocationController extends Controller
                 $sortPlan[] = ['column' => $column, 'direction' => $normalizedDirection];
             }
             foreach ($priorityColumns as $column) {
-                if (! in_array($column, $primaryColumns, true)) {
+                if (!in_array($column, $primaryColumns, true)) {
                     $sortPlan[] = ['column' => $column, 'direction' => 'asc'];
                 }
             }
@@ -673,5 +720,48 @@ class StoreLocationController extends Controller
             ->unique()
             ->sort()
             ->values();
+    }
+
+    private function syncMaterialLocationSnapshot(Store $store, StoreLocation $location): void
+    {
+        $snapshot = [
+            'store' => $store->name,
+            'address' => $location->address,
+        ];
+
+        $materialClasses = [Brick::class, Cat::class, Cement::class, Sand::class, Ceramic::class, Nat::class];
+
+        foreach ($materialClasses as $materialClass) {
+            $table = (new $materialClass())->getTable();
+            if (!Schema::hasTable($table)) {
+                continue;
+            }
+
+            // Sync direct relation records first.
+            $materialClass::query()->where('store_location_id', $location->id)->update($snapshot);
+
+            // Sync legacy records that are linked only through polymorphic availability.
+            $materialIds = StoreMaterialAvailability::query()
+                ->where('store_location_id', $location->id)
+                ->where('materialable_type', $materialClass)
+                ->pluck('materialable_id');
+
+            if ($materialIds->isEmpty()) {
+                continue;
+            }
+
+            $materialClass
+                ::query()
+                ->whereIn('id', $materialIds)
+                ->where(function ($query) use ($location) {
+                    $query->whereNull('store_location_id')->orWhere('store_location_id', $location->id);
+                })
+                ->update($snapshot);
+
+            $materialClass::query()
+                ->whereIn('id', $materialIds)
+                ->whereNull('store_location_id')
+                ->update(['store_location_id' => $location->id]);
+        }
     }
 }

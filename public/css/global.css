@@ -4152,7 +4152,7 @@ input[type="text"]:focus {
     display: none;
     align-items: center;
     justify-content: center;
-    z-index: 11000;
+    z-index: 2147483600;
     --confirm-accent: #dc2626;
 }
 

@@ -53,7 +53,7 @@ class InstallationTypeApiController extends Controller
         try {
             $installationType = BrickInstallationType::find($id);
 
-            if (! $installationType) {
+            if (!$installationType) {
                 return response()->json(
                     [
                         'success' => false,
@@ -89,7 +89,7 @@ class InstallationTypeApiController extends Controller
         try {
             $defaultType = BrickInstallationType::getDefault();
 
-            if (! $defaultType) {
+            if (!$defaultType) {
                 return response()->json(
                     [
                         'success' => false,

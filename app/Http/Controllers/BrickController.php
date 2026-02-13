@@ -49,12 +49,12 @@ class BrickController extends Controller
         ];
 
         // Default sorting jika tidak ada atau tidak valid
-        if (! $sortBy || ! in_array($sortBy, $allowedSorts)) {
+        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
             $sortBy = 'created_at';
             $sortDirection = 'desc';
         } else {
             // Validasi direction
-            if (! in_array($sortDirection, ['asc', 'desc'])) {
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
                 $sortDirection = 'asc';
             }
         }
@@ -101,16 +101,16 @@ class BrickController extends Controller
             if ($request->hasFile('photo')) {
                 $photo = $request->file('photo');
                 if ($photo->isValid()) {
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('bricks', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: '.$path);
+                        \Log::info('Photo uploaded successfully: ' . $path);
                     } else {
                         \Log::error('Failed to store photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file: '.$photo->getErrorMessage());
+                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
                 }
             }
 
@@ -170,10 +170,10 @@ class BrickController extends Controller
             return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to create brick: '.$e->getMessage());
+            \Log::error('Failed to create brick: ' . $e->getMessage());
 
             return back()
-                ->with('error', 'Gagal menyimpan data: '.$e->getMessage())
+                ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -228,16 +228,16 @@ class BrickController extends Controller
                         Storage::disk('public')->delete($brick->photo);
                     }
 
-                    $filename = time().'_'.$photo->getClientOriginalName();
+                    $filename = time() . '_' . $photo->getClientOriginalName();
                     $path = $photo->storeAs('bricks', $filename, 'public');
                     if ($path) {
                         $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: '.$path);
+                        \Log::info('Photo updated successfully: ' . $path);
                     } else {
                         \Log::error('Failed to update photo');
                     }
                 } else {
-                    \Log::error('Invalid photo file on update: '.$photo->getErrorMessage());
+                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
                 }
             }
 
@@ -303,10 +303,10 @@ class BrickController extends Controller
                 ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to update brick: '.$e->getMessage());
+            \Log::error('Failed to update brick: ' . $e->getMessage());
 
             return back()
-                ->with('error', 'Gagal update data: '.$e->getMessage())
+                ->with('error', 'Gagal update data: ' . $e->getMessage())
                 ->withInput();
         }
     }
@@ -330,9 +330,9 @@ class BrickController extends Controller
             return redirect()->route('bricks.index')->with('success', 'Data Bata berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to delete brick: '.$e->getMessage());
+            \Log::error('Failed to delete brick: ' . $e->getMessage());
 
-            return back()->with('error', 'Gagal menghapus data: '.$e->getMessage());
+            return back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
     }
 
@@ -354,7 +354,7 @@ class BrickController extends Controller
             'price_per_piece',
         ];
 
-        if (! in_array($field, $allowedFields)) {
+        if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
@@ -426,7 +426,7 @@ class BrickController extends Controller
             $brickStores = Brick::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores->merge($brickStores)->unique()->sort()->values()->take($limit);
@@ -435,25 +435,25 @@ class BrickController extends Controller
             $catStores = \App\Models\Cat::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $brickStores = Brick::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $cementStores = \App\Models\Cement::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $sandStores = \App\Models\Sand::query()
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
-                ->when($search, fn ($q) => $q->where('store', 'like', "%{$search}%"))
+                ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
             $allStores = $stores
@@ -492,7 +492,7 @@ class BrickController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari cat
@@ -500,7 +500,7 @@ class BrickController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari cement
@@ -508,7 +508,7 @@ class BrickController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Ambil address dari sand
@@ -516,7 +516,7 @@ class BrickController extends Controller
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
-            ->when($search, fn ($q) => $q->where('address', 'like', "%{$search}%"))
+            ->when($search, fn($q) => $q->where('address', 'like', "%{$search}%"))
             ->pluck('address');
 
         // Gabungkan semua addresses dan ambil unique values

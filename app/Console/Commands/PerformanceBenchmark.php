@@ -60,8 +60,8 @@ class PerformanceBenchmark extends Command
         $this->info('===========================================');
         $this->info('  PERFORMANCE BENCHMARK REPORT');
         $this->info('===========================================');
-        $this->info('Date: '.now()->format('Y-m-d H:i:s'));
-        $this->info('Iterations: '.$iterations);
+        $this->info('Date: ' . now()->format('Y-m-d H:i:s'));
+        $this->info('Iterations: ' . $iterations);
         $this->info('');
 
         if ($this->option('clear-cache')) {
@@ -268,7 +268,7 @@ class PerformanceBenchmark extends Command
 
         // Check if we have data
         $hasData = BrickCalculation::exists();
-        if (! $hasData) {
+        if (!$hasData) {
             $this->warn('  No calculation data found - skipping analytics benchmark');
 
             return [];
