@@ -2,67 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Material\CreateMaterialAction;
+use App\Actions\Material\DeleteMaterialAction;
+use App\Actions\Material\UpdateMaterialAction;
+use App\Http\Requests\Material\CatStoreRequest;
+use App\Http\Requests\Material\CatUpdateRequest;
 use App\Models\Cat;
 use App\Models\Unit;
 use App\Services\Material\MaterialDuplicateService;
+use App\Services\Material\MaterialPhotoService;
+use App\Support\Material\MaterialIndexQuery;
+use App\Support\Material\MaterialIndexSpec;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class CatController extends Controller
 {
     public function index(Request $request)
     {
         $query = Cat::query()->with('packageUnit');
-        // Pencarian
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('cat_name', 'like', "%{$search}%")
-                    ->orWhere('type', 'like', "%{$search}%")
-                    ->orWhere('brand', 'like', "%{$search}%")
-                    ->orWhere('color_name', 'like', "%{$search}%")
-                    ->orWhere('store', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
-
-        // Sorting
-        $sortBy = $request->get('sort_by');
-        $sortDirection = $request->get('sort_direction');
-
-        // Validasi kolom yang boleh di-sort
-        $allowedSorts = [
-            'cat_name',
-            'type',
-            'brand',
-            'sub_brand',
-            'color_name',
-            'color_code',
-            'form',
-            'package_unit',
-            'package_weight_gross',
-            'package_weight_net',
-            'volume',
-            'volume_unit',
-            'store',
-            'address',
-            'purchase_price',
-            'comparison_price_per_kg',
-            'created_at',
-        ];
-
-        // Default sorting jika tidak ada atau tidak valid
-        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'created_at';
-            $sortDirection = 'desc';
-        } else {
-            // Validasi direction
-            if (!in_array($sortDirection, ['asc', 'desc'])) {
-                $sortDirection = 'asc';
-            }
-        }
+        $search = MaterialIndexQuery::searchValue($request);
+        MaterialIndexQuery::applySearch($query, $search, MaterialIndexSpec::searchColumns('cat'));
+        [$sortBy, $sortDirection] = MaterialIndexQuery::resolveSort($request, 'cat');
 
         $cats = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
@@ -81,95 +44,25 @@ class CatController extends Controller
         // Normalize comma decimal separator (Indonesian format) to dot
         $this->normalizeDecimalFields($request);
 
-        $request->validate([
-            'cat_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'color_code' => 'nullable|string|max:100',
-            'color_name' => 'nullable|string|max:255',
-            'form' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'volume' => 'nullable|numeric|min:0',
-            'volume_unit' => 'nullable|string|max:20',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'purchase_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new CatStoreRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cat', $data);
-        if ($duplicate) {
-            $message = 'Data Cat sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('cat', $data);
 
         DB::beginTransaction();
         try {
-            // Debug logging
-            \Log::info('CatController@store - Request data:', [
-                'package_weight_gross' => $request->input('package_weight_gross'),
-                'package_weight_net' => $request->input('package_weight_net'),
-                'package_unit' => $request->input('package_unit'),
-            ]);
-
-            // Upload foto
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('cats', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: ' . $path);
-                    } else {
-                        \Log::error('Failed to store photo');
-                    }
-                } else {
-                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
-                }
-            }
-
-            // Auto-generate cat_name jika kosong
-            if (empty($data['cat_name'])) {
-                $parts = array_filter([
-                    $data['type'] ?? '',
-                    $data['brand'] ?? '',
-                    $data['sub_brand'] ?? '',
-                    $data['color_name'] ?? '',
-                    ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
-                ]);
-                $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
-            }
+            $this->logStoreRequest($request);
+            $this->handleCreatePhotoUpload($request, $data);
+            $this->ensureCatName($data);
 
             // Buat cat
-            $cat = Cat::create($data);
+            $cat = app(CreateMaterialAction::class)->execute('cat', $data);
 
-            // Jika berat bersih belum diisi, hitung dari (berat kotor - berat kemasan unit)
-            if (
-                (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
-                $cat->package_weight_gross &&
-                $cat->package_unit
-            ) {
-                $cat->calculateNetWeight();
-            }
-            // Kalkulasi harga komparasi per kg
-            if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
-                $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
-            }
+            $this->recalculateCatDerivedFields($cat, false);
 
             $cat->save();
 
-            // NEW: Attach store location
-            if ($request->filled('store_location_id')) {
-                $cat->storeLocations()->attach($request->input('store_location_id'));
-            }
+            $this->syncStoreLocationOnCreate($request, $cat);
 
             DB::commit();
 
@@ -236,107 +129,25 @@ class CatController extends Controller
         // Normalize comma decimal separator (Indonesian format) to dot
         $this->normalizeDecimalFields($request);
 
-        $request->validate([
-            'cat_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'color_code' => 'nullable|string|max:100',
-            'color_name' => 'nullable|string|max:255',
-            'form' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'volume' => 'nullable|numeric|min:0',
-            'volume_unit' => 'nullable|string|max:20',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'purchase_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new CatUpdateRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cat', $data, $cat->id);
-        if ($duplicate) {
-            $message = 'Data Cat sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('cat', $data, $cat->id);
 
         DB::beginTransaction();
         try {
-            // Debug logging
-            \Log::info('CatController@update - Request data:', [
-                'id' => $cat->id,
-                'package_weight_gross' => $request->input('package_weight_gross'),
-                'package_weight_net' => $request->input('package_weight_net'),
-                'package_unit' => $request->input('package_unit'),
-            ]);
-
-            // Auto-generate cat_name jika kosong
-            if (empty($data['cat_name'])) {
-                $parts = array_filter([
-                    $data['type'] ?? '',
-                    $data['brand'] ?? '',
-                    $data['sub_brand'] ?? '',
-                    $data['color_name'] ?? '',
-                    ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
-                ]);
-                $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
-            }
-
-            // Upload foto baru
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    // Hapus foto lama
-                    if ($cat->photo) {
-                        Storage::disk('public')->delete($cat->photo);
-                    }
-
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('cats', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: ' . $path);
-                    } else {
-                        \Log::error('Failed to update photo');
-                    }
-                } else {
-                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
-                }
-            }
+            $this->logUpdateRequest($request, $cat);
+            $this->ensureCatName($data);
+            $this->handleUpdatePhotoUpload($request, $cat, $data);
 
             // Update cat
-            $cat->update($data);
+            app(UpdateMaterialAction::class)->execute($cat, $data);
 
-            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            // HANYA jika berat bersih belum diisi manual oleh user
-            if (
-                (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
-                $cat->package_weight_gross &&
-                $cat->package_unit
-            ) {
-                $cat->calculateNetWeight();
-            }
-
-            // Kalkulasi harga komparasi per kg
-            if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
-                $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
-            } else {
-                $cat->comparison_price_per_kg = null;
-            }
+            $this->recalculateCatDerivedFields($cat, true);
 
             $cat->save();
 
-            // NEW: Sync store location
-            if ($request->filled('store_location_id')) {
-                $cat->storeLocations()->sync([$request->input('store_location_id')]);
-            } else {
-                $cat->storeLocations()->detach();
-            }
+            $this->syncStoreLocationOnUpdate($request, $cat);
 
             DB::commit();
 
@@ -391,14 +202,12 @@ class CatController extends Controller
         DB::beginTransaction();
         try {
             // Hapus foto
-            if ($cat->photo) {
-                Storage::disk('public')->delete($cat->photo);
-            }
+            app(MaterialPhotoService::class)->delete($cat->photo);
 
             // NEW: Detach store locations
             $cat->storeLocations()->detach();
 
-            $cat->delete();
+            app(DeleteMaterialAction::class)->execute($cat);
 
             DB::commit();
 
@@ -431,36 +240,126 @@ class CatController extends Controller
         }
     }
 
+    private function logStoreRequest(Request $request): void
+    {
+        \Log::info('CatController@store - Request data:', [
+            'package_weight_gross' => $request->input('package_weight_gross'),
+            'package_weight_net' => $request->input('package_weight_net'),
+            'package_unit' => $request->input('package_unit'),
+        ]);
+    }
+
+    private function logUpdateRequest(Request $request, Cat $cat): void
+    {
+        \Log::info('CatController@update - Request data:', [
+            'id' => $cat->id,
+            'package_weight_gross' => $request->input('package_weight_gross'),
+            'package_weight_net' => $request->input('package_weight_net'),
+            'package_unit' => $request->input('package_unit'),
+        ]);
+    }
+
+    private function handleCreatePhotoUpload(Request $request, array &$data): void
+    {
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            if ($photo->isValid()) {
+                $path = app(MaterialPhotoService::class)->upload($photo, 'cats');
+                if ($path) {
+                    $data['photo'] = $path;
+                    \Log::info('Photo uploaded successfully: ' . $path);
+                } else {
+                    \Log::error('Failed to store photo');
+                }
+            } else {
+                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
+            }
+        }
+    }
+
+    private function handleUpdatePhotoUpload(Request $request, Cat $cat, array &$data): void
+    {
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            if ($photo->isValid()) {
+                $path = app(MaterialPhotoService::class)->upload($photo, 'cats', $cat->photo);
+                if ($path) {
+                    $data['photo'] = $path;
+                    \Log::info('Photo updated successfully: ' . $path);
+                } else {
+                    \Log::error('Failed to update photo');
+                }
+            } else {
+                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+            }
+        }
+    }
+
+    private function ensureCatName(array &$data): void
+    {
+        if (!empty($data['cat_name'])) {
+            return;
+        }
+
+        $parts = array_filter([
+            $data['type'] ?? '',
+            $data['brand'] ?? '',
+            $data['sub_brand'] ?? '',
+            $data['color_name'] ?? '',
+            ($data['volume'] ?? '') . ($data['volume_unit'] ?? ''),
+        ]);
+        $data['cat_name'] = implode(' ', $parts) ?: 'Cat';
+    }
+
+    private function recalculateCatDerivedFields(Cat $cat, bool $resetComparisonPriceIfMissing): void
+    {
+        if (
+            (!$cat->package_weight_net || $cat->package_weight_net <= 0) &&
+            $cat->package_weight_gross &&
+            $cat->package_unit
+        ) {
+            $cat->calculateNetWeight();
+        }
+
+        if ($cat->purchase_price && $cat->package_weight_net && $cat->package_weight_net > 0) {
+            $cat->comparison_price_per_kg = $cat->purchase_price / $cat->package_weight_net;
+            return;
+        }
+
+        if ($resetComparisonPriceIfMissing) {
+            $cat->comparison_price_per_kg = null;
+        }
+    }
+
+    private function syncStoreLocationOnCreate(Request $request, Cat $cat): void
+    {
+        if ($request->filled('store_location_id')) {
+            $cat->storeLocations()->attach($request->input('store_location_id'));
+        }
+    }
+
+    private function syncStoreLocationOnUpdate(Request $request, Cat $cat): void
+    {
+        if ($request->filled('store_location_id')) {
+            $cat->storeLocations()->sync([$request->input('store_location_id')]);
+            return;
+        }
+
+        $cat->storeLocations()->detach();
+    }
+
     // API untuk mendapatkan unique values per field dengan cascading filter
     public function getFieldValues(string $field, Request $request)
     {
         // Bidang yang diizinkan untuk auto-suggest
-        $allowedFields = [
-            'cat_name',
-            'type',
-            'brand',
-            'sub_brand',
-            'color_code',
-            'color_name',
-            'form',
-            'volume',
-            'volume_unit',
-            'package_weight_gross',
-            'package_weight_net',
-            'package_unit',
-            'store',
-            'address',
-            'price_unit',
-            'purchase_price',
-        ];
+        $allowedFields = MaterialLookupSpec::allowedFields('cat');
 
         if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         // Filter parameters untuk cascading
         $brand = $request->query('brand');
@@ -518,10 +417,9 @@ class CatController extends Controller
     // API khusus untuk mendapatkan semua stores dari semua material (untuk validasi input baru)
     public function getAllStores(Request $request)
     {
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
-        $materialType = $request->query('material_type', 'all'); // 'cat' atau 'all'
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
+        $materialType = MaterialLookupQuery::queryMaterialType($request, 'all'); // 'cat' atau 'all'
 
         $stores = collect();
 
@@ -582,10 +480,9 @@ class CatController extends Controller
      */
     public function getAddressesByStore(Request $request)
     {
-        $store = (string) $request->query('store', '');
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $store = MaterialLookupQuery::stringStore($request);
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         // Jika tidak ada toko yang dipilih, return empty
         if ($store === '') {

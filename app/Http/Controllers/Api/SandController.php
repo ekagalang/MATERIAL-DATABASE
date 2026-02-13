@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Material\ApiSandUpsertRequest;
 use App\Http\Resources\SandResource;
 use App\Services\Material\SandService;
+use App\Support\Material\MaterialApiIndexQuery;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,35 +26,20 @@ class SandController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $perPage = $request->get('per_page', 15);
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
-
-        $sands = $search
-            ? $this->sandService->search($search, $perPage, $sortBy, $sortDirection)
-            : $this->sandService->paginateWithSort($perPage, $sortBy, $sortDirection);
+        $sands = MaterialApiIndexQuery::execute(
+            $request,
+            fn($search, $perPage, $sortBy, $sortDirection) =>
+            $this->sandService->search($search, $perPage, $sortBy, $sortDirection),
+            fn($perPage, $sortBy, $sortDirection) =>
+            $this->sandService->paginateWithSort($perPage, $sortBy, $sortDirection),
+        );
 
         return $this->paginatedResponse(SandResource::collection($sands)->resource, 'Sands retrieved successfully');
     }
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'sand_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validate((new ApiSandUpsertRequest())->rules());
 
         $sand = $this->sandService->create($validated, $request->file('photo'));
 
@@ -69,21 +58,7 @@ class SandController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'sand_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validate((new ApiSandUpsertRequest())->rules());
 
         $sand = $this->sandService->update($id, $validated, $request->file('photo'));
 
@@ -101,9 +76,9 @@ class SandController extends Controller
     {
         $values = $this->sandService->getFieldValues(
             $field,
-            $request->only(['brand', 'store']),
-            $request->get('search'),
-            $request->get('limit', 20),
+            MaterialLookupQuery::onlyFilters($request, MaterialLookupSpec::apiFilterKeys('sand')),
+            MaterialLookupQuery::rawSearch($request),
+            MaterialLookupQuery::rawLimit($request),
         );
 
         return response()->json($values);
@@ -112,9 +87,9 @@ class SandController extends Controller
     public function getAllStores(Request $request): JsonResponse
     {
         $stores = $this->sandService->getAllStores(
-            $request->get('search'),
-            $request->get('limit', 20),
-            $request->get('material_type', 'sand'),
+            MaterialLookupQuery::rawSearch($request),
+            MaterialLookupQuery::rawLimit($request),
+            MaterialLookupQuery::rawMaterialType($request, 'sand'),
         );
 
         return response()->json($stores);
@@ -122,14 +97,14 @@ class SandController extends Controller
 
     public function getAddressesByStore(Request $request): JsonResponse
     {
-        $store = $request->get('store');
+        $store = MaterialLookupQuery::rawStore($request);
         if (!$store) {
             return response()->json([]);
         }
         $addresses = $this->sandService->getAddressesByStore(
             $store,
-            $request->get('search'),
-            $request->get('limit', 20),
+            MaterialLookupQuery::rawSearch($request),
+            MaterialLookupQuery::rawLimit($request),
         );
 
         return response()->json($addresses);

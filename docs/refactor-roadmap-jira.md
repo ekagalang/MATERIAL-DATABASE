@@ -11,6 +11,57 @@
 - `TASK`: Restore `PlinthCeramicFormula` compatibility class and polymorphic naming in trace mode.
 - `Result`: `PlinthCeramicFormulaTest` now passes.
 
+## Refactor Status Tracker (Updated: 2026-02-13)
+
+### Epic 4 - Material CRUD Platformization
+- `STATUS`: In Progress
+
+#### Story 4.1 - Reusable Form Requests
+- `[x]` Create per-domain Form Requests for create/update rules (web + API material controllers).
+- `[x]` Move inline `store/update` validation arrays from controllers to Form Requests.
+- `[~]` Move index filter validation to Form Requests/query objects.
+  - Stage-1 done: shared index query objects introduced (`MaterialIndexQuery`, `MaterialApiIndexQuery`) and wired to web + API material index endpoints.
+  - Stage-2 done: shared lookup query object introduced (`MaterialLookupQuery`) and wired across web + API read/filter endpoints (`getFieldValues`, `getAllStores`, `getAddressesByStore`).
+- `[~]` Complete explicit reuse mapping between web + API validators for all read/filter endpoints.
+  - Stage-1 done: shared lookup spec introduced (`MaterialLookupSpec`) for allowed field/filter mapping and adopted across web + API material lookup endpoints.
+
+#### Story 4.2 - Material Write Actions
+- `[x]` Extract duplicate photo upload/delete flow to `MaterialPhotoService` and wire into web material controllers (`Brick/Cement/Sand/Cat/Nat`).
+- `[x]` Centralize duplicate detection invocation into `MaterialDuplicateService::ensureNoDuplicate()` across web material controllers (`Brick/Cement/Sand/Cat/Nat/Ceramic`).
+- `[~]` Create generic actions: `CreateMaterialAction`, `UpdateMaterialAction`, `DeleteMaterialAction`.
+  - Stage-1 done: actions created and wired into web controllers (`Brick/Cement/Sand/Cat/Nat`) for create/update/delete persistence calls.
+
+#### Story 4.3 - Material Query Layer
+- `[~]` Introduce shared query/filter object for search + sorting + pagination.
+  - Stage-1 done: `MaterialIndexQuery` + `MaterialIndexSpec` introduced and used by web material index controllers.
+  - Stage-2 done: API index parameter resolution + index execution branch unified through `MaterialApiIndexQuery` across material API controllers.
+  - Stage-3 done: read/filter parameter contract unified via `MaterialLookupQuery` across web + API material lookup endpoints.
+- `[~]` Replace repeated `allowedSorts` blocks with configurable query spec per material.
+  - Stage-1 done: repeated index `allowedSorts`/`sortMap` logic removed from `Brick/Cement/Sand/Cat/Nat/Ceramic` web controllers.
+  - Pending: finalize residual validation contract alignment for read/filter endpoints.
+
+### Epic 5 - Thin Controllers (Web + API)
+- `STATUS`: In Progress
+
+#### Story 5.1 - MaterialCalculationController Refactor
+- `[~]` Stage-1 thinning done: repeated validation rules extracted into dedicated private methods.
+- `[~]` Stage-2 routing split done: routes separated into `MaterialCalculationPageController`, `MaterialCalculationExecutionController`, and `MaterialCalculationTraceController` (behavior preserved via inheritance).
+- `[~]` Stage-3 endpoint ownership done: routed methods now declared explicitly on split controllers via `parent::...` wrappers (zero behavior change).
+- `[x]` Stage-4 body migration done: all routed web endpoints are now implemented directly on split controllers (`MaterialCalculationPageController`, `MaterialCalculationExecutionController`, `MaterialCalculationTraceController`) with equivalent logic.
+- `[~]` Stage-4 parity hardening done: local execution validation helper methods restored in `MaterialCalculationExecutionController` to preserve request-validation behavior for direct methods.
+- `[x]` Split controller into `Page/Execution/Trace` controllers.
+- `[ ]` Enforce target: no method > 80 LOC.
+
+#### Story 5.2 - API V1 Calculation Controller Refactor
+- `[~]` Stage-1 thinning done: repeated validation rules extracted into dedicated private methods.
+- `[~]` Stage-2 routing split done: API v1 calculation routes separated into `CalculationReadApiController`, `CalculationWriteApiController`, and `CalculationExecutionApiController` (behavior preserved via inheritance).
+- `[~]` Stage-3 endpoint ownership done: routed methods now declared explicitly on split API controllers via `parent::...` wrappers (zero behavior change).
+- `[x]` Stage-4 body migration done: all routed read/write/execution endpoints are now implemented directly on split API controllers (`CalculationReadApiController`, `CalculationWriteApiController`, `CalculationExecutionApiController`) with equivalent logic.
+- `[ ]` Move orchestration logic to application actions/resources.
+- `[~]` Add/verify API schema contract tests after split.
+  - Stage-1 done: `CalculationApiSchemaContractTest` added for split endpoints and validates execution endpoint error contracts (`calculate`, `preview`, `compare`, `trace`).
+  - Stage-1 note: read/write not-found contract checks (`index`, `show`, `update`, `destroy`) are present but skipped when `brick_calculations` table is unavailable in current test environment.
+
 ---
 
 ## Epic 1 - Stabilize Baseline & Refactor Safety Net
@@ -225,4 +276,3 @@
 - `blade-cleanup`
 - `test-stability`
 - `migration-safety`
-

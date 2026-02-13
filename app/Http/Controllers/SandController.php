@@ -2,64 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Material\CreateMaterialAction;
+use App\Actions\Material\DeleteMaterialAction;
+use App\Actions\Material\UpdateMaterialAction;
+use App\Http\Requests\Material\SandUpsertRequest;
 use App\Models\Sand;
 use App\Services\Material\MaterialDuplicateService;
+use App\Services\Material\MaterialPhotoService;
+use App\Support\Material\MaterialIndexQuery;
+use App\Support\Material\MaterialIndexSpec;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class SandController extends Controller
 {
     public function index(Request $request)
     {
         $query = Sand::query()->with('packageUnit');
-
-        // Pencarian
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('sand_name', 'like', "%{$search}%")
-                    ->orWhere('type', 'like', "%{$search}%")
-                    ->orWhere('brand', 'like', "%{$search}%")
-                    ->orWhere('store', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
-
-        // Sorting
-        $sortBy = $request->get('sort_by');
-        $sortDirection = $request->get('sort_direction');
-
-        // Validasi kolom yang boleh di-sort
-        $allowedSorts = [
-            'sand_name',
-            'type',
-            'brand',
-            'package_unit',
-            'package_weight_gross',
-            'package_weight_net',
-            'dimension_length',
-            'dimension_width',
-            'dimension_height',
-            'package_volume',
-            'store',
-            'address',
-            'package_price',
-            'comparison_price_per_m3',
-            'created_at',
-        ];
-
-        // Default sorting jika tidak ada atau tidak valid
-        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'created_at';
-            $sortDirection = 'desc';
-        } else {
-            // Validasi direction
-            if (!in_array($sortDirection, ['asc', 'desc'])) {
-                $sortDirection = 'asc';
-            }
-        }
+        $search = MaterialIndexQuery::searchValue($request);
+        MaterialIndexQuery::applySearch($query, $search, MaterialIndexSpec::searchColumns('sand'));
+        [$sortBy, $sortDirection] = MaterialIndexQuery::resolveSort($request, 'sand');
 
         $sands = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
@@ -78,80 +42,24 @@ class SandController extends Controller
         // Normalize comma decimal separator (Indonesian format) to dot
         $this->normalizeDecimalFields($request);
 
-        $request->validate([
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new SandUpsertRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('sand', $data);
-        if ($duplicate) {
-            $message = 'Data Pasir sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('sand', $data);
 
         DB::beginTransaction();
         try {
-            // Upload foto
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('sands', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: ' . $path);
-                    } else {
-                        \Log::error('Failed to store photo');
-                    }
-                } else {
-                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
-                }
-            }
-
-            // Auto-generate sand_name jika kosong
-            if (empty($data['sand_name'])) {
-                $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
-                $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
-            }
+            $this->handleCreatePhotoUpload($request, $data);
+            $this->ensureSandName($data);
 
             // Buat sand
-            $sand = Sand::create($data);
+            $sand = app(CreateMaterialAction::class)->execute('sand', $data);
 
-            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            if ($sand->package_weight_gross && $sand->package_unit) {
-                $sand->calculateNetWeight();
-            }
-
-            // Kalkulasi volume dari dimensi
-            if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
-                $sand->calculateVolume();
-            }
-
-            // Kalkulasi harga komparasi per M3
-            if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
-                $sand->calculateComparisonPrice();
-            }
+            $this->recalculateSandDerivedFields($sand, false);
 
             $sand->save();
 
-            // NEW: Attach store location
-            if ($request->filled('store_location_id')) {
-                $sand->storeLocations()->attach($request->input('store_location_id'));
-            }
+            $this->syncStoreLocationOnCreate($request, $sand);
 
             DB::commit();
 
@@ -218,94 +126,24 @@ class SandController extends Controller
         // Normalize comma decimal separator (Indonesian format) to dot
         $this->normalizeDecimalFields($request);
 
-        $request->validate([
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new SandUpsertRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('sand', $data, $sand->id);
-        if ($duplicate) {
-            $message = 'Data Pasir sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('sand', $data, $sand->id);
 
         DB::beginTransaction();
         try {
-            // Auto-generate sand_name jika kosong
-            if (empty($data['sand_name'])) {
-                $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
-                $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
-            }
-
-            // Upload foto baru
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    // Hapus foto lama
-                    if ($sand->photo) {
-                        Storage::disk('public')->delete($sand->photo);
-                    }
-
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('sands', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: ' . $path);
-                    } else {
-                        \Log::error('Failed to update photo');
-                    }
-                } else {
-                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
-                }
-            }
+            $this->ensureSandName($data);
+            $this->handleUpdatePhotoUpload($request, $sand, $data);
 
             // Update sand
-            $sand->update($data);
+            app(UpdateMaterialAction::class)->execute($sand, $data);
 
-            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            // HANYA jika berat bersih belum diisi manual oleh user
-            if (
-                (!$sand->package_weight_net || $sand->package_weight_net <= 0) &&
-                $sand->package_weight_gross &&
-                $sand->package_unit
-            ) {
-                $sand->calculateNetWeight();
-            }
-
-            // Kalkulasi volume dari dimensi
-            if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
-                $sand->calculateVolume();
-            }
-
-            // Kalkulasi harga komparasi per M3
-            if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
-                $sand->calculateComparisonPrice();
-            } else {
-                $sand->comparison_price_per_m3 = null;
-            }
+            $this->recalculateSandDerivedFields($sand, true);
 
             $sand->save();
 
-            // NEW: Sync store location
-            if ($request->filled('store_location_id')) {
-                $sand->storeLocations()->sync([$request->input('store_location_id')]);
-            } else {
-                $sand->storeLocations()->detach();
-            }
+            $this->syncStoreLocationOnUpdate($request, $sand);
 
             DB::commit();
 
@@ -360,14 +198,12 @@ class SandController extends Controller
         DB::beginTransaction();
         try {
             // Hapus foto
-            if ($sand->photo) {
-                Storage::disk('public')->delete($sand->photo);
-            }
+            app(MaterialPhotoService::class)->delete($sand->photo);
 
             // NEW: Detach store locations
             $sand->storeLocations()->detach();
 
-            $sand->delete();
+            app(DeleteMaterialAction::class)->execute($sand);
 
             DB::commit();
 
@@ -400,31 +236,107 @@ class SandController extends Controller
         }
     }
 
+    private function handleCreatePhotoUpload(Request $request, array &$data): void
+    {
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            if ($photo->isValid()) {
+                $path = app(MaterialPhotoService::class)->upload($photo, 'sands');
+                if ($path) {
+                    $data['photo'] = $path;
+                    \Log::info('Photo uploaded successfully: ' . $path);
+                } else {
+                    \Log::error('Failed to store photo');
+                }
+            } else {
+                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
+            }
+        }
+    }
+
+    private function handleUpdatePhotoUpload(Request $request, Sand $sand, array &$data): void
+    {
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            if ($photo->isValid()) {
+                $path = app(MaterialPhotoService::class)->upload($photo, 'sands', $sand->photo);
+                if ($path) {
+                    $data['photo'] = $path;
+                    \Log::info('Photo updated successfully: ' . $path);
+                } else {
+                    \Log::error('Failed to update photo');
+                }
+            } else {
+                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+            }
+        }
+    }
+
+    private function ensureSandName(array &$data): void
+    {
+        if (!empty($data['sand_name'])) {
+            return;
+        }
+
+        $parts = array_filter([$data['type'] ?? '', $data['brand'] ?? '']);
+        $data['sand_name'] = implode(' ', $parts) ?: 'Pasir';
+    }
+
+    private function recalculateSandDerivedFields(Sand $sand, bool $resetComparisonPriceIfMissing): void
+    {
+        if (
+            (!$sand->package_weight_net || $sand->package_weight_net <= 0) &&
+            $sand->package_weight_gross &&
+            $sand->package_unit
+        ) {
+            $sand->calculateNetWeight();
+        }
+
+        if ($sand->dimension_length && $sand->dimension_width && $sand->dimension_height) {
+            $sand->calculateVolume();
+        }
+
+        if ($sand->package_price && $sand->package_volume && $sand->package_volume > 0) {
+            $sand->calculateComparisonPrice();
+            return;
+        }
+
+        if ($resetComparisonPriceIfMissing) {
+            $sand->comparison_price_per_m3 = null;
+        }
+    }
+
+    private function syncStoreLocationOnCreate(Request $request, Sand $sand): void
+    {
+        if ($request->filled('store_location_id')) {
+            $sand->storeLocations()->attach($request->input('store_location_id'));
+        }
+    }
+
+    private function syncStoreLocationOnUpdate(Request $request, Sand $sand): void
+    {
+        if ($request->filled('store_location_id')) {
+            $sand->storeLocations()->sync([$request->input('store_location_id')]);
+            return;
+        }
+
+        $sand->storeLocations()->detach();
+    }
+
     /**
      * API untuk mendapatkan unique values per field
      */
     public function getFieldValues(string $field, Request $request)
     {
         // Bidang yang diizinkan untuk auto-suggest
-        $allowedFields = [
-            'type',
-            'brand',
-            'store',
-            'address',
-            'package_weight_gross',
-            'dimension_length',
-            'dimension_width',
-            'dimension_height',
-            'package_price',
-        ];
+        $allowedFields = MaterialLookupSpec::allowedFields('sand');
 
         if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         // Get filter parameters for cascading autocomplete
         $brand = (string) $request->query('brand', '');
@@ -522,10 +434,9 @@ class SandController extends Controller
      */
     public function getAllStores(Request $request)
     {
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
-        $materialType = $request->query('material_type', 'all'); // 'sand' atau 'all'
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
+        $materialType = MaterialLookupQuery::queryMaterialType($request, 'all'); // 'sand' atau 'all'
 
         $stores = collect();
 
@@ -585,10 +496,9 @@ class SandController extends Controller
      */
     public function getAddressesByStore(Request $request)
     {
-        $store = (string) $request->query('store', '');
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $store = MaterialLookupQuery::stringStore($request);
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         // Jika tidak ada toko yang dipilih, return empty
         if ($store === '') {

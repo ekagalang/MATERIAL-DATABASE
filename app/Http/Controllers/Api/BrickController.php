@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Material\ApiBrickUpsertRequest;
 use App\Http\Resources\BrickResource;
 use App\Services\Material\BrickService;
+use App\Support\Material\MaterialApiIndexQuery;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,14 +41,13 @@ class BrickController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $perPage = $request->get('per_page', 15);
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
-
-        $bricks = $search
-            ? $this->brickService->search($search, $perPage, $sortBy, $sortDirection)
-            : $this->brickService->paginateWithSort($perPage, $sortBy, $sortDirection);
+        $bricks = MaterialApiIndexQuery::execute(
+            $request,
+            fn($search, $perPage, $sortBy, $sortDirection) =>
+            $this->brickService->search($search, $perPage, $sortBy, $sortDirection),
+            fn($perPage, $sortBy, $sortDirection) =>
+            $this->brickService->paginateWithSort($perPage, $sortBy, $sortDirection),
+        );
 
         return $this->paginatedResponse(BrickResource::collection($bricks)->resource, 'Bricks retrieved successfully');
     }
@@ -54,19 +57,7 @@ class BrickController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        // Validation (akan dipindah ke FormRequest nanti)
-        $validated = $request->validate([
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'form' => 'nullable|string|max:255',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'price_per_piece' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validate((new ApiBrickUpsertRequest())->rules());
 
         $brick = $this->brickService->create($validated, $request->file('photo'));
 
@@ -92,19 +83,7 @@ class BrickController extends Controller
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        // Validation (akan dipindah ke FormRequest nanti)
-        $validated = $request->validate([
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'form' => 'nullable|string|max:255',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'price_per_piece' => 'nullable|numeric|min:0',
-        ]);
+        $validated = $request->validate((new ApiBrickUpsertRequest())->rules());
 
         $brick = $this->brickService->update($id, $validated, $request->file('photo'));
 
@@ -126,9 +105,9 @@ class BrickController extends Controller
      */
     public function getFieldValues(string $field, Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
-        $filters = $request->only(['brand', 'store']);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
+        $filters = MaterialLookupQuery::onlyFilters($request, MaterialLookupSpec::apiFilterKeys('brick'));
 
         $values = $this->brickService->getFieldValues($field, $filters, $search, $limit);
 
@@ -141,9 +120,9 @@ class BrickController extends Controller
      */
     public function getAllStores(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
-        $materialType = $request->get('material_type', 'brick'); // 'brick' or 'all'
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
+        $materialType = MaterialLookupQuery::rawMaterialType($request, 'brick'); // 'brick' or 'all'
 
         $stores = $this->brickService->getAllStores($search, $limit, $materialType);
 
@@ -155,9 +134,9 @@ class BrickController extends Controller
      */
     public function getAddressesByStore(Request $request): JsonResponse
     {
-        $store = $request->get('store');
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
+        $store = MaterialLookupQuery::rawStore($request);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
 
         if (!$store) {
             return response()->json([]);

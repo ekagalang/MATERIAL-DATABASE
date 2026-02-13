@@ -9,6 +9,7 @@ use App\Models\Ceramic;
 use App\Models\Nat;
 use App\Models\Sand;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class MaterialDuplicateService
 {
@@ -145,6 +146,18 @@ class MaterialDuplicateService
         ],
     ];
 
+    /**
+     * @var array<string, string>
+     */
+    private const MATERIAL_LABELS = [
+        'brick' => 'Bata',
+        'cement' => 'Semen',
+        'sand' => 'Pasir',
+        'cat' => 'Cat',
+        'ceramic' => 'Keramik',
+        'nat' => 'Nat',
+    ];
+
     public function findDuplicate(string $materialType, array $data, ?int $ignoreId = null): ?Model
     {
         $config = self::MATERIALS[$materialType] ?? null;
@@ -186,6 +199,19 @@ class MaterialDuplicateService
         }
 
         return $query->first();
+    }
+
+    public function ensureNoDuplicate(string $materialType, array $data, ?int $ignoreId = null): void
+    {
+        $duplicate = $this->findDuplicate($materialType, $data, $ignoreId);
+        if (!$duplicate) {
+            return;
+        }
+
+        $label = self::MATERIAL_LABELS[$materialType] ?? ucfirst($materialType);
+        $message = "Data {$label} sudah ada. Tidak bisa menyimpan data duplikat.";
+
+        throw ValidationException::withMessages(['duplicate' => $message]);
     }
 
     private function normalizeString(mixed $value): string

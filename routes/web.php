@@ -5,7 +5,9 @@ use App\Http\Controllers\CatController;
 use App\Http\Controllers\CementController;
 use App\Http\Controllers\CeramicController;
 use App\Http\Controllers\LogViewerController;
-use App\Http\Controllers\MaterialCalculationController;
+use App\Http\Controllers\MaterialCalculationExecutionController;
+use App\Http\Controllers\MaterialCalculationPageController;
+use App\Http\Controllers\MaterialCalculationTraceController;
 use App\Http\Controllers\MaterialController;
 use App\Http\Controllers\NatController;
 use App\Http\Controllers\SandController;
@@ -266,18 +268,20 @@ Route::resource('ceramics', CeramicController::class);
 Route::prefix('material-calculations')
     ->name('material-calculations.')
     ->group(function () {
-        Route::get('/', [MaterialCalculationController::class, 'indexRedirect'])->name('index');
-        Route::get('/log', [MaterialCalculationController::class, 'log'])->name('log');
-        Route::get('/create', [MaterialCalculationController::class, 'create'])->name('create');
-        Route::post('/', [MaterialCalculationController::class, 'store'])->name('store');
-        Route::get('/preview/{cacheKey}', [MaterialCalculationController::class, 'showPreview'])->name('preview');
-        Route::get('/{materialCalculation}', [MaterialCalculationController::class, 'show'])->name('show');
-        Route::get('/{materialCalculation}/edit', [MaterialCalculationController::class, 'edit'])->name('edit');
-        Route::put('/{materialCalculation}', [MaterialCalculationController::class, 'update'])->name('update');
-        Route::delete('/{materialCalculation}', [MaterialCalculationController::class, 'destroy'])->name('destroy');
+        Route::get('/', [MaterialCalculationPageController::class, 'indexRedirect'])->name('index');
+        Route::get('/log', [MaterialCalculationPageController::class, 'log'])->name('log');
+        Route::get('/create', [MaterialCalculationPageController::class, 'create'])->name('create');
+        Route::post('/', [MaterialCalculationExecutionController::class, 'store'])->name('store');
+        Route::get('/preview/{cacheKey}', [MaterialCalculationPageController::class, 'showPreview'])->name('preview');
+        Route::get('/{materialCalculation}', [MaterialCalculationPageController::class, 'show'])->name('show');
+        Route::get('/{materialCalculation}/edit', [MaterialCalculationPageController::class, 'edit'])->name('edit');
+        Route::put('/{materialCalculation}', [MaterialCalculationExecutionController::class, 'update'])->name('update');
+        Route::delete('/{materialCalculation}', [MaterialCalculationExecutionController::class, 'destroy'])->name(
+            'destroy',
+        );
 
         // Export
-        Route::get('/{materialCalculation}/export-pdf', [MaterialCalculationController::class, 'exportPdf'])->name(
+        Route::get('/{materialCalculation}/export-pdf', [MaterialCalculationPageController::class, 'exportPdf'])->name(
             'export-pdf',
         );
     });
@@ -286,19 +290,19 @@ Route::prefix('material-calculations')
 Route::prefix('api/material-calculator')
     ->name('api.material-calculator.')
     ->group(function () {
-        Route::post('/calculate', [MaterialCalculationController::class, 'calculate'])->name('calculate');
-        Route::post('/compare', [MaterialCalculationController::class, 'compare'])->name('compare');
-        Route::post('/trace', [MaterialCalculationController::class, 'traceCalculation'])->name('trace');
-        Route::get('/brick-dimensions/{brickId}', [MaterialCalculationController::class, 'getBrickDimensions'])->name(
+        Route::post('/calculate', [MaterialCalculationExecutionController::class, 'calculate'])->name('calculate');
+        Route::post('/compare', [MaterialCalculationExecutionController::class, 'compare'])->name('compare');
+        Route::post('/trace', [MaterialCalculationTraceController::class, 'traceCalculation'])->name('trace');
+        Route::get('/brick-dimensions/{brickId}', [MaterialCalculationExecutionController::class, 'getBrickDimensions'])->name(
             'brick-dimensions',
         );
-        Route::post('/ceramic-combinations', [MaterialCalculationController::class, 'getCeramicCombinations'])->name(
+        Route::post('/ceramic-combinations', [MaterialCalculationExecutionController::class, 'getCeramicCombinations'])->name(
             'ceramic-combinations',
         );
     });
 
 // Trace View - step by step
-Route::get('/material-calculator/trace', [MaterialCalculationController::class, 'traceView'])->name(
+Route::get('/material-calculator/trace', [MaterialCalculationTraceController::class, 'traceView'])->name(
     'material-calculator.trace',
 );
 

@@ -838,6 +838,7 @@ $paramValue = $isGroutTile
                     $rekapCategories = $filterCategories;
                 }
                 $globalRekapData = [];
+                $detailCombinationMap = [];
                 $hasBrick = false;
                 $hasCement = false;
                 $hasSand = false;
@@ -847,6 +848,10 @@ $paramValue = $isGroutTile
 
                 // Build historical material usage map for Populer (same work_type only).
                 $workType = $requestData['work_type'] ?? ($requestData['work_type_select'] ?? null);
+                $isStoreScopedView = (bool) ($requestData['use_store_filter'] ?? true);
+                if (($workType ?? '') === 'grout_tile') {
+                    $isStoreScopedView = false;
+                }
                 $materialUsage = [
                     'brick' => [],
                     'cement' => [],
@@ -1073,6 +1078,64 @@ $paramValue = $isGroutTile
                         3 => ['bg' => '#f8fafc', 'text' => '#64748b'],
                     ],
                 ];
+                $resolveBrickModelForRekap = function ($project, $item) {
+                    $comboBrick = $item['brick'] ?? ($project['brick'] ?? null);
+                    if (!empty($comboBrick)) {
+                        return $comboBrick;
+                    }
+
+                    $brickId = $item['brick_id'] ?? ($item['result']['brick_id'] ?? null);
+                    if (empty($brickId) && !empty($project['brick']->id ?? null)) {
+                        $brickId = $project['brick']->id;
+                    }
+                    if (empty($brickId)) {
+                        return null;
+                    }
+
+                    return \App\Models\Brick::find($brickId);
+                };
+                $formatBrickBrandForRekap = function ($brick) {
+                    if (empty($brick)) {
+                        return '-';
+                    }
+
+                    $brand = trim((string) ($brick->brand ?? ''));
+                    if ($brand !== '') {
+                        return $brand;
+                    }
+
+                    $materialName = trim((string) ($brick->material_name ?? ''));
+                    if ($materialName !== '') {
+                        return $materialName;
+                    }
+
+                    $type = trim((string) ($brick->type ?? ''));
+                    if ($type !== '') {
+                        return $type;
+                    }
+
+                    return 'Bata #' . ($brick->id ?? '-');
+                };
+                $formatBrickDetailForRekap = function ($brick) {
+                    if (empty($brick)) {
+                        return '-';
+                    }
+
+                    $length = (float) ($brick->dimension_length ?? 0);
+                    $width = (float) ($brick->dimension_width ?? 0);
+                    $height = (float) ($brick->dimension_height ?? 0);
+                    $type = trim((string) ($brick->type ?? '-'));
+
+                    if ($length > 0 && $width > 0 && $height > 0) {
+                        return $type . ' - ' . ($length + 0) . ' x ' . ($width + 0) . ' x ' . ($height + 0) . ' cm';
+                    }
+
+                    if ($type !== '' && $type !== '-') {
+                        return $type;
+                    }
+
+                    return '-';
+                };
                 $buildRekapEntry = function ($project, $item, $key) use (
                     &$hasBrick,
                     &$hasCement,
@@ -1080,8 +1143,12 @@ $paramValue = $isGroutTile
                     &$hasCat,
                     &$hasCeramic,
                     &$hasNat,
+                    $resolveBrickModelForRekap,
+                    $formatBrickBrandForRekap,
+                    $formatBrickDetailForRekap,
                 ) {
                     $res = $item['result'];
+                    $comboBrick = $resolveBrickModelForRekap($project, $item);
 
                     if (($res['total_bricks'] ?? 0) > 0) {
                         $hasBrick = true;
@@ -1110,19 +1177,11 @@ $paramValue = $isGroutTile
                         $rekapEntry['frequency'] = $item['frequency'];
                     }
 
-                    // Only add brick data if brick exists in project
-                    if (isset($project['brick'])) {
-                        $rekapEntry['brick_id'] = $project['brick']->id;
-                        $rekapEntry['brick_brand'] = $project['brick']->brand;
-                        $rekapEntry['brick_detail'] =
-                            ($project['brick']->type ?? '-') .
-                            ' - ' .
-                            ($project['brick']->dimension_length + 0) .
-                            ' x ' .
-                            ($project['brick']->dimension_width + 0) .
-                            ' x ' .
-                            ($project['brick']->dimension_height + 0) .
-                            ' cm';
+                    // Prefer brick from combination item to keep store-scoped consistency.
+                    if ($comboBrick) {
+                        $rekapEntry['brick_id'] = $comboBrick->id;
+                        $rekapEntry['brick_brand'] = $formatBrickBrandForRekap($comboBrick);
+                        $rekapEntry['brick_detail'] = $formatBrickDetailForRekap($comboBrick);
                     }
 
                     if (isset($item['cement'])) {
@@ -1208,6 +1267,8 @@ $paramValue = $isGroutTile
                     &$hasCat,
                     &$hasCeramic,
                     &$hasNat,
+                    $formatBrickBrandForRekap,
+                    $formatBrickDetailForRekap,
                 ) {
                     $entry = [
                         'grand_total' => null,
@@ -1218,16 +1279,8 @@ $paramValue = $isGroutTile
                         $brick = $models['brick'];
                         $hasBrick = true;
                         $entry['brick_id'] = $brick->id;
-                        $entry['brick_brand'] = $brick->brand;
-                        $entry['brick_detail'] =
-                            ($brick->type ?? '-') .
-                            ' - ' .
-                            ($brick->dimension_length + 0) .
-                            ' x ' .
-                            ($brick->dimension_width + 0) .
-                            ' x ' .
-                            ($brick->dimension_height + 0) .
-                            ' cm';
+                        $entry['brick_brand'] = $formatBrickBrandForRekap($brick);
+                        $entry['brick_detail'] = $formatBrickDetailForRekap($brick);
                     }
 
                     if (!empty($models['cement'])) {
@@ -1774,7 +1827,7 @@ $paramValue = $isGroutTile
                             if (!empty($combos)) {
                                 $combo = $combos[0];
                                 $comboSignature = implode('-', [
-                                    $isBricklessWork ? 0 : $brick->id ?? 0,
+                                    $isBricklessWork ? 0 : ($brick?->id ?? 0),
                                     $combo['cement']->id ?? 0,
                                     $combo['sand']->id ?? 0,
                                     $combo['cat']->id ?? 0,
@@ -1919,6 +1972,10 @@ $paramValue = $isGroutTile
                             $item = $selectedCombination['item'];
                             $populerDetailMap[$newKey] = $selectedCombination;
                             $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                            $detailCombinationMap[$newKey] = [
+                                'project' => $project,
+                                'item' => $item,
+                            ];
                         }
 
                         continue;
@@ -1956,6 +2013,10 @@ $paramValue = $isGroutTile
                             $project = $selectedCombination['project'];
                             $item = $selectedCombination['item'];
                             $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                            $detailCombinationMap[$newKey] = [
+                                'project' => $project,
+                                'item' => $item,
+                            ];
                         }
                     }
                 }
@@ -2001,12 +2062,16 @@ $paramValue = $isGroutTile
                         $newKey = 'Populer ' . $rank;
                         $populerDetailMap[$newKey] = $entry;
                         $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                        $detailCombinationMap[$newKey] = [
+                            'project' => $project,
+                            'item' => $item,
+                        ];
                     }
                 }
 
                 // Fallback visual rank untuk Populer di Rekap Global:
                 // Tampilkan identitas material populer HANYA dari histori, bukan fallback.
-                if (in_array('Populer', $filterCategories, true) && $hasHistoricalUsage) {
+                if (in_array('Populer', $filterCategories, true) && $hasHistoricalUsage && !$isStoreScopedView) {
                     $populerRankedIdsForDisplay = [
                         'brick' => in_array('brick', $requiredMaterials, true)
                             ? $resolveRankedUniqueIds(
@@ -2133,6 +2198,10 @@ $paramValue = $isGroutTile
                                 $key = 'Ekonomis ' . ($i + 1);
                                 $combo = $allPriceCandidates[$i];
                                 $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                                $detailCombinationMap[$key] = [
+                                    'project' => $combo['project'],
+                                    'item' => $combo['item'],
+                                ];
                             }
                         }
 
@@ -2143,6 +2212,10 @@ $paramValue = $isGroutTile
                                 $key = 'Termahal ' . $rank;
                                 $combo = $allPriceCandidates[$candidateIndex];
                                 $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                                $detailCombinationMap[$key] = [
+                                    'project' => $combo['project'],
+                                    'item' => $combo['item'],
+                                ];
                             }
                         }
 
@@ -2165,6 +2238,10 @@ $paramValue = $isGroutTile
                                 $combo = $allPriceCandidates[$closestIndex];
                                 $key = 'Average 1';
                                 $globalRekapData[$key] = $buildRekapEntry($combo['project'], $combo['item'], $key);
+                                $detailCombinationMap[$key] = [
+                                    'project' => $combo['project'],
+                                    'item' => $combo['item'],
+                                ];
                                 $lastPrice = $combo['grand_total'];
                                 $averageRank = 2;
 
@@ -2179,6 +2256,10 @@ $paramValue = $isGroutTile
                                         $allPriceCandidates[$i]['item'],
                                         $key,
                                     );
+                                    $detailCombinationMap[$key] = [
+                                        'project' => $allPriceCandidates[$i]['project'],
+                                        'item' => $allPriceCandidates[$i]['item'],
+                                    ];
                                     $lastPrice = $candidatePrice;
                                     $averageRank++;
                                 }
@@ -2434,15 +2515,15 @@ $paramValue = $isGroutTile
                                 // Create signature based on complete brick data (WITHOUT filterType)
                                 $brick = $project['brick'];
                                 $dataSignature =
-                                    $brick->brand .
+                                    ($brick->brand ?? '') .
                                     '-' .
-                                    $brick->type .
+                                    ($brick->type ?? '') .
                                     '-' .
-                                    $brick->dimension_length .
+                                    ($brick->dimension_length ?? '') .
                                     '-' .
-                                    $brick->dimension_width .
+                                    ($brick->dimension_width ?? '') .
                                     '-' .
-                                    $brick->dimension_height .
+                                    ($brick->dimension_height ?? '') .
                                     '-' .
                                     ($brick->price ?? '0');
 
@@ -3088,7 +3169,7 @@ $paramValue = $isGroutTile
                                                 <td style="background: {{ $brickBgColor }}; vertical-align: middle;">
                                                     @if (isset($globalRekapData[$key]))
                                                         <div title="Grand Total: @currency($globalRekapData[$key]['grand_total'])">
-                                                            {{ $globalRekapData[$key]['brick_brand'] ?? '-' }}
+                                                            {{ !empty($globalRekapData[$key]['brick_brand']) ? $globalRekapData[$key]['brick_brand'] : '-' }}
                                                             @if ($isPopulerRow && $brickPercent)
                                                                 <span class="badge rounded-pill bg-primary text-white"
                                                                     style="font-size: 0.7rem; color: white !important;">{{ $brickPercent }}%</span>
@@ -3103,7 +3184,7 @@ $paramValue = $isGroutTile
                                                 <td class="text-muted small"
                                                     style="background: {{ $brickBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
                                                     @if (isset($globalRekapData[$key]))
-                                                        {{ $globalRekapData[$key]['brick_detail'] ?? '-' }}
+                                                        {{ !empty($globalRekapData[$key]['brick_detail']) ? $globalRekapData[$key]['brick_detail'] : '-' }}
                                                     @else
                                                         -
                                                     @endif
@@ -3316,6 +3397,41 @@ $paramValue = $isGroutTile
                                 foreach ($getDisplayKeys($filterType) as $key) {
                                     // Check if this filter exists in global recap
                                     if (isset($globalRekapData[$key])) {
+                                        $resolvedDetailEntry = null;
+                                        if (
+                                            isset($detailCombinationMap[$key]) &&
+                                            !empty($detailCombinationMap[$key]['item'])
+                                        ) {
+                                            $resolvedDetailEntry = $detailCombinationMap[$key];
+                                        } elseif (
+                                            isset($populerDetailMap[$key]) &&
+                                            !empty($populerDetailMap[$key]['item'])
+                                        ) {
+                                            $resolvedDetailEntry = $populerDetailMap[$key];
+                                        }
+
+                                        if ($resolvedDetailEntry) {
+                                            $resolvedItem = $resolvedDetailEntry['item'];
+                                            $resolvedBrick =
+                                                $resolvedItem['brick'] ??
+                                                $resolvedDetailEntry['project']['brick'] ??
+                                                $resolvedDetailEntry['brick'] ??
+                                                $defaultProjectBrick;
+
+                                            if (
+                                                !empty($resolvedItem) &&
+                                                !empty($resolvedItem['result']) &&
+                                                array_key_exists('grand_total', $resolvedItem['result'])
+                                            ) {
+                                                $allFilteredCombinations[] = [
+                                                    'label' => $key,
+                                                    'item' => $resolvedItem,
+                                                    'brick' => $resolvedBrick,
+                                                ];
+                                                continue;
+                                            }
+                                        }
+
                                         $rekapData = $globalRekapData[$key];
                                         if (str_starts_with($key, 'Populer')) {
                                             if (
@@ -3324,6 +3440,7 @@ $paramValue = $isGroutTile
                                             ) {
                                                 $fallbackEntry = $populerDetailMap[$key];
                                                 $fallbackBrick =
+                                                    $fallbackEntry['item']['brick'] ??
                                                     $fallbackEntry['project']['brick'] ??
                                                     $fallbackEntry['brick'] ??
                                                     $defaultProjectBrick;
@@ -3342,23 +3459,27 @@ $paramValue = $isGroutTile
 
                                         // Search through ALL projects to find the matching combination
                                         foreach ($projects as $project) {
-                                            $projectBrickId =
-                                                isset($project['brick']) && $project['brick'] ? $project['brick']->id : null;
-                                            $rekapBrickId = $rekapData['brick_id'] ?? null;
-
-                                            // For brickless work types, do not require brick matching.
-                                            if (
-                                                !$isBricklessDetailWork &&
-                                                (empty($rekapBrickId) ||
-                                                    empty($projectBrickId) ||
-                                                    $rekapBrickId !== $projectBrickId)
-                                            ) {
-                                                continue;
-                                            }
-
                                             // Find the matching combination in this project
                                             foreach ($project['combinations'] as $label => $items) {
                                                 foreach ($items as $item) {
+                                                    $itemBrickId =
+                                                        isset($item['brick']) && $item['brick']
+                                                            ? $item['brick']->id
+                                                            : (isset($project['brick']) && $project['brick']
+                                                                ? $project['brick']->id
+                                                                : null);
+                                                    $rekapBrickId = $rekapData['brick_id'] ?? null;
+
+                                                    // For brick-required work, if recap already has a brick,
+                                                    // require matching brick on the actual combination item.
+                                                    if (
+                                                        !$isBricklessDetailWork &&
+                                                        !empty($rekapBrickId) &&
+                                                        (empty($itemBrickId) || $rekapBrickId !== $itemBrickId)
+                                                    ) {
+                                                        continue;
+                                                    }
+
                                                     $match = false;
 
                                                     if (isset($rekapData['cat_id']) && isset($item['cat'])) {
@@ -3395,8 +3516,12 @@ $paramValue = $isGroutTile
                                                     }
 
                                                     if ($match) {
-                                                        $comboBrick = $project['brick'] ?? $defaultProjectBrick;
-                                                        if (!str_starts_with($key, 'Populer') || $hasCompleteMaterialsForCombo($item, $comboBrick)) {
+                                                        $comboBrick = $item['brick'] ?? ($project['brick'] ?? $defaultProjectBrick);
+                                                        if (
+                                                            !empty($item) &&
+                                                            !empty($item['result']) &&
+                                                            array_key_exists('grand_total', $item['result'])
+                                                        ) {
                                                             $allFilteredCombinations[] = [
                                                                 'label' => $key, // Use recap label
                                                                 'item' => $item,
@@ -3417,11 +3542,16 @@ $paramValue = $isGroutTile
                                         ) {
                                             $fallbackEntry = $populerDetailMap[$key];
                                             $fallbackBrick =
+                                                $fallbackEntry['item']['brick'] ??
                                                 $fallbackEntry['project']['brick'] ??
                                                 $fallbackEntry['brick'] ??
                                                 $defaultProjectBrick;
 
-                                            if (!str_starts_with($key, 'Populer') || $hasCompleteMaterialsForCombo($fallbackEntry['item'], $fallbackBrick)) {
+                                            if (
+                                                !empty($fallbackEntry['item']) &&
+                                                !empty($fallbackEntry['item']['result']) &&
+                                                array_key_exists('grand_total', $fallbackEntry['item']['result'])
+                                            ) {
                                                 $allFilteredCombinations[] = [
                                                     'label' => $key,
                                                     'item' => $fallbackEntry['item'],
@@ -3440,12 +3570,15 @@ $paramValue = $isGroutTile
                                 $label = $combo['label'];
                                 $item = $combo['item'];
                                 $brick = $combo['brick'];
+                                $brickDimensionLength = (float) ($brick?->dimension_length ?? 0);
+                                $brickDimensionWidth = (float) ($brick?->dimension_width ?? 0);
+                                $brickDimensionHeight = (float) ($brick?->dimension_height ?? 0);
                                 $res = $item['result'];
                                 $isFirstOption = $globalIndex === 1;
                                 $areaForCost = $area;
                                 if ($isRollag) {
                                     $wallLength = (float) ($requestData['wall_length'] ?? 0);
-                                    $brickLength = (float) ($brick->dimension_length ?? 0);
+                                    $brickLength = $brickDimensionLength;
                                     if ($brickLength <= 0) {
                                         $brickLength = 19.2;
                                     }
@@ -3457,18 +3590,18 @@ $paramValue = $isGroutTile
                                 $brickVolume = 0;
                                 if (
                                     $brick &&
-                                    $brick->dimension_length &&
-                                    $brick->dimension_width &&
-                                    $brick->dimension_height
+                                    $brickDimensionLength > 0 &&
+                                    $brickDimensionWidth > 0 &&
+                                    $brickDimensionHeight > 0
                                 ) {
                                     $brickVolume =
-                                        ($brick->dimension_length *
-                                            $brick->dimension_width *
-                                            $brick->dimension_height) /
+                                        ($brickDimensionLength *
+                                            $brickDimensionWidth *
+                                            $brickDimensionHeight) /
                                         1000000;
                                 }
                                 if ($brickVolume <= 0) {
-                                    $brickVolume = $brick->package_volume ?? 0;
+                                    $brickVolume = $brick?->package_volume ?? 0;
                                 }
                                 $brickVolumeDisplay = $brickVolume > 0 ? $brickVolume : null;
                                 if ($brickVolume <= 0) {
@@ -3500,7 +3633,7 @@ $paramValue = $isGroutTile
                                     $natWeight = 1;
                                 }
 
-                                $brickPricePerPiece = $res['brick_price_per_piece'] ?? ($brick->price_per_piece ?? 0);
+                                $brickPricePerPiece = $res['brick_price_per_piece'] ?? ($brick?->price_per_piece ?? 0);
                                 $cementPricePerSak =
                                     $res['cement_price_per_sak'] ??
                                     (isset($item['cement']) ? $item['cement']->package_price ?? 0 : 0);
@@ -3612,11 +3745,11 @@ $paramValue = $isGroutTile
                                         'detail_value' => $brickVolume,
                                         'detail_value_debug' =>
                                             'Rumus: (' .
-                                            $formatNum($brick->dimension_length) .
+                                            $formatNum($brickDimensionLength) .
                                             ' x ' .
-                                            $formatNum($brick->dimension_width) .
+                                            $formatNum($brickDimensionWidth) .
                                             ' x ' .
-                                            $formatNum($brick->dimension_height) .
+                                            $formatNum($brickDimensionHeight) .
                                             ') / 1.000.000 = ' .
                                             $formatPlain($brickVolume) .
                                             ' M3',
@@ -3624,18 +3757,18 @@ $paramValue = $isGroutTile
                                         'type_field' => 'type',
                                         'brand_field' => 'brand',
                                         'detail_display' =>
-                                            $formatNum($brick->dimension_length) .
+                                            $formatNum($brickDimensionLength) .
                                             ' x ' .
-                                            $formatNum($brick->dimension_width) .
+                                            $formatNum($brickDimensionWidth) .
                                             ' x ' .
-                                            $formatNum($brick->dimension_height) .
+                                            $formatNum($brickDimensionHeight) .
                                             ' cm',
                                         'detail_extra' => $brickVolumeDisplay
                                             ? $formatPlain($brickVolumeDisplay) . ' M3'
                                             : '-',
                                         'store_field' => 'store',
                                         'address_field' => 'address',
-                                        'package_price' => $brick->price_per_piece ?? 0,
+                                        'package_price' => $brick?->price_per_piece ?? 0,
                                         'package_unit' => 'bh',
                                         'price_per_unit' => $brickPricePerPiece,
                                         'price_unit_label' => 'bh',
@@ -4374,7 +4507,9 @@ $paramValue = $isGroutTile
                                                     'layer_count' => $requestData['layer_count'] ?? null,
                                                     'auto_trace' => 1,
                                                 ];
-                                                $traceParams['brick_id'] = $brick->id;
+                                                if ($brick) {
+                                                    $traceParams['brick_id'] = $brick->id;
+                                                }
                                                 if (isset($item['cement'])) {
                                                     $traceParams['cement_id'] = $item['cement']->id;
                                                 }
@@ -4458,7 +4593,7 @@ $paramValue = $isGroutTile
                                                         value="{{ $requestData['work_type'] ?? '' }}">
 
                                                     {{-- Only pass brick_id if NOT brickless --}}
-                                                    @if (!($isBrickless ?? false))
+                                                    @if (!($isBrickless ?? false) && !empty($brick))
                                                         <input type="hidden" name="brick_id"
                                                             value="{{ $brick->id }}">
                                                     @endif
@@ -5110,19 +5245,23 @@ $paramValue = $isGroutTile
             $bestRows = [];
             $hasAllPriceBrick = false;
             foreach ($projects as $project) {
-                $brick = $project['brick'] ?? null;
-                $brickLabel = '';
-                if ($brick) {
-                    $brickLabel = trim(($brick->brand ?? '') . ' ' . ($brick->type ?? ''));
-                    if ($brickLabel === '') {
-                        $brickLabel = $brick->material_name ?? '';
-                    }
-                    if ($brickLabel !== '') {
-                        $hasAllPriceBrick = true;
-                    }
-                }
                 foreach ($project['combinations'] as $label => $items) {
                     foreach ($items as $item) {
+                        $rowBrick = $item['brick'] ?? ($project['brick'] ?? null);
+                        $brickLabel = '';
+                        if ($rowBrick) {
+                            $brickLabel = trim(($rowBrick->brand ?? '') . ' ' . ($rowBrick->type ?? ''));
+                            if ($brickLabel === '') {
+                                $brickLabel = trim((string) ($rowBrick->material_name ?? ''));
+                            }
+                            if ($brickLabel === '') {
+                                $brickLabel = trim((string) ($rowBrick->type ?? ''));
+                            }
+                            if ($brickLabel !== '') {
+                                $hasAllPriceBrick = true;
+                            }
+                        }
+
                         $labelParts = array_map('trim', explode('=', $label));
                         $grandTotal = (float) ($item['result']['grand_total'] ?? 0);
 

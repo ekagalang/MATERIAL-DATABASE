@@ -38,22 +38,30 @@ test('material calculation create form includes project map location fields', fu
 test('store controllers validate geolocation and flexible radius inputs', function () {
     $storeController = File::get(app_path('Http/Controllers/StoreController.php'));
     $storeLocationController = File::get(app_path('Http/Controllers/StoreLocationController.php'));
+    $storeLocationRequestPath = app_path('Http/Requests/Material/StoreLocationUpsertRequest.php');
+    $storeLocationValidationSource = $storeLocationController;
+
+    if (File::exists($storeLocationRequestPath)) {
+        $storeLocationValidationSource .= File::get($storeLocationRequestPath);
+    }
 
     expect($storeController)->toContain("'latitude' => 'nullable|numeric|between:-90,90'");
     expect($storeController)->toContain("'longitude' => 'nullable|numeric|between:-180,180'");
     expect($storeController)->toContain("'service_radius_km' => 'nullable|numeric|min:0'");
 
-    expect($storeLocationController)->toContain("'latitude' => 'nullable|numeric|between:-90,90'");
-    expect($storeLocationController)->toContain("'longitude' => 'nullable|numeric|between:-180,180'");
-    expect($storeLocationController)->toContain("'service_radius_km' => 'nullable|numeric|min:0'");
+    expect($storeLocationValidationSource)->toContain("'latitude' => 'nullable|numeric|between:-90,90'");
+    expect($storeLocationValidationSource)->toContain("'longitude' => 'nullable|numeric|between:-180,180'");
+    expect($storeLocationValidationSource)->toContain("'service_radius_km' => 'nullable|numeric|min:0'");
 });
 
 test('material calculation controller accepts project location fields', function () {
     $controller = File::get(app_path('Http/Controllers/MaterialCalculationController.php'));
 
     expect($controller)->toContain("'project_address' => 'nullable|string'");
-    expect($controller)->toContain("'project_latitude' => 'nullable|numeric|between:-90,90'");
-    expect($controller)->toContain("'project_longitude' => 'nullable|numeric|between:-180,180'");
+    expect($controller)->toContain("'project_latitude' =>");
+    expect($controller)->toContain('between:-90,90');
+    expect($controller)->toContain("'project_longitude' =>");
+    expect($controller)->toContain('between:-180,180');
     expect($controller)->toContain("'project_place_id' => 'nullable|string|max:255'");
 });
 

@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Material\ApiCementUpsertRequest;
 use App\Http\Resources\CementResource;
 use App\Services\Material\CementService;
+use App\Support\Material\MaterialApiIndexQuery;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,14 +26,13 @@ class CementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $perPage = $request->get('per_page', 15);
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
-
-        $cements = $search
-            ? $this->cementService->search($search, $perPage, $sortBy, $sortDirection)
-            : $this->cementService->paginateWithSort($perPage, $sortBy, $sortDirection);
+        $cements = MaterialApiIndexQuery::execute(
+            $request,
+            fn($search, $perPage, $sortBy, $sortDirection) =>
+            $this->cementService->search($search, $perPage, $sortBy, $sortDirection),
+            fn($perPage, $sortBy, $sortDirection) =>
+            $this->cementService->paginateWithSort($perPage, $sortBy, $sortDirection),
+        );
 
         return $this->paginatedResponse(
             CementResource::collection($cements)->resource,
@@ -39,25 +42,7 @@ class CementController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'cement_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validate((new ApiCementUpsertRequest())->rules());
 
         $cement = $this->cementService->create($validated, $request->file('photo'));
 
@@ -77,25 +62,7 @@ class CementController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'cement_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'dimension_length' => 'nullable|numeric|min:0',
-            'dimension_width' => 'nullable|numeric|min:0',
-            'dimension_height' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validate((new ApiCementUpsertRequest())->rules());
 
         $cement = $this->cementService->update($id, $validated, $request->file('photo'));
 
@@ -111,9 +78,9 @@ class CementController extends Controller
 
     public function getFieldValues(string $field, Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
-        $filters = $request->only(['brand', 'store', 'package_unit']);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
+        $filters = MaterialLookupQuery::onlyFilters($request, MaterialLookupSpec::apiFilterKeys('cement'));
 
         $values = $this->cementService->getFieldValues($field, $filters, $search, $limit);
 
@@ -122,9 +89,9 @@ class CementController extends Controller
 
     public function getAllStores(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
-        $materialType = $request->get('material_type', 'cement');
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
+        $materialType = MaterialLookupQuery::rawMaterialType($request, 'cement');
 
         $stores = $this->cementService->getAllStores($search, $limit, $materialType);
 
@@ -133,9 +100,9 @@ class CementController extends Controller
 
     public function getAddressesByStore(Request $request): JsonResponse
     {
-        $store = $request->get('store');
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
+        $store = MaterialLookupQuery::rawStore($request);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
 
         if (!$store) {
             return response()->json([]);

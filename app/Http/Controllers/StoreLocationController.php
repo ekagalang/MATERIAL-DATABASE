@@ -4,6 +4,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Material\StoreLocationUpsertRequest;
 use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
@@ -32,35 +33,11 @@ class StoreLocationController extends Controller
      */
     public function store(Request $request, Store $store)
     {
-        $request->validate([
-            'address' => 'nullable|string',
-            'district' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'province' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'place_id' => 'nullable|string|max:255',
-            'formatted_address' => 'nullable|string',
-            'service_radius_km' => 'nullable|numeric|min:0',
-            'contact_name' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:255',
-        ]);
+        $request->validate((new StoreLocationUpsertRequest())->rules());
 
         DB::beginTransaction();
         try {
-            $locationData = $request->only([
-                'address',
-                'district',
-                'city',
-                'province',
-                'latitude',
-                'longitude',
-                'place_id',
-                'formatted_address',
-                'service_radius_km',
-                'contact_name',
-                'contact_phone',
-            ]);
+            $locationData = $this->extractLocationData($request);
 
             $store->locations()->create($locationData);
 
@@ -89,35 +66,11 @@ class StoreLocationController extends Controller
      */
     public function update(Request $request, Store $store, StoreLocation $location)
     {
-        $request->validate([
-            'address' => 'nullable|string',
-            'district' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'province' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'place_id' => 'nullable|string|max:255',
-            'formatted_address' => 'nullable|string',
-            'service_radius_km' => 'nullable|numeric|min:0',
-            'contact_name' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:255',
-        ]);
+        $request->validate((new StoreLocationUpsertRequest())->rules());
 
         DB::beginTransaction();
         try {
-            $locationData = $request->only([
-                'address',
-                'district',
-                'city',
-                'province',
-                'latitude',
-                'longitude',
-                'place_id',
-                'formatted_address',
-                'service_radius_km',
-                'contact_name',
-                'contact_phone',
-            ]);
+            $locationData = $this->extractLocationData($request);
 
             $location->update($locationData);
             $this->syncMaterialLocationSnapshot($store, $location);
@@ -763,5 +716,22 @@ class StoreLocationController extends Controller
                 ->whereNull('store_location_id')
                 ->update(['store_location_id' => $location->id]);
         }
+    }
+
+    private function extractLocationData(Request $request): array
+    {
+        return $request->only([
+            'address',
+            'district',
+            'city',
+            'province',
+            'latitude',
+            'longitude',
+            'place_id',
+            'formatted_address',
+            'service_radius_km',
+            'contact_name',
+            'contact_phone',
+        ]);
     }
 }

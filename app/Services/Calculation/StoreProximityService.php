@@ -71,6 +71,7 @@ class StoreProximityService
         ];
 
         $hasBrickCovered = !$requiresBrick;
+        $selectedBrick = null;
         $coveredTypes = [];
         $storePlan = [];
 
@@ -83,6 +84,7 @@ class StoreProximityService
 
             if (!$hasBrickCovered && !empty($row['has_brick'])) {
                 $hasBrickCovered = true;
+                $selectedBrick = $row['brick'] ?? null;
                 $coveredTypes[] = 'brick';
                 $provided[] = 'brick';
             }
@@ -147,6 +149,7 @@ class StoreProximityService
             'is_complete' => empty($missing),
             'missing_materials' => array_values(array_unique($missing)),
             'selected_materials' => $selectedMaterials,
+            'selected_brick' => $selectedBrick,
             'store_plan' => $storePlan,
             'covered_materials' => array_values(array_unique($coveredTypes)),
         ];

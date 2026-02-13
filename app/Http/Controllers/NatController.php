@@ -2,62 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Material\CreateMaterialAction;
+use App\Actions\Material\DeleteMaterialAction;
+use App\Actions\Material\UpdateMaterialAction;
+use App\Http\Requests\Material\NatUpsertRequest;
 use App\Models\Nat;
 use App\Services\Material\MaterialDuplicateService;
+use App\Services\Material\MaterialPhotoService;
+use App\Support\Material\MaterialIndexQuery;
+use App\Support\Material\MaterialIndexSpec;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class NatController extends Controller
 {
     public function index(Request $request)
     {
         $query = Nat::query()->with('packageUnit');
-
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('type', 'like', "%{$search}%")
-                    ->orWhere('nat_name', 'like', "%{$search}%")
-                    ->orWhere('brand', 'like', "%{$search}%")
-                    ->orWhere('sub_brand', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")
-                    ->orWhere('color', 'like', "%{$search}%")
-                    ->orWhere('store', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
-
-        $sortBy = $request->get('sort_by');
-        $sortDirection = $request->get('sort_direction');
-
-        $sortMap = [
-            'type' => 'type',
-            'nat_name' => 'nat_name',
-            'brand' => 'brand',
-            'sub_brand' => 'sub_brand',
-            'code' => 'code',
-            'color' => 'color',
-            'package_weight' => 'package_weight_net',
-            'package_weight_net' => 'package_weight_net',
-            'store' => 'store',
-            'address' => 'address',
-            'price_per_bag' => 'package_price',
-            'package_price' => 'package_price',
-            'comparison_price_per_kg' => 'comparison_price_per_kg',
-            'created_at' => 'created_at',
-        ];
-
-        if (!$sortBy || !isset($sortMap[$sortBy])) {
-            $sortBy = 'created_at';
-            $sortDirection = 'desc';
-        } else {
-            if (!in_array($sortDirection, ['asc', 'desc'], true)) {
-                $sortDirection = 'asc';
-            }
-            $sortBy = $sortMap[$sortBy];
-        }
+        $search = MaterialIndexQuery::searchValue($request);
+        MaterialIndexQuery::applySearch($query, $search, MaterialIndexSpec::searchColumns('nat'));
+        [$sortBy, $sortDirection] = MaterialIndexQuery::resolveSort($request, 'nat');
 
         $nats = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
@@ -73,76 +39,20 @@ class NatController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'nat_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'package_volume' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new NatUpsertRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('nat', $data);
-        if ($duplicate) {
-            $message = 'Data Nat sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('nat', $data);
 
         DB::beginTransaction();
         try {
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('nats', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                    }
-                }
-            }
+            $this->handleCreatePhotoUpload($request, $data);
+            $this->ensureNatName($data);
 
-            if (empty($data['nat_name'])) {
-                $parts = array_filter([
-                    $data['type'] ?? '',
-                    $data['brand'] ?? '',
-                    $data['sub_brand'] ?? '',
-                    $data['code'] ?? '',
-                    $data['color'] ?? '',
-                ]);
-                $data['nat_name'] = implode(' ', $parts) ?: 'Nat';
-            }
+            $nat = app(CreateMaterialAction::class)->execute('nat', $data);
 
-            $nat = Nat::create($data);
-
-            if ($request->filled('store_location_id')) {
-                $nat->storeLocations()->attach($request->input('store_location_id'));
-            }
-
-            if (
-                (!$nat->package_weight_net || $nat->package_weight_net <= 0) &&
-                $nat->package_weight_gross &&
-                $nat->package_unit
-            ) {
-                $nat->calculateNetWeight();
-            }
-
-            if ($nat->package_price && $nat->package_weight_net && $nat->package_weight_net > 0) {
-                $nat->calculateComparisonPrice();
-            } else {
-                $nat->comparison_price_per_kg = null;
-            }
+            $this->syncStoreLocationOnCreate($request, $nat);
+            $this->recalculateNatDerivedFields($nat);
 
             $nat->save();
 
@@ -205,80 +115,20 @@ class NatController extends Controller
 
     public function update(Request $request, Nat $nat)
     {
-        $request->validate([
-            'nat_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'package_volume' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new NatUpsertRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('nat', $data, $nat->id);
-        if ($duplicate) {
-            $message = 'Data Nat sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('nat', $data, $nat->id);
 
         DB::beginTransaction();
         try {
-            if (empty($data['nat_name'])) {
-                $parts = array_filter([
-                    $data['type'] ?? '',
-                    $data['brand'] ?? '',
-                    $data['sub_brand'] ?? '',
-                    $data['code'] ?? '',
-                    $data['color'] ?? '',
-                ]);
-                $data['nat_name'] = implode(' ', $parts) ?: 'Nat';
-            }
+            $this->ensureNatName($data);
+            $this->handleUpdatePhotoUpload($request, $nat, $data);
 
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    if ($nat->photo) {
-                        Storage::disk('public')->delete($nat->photo);
-                    }
+            app(UpdateMaterialAction::class)->execute($nat, $data);
 
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('nats', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                    }
-                }
-            }
-
-            $nat->update($data);
-
-            if ($request->filled('store_location_id')) {
-                $nat->storeLocations()->sync([$request->input('store_location_id')]);
-            }
-
-            if (
-                (!$nat->package_weight_net || $nat->package_weight_net <= 0) &&
-                $nat->package_weight_gross &&
-                $nat->package_unit
-            ) {
-                $nat->calculateNetWeight();
-            }
-
-            if ($nat->package_price && $nat->package_weight_net && $nat->package_weight_net > 0) {
-                $nat->calculateComparisonPrice();
-            } else {
-                $nat->comparison_price_per_kg = null;
-            }
+            $this->syncStoreLocationOnUpdate($request, $nat);
+            $this->recalculateNatDerivedFields($nat);
 
             $nat->save();
 
@@ -331,11 +181,9 @@ class NatController extends Controller
     {
         DB::beginTransaction();
         try {
-            if ($nat->photo) {
-                Storage::disk('public')->delete($nat->photo);
-            }
+            app(MaterialPhotoService::class)->delete($nat->photo);
 
-            $nat->delete();
+            app(DeleteMaterialAction::class)->execute($nat);
 
             DB::commit();
 
@@ -349,28 +197,15 @@ class NatController extends Controller
 
     public function getFieldValues(string $field, Request $request)
     {
-        $fieldMap = [
-            'type' => 'type',
-            'nat_name' => 'nat_name',
-            'brand' => 'brand',
-            'sub_brand' => 'sub_brand',
-            'code' => 'code',
-            'color' => 'color',
-            'store' => 'store',
-            'address' => 'address',
-            'price_unit' => 'price_unit',
-            'package_weight_gross' => 'package_weight_gross',
-            'package_price' => 'package_price',
-        ];
+        $fieldMap = MaterialLookupSpec::fieldMap('nat');
 
         if (!isset($fieldMap[$field])) {
             return response()->json([]);
         }
 
         $column = $fieldMap[$field];
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         $brand = (string) $request->query('brand', '');
         $packageUnit = (string) $request->query('package_unit', '');
@@ -407,10 +242,9 @@ class NatController extends Controller
 
     public function getAllStores(Request $request)
     {
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
-        $materialType = $request->query('material_type', 'all');
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
+        $materialType = MaterialLookupQuery::queryMaterialType($request, 'all');
 
         $stores = collect();
 
@@ -470,10 +304,9 @@ class NatController extends Controller
 
     public function getAddressesByStore(Request $request)
     {
-        $store = (string) $request->query('store', '');
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $store = MaterialLookupQuery::stringStore($request);
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         if ($store === '') {
             return response()->json([]);
@@ -528,5 +361,69 @@ class NatController extends Controller
             ->take($limit);
 
         return response()->json($allAddresses);
+    }
+
+    private function handleCreatePhotoUpload(Request $request, array &$data): void
+    {
+        $path = app(MaterialPhotoService::class)->upload($request->file('photo'), 'nats');
+        if ($path) {
+            $data['photo'] = $path;
+        }
+    }
+
+    private function handleUpdatePhotoUpload(Request $request, Nat $nat, array &$data): void
+    {
+        $path = app(MaterialPhotoService::class)->upload($request->file('photo'), 'nats', $nat->photo);
+        if ($path) {
+            $data['photo'] = $path;
+        }
+    }
+
+    private function ensureNatName(array &$data): void
+    {
+        if (!empty($data['nat_name'])) {
+            return;
+        }
+
+        $parts = array_filter([
+            $data['type'] ?? '',
+            $data['brand'] ?? '',
+            $data['sub_brand'] ?? '',
+            $data['code'] ?? '',
+            $data['color'] ?? '',
+        ]);
+        $data['nat_name'] = implode(' ', $parts) ?: 'Nat';
+    }
+
+    private function syncStoreLocationOnCreate(Request $request, Nat $nat): void
+    {
+        if ($request->filled('store_location_id')) {
+            $nat->storeLocations()->attach($request->input('store_location_id'));
+        }
+    }
+
+    private function syncStoreLocationOnUpdate(Request $request, Nat $nat): void
+    {
+        if ($request->filled('store_location_id')) {
+            $nat->storeLocations()->sync([$request->input('store_location_id')]);
+        }
+    }
+
+    private function recalculateNatDerivedFields(Nat $nat): void
+    {
+        if (
+            (!$nat->package_weight_net || $nat->package_weight_net <= 0) &&
+            $nat->package_weight_gross &&
+            $nat->package_unit
+        ) {
+            $nat->calculateNetWeight();
+        }
+
+        if ($nat->package_price && $nat->package_weight_net && $nat->package_weight_net > 0) {
+            $nat->calculateComparisonPrice();
+            return;
+        }
+
+        $nat->comparison_price_per_kg = null;
     }
 }

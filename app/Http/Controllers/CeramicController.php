@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Material\CeramicUpsertRequest;
 use App\Models\Ceramic;
 use App\Models\Unit;
 use App\Services\Material\CeramicService;
 use App\Services\Material\MaterialDuplicateService;
+use App\Support\Material\MaterialIndexQuery;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class CeramicController extends Controller
 {
@@ -22,43 +25,12 @@ class CeramicController extends Controller
 
     public function index(Request $request)
     {
-        $search = $request->input('search', '');
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortDirection = $request->input('sort_direction', 'desc');
+        $search = MaterialIndexQuery::searchValue($request);
+        [$sortBy, $sortDirection] = MaterialIndexQuery::resolveSort($request, 'ceramic');
         $perPage = $request->input('per_page', 15);
 
-        // Validasi sort column untuk security
-        $allowedSorts = [
-            'material_name',
-            'type',
-            'brand',
-            'sub_brand',
-            'code',
-            'color',
-            'form',
-            'dimension_length',
-            'dimension_width',
-            'dimension_thickness',
-            'pieces_per_package',
-            'coverage_per_package',
-            'store',
-            'address',
-            'price_per_package',
-            'comparison_price_per_m2',
-            'created_at',
-            'updated_at',
-        ];
-
-        if (!in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'created_at';
-        }
-
-        if (!in_array($sortDirection, ['asc', 'desc'])) {
-            $sortDirection = 'desc';
-        }
-
         // Get data dengan search & sorting
-        $ceramics = $search
+        $ceramics = $search !== ''
             ? $this->service->search($search, $perPage, $sortBy, $sortDirection)
             : $this->service->paginateWithSort($perPage, $sortBy, $sortDirection);
 
@@ -78,50 +50,18 @@ class CeramicController extends Controller
     public function store(Request $request)
     {
         // Validasi & Simpan
-        $data = $request->validate([
-            'brand' => 'required|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'type' => 'nullable|string',
-            'code' => 'nullable|string',
-            'color' => 'nullable|string',
-            'form' => 'nullable|string',
-            'surface' => 'nullable|string|max:255',
-            'dimension_length' => 'required|numeric',
-            'dimension_width' => 'required|numeric',
-            'dimension_thickness' => 'nullable|numeric',
-            'pieces_per_package' => 'required|integer',
-            'coverage_per_package' => 'nullable|numeric',
-            'price_per_package' => 'required|numeric',
-            'comparison_price_per_m2' => 'nullable|numeric',
-            'packaging' => 'nullable|string|max:255',
-            'store' => 'nullable|string',
-            'address' => 'nullable|string',
-            'photo' => 'nullable|image|max:2048',
-            // NEW
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $data = $request->validate((new CeramicUpsertRequest())->rules());
 
         // Extract store_location_id sebelum dikirim ke service
-        $storeLocationId = $data['store_location_id'] ?? null;
-        unset($data['store_location_id']);
+        $storeLocationId = $this->extractStoreLocationId($data);
 
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('ceramic', $data);
-        if ($duplicate) {
-            $message = 'Data Keramik sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('ceramic', $data);
 
         DB::beginTransaction();
         try {
             $ceramic = $this->service->create($data, $request->file('photo'));
 
-            // Save store_location_id directly to the model
-            if ($storeLocationId) {
-                $ceramic->store_location_id = $storeLocationId;
-                $ceramic->save();
-                // Also attach to many-to-many relationship
-                $ceramic->storeLocations()->attach($storeLocationId);
-            }
+            $this->applyStoreLocationOnStore($ceramic, $storeLocationId);
 
             DB::commit();
 
@@ -173,38 +113,12 @@ class CeramicController extends Controller
 
     public function update(Request $request, Ceramic $ceramic)
     {
-        $data = $request->validate([
-            'brand' => 'required|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'type' => 'nullable|string',
-            'code' => 'nullable|string',
-            'color' => 'nullable|string',
-            'form' => 'nullable|string',
-            'surface' => 'nullable|string|max:255',
-            'dimension_length' => 'required|numeric',
-            'dimension_width' => 'required|numeric',
-            'dimension_thickness' => 'nullable|numeric',
-            'pieces_per_package' => 'required|integer',
-            'coverage_per_package' => 'nullable|numeric',
-            'price_per_package' => 'required|numeric',
-            'comparison_price_per_m2' => 'nullable|numeric',
-            'packaging' => 'nullable|string|max:255',
-            'store' => 'nullable|string',
-            'address' => 'nullable|string',
-            'photo' => 'nullable|image|max:2048',
-            // NEW
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $data = $request->validate((new CeramicUpsertRequest())->rules());
 
         // Extract store_location_id
-        $storeLocationId = $data['store_location_id'] ?? null;
-        unset($data['store_location_id']);
+        $storeLocationId = $this->extractStoreLocationId($data);
 
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('ceramic', $data, $ceramic->id);
-        if ($duplicate) {
-            $message = 'Data Keramik sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('ceramic', $data, $ceramic->id);
 
         DB::beginTransaction();
         try {
@@ -213,16 +127,7 @@ class CeramicController extends Controller
             // Reload ceramic to get fresh instance
             $ceramic = $ceramic->fresh();
 
-            // Save store_location_id directly to the model
-            $ceramic->store_location_id = $storeLocationId;
-            $ceramic->save();
-
-            // Also sync to many-to-many relationship
-            if ($storeLocationId) {
-                $ceramic->storeLocations()->sync([$storeLocationId]);
-            } else {
-                $ceramic->storeLocations()->detach();
-            }
+            $this->applyStoreLocationOnUpdate($ceramic, $storeLocationId);
 
             DB::commit();
 
@@ -288,32 +193,14 @@ class CeramicController extends Controller
 
     public function getFieldValues(string $field, Request $request)
     {
-        $allowedFields = [
-            'type',
-            'brand',
-            'sub_brand',
-            'code',
-            'color',
-            'form',
-            'surface',
-            'packaging',
-            'pieces_per_package',
-            'dimension_length',
-            'dimension_width',
-            'dimension_thickness',
-            'price_per_package',
-            'comparison_price_per_m2',
-            'store',
-            'address',
-        ];
+        $allowedFields = MaterialLookupSpec::allowedFields('ceramic');
 
         if (!in_array($field, $allowedFields, true)) {
             return response()->json([]);
         }
 
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         $filters = [];
 
@@ -356,10 +243,9 @@ class CeramicController extends Controller
 
     public function getAllStores(Request $request)
     {
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
-        $materialType = (string) $request->query('material_type', 'all'); // 'ceramic' atau 'all'
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
+        $materialType = MaterialLookupQuery::stringMaterialType($request, 'all'); // 'ceramic' atau 'all'
 
         $stores = $this->service->getAllStores($search, $limit, $materialType);
 
@@ -368,10 +254,9 @@ class CeramicController extends Controller
 
     public function getAddressesByStore(Request $request)
     {
-        $store = (string) $request->query('store', '');
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $store = MaterialLookupQuery::stringStore($request);
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         if ($store === '') {
             return response()->json([]);
@@ -380,5 +265,35 @@ class CeramicController extends Controller
         $addresses = $this->service->getAddressesByStore($store, $search, $limit);
 
         return response()->json($addresses);
+    }
+
+    private function extractStoreLocationId(array &$data): ?int
+    {
+        $storeLocationId = $data['store_location_id'] ?? null;
+        unset($data['store_location_id']);
+
+        return $storeLocationId ? (int) $storeLocationId : null;
+    }
+
+    private function applyStoreLocationOnStore(Ceramic $ceramic, ?int $storeLocationId): void
+    {
+        if ($storeLocationId) {
+            $ceramic->store_location_id = $storeLocationId;
+            $ceramic->save();
+            $ceramic->storeLocations()->attach($storeLocationId);
+        }
+    }
+
+    private function applyStoreLocationOnUpdate(Ceramic $ceramic, ?int $storeLocationId): void
+    {
+        $ceramic->store_location_id = $storeLocationId;
+        $ceramic->save();
+
+        if ($storeLocationId) {
+            $ceramic->storeLocations()->sync([$storeLocationId]);
+            return;
+        }
+
+        $ceramic->storeLocations()->detach();
     }
 }

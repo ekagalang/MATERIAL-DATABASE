@@ -40,6 +40,7 @@ test('build nearest coverage plan allocates missing materials to next nearest st
             'location' => (object) ['id' => 101, 'service_radius_km' => 8, 'store' => (object) ['name' => 'A']],
             'distance_km' => 2.1,
             'has_brick' => false,
+            'brick' => null,
             'materials' => [
                 'cement' => collect([(object) ['id' => 11]]),
                 'sand' => collect(),
@@ -52,6 +53,7 @@ test('build nearest coverage plan allocates missing materials to next nearest st
             'location' => (object) ['id' => 102, 'service_radius_km' => 10, 'store' => (object) ['name' => 'B']],
             'distance_km' => 4.4,
             'has_brick' => true,
+            'brick' => (object) ['id' => 77],
             'materials' => [
                 'cement' => collect(),
                 'sand' => collect([(object) ['id' => 21]]),
@@ -67,6 +69,7 @@ test('build nearest coverage plan allocates missing materials to next nearest st
     expect($coverage['is_complete'])->toBeTrue()
         ->and($coverage['selected_materials']['cement']->pluck('id')->all())->toBe([11])
         ->and($coverage['selected_materials']['sand']->pluck('id')->all())->toBe([21])
+        ->and(($coverage['selected_brick']->id ?? null))->toBe(77)
         ->and($coverage['store_plan'])->toHaveCount(2)
         ->and($coverage['store_plan'][0]['provided_materials'])->toContain('cement')
         ->and($coverage['store_plan'][1]['provided_materials'])->toContain('sand')
@@ -81,6 +84,7 @@ test('build nearest coverage plan marks incomplete when required material is mis
             'location' => (object) ['id' => 201, 'service_radius_km' => 10, 'store' => (object) ['name' => 'A']],
             'distance_km' => 1.2,
             'has_brick' => true,
+            'brick' => (object) ['id' => 88],
             'materials' => [
                 'cement' => collect([(object) ['id' => 31]]),
                 'sand' => collect(),

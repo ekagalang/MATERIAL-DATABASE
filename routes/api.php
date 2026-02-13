@@ -115,19 +115,28 @@ Route::prefix('v1')->group(function () {
     // ========================================
 
     // Calculation endpoints
-    Route::post('/calculations', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'store']);
-    Route::post('/calculations/calculate', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'calculate']);
-    Route::post('/calculations/preview', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'preview']);
-    Route::post('/calculations/compare', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'compare']);
+    Route::post('/calculations', [\App\Http\Controllers\Api\V1\CalculationWriteApiController::class, 'store']);
+    Route::post('/calculations/calculate', [
+        \App\Http\Controllers\Api\V1\CalculationExecutionApiController::class,
+        'calculate',
+    ]);
+    Route::post('/calculations/preview', [
+        \App\Http\Controllers\Api\V1\CalculationExecutionApiController::class,
+        'preview',
+    ]);
+    Route::post('/calculations/compare', [
+        \App\Http\Controllers\Api\V1\CalculationExecutionApiController::class,
+        'compare',
+    ]);
     Route::post('/calculations/compare-installation-types', [
-        \App\Http\Controllers\Api\V1\CalculationApiController::class,
+        \App\Http\Controllers\Api\V1\CalculationExecutionApiController::class,
         'compareInstallationTypes',
     ]);
-    Route::post('/calculations/trace', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'trace']);
-    Route::get('/calculations', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'index']);
-    Route::get('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'show']);
-    Route::put('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'update']);
-    Route::delete('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationApiController::class, 'destroy']);
+    Route::post('/calculations/trace', [\App\Http\Controllers\Api\V1\CalculationExecutionApiController::class, 'trace']);
+    Route::get('/calculations', [\App\Http\Controllers\Api\V1\CalculationReadApiController::class, 'index']);
+    Route::get('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationReadApiController::class, 'show']);
+    Route::put('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationWriteApiController::class, 'update']);
+    Route::delete('/calculations/{id}', [\App\Http\Controllers\Api\V1\CalculationWriteApiController::class, 'destroy']);
 
     // ========================================
     // CONFIGURATION APIs - Phase 5

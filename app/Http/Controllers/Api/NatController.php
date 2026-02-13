@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Material\NatUpsertRequest;
 use App\Http\Resources\NatResource;
 use App\Services\Material\NatService;
+use App\Support\Material\MaterialApiIndexQuery;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,38 +26,20 @@ class NatController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $perPage = (int) $request->get('per_page', 15);
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
-
-        $nats = $search
-            ? $this->natService->search($search, $perPage, $sortBy, $sortDirection)
-            : $this->natService->paginateWithSort($perPage, $sortBy, $sortDirection);
+        $nats = MaterialApiIndexQuery::execute(
+            $request,
+            fn($search, $perPage, $sortBy, $sortDirection) =>
+            $this->natService->search($search, (int) $perPage, $sortBy, $sortDirection),
+            fn($perPage, $sortBy, $sortDirection) =>
+            $this->natService->paginateWithSort((int) $perPage, $sortBy, $sortDirection),
+        );
 
         return $this->paginatedResponse(NatResource::collection($nats)->resource, 'Nats retrieved successfully');
     }
 
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'nat_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'package_volume' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validate((new NatUpsertRequest())->rules());
 
         $nat = $this->natService->create($validated, $request->file('photo'));
 
@@ -73,24 +59,7 @@ class NatController extends Controller
 
     public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'nat_name' => 'nullable|string|max:255',
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'package_volume' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-        ]);
+        $validated = $request->validate((new NatUpsertRequest())->rules());
 
         $nat = $this->natService->update($id, $validated, $request->file('photo'));
 
@@ -106,9 +75,9 @@ class NatController extends Controller
 
     public function getFieldValues(string $field, Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = (int) $request->get('limit', 20);
-        $filters = $request->only(['brand', 'store', 'package_unit']);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::intLimit($request);
+        $filters = MaterialLookupQuery::onlyFilters($request, MaterialLookupSpec::apiFilterKeys('nat'));
 
         $values = $this->natService->getFieldValues($field, $filters, $search, $limit);
 
@@ -117,9 +86,9 @@ class NatController extends Controller
 
     public function getAllStores(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = (int) $request->get('limit', 20);
-        $materialType = $request->get('material_type', 'nat');
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::intLimit($request);
+        $materialType = MaterialLookupQuery::rawMaterialType($request, 'nat');
 
         $stores = $this->natService->getAllStores($search, $limit, $materialType);
 
@@ -128,9 +97,9 @@ class NatController extends Controller
 
     public function getAddressesByStore(Request $request): JsonResponse
     {
-        $store = (string) $request->get('store');
-        $search = $request->get('search');
-        $limit = (int) $request->get('limit', 20);
+        $store = MaterialLookupQuery::stringStore($request);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::intLimit($request);
 
         if ($store === '') {
             return response()->json([]);

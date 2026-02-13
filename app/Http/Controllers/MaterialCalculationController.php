@@ -22,6 +22,8 @@ use Illuminate\Support\Facades\DB;
 
 class MaterialCalculationController extends Controller
 {
+    protected const CALCULATION_CACHE_KEY_PREFIX = 'material_calc:v3:';
+
     protected CalculationRepository $calculationRepository;
 
     protected CombinationGenerationService $combinationGenerationService;
@@ -67,6 +69,11 @@ class MaterialCalculationController extends Controller
     {
         $cacheKey = session('material_calc_last_key');
         if ($cacheKey) {
+            if (!str_starts_with((string) $cacheKey, self::CALCULATION_CACHE_KEY_PREFIX)) {
+                session()->forget('material_calc_last_key');
+
+                return redirect()->route('material-calculations.create');
+            }
             $cachedPayload = Cache::get($cacheKey);
             if (is_array($cachedPayload)) {
                 return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
@@ -401,6 +408,14 @@ class MaterialCalculationController extends Controller
     {
         \Log::info('showPreview called', ['cacheKey' => $cacheKey]);
 
+        if (!str_starts_with($cacheKey, self::CALCULATION_CACHE_KEY_PREFIX)) {
+            \Log::warning('Rejected stale preview cache key prefix', ['cacheKey' => $cacheKey]);
+
+            return redirect()
+                ->route('material-calculations.create')
+                ->with('error', 'Hasil preview lama terdeteksi. Silakan hitung ulang untuk data terbaru.');
+        }
+
         $cachedPayload = Cache::get($cacheKey);
 
         \Log::info('Cache check', [
@@ -451,6 +466,11 @@ class MaterialCalculationController extends Controller
         $workType = $request->work_type ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
+        $useStoreFilter = $request->boolean('use_store_filter', true) && $workType !== 'grout_tile';
+        $hasExplicitBrickSelection =
+            !$isBrickless &&
+            (($request->has('brick_ids') && !empty($request->brick_ids)) ||
+                ($request->has('brick_id') && !empty($request->brick_id)));
         $materialTypeFilters = $request->input('material_type_filters', []);
 
         // NEW LOGIC: "Jenis Keramik" now behaves like other single-value material type filters.
@@ -622,20 +642,40 @@ class MaterialCalculationController extends Controller
         }
 
         $projects = [];
-        foreach ($targetBricks as $brick) {
-            $combinations = $this->combinationGenerationService->calculateCombinationsForBrick($brick, $request);
+        if (!$isBrickless && $useStoreFilter && !$hasExplicitBrickSelection) {
+            // In store-radius mode without explicit brick selection, avoid global brick pool iteration.
+            // Let store-based engine pick bricks per reachable store so results stay within radius scope.
+            $combinations = $this->combinationGenerationService->calculateCombinations($request, ['brick' => null]);
+            $displayBrick = $this->resolveDisplayBrickFromCombinations($combinations);
 
-            \Log::info('Project combinations for brick', [
-                'brick_id' => $brick->id,
-                'brick_brand' => $brick->brand,
+            \Log::info('Project combinations for store-filter single pass', [
                 'combination_labels' => array_keys($combinations),
                 'total_combinations' => count($combinations),
+                'display_brick_id' => $displayBrick?->id,
             ]);
 
             $projects[] = [
-                'brick' => $brick,
+                'brick' => $displayBrick,
                 'combinations' => $combinations,
             ];
+        } else {
+            foreach ($targetBricks as $brick) {
+                $combinations = $this->combinationGenerationService->calculateCombinationsForBrick($brick, $request);
+                $displayBrick = $this->resolveDisplayBrickFromCombinations($combinations) ?? $brick;
+
+                \Log::info('Project combinations for brick', [
+                    'brick_id' => $brick->id,
+                    'brick_brand' => $brick->brand,
+                    'display_brick_id' => $displayBrick?->id,
+                    'combination_labels' => array_keys($combinations),
+                    'total_combinations' => count($combinations),
+                ]);
+
+                $projects[] = [
+                    'brick' => $displayBrick,
+                    'combinations' => $combinations,
+                ];
+            }
         }
 
         $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
@@ -779,9 +819,10 @@ class MaterialCalculationController extends Controller
     protected function buildCalculationCacheKey(Request $request): string
     {
         $payload = $request->except(['_token', 'confirm_save']);
+        $payload['_engine_version'] = self::CALCULATION_CACHE_KEY_PREFIX;
         $normalized = $this->normalizeCalculationPayload($payload);
 
-        return 'material_calc:' . hash('sha256', json_encode($normalized));
+        return self::CALCULATION_CACHE_KEY_PREFIX . hash('sha256', json_encode($normalized));
     }
 
     protected function resolveFallbackBrick(): Brick
@@ -816,6 +857,25 @@ class MaterialCalculationController extends Controller
         }
 
         return $value;
+    }
+
+    protected function resolveDisplayBrickFromCombinations(array $combinations): ?Brick
+    {
+        foreach ($combinations as $items) {
+            if (!is_array($items)) {
+                continue;
+            }
+            foreach ($items as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                if (($item['brick'] ?? null) instanceof Brick) {
+                    return $item['brick'];
+                }
+            }
+        }
+
+        return null;
     }
 
     protected function getCalculationCachePayload(string $cacheKey): ?array
@@ -1477,28 +1537,7 @@ class MaterialCalculationController extends Controller
 
     public function update(Request $request, BrickCalculation $materialCalculation)
     {
-        $request->validate([
-            'work_type' => 'required|string',
-            'project_address' => 'nullable|string',
-            'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
-            'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
-            'project_place_id' => 'nullable|string|max:255',
-            'use_store_filter' => 'nullable|boolean',
-            'allow_mixed_store' => 'nullable|boolean',
-            'wall_length' => 'required|numeric|min:0.01',
-            'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
-            'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
-            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
-            'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
-            'sand_id' => 'nullable|exists:sands,id',
-            'project_name' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-            'layer_count' => 'nullable|integer|min:1',
-            'plaster_sides' => 'nullable|integer|min:1',
-            'skim_sides' => 'nullable|integer|min:1',
-        ]);
+        $request->validate($this->updateValidationRules());
 
         try {
             DB::beginTransaction();
@@ -1538,24 +1577,7 @@ class MaterialCalculationController extends Controller
         // Increase execution time for complex calculations
         set_time_limit(300); // 5 minutes
 
-        $request->validate([
-            'work_type' => 'nullable|string',
-            'project_address' => 'nullable|string',
-            'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
-            'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
-            'project_place_id' => 'nullable|string|max:255',
-            'use_store_filter' => 'nullable|boolean',
-            'allow_mixed_store' => 'nullable|boolean',
-            'wall_length' => 'required|numeric|min:0.01',
-            'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
-            'installation_type_id' => 'required|exists:brick_installation_types,id',
-            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
-            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
-            'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
-            'sand_id' => 'nullable|exists:sands,id',
-            'layer_count' => 'nullable|integer|min:1',
-        ]);
+        $request->validate($this->calculateValidationRules());
 
         try {
             $calculation = BrickCalculation::performCalculation($request->all());
@@ -1570,23 +1592,7 @@ class MaterialCalculationController extends Controller
 
     public function compare(Request $request)
     {
-        $request->validate([
-            'work_type' => 'nullable|string',
-            'project_address' => 'nullable|string',
-            'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
-            'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
-            'project_place_id' => 'nullable|string|max:255',
-            'use_store_filter' => 'nullable|boolean',
-            'allow_mixed_store' => 'nullable|boolean',
-            'wall_length' => 'required|numeric|min:0.01',
-            'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
-            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
-            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
-            'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
-            'sand_id' => 'nullable|exists:sands,id',
-            'layer_count' => 'nullable|integer|min:1',
-        ]);
+        $request->validate($this->compareValidationRules());
 
         try {
             $installationTypes = BrickInstallationType::getActive();
@@ -1849,6 +1855,51 @@ class MaterialCalculationController extends Controller
         }
 
         return in_array($actualValue, $filterValues, true);
+    }
+
+    private function baseCalculationValidationRules(): array
+    {
+        return [
+            'work_type' => 'nullable|string',
+            'project_address' => 'nullable|string',
+            'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
+            'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
+            'project_place_id' => 'nullable|string|max:255',
+            'use_store_filter' => 'nullable|boolean',
+            'allow_mixed_store' => 'nullable|boolean',
+            'wall_length' => 'required|numeric|min:0.01',
+            'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
+            'mortar_thickness' => 'required|numeric|min:0.01|max:10',
+            'mortar_formula_id' => 'required|exists:mortar_formulas,id',
+            'brick_id' => 'nullable|exists:bricks,id',
+            'cement_id' => 'nullable|exists:cements,id',
+            'sand_id' => 'nullable|exists:sands,id',
+            'layer_count' => 'nullable|integer|min:1',
+        ];
+    }
+
+    private function updateValidationRules(): array
+    {
+        return array_merge($this->baseCalculationValidationRules(), [
+            'work_type' => 'required|string',
+            'installation_type_id' => 'required|exists:brick_installation_types,id',
+            'project_name' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+            'plaster_sides' => 'nullable|integer|min:1',
+            'skim_sides' => 'nullable|integer|min:1',
+        ]);
+    }
+
+    private function calculateValidationRules(): array
+    {
+        return array_merge($this->baseCalculationValidationRules(), [
+            'installation_type_id' => 'required|exists:brick_installation_types,id',
+        ]);
+    }
+
+    private function compareValidationRules(): array
+    {
+        return $this->baseCalculationValidationRules();
     }
 
     public function traceCalculation(Request $request)

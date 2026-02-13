@@ -317,7 +317,24 @@
 
     /* ========== MISC ========== */
     .store-row {
-        transition: background-color 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .store-row input[type="checkbox"] {
+        flex-shrink: 0;
+    }
+
+    .store-title {
+        min-width: 120px;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .store-desc {
+        flex: 1;
     }
 
     .badge {

@@ -39,30 +39,7 @@ class MaterialController extends Controller
         foreach ($allSettings as $setting) {
             $type = $setting->material_type;
 
-            // Get model for count
-            $model = null;
-            switch ($type) {
-                case 'brick':
-                    $model = Brick::class;
-                    break;
-                case 'cat':
-                    $model = Cat::class;
-                    break;
-                case 'ceramic':
-                    $model = Ceramic::class;
-                    break;
-                case 'sand':
-                    $model = Sand::class;
-                    break;
-                case 'cement':
-                    $model = Cement::class;
-                    break;
-                case 'nat':
-                    $model = Nat::class;
-                    break;
-            }
-
-            $dbCount = $model ? $model::count() : 0;
+            $dbCount = $this->countMaterialRecordsByType($type);
             $grandTotal += $dbCount;
 
             // Get active letters for this material type
@@ -95,7 +72,7 @@ class MaterialController extends Controller
     public function fetchTab(Request $request, $type)
     {
         // Validate type
-        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
+        if (!$this->isSupportedMaterialType((string) $type)) {
             abort(404);
         }
 
@@ -106,31 +83,11 @@ class MaterialController extends Controller
         $grandTotal = 0;
         $allSettings = MaterialSetting::query()->get();
         foreach ($allSettings as $setting) {
-            $modelClass = match ($setting->material_type) {
-                'brick' => Brick::class,
-                'cat' => Cat::class,
-                'ceramic' => Ceramic::class,
-                'sand' => Sand::class,
-                'cement' => Cement::class,
-                'nat' => Nat::class,
-                default => null,
-            };
-            if ($modelClass) {
-                $grandTotal += $modelClass::count();
-            }
+            $grandTotal += $this->countMaterialRecordsByType((string) $setting->material_type);
         }
 
         $data = $this->getMaterialData($type, $request);
-        $model = match ($type) {
-            'brick' => Brick::class,
-            'cat' => Cat::class,
-            'ceramic' => Ceramic::class,
-            'sand' => Sand::class,
-            'cement' => Cement::class,
-            'nat' => Nat::class,
-            default => null,
-        };
-        $dbCount = $model ? $model::count() : 0;
+        $dbCount = $this->countMaterialRecordsByType((string) $type);
 
         $material = [
             'type' => $type,
@@ -405,27 +362,7 @@ class MaterialController extends Controller
 
     private function getActiveLetters($type)
     {
-        $model = null;
-        switch ($type) {
-            case 'brick':
-                $model = Brick::class;
-                break;
-            case 'cat':
-                $model = Cat::class;
-                break;
-            case 'cement':
-                $model = Cement::class;
-                break;
-            case 'sand':
-                $model = Sand::class;
-                break;
-            case 'ceramic':
-                $model = Ceramic::class;
-                break;
-            case 'nat':
-                $model = Nat::class;
-                break;
-        }
+        $model = $this->materialModelClass((string) $type);
 
         if (!$model) {
             return [];
@@ -442,6 +379,39 @@ class MaterialController extends Controller
             ->orderBy('letter')
             ->pluck('letter')
             ->toArray();
+    }
+
+    private function supportedMaterialTypes(): array
+    {
+        return ['brick', 'cat', 'ceramic', 'sand', 'cement', 'nat'];
+    }
+
+    private function isSupportedMaterialType(string $type): bool
+    {
+        return in_array($type, $this->supportedMaterialTypes(), true);
+    }
+
+    private function materialModelClass(string $type): ?string
+    {
+        return match ($type) {
+            'brick' => Brick::class,
+            'cat' => Cat::class,
+            'ceramic' => Ceramic::class,
+            'sand' => Sand::class,
+            'cement' => Cement::class,
+            'nat' => Nat::class,
+            default => null,
+        };
+    }
+
+    private function countMaterialRecordsByType(string $type): int
+    {
+        $model = $this->materialModelClass($type);
+        if (!$model) {
+            return 0;
+        }
+
+        return $model::count();
     }
 
     private function getMaterialData($type, $request)

@@ -120,40 +120,122 @@
                     </div>
                 </div>
 
-                <div class="form-group store-search-mode-group">
+                <div id="storeSearchModeBox">
                     <label>Mode Pencarian Toko</label>
                     <input type="hidden" name="use_store_filter" value="0">
                     <input type="hidden" name="allow_mixed_store" value="0">
-                    <div class="store-search-options">
-                        <label class="store-search-option">
-                            <input type="checkbox"
-                                   name="use_store_filter"
-                                   value="1"
-                                   {{ old('use_store_filter', '1') == '1' ? 'checked' : '' }}>
-                            <span class="store-search-option-text">
-                                <strong>Prioritaskan toko dalam radius proyek</strong>
-                                <small class="text-muted">Hitung berdasarkan toko terdekat yang radius layanannya menjangkau lokasi proyek.</small>
+                    <div class="ssm-row">
+                        <input type="checkbox" id="storeFilterCheck" name="use_store_filter" value="1"
+                            {{ old('use_store_filter', '1') == '1' ? 'checked' : '' }}>
+                        <label for="storeFilterCheck" class="ssm-label">Prioritas Radius</label>
+                        <small class="ssm-desc">Hitung berdasarkan toko terdekat yang radius layanannya menjangkau lokasi proyek.</small>
+                    </div>
+                    <div class="ssm-row">
+                        <input type="checkbox" id="mixedStoreCheck" name="allow_mixed_store" value="1"
+                            {{ old('allow_mixed_store') == '1' ? 'checked' : '' }}>
+                        <label for="mixedStoreCheck" class="ssm-label">Lintas Toko</label>
+                        <small class="ssm-desc">Jika satu toko tidak lengkap, material diambil berurutan dari toko terdekat berikutnya.</small>
+                    </div>
+                </div>
+
+                {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
+                <div class="filter-section">
+                    <label class="filter-section-title">+ Filter by:</label>
+                    <div class="filter-tickbox-list">
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
+                        <label for="filter_all">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Semua</b>
+                                <span class="text-muted">: Menampilkan semua kombinasi harga</span>
                             </span>
                         </label>
-                        <label class="store-search-option">
-                            <input type="checkbox"
-                                   name="allow_mixed_store"
-                                   value="1"
-                                   {{ old('allow_mixed_store') == '1' ? 'checked' : '' }}>
-                            <span class="store-search-option-text">
-                                <strong>Izinkan kombinasi lintas toko</strong>
-                                <small class="text-muted">Jika satu toko tidak lengkap, material akan diambil berurutan dari toko terdekat berikutnya.</small>
+                    </div>
+
+                    <div class="tickbox-item position-relative">
+                        <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
+                        <label for="filter_best" class="w-100">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Preferensi</b>
+                                <span class="text-muted">: 3 Kombinasi pilihan Kanggo</span>
+                            </span>
+                        </label>
+                        <a href="{{ route('settings.recommendations.index') }}"
+                        class="position-absolute top-0 end-0 mt-2 me-2 text-decoration-none"
+                        style="z-index: 50; color: #64748b; font-size: 1.1rem; padding: 4px;"
+                        title="Setting Rekomendasi"
+                        onclick="event.stopPropagation(); event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
+                            <i class="bi bi-gear-fill"></i>
+                        </a>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
+                        <label for="filter_common">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Populer</b>
+                                <span class="text-muted">: 3 Kombinasi yang paling sering digunakan Customer</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
+                        <label for="filter_cheapest">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Ekonomis</b>
+                                <span class="text-muted">: 3 kombinasi dengan total harga paling murah</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
+                        <label for="filter_medium">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Average</b>
+                                <span class="text-muted">: 3 kombinasi dengan total harga rata-rata</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
+                        <label for="filter_expensive">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Termahal</b>
+                                <span class="text-muted">: 3 kombinasi dengan total harga paling mahal</span>
+                            </span>
+                        </label>
+                    </div>
+
+                    <div class="tickbox-item">
+                        <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
+                        <label for="filter_custom">
+                            <span class="tickbox-title d-flex">
+                                <b class="tickbox-title-label flex-shrink-0">Custom</b>
+                                <span class="text-muted">: Pilih kombinasi sendiri secara manual</span>
                             </span>
                         </label>
                     </div>
                 </div>
+            </div>
+                                    <div class="d-flex justify-content-end mt-2">
+                            <button type="button" id="btnResetForm" class="btn-cancel" style="padding: 5px 20px;">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
+                            </button>
+                        </div>
+            </div> {{-- /.left-column --}}
 
+
+            {{-- RIGHT COLUMN: FILTERS --}}
+            <div class="right-column">
                 {{-- WORK TYPE --}}
                 <div class="form-group work-type-group">
                     <label>Item Pekerjaan</label>
                     <div class="input-wrapper">
                         <div class="work-type-autocomplete">
-                            <div class="work-type-input">
+                            <div class="work-type-input work-type-input-with-action">
                                 <input type="text"
                                        id="workTypeDisplay"
                                        class="autocomplete-input"
@@ -162,10 +244,18 @@
                                        value="{{ $selectedWorkTypeLabel }}"
                                        {{ request('formula_code') ? 'readonly' : '' }}
                                        required>
+                                <button type="button" id="addWorkItemBtn" class="work-type-add-btn"
+                                    title="Tambah item pekerjaan">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
                             </div>
                             <div class="autocomplete-list" id="workType-list"></div>
                         </div>
                         <input type="hidden" id="workTypeSelector" name="work_type_select" value="{{ $selectedWorkType }}">
+                        <input type="hidden" id="enableBundleMode" name="enable_bundle_mode"
+                            value="{{ old('enable_bundle_mode', 0) }}">
+                        <input type="hidden" id="workItemsPayload" name="work_items_payload"
+                            value="{{ old('work_items_payload') }}">
                     </div>
                 </div>
 
@@ -317,101 +407,6 @@
                                 </div>
                             @endforeach
                         </div>
-
-                        <div class="d-flex justify-content-end mt-2">
-                            <button type="button" id="btnResetForm" class="btn-cancel" style="padding: 5px 20px;">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            {{-- RIGHT COLUMN: FILTERS --}}
-            <div class="right-column">
-                {{-- FILTER CHECKBOX (MULTIPLE SELECTION) --}}
-                <div class="filter-section">
-                    <label class="filter-section-title">+ Filter by:</label>
-                    <div class="filter-tickbox-list">
-    
-                    <div class="filter-tickbox-list">
-                    
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
-                        <label for="filter_all">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Semua</b>
-                                <span class="text-muted">: Menampilkan semua kombinasi harga</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="tickbox-item position-relative">
-                        <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
-                        <label for="filter_best" class="w-100">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Preferensi</b>
-                                <span class="text-muted">: 3 Kombinasi pilihan Kanggo</span>
-                            </span>
-                        </label>
-                        <a href="{{ route('settings.recommendations.index') }}" 
-                        class="position-absolute top-0 end-0 mt-2 me-2 text-decoration-none" 
-                        style="z-index: 50; color: #64748b; font-size: 1.1rem; padding: 4px;" 
-                        title="Setting Rekomendasi"
-                        onclick="event.stopPropagation(); event.preventDefault(); if(typeof openGlobalMaterialModal === 'function') { openGlobalMaterialModal(this.href, document.getElementById('workTypeSelector')?.value); }">
-                            <i class="bi bi-gear-fill"></i>
-                        </a>
-                    </div>
-
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
-                        <label for="filter_common">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Populer</b>
-                                <span class="text-muted">: 3 Kombinasi yang paling sering digunakan Customer</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
-                        <label for="filter_cheapest">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Ekonomis</b>
-                                <span class="text-muted">: 3 kombinasi dengan total harga paling murah</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
-                        <label for="filter_medium">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Average</b>
-                                <span class="text-muted">: 3 kombinasi dengan total harga rata-rata</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
-                        <label for="filter_expensive">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Termahal</b>
-                                <span class="text-muted">: 3 kombinasi dengan total harga paling mahal</span>
-                            </span>
-                        </label>
-                    </div>
-
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
-                        <label for="filter_custom">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Custom</b>
-                                <span class="text-muted">: Pilih kombinasi sendiri secara manual</span>
-                            </span>
-                        </label>
                     </div>
                 </div>
 
@@ -609,6 +604,12 @@
                             </div>
                         </div>
                     </div>
+
+                    <div id="additionalWorkItemsSection" class="additional-work-items-section" style="display: none;">
+                        <div class="additional-work-items-title">Item Pekerjaan Tambahan</div>
+                        <div id="additionalWorkItemsList" class="additional-work-items-list"></div>
+                    </div>
+
                     <div class="button-actions">
                         <button type="submit" class="btn btn-submit">
                             <i class="bi bi-search"></i> Hitung
@@ -626,6 +627,154 @@
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         font-size: 32px;
+    }
+
+    .work-type-input-with-action {
+        display: flex;
+        align-items: stretch;
+    }
+
+    .work-type-input-with-action .autocomplete-input {
+        flex: 1 1 auto;
+        min-width: 0;
+        border-radius: 8px 0 0 8px;
+        border-right: 0;
+    }
+
+    .work-type-add-btn {
+        width: 40px;
+        border: 1px solid #cbd5e1;
+        border-left: 0;
+        border-radius: 0 8px 8px 0;
+        background: #ffffff;
+        color: #166534;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.15s ease;
+    }
+
+    .work-type-add-btn:hover {
+        background: #f1f5f9;
+    }
+
+    .additional-work-items-section {
+        margin-top: 12px;
+        padding: 0;
+    }
+
+    .additional-work-items-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 8px;
+    }
+
+    .additional-work-items-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .additional-work-item {
+        border: 0;
+        border-top: 1px dashed #cbd5e1;
+        border-radius: 0;
+        background: transparent;
+        padding: 10px 0 0 0;
+    }
+
+    .additional-work-item-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .additional-work-item-badge {
+        color: #891313;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .additional-work-item-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .additional-work-item-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .additional-work-item-field > label {
+        min-width: 112px;
+        margin: 0;
+        font-size: 12px;
+        color: #475569;
+        font-weight: 600;
+    }
+
+    .additional-work-item-field input,
+    .additional-work-item-field select {
+        width: auto;
+        flex: 1 1 auto;
+        min-width: 0;
+        min-height: 34px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        background: #fff;
+    }
+
+    .additional-work-item-worktype {
+        align-items: stretch;
+    }
+
+    .additional-worktype-control {
+        display: flex;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .additional-worktype-control select {
+        border-radius: 8px 0 0 8px;
+        border-right: 0;
+    }
+
+    .additional-worktype-actions {
+        display: inline-flex;
+        align-items: stretch;
+        border: 1px solid #cbd5e1;
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .additional-worktype-btn {
+        width: 34px;
+        border: 0;
+        border-left: 1px solid #e2e8f0;
+        background: #ffffff;
+        color: #166534;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: background-color 0.15s ease;
+    }
+
+    .additional-worktype-btn:hover {
+        background: #f1f5f9;
+    }
+
+    .additional-worktype-btn.remove {
+        color: #b91c1c;
+        background: #fef2f2;
     }
 
     .material-type-filter-group {
@@ -798,57 +947,48 @@
         width: 100%;
     }
 
-    .store-search-mode-group {
-        gap: 8px;
+    #storeSearchModeBox {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
     }
 
-    .two-column-layout .store-search-mode-group > label {
-        flex: 0 0 106px;
-        margin-right: 0;
-        padding-top: 6px;
+    #storeSearchModeBox > label {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1e293b;
+        margin: 0 0 2px 0;
     }
 
-    .store-search-options {
-        width: 100%;
+    .ssm-row {
         display: flex;
         flex-direction: row;
         align-items: center;
-        gap: 12px;
-        margin-top: 0;
-    }
-
-    .store-search-option {
-        display: flex;
-        align-items: center;
         gap: 6px;
+    }
+
+    .ssm-row input[type="checkbox"] {
+        flex: 0 0 auto;
         margin: 0;
-        line-height: 1.2;
-        flex: 1 1 0;
-        min-width: 0;
+        cursor: pointer;
     }
 
-    .store-search-option input[type="checkbox"] {
-        margin-top: 0;
+    .ssm-label {
+        flex: 0 0 auto;
+        min-width: 120px;
+        margin: 0;
+        font-weight: 600;
+        font-size: 13px;
+        color: #334155;
+        cursor: pointer;
     }
 
-    .store-search-option-text {
-        display: inline;
+    .ssm-desc {
         flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .store-search-option-text strong {
-        line-height: 1.2;
-    }
-
-    .store-search-option-text small {
-        display: inline;
-        margin-left: 4px;
-        line-height: 1.2;
-    }
-
-    .store-search-option-text small::before {
-        content: "- ";
+        font-size: 12px;
+        color: #64748b;
+        line-height: 1.3;
     }
 
     .project-location-map {
@@ -885,22 +1025,20 @@
     }
 
     @media (max-width: 768px) {
-        .two-column-layout .store-search-mode-group > label {
-            flex: unset;
-            width: 100%;
-            padding-top: 0;
-        }
-
-        .store-search-options {
-            flex-direction: column;
-            align-items: flex-start;
+        .additional-work-item-grid {
             gap: 6px;
         }
 
-        .store-search-option {
-            width: 100%;
-            align-items: flex-start;
+        .additional-work-item-field {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
         }
+
+        .additional-work-item-field > label {
+            min-width: 0;
+        }
+
     }
 </style>
 
@@ -935,7 +1073,11 @@
             });
         }
         if (typeof initMaterialCalculationForm === 'function') {
-            initMaterialCalculationForm(document, payload);
+            try {
+                initMaterialCalculationForm(document, payload);
+            } catch (error) {
+                console.error('initMaterialCalculationForm failed:', error);
+            }
         }
 
         function normalizeFilterToken(value) {
@@ -2132,6 +2274,443 @@
             handleWorkTypeChange();
         }
 
+        // Multi item pekerjaan via tombol "+" di ujung dropdown item pekerjaan
+        const addWorkItemBtn = document.getElementById('addWorkItemBtn');
+        const enableBundleModeInput = document.getElementById('enableBundleMode');
+        const workItemsPayloadInput = document.getElementById('workItemsPayload');
+        const additionalWorkItemsSection = document.getElementById('additionalWorkItemsSection');
+        const additionalWorkItemsList = document.getElementById('additionalWorkItemsList');
+        const mainWorkTypeDisplayInput = document.getElementById('workTypeDisplay');
+        const mainWorkTypeHiddenInput = document.getElementById('workTypeSelector');
+        const mainWallLengthInput = document.getElementById('wallLength');
+        const mainWallHeightInput = document.getElementById('wallHeight');
+        const bundleFormulaOptions = Array.isArray(payload?.formulas)
+            ? payload.formulas
+                .filter(item => item && item.code)
+                .map(item => ({
+                    code: String(item.code),
+                    name: String(item.name || item.code),
+                }))
+            : [];
+        const bundleRequiredTargets = [
+            { el: mainWorkTypeDisplayInput, defaultRequired: !!mainWorkTypeDisplayInput?.required },
+            { el: mainWallLengthInput, defaultRequired: !!mainWallLengthInput?.required },
+            { el: mainWallHeightInput, defaultRequired: !!mainWallHeightInput?.required },
+        ];
+
+        function escapeHtml(raw) {
+            return String(raw ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function normalizeBundleItem(item, index) {
+            const entry = item && typeof item === 'object' ? item : {};
+            const title = String(entry.title || '').trim();
+            const workType = String(entry.work_type || '').trim();
+            return {
+                title: title || `Item ${index + 1}`,
+                work_type: workType,
+                wall_length: String(entry.wall_length || '').trim(),
+                wall_height: String(entry.wall_height || '').trim(),
+                mortar_thickness: String(entry.mortar_thickness || '').trim(),
+                layer_count: String(entry.layer_count || '').trim(),
+                plaster_sides: String(entry.plaster_sides || '').trim(),
+                skim_sides: String(entry.skim_sides || '').trim(),
+                grout_thickness: String(entry.grout_thickness || '').trim(),
+                ceramic_length: String(entry.ceramic_length || '').trim(),
+                ceramic_width: String(entry.ceramic_width || '').trim(),
+                ceramic_thickness: String(entry.ceramic_thickness || '').trim(),
+            };
+        }
+
+        function setMainFormRequired(enabled) {
+            bundleRequiredTargets.forEach(target => {
+                if (!target.el || !target.defaultRequired) {
+                    return;
+                }
+                if (enabled) {
+                    target.el.setAttribute('required', 'required');
+                } else {
+                    target.el.removeAttribute('required');
+                }
+            });
+        }
+
+        function buildWorkTypeOptionHtml(selectedValue) {
+            const selected = String(selectedValue || '').trim();
+            const options = ['<option value="">Pilih item pekerjaan...</option>'];
+            bundleFormulaOptions.forEach(item => {
+                const code = escapeHtml(item.code);
+                const name = escapeHtml(item.name);
+                const selectedAttr = selected === item.code ? 'selected' : '';
+                options.push(`<option value="${code}" ${selectedAttr}>${name}</option>`);
+            });
+            return options.join('');
+        }
+
+        function getMainFormValue(id) {
+            const el = document.getElementById(id);
+            return el ? String(el.value || '').trim() : '';
+        }
+
+        function collectMainWorkItem() {
+            const workType = mainWorkTypeHiddenInput ? String(mainWorkTypeHiddenInput.value || '').trim() : '';
+            if (!workType) {
+                return null;
+            }
+            return normalizeBundleItem(
+                {
+                    title: mainWorkTypeDisplayInput ? String(mainWorkTypeDisplayInput.value || '').trim() : '',
+                    work_type: workType,
+                    wall_length: getMainFormValue('wallLength'),
+                    wall_height: getMainFormValue('wallHeight'),
+                    mortar_thickness: getMainFormValue('mortarThickness'),
+                    layer_count: getMainFormValue('layerCount'),
+                    plaster_sides: getMainFormValue('plasterSides'),
+                    skim_sides: getMainFormValue('skimSides'),
+                    grout_thickness: getMainFormValue('groutThickness'),
+                    ceramic_length: getMainFormValue('ceramicLength'),
+                    ceramic_width: getMainFormValue('ceramicWidth'),
+                    ceramic_thickness: getMainFormValue('ceramicThickness'),
+                },
+                0,
+            );
+        }
+
+        function createAdditionalWorkItemForm(initial = {}, afterElement = null) {
+            if (!additionalWorkItemsList) {
+                return null;
+            }
+
+            const item = normalizeBundleItem(initial, additionalWorkItemsList.children.length + 1);
+            const wrapper = document.createElement('div');
+            wrapper.className = 'additional-work-item';
+            wrapper.setAttribute('data-additional-work-item', 'true');
+            wrapper.innerHTML = `
+                <div class="additional-work-item-header">
+                    <span class="additional-work-item-badge">Item Tambahan</span>
+                </div>
+                <div class="additional-work-item-grid">
+                    <div class="additional-work-item-field additional-work-item-worktype">
+                        <label>Item Pekerjaan</label>
+                        <div class="additional-worktype-control">
+                            <select data-field="work_type">
+                                ${buildWorkTypeOptionHtml(item.work_type)}
+                            </select>
+                            <div class="additional-worktype-actions">
+                                <button type="button" class="additional-worktype-btn" data-action="add" title="Tambah form item berikutnya">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                                <button type="button" class="additional-worktype-btn remove" data-action="remove" title="Hapus form item">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="title">
+                        <label>Judul Item</label>
+                        <input type="text" data-field="title" value="${escapeHtml(item.title)}" placeholder="Contoh: Item pekerjaan B">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="wall_length">
+                        <label>Panjang (m)</label>
+                        <input type="number" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}" placeholder="0.00">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="wall_height">
+                        <label data-wall-height-label>Tinggi (m)</label>
+                        <input type="number" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}" placeholder="0.00">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="mortar_thickness">
+                        <label>Tebal Adukan</label>
+                        <input type="number" step="0.01" min="0" data-field="mortar_thickness" value="${escapeHtml(item.mortar_thickness)}" placeholder="2">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="layer_count">
+                        <label>Lapis / Tingkat</label>
+                        <input type="number" step="1" min="0" data-field="layer_count" value="${escapeHtml(item.layer_count)}" placeholder="1">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="plaster_sides">
+                        <label>Sisi Plester</label>
+                        <input type="number" step="1" min="0" data-field="plaster_sides" value="${escapeHtml(item.plaster_sides)}" placeholder="1">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="skim_sides">
+                        <label>Sisi Aci</label>
+                        <input type="number" step="1" min="0" data-field="skim_sides" value="${escapeHtml(item.skim_sides)}" placeholder="1">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="grout_thickness">
+                        <label>Tebal Nat</label>
+                        <input type="number" step="0.01" min="0" data-field="grout_thickness" value="${escapeHtml(item.grout_thickness)}" placeholder="2">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="ceramic_length">
+                        <label>Panjang Keramik</label>
+                        <input type="number" step="0.01" min="0" data-field="ceramic_length" value="${escapeHtml(item.ceramic_length)}" placeholder="30">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="ceramic_width">
+                        <label>Lebar Keramik</label>
+                        <input type="number" step="0.01" min="0" data-field="ceramic_width" value="${escapeHtml(item.ceramic_width)}" placeholder="30">
+                    </div>
+                    <div class="additional-work-item-field" data-wrap="ceramic_thickness">
+                        <label>Tebal Keramik</label>
+                        <input type="number" step="0.01" min="0" data-field="ceramic_thickness" value="${escapeHtml(item.ceramic_thickness)}" placeholder="8">
+                    </div>
+                </div>
+            `;
+
+            if (afterElement && afterElement.parentNode === additionalWorkItemsList) {
+                additionalWorkItemsList.insertBefore(wrapper, afterElement.nextSibling);
+            } else {
+                additionalWorkItemsList.appendChild(wrapper);
+            }
+
+            attachAdditionalWorkItemEvents(wrapper);
+            applyAdditionalWorkItemVisibility(wrapper);
+            refreshAdditionalWorkItemHeader();
+            syncBundleFromForms();
+            return wrapper;
+        }
+
+        function refreshAdditionalWorkItemHeader() {
+            if (!additionalWorkItemsList) {
+                return;
+            }
+            const items = Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'));
+            items.forEach((itemEl, idx) => {
+                const badge = itemEl.querySelector('.additional-work-item-badge');
+                if (badge) {
+                    badge.textContent = `Item ${idx + 2}`;
+                }
+            });
+        }
+
+        function getAdditionalFieldValue(itemEl, key) {
+            const el = itemEl.querySelector(`[data-field="${key}"]`);
+            return el ? String(el.value || '').trim() : '';
+        }
+
+        function collectAdditionalWorkItems(strict = false) {
+            if (!additionalWorkItemsList) {
+                return { items: [], error: null };
+            }
+
+            const rows = Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'));
+            const items = [];
+            for (let i = 0; i < rows.length; i += 1) {
+                const row = rows[i];
+                const workType = getAdditionalFieldValue(row, 'work_type');
+                const wallLength = getAdditionalFieldValue(row, 'wall_length');
+                const wallHeight = getAdditionalFieldValue(row, 'wall_height');
+                if (strict && !workType) {
+                    return { items: [], error: { message: `Item tambahan ${i + 2} belum memilih Item Pekerjaan.`, focusEl: row.querySelector('[data-field="work_type"]') } };
+                }
+                if (!workType) {
+                    continue;
+                }
+                if (strict && !wallLength) {
+                    return { items: [], error: { message: `Item tambahan ${i + 2} wajib isi Panjang.`, focusEl: row.querySelector('[data-field="wall_length"]') } };
+                }
+                if (strict && workType !== 'brick_rollag' && !wallHeight) {
+                    return { items: [], error: { message: `Item tambahan ${i + 2} wajib isi Tinggi/Lebar.`, focusEl: row.querySelector('[data-field="wall_height"]') } };
+                }
+
+                items.push(
+                    normalizeBundleItem(
+                        {
+                            title: getAdditionalFieldValue(row, 'title'),
+                            work_type: workType,
+                            wall_length: wallLength,
+                            wall_height: wallHeight,
+                            mortar_thickness: getAdditionalFieldValue(row, 'mortar_thickness'),
+                            layer_count: getAdditionalFieldValue(row, 'layer_count'),
+                            plaster_sides: getAdditionalFieldValue(row, 'plaster_sides'),
+                            skim_sides: getAdditionalFieldValue(row, 'skim_sides'),
+                            grout_thickness: getAdditionalFieldValue(row, 'grout_thickness'),
+                            ceramic_length: getAdditionalFieldValue(row, 'ceramic_length'),
+                            ceramic_width: getAdditionalFieldValue(row, 'ceramic_width'),
+                            ceramic_thickness: getAdditionalFieldValue(row, 'ceramic_thickness'),
+                        },
+                        i + 1,
+                    ),
+                );
+            }
+
+            return { items, error: null };
+        }
+
+        function buildBundleItems(strict = false) {
+            const { items: additionalItems, error } = collectAdditionalWorkItems(strict);
+            if (error) {
+                return { items: [], error };
+            }
+            if (additionalItems.length === 0) {
+                return { items: [], error: null };
+            }
+
+            const mainItem = collectMainWorkItem();
+            if (!mainItem) {
+                return {
+                    items: [],
+                    error: strict
+                        ? {
+                              message: 'Item pekerjaan utama wajib diisi sebelum menambahkan item berikutnya.',
+                              focusEl: mainWorkTypeDisplayInput,
+                          }
+                        : null,
+                };
+            }
+
+            if (strict && !mainItem.wall_length) {
+                return {
+                    items: [],
+                    error: {
+                        message: 'Item pekerjaan utama wajib isi Panjang.',
+                        focusEl: document.getElementById('wallLength'),
+                    },
+                };
+            }
+            if (strict && mainItem.work_type !== 'brick_rollag' && !mainItem.wall_height) {
+                return {
+                    items: [],
+                    error: {
+                        message: 'Item pekerjaan utama wajib isi Tinggi/Lebar.',
+                        focusEl: document.getElementById('wallHeight'),
+                    },
+                };
+            }
+
+            return { items: [mainItem, ...additionalItems], error: null };
+        }
+
+        function syncBundleFromForms() {
+            const result = buildBundleItems(false);
+            const items = result.items || [];
+            if (workItemsPayloadInput) {
+                workItemsPayloadInput.value = items.length >= 2 ? JSON.stringify(items) : '';
+            }
+            if (enableBundleModeInput) {
+                enableBundleModeInput.value = items.length >= 2 ? '1' : '0';
+            }
+            setMainFormRequired(!(items.length >= 2));
+
+            if (additionalWorkItemsSection) {
+                additionalWorkItemsSection.style.display =
+                    additionalWorkItemsList && additionalWorkItemsList.children.length > 0 ? 'block' : 'none';
+            }
+        }
+
+        function applyAdditionalWorkItemVisibility(itemEl) {
+            const workType = getAdditionalFieldValue(itemEl, 'work_type');
+            const isRollag = workType === 'brick_rollag';
+            const isFloorLike = ['floor_screed', 'coating_floor', 'tile_installation', 'grout_tile', 'adhesive_mix']
+                .includes(workType);
+            const showLayer = workType === 'brick_rollag' || workType === 'painting';
+            const showPlaster = workType === 'wall_plastering';
+            const showSkim = workType === 'skim_coating';
+            const showGrout = ['tile_installation', 'grout_tile', 'plinth_ceramic', 'adhesive_mix', 'plinth_adhesive_mix']
+                .includes(workType);
+            const showCeramicDim = workType === 'grout_tile';
+            const showMortar = !['painting', 'grout_tile'].includes(workType);
+
+            const toggleWrap = (name, visible) => {
+                const wrap = itemEl.querySelector(`[data-wrap="${name}"]`);
+                if (!wrap) return;
+                wrap.style.display = visible ? 'flex' : 'none';
+            };
+
+            toggleWrap('wall_height', !isRollag);
+            toggleWrap('mortar_thickness', showMortar);
+            toggleWrap('layer_count', showLayer);
+            toggleWrap('plaster_sides', showPlaster);
+            toggleWrap('skim_sides', showSkim);
+            toggleWrap('grout_thickness', showGrout);
+            toggleWrap('ceramic_length', showCeramicDim);
+            toggleWrap('ceramic_width', showCeramicDim);
+            toggleWrap('ceramic_thickness', showCeramicDim);
+
+            const wallHeightLabel = itemEl.querySelector('[data-wall-height-label]');
+            if (wallHeightLabel) {
+                wallHeightLabel.textContent = isFloorLike ? 'Lebar (m)' : 'Tinggi (m)';
+            }
+        }
+
+        function attachAdditionalWorkItemEvents(itemEl) {
+            const addBtn = itemEl.querySelector('[data-action="add"]');
+            const removeBtn = itemEl.querySelector('[data-action="remove"]');
+            const workTypeSelect = itemEl.querySelector('[data-field="work_type"]');
+
+            if (addBtn) {
+                addBtn.addEventListener('click', function() {
+                    createAdditionalWorkItemForm({}, itemEl);
+                });
+            }
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    itemEl.remove();
+                    refreshAdditionalWorkItemHeader();
+                    syncBundleFromForms();
+                });
+            }
+
+            if (workTypeSelect) {
+                workTypeSelect.addEventListener('change', function() {
+                    applyAdditionalWorkItemVisibility(itemEl);
+                    syncBundleFromForms();
+                });
+            }
+
+            itemEl.querySelectorAll('input, select').forEach(el => {
+                el.addEventListener('input', syncBundleFromForms);
+                el.addEventListener('change', syncBundleFromForms);
+            });
+        }
+
+        function parseBundleItemsFromHidden() {
+            if (!workItemsPayloadInput || !workItemsPayloadInput.value) {
+                return [];
+            }
+            try {
+                const parsed = JSON.parse(workItemsPayloadInput.value);
+                if (!Array.isArray(parsed)) {
+                    return [];
+                }
+                return parsed.map((item, index) => normalizeBundleItem(item, index));
+            } catch (e) {
+                return [];
+            }
+        }
+
+        if (addWorkItemBtn) {
+            addWorkItemBtn.addEventListener('click', function() {
+                const mainItem = collectMainWorkItem();
+                if (!mainItem) {
+                    if (typeof window.showToast === 'function') {
+                        window.showToast('Isi item pekerjaan utama dulu, lalu klik + untuk tambah form berikutnya.', 'error');
+                    } else {
+                        alert('Isi item pekerjaan utama dulu, lalu klik + untuk tambah form berikutnya.');
+                    }
+                    if (mainWorkTypeDisplayInput) {
+                        mainWorkTypeDisplayInput.focus();
+                    }
+                    return;
+                }
+                const newForm = createAdditionalWorkItemForm({});
+                const select = newForm ? newForm.querySelector('[data-field="work_type"]') : null;
+                if (select) {
+                    select.focus();
+                }
+            });
+        }
+
+        const restoredBundleItems = parseBundleItemsFromHidden();
+        if (restoredBundleItems.length > 1) {
+            for (let i = 1; i < restoredBundleItems.length; i += 1) {
+                createAdditionalWorkItemForm(restoredBundleItems[i]);
+            }
+        }
+        syncBundleFromForms();
+
         // Loading State Handler with Real Progress Simulation
         const form = document.getElementById('calculationForm');
         let loadingInterval = null;
@@ -2167,6 +2746,20 @@
                 if (ceramicTypeFilterApi && typeof ceramicTypeFilterApi.clear === 'function') {
                     ceramicTypeFilterApi.clear();
                 }
+
+                if (additionalWorkItemsList) {
+                    additionalWorkItemsList.innerHTML = '';
+                }
+                if (additionalWorkItemsSection) {
+                    additionalWorkItemsSection.style.display = 'none';
+                }
+                if (workItemsPayloadInput) {
+                    workItemsPayloadInput.value = '';
+                }
+                if (enableBundleModeInput) {
+                    enableBundleModeInput.value = '0';
+                }
+                setMainFormRequired(true);
 
                 toggleCustomForm();
                 if (typeof handleWorkTypeChange === 'function') {
@@ -2364,6 +2957,17 @@
                     mortarThicknessInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
             }
+
+            if (additionalWorkItemsList) {
+                additionalWorkItemsList.innerHTML = '';
+                const restoredBundleItems = parseBundleItemsFromHidden();
+                if (restoredBundleItems.length > 1) {
+                    for (let i = 1; i < restoredBundleItems.length; i += 1) {
+                        createAdditionalWorkItemForm(restoredBundleItems[i]);
+                    }
+                }
+            }
+            syncBundleFromForms();
         }
 
         function restoreCalculationSession() {
@@ -2497,26 +3101,44 @@
             });
 
             form.addEventListener('submit', function(e) {
-                // Client-side validation for work type selection
-                const workTypeHidden = document.getElementById('workTypeSelector');
-                if (!workTypeHidden || !workTypeHidden.value) {
+                const bundleBuild = buildBundleItems(true);
+                if (bundleBuild.error) {
                     e.preventDefault();
                     if (typeof window.showToast === 'function') {
-                        window.showToast('Harap pilih Item Pekerjaan dari daftar yang tersedia. Klik atau ketik untuk melihat pilihan.', 'error');
+                        window.showToast(bundleBuild.error.message, 'error');
                     } else {
-                        alert('Harap pilih Item Pekerjaan dari daftar yang tersedia.');
+                        alert(bundleBuild.error.message);
                     }
-                    // Scroll to work type field
-                    const workTypeGroup = document.querySelector('.work-type-group');
-                    if (workTypeGroup) {
-                        workTypeGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    // Focus on the work type input
-                    const workTypeDisplay = document.getElementById('workTypeDisplay');
-                    if (workTypeDisplay) {
-                        workTypeDisplay.focus();
+                    if (bundleBuild.error.focusEl && typeof bundleBuild.error.focusEl.focus === 'function') {
+                        bundleBuild.error.focusEl.focus();
                     }
                     return;
+                }
+                const bundleItems = bundleBuild.items || [];
+                const isBundleModeEnabled = bundleItems.length >= 2;
+
+                if (!isBundleModeEnabled) {
+                    // Client-side validation for work type selection (single mode)
+                    const workTypeHidden = document.getElementById('workTypeSelector');
+                    if (!workTypeHidden || !workTypeHidden.value) {
+                        e.preventDefault();
+                        if (typeof window.showToast === 'function') {
+                            window.showToast('Harap pilih Item Pekerjaan dari daftar yang tersedia. Klik atau ketik untuk melihat pilihan.', 'error');
+                        } else {
+                            alert('Harap pilih Item Pekerjaan dari daftar yang tersedia.');
+                        }
+                        // Scroll to work type field
+                        const workTypeGroup = document.querySelector('.work-type-group');
+                        if (workTypeGroup) {
+                            workTypeGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        // Focus on the work type input
+                        const workTypeDisplay = document.getElementById('workTypeDisplay');
+                        if (workTypeDisplay) {
+                            workTypeDisplay.focus();
+                        }
+                        return;
+                    }
                 }
 
                 // Client-side validation for price filters
@@ -2536,6 +3158,21 @@
                         filterSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     }
                     return;
+                }
+
+                if (isBundleModeEnabled) {
+                    setMainFormRequired(false);
+                    if (workItemsPayloadInput) {
+                        workItemsPayloadInput.value = JSON.stringify(bundleItems);
+                    }
+                    if (enableBundleModeInput) {
+                        enableBundleModeInput.value = '1';
+                    }
+                } else if (workItemsPayloadInput) {
+                    workItemsPayloadInput.value = '';
+                    if (enableBundleModeInput) {
+                        enableBundleModeInput.value = '0';
+                    }
                 }
 
                 if (this.checkValidity()) {
@@ -2692,4 +3329,3 @@
     })();
 </script>
 @endpush
-

@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Material\ApiCeramicStoreRequest;
 use App\Http\Resources\CeramicResource;
 use App\Services\Material\CeramicService;
+use App\Support\Material\MaterialApiIndexQuery;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,14 +47,13 @@ class CeramicController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $perPage = $request->get('per_page', 15);
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortDirection = $request->get('sort_direction', 'desc');
-
-        $ceramics = $search
-            ? $this->ceramicService->search($search, $perPage, $sortBy, $sortDirection)
-            : $this->ceramicService->paginateWithSort($perPage, $sortBy, $sortDirection);
+        $ceramics = MaterialApiIndexQuery::execute(
+            $request,
+            fn($search, $perPage, $sortBy, $sortDirection) =>
+            $this->ceramicService->search($search, $perPage, $sortBy, $sortDirection),
+            fn($perPage, $sortBy, $sortDirection) =>
+            $this->ceramicService->paginateWithSort($perPage, $sortBy, $sortDirection),
+        );
 
         return $this->paginatedResponse(
             CeramicResource::collection($ceramics)->resource,
@@ -66,15 +69,7 @@ class CeramicController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        // Validasi dasar (Validation rules lengkap sebaiknya di FormRequest terpisah,
-        // tapi untuk API cepat kita bisa taruh sini atau di Service)
-        $data = $request->validate([
-            'brand' => 'required|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'pieces_per_package' => 'required|integer|min:1',
-            'price_per_package' => 'required|numeric|min:0',
-            // ... tambahkan validasi field lain sesuai kebutuhan
-        ]);
+        $data = $request->validate((new ApiCeramicStoreRequest())->rules());
 
         try {
             // Gabungkan semua input, termasuk file photo
@@ -163,10 +158,10 @@ class CeramicController extends Controller
      */
     public function getFieldValues(string $field, Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
         // Filter spesifik yang mungkin dikirim frontend
-        $filters = $request->only(['brand', 'store', 'type', 'packaging']);
+        $filters = MaterialLookupQuery::onlyFilters($request, MaterialLookupSpec::apiFilterKeys('ceramic'));
 
         $values = $this->ceramicService->getFieldValues($field, $filters, $search, $limit);
 
@@ -182,9 +177,9 @@ class CeramicController extends Controller
      */
     public function getAllStores(Request $request): JsonResponse
     {
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
-        $materialType = $request->get('material_type', 'ceramic'); // Default 'ceramic' or 'all'
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
+        $materialType = MaterialLookupQuery::rawMaterialType($request, 'ceramic'); // Default 'ceramic' or 'all'
 
         $stores = $this->ceramicService->getAllStores($search, $limit, $materialType);
 
@@ -199,9 +194,9 @@ class CeramicController extends Controller
      */
     public function getAddressesByStore(Request $request): JsonResponse
     {
-        $store = $request->get('store');
-        $search = $request->get('search');
-        $limit = $request->get('limit', 20);
+        $store = MaterialLookupQuery::rawStore($request);
+        $search = MaterialLookupQuery::rawSearch($request);
+        $limit = MaterialLookupQuery::rawLimit($request);
 
         if (!$store) {
             return response()->json([]);

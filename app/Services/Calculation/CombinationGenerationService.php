@@ -451,6 +451,7 @@ class CombinationGenerationService
         foreach ($rankedLocations as $row) {
             $location = $row['location'];
             $distanceKm = isset($row['distance_km']) ? (float) $row['distance_km'] : null;
+            $selectedBrickForLocation = $brick;
             $storeMaterials = $this->extractStoreMaterialsFromAvailability(
                 $location,
                 $materialTypeFilters,
@@ -470,7 +471,16 @@ class CombinationGenerationService
                 }
             }
 
-            $hasBrickAtLocation = $this->storeHasBrick($location, $brick, $allowStoreNameFallback);
+            $hasBrickAtLocation = true;
+            if (in_array('brick', $requiredMaterials, true)) {
+                $selectedBrickForLocation = $this->resolveBrickForLocation(
+                    $location,
+                    $selectedBrickForLocation,
+                    $materialTypeFilters,
+                    $allowStoreNameFallback,
+                );
+                $hasBrickAtLocation = $selectedBrickForLocation !== null;
+            }
 
             // DEBUG: Log filtered store materials
             Log::info('Store materials after filtering', [
@@ -521,6 +531,7 @@ class CombinationGenerationService
                 'location' => $location,
                 'distance_km' => $distanceKm,
                 'has_brick' => $hasBrickAtLocation,
+                'brick' => $selectedBrickForLocation,
                 'materials' => $storeMaterials,
             ];
 
@@ -547,7 +558,7 @@ class CombinationGenerationService
 
             // Calculate Local Combinations
             // We only need Cheapest & Expensive per store to represent range
-            if (!$brick && in_array('brick', $requiredMaterials)) {
+            if (!$selectedBrickForLocation && in_array('brick', $requiredMaterials, true)) {
                 continue;
             }
 
@@ -555,7 +566,7 @@ class CombinationGenerationService
             $storeMaterials = $this->capStoreMaterials($storeMaterials, $workType);
 
             $localResults = $this->calculateCombinationsFromMaterials(
-                $brick ?? new Brick(), // Fallback if not required
+                $selectedBrickForLocation ?? new Brick(), // Fallback if not required
                 $request->all(),
                 $storeMaterials['cement'],
                 $storeMaterials['sand'],
@@ -569,6 +580,11 @@ class CombinationGenerationService
             if (empty($localResults)) {
                 continue;
             }
+
+            $localResults = $this->injectStoreBrickIntoResults(
+                $localResults,
+                in_array('brick', $requiredMaterials, true) ? $selectedBrickForLocation : null,
+            );
 
             // Sort by Price
             usort($localResults, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
@@ -621,10 +637,8 @@ class CombinationGenerationService
             }
         }
 
-        if ($allowMixedStore && empty($allStoreCombinations) && $hasProjectCoordinates) {
-            $requiresBrick = in_array('brick', $requiredMaterials, true) &&
-                $brick !== null &&
-                (!empty($brick->store_location_id) || !empty($brick->store));
+        if ($allowMixedStore && $hasProjectCoordinates) {
+            $requiresBrick = in_array('brick', $requiredMaterials, true);
             $coverage = $this->storeProximityService->buildNearestCoveragePlan(
                 collect($preparedLocations),
                 $requiredMaterials,
@@ -632,9 +646,10 @@ class CombinationGenerationService
             );
 
             if ($coverage['is_complete'] ?? false) {
+                $coverageBrick = $coverage['selected_brick'] ?? null;
                 $selectedMaterials = $this->capStoreMaterials($coverage['selected_materials'], $workType);
                 $localResults = $this->calculateCombinationsFromMaterials(
-                    $brick ?? new Brick(),
+                    $coverageBrick instanceof Brick ? $coverageBrick : ($brick ?? new Brick()),
                     $request->all(),
                     $selectedMaterials['cement'] ?? collect(),
                     $selectedMaterials['sand'] ?? collect(),
@@ -643,6 +658,11 @@ class CombinationGenerationService
                     $selectedMaterials['nat'] ?? collect(),
                     'Store: Gabungan Toko Terdekat',
                     10,
+                );
+
+                $localResults = $this->injectStoreBrickIntoResults(
+                    $localResults,
+                    in_array('brick', $requiredMaterials, true) && $coverageBrick instanceof Brick ? $coverageBrick : null,
                 );
 
                 foreach ($localResults as $result) {
@@ -666,74 +686,9 @@ class CombinationGenerationService
             return $this->getStoreBasedCombinationsByStoreName($request, $constraints);
         }
 
-        // Global Sort of Store Leaders (Cheapest to Expensive)
-        usort($allStoreCombinations, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+        $allStoreCombinations = $this->deduplicateStoreCandidates($allStoreCombinations, $requiredMaterials);
 
-        $finalResults = [];
-        $count = count($allStoreCombinations);
-
-        if ($count > 0) {
-            // 1. CHEAPEST (Ekonomis) - Top 3 Lowest Prices
-            $limitEkonomis = min(3, $count);
-            for ($i = 0; $i < $limitEkonomis; $i++) {
-                $combo = $allStoreCombinations[$i];
-                $rank = $i + 1;
-                $label = "Ekonomis {$rank}";
-
-                // Append store info to filter label for clarity if needed,
-                // but View expects strict "Ekonomis X" for categorization.
-                // We can append store name to the label visible in UI if the view supports it,
-                // but for now let's keep the key strict so it falls into the column.
-
-                $combo['filter_label'] = $label;
-                $combo['filter_type'] = 'cheapest';
-                $finalResults[$label] = [$combo];
-            }
-
-            // 2. EXPENSIVE (Termahal) - Top 3 Highest Prices
-            // We take from the end of the sorted array
-            $limitTermahal = min(3, $count);
-            $startTermahal = max($limitEkonomis, $count - $limitTermahal); // Avoid overlap if count is small
-
-            $termahalRank = 1;
-            // Iterate backwards for rank 1 (most expensive) to 3
-            for ($i = $count - 1; $i >= $startTermahal; $i--) {
-                $combo = $allStoreCombinations[$i];
-                $label = "Termahal {$termahalRank}";
-                $combo['filter_label'] = $label;
-                $combo['filter_type'] = 'expensive';
-                $finalResults[$label] = [$combo];
-                $termahalRank++;
-            }
-
-            // 3. AVERAGE (Average) - Middle Price
-            // If we have remaining items in the middle
-            if ($count > $limitEkonomis + ($count - $startTermahal)) {
-                // Pick one median
-                $midIndex = floor(($count - 1) / 2);
-                if ($midIndex >= $limitEkonomis && $midIndex < $startTermahal) {
-                    $combo = $allStoreCombinations[$midIndex];
-                    $label = 'Average 1';
-                    $combo['filter_label'] = $label;
-                    $combo['filter_type'] = 'medium';
-                    $finalResults[$label] = [$combo];
-                }
-            } else {
-                // If not enough items for separate Average, maybe aliasing the middle one?
-                // Or just skip.
-                // Let's try to populate Average 1 if we have at least 3 items and it wasn't picked?
-                if ($count >= 3 && !isset($finalResults['Average 1'])) {
-                    // Just pick the middle one even if it overlaps (duplicates are handled by view usually or it's fine)
-                    // Actually, let's avoid overlap if possible.
-                    // If count is 3: 0->Ekonomis1, 1->Ekonomis2, 2->Ekonomis3.
-                    // Termahal logic: 2->Termahal1, 1->Termahal2... overlapping.
-
-                    // Priority: Fill columns.
-                }
-            }
-        }
-
-        return $finalResults;
+        return $this->buildStoreFilteredResults($allStoreCombinations, $request->all(), $requiredMaterials);
     }
 
     protected function extractStoreMaterialsFromAvailability(
@@ -836,6 +791,103 @@ class CombinationGenerationService
         }
 
         return $hasBrick;
+    }
+
+    protected function resolveBrickForLocation(
+        \App\Models\StoreLocation $location,
+        ?Brick $preferredBrick,
+        array $materialTypeFilters,
+        bool $allowStoreNameFallback = true,
+    ): ?Brick {
+        $preferredTypes = [];
+        if ($preferredBrick && !empty($preferredBrick->type)) {
+            $preferredTypes[] = (string) $preferredBrick->type;
+        }
+        $preferredTypes = array_values(
+            array_unique(
+                array_merge(
+                    $preferredTypes,
+                    $this->normalizeMaterialTypeFilterValues($materialTypeFilters['brick'] ?? null),
+                ),
+            ),
+        );
+
+        $localBricks = collect();
+        $availabilityBrickIds = $location->materialAvailabilities()
+            ->where('materialable_type', Brick::class)
+            ->pluck('materialable_id');
+        if ($availabilityBrickIds->isNotEmpty()) {
+            $localBricks = $localBricks->merge(
+                Brick::query()->whereIn('id', $availabilityBrickIds)->get(),
+            );
+        }
+        $localBricks = $localBricks->merge(
+            Brick::query()->where('store_location_id', $location->id)->get(),
+        );
+
+        $candidate = $this->pickPreferredBrickFromCollection(
+            $localBricks->unique('id')->values(),
+            $preferredTypes,
+            $preferredBrick?->id,
+        );
+        if ($candidate) {
+            return $candidate;
+        }
+
+        if ($allowStoreNameFallback) {
+            $storeNameNorm = $this->normalizeStoreName($location->store->name ?? '');
+            if ($storeNameNorm !== '') {
+                $storeBricks = $this->getMaterialsByStoreName(Brick::class, $storeNameNorm);
+                $candidate = $this->pickPreferredBrickFromCollection(
+                    $storeBricks,
+                    $preferredTypes,
+                    $preferredBrick?->id,
+                );
+                if ($candidate) {
+                    return $candidate;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    protected function pickPreferredBrickFromCollection($items, array $preferredTypes = [], ?int $preferredBrickId = null): ?Brick
+    {
+        $bricks = collect($items)
+            ->filter(fn($item) => $item instanceof Brick)
+            ->sort(function (Brick $a, Brick $b) {
+                $priceA = is_numeric($a->comparison_price_per_m3 ?? null) ? (float) $a->comparison_price_per_m3 : INF;
+                $priceB = is_numeric($b->comparison_price_per_m3 ?? null) ? (float) $b->comparison_price_per_m3 : INF;
+                if ($priceA === $priceB) {
+                    return (int) $a->id <=> (int) $b->id;
+                }
+
+                return $priceA <=> $priceB;
+            })
+            ->values();
+
+        if ($bricks->isEmpty()) {
+            return null;
+        }
+
+        if ($preferredBrickId) {
+            $exact = $bricks->first(fn(Brick $brick) => (int) $brick->id === (int) $preferredBrickId);
+            if ($exact) {
+                return $exact;
+            }
+        }
+
+        if (!empty($preferredTypes)) {
+            $preferred = $bricks->first(function (Brick $brick) use ($preferredTypes) {
+                return in_array((string) ($brick->type ?? ''), $preferredTypes, true);
+            });
+            if ($preferred) {
+                return $preferred;
+            }
+        }
+
+        return $bricks->first();
     }
 
     protected function formatStoreLabelBase(\App\Models\StoreLocation $location, ?float $distanceKm = null): string
@@ -1152,6 +1204,11 @@ class CombinationGenerationService
                 continue;
             }
 
+            $localResults = $this->injectStoreBrickIntoResults(
+                $localResults,
+                in_array('brick', $requiredMaterials, true) ? $brick : null,
+            );
+
             usort($localResults, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
             $isSingleMaterialWork = count($requiredMaterials) <= 1;
 
@@ -1179,41 +1236,386 @@ class CombinationGenerationService
             return [];
         }
 
-        usort($allStoreCombinations, fn($a, $b) => $a['total_cost'] <=> $b['total_cost']);
+        $allStoreCombinations = $this->deduplicateStoreCandidates($allStoreCombinations, $requiredMaterials);
+
+        return $this->buildStoreFilteredResults($allStoreCombinations, $request->all(), $requiredMaterials);
+    }
+
+    protected function buildStoreFilteredResults(
+        array $candidates,
+        array $requestData,
+        array $requiredMaterials,
+    ): array {
+        if (empty($candidates)) {
+            return [];
+        }
+
+        $requestedFilters = $requestData['price_filters'] ?? ['cheapest'];
+        if (!is_array($requestedFilters)) {
+            $requestedFilters = [(string) $requestedFilters];
+        }
+        $requestedFilters = array_values(
+            array_unique(
+                array_values(
+                    array_filter(
+                        array_map(static fn($filter) => strtolower(trim((string) $filter)), $requestedFilters),
+                        static fn($filter) => $filter !== '',
+                    ),
+                ),
+            ),
+        );
+        if (empty($requestedFilters)) {
+            $requestedFilters = ['cheapest'];
+        }
+
+        if (in_array('all', $requestedFilters, true)) {
+            $requestedFilters = array_values(
+                array_unique(array_merge($requestedFilters, ['best', 'common', 'cheapest', 'medium', 'expensive'])),
+            );
+        }
 
         $finalResults = [];
-        $count = count($allStoreCombinations);
-        $limitEkonomis = min(3, $count);
-        for ($i = 0; $i < $limitEkonomis; $i++) {
-            $combo = $allStoreCombinations[$i];
-            $label = 'Ekonomis ' . ($i + 1);
-            $combo['filter_label'] = $label;
-            $combo['filter_type'] = 'cheapest';
-            $finalResults[$label] = [$combo];
+
+        if (in_array('best', $requestedFilters, true)) {
+            $preferensi = $this->selectStorePreferensiCandidates($candidates, $requestData, $requiredMaterials);
+            $finalResults = array_merge(
+                $finalResults,
+                $this->mapCandidatesToRankedLabels($preferensi, 'Preferensi', 'best'),
+            );
         }
 
-        $limitTermahal = min(3, $count);
-        $startTermahal = max($limitEkonomis, $count - $limitTermahal);
-        $termahalRank = 1;
-        for ($i = $count - 1; $i >= $startTermahal; $i--) {
-            $combo = $allStoreCombinations[$i];
-            $label = "Termahal {$termahalRank}";
-            $combo['filter_label'] = $label;
-            $combo['filter_type'] = 'expensive';
-            $finalResults[$label] = [$combo];
-            $termahalRank++;
+        if (in_array('common', $requestedFilters, true)) {
+            $popular = $this->selectStorePopularCandidates($candidates, $requestData, $requiredMaterials);
+            $finalResults = array_merge($finalResults, $this->mapCandidatesToRankedLabels($popular, 'Populer', 'common'));
         }
 
-        if ($count > 0 && !isset($finalResults['Average 1'])) {
-            $midIndex = floor(($count - 1) / 2);
-            $combo = $allStoreCombinations[$midIndex];
-            $label = 'Average 1';
-            $combo['filter_label'] = $label;
-            $combo['filter_type'] = 'medium';
-            $finalResults[$label] = [$combo];
+        if (in_array('cheapest', $requestedFilters, true)) {
+            $cheapest = $this->selectCheapestStoreCandidates($candidates);
+            $finalResults = array_merge(
+                $finalResults,
+                $this->mapCandidatesToRankedLabels($cheapest, 'Ekonomis', 'cheapest'),
+            );
         }
 
-        return $finalResults;
+        if (in_array('medium', $requestedFilters, true)) {
+            $average = $this->selectAverageStoreCandidates($candidates);
+            $finalResults = array_merge($finalResults, $this->mapCandidatesToRankedLabels($average, 'Average', 'medium'));
+        }
+
+        if (in_array('expensive', $requestedFilters, true)) {
+            $expensive = $this->selectMostExpensiveStoreCandidates($candidates);
+            $finalResults = array_merge(
+                $finalResults,
+                $this->mapCandidatesToRankedLabels($expensive, 'Termahal', 'expensive'),
+            );
+        }
+
+        if (!empty($finalResults)) {
+            return $finalResults;
+        }
+
+        // Fallback defensif: tetap berikan hasil ekonomis jika filter tidak dikenali.
+        $fallback = $this->selectCheapestStoreCandidates($candidates);
+
+        return $this->mapCandidatesToRankedLabels($fallback, 'Ekonomis', 'cheapest');
+    }
+
+    protected function mapCandidatesToRankedLabels(
+        array $candidates,
+        string $prefix,
+        string $filterType,
+        int $limit = 3,
+    ): array {
+        $results = [];
+        $rank = 1;
+
+        foreach (array_slice($candidates, 0, $limit) as $candidate) {
+            $label = $prefix . ' ' . $rank;
+            $candidate['filter_label'] = $label;
+            $candidate['filter_type'] = $filterType;
+            $results[$label] = [$candidate];
+            $rank++;
+        }
+
+        return $results;
+    }
+
+    protected function selectCheapestStoreCandidates(array $candidates, int $limit = 3): array
+    {
+        usort($candidates, fn($a, $b) => ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0)));
+
+        return array_slice($candidates, 0, $limit);
+    }
+
+    protected function selectMostExpensiveStoreCandidates(array $candidates, int $limit = 3): array
+    {
+        usort($candidates, fn($a, $b) => ((float) ($b['total_cost'] ?? 0)) <=> ((float) ($a['total_cost'] ?? 0)));
+
+        return array_slice($candidates, 0, $limit);
+    }
+
+    protected function selectAverageStoreCandidates(array $candidates, int $limit = 3): array
+    {
+        if (empty($candidates)) {
+            return [];
+        }
+
+        usort($candidates, fn($a, $b) => ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0)));
+        $total = count($candidates);
+        $limit = min($limit, $total);
+        $medianIndex = (int) floor(($total - 1) / 2);
+
+        $indices = [$medianIndex];
+        $offset = 1;
+        while (count($indices) < $limit) {
+            $left = $medianIndex - $offset;
+            $right = $medianIndex + $offset;
+
+            if ($left >= 0) {
+                $indices[] = $left;
+                if (count($indices) >= $limit) {
+                    break;
+                }
+            }
+            if ($right < $total) {
+                $indices[] = $right;
+            }
+            $offset++;
+        }
+
+        $indices = array_values(array_unique($indices));
+        sort($indices);
+
+        return array_values(array_map(fn($index) => $candidates[$index], array_slice($indices, 0, $limit)));
+    }
+
+    protected function selectStorePopularCandidates(
+        array $candidates,
+        array $requestData,
+        array $requiredMaterials,
+        int $limit = 3,
+    ): array {
+        $workType = (string) ($requestData['work_type'] ?? 'brick_half');
+        $frequencyMap = $this->buildHistoricalFrequencyMap($workType, $requiredMaterials);
+        if (empty($frequencyMap)) {
+            return [];
+        }
+
+        $popular = [];
+        foreach ($candidates as $candidate) {
+            $ids = $this->extractCandidateMaterialIds($candidate);
+            $signature = $this->buildMaterialSignature($ids, $requiredMaterials);
+            $frequency = (int) ($frequencyMap[$signature] ?? 0);
+            if ($frequency <= 0) {
+                continue;
+            }
+
+            $candidate['frequency'] = $frequency;
+            $popular[] = $candidate;
+        }
+
+        if (empty($popular)) {
+            return [];
+        }
+
+        // "Populer" diminta mengambil yang termurah dari kandidat populer.
+        usort($popular, function ($a, $b) {
+            $priceCompare = ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0));
+            if ($priceCompare !== 0) {
+                return $priceCompare;
+            }
+
+            return ((int) ($b['frequency'] ?? 0)) <=> ((int) ($a['frequency'] ?? 0));
+        });
+
+        return array_slice($popular, 0, $limit);
+    }
+
+    protected function selectStorePreferensiCandidates(
+        array $candidates,
+        array $requestData,
+        array $requiredMaterials,
+        int $limit = 3,
+    ): array {
+        $workType = (string) ($requestData['work_type'] ?? 'brick_half');
+        $recommendations = $this->repository->getRecommendedCombinations($workType)->where('type', 'best');
+
+        if ($recommendations->isEmpty()) {
+            return $this->selectCheapestStoreCandidates($candidates, $limit);
+        }
+
+        $selected = [];
+        foreach ($recommendations as $recommendation) {
+            $matching = array_values(
+                array_filter($candidates, function ($candidate) use ($recommendation, $requiredMaterials) {
+                    return $this->candidateMatchesRecommendation($candidate, $recommendation, $requiredMaterials);
+                }),
+            );
+
+            if (empty($matching)) {
+                continue;
+            }
+
+            usort($matching, fn($a, $b) => ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0)));
+            $selected[] = $matching[0];
+        }
+
+        if (empty($selected)) {
+            return $this->selectCheapestStoreCandidates($candidates, $limit);
+        }
+
+        $unique = $this->deduplicateStoreCandidates($selected, $requiredMaterials);
+        usort($unique, fn($a, $b) => ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0)));
+
+        return array_slice($unique, 0, $limit);
+    }
+
+    protected function candidateMatchesRecommendation(
+        array $candidate,
+        $recommendation,
+        array $requiredMaterials,
+    ): bool {
+        $fieldMap = [
+            'brick' => 'brick_id',
+            'cement' => 'cement_id',
+            'sand' => 'sand_id',
+            'cat' => 'cat_id',
+            'ceramic' => 'ceramic_id',
+            'nat' => 'nat_id',
+        ];
+
+        $candidateIds = $this->extractCandidateMaterialIds($candidate);
+
+        foreach ($requiredMaterials as $materialType) {
+            $field = $fieldMap[$materialType] ?? null;
+            if (!$field) {
+                continue;
+            }
+
+            $recommendedId = (int) ($recommendation->{$field} ?? 0);
+            if ($recommendedId <= 0) {
+                continue;
+            }
+
+            $candidateId = (int) ($candidateIds[$materialType] ?? 0);
+            if ($candidateId !== $recommendedId) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected function deduplicateStoreCandidates(array $candidates, array $requiredMaterials): array
+    {
+        $unique = [];
+        $seen = [];
+
+        foreach ($candidates as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            $ids = $this->extractCandidateMaterialIds($candidate);
+            $signature = $this->buildMaterialSignature($ids, $requiredMaterials);
+            $mode = (string) ($candidate['store_coverage_mode'] ?? 'single_store');
+            $cost = round((float) ($candidate['total_cost'] ?? 0), 2);
+            $key = $signature . '|mode:' . $mode . '|cost:' . $cost;
+
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $unique[] = $candidate;
+        }
+
+        return $unique;
+    }
+
+    protected function extractCandidateMaterialIds(array $candidate): array
+    {
+        return [
+            'brick' => (int) ($candidate['brick']->id ?? 0),
+            'cement' => (int) ($candidate['cement']->id ?? 0),
+            'sand' => (int) ($candidate['sand']->id ?? 0),
+            'cat' => (int) ($candidate['cat']->id ?? 0),
+            'ceramic' => (int) ($candidate['ceramic']->id ?? 0),
+            'nat' => (int) ($candidate['nat']->id ?? 0),
+        ];
+    }
+
+    protected function buildMaterialSignature(array $ids, array $requiredMaterials): string
+    {
+        $ordered = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        $parts = [];
+        foreach ($ordered as $type) {
+            if (!in_array($type, $requiredMaterials, true)) {
+                continue;
+            }
+            $parts[] = $type . ':' . (int) ($ids[$type] ?? 0);
+        }
+
+        return implode('|', $parts);
+    }
+
+    protected function buildHistoricalFrequencyMap(string $workType, array $requiredMaterials): array
+    {
+        $query = DB::table('brick_calculations')
+            ->select(
+                'brick_id',
+                'cement_id',
+                'sand_id',
+                'cat_id',
+                'ceramic_id',
+                'nat_id',
+                DB::raw('count(*) as frequency'),
+            )
+            ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(calculation_params, '$.work_type')) = ?", [$workType])
+            ->groupBy('brick_id', 'cement_id', 'sand_id', 'cat_id', 'ceramic_id', 'nat_id');
+
+        $fieldMap = [
+            'brick' => 'brick_id',
+            'cement' => 'cement_id',
+            'sand' => 'sand_id',
+            'cat' => 'cat_id',
+            'ceramic' => 'ceramic_id',
+            'nat' => 'nat_id',
+        ];
+        foreach ($requiredMaterials as $type) {
+            if (!isset($fieldMap[$type])) {
+                continue;
+            }
+            $query->whereNotNull($fieldMap[$type]);
+        }
+
+        $rows = $query->orderByDesc('frequency')->limit(500)->get();
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($rows as $row) {
+            $ids = [
+                'brick' => (int) ($row->brick_id ?? 0),
+                'cement' => (int) ($row->cement_id ?? 0),
+                'sand' => (int) ($row->sand_id ?? 0),
+                'cat' => (int) ($row->cat_id ?? 0),
+                'ceramic' => (int) ($row->ceramic_id ?? 0),
+                'nat' => (int) ($row->nat_id ?? 0),
+            ];
+            $signature = $this->buildMaterialSignature($ids, $requiredMaterials);
+            $frequency = (int) ($row->frequency ?? 0);
+
+            if ($signature === '' || $frequency <= 0) {
+                continue;
+            }
+
+            if (!isset($map[$signature]) || $frequency > $map[$signature]) {
+                $map[$signature] = $frequency;
+            }
+        }
+
+        return $map;
     }
 
     /**
@@ -1608,6 +2010,10 @@ class CombinationGenerationService
                         'Populer Store',
                         1,
                     );
+                    $result = $this->injectStoreBrickIntoResults(
+                        $result,
+                        in_array('brick', $requiredMaterials, true) ? $brick : null,
+                    );
 
                     if (!empty($result)) {
                         $res = $result[0];
@@ -1736,6 +2142,7 @@ class CombinationGenerationService
 
         $generator = $this->yieldCombinations(
             $paramsBase,
+            $brick,
             $workType,
             $cements,
             $sands,
@@ -1787,6 +2194,7 @@ class CombinationGenerationService
      */
     protected function yieldCombinations(
         array $paramsBase,
+        Brick $brick,
         string $workType,
         iterable $cements,
         iterable $sands,
@@ -1806,6 +2214,7 @@ class CombinationGenerationService
         ) {
             yield from $this->yieldCeramicNatCementSandCombinations(
                 $paramsBase,
+                $brick,
                 $workType,
                 $ceramics,
                 $nats,
@@ -1834,6 +2243,7 @@ class CombinationGenerationService
                     $result = $formula->calculate($params);
 
                     yield [
+                        'brick' => $brick,
                         'cat' => $cat,
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
@@ -1867,6 +2277,7 @@ class CombinationGenerationService
                         $result = $formula->calculate($params);
 
                         yield [
+                            'brick' => $brick,
                             'ceramic' => $ceramic,
                             'nat' => $nat,
                             'result' => $result,
@@ -1911,6 +2322,7 @@ class CombinationGenerationService
                         $result = $formula->calculate($params);
 
                         yield [
+                            'brick' => $brick,
                             'cement' => $cement,
                             'ceramic' => $ceramic,
                             'result' => $result,
@@ -1938,6 +2350,7 @@ class CombinationGenerationService
                     $result = $formula->calculate($params);
 
                     yield [
+                        'brick' => $brick,
                         'cement' => $cement,
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
@@ -1974,6 +2387,7 @@ class CombinationGenerationService
                         $result = $formula->calculate($params);
 
                         yield [
+                            'brick' => $brick,
                             'cement' => $cement,
                             'sand' => $sand,
                             'result' => $result,
@@ -2202,6 +2616,13 @@ class CombinationGenerationService
         $isCatWork = in_array('cat', $requiredMaterials, true);
         $materialTypeFilters = $request['material_type_filters'] ?? [];
         $natTypeFilterValues = $this->normalizeNatTypeFilterValues($materialTypeFilters['nat'] ?? null);
+        $attachBrick = function (array $results) use ($brick, $isBrickless): array {
+            if ($isBrickless) {
+                return $results;
+            }
+
+            return $this->injectStoreBrickIntoResults($results, $brick);
+        };
 
         Log::info('getCommonCombinations - Material Type Filters', [
             'filters' => $materialTypeFilters,
@@ -2311,7 +2732,7 @@ class CombinationGenerationService
                 }
             }
 
-            return $results;
+            return $attachBrick($results);
         }
 
         if ($isCatWork) {
@@ -2361,7 +2782,7 @@ class CombinationGenerationService
                 }
             }
 
-            return $results;
+            return $attachBrick($results);
         }
 
         if ($isBrickless) {
@@ -2427,7 +2848,7 @@ class CombinationGenerationService
                 }
             }
 
-            return $results;
+            return $attachBrick($results);
         }
 
         $commonCombos = DB::table('brick_calculations')
@@ -2504,7 +2925,7 @@ class CombinationGenerationService
             }
         }
 
-        return $results;
+        return $attachBrick($results);
     }
 
     /**
@@ -3053,6 +3474,22 @@ class CombinationGenerationService
         return $query->orderBy('purchase_price', $direction)->limit($limit)->get();
     }
 
+    protected function injectStoreBrickIntoResults(array $results, ?Brick $brick): array
+    {
+        if (!$brick) {
+            return $results;
+        }
+
+        foreach ($results as $index => $result) {
+            if (!is_array($result)) {
+                continue;
+            }
+            $results[$index]['brick'] = $brick;
+        }
+
+        return $results;
+    }
+
     protected function resolveCeramicsForCalculation(
         array $request,
         string $workType,
@@ -3098,6 +3535,7 @@ class CombinationGenerationService
 
     protected function yieldCeramicNatCementSandCombinations(
         array $paramsBase,
+        Brick $brick,
         string $workType,
         iterable $ceramics,
         iterable $nats,
@@ -3135,6 +3573,7 @@ class CombinationGenerationService
                             $result = $formula->calculate($params);
 
                             yield [
+                                'brick' => $brick,
                                 'ceramic' => $ceramic,
                                 'nat' => $nat,
                                 'cement' => $cement,

@@ -2,66 +2,28 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Material\CreateMaterialAction;
+use App\Actions\Material\DeleteMaterialAction;
+use App\Actions\Material\UpdateMaterialAction;
+use App\Http\Requests\Material\CementUpsertRequest;
 use App\Models\Cement;
 use App\Services\Material\MaterialDuplicateService;
+use App\Services\Material\MaterialPhotoService;
+use App\Support\Material\MaterialIndexQuery;
+use App\Support\Material\MaterialIndexSpec;
+use App\Support\Material\MaterialLookupQuery;
+use App\Support\Material\MaterialLookupSpec;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class CementController extends Controller
 {
     public function index(Request $request)
     {
         $query = Cement::query()->with('packageUnit');
-
-        // Pencarian
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('cement_name', 'like', "%{$search}%")
-                    ->orWhere('type', 'like', "%{$search}%")
-                    ->orWhere('brand', 'like', "%{$search}%")
-                    ->orWhere('sub_brand', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%")
-                    ->orWhere('color', 'like', "%{$search}%")
-                    ->orWhere('store', 'like', "%{$search}%")
-                    ->orWhere('address', 'like', "%{$search}%");
-            });
-        }
-
-        // Sorting
-        $sortBy = $request->get('sort_by');
-        $sortDirection = $request->get('sort_direction');
-
-        // Validasi kolom yang boleh di-sort
-        $allowedSorts = [
-            'cement_name',
-            'type',
-            'brand',
-            'sub_brand',
-            'code',
-            'color',
-            'package_unit',
-            'package_weight_gross',
-            'package_weight_net',
-            'store',
-            'address',
-            'package_price',
-            'comparison_price_per_kg',
-            'created_at',
-        ];
-
-        // Default sorting jika tidak ada atau tidak valid
-        if (!$sortBy || !in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'created_at';
-            $sortDirection = 'desc';
-        } else {
-            // Validasi direction
-            if (!in_array($sortDirection, ['asc', 'desc'])) {
-                $sortDirection = 'asc';
-            }
-        }
+        $search = MaterialIndexQuery::searchValue($request);
+        MaterialIndexQuery::applySearch($query, $search, MaterialIndexSpec::searchColumns('cement'));
+        [$sortBy, $sortDirection] = MaterialIndexQuery::resolveSort($request, 'cement');
 
         $cements = $query->orderBy($sortBy, $sortDirection)->paginate(15)->appends($request->query());
 
@@ -80,87 +42,24 @@ class CementController extends Controller
         // Normalize comma decimal separator (Indonesian format) to dot
         $this->normalizeDecimalFields($request);
 
-        $request->validate([
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'package_volume' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new CementUpsertRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cement', $data);
-        if ($duplicate) {
-            $message = 'Data Semen sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('cement', $data);
 
         DB::beginTransaction();
         try {
-            // Upload foto
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('cements', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                        \Log::info('Photo uploaded successfully: ' . $path);
-                    } else {
-                        \Log::error('Failed to store photo');
-                    }
-                } else {
-                    \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
-                }
-            }
-
-            // Auto-generate cement_name jika kosong
-            if (empty($data['cement_name'])) {
-                $parts = array_filter([
-                    $data['type'] ?? '',
-                    $data['brand'] ?? '',
-                    $data['sub_brand'] ?? '',
-                    $data['code'] ?? '',
-                    $data['color'] ?? '',
-                ]);
-                $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
-            }
+            $this->handleCreatePhotoUpload($request, $data);
+            $this->ensureCementName($data);
 
             // Buat cement
-            $cement = Cement::create($data);
+            $cement = app(CreateMaterialAction::class)->execute('cement', $data);
 
-            // Kalkulasi berat bersih jika belum diisi
-            if (
-                (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
-                $cement->package_weight_gross &&
-                $cement->package_unit
-            ) {
-                $cement->calculateNetWeight();
-            }
-
-            // Kalkulasi harga komparasi per kg
-            if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
-                $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
-            }
+            $this->recalculateCementDerivedFields($cement, false);
 
             $cement->save();
 
-            // NEW: Attach store location
-            if ($request->filled('store_location_id')) {
-                $cement->storeLocations()->attach($request->input('store_location_id'));
-            }
+            $this->syncStoreLocationOnCreate($request, $cement);
 
             DB::commit();
 
@@ -227,97 +126,24 @@ class CementController extends Controller
         // Normalize comma decimal separator (Indonesian format) to dot
         $this->normalizeDecimalFields($request);
 
-        $request->validate([
-            'type' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'brand' => 'nullable|string|max:255',
-            'sub_brand' => 'nullable|string|max:255',
-            'code' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'package_unit' => 'nullable|string|max:20',
-            'package_weight_gross' => 'nullable|numeric|min:0',
-            'package_weight_net' => 'nullable|numeric|min:0',
-            'package_volume' => 'nullable|numeric|min:0',
-            'store' => 'nullable|string|max:255',
-            'address' => 'nullable|string',
-            'address' => 'nullable|string',
-            'package_price' => 'nullable|numeric|min:0',
-            'price_unit' => 'nullable|string|max:20',
-            'store_location_id' => 'nullable|exists:store_locations,id',
-        ]);
+        $request->validate((new CementUpsertRequest())->rules());
 
         $data = $request->all();
-
-        $duplicate = app(MaterialDuplicateService::class)->findDuplicate('cement', $data, $cement->id);
-        if ($duplicate) {
-            $message = 'Data Semen sudah ada. Tidak bisa menyimpan data duplikat.';
-            throw ValidationException::withMessages(['duplicate' => $message]);
-        }
+        app(MaterialDuplicateService::class)->ensureNoDuplicate('cement', $data, $cement->id);
 
         DB::beginTransaction();
         try {
-            // Auto-generate cement_name jika kosong
-            if (empty($data['cement_name'])) {
-                $parts = array_filter([
-                    $data['type'] ?? '',
-                    $data['brand'] ?? '',
-                    $data['sub_brand'] ?? '',
-                    $data['code'] ?? '',
-                    $data['color'] ?? '',
-                ]);
-                $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
-            }
-
-            // Upload foto baru
-            if ($request->hasFile('photo')) {
-                $photo = $request->file('photo');
-                if ($photo->isValid()) {
-                    // Hapus foto lama
-                    if ($cement->photo) {
-                        Storage::disk('public')->delete($cement->photo);
-                    }
-
-                    $filename = time() . '_' . $photo->getClientOriginalName();
-                    $path = $photo->storeAs('cements', $filename, 'public');
-                    if ($path) {
-                        $data['photo'] = $path;
-                        \Log::info('Photo updated successfully: ' . $path);
-                    } else {
-                        \Log::error('Failed to update photo');
-                    }
-                } else {
-                    \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
-                }
-            }
+            $this->ensureCementName($data);
+            $this->handleUpdatePhotoUpload($request, $cement, $data);
 
             // Update cement
-            $cement->update($data);
+            app(UpdateMaterialAction::class)->execute($cement, $data);
 
-            // Kalkulasi berat bersih dari berat kotor dan berat kemasan
-            // HANYA jika berat bersih belum diisi manual oleh user
-            if (
-                (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
-                $cement->package_weight_gross &&
-                $cement->package_unit
-            ) {
-                $cement->calculateNetWeight();
-            }
-
-            // Kalkulasi harga komparasi per kg
-            if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
-                $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
-            } else {
-                $cement->comparison_price_per_kg = null;
-            }
+            $this->recalculateCementDerivedFields($cement, true);
 
             $cement->save();
 
-            // NEW: Sync store location
-            if ($request->filled('store_location_id')) {
-                $cement->storeLocations()->sync([$request->input('store_location_id')]);
-            } else {
-                $cement->storeLocations()->detach();
-            }
+            $this->syncStoreLocationOnUpdate($request, $cement);
 
             DB::commit();
 
@@ -372,14 +198,12 @@ class CementController extends Controller
         DB::beginTransaction();
         try {
             // Hapus foto
-            if ($cement->photo) {
-                Storage::disk('public')->delete($cement->photo);
-            }
+            app(MaterialPhotoService::class)->delete($cement->photo);
 
             // NEW: Detach store locations
             $cement->storeLocations()->detach();
 
-            $cement->delete();
+            app(DeleteMaterialAction::class)->execute($cement);
 
             DB::commit();
 
@@ -412,31 +236,107 @@ class CementController extends Controller
         }
     }
 
+    private function handleCreatePhotoUpload(Request $request, array &$data): void
+    {
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            if ($photo->isValid()) {
+                $path = app(MaterialPhotoService::class)->upload($photo, 'cements');
+                if ($path) {
+                    $data['photo'] = $path;
+                    \Log::info('Photo uploaded successfully: ' . $path);
+                } else {
+                    \Log::error('Failed to store photo');
+                }
+            } else {
+                \Log::error('Invalid photo file: ' . $photo->getErrorMessage());
+            }
+        }
+    }
+
+    private function handleUpdatePhotoUpload(Request $request, Cement $cement, array &$data): void
+    {
+        if ($request->hasFile('photo')) {
+            $photo = $request->file('photo');
+            if ($photo->isValid()) {
+                $path = app(MaterialPhotoService::class)->upload($photo, 'cements', $cement->photo);
+                if ($path) {
+                    $data['photo'] = $path;
+                    \Log::info('Photo updated successfully: ' . $path);
+                } else {
+                    \Log::error('Failed to update photo');
+                }
+            } else {
+                \Log::error('Invalid photo file on update: ' . $photo->getErrorMessage());
+            }
+        }
+    }
+
+    private function ensureCementName(array &$data): void
+    {
+        if (!empty($data['cement_name'])) {
+            return;
+        }
+
+        $parts = array_filter([
+            $data['type'] ?? '',
+            $data['brand'] ?? '',
+            $data['sub_brand'] ?? '',
+            $data['code'] ?? '',
+            $data['color'] ?? '',
+        ]);
+        $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
+    }
+
+    private function recalculateCementDerivedFields(Cement $cement, bool $resetComparisonPriceIfMissing): void
+    {
+        if (
+            (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
+            $cement->package_weight_gross &&
+            $cement->package_unit
+        ) {
+            $cement->calculateNetWeight();
+        }
+
+        if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {
+            $cement->comparison_price_per_kg = $cement->package_price / $cement->package_weight_net;
+            return;
+        }
+
+        if ($resetComparisonPriceIfMissing) {
+            $cement->comparison_price_per_kg = null;
+        }
+    }
+
+    private function syncStoreLocationOnCreate(Request $request, Cement $cement): void
+    {
+        if ($request->filled('store_location_id')) {
+            $cement->storeLocations()->attach($request->input('store_location_id'));
+        }
+    }
+
+    private function syncStoreLocationOnUpdate(Request $request, Cement $cement): void
+    {
+        if ($request->filled('store_location_id')) {
+            $cement->storeLocations()->sync([$request->input('store_location_id')]);
+            return;
+        }
+
+        $cement->storeLocations()->detach();
+    }
+
     // API untuk mendapatkan unique values per field
     public function getFieldValues(string $field, Request $request)
     {
         // Bidang yang diizinkan untuk auto-suggest
-        $allowedFields = [
-            'cement_name',
-            'type',
-            'brand',
-            'sub_brand',
-            'code',
-            'color',
-            'store',
-            'address',
-            'price_unit',
-            'package_weight_gross',
-            'package_price',
-        ];
+        $allowedFields = MaterialLookupSpec::allowedFields('cement');
 
         if (!in_array($field, $allowedFields)) {
             return response()->json([]);
         }
 
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         // Get filter parameters for cascading autocomplete
         $brand = (string) $request->query('brand', '');
@@ -504,10 +404,9 @@ class CementController extends Controller
      */
     public function getAllStores(Request $request)
     {
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
-        $materialType = $request->query('material_type', 'all'); // 'cement' atau 'all'
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
+        $materialType = MaterialLookupQuery::queryMaterialType($request, 'all'); // 'cement' atau 'all'
 
         $stores = collect();
 
@@ -567,10 +466,9 @@ class CementController extends Controller
      */
     public function getAddressesByStore(Request $request)
     {
-        $store = (string) $request->query('store', '');
-        $search = (string) $request->query('search', '');
-        $limit = (int) $request->query('limit', 20);
-        $limit = $limit > 0 && $limit <= 100 ? $limit : 20;
+        $store = MaterialLookupQuery::stringStore($request);
+        $search = MaterialLookupQuery::stringSearch($request);
+        $limit = MaterialLookupQuery::normalizedLimit($request);
 
         // Jika tidak ada toko yang dipilih, return empty
         if ($store === '') {
