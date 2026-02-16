@@ -303,10 +303,37 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'ceramic_length' => $entry['ceramic_length'] ?? null,
                 'ceramic_width' => $entry['ceramic_width'] ?? null,
                 'ceramic_thickness' => $entry['ceramic_thickness'] ?? null,
+                'material_type_filters' => $this->normalizeBundleMaterialTypeFilters(
+                    $entry['material_type_filters'] ?? [],
+                ),
             ];
         }
 
         return array_values($items);
+    }
+
+    protected function normalizeBundleMaterialTypeFilters(mixed $rawFilters): array
+    {
+        if (!is_array($rawFilters)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($rawFilters as $key => $value) {
+            $materialKey = trim((string) $key);
+            if ($materialKey === '') {
+                continue;
+            }
+
+            $values = $this->normalizeMaterialTypeFilterValues($value);
+            if (empty($values)) {
+                continue;
+            }
+
+            $normalized[$materialKey] = count($values) === 1 ? $values[0] : array_values($values);
+        }
+
+        return $normalized;
     }
 
     protected function generateBundleCombinations(Request $request, array $bundleItems)
@@ -375,6 +402,15 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'installation_type_id' => $request->input('installation_type_id') ?? $defaultInstallationType?->id,
                 'mortar_formula_id' => $request->input('mortar_formula_id') ?? $defaultMortarFormula?->id,
             ]);
+            $itemMaterialTypeFilters = $this->normalizeBundleMaterialTypeFilters(
+                $bundleItem['material_type_filters'] ?? [],
+            );
+            if (!empty($itemMaterialTypeFilters)) {
+                $itemRequestData['material_type_filters'] = $itemMaterialTypeFilters;
+                $itemRequestData['material_type_filters_extra'] = [];
+            } else {
+                unset($itemRequestData['material_type_filters'], $itemRequestData['material_type_filters_extra']);
+            }
 
             $itemRequest = Request::create('/material-calculations', 'POST', $itemRequestData);
             $this->normalizeNatIdentifiers($itemRequest);

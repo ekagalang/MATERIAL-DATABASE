@@ -1048,7 +1048,7 @@
                 else if (url.includes('/nats/')) { materialType = 'nat'; materialLabel = 'Nat'; }
                 else if (url.includes('/sands/')) { materialType = 'sand'; materialLabel = 'Pasir'; }
                 else if (url.includes('/ceramics/')) { materialType = 'ceramic'; materialLabel = 'Keramik'; }
-                else if (url.includes('/store-locations/')) { materialType = 'store-location'; materialLabel = 'Lokasi Toko'; }
+                else if (url.includes('/store-locations/') || (url.includes('/stores/') && url.includes('/locations'))) { materialType = 'store-location'; materialLabel = 'Lokasi Toko'; }
                 else if (url.includes('/stores/')) { materialType = 'store'; materialLabel = 'Toko'; }
                 else if (url.includes('/settings/recommendations')) { materialType = 'recommendations'; materialLabel = 'Setting Rekomendasi'; }
 
@@ -1158,6 +1158,40 @@
                     .modal-input-invalid {
                         border-color: #ef4444 !important;
                         box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            function ensureStoreLocationModalStyle() {
+                if (document.getElementById('store-location-modal-style')) return;
+                const style = document.createElement('style');
+                style.id = 'store-location-modal-style';
+                style.textContent = `
+                    #globalModalBody form.store-location-form .row {
+                        gap: 0 !important;
+                        --bs-gutter-x: 0 !important;
+                        --bs-gutter-y: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                        margin-bottom: 10px !important;
+                    }
+                    #globalModalBody form.store-location-form .row > * {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+                    #globalModalBody form.store-location-form .row > label {
+                        width: 118px !important;
+                        min-width: 118px !important;
+                        flex: 0 0 118px !important;
+                        margin-right: 0 !important;
+                        padding-top: 6px !important;
+                    }
+                    @media (max-width: 992px) {
+                        #globalModalBody form.store-location-form .store-location-form-grid {
+                            grid-template-columns: 1fr !important;
+                            gap: 20px !important;
+                        }
                     }
                 `;
                 document.head.appendChild(style);
@@ -1466,6 +1500,10 @@
                             // Direct insertion (matching materials.index behavior)
                             // We don't wrap in card to avoid double styling
                             globalModalBody.innerHTML = contentElement.outerHTML;
+
+                            if (materialType === 'store-location' || globalModalBody.querySelector('form.store-location-form')) {
+                                ensureStoreLocationModalStyle();
+                            }
 
                             console.log('[Modal] Content inserted, loading scripts...');
                             if (materialType && (action === 'create' || action === 'edit' || materialType === 'recommendations')) {

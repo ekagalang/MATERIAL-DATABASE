@@ -240,6 +240,9 @@ html.materials-booting .page-content {
       border-collapse: separate !important;
       border-spacing: 0 !important;
   }
+  .material-tab-panel table {
+      table-layout: auto !important;
+  }
   .table-container thead th {
       border: 1px solid #cbd5e1 !important;
       z-index: 20; /* Ensure borders sit above content */

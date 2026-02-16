@@ -48,6 +48,30 @@
         document.head.appendChild(style);
     }
 
+    function ensureGooglePlacesDropdownStyle() {
+        if (document.getElementById('maps-places-autocomplete-style')) {
+            return;
+        }
+
+        const style = document.createElement('style');
+        style.id = 'maps-places-autocomplete-style';
+        style.textContent = `
+            .pac-container {
+                z-index: 2147483004 !important;
+                border-radius: 10px !important;
+                border: 1px solid #dbe3ee !important;
+                box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12) !important;
+                margin-top: 4px !important;
+            }
+            .pac-item {
+                padding: 8px 12px !important;
+                font-size: 13px !important;
+                line-height: 1.4 !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     function resolveElement(target, scope) {
         if (!target) return null;
         if (typeof HTMLElement !== 'undefined' && target instanceof HTMLElement) {
@@ -63,6 +87,14 @@
     function toNumber(value) {
         const num = Number.parseFloat(value);
         return Number.isFinite(num) ? num : null;
+    }
+
+    function toRadiusMeters(value) {
+        const km = toNumber(value);
+        if (km === null || km <= 0) {
+            return 0;
+        }
+        return km * 1000;
     }
 
     function triggerChange(input) {
@@ -221,6 +253,7 @@
         const districtInput = resolveElement(options?.districtInput, scope);
         const cityInput = resolveElement(options?.cityInput, scope);
         const provinceInput = resolveElement(options?.provinceInput, scope);
+        const radiusInput = resolveElement(options?.radiusInput, scope);
         const latitudeInput = resolveElement(options?.latitudeInput, scope);
         const longitudeInput = resolveElement(options?.longitudeInput, scope);
         const placeIdInput = resolveElement(options?.placeIdInput, scope);
@@ -238,19 +271,51 @@
         return loadApi(apiKey)
             .then(() => {
                 const center = { lat: defaultLat, lng: defaultLng };
-                const map = new google.maps.Map(mapElement, {
+                const mapConfig = {
                     center,
                     zoom: 18,
                     mapTypeControl: false,
                     streetViewControl: false,
                     fullscreenControl: false,
-                });
+                };
+
+                if (options?.gestureHandling) {
+                    mapConfig.gestureHandling = options.gestureHandling;
+                }
+                if (typeof options?.scrollwheel === 'boolean') {
+                    mapConfig.scrollwheel = options.scrollwheel;
+                }
+
+                const map = new google.maps.Map(mapElement, mapConfig);
 
                 const marker = new google.maps.Marker({
                     map,
                     position: center,
                     draggable: true,
                 });
+
+                const radiusCircle = new google.maps.Circle({
+                    map,
+                    center,
+                    radius: 0,
+                    strokeColor: '#2563eb',
+                    strokeOpacity: 0.95,
+                    strokeWeight: 2,
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.2,
+                    clickable: false,
+                });
+
+                const syncRadiusCircle = () => {
+                    const markerPos = marker.getPosition();
+                    if (markerPos) {
+                        radiusCircle.setCenter(markerPos);
+                    }
+
+                    const radiusMeters = toRadiusMeters(radiusInput?.value);
+                    radiusCircle.setRadius(radiusMeters);
+                    radiusCircle.setVisible(radiusMeters > 0);
+                };
 
                 const geocoder = new google.maps.Geocoder();
                 const hasLegacyAutocomplete =
@@ -259,6 +324,14 @@
                 const hasPlaceAutocompleteElement =
                     !!window.google?.maps?.places &&
                     typeof window.google.maps.places.PlaceAutocompleteElement === 'function';
+                const hasAutocompleteService =
+                    !!window.google?.maps?.places &&
+                    typeof window.google.maps.places.AutocompleteService === 'function';
+                const autocompleteService = hasAutocompleteService
+                    ? new google.maps.places.AutocompleteService()
+                    : null;
+
+                ensureGooglePlacesDropdownStyle();
 
                 let autocomplete = null;
                 let placeAutocompleteElement = null;
@@ -320,6 +393,8 @@
                         setInputValue(latitudeInput, lat.toFixed(7));
                         setInputValue(longitudeInput, lng.toFixed(7));
                     }
+
+                    syncRadiusCircle();
 
                     const formattedAddress = place.formatted_address || place.formattedAddress || '';
                     setInputValue(placeIdInput, place.place_id || place.id || '');
@@ -456,13 +531,29 @@
                         button.className = 'maps-geocode-autocomplete-item';
                         button.textContent = item.formatted_address || item.formattedAddress || item.name || '';
                         button.addEventListener('click', () => {
-                            applyLocation(item);
+                            resolveFallbackItem(item);
                             hideFallbackList();
                         });
                         fallbackListEl.appendChild(button);
                     });
 
                     host.appendChild(fallbackListEl);
+                };
+
+                const resolveFallbackItem = (item) => {
+                    if (!item) return;
+
+                    if (item.place_id && item.__prediction) {
+                        geocoder.geocode({ placeId: item.place_id }, (results, status) => {
+                            if (status !== 'OK' || !Array.isArray(results) || results.length === 0) {
+                                return;
+                            }
+                            applyLocation(results[0]);
+                        });
+                        return;
+                    }
+
+                    applyLocation(item);
                 };
 
                 if (!autocomplete && !placeAutocompleteElement) {
@@ -477,6 +568,38 @@
                         }
 
                         fallbackTimer = setTimeout(() => {
+                            if (autocompleteService) {
+                                autocompleteService.getPlacePredictions(
+                                    {
+                                        input: text,
+                                        types: ['geocode'],
+                                    },
+                                    (predictions, status) => {
+                                        if (
+                                            status !== google.maps.places.PlacesServiceStatus.OK ||
+                                            !Array.isArray(predictions) ||
+                                            predictions.length === 0
+                                        ) {
+                                            fallbackSuggestionResults = [];
+                                            hideFallbackList();
+                                            return;
+                                        }
+
+                                        fallbackSuggestionResults = predictions.slice(0, 6).map((prediction) => ({
+                                            __prediction: true,
+                                            place_id: prediction.place_id || '',
+                                            formatted_address: prediction.description || '',
+                                            name:
+                                                prediction.structured_formatting?.main_text ||
+                                                prediction.description ||
+                                                '',
+                                        }));
+                                        renderFallbackList(fallbackSuggestionResults);
+                                    }
+                                );
+                                return;
+                            }
+
                             geocoder.geocode({ address: text }, (results, status) => {
                                 if (status !== 'OK' || !Array.isArray(results) || results.length === 0) {
                                     fallbackSuggestionResults = [];
@@ -503,7 +626,7 @@
                     }
                     event.preventDefault();
                     if (fallbackSuggestionResults.length > 0 && !autocomplete && !placeAutocompleteElement) {
-                        applyLocation(fallbackSuggestionResults[0]);
+                        resolveFallbackItem(fallbackSuggestionResults[0]);
                         hideFallbackList();
                         return;
                     }
@@ -524,8 +647,14 @@
                     if (!pos) return;
                     setInputValue(latitudeInput, pos.lat().toFixed(7));
                     setInputValue(longitudeInput, pos.lng().toFixed(7));
+                    syncRadiusCircle();
                     reverseGeocode(pos);
                 });
+
+                if (radiusInput) {
+                    radiusInput.addEventListener('input', syncRadiusCircle);
+                    radiusInput.addEventListener('change', syncRadiusCircle);
+                }
 
                 if (!searchInput.value) {
                     searchInput.value = formattedAddressInput?.value || addressInput?.value || '';
@@ -544,7 +673,9 @@
                     }
                 }
 
-                return { map, marker, autocomplete };
+                syncRadiusCircle();
+
+                return { map, marker, autocomplete, radiusCircle };
             })
             .catch((error) => {
                 showMapError(mapElement, error.message || 'Google Maps tidak dapat dimuat.');

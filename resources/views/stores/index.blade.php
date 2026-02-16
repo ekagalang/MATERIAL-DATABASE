@@ -58,13 +58,13 @@
                             @forelse($stores as $store)
                                 <tr class="store-row">
                                     <td style="text-align: center;">{{ $loop->iteration }}</td>
-                                    <td>
-                                        <span class="fw-semibold text-dark">{{ $store->name }}</span>
+                                    <td class="store-name-td">
+                                        <span class="store-name-cell fw-semibold text-dark" title="{{ $store->name }}">{{ $store->name }}</span>
                                     </td>
                                     @if($store->locations->isNotEmpty())
                                         @php $mainLoc = $store->locations->first(); @endphp
                                         <td class="store-scroll-td">
-                                            <span class="store-scroll-cell">{{ $mainLoc->address ?? '-' }}</span>
+                                            <span class="store-scroll-cell" title="{{ $mainLoc->address ?? '-' }}">{{ $mainLoc->address ?? '-' }}</span>
                                         </td>
                                         <td>{{ $mainLoc->city ?? '-' }}</td>
                                         <td>{{ $mainLoc->province ?? '-' }}</td>
@@ -156,6 +156,7 @@
 
     .stores-table-wrapper .table-container {
         overflow-y: auto;
+        overflow-x: hidden;
         flex-grow: 1;
         box-shadow: none !important;
         margin-top: 0 !important;
@@ -170,6 +171,7 @@
         border-collapse: separate !important;
         border-spacing: 0 !important;
         width: 100%;
+        table-layout: auto !important;
     }
 
     /* Single-header styling - COMPACT 40px */
@@ -214,6 +216,20 @@
         background-color: #fcfcfc;
     }
 
+    .table-container tbody td.store-name-td {
+        height: auto !important;
+        min-width: 180px;
+        max-width: 320px;
+    }
+
+    .store-name-cell {
+        display: block;
+        white-space: normal !important;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        line-height: 1.25;
+    }
+
     /* Force Aksi column width */
     .table-container thead th:last-child,
     .table-container tbody td:last-child {
@@ -227,7 +243,8 @@
     .store-scroll-td {
         position: relative;
         overflow: hidden;
-        max-width: 200px;
+        width: clamp(240px, 30vw, 420px);
+        max-width: clamp(240px, 30vw, 420px);
     }
     .store-scroll-td.is-scrollable::after {
         content: '...';
@@ -252,6 +269,7 @@
         scrollbar-width: none;
         scrollbar-color: transparent transparent;
         white-space: nowrap;
+        cursor: ew-resize;
     }
     .store-scroll-cell::-webkit-scrollbar {
         height: 0;
@@ -316,25 +334,10 @@
     }
 
     /* ========== MISC ========== */
-    .store-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-    }
-
-    .store-row input[type="checkbox"] {
-        flex-shrink: 0;
-    }
-
-    .store-title {
-        min-width: 120px;
-        margin: 0;
-        font-weight: 500;
-    }
-
-    .store-desc {
-        flex: 1;
+    /* Keep table rows as native table layout so tbody aligns with thead */
+    .table-container tbody tr,
+    .table-container .store-row {
+        display: table-row !important;
     }
 
     .badge {
@@ -374,6 +377,13 @@
             if (!scroller || scroller.__storeScrollBound) return;
             scroller.__storeScrollBound = true;
             scroller.addEventListener('scroll', updateStoreScrollIndicators, { passive: true });
+            // Allow normal mouse wheel to pan horizontally inside the address cell.
+            scroller.addEventListener('wheel', function(e) {
+                const delta = Math.abs(e.deltaX) > 0 ? e.deltaX : e.deltaY;
+                if (!delta) return;
+                scroller.scrollLeft += delta;
+                e.preventDefault();
+            }, { passive: false });
         });
     }
 
@@ -390,4 +400,5 @@
     window.addEventListener('load', updateStoreScrollIndicators);
 })();
 </script>
+
 @endsection

@@ -29,6 +29,7 @@ function initStoreLocationForm(root) {
         longitudeInput: '#longitude',
         placeIdInput: '#place_id',
         formattedAddressInput: '#formatted_address',
+        radiusInput: '#service_radius_km',
     }).catch((error) => {
         console.error('Failed to initialize store location map picker:', error);
     });

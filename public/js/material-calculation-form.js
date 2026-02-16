@@ -208,6 +208,8 @@ function initMaterialCalculationForm(root, formData) {
             longitudeInput: '#projectLongitude',
             placeIdInput: '#projectPlaceId',
             formattedAddressInput: '#projectAddress',
+            gestureHandling: 'greedy',
+            scrollwheel: true,
         }).catch((error) => {
             console.error('Failed to initialize project location map picker:', error);
         });
@@ -231,6 +233,26 @@ function initMaterialCalculationForm(root, formData) {
 
         if (options.length === 0) {
             return;
+        }
+
+        if (!listEl.__scrollLockBound) {
+            listEl.__scrollLockBound = true;
+            listEl.addEventListener('wheel', function(event) {
+                const deltaY = event.deltaY || 0;
+                if (!deltaY) return;
+
+                const canScroll = listEl.scrollHeight > listEl.clientHeight + 1;
+                if (!canScroll) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
+
+                // Keep wheel focus inside dropdown list and prevent page scroll chaining.
+                listEl.scrollTop += deltaY;
+                event.preventDefault();
+                event.stopPropagation();
+            }, { passive: false });
         }
 
         function normalize(text) {

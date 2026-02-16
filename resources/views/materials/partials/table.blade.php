@@ -474,7 +474,7 @@
     </style>
     <div class="table-container text-nowrap material-table-loaded">
         <table>
-            <thead class="{{ in_array($material['type'], ['brick','sand','ceramic','cement','cat']) ? 'has-dim-sub' : 'single-header' }}">
+            <thead class="{{ in_array($material['type'], ['brick','sand','ceramic']) ? 'has-dim-sub' : 'single-header' }}">
                 @php
                   if (!function_exists('getMaterialSortUrl')) {
                         function getMaterialSortUrl($column, $currentSortBy, $currentDirection, $isStoreLocation = false, $store = null, $location = null) {

@@ -67,7 +67,7 @@
     </div>
 </div>
 
-<h3 class="calc-style"><i class="bi bi-calculator text-primary"></i> Perhitungan Material Baru</h3>
+<h3 class="calc-style"><i class="bi bi-calculator text-primary"></i> Kalkulasi Item Pekerjaan Proyek</h3>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -219,198 +219,8 @@
                         </label>
                     </div>
                 </div>
-            </div>
-                                    <div class="d-flex justify-content-end mt-2">
-                            <button type="button" id="btnResetForm" class="btn-cancel" style="padding: 5px 20px;">
-                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
-                            </button>
-                        </div>
-            </div> {{-- /.left-column --}}
 
-
-            {{-- RIGHT COLUMN: FILTERS --}}
-            <div class="right-column">
-                {{-- WORK TYPE --}}
-                <div class="form-group work-type-group">
-                    <label>Item Pekerjaan</label>
-                    <div class="input-wrapper">
-                        <div class="work-type-autocomplete">
-                            <div class="work-type-input work-type-input-with-action">
-                                <input type="text"
-                                       id="workTypeDisplay"
-                                       class="autocomplete-input"
-                                       placeholder="Pilih atau ketik item pekerjaan..."
-                                       autocomplete="off"
-                                       value="{{ $selectedWorkTypeLabel }}"
-                                       {{ request('formula_code') ? 'readonly' : '' }}
-                                       required>
-                                <button type="button" id="addWorkItemBtn" class="work-type-add-btn"
-                                    title="Tambah item pekerjaan">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                            </div>
-                            <div class="autocomplete-list" id="workType-list"></div>
-                        </div>
-                        <input type="hidden" id="workTypeSelector" name="work_type_select" value="{{ $selectedWorkType }}">
-                        <input type="hidden" id="enableBundleMode" name="enable_bundle_mode"
-                            value="{{ old('enable_bundle_mode', 0) }}">
-                        <input type="hidden" id="workItemsPayload" name="work_items_payload"
-                            value="{{ old('work_items_payload') }}">
-                    </div>
-                </div>
-
-                <div id="inputFormContainer">
-                    <div id="brickForm" class="work-type-form">
-
-                        {{-- DIMENSI - VERTICAL LAYOUT --}}
-                        <div class="dimensions-container-vertical">
-                            <div class="dimension-item">
-                                <label>Panjang</label>
-                                <div class="input-with-unit">
-                                    <input type="text" inputmode="decimal" name="wall_length" id="wallLength" step="0.01" min="0.01"
-                                        value="{{ request('wall_length') }}" required>
-                                    <span class="unit">M</span>
-                                </div>
-                            </div>
-
-                            <div class="dimension-item" id="wallHeightGroup">
-                                <label id="wallHeightLabel">Tinggi</label>
-                                <div class="input-with-unit">
-                                    <input type="text" inputmode="decimal" name="wall_height" id="wallHeight" step="0.01" min="0.01"
-                                        value="{{ request('wall_height') }}" required>
-                                    <span class="unit">M</span>
-                                </div>
-                            </div>
-
-                            <div class="dimension-item" id="mortarThicknessGroup">
-                                <label id="mortarThicknessLabel">Tebal Adukan</label>
-                                <div class="input-with-unit">
-                                    <input type="text" inputmode="decimal" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
-                                        value="{{ request('mortar_thickness', 2) }}">
-                                    <span class="unit" id="mortarThicknessUnit">cm</span>
-                                </div>
-                            </div>
-
-                            {{-- INPUT TINGKAT UNTUK ROLLAG / LAPIS UNTUK PENGECATAN --}}
-                            <div class="dimension-item" id="layerCountGroup" style="display: none;">
-                                <label id="layerCountLabel">Tingkat</label>
-                                <div class="input-with-unit" id="layerCountInputWrapper" style="background-color: #fffbeb; border-color: #fcd34d;">
-                                    <input type="text" inputmode="decimal" name="layer_count" id="layerCount" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
-                                    <span class="unit" id="layerCountUnit" style="background-color: #fef3c7;">Lapis</span>
-                                </div>
-                            </div>
-
-                            {{-- INPUT SISI PLESTERAN UNTUK WALL PLASTERING --}}
-                            <div class="dimension-item" id="plasterSidesGroup" style="display: none;">
-                                <label>Sisi Plesteran</label>
-                                <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                                    <input type="text" inputmode="decimal" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
-                                    <span class="unit" style="background-color: #bae6fd;">Sisi</span>
-                                </div>
-                            </div>
-
-                            {{-- INPUT SISI ACI UNTUK SKIM COATING --}}
-                            <div class="dimension-item" id="skimSidesGroup" style="display: none;">
-                                <label>Sisi Acian</label>
-                                <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
-                                    <input type="text" inputmode="decimal" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
-                                    <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
-                                </div>
-                            </div>
-
-                            {{-- INPUT TEBAL NAT UNTUK TILE INSTALLATION & GROUT ONLY --}}
-                            <div class="dimension-item" id="groutThicknessGroup" style="display: none;">
-                                <label>Tebal Nat</label>
-                                <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
-                                    <input type="text" inputmode="decimal" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ request('grout_thickness', 2) }}">
-                                    <span class="unit" style="background-color: #e2e8f0;">mm</span>
-                                </div>
-                            </div>
-
-                            {{-- INPUT UKURAN KERAMIK UNTUK GROUT TILE --}}
-                            <div class="dimension-item" id="ceramicLengthGroup" style="display: none;">
-                                <label>Panjang Keramik</label>
-                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="text" inputmode="decimal" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ request('ceramic_length', 30) }}">
-                                    <span class="unit" style="background-color: #fef08a;">cm</span>
-                                </div>
-                            </div>
-
-                            <div class="dimension-item" id="ceramicWidthGroup" style="display: none;">
-                                <label>Lebar Keramik</label>
-                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="text" inputmode="decimal" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ request('ceramic_width', 30) }}">
-                                    <span class="unit" style="background-color: #fef08a;">cm</span>
-                                </div>
-                            </div>
-
-                            <div class="dimension-item" id="ceramicThicknessGroup" style="display: none;">
-                                <label>Tebal Keramik</label>
-                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="text" inputmode="decimal" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ request('ceramic_thickness', 8) }}">
-                                    <span class="unit" style="background-color: #fef08a;">mm</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="material-type-filter-group" id="materialTypeFilterGroup" style="display: none;">
-                            @foreach($materialTypeLabels as $materialKey => $materialLabel)
-                                @php
-                                    $selectedTypeValue = $selectedMaterialTypeFilters[$materialKey] ?? '';
-                                @endphp
-                        <div class="form-group material-type-filter-item" data-material-type="{{ $materialKey }}" style="display: none;">
-                                    @php
-                                        $labelText = $materialKey === 'ceramic'
-                                            ? 'Ukuran Keramik'
-                                            : ($materialKey === 'ceramic_type' ? 'Jenis Keramik' : ('Jenis ' . $materialLabel));
-                                        $placeholderText = $materialKey === 'ceramic'
-                                            ? 'Pilih atau ketik ukuran keramik...'
-                                            : ($materialKey === 'ceramic_type'
-                                                ? 'Pilih atau ketik jenis keramik...'
-                                                : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...');
-                                    @endphp
-                                    <label>{{ $labelText }}</label>
-                                    <div class="material-type-rows" data-material-type="{{ $materialKey }}">
-                                        <div class="material-type-row material-type-row-base" data-material-type="{{ $materialKey }}">
-                                            <div class="input-wrapper">
-                                                <div class="work-type-autocomplete">
-                                                    <div class="work-type-input">
-                                                        <input type="text"
-                                                               id="materialTypeDisplay-{{ $materialKey }}"
-                                                               class="autocomplete-input"
-                                                               placeholder="{{ $placeholderText }}"
-                                                               autocomplete="off"
-                                                               value="{{ is_array($selectedTypeValue) ? ($selectedTypeValue[0] ?? '') : $selectedTypeValue }}">
-                                                    </div>
-                                                    <div class="autocomplete-list" id="materialType-list-{{ $materialKey }}"></div>
-                                                </div>
-                                                <input type="hidden"
-                                                       id="materialTypeSelector-{{ $materialKey }}"
-                                                       name="material_type_filters[{{ $materialKey }}]"
-                                                       value="{{ is_array($selectedTypeValue) ? ($selectedTypeValue[0] ?? '') : $selectedTypeValue }}">
-                                            </div>
-                                            <div class="material-type-row-actions">
-                                                <button type="button" class="material-type-row-btn material-type-row-btn-delete"
-                                                    data-material-type-action="remove" data-material-type="{{ $materialKey }}"
-                                                    title="Hapus baris">
-                                                    <i class="bi bi-trash"></i>
-                                                </button>
-                                                <button type="button" class="material-type-row-btn material-type-row-btn-add"
-                                                    data-material-type-action="add" data-material-type="{{ $materialKey }}"
-                                                    title="Tambah baris">
-                                                    <i class="bi bi-plus-lg"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="material-type-extra-rows" data-material-type="{{ $materialKey }}"></div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                    {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
+                {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
                     <div id="customMaterialForm" style="display:none; margin-top:16px;">
 
                         {{-- 1. BATA SECTION --}}
@@ -604,16 +414,212 @@
                             </div>
                         </div>
                     </div>
+            </div>
+            <div class="d-flex justify-content-end mt-2">
+                <button type="button" id="btnResetForm" class="btn-cancel" style="padding: 5px 20px;">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
+                </button>
+            </div>
+            </div> {{-- /.left-column --}}
+
+
+            {{-- RIGHT COLUMN: FILTERS --}}
+            <div class="right-column">
+                {{-- WORK TYPE --}}
+                <div class="form-group work-type-group">
+                    <label id="mainWorkTypeLabel">Item Pekerjaan</label>
+                    <div class="input-wrapper">
+                        <div class="work-type-autocomplete">
+                            <div class="work-type-input">
+                                <input type="text"
+                                       id="workTypeDisplay"
+                                       class="autocomplete-input"
+                                       placeholder="Pilih atau ketik item pekerjaan..."
+                                       autocomplete="off"
+                                       value="{{ $selectedWorkTypeLabel }}"
+                                       {{ request('formula_code') ? 'readonly' : '' }}
+                                       required>
+                            </div>
+                            <div class="autocomplete-list" id="workType-list"></div>
+                        </div>
+                        <input type="hidden" id="workTypeSelector" name="work_type_select" value="{{ $selectedWorkType }}">
+                        <input type="hidden" id="enableBundleMode" name="enable_bundle_mode"
+                            value="{{ old('enable_bundle_mode', 0) }}">
+                        <input type="hidden" id="workItemsPayload" name="work_items_payload"
+                            value="{{ old('work_items_payload') }}">
+                    </div>
+                </div>
+
+                <div id="inputFormContainer">
+                    <div id="brickForm" class="work-type-form">
+
+                        {{-- DIMENSI - VERTICAL LAYOUT --}}
+                        <div class="dimensions-container-vertical">
+                            <div class="dimension-item">
+                                <label>Panjang</label>
+                                <div class="input-with-unit">
+                                    <input type="text" inputmode="decimal" name="wall_length" id="wallLength" step="0.01" min="0.01"
+                                        value="{{ request('wall_length') }}" required>
+                                    <span class="unit">M</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item" id="wallHeightGroup">
+                                <label id="wallHeightLabel">Tinggi</label>
+                                <div class="input-with-unit">
+                                    <input type="text" inputmode="decimal" name="wall_height" id="wallHeight" step="0.01" min="0.01"
+                                        value="{{ request('wall_height') }}" required>
+                                    <span class="unit">M</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item" id="mortarThicknessGroup">
+                                <label id="mortarThicknessLabel">Tebal Adukan</label>
+                                <div class="input-with-unit">
+                                    <input type="text" inputmode="decimal" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
+                                        value="{{ request('mortar_thickness', 2) }}">
+                                    <span class="unit" id="mortarThicknessUnit">cm</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT TINGKAT UNTUK ROLLAG / LAPIS UNTUK PENGECATAN --}}
+                            <div class="dimension-item" id="layerCountGroup" style="display: none;">
+                                <label id="layerCountLabel">Tingkat</label>
+                                <div class="input-with-unit" id="layerCountInputWrapper" style="background-color: #fffbeb; border-color: #fcd34d;">
+                                    <input type="text" inputmode="decimal" name="layer_count" id="layerCount" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
+                                    <span class="unit" id="layerCountUnit" style="background-color: #fef3c7;">Lapis</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT SISI PLESTERAN UNTUK WALL PLASTERING --}}
+                            <div class="dimension-item" id="plasterSidesGroup" style="display: none;">
+                                <label>Sisi Plesteran</label>
+                                <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
+                                    <input type="text" inputmode="decimal" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
+                                    <span class="unit" style="background-color: #bae6fd;">Sisi</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT SISI ACI UNTUK SKIM COATING --}}
+                            <div class="dimension-item" id="skimSidesGroup" style="display: none;">
+                                <label>Sisi Acian</label>
+                                <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
+                                    <input type="text" inputmode="decimal" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
+                                    <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT TEBAL NAT UNTUK TILE INSTALLATION & GROUT ONLY --}}
+                            <div class="dimension-item" id="groutThicknessGroup" style="display: none;">
+                                <label>Tebal Nat</label>
+                                <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
+                                    <input type="text" inputmode="decimal" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ request('grout_thickness', 2) }}">
+                                    <span class="unit" style="background-color: #e2e8f0;">mm</span>
+                                </div>
+                            </div>
+
+                            {{-- INPUT UKURAN KERAMIK UNTUK GROUT TILE --}}
+                            <div class="dimension-item" id="ceramicLengthGroup" style="display: none;">
+                                <label>Panjang Keramik</label>
+                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                    <input type="text" inputmode="decimal" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ request('ceramic_length', 30) }}">
+                                    <span class="unit" style="background-color: #fef08a;">cm</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item" id="ceramicWidthGroup" style="display: none;">
+                                <label>Lebar Keramik</label>
+                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                    <input type="text" inputmode="decimal" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ request('ceramic_width', 30) }}">
+                                    <span class="unit" style="background-color: #fef08a;">cm</span>
+                                </div>
+                            </div>
+
+                            <div class="dimension-item" id="ceramicThicknessGroup" style="display: none;">
+                                <label>Tebal Keramik</label>
+                                <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                    <input type="text" inputmode="decimal" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ request('ceramic_thickness', 8) }}">
+                                    <span class="unit" style="background-color: #fef08a;">mm</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="material-type-filter-group" id="materialTypeFilterGroup" style="display: none;">
+                            @foreach($materialTypeLabels as $materialKey => $materialLabel)
+                                @php
+                                    $selectedTypeValue = $selectedMaterialTypeFilters[$materialKey] ?? '';
+                                @endphp
+                        <div class="form-group material-type-filter-item" data-material-type="{{ $materialKey }}" style="display: none;">
+                                    @php
+                                        $labelText = $materialKey === 'ceramic'
+                                            ? 'Ukuran Keramik'
+                                            : ($materialKey === 'ceramic_type' ? 'Jenis Keramik' : ('Jenis ' . $materialLabel));
+                                        $placeholderText = $materialKey === 'ceramic'
+                                            ? 'Pilih atau ketik ukuran keramik...'
+                                            : ($materialKey === 'ceramic_type'
+                                                ? 'Pilih atau ketik jenis keramik...'
+                                                : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...');
+                                    @endphp
+                                    <label>{{ $labelText }}</label>
+                                    <div class="material-type-rows" data-material-type="{{ $materialKey }}">
+                                        <div class="material-type-row material-type-row-base" data-material-type="{{ $materialKey }}">
+                                            <div class="input-wrapper">
+                                                <div class="work-type-autocomplete">
+                                                    <div class="work-type-input">
+                                                        <input type="text"
+                                                               id="materialTypeDisplay-{{ $materialKey }}"
+                                                               class="autocomplete-input"
+                                                               placeholder="{{ $placeholderText }}"
+                                                               autocomplete="off"
+                                                               value="{{ is_array($selectedTypeValue) ? ($selectedTypeValue[0] ?? '') : $selectedTypeValue }}">
+                                                    </div>
+                                                    <div class="autocomplete-list" id="materialType-list-{{ $materialKey }}"></div>
+                                                </div>
+                                                <input type="hidden"
+                                                       id="materialTypeSelector-{{ $materialKey }}"
+                                                       name="material_type_filters[{{ $materialKey }}]"
+                                                       value="{{ is_array($selectedTypeValue) ? ($selectedTypeValue[0] ?? '') : $selectedTypeValue }}">
+                                            </div>
+                                            <div class="material-type-row-actions">
+                                                <button type="button" class="material-type-row-btn material-type-row-btn-delete"
+                                                    data-material-type-action="remove" data-material-type="{{ $materialKey }}"
+                                                    title="Hapus baris">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                                <button type="button" class="material-type-row-btn material-type-row-btn-add"
+                                                    data-material-type-action="add" data-material-type="{{ $materialKey }}"
+                                                    title="Tambah baris">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="material-type-extra-rows" data-material-type="{{ $materialKey }}"></div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
 
                     <div id="additionalWorkItemsSection" class="additional-work-items-section" style="display: none;">
-                        <div class="additional-work-items-title">Item Pekerjaan Tambahan</div>
                         <div id="additionalWorkItemsList" class="additional-work-items-list"></div>
                     </div>
 
-                    <div class="button-actions">
-                        <button type="submit" class="btn btn-submit">
-                            <i class="bi bi-search"></i> Hitung
-                        </button>
+                    <div class="work-item-bottom-bar">
+                        <div class="work-item-stepper" aria-label="Kontrol item pekerjaan">
+                            <button type="button" id="removeWorkItemBtn" class="work-item-stepper-btn" title="Hapus item pekerjaan tambahan">
+                                <i class="bi bi-dash-lg"></i>
+                            </button>
+                            <span class="work-item-stepper-label">Item Pekerjaan</span>
+                            <button type="button" id="addWorkItemBtn" class="work-item-stepper-btn" title="Tambah item pekerjaan tambahan">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
+                        <div class="button-actions">
+                            <button type="submit" class="btn btn-submit">
+                                <i class="bi bi-search"></i> Hitung
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -622,6 +628,12 @@
 @endsection
 
 <style>
+    @media (min-width: 769px) {
+        #calculationForm .two-column-layout {
+            grid-template-columns: minmax(0, 55fr) minmax(0, 45fr) !important;
+        }
+    }
+
     .calc-style {
         color: var(--text-color);
         font-weight: var(--special-font-weight);
@@ -641,6 +653,21 @@
         border-right: 0;
     }
 
+    #workType-list {
+        overscroll-behavior: contain;
+    }
+
+    #calculationForm .work-type-group,
+    #calculationForm .dimension-item {
+        align-items: flex-start;
+    }
+
+    #calculationForm .work-type-group > label,
+    #calculationForm .dimension-item > label {
+        align-self: flex-start;
+        padding-top: 0 !important;
+    }
+
     .work-type-add-btn {
         width: 40px;
         border: 1px solid #cbd5e1;
@@ -656,6 +683,91 @@
 
     .work-type-add-btn:hover {
         background: #f1f5f9;
+    }
+
+    .work-item-bottom-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+    }
+
+    .work-item-bottom-bar .button-actions {
+        margin-top: 0;
+    }
+
+    .work-item-stepper {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .work-item-stepper-label {
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 12px;
+        border: 1px solid #dbe3ee;
+        border-radius: 8px;
+        background: #ffffff;
+        font-size: 13px;
+        font-weight: 700;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    .work-item-stepper-btn {
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #0f172a;
+        transition: all 0.15s ease;
+    }
+
+    .work-item-stepper-btn:hover:not(:disabled) {
+        background: #eef2ff;
+        border-color: #94a3b8;
+    }
+
+    #removeWorkItemBtn {
+        background: #fee2e2;
+        border-color: #ef4444;
+        color: #b91c1c;
+    }
+
+    #removeWorkItemBtn:hover:not(:disabled) {
+        background: #fecaca;
+        border-color: #dc2626;
+        color: #991b1b;
+    }
+
+    #addWorkItemBtn {
+        background: #dcfce7;
+        border-color: #22c55e;
+        color: #166534;
+    }
+
+    #addWorkItemBtn:hover:not(:disabled) {
+        background: #bbf7d0;
+        border-color: #16a34a;
+        color: #14532d;
+    }
+
+    .work-item-stepper-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    #calculationForm #inputFormContainer,
+    #calculationForm #additionalWorkItemsSection {
+        margin-left: 14px;
+        padding-left: 12px;
     }
 
     .additional-work-items-section {
@@ -687,7 +799,7 @@
     .additional-work-item-header {
         display: flex;
         align-items: center;
-        justify-content: flex-start;
+        justify-content: space-between;
         gap: 8px;
         margin-bottom: 10px;
     }
@@ -698,74 +810,68 @@
         font-weight: 700;
     }
 
+    .additional-work-item-header-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
     .additional-work-item-grid {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0;
     }
 
-    .additional-work-item-field {
+    .additional-material-inline {
         display: flex;
-        align-items: center;
-        gap: 10px;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 0;
     }
 
-    .additional-work-item-field > label {
-        min-width: 112px;
-        margin: 0;
-        font-size: 12px;
-        color: #475569;
-        font-weight: 600;
+    .additional-material-inline .material-type-filter-item {
+        margin-bottom: 6px !important;
     }
 
-    .additional-work-item-field input,
-    .additional-work-item-field select {
-        width: auto;
+    .additional-material-inline .material-type-filter-item.has-extra-rows {
+        
+    }
+
+    .additional-material-inline .material-type-filter-item:last-child {
+        margin-bottom: 0 !important;
+    }
+
+    .additional-material-filter-item {
+        align-items: flex-start;
+    }
+
+    .additional-material-filter-item .material-type-rows {
         flex: 1 1 auto;
         min-width: 0;
-        min-height: 34px;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        padding: 6px 10px;
-        font-size: 13px;
-        background: #fff;
-    }
-
-    .additional-work-item-worktype {
-        align-items: stretch;
-    }
-
-    .additional-worktype-control {
-        display: flex;
-        align-items: stretch;
         width: 100%;
     }
 
-    .additional-worktype-control select {
-        border-radius: 8px 0 0 8px;
-        border-right: 0;
+    .additional-material-filter-item .input-wrapper {
+        margin-bottom: 0;
     }
 
-    .additional-worktype-actions {
-        display: inline-flex;
-        align-items: stretch;
-        border: 1px solid #cbd5e1;
-        border-left: none;
-        border-radius: 0 8px 8px 0;
-        overflow: hidden;
-        background: #fff;
+    .additional-worktype-group {
+        margin-bottom: 12px;
+        margin-left: -26px;
+        width: calc(100% + 26px);
     }
 
     .additional-worktype-btn {
         width: 34px;
-        border: 0;
-        border-left: 1px solid #e2e8f0;
+        height: 34px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
         background: #ffffff;
         color: #166534;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        transition: background-color 0.15s ease;
+        transition: all 0.15s ease;
     }
 
     .additional-worktype-btn:hover {
@@ -1025,18 +1131,38 @@
     }
 
     @media (max-width: 768px) {
+        .work-item-bottom-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 8px;
+        }
+
+        .work-item-stepper {
+            justify-content: flex-start;
+        }
+
+        .work-item-bottom-bar .button-actions {
+            width: 100%;
+        }
+
+        #calculationForm #inputFormContainer,
+        #calculationForm #additionalWorkItemsSection {
+            margin-left: 0;
+            padding-left: 0;
+            border-left: 0;
+        }
+
         .additional-work-item-grid {
             gap: 6px;
         }
 
-        .additional-work-item-field {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 4px;
+        .additional-work-item-header {
+            align-items: flex-start;
         }
 
-        .additional-work-item-field > label {
-            min-width: 0;
+        .additional-worktype-group {
+            margin-left: 0;
+            width: 100%;
         }
 
     }
@@ -2276,10 +2402,12 @@
 
         // Multi item pekerjaan via tombol "+" di ujung dropdown item pekerjaan
         const addWorkItemBtn = document.getElementById('addWorkItemBtn');
+        const removeWorkItemBtn = document.getElementById('removeWorkItemBtn');
         const enableBundleModeInput = document.getElementById('enableBundleMode');
         const workItemsPayloadInput = document.getElementById('workItemsPayload');
         const additionalWorkItemsSection = document.getElementById('additionalWorkItemsSection');
         const additionalWorkItemsList = document.getElementById('additionalWorkItemsList');
+        const mainWorkTypeLabel = document.getElementById('mainWorkTypeLabel');
         const mainWorkTypeDisplayInput = document.getElementById('workTypeDisplay');
         const mainWorkTypeHiddenInput = document.getElementById('workTypeSelector');
         const mainWallLengthInput = document.getElementById('wallLength');
@@ -2297,6 +2425,10 @@
             { el: mainWallLengthInput, defaultRequired: !!mainWallLengthInput?.required },
             { el: mainWallHeightInput, defaultRequired: !!mainWallHeightInput?.required },
         ];
+        const bundleMaterialTypeOrder = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'ceramic', 'nat'];
+        const bundleMaterialTypeLabels = @json($materialTypeLabels);
+        const bundleMaterialTypeOptions = buildMaterialTypeOptionMap(payload);
+        let bundleAdditionalAutocompleteSeq = 0;
 
         function escapeHtml(raw) {
             return String(raw ?? '')
@@ -2305,6 +2437,144 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function normalizeBundleMaterialTypeFilters(rawFilters) {
+            const source = rawFilters && typeof rawFilters === 'object' ? rawFilters : {};
+            const normalized = {};
+            Object.entries(source).forEach(([key, value]) => {
+                const materialKey = String(key || '').trim();
+                if (!materialKey) {
+                    return;
+                }
+                const tokens = uniqueFilterTokens(Array.isArray(value) ? value : [value]);
+                if (!tokens.length) {
+                    return;
+                }
+                normalized[materialKey] = tokens.length === 1 ? tokens[0] : tokens;
+            });
+            return normalized;
+        }
+
+        function getBundleMaterialTypeFieldLabel(type) {
+            if (type === 'ceramic') {
+                return 'Ukuran Keramik';
+            }
+            if (type === 'ceramic_type') {
+                return 'Jenis Keramik';
+            }
+            const label = bundleMaterialTypeLabels[type] || type;
+            return `Jenis ${label}`;
+        }
+
+        function getBundleMaterialTypePlaceholder(type) {
+            if (type === 'ceramic') {
+                return '-- Semua ukuran keramik --';
+            }
+            if (type === 'ceramic_type') {
+                return '-- Semua jenis keramik --';
+            }
+            const label = String(bundleMaterialTypeLabels[type] || type).toLowerCase();
+            return `-- Semua jenis ${label} --`;
+        }
+
+        function getBundleMaterialTypeValues(filters, type) {
+            if (!filters || typeof filters !== 'object') {
+                return [];
+            }
+            const values = uniqueFilterTokens(Array.isArray(filters[type]) ? filters[type] : [filters[type]]);
+            return values;
+        }
+
+        function buildBundleMaterialFilterSectionHtml(item) {
+            const rows = bundleMaterialTypeOrder
+                .map(type => {
+                    return `
+                        <div class="form-group material-type-filter-item additional-material-filter-item" data-material-wrap="${type}">
+                            <label>${escapeHtml(getBundleMaterialTypeFieldLabel(type))}</label>
+                            <div class="material-type-rows additional-material-type-rows" data-material-type="${type}">
+                                <div class="material-type-row material-type-row-base" data-material-type="${type}">
+                                    <div class="input-wrapper">
+                                        <div class="work-type-autocomplete">
+                                            <div class="work-type-input">
+                                                <input type="text"
+                                                       class="autocomplete-input"
+                                                       data-material-display="1"
+                                                       placeholder="${escapeHtml(getBundleMaterialTypePlaceholder(type))}"
+                                                       autocomplete="off">
+                                            </div>
+                                            <div class="autocomplete-list" id="bundleMaterial-list-${type}-${++bundleAdditionalAutocompleteSeq}"></div>
+                                        </div>
+                                        <input type="hidden" data-field="material_type_${type}" data-material-type-hidden="1" value="">
+                                    </div>
+                                    <div class="material-type-row-actions">
+                                        <button type="button"
+                                            class="material-type-row-btn material-type-row-btn-delete"
+                                            data-material-type-action="remove"
+                                            title="Hapus baris">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        <button type="button"
+                                            class="material-type-row-btn material-type-row-btn-add"
+                                            data-material-type-action="add"
+                                            title="Tambah baris">
+                                            <i class="bi bi-plus-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="material-type-extra-rows" data-material-type="${type}"></div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+
+            return `
+                <div class="additional-material-inline" data-wrap="material_filters">
+                    ${rows}
+                </div>
+            `;
+        }
+
+        function collectMainMaterialTypeFilters() {
+            const inputs = document.querySelectorAll(
+                'input[name^="material_type_filters["], input[name^="material_type_filters_extra["]',
+            );
+            const grouped = {};
+
+            inputs.forEach(input => {
+                if (!input || input.disabled) {
+                    return;
+                }
+                const name = String(input.name || '');
+                const match = name.match(/^material_type_filters(?:_extra)?\[(.+?)\]/);
+                if (!match) {
+                    return;
+                }
+                const materialKey = String(match[1] || '').trim();
+                if (!materialKey) {
+                    return;
+                }
+                const tokens = uniqueFilterTokens([input.value]);
+                if (!tokens.length) {
+                    return;
+                }
+                if (!grouped[materialKey]) {
+                    grouped[materialKey] = [];
+                }
+                grouped[materialKey].push(...tokens);
+            });
+
+            const normalized = {};
+            Object.entries(grouped).forEach(([key, values]) => {
+                const uniqueValues = uniqueFilterTokens(values);
+                if (!uniqueValues.length) {
+                    return;
+                }
+                normalized[key] = uniqueValues.length === 1 ? uniqueValues[0] : uniqueValues;
+            });
+
+            return normalized;
         }
 
         function normalizeBundleItem(item, index) {
@@ -2324,6 +2594,7 @@
                 ceramic_length: String(entry.ceramic_length || '').trim(),
                 ceramic_width: String(entry.ceramic_width || '').trim(),
                 ceramic_thickness: String(entry.ceramic_thickness || '').trim(),
+                material_type_filters: normalizeBundleMaterialTypeFilters(entry.material_type_filters || {}),
             };
         }
 
@@ -2376,9 +2647,545 @@
                     ceramic_length: getMainFormValue('ceramicLength'),
                     ceramic_width: getMainFormValue('ceramicWidth'),
                     ceramic_thickness: getMainFormValue('ceramicThickness'),
+                    material_type_filters: collectMainMaterialTypeFilters(),
                 },
                 0,
             );
+        }
+
+        function bindAutocompleteScrollLock(listEl) {
+            if (!listEl || listEl.__scrollLockBound) {
+                return;
+            }
+            listEl.__scrollLockBound = true;
+            listEl.addEventListener(
+                'wheel',
+                function(event) {
+                    const deltaY = event.deltaY || 0;
+                    if (!deltaY) return;
+
+                    const canScroll = listEl.scrollHeight > listEl.clientHeight + 1;
+                    if (!canScroll) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                    }
+
+                    listEl.scrollTop += deltaY;
+                    event.preventDefault();
+                    event.stopPropagation();
+                },
+                { passive: false },
+            );
+        }
+
+        function initAdditionalWorkTypeAutocomplete(itemEl, initial = {}) {
+            if (!itemEl) {
+                return;
+            }
+
+            const displayInput = itemEl.querySelector('[data-field-display="work_type"]');
+            const hiddenInput = itemEl.querySelector('[data-field="work_type"]');
+            const listEl = itemEl.querySelector('[data-field-list="work_type"]');
+
+            if (!displayInput || !hiddenInput || !listEl || bundleFormulaOptions.length === 0) {
+                return;
+            }
+
+            bindAutocompleteScrollLock(listEl);
+
+            const options = bundleFormulaOptions
+                .filter(option => option && option.code && option.name)
+                .map(option => ({
+                    code: String(option.code),
+                    name: String(option.name),
+                }));
+
+            const normalize = text =>
+                String(text || '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/gi, '')
+                    .trim();
+
+            const filterOptions = term => {
+                const query = normalize(term);
+                if (!query) return options;
+                return options.filter(option => {
+                    const name = normalize(option.name);
+                    const code = normalize(option.code);
+                    return name.includes(query) || code.includes(query);
+                });
+            };
+
+            const findExactMatch = term => {
+                const query = normalize(term);
+                if (!query) return null;
+                return options.find(option => normalize(option.name) === query || normalize(option.code) === query) || null;
+            };
+
+            const closeList = () => {
+                listEl.style.display = 'none';
+            };
+
+            const openList = () => {
+                renderList(filterOptions(''));
+            };
+
+            const applySelection = option => {
+                if (!option) return;
+                displayInput.value = option.name;
+                if (hiddenInput.value !== option.code) {
+                    hiddenInput.value = option.code;
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                const titleInput = itemEl.querySelector('[data-field="title"]');
+                if (titleInput && !String(titleInput.value || '').trim()) {
+                    titleInput.value = option.name;
+                }
+                closeList();
+            };
+
+            const renderList = items => {
+                listEl.innerHTML = '';
+                items.forEach(option => {
+                    const row = document.createElement('div');
+                    row.className = 'autocomplete-item';
+                    row.textContent = option.name;
+                    row.addEventListener('click', function() {
+                        applySelection(option);
+                    });
+                    listEl.appendChild(row);
+                });
+                listEl.style.display = items.length > 0 ? 'block' : 'none';
+            };
+
+            displayInput.addEventListener('focus', function() {
+                if (displayInput.readOnly || displayInput.disabled) return;
+                openList();
+            });
+
+            displayInput.addEventListener('input', function() {
+                if (displayInput.readOnly || displayInput.disabled) return;
+                const term = this.value || '';
+                renderList(filterOptions(term));
+
+                if (!term.trim()) {
+                    if (hiddenInput.value) {
+                        hiddenInput.value = '';
+                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    return;
+                }
+
+                const exactMatch = findExactMatch(term);
+                if (exactMatch && hiddenInput.value !== exactMatch.code) {
+                    hiddenInput.value = exactMatch.code;
+                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+
+            displayInput.addEventListener('keydown', function(event) {
+                if (event.key !== 'Enter') return;
+                const exactMatch = findExactMatch(displayInput.value);
+                if (exactMatch) {
+                    applySelection(exactMatch);
+                    event.preventDefault();
+                }
+            });
+
+            displayInput.addEventListener('blur', function() {
+                setTimeout(closeList, 150);
+            });
+
+            document.addEventListener('click', function(event) {
+                if (event.target === displayInput || listEl.contains(event.target)) return;
+                closeList();
+            });
+
+            hiddenInput.addEventListener('change', function() {
+                const selected = options.find(option => option.code === hiddenInput.value);
+                if (selected) {
+                    if (displayInput.value !== selected.name) {
+                        displayInput.value = selected.name;
+                    }
+                    return;
+                }
+                if (!hiddenInput.value) {
+                    displayInput.value = '';
+                }
+            });
+
+            const initialWorkType = String(initial.work_type || '').trim();
+            if (initialWorkType) {
+                hiddenInput.value = initialWorkType;
+                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                displayInput.value = '';
+                hiddenInput.value = '';
+            }
+
+            // Expose helper so newly added rows can reliably auto-open the dropdown.
+            displayInput.__openAdditionalWorkTypeList = openList;
+        }
+
+        function initAdditionalMaterialTypeFilters(itemEl, initialFilters = {}) {
+            if (!itemEl) {
+                return;
+            }
+
+            const normalizeOption = value => String(value ?? '').trim().toLowerCase();
+
+            bundleMaterialTypeOrder.forEach(type => {
+                const wrap = itemEl.querySelector(`[data-material-wrap="${type}"]`);
+                const baseRow = wrap?.querySelector('.material-type-row-base');
+                const baseDisplay = baseRow?.querySelector('.autocomplete-input[data-material-display="1"]');
+                const baseHidden = baseRow?.querySelector('input[data-material-type-hidden="1"]');
+                const baseList = baseRow?.querySelector('.autocomplete-list');
+                const extraRowsContainer = wrap?.querySelector('.material-type-extra-rows');
+                const baseDeleteBtn = baseRow?.querySelector('[data-material-type-action="remove"]');
+                const baseAddBtn = baseRow?.querySelector('[data-material-type-action="add"]');
+                const options = sortAlphabetic(uniqueFilterTokens(bundleMaterialTypeOptions[type] || []));
+                let isSyncing = false;
+
+                if (
+                    !wrap ||
+                    !baseRow ||
+                    !baseDisplay ||
+                    !baseHidden ||
+                    !baseList ||
+                    !extraRowsContainer ||
+                    !baseDeleteBtn ||
+                    !baseAddBtn
+                ) {
+                    return;
+                }
+
+                const updateRowButtons = () => {
+                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
+                    const hasExtra = extraRows.length > 0;
+                    baseRow.classList.toggle('has-multiple', hasExtra);
+                    wrap.classList.toggle('has-extra-rows', hasExtra);
+                    baseDeleteBtn.classList.toggle('is-visible', hasExtra);
+                    extraRows.forEach(row => {
+                        const deleteBtn = row.querySelector('[data-material-type-action="remove"]');
+                        if (deleteBtn) {
+                            deleteBtn.classList.add('is-visible');
+                        }
+                    });
+                };
+
+                const getRowStates = () => {
+                    const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
+                    return rows.map(row => row.__bundleMaterialRowState).filter(Boolean);
+                };
+
+                const getHiddenInputs = () => getRowStates().map(row => row.hiddenEl).filter(Boolean);
+
+                const getAvailableOptions = (term = '', currentHiddenEl = null, includeCurrentSelection = false) => {
+                    const query = normalizeOption(term);
+                    const selectedSet = new Set();
+                    getHiddenInputs().forEach(hiddenEl => {
+                        if (!hiddenEl) return;
+                        if (includeCurrentSelection && hiddenEl === currentHiddenEl) return;
+                        const normalized = normalizeOption(hiddenEl.value);
+                        if (normalized) {
+                            selectedSet.add(normalized);
+                        }
+                    });
+                    const available = options.filter(option => {
+                        const normalized = normalizeOption(option);
+                        if (!normalized || selectedSet.has(normalized)) return false;
+                        if (!query) return true;
+                        return normalized.includes(query);
+                    });
+                    return sortAlphabetic(available);
+                };
+
+                const refreshOpenLists = () => {
+                    getRowStates().forEach(rowState => {
+                        if (rowState.listEl && rowState.listEl.style.display === 'block') {
+                            rowState.renderList(rowState.displayEl.value || '');
+                        }
+                    });
+                };
+
+                const enforceUniqueSelection = () => {
+                    if (isSyncing) return;
+                    isSyncing = true;
+                    try {
+                        const seen = new Set();
+                        getRowStates().forEach(rowState => {
+                            const currentValue = String(rowState.hiddenEl.value || '').trim();
+                            const normalized = normalizeOption(currentValue);
+                            if (!normalized) return;
+
+                            if (seen.has(normalized)) {
+                                rowState.displayEl.value = '';
+                                rowState.hiddenEl.value = '';
+                                return;
+                            }
+                            seen.add(normalized);
+                        });
+                    } finally {
+                        isSyncing = false;
+                    }
+                };
+
+                const syncRows = () => {
+                    enforceUniqueSelection();
+                    refreshOpenLists();
+                    syncBundleFromForms();
+                };
+
+                const setupAutocomplete = rowState => {
+                    const { rowEl, displayEl, hiddenEl, listEl } = rowState;
+
+                    const closeList = () => {
+                        listEl.style.display = 'none';
+                    };
+
+                    const applySelection = optionValue => {
+                        const finalValue = String(optionValue || '').trim();
+                        displayEl.value = finalValue;
+                        hiddenEl.value = finalValue;
+                        closeList();
+                        syncRows();
+                    };
+
+                    const renderList = (term = '') => {
+                        listEl.innerHTML = '';
+
+                        const emptyItem = document.createElement('div');
+                        emptyItem.className = 'autocomplete-item';
+                        emptyItem.textContent = '- Tidak Pilih -';
+                        emptyItem.addEventListener('click', function() {
+                            applySelection('');
+                        });
+                        listEl.appendChild(emptyItem);
+
+                        getAvailableOptions(term, hiddenEl).forEach(option => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+                            item.textContent = option;
+                            item.addEventListener('click', function() {
+                                applySelection(option);
+                            });
+                            listEl.appendChild(item);
+                        });
+
+                        listEl.style.display = 'block';
+                    };
+
+                    const findExactAvailableOption = term => {
+                        const query = normalizeOption(term);
+                        if (!query) return null;
+                        const available = getAvailableOptions(term, hiddenEl, true);
+                        return available.find(option => normalizeOption(option) === query) || null;
+                    };
+
+                    rowState.closeList = closeList;
+                    rowState.renderList = renderList;
+                    rowEl.__bundleMaterialRowState = rowState;
+
+                    displayEl.addEventListener('focus', function() {
+                        if (displayEl.readOnly || displayEl.disabled) return;
+                        renderList('');
+                    });
+
+                    displayEl.addEventListener('input', function() {
+                        if (displayEl.readOnly || displayEl.disabled) return;
+                        const term = this.value || '';
+                        renderList(term);
+
+                        if (!term.trim()) {
+                            hiddenEl.value = '';
+                            syncRows();
+                            return;
+                        }
+
+                        const exactMatch = findExactAvailableOption(term);
+                        if (exactMatch) {
+                            hiddenEl.value = exactMatch;
+                        } else {
+                            hiddenEl.value = '';
+                        }
+                        syncRows();
+                    });
+
+                    displayEl.addEventListener('keydown', function(event) {
+                        if (event.key !== 'Enter') return;
+                        const exactMatch = findExactAvailableOption(displayEl.value || '');
+                        if (exactMatch) {
+                            applySelection(exactMatch);
+                            event.preventDefault();
+                        }
+                    });
+
+                    displayEl.addEventListener('blur', function() {
+                        setTimeout(closeList, 150);
+                    });
+
+                    document.addEventListener('click', function(event) {
+                        if (event.target === displayEl || listEl.contains(event.target)) return;
+                        closeList();
+                    });
+                };
+
+                const createExtraRow = (value = '') => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'material-type-row material-type-row-extra';
+                    rowEl.dataset.materialType = type;
+
+                    const inputWrapperEl = document.createElement('div');
+                    inputWrapperEl.className = 'input-wrapper';
+
+                    const autocompleteEl = document.createElement('div');
+                    autocompleteEl.className = 'work-type-autocomplete';
+
+                    const inputShellEl = document.createElement('div');
+                    inputShellEl.className = 'work-type-input';
+
+                    const displayEl = document.createElement('input');
+                    displayEl.type = 'text';
+                    displayEl.className = 'autocomplete-input';
+                    displayEl.dataset.materialDisplay = '1';
+                    displayEl.placeholder = getBundleMaterialTypePlaceholder(type);
+                    displayEl.autocomplete = 'off';
+                    displayEl.value = String(value || '');
+
+                    const listEl = document.createElement('div');
+                    listEl.className = 'autocomplete-list';
+                    listEl.id = `bundleMaterial-list-${type}-${++bundleAdditionalAutocompleteSeq}`;
+
+                    const hiddenEl = document.createElement('input');
+                    hiddenEl.type = 'hidden';
+                    hiddenEl.dataset.materialTypeHidden = '1';
+                    hiddenEl.dataset.field = `material_type_${type}`;
+                    hiddenEl.setAttribute('data-field', `material_type_${type}`);
+                    hiddenEl.value = String(value || '');
+
+                    inputShellEl.appendChild(displayEl);
+                    autocompleteEl.appendChild(inputShellEl);
+                    autocompleteEl.appendChild(listEl);
+                    inputWrapperEl.appendChild(autocompleteEl);
+                    inputWrapperEl.appendChild(hiddenEl);
+
+                    const actionEl = document.createElement('div');
+                    actionEl.className = 'material-type-row-actions';
+                    actionEl.innerHTML = `
+                        <button type="button" class="material-type-row-btn material-type-row-btn-delete is-visible"
+                            data-material-type-action="remove" title="Hapus baris">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <button type="button" class="material-type-row-btn material-type-row-btn-add"
+                            data-material-type-action="add" title="Tambah baris">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    `;
+
+                    rowEl.appendChild(inputWrapperEl);
+                    rowEl.appendChild(actionEl);
+                    extraRowsContainer.appendChild(rowEl);
+
+                    setupAutocomplete({
+                        rowEl,
+                        displayEl,
+                        hiddenEl,
+                        listEl,
+                        renderList() {},
+                        closeList() {},
+                    });
+
+                    const deleteBtn = actionEl.querySelector('[data-material-type-action="remove"]');
+                    const addBtn = actionEl.querySelector('[data-material-type-action="add"]');
+
+                    if (deleteBtn) {
+                        deleteBtn.addEventListener('click', function() {
+                            rowEl.remove();
+                            updateRowButtons();
+                            syncRows();
+                        });
+                    }
+                    if (addBtn) {
+                        addBtn.addEventListener('click', function() {
+                            createExtraRow('');
+                            updateRowButtons();
+                            syncRows();
+                        });
+                    }
+
+                    updateRowButtons();
+                    return rowEl;
+                };
+
+                const setValues = values => {
+                    const tokens = uniqueFilterTokens(Array.isArray(values) ? values : [values]);
+                    while (extraRowsContainer.firstChild) {
+                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
+                    }
+                    baseDisplay.value = '';
+                    baseHidden.value = '';
+
+                    const firstValue = tokens[0] || '';
+                    baseDisplay.value = firstValue;
+                    baseHidden.value = firstValue;
+
+                    tokens.slice(1).forEach(token => {
+                        createExtraRow(token);
+                    });
+                    updateRowButtons();
+                    syncRows();
+                };
+
+                const removeBaseRow = () => {
+                    const extraRows = Array.from(extraRowsContainer.querySelectorAll('.material-type-row-extra'));
+                    if (extraRows.length > 0) {
+                        const firstExtra = extraRows[0];
+                        const state = firstExtra.__bundleMaterialRowState;
+                        const promoted = String(state?.hiddenEl?.value ?? state?.displayEl?.value ?? '').trim();
+                        baseDisplay.value = promoted;
+                        baseHidden.value = promoted;
+                        firstExtra.remove();
+                        updateRowButtons();
+                        syncRows();
+                        return;
+                    }
+
+                    baseDisplay.value = '';
+                    baseHidden.value = '';
+                    syncRows();
+                };
+
+                baseAddBtn.addEventListener('click', function() {
+                    createExtraRow('');
+                    updateRowButtons();
+                    syncRows();
+                });
+
+                baseDeleteBtn.addEventListener('click', function() {
+                    removeBaseRow();
+                });
+
+                setupAutocomplete({
+                    rowEl: baseRow,
+                    displayEl: baseDisplay,
+                    hiddenEl: baseHidden,
+                    listEl: baseList,
+                    renderList() {},
+                    closeList() {},
+                });
+
+                baseHidden.dataset.materialTypeHidden = '1';
+                baseHidden.setAttribute('data-field', `material_type_${type}`);
+
+                const initialValues = getBundleMaterialTypeValues(initialFilters, type);
+                setValues(initialValues);
+
+                wrap.__setBundleMaterialTypeValues = setValues;
+                wrap.__clearBundleMaterialTypeValues = function() {
+                    setValues([]);
+                };
+            });
         }
 
         function createAdditionalWorkItemForm(initial = {}, afterElement = null) {
@@ -2391,72 +3198,113 @@
             wrapper.className = 'additional-work-item';
             wrapper.setAttribute('data-additional-work-item', 'true');
             wrapper.innerHTML = `
-                <div class="additional-work-item-header">
-                    <span class="additional-work-item-badge">Item Tambahan</span>
-                </div>
                 <div class="additional-work-item-grid">
-                    <div class="additional-work-item-field additional-work-item-worktype">
-                        <label>Item Pekerjaan</label>
-                        <div class="additional-worktype-control">
-                            <select data-field="work_type">
-                                ${buildWorkTypeOptionHtml(item.work_type)}
-                            </select>
-                            <div class="additional-worktype-actions">
-                                <button type="button" class="additional-worktype-btn" data-action="add" title="Tambah form item berikutnya">
-                                    <i class="bi bi-plus-lg"></i>
-                                </button>
-                                <button type="button" class="additional-worktype-btn remove" data-action="remove" title="Hapus form item">
-                                    <i class="bi bi-dash-lg"></i>
-                                </button>
+                    <input type="hidden" data-field="title" value="${escapeHtml(item.title)}">
+                    <div class="form-group work-type-group additional-worktype-group">
+                        <label data-additional-worktype-label>Item Pekerjaan</label>
+                        <div class="input-wrapper">
+                            <div class="work-type-autocomplete">
+                                <div class="work-type-input">
+                                    <input type="text"
+                                           class="autocomplete-input"
+                                           data-field-display="work_type"
+                                           placeholder="Pilih atau ketik item pekerjaan..."
+                                           autocomplete="off"
+                                           value="">
+                                </div>
+                                <div class="autocomplete-list" data-field-list="work_type" id="additionalWorkType-list-${++bundleAdditionalAutocompleteSeq}"></div>
                             </div>
+                            <input type="hidden" data-field="work_type" value="${escapeHtml(item.work_type)}">
                         </div>
                     </div>
-                    <div class="additional-work-item-field" data-wrap="title">
-                        <label>Judul Item</label>
-                        <input type="text" data-field="title" value="${escapeHtml(item.title)}" placeholder="Contoh: Item pekerjaan B">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="wall_length">
-                        <label>Panjang (m)</label>
-                        <input type="number" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}" placeholder="0.00">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="wall_height">
-                        <label data-wall-height-label>Tinggi (m)</label>
-                        <input type="number" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}" placeholder="0.00">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="mortar_thickness">
-                        <label>Tebal Adukan</label>
-                        <input type="number" step="0.01" min="0" data-field="mortar_thickness" value="${escapeHtml(item.mortar_thickness)}" placeholder="2">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="layer_count">
-                        <label>Lapis / Tingkat</label>
-                        <input type="number" step="1" min="0" data-field="layer_count" value="${escapeHtml(item.layer_count)}" placeholder="1">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="plaster_sides">
-                        <label>Sisi Plester</label>
-                        <input type="number" step="1" min="0" data-field="plaster_sides" value="${escapeHtml(item.plaster_sides)}" placeholder="1">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="skim_sides">
-                        <label>Sisi Aci</label>
-                        <input type="number" step="1" min="0" data-field="skim_sides" value="${escapeHtml(item.skim_sides)}" placeholder="1">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="grout_thickness">
-                        <label>Tebal Nat</label>
-                        <input type="number" step="0.01" min="0" data-field="grout_thickness" value="${escapeHtml(item.grout_thickness)}" placeholder="2">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="ceramic_length">
-                        <label>Panjang Keramik</label>
-                        <input type="number" step="0.01" min="0" data-field="ceramic_length" value="${escapeHtml(item.ceramic_length)}" placeholder="30">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="ceramic_width">
-                        <label>Lebar Keramik</label>
-                        <input type="number" step="0.01" min="0" data-field="ceramic_width" value="${escapeHtml(item.ceramic_width)}" placeholder="30">
-                    </div>
-                    <div class="additional-work-item-field" data-wrap="ceramic_thickness">
-                        <label>Tebal Keramik</label>
-                        <input type="number" step="0.01" min="0" data-field="ceramic_thickness" value="${escapeHtml(item.ceramic_thickness)}" placeholder="8">
+                    <div class="dimensions-container-vertical additional-dimensions-container">
+                        <div class="dimension-item" data-wrap="wall_length">
+                            <label>Panjang</label>
+                            <div class="input-with-unit">
+                                <input type="text" inputmode="decimal" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}">
+                                <span class="unit">M</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="wall_height">
+                            <label data-wall-height-label>Tinggi</label>
+                            <div class="input-with-unit">
+                                <input type="text" inputmode="decimal" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}">
+                                <span class="unit">M</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="mortar_thickness">
+                            <label>Tebal Adukan</label>
+                            <div class="input-with-unit">
+                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="mortar_thickness" value="${escapeHtml(item.mortar_thickness || '2')}">
+                                <span class="unit">cm</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="layer_count">
+                            <label>Lapis / Tingkat</label>
+                            <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
+                                <input type="text" inputmode="decimal" step="1" min="0" data-field="layer_count" value="${escapeHtml(item.layer_count || '1')}">
+                                <span class="unit" style="background-color: #fef3c7;">Lapis</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="plaster_sides">
+                            <label>Sisi Plesteran</label>
+                            <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
+                                <input type="text" inputmode="decimal" step="1" min="0" data-field="plaster_sides" value="${escapeHtml(item.plaster_sides || '1')}">
+                                <span class="unit" style="background-color: #bae6fd;">Sisi</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="skim_sides">
+                            <label>Sisi Acian</label>
+                            <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
+                                <input type="text" inputmode="decimal" step="1" min="0" data-field="skim_sides" value="${escapeHtml(item.skim_sides || '1')}">
+                                <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="grout_thickness">
+                            <label>Tebal Nat</label>
+                            <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
+                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="grout_thickness" value="${escapeHtml(item.grout_thickness || '2')}">
+                                <span class="unit" style="background-color: #e2e8f0;">mm</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="ceramic_length">
+                            <label>Panjang Keramik</label>
+                            <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="ceramic_length" value="${escapeHtml(item.ceramic_length || '30')}">
+                                <span class="unit" style="background-color: #fef08a;">cm</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="ceramic_width">
+                            <label>Lebar Keramik</label>
+                            <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="ceramic_width" value="${escapeHtml(item.ceramic_width || '30')}">
+                                <span class="unit" style="background-color: #fef08a;">cm</span>
+                            </div>
+                        </div>
+                        <div class="dimension-item" data-wrap="ceramic_thickness">
+                            <label>Tebal Keramik</label>
+                            <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
+                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="ceramic_thickness" value="${escapeHtml(item.ceramic_thickness || '8')}">
+                                <span class="unit" style="background-color: #fef08a;">mm</span>
+                            </div>
+                        </div>
+                        ${buildBundleMaterialFilterSectionHtml(item)}
                     </div>
                 </div>
             `;
+
+            const initialModeWorkType = String(item.work_type || '').trim();
+            const initialMortarInput = wrapper.querySelector('[data-field="mortar_thickness"]');
+            const hasInitialMortarValue = String(item.mortar_thickness || '').trim() !== '';
+            const isInitialAci = ['skim_coating', 'coating_floor'].includes(initialModeWorkType);
+            if (initialMortarInput && initialModeWorkType) {
+                // Preserve the original unit context on restored rows so unit conversion
+                // does not run with a wrong assumption (which could append an extra zero).
+                initialMortarInput.dataset.unit = isInitialAci ? 'mm' : 'cm';
+            }
+            if (initialMortarInput && initialModeWorkType && hasInitialMortarValue) {
+                initialMortarInput.dataset.mode = isInitialAci ? 'acian' : 'adukan';
+            }
 
             if (afterElement && afterElement.parentNode === additionalWorkItemsList) {
                 additionalWorkItemsList.insertBefore(wrapper, afterElement.nextSibling);
@@ -2464,10 +3312,26 @@
                 additionalWorkItemsList.appendChild(wrapper);
             }
 
+            initAdditionalWorkTypeAutocomplete(wrapper, item);
+            initAdditionalMaterialTypeFilters(wrapper, item.material_type_filters || {});
             attachAdditionalWorkItemEvents(wrapper);
             applyAdditionalWorkItemVisibility(wrapper);
             refreshAdditionalWorkItemHeader();
             syncBundleFromForms();
+
+            const hasInitialWorkType = String(item.work_type || '').trim() !== '';
+            if (!hasInitialWorkType) {
+                const workTypeDisplay = wrapper.querySelector('[data-field-display="work_type"]');
+                if (workTypeDisplay) {
+                    setTimeout(() => {
+                        workTypeDisplay.focus();
+                        if (typeof workTypeDisplay.__openAdditionalWorkTypeList === 'function') {
+                            workTypeDisplay.__openAdditionalWorkTypeList();
+                        }
+                    }, 0);
+                }
+            }
+
             return wrapper;
         }
 
@@ -2476,10 +3340,16 @@
                 return;
             }
             const items = Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'));
+            const hasAdditionalItems = items.length > 0;
+
+            if (mainWorkTypeLabel) {
+                mainWorkTypeLabel.textContent = hasAdditionalItems ? 'Item Pekerjaan 1' : 'Item Pekerjaan';
+            }
+
             items.forEach((itemEl, idx) => {
-                const badge = itemEl.querySelector('.additional-work-item-badge');
-                if (badge) {
-                    badge.textContent = `Item ${idx + 2}`;
+                const label = itemEl.querySelector('[data-additional-worktype-label]');
+                if (label) {
+                    label.textContent = `Item Pekerjaan ${idx + 2}`;
                 }
             });
         }
@@ -2487,6 +3357,88 @@
         function getAdditionalFieldValue(itemEl, key) {
             const el = itemEl.querySelector(`[data-field="${key}"]`);
             return el ? String(el.value || '').trim() : '';
+        }
+
+        function normalizeComparableValue(value) {
+            const trimmed = String(value ?? '').trim();
+            if (trimmed === '') {
+                return '';
+            }
+            const numericCandidate = trimmed.replace(',', '.');
+            if (/^-?\d+(\.\d+)?$/.test(numericCandidate)) {
+                const parsed = Number(numericCandidate);
+                if (Number.isFinite(parsed)) {
+                    return String(parsed);
+                }
+            }
+            return trimmed.toLowerCase();
+        }
+
+        function getAdditionalWorkItemDefaults(workType) {
+            const currentWorkType = String(workType || '').trim();
+            const isAciType = currentWorkType === 'skim_coating' || currentWorkType === 'coating_floor';
+            return {
+                wall_length: '',
+                wall_height: '',
+                mortar_thickness: isAciType ? '3' : '2',
+                layer_count: '1',
+                plaster_sides: '1',
+                skim_sides: '1',
+                grout_thickness: '2',
+                ceramic_length: '30',
+                ceramic_width: '30',
+                ceramic_thickness: '8',
+            };
+        }
+
+        function hasAdditionalFieldChangedFromDefault(itemEl, key, expectedValue) {
+            const currentValue = normalizeComparableValue(getAdditionalFieldValue(itemEl, key));
+            const defaultValue = normalizeComparableValue(expectedValue);
+            return currentValue !== defaultValue;
+        }
+
+        async function confirmAdditionalWorkItemRemoval(message) {
+            if (typeof window.showConfirm === 'function') {
+                return window.showConfirm({
+                    title: 'Konfirmasi Hapus',
+                    message,
+                    confirmText: 'Hapus',
+                    cancelText: 'Batal',
+                    type: 'danger',
+                });
+            }
+            return window.confirm(message);
+        }
+
+        function isAdditionalWorkItemFilled(itemEl) {
+            if (!itemEl) {
+                return false;
+            }
+            const materialInputs = itemEl.querySelectorAll('input[data-material-type-hidden="1"]');
+            if (Array.from(materialInputs).some(input => String(input.value || '').trim() !== '')) {
+                return true;
+            }
+
+            const workType = getAdditionalFieldValue(itemEl, 'work_type');
+            const fieldDefaults = getAdditionalWorkItemDefaults(workType);
+            return Object.entries(fieldDefaults).some(([key, defaultValue]) =>
+                hasAdditionalFieldChangedFromDefault(itemEl, key, defaultValue),
+            );
+        }
+
+        function collectAdditionalMaterialTypeFilters(itemEl) {
+            const filters = {};
+            bundleMaterialTypeOrder.forEach(type => {
+                const inputs = itemEl.querySelectorAll(`[data-material-wrap="${type}"] input[data-material-type-hidden="1"]`);
+                const values = uniqueFilterTokens(
+                    Array.from(inputs).map(input => String(input?.value || '').trim()),
+                );
+                if (!values.length) {
+                    return;
+                }
+                filters[type] = values.length === 1 ? values[0] : values;
+            });
+            return filters;
         }
 
         function collectAdditionalWorkItems(strict = false) {
@@ -2502,7 +3454,13 @@
                 const wallLength = getAdditionalFieldValue(row, 'wall_length');
                 const wallHeight = getAdditionalFieldValue(row, 'wall_height');
                 if (strict && !workType) {
-                    return { items: [], error: { message: `Item tambahan ${i + 2} belum memilih Item Pekerjaan.`, focusEl: row.querySelector('[data-field="work_type"]') } };
+                    return {
+                        items: [],
+                        error: {
+                            message: `Item tambahan ${i + 2} belum memilih Item Pekerjaan.`,
+                            focusEl: row.querySelector('[data-field-display="work_type"]'),
+                        },
+                    };
                 }
                 if (!workType) {
                     continue;
@@ -2511,7 +3469,13 @@
                     return { items: [], error: { message: `Item tambahan ${i + 2} wajib isi Panjang.`, focusEl: row.querySelector('[data-field="wall_length"]') } };
                 }
                 if (strict && workType !== 'brick_rollag' && !wallHeight) {
-                    return { items: [], error: { message: `Item tambahan ${i + 2} wajib isi Tinggi/Lebar.`, focusEl: row.querySelector('[data-field="wall_height"]') } };
+                    return {
+                        items: [],
+                        error: {
+                            message: `Item tambahan ${i + 2} wajib isi Tinggi/Lebar.`,
+                            focusEl: row.querySelector('[data-field="wall_height"]'),
+                        },
+                    };
                 }
 
                 items.push(
@@ -2529,6 +3493,7 @@
                             ceramic_length: getAdditionalFieldValue(row, 'ceramic_length'),
                             ceramic_width: getAdditionalFieldValue(row, 'ceramic_width'),
                             ceramic_thickness: getAdditionalFieldValue(row, 'ceramic_thickness'),
+                            material_type_filters: collectAdditionalMaterialTypeFilters(row),
                         },
                         i + 1,
                     ),
@@ -2597,10 +3562,25 @@
                 additionalWorkItemsSection.style.display =
                     additionalWorkItemsList && additionalWorkItemsList.children.length > 0 ? 'block' : 'none';
             }
+
+            refreshAdditionalWorkItemHeader();
+
+            if (addWorkItemBtn) {
+                addWorkItemBtn.disabled = false;
+            }
+
+            if (removeWorkItemBtn) {
+                const hasAdditionalRows = !!(
+                    additionalWorkItemsList &&
+                    additionalWorkItemsList.querySelector('[data-additional-work-item="true"]')
+                );
+                removeWorkItemBtn.disabled = !hasAdditionalRows;
+            }
         }
 
         function applyAdditionalWorkItemVisibility(itemEl) {
             const workType = getAdditionalFieldValue(itemEl, 'work_type');
+            const hasWorkType = workType !== '';
             const isRollag = workType === 'brick_rollag';
             const isFloorLike = ['floor_screed', 'coating_floor', 'tile_installation', 'grout_tile', 'adhesive_mix']
                 .includes(workType);
@@ -2611,13 +3591,91 @@
                 .includes(workType);
             const showCeramicDim = workType === 'grout_tile';
             const showMortar = !['painting', 'grout_tile'].includes(workType);
+            const isAci = workType === 'skim_coating' || workType === 'coating_floor';
+            const requiredMaterials = Array.isArray(formulaMaterials[workType]) ? formulaMaterials[workType] : [];
+            const showMaterialFilters = !!workType && requiredMaterials.length > 0;
+            const wallHeightInput = itemEl.querySelector('[data-field="wall_height"]');
+            const wallHeightUnit = itemEl.querySelector('[data-wrap="wall_height"] .unit');
+            const wallHeightLabel = itemEl.querySelector('[data-wall-height-label]');
+            const mortarInput = itemEl.querySelector('[data-field="mortar_thickness"]');
+            const mortarUnit = itemEl.querySelector('[data-wrap="mortar_thickness"] .unit');
+            const mortarLabel = itemEl.querySelector('[data-wrap="mortar_thickness"] > label');
+            const layerLabel = itemEl.querySelector('[data-wrap="layer_count"] > label');
+            const layerUnit = itemEl.querySelector('[data-wrap="layer_count"] .unit');
+            const dimensionsContainer = itemEl.querySelector('.additional-dimensions-container');
+            const nextMortarMode = isAci ? 'acian' : 'adukan';
+            const prevMortarMode = mortarInput ? (mortarInput.dataset.mode || 'adukan') : 'adukan';
+            const mortarModeChanged = prevMortarMode !== nextMortarMode;
 
-            const toggleWrap = (name, visible) => {
+            const toggleWrap = (name, visible, displayMode = 'flex') => {
                 const wrap = itemEl.querySelector(`[data-wrap="${name}"]`);
                 if (!wrap) return;
-                wrap.style.display = visible ? 'flex' : 'none';
+                wrap.style.display = visible ? displayMode : 'none';
             };
 
+            const setMortarUnit = unit => {
+                if (!mortarInput || !mortarUnit) return;
+                const currentUnit = mortarInput.dataset.unit || 'cm';
+                if (unit !== currentUnit) {
+                    const currentValue = parseFloat(String(mortarInput.value || '').replace(',', '.'));
+                    if (!isNaN(currentValue)) {
+                        const converted = unit === 'mm' ? currentValue * 10 : currentValue / 10;
+                        mortarInput.value = formatThicknessValue(converted);
+                    }
+                }
+                mortarInput.dataset.unit = unit;
+                mortarUnit.textContent = unit;
+                if (unit === 'mm') {
+                    mortarInput.step = '1';
+                    mortarInput.min = '1';
+                } else {
+                    mortarInput.step = '0.1';
+                    mortarInput.min = '0.1';
+                }
+            };
+
+            const toggleMaterialWrap = (materialType, visible) => {
+                const wrap = itemEl.querySelector(`[data-material-wrap="${materialType}"]`);
+                if (!wrap) return;
+                wrap.style.display = visible ? 'flex' : 'none';
+                if (!visible) {
+                    if (typeof wrap.__clearBundleMaterialTypeValues === 'function') {
+                        wrap.__clearBundleMaterialTypeValues();
+                        return;
+                    }
+                    wrap.querySelectorAll('input[data-material-type-hidden="1"]').forEach(input => {
+                        input.value = '';
+                    });
+                    wrap.querySelectorAll('.autocomplete-input[data-material-display="1"]').forEach(input => {
+                        input.value = '';
+                    });
+                }
+            };
+
+            if (dimensionsContainer) {
+                dimensionsContainer.style.display = hasWorkType ? '' : 'none';
+            }
+
+            if (!hasWorkType) {
+                toggleWrap('wall_length', false);
+                toggleWrap('wall_height', false);
+                toggleWrap('mortar_thickness', false);
+                toggleWrap('layer_count', false);
+                toggleWrap('plaster_sides', false);
+                toggleWrap('skim_sides', false);
+                toggleWrap('grout_thickness', false);
+                toggleWrap('ceramic_length', false);
+                toggleWrap('ceramic_width', false);
+                toggleWrap('ceramic_thickness', false);
+                toggleWrap('material_filters', false, 'block');
+                bundleMaterialTypeOrder.forEach(type => toggleMaterialWrap(type, false));
+                if (mortarInput) {
+                    mortarInput.dataset.mode = 'adukan';
+                }
+                return;
+            }
+
+            toggleWrap('wall_length', true);
             toggleWrap('wall_height', !isRollag);
             toggleWrap('mortar_thickness', showMortar);
             toggleWrap('layer_count', showLayer);
@@ -2627,10 +3685,75 @@
             toggleWrap('ceramic_length', showCeramicDim);
             toggleWrap('ceramic_width', showCeramicDim);
             toggleWrap('ceramic_thickness', showCeramicDim);
+            toggleWrap('material_filters', showMaterialFilters, 'block');
 
-            const wallHeightLabel = itemEl.querySelector('[data-wall-height-label]');
+            bundleMaterialTypeOrder.forEach(type => {
+                let visible = showMaterialFilters && requiredMaterials.includes(type);
+                if (type === 'ceramic_type') {
+                    visible = showMaterialFilters && ['tile_installation', 'plinth_ceramic', 'adhesive_mix', 'plinth_adhesive_mix']
+                        .includes(workType);
+                }
+                if (workType === 'grout_tile' && type === 'ceramic') {
+                    visible = false;
+                }
+                toggleMaterialWrap(type, visible);
+            });
+
             if (wallHeightLabel) {
-                wallHeightLabel.textContent = isFloorLike ? 'Lebar (m)' : 'Tinggi (m)';
+                wallHeightLabel.textContent = isFloorLike ? 'Lebar' : 'Tinggi';
+            }
+            if (wallHeightUnit) {
+                wallHeightUnit.textContent = 'M';
+            }
+            if (wallHeightInput) {
+                wallHeightInput.step = '0.01';
+                wallHeightInput.min = '0.01';
+                wallHeightInput.placeholder = '';
+            }
+            if (mortarLabel) {
+                mortarLabel.textContent = 'Tebal Adukan';
+            }
+            if (mortarInput) {
+                mortarInput.dataset.mode = nextMortarMode;
+            }
+            setMortarUnit('cm');
+
+            if (isAci) {
+                if (mortarLabel) {
+                    mortarLabel.textContent = 'Tebal Acian';
+                }
+                setMortarUnit('mm');
+            }
+            if (mortarModeChanged && mortarInput) {
+                mortarInput.value = formatThicknessValue(isAci ? 3 : 2);
+            }
+
+            if (layerLabel && layerUnit) {
+                if (workType === 'brick_rollag') {
+                    layerLabel.textContent = 'Tingkat';
+                    layerUnit.textContent = 'Tingkat';
+                } else {
+                    layerLabel.textContent = 'Lapis / Tingkat';
+                    layerUnit.textContent = 'Lapis';
+                }
+            }
+
+            if (workType === 'plinth_ceramic' || workType === 'plinth_adhesive_mix') {
+                if (wallHeightLabel) {
+                    wallHeightLabel.textContent = 'Tinggi';
+                }
+                if (wallHeightUnit) {
+                    wallHeightUnit.textContent = 'cm';
+                }
+                if (wallHeightInput) {
+                    wallHeightInput.step = '1';
+                    wallHeightInput.min = '1';
+                    wallHeightInput.placeholder = 'Tinggi plint (10-20)';
+                }
+            } else if (workType === 'adhesive_mix') {
+                if (wallHeightLabel) {
+                    wallHeightLabel.textContent = 'Lebar';
+                }
             }
         }
 
@@ -2641,12 +3764,27 @@
 
             if (addBtn) {
                 addBtn.addEventListener('click', function() {
-                    createAdditionalWorkItemForm({}, itemEl);
+                    const newForm = createAdditionalWorkItemForm({}, itemEl);
+                    const workTypeDisplay = newForm ? newForm.querySelector('[data-field-display="work_type"]') : null;
+                    if (workTypeDisplay) {
+                        workTypeDisplay.focus();
+                        if (typeof workTypeDisplay.__openAdditionalWorkTypeList === 'function') {
+                            workTypeDisplay.__openAdditionalWorkTypeList();
+                        }
+                    }
                 });
             }
 
             if (removeBtn) {
-                removeBtn.addEventListener('click', function() {
+                removeBtn.addEventListener('click', async function() {
+                    if (isAdditionalWorkItemFilled(itemEl)) {
+                        const confirmed = await confirmAdditionalWorkItemRemoval(
+                            'Form item pekerjaan ini sudah terisi. Yakin ingin menghapus?',
+                        );
+                        if (!confirmed) {
+                            return;
+                        }
+                    }
                     itemEl.remove();
                     refreshAdditionalWorkItemHeader();
                     syncBundleFromForms();
@@ -2695,11 +3833,66 @@
                     }
                     return;
                 }
-                const newForm = createAdditionalWorkItemForm({});
-                const select = newForm ? newForm.querySelector('[data-field="work_type"]') : null;
-                if (select) {
-                    select.focus();
+
+                if (additionalWorkItemsList) {
+                    const rows = additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]');
+                    if (rows.length > 0) {
+                        const lastRow = rows[rows.length - 1];
+                        const lastWorkType = getAdditionalFieldValue(lastRow, 'work_type');
+                        if (!lastWorkType) {
+                            if (typeof window.showToast === 'function') {
+                                window.showToast(
+                                    'Pilih Item Pekerjaan di form terakhir dulu sebelum menambah item berikutnya.',
+                                    'error',
+                                );
+                            } else {
+                                alert('Pilih Item Pekerjaan di form terakhir dulu sebelum menambah item berikutnya.');
+                            }
+
+                            const pendingWorkTypeDisplay = lastRow.querySelector('[data-field-display="work_type"]');
+                            if (pendingWorkTypeDisplay) {
+                                pendingWorkTypeDisplay.focus();
+                                if (typeof pendingWorkTypeDisplay.__openAdditionalWorkTypeList === 'function') {
+                                    pendingWorkTypeDisplay.__openAdditionalWorkTypeList();
+                                }
+                            }
+                            return;
+                        }
+                    }
                 }
+
+                const newForm = createAdditionalWorkItemForm({});
+                const workTypeDisplay = newForm ? newForm.querySelector('[data-field-display="work_type"]') : null;
+                if (workTypeDisplay) {
+                    workTypeDisplay.focus();
+                    if (typeof workTypeDisplay.__openAdditionalWorkTypeList === 'function') {
+                        workTypeDisplay.__openAdditionalWorkTypeList();
+                    }
+                }
+            });
+        }
+
+        if (removeWorkItemBtn) {
+            removeWorkItemBtn.addEventListener('click', async function() {
+                if (!additionalWorkItemsList) {
+                    return;
+                }
+                const rows = additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]');
+                const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
+                if (!lastRow) {
+                    return;
+                }
+                if (isAdditionalWorkItemFilled(lastRow)) {
+                    const confirmed = await confirmAdditionalWorkItemRemoval(
+                        'Form item pekerjaan terakhir sudah terisi. Yakin ingin menghapus?',
+                    );
+                    if (!confirmed) {
+                        return;
+                    }
+                }
+                lastRow.remove();
+                refreshAdditionalWorkItemHeader();
+                syncBundleFromForms();
             });
         }
 
@@ -2760,6 +3953,7 @@
                     enableBundleModeInput.value = '0';
                 }
                 setMainFormRequired(true);
+                syncBundleFromForms();
 
                 toggleCustomForm();
                 if (typeof handleWorkTypeChange === 'function') {
@@ -2835,12 +4029,33 @@
             }
         }
 
+        function isReloadNavigation() {
+            if (typeof performance === 'undefined') {
+                return false;
+            }
+            try {
+                const entries = performance.getEntriesByType('navigation');
+                if (Array.isArray(entries) && entries.length > 0) {
+                    return entries[0].type === 'reload';
+                }
+            } catch (error) {
+                // noop
+            }
+            if (performance && performance.navigation) {
+                return performance.navigation.type === 1;
+            }
+            return false;
+        }
+
         function shouldRestoreCalculationSession() {
             const params = new URLSearchParams(window.location.search);
-            if (params.get('resume') !== '1') return false;
-            params.delete('resume');
-            params.delete('auto_submit');
-            return !params.toString();
+            if (params.get('resume') === '1') {
+                params.delete('resume');
+                params.delete('auto_submit');
+                return !params.toString();
+            }
+            // Also restore session on normal page refresh (F5/Ctrl+R).
+            return isReloadNavigation();
         }
 
         function applyCalculationSession(state) {
@@ -3287,6 +4502,9 @@
         
         // VISUAL TRICK: Force 100% when browser starts navigation (server responded)
         window.addEventListener('beforeunload', function() {
+            // Persist latest values so browser refresh keeps dynamic filters as well.
+            saveCalculationSession();
+
             const overlay = document.getElementById('loadingOverlay');
             if (overlay && overlay.style.display !== 'none') {
                 // If overlay is visible, it means we are in a calculation that just finished
