@@ -644,6 +644,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         );
 
         $aggregateResult = $this->aggregateBundleResultValues($combinations);
+        $bundleMaterialRows = $this->buildBundleMaterialRows($combinations);
 
         $brick = $this->pickBundleMaterialModel($combinations, 'brick', 'total_brick_price');
         $cement = $this->pickBundleMaterialModel($combinations, 'cement', 'total_cement_price');
@@ -686,6 +687,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'filter_label' => $label,
             'source_filters' => ['bundle'],
             'bundle_items' => $itemRows,
+            'bundle_material_rows' => $bundleMaterialRows,
             'brick' => $brick,
             'cement' => $cement,
             'sand' => $sand,
@@ -767,6 +769,369 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         return $aggregate;
+    }
+
+    protected function buildBundleMaterialRows(array $combinations): array
+    {
+        $materialOrder = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat', 'water'];
+        $mergedRows = [];
+
+        foreach ($combinations as $combination) {
+            if (!is_array($combination) || empty($combination)) {
+                continue;
+            }
+
+            foreach ($materialOrder as $materialKey) {
+                $row = $this->buildBundleMaterialRowFromCombination($combination, $materialKey);
+                if (!$row) {
+                    continue;
+                }
+                $signature = $this->buildBundleMaterialSignature($materialKey, $row);
+                if (!isset($mergedRows[$signature])) {
+                    $mergedRows[$signature] = $row;
+                    continue;
+                }
+                $mergedRows[$signature] = $this->mergeBundleMaterialRows($mergedRows[$signature], $row);
+            }
+        }
+
+        $orderRank = array_flip($materialOrder);
+        uasort($mergedRows, static function ($a, $b) use ($orderRank) {
+            $keyA = (string) ($a['material_key'] ?? '');
+            $keyB = (string) ($b['material_key'] ?? '');
+            $rankA = $orderRank[$keyA] ?? PHP_INT_MAX;
+            $rankB = $orderRank[$keyB] ?? PHP_INT_MAX;
+            if ($rankA !== $rankB) {
+                return $rankA <=> $rankB;
+            }
+
+            return strcmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+        });
+
+        return array_values($mergedRows);
+    }
+
+    protected function buildBundleMaterialRowFromCombination(array $combination, string $materialKey): ?array
+    {
+        $result = $combination['result'] ?? [];
+        if (!is_array($result)) {
+            return null;
+        }
+
+        if ($materialKey === 'water') {
+            $qty = (float) ($result['total_water_liters'] ?? ($result['water_liters'] ?? 0));
+            if ($qty <= 0) {
+                return null;
+            }
+
+            return [
+                'material_key' => 'water',
+                'name' => 'Air',
+                'check_field' => 'total_water_liters',
+                'qty' => $qty,
+                'qty_debug' => $result['water_liters_debug'] ?? '',
+                'unit' => 'L',
+                'comparison_unit' => 'L',
+                'detail_value' => 1,
+                'object' => null,
+                'type_field' => null,
+                'type_display' => 'Bersih',
+                'brand_field' => null,
+                'brand_display' => 'PDAM',
+                'detail_display' => '',
+                'detail_extra' => '',
+                'store_field' => null,
+                'store_display' => 'Customer',
+                'address_field' => null,
+                'address_display' => '-',
+                'package_price' => 0,
+                'package_unit' => '',
+                'price_per_unit' => 0,
+                'price_unit_label' => '',
+                'price_calc_qty' => 0,
+                'price_calc_unit' => '',
+                'total_price' => 0,
+                'unit_price' => 0,
+                'unit_price_label' => '',
+                'is_special' => true,
+            ];
+        }
+
+        $model = $combination[$materialKey] ?? null;
+        if (!$model) {
+            return null;
+        }
+
+        $formatNum = static fn($value) => \App\Helpers\NumberHelper::format($value);
+
+        $qtyMap = [
+            'brick' => 'total_bricks',
+            'cement' => 'cement_sak',
+            'sand' => 'sand_m3',
+            'cat' => 'cat_packages',
+            'ceramic' => 'total_tiles',
+            'nat' => 'grout_packages',
+        ];
+        $totalMap = [
+            'brick' => 'total_brick_price',
+            'cement' => 'total_cement_price',
+            'sand' => 'total_sand_price',
+            'cat' => 'total_cat_price',
+            'ceramic' => 'total_ceramic_price',
+            'nat' => 'total_grout_price',
+        ];
+        $pricePerUnitMap = [
+            'brick' => 'brick_price_per_piece',
+            'cement' => 'cement_price_per_sak',
+            'sand' => 'sand_price_per_m3',
+            'cat' => 'cat_price_per_package',
+            'ceramic' => 'ceramic_price_per_package',
+            'nat' => 'grout_price_per_package',
+        ];
+        $qty = (float) ($result[$qtyMap[$materialKey] ?? ''] ?? 0);
+        if ($qty <= 0) {
+            return null;
+        }
+        $totalPrice = (float) ($result[$totalMap[$materialKey] ?? ''] ?? 0);
+        $pricePerUnit = (float) ($result[$pricePerUnitMap[$materialKey] ?? ''] ?? 0);
+
+        $base = [
+            'material_key' => $materialKey,
+            'check_field' => $qtyMap[$materialKey] ?? 'qty',
+            'qty' => $qty,
+            'unit' => '',
+            'comparison_unit' => '',
+            'detail_value' => 1,
+            'object' => $model,
+            'type_field' => 'type',
+            'brand_field' => 'brand',
+            'detail_display' => '-',
+            'detail_extra' => '-',
+            'store_field' => 'store',
+            'address_field' => 'address',
+            'store_display' => $model->store ?? '-',
+            'address_display' => $model->address ?? '-',
+            'package_price' => 0,
+            'package_unit' => '',
+            'price_per_unit' => $pricePerUnit,
+            'price_unit_label' => '',
+            'price_calc_qty' => $qty,
+            'price_calc_unit' => '',
+            'total_price' => $totalPrice,
+            'unit_price' => $pricePerUnit,
+            'unit_price_label' => '',
+        ];
+
+        if ($materialKey === 'brick') {
+            $length = (float) ($model->dimension_length ?? 0);
+            $width = (float) ($model->dimension_width ?? 0);
+            $height = (float) ($model->dimension_height ?? 0);
+            $volume = $length > 0 && $width > 0 && $height > 0 ? ($length * $width * $height) / 1000000 : 0;
+
+            return array_merge($base, [
+                'name' => 'Bata',
+                'unit' => 'Bh',
+                'comparison_unit' => 'M3',
+                'detail_value' => $volume > 0 ? $volume : 0,
+                'detail_display' =>
+                    $length > 0 && $width > 0 && $height > 0
+                        ? $formatNum($length) . ' x ' . $formatNum($width) . ' x ' . $formatNum($height) . ' cm'
+                        : '-',
+                'detail_extra' =>
+                    $volume > 0 ? \App\Helpers\NumberHelper::formatPlain($volume, 15, ',', '.') . ' M3' : '-',
+                'package_price' => (float) ($model->price_per_piece ?? 0),
+                'package_unit' => 'bh',
+                'price_per_unit' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->price_per_piece ?? 0),
+                'price_unit_label' => 'bh',
+                'price_calc_unit' => 'bh',
+                'unit_price' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->price_per_piece ?? 0),
+                'unit_price_label' => 'bh',
+            ]);
+        }
+
+        if ($materialKey === 'cement') {
+            $packageUnit = trim((string) ($model->package_unit ?? 'Sak'));
+            if ($packageUnit === '') {
+                $packageUnit = 'Sak';
+            }
+            $weight = (float) ($model->package_weight_net ?? 0);
+
+            return array_merge($base, [
+                'name' => 'Semen',
+                'unit' => 'Sak',
+                'comparison_unit' => 'Kg',
+                'detail_value' => $weight > 0 ? $weight : 0,
+                'detail_display' => $model->color ?? '-',
+                'detail_extra' => $weight > 0 ? $formatNum($weight) . ' Kg' : '-',
+                'package_price' => (float) ($model->package_price ?? 0),
+                'package_unit' => $packageUnit,
+                'price_per_unit' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->package_price ?? 0),
+                'price_unit_label' => $packageUnit,
+                'price_calc_unit' => 'Sak',
+                'unit_price' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->package_price ?? 0),
+                'unit_price_label' => $packageUnit,
+            ]);
+        }
+
+        if ($materialKey === 'sand') {
+            $packageUnit = trim((string) ($model->package_unit ?? 'Karung'));
+            if ($packageUnit === '') {
+                $packageUnit = 'Karung';
+            }
+            $volume = (float) ($model->package_volume ?? 0);
+
+            return array_merge($base, [
+                'name' => 'Pasir',
+                'unit' => 'M3',
+                'comparison_unit' => 'M3',
+                'detail_value' => $volume > 0 ? $volume : 1,
+                'detail_display' => $packageUnit,
+                'detail_extra' => $volume > 0 ? $formatNum($volume) . ' M3' : '-',
+                'package_price' => (float) ($model->package_price ?? 0),
+                'package_unit' => $packageUnit,
+                'price_per_unit' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->comparison_price_per_m3 ?? 0),
+                'price_unit_label' => 'M3',
+                'price_calc_unit' => 'M3',
+                'unit_price' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->comparison_price_per_m3 ?? 0),
+                'unit_price_label' => $packageUnit,
+            ]);
+        }
+
+        if ($materialKey === 'cat') {
+            $packageUnit = trim((string) ($model->package_unit ?? 'Kmsn'));
+            if ($packageUnit === '') {
+                $packageUnit = 'Kmsn';
+            }
+            $weight = (float) ($model->package_weight_net ?? 0);
+            $subBrand = trim((string) ($model->sub_brand ?? ''));
+            $code = trim((string) ($model->color_code ?? ''));
+            $colorName = trim((string) ($model->color_name ?? ''));
+            $displayParts = array_values(array_filter([$subBrand, $code, $colorName], static fn($v) => $v !== ''));
+            $detailDisplay = !empty($displayParts) ? implode(' - ', $displayParts) : '-';
+            $detailExtra = $weight > 0 ? $formatNum($weight) . ' Kg' : '-';
+
+            return array_merge($base, [
+                'name' => 'Cat',
+                'unit' => $packageUnit,
+                'comparison_unit' => 'Kg',
+                'detail_value' => $weight > 0 ? $weight : 0,
+                'detail_display' => $detailDisplay,
+                'detail_extra' => $detailExtra,
+                'package_price' => (float) ($model->purchase_price ?? 0),
+                'package_unit' => $packageUnit,
+                'price_per_unit' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->purchase_price ?? 0),
+                'price_unit_label' => $packageUnit,
+                'price_calc_unit' => $packageUnit,
+                'unit_price' => $pricePerUnit > 0 ? $pricePerUnit : (float) ($model->purchase_price ?? 0),
+                'unit_price_label' => $packageUnit,
+            ]);
+        }
+
+        if ($materialKey === 'ceramic') {
+            $length = (float) ($model->dimension_length ?? 0);
+            $width = (float) ($model->dimension_width ?? 0);
+            $area = $length > 0 && $width > 0 ? ($length / 100) * ($width / 100) : 0;
+            $tilesPackages = (float) ($result['tiles_packages'] ?? 0);
+            $packagePrice = (float) ($model->price_per_package ?? 0);
+            $effectivePricePerUnit = $pricePerUnit > 0 ? $pricePerUnit : ($tilesPackages > 0 ? $totalPrice / $tilesPackages : $packagePrice);
+
+            return array_merge($base, [
+                'name' => 'Keramik',
+                'unit' => 'Bh',
+                'comparison_unit' => 'M2',
+                'detail_value' => $area > 0 ? $area : 0,
+                'detail_display' => $model->color ?? '-',
+                'detail_extra' =>
+                    $length > 0 && $width > 0 ? $formatNum($length) . 'x' . $formatNum($width) . ' cm' : '-',
+                'package_price' => $packagePrice,
+                'package_unit' => 'Dus',
+                'price_per_unit' => $effectivePricePerUnit,
+                'price_unit_label' => 'Dus',
+                'price_calc_qty' => $tilesPackages > 0 ? $tilesPackages : 0,
+                'price_calc_unit' => 'Dus',
+                'unit_price' => $effectivePricePerUnit,
+                'unit_price_label' => 'Dus',
+            ]);
+        }
+
+        if ($materialKey === 'nat') {
+            $packageUnit = trim((string) ($model->package_unit ?? 'Bks'));
+            if ($packageUnit === '') {
+                $packageUnit = 'Bks';
+            }
+            $weight = (float) ($model->package_weight_net ?? 0);
+            $packagePrice = (float) ($model->package_price ?? 0);
+            $effectivePricePerUnit = $pricePerUnit > 0 ? $pricePerUnit : $packagePrice;
+
+            return array_merge($base, [
+                'name' => 'Nat',
+                'unit' => 'Bks',
+                'comparison_unit' => 'Kg',
+                'detail_value' => $weight > 0 ? $weight : 0,
+                'detail_display' => $model->color ?? 'Nat',
+                'detail_extra' => $weight > 0 ? $formatNum($weight) . ' Kg' : '-',
+                'package_price' => $packagePrice,
+                'package_unit' => $packageUnit,
+                'price_per_unit' => $effectivePricePerUnit,
+                'price_unit_label' => $packageUnit,
+                'price_calc_unit' => 'Bks',
+                'unit_price' => $effectivePricePerUnit,
+                'unit_price_label' => $packageUnit,
+            ]);
+        }
+
+        return null;
+    }
+
+    protected function mergeBundleMaterialRows(array $existing, array $incoming): array
+    {
+        $existing['qty'] = (float) ($existing['qty'] ?? 0) + (float) ($incoming['qty'] ?? 0);
+        $existing['price_calc_qty'] = (float) ($existing['price_calc_qty'] ?? 0) + (float) ($incoming['price_calc_qty'] ?? 0);
+        $existing['total_price'] = (float) ($existing['total_price'] ?? 0) + (float) ($incoming['total_price'] ?? 0);
+
+        $priceCalcQty = (float) ($existing['price_calc_qty'] ?? 0);
+        if ($priceCalcQty > 0) {
+            $perUnit = (float) ($existing['total_price'] ?? 0) / $priceCalcQty;
+            $existing['price_per_unit'] = $perUnit;
+            $existing['unit_price'] = $perUnit;
+        }
+
+        return $existing;
+    }
+
+    protected function buildBundleMaterialSignature(string $materialKey, array $row): string
+    {
+        $normalize = static function ($value): string {
+            $text = trim((string) $value);
+            if ($text === '') {
+                return '';
+            }
+            $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+            return strtolower($text);
+        };
+
+        $model = $row['object'] ?? null;
+        $type = $row['type_display'] ?? ($model->type ?? '');
+        $brand = $row['brand_display'] ?? ($model->brand ?? '');
+        $store = $row['store_display'] ?? ($model->store ?? '');
+        $address = $row['address_display'] ?? ($model->address ?? '');
+
+        $signatureData = [
+            'material' => $normalize($materialKey),
+            'name' => $normalize($row['name'] ?? ''),
+            'type' => $normalize($type),
+            'brand' => $normalize($brand),
+            'detail' => $normalize($row['detail_display'] ?? ''),
+            'detail_extra' => $normalize($row['detail_extra'] ?? ''),
+            'store' => $normalize($store),
+            'address' => $normalize($address),
+            'package_unit' => $normalize($row['package_unit'] ?? ''),
+            'package_price' => round((float) ($row['package_price'] ?? 0), 4),
+            'unit' => $normalize($row['unit'] ?? ''),
+        ];
+
+        return hash('sha256', json_encode($signatureData, JSON_UNESCAPED_UNICODE));
     }
 
     protected function pickBundleMaterialModel(array $combinations, string $materialKey, string $priceKey): mixed

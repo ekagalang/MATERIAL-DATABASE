@@ -861,6 +861,36 @@
         width: calc(100% + 26px);
     }
 
+    .additional-worktype-input {
+        overflow: hidden;
+    }
+
+    .additional-worktype-input .autocomplete-input {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto !important;
+    }
+
+    .additional-worktype-suffix-btn {
+        flex: 0 0 38px;
+        width: 38px;
+        height: 38px;
+        border: 0;
+        border-left: 1px solid #e2e8f0;
+        background: #fee2e2;
+        color: #b91c1c;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .additional-worktype-suffix-btn:hover {
+        background: #fecaca;
+        color: #991b1b;
+    }
+
     .additional-worktype-btn {
         width: 34px;
         height: 34px;
@@ -2577,6 +2607,86 @@
             return normalized;
         }
 
+        const bundleParameterFields = [
+            'wall_length',
+            'wall_height',
+            'mortar_thickness',
+            'layer_count',
+            'plaster_sides',
+            'skim_sides',
+            'grout_thickness',
+            'ceramic_length',
+            'ceramic_width',
+            'ceramic_thickness',
+        ];
+
+        function normalizeActiveFieldList(rawFields) {
+            if (!Array.isArray(rawFields)) {
+                return [];
+            }
+            const seen = new Set();
+            const normalized = [];
+            rawFields.forEach(field => {
+                const key = String(field || '').trim();
+                if (!key || seen.has(key) || !bundleParameterFields.includes(key)) {
+                    return;
+                }
+                seen.add(key);
+                normalized.push(key);
+            });
+            return normalized;
+        }
+
+        function isFieldWrapVisible(wrapEl) {
+            if (!wrapEl) {
+                return false;
+            }
+            if (wrapEl.offsetParent === null) {
+                return false;
+            }
+            const style = window.getComputedStyle(wrapEl);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        }
+
+        function getMainActiveParameterFields() {
+            const active = [];
+            const mainFieldWrapMap = {
+                wall_length: document.getElementById('wallLength')?.closest('.dimension-item') || null,
+                wall_height: document.getElementById('wallHeightGroup'),
+                mortar_thickness: document.getElementById('mortarThicknessGroup'),
+                layer_count: document.getElementById('layerCountGroup'),
+                plaster_sides: document.getElementById('plasterSidesGroup'),
+                skim_sides: document.getElementById('skimSidesGroup'),
+                grout_thickness: document.getElementById('groutThicknessGroup'),
+                ceramic_length: document.getElementById('ceramicLengthGroup'),
+                ceramic_width: document.getElementById('ceramicWidthGroup'),
+                ceramic_thickness: document.getElementById('ceramicThicknessGroup'),
+            };
+
+            bundleParameterFields.forEach(field => {
+                const wrapEl = mainFieldWrapMap[field] || null;
+                if (isFieldWrapVisible(wrapEl)) {
+                    active.push(field);
+                }
+            });
+
+            return active;
+        }
+
+        function getAdditionalActiveParameterFields(itemEl) {
+            if (!itemEl) {
+                return [];
+            }
+            const active = [];
+            bundleParameterFields.forEach(field => {
+                const wrapEl = itemEl.querySelector(`[data-wrap="${field}"]`);
+                if (isFieldWrapVisible(wrapEl)) {
+                    active.push(field);
+                }
+            });
+            return active;
+        }
+
         function normalizeBundleItem(item, index) {
             const entry = item && typeof item === 'object' ? item : {};
             const title = String(entry.title || '').trim();
@@ -2594,6 +2704,7 @@
                 ceramic_length: String(entry.ceramic_length || '').trim(),
                 ceramic_width: String(entry.ceramic_width || '').trim(),
                 ceramic_thickness: String(entry.ceramic_thickness || '').trim(),
+                active_fields: normalizeActiveFieldList(entry.active_fields),
                 material_type_filters: normalizeBundleMaterialTypeFilters(entry.material_type_filters || {}),
             };
         }
@@ -2647,6 +2758,7 @@
                     ceramic_length: getMainFormValue('ceramicLength'),
                     ceramic_width: getMainFormValue('ceramicWidth'),
                     ceramic_thickness: getMainFormValue('ceramicThickness'),
+                    active_fields: getMainActiveParameterFields(),
                     material_type_filters: collectMainMaterialTypeFilters(),
                 },
                 0,
@@ -3204,13 +3316,19 @@
                         <label data-additional-worktype-label>Item Pekerjaan</label>
                         <div class="input-wrapper">
                             <div class="work-type-autocomplete">
-                                <div class="work-type-input">
+                                <div class="work-type-input additional-worktype-input">
                                     <input type="text"
                                            class="autocomplete-input"
                                            data-field-display="work_type"
                                            placeholder="Pilih atau ketik item pekerjaan..."
                                            autocomplete="off"
                                            value="">
+                                    <button type="button"
+                                            class="additional-worktype-suffix-btn"
+                                            data-action="remove"
+                                            title="Hapus item pekerjaan ini">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
                                 </div>
                                 <div class="autocomplete-list" data-field-list="work_type" id="additionalWorkType-list-${++bundleAdditionalAutocompleteSeq}"></div>
                             </div>
@@ -3493,6 +3611,7 @@
                             ceramic_length: getAdditionalFieldValue(row, 'ceramic_length'),
                             ceramic_width: getAdditionalFieldValue(row, 'ceramic_width'),
                             ceramic_thickness: getAdditionalFieldValue(row, 'ceramic_thickness'),
+                            active_fields: getAdditionalActiveParameterFields(row),
                             material_type_filters: collectAdditionalMaterialTypeFilters(row),
                         },
                         i + 1,

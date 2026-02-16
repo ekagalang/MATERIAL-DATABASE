@@ -44,3 +44,12 @@ test('shared preview combinations view preserves calculation session and returns
         ->and($content)->toContain('resume=1')
         ->and($content)->toContain('normalized: true');
 });
+
+test('bundle aggregation exposes detailed material rows so preview can render multi-item material variants', function () {
+    $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
+
+    expect($content)->toContain('bundle_material_rows')
+        ->and($content)->toContain('buildBundleMaterialRows(')
+        ->and($content)->toContain('buildBundleMaterialSignature(')
+        ->and($content)->toContain('buildBundleMaterialRowFromCombination(');
+});

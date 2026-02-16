@@ -118,7 +118,7 @@
                     $dimensionsList = [];
                     foreach ($values as $sizeFilter) {
                         $normalized = str_replace(',', '.', (string) $sizeFilter);
-                        $normalized = str_replace(['Ãƒâ€”', 'Ã—'], 'x', $normalized);
+                        $normalized = str_replace(['×', 'Ã—', 'Ãƒâ€”'], 'x', $normalized);
                         $dimensions = array_map('trim', explode('x', strtolower($normalized)));
                         if (count($dimensions) !== 2) {
                             continue;
@@ -1136,6 +1136,132 @@ $paramValue = $isGroutTile
 
                     return '-';
                 };
+                $rekapLegacyFieldMap = [
+                    'brick' => ['id' => 'brick_id', 'brand' => 'brick_brand', 'detail' => 'brick_detail'],
+                    'cement' => ['id' => 'cement_id', 'brand' => 'cement_brand', 'detail' => 'cement_detail'],
+                    'sand' => ['id' => 'sand_id', 'brand' => 'sand_brand', 'detail' => 'sand_detail'],
+                    'cat' => ['id' => 'cat_id', 'brand' => 'cat_brand', 'detail' => 'cat_detail'],
+                    'ceramic' => ['id' => 'ceramic_id', 'brand' => 'ceramic_brand', 'detail' => 'ceramic_detail'],
+                    'nat' => ['id' => 'nat_id', 'brand' => 'nat_brand', 'detail' => 'nat_detail'],
+                ];
+                $emptyRekapMaterialVariants = static function () use ($rekapLegacyFieldMap): array {
+                    $data = [];
+                    foreach (array_keys($rekapLegacyFieldMap) as $matKey) {
+                        $data[$matKey] = [];
+                    }
+
+                    return $data;
+                };
+                $appendRekapMaterialVariant = function (
+                    array &$entry,
+                    string $materialKey,
+                    $id,
+                    $brand,
+                    $detail,
+                ) use ($rekapLegacyFieldMap): void {
+                    if (!isset($rekapLegacyFieldMap[$materialKey])) {
+                        return;
+                    }
+
+                    if (!isset($entry['material_variants']) || !is_array($entry['material_variants'])) {
+                        $entry['material_variants'] = [];
+                    }
+                    if (!isset($entry['material_variants'][$materialKey]) || !is_array($entry['material_variants'][$materialKey])) {
+                        $entry['material_variants'][$materialKey] = [];
+                    }
+
+                    $brandText = trim((string) ($brand ?? ''));
+                    $detailText = trim((string) ($detail ?? ''));
+                    if ($brandText === '' && $detailText === '') {
+                        return;
+                    }
+                    if ($brandText === '') {
+                        $brandText = '-';
+                    }
+                    if ($detailText === '') {
+                        $detailText = '-';
+                    }
+                    $materialId = is_numeric($id) ? (int) $id : null;
+                    $signature = strtolower(
+                        ($materialId ?? 'null') . '|' . preg_replace('/\s+/u', ' ', $brandText) . '|' . preg_replace('/\s+/u', ' ', $detailText),
+                    );
+                    foreach ($entry['material_variants'][$materialKey] as $existing) {
+                        if (($existing['signature'] ?? '') === $signature) {
+                            return;
+                        }
+                    }
+
+                    $entry['material_variants'][$materialKey][] = [
+                        'id' => $materialId,
+                        'brand' => $brandText,
+                        'detail' => $detailText,
+                        'signature' => $signature,
+                    ];
+                };
+                $extractBundleMaterialVariantsForRekap = function ($item) use ($rekapLegacyFieldMap): array {
+                    $variants = [];
+                    foreach (array_keys($rekapLegacyFieldMap) as $matKey) {
+                        $variants[$matKey] = [];
+                    }
+
+                    $bundleRows = $item['bundle_material_rows'] ?? [];
+                    if (!is_array($bundleRows)) {
+                        return $variants;
+                    }
+
+                    foreach ($bundleRows as $bundleRow) {
+                        if (!is_array($bundleRow)) {
+                            continue;
+                        }
+                        $materialKey = trim((string) ($bundleRow['material_key'] ?? ''));
+                        if (!isset($variants[$materialKey])) {
+                            continue;
+                        }
+
+                        $model = $bundleRow['object'] ?? null;
+                        $brand = trim((string) ($bundleRow['brand_display'] ?? ($model->brand ?? '')));
+                        $detail = trim((string) ($bundleRow['detail_display'] ?? ''));
+                        $detailExtra = trim((string) ($bundleRow['detail_extra'] ?? ''));
+                        if ($detailExtra !== '' && $detailExtra !== '-') {
+                            $detail = $detail === '' || $detail === '-' ? $detailExtra : $detail . ' - ' . $detailExtra;
+                        }
+                        $materialId = is_object($model) && isset($model->id) ? (int) $model->id : null;
+
+                        if ($brand === '' && $detail === '') {
+                            continue;
+                        }
+                        if ($brand === '') {
+                            $brand = '-';
+                        }
+                        if ($detail === '') {
+                            $detail = '-';
+                        }
+
+                        $signature = strtolower(
+                            ($materialId ?? 'null') .
+                                '|' .
+                                (preg_replace('/\s+/u', ' ', $brand) ?? $brand) .
+                                '|' .
+                                (preg_replace('/\s+/u', ' ', $detail) ?? $detail),
+                        );
+                        if (isset($variants[$materialKey][$signature])) {
+                            continue;
+                        }
+
+                        $variants[$materialKey][$signature] = [
+                            'id' => $materialId,
+                            'brand' => $brand,
+                            'detail' => $detail,
+                            'signature' => $signature,
+                        ];
+                    }
+
+                    foreach ($variants as $matKey => $grouped) {
+                        $variants[$matKey] = array_values($grouped);
+                    }
+
+                    return $variants;
+                };
                 $buildRekapEntry = function ($project, $item, $key) use (
                     &$hasBrick,
                     &$hasCement,
@@ -1146,6 +1272,10 @@ $paramValue = $isGroutTile
                     $resolveBrickModelForRekap,
                     $formatBrickBrandForRekap,
                     $formatBrickDetailForRekap,
+                    $rekapLegacyFieldMap,
+                    $emptyRekapMaterialVariants,
+                    $appendRekapMaterialVariant,
+                    $extractBundleMaterialVariantsForRekap,
                 ) {
                     $res = $item['result'];
                     $comboBrick = $resolveBrickModelForRekap($project, $item);
@@ -1172,6 +1302,7 @@ $paramValue = $isGroutTile
                     $rekapEntry = [
                         'grand_total' => $item['result']['grand_total'] ?? null,
                         'filter_label' => $key,
+                        'material_variants' => $emptyRekapMaterialVariants(),
                     ];
                     if (isset($item['frequency'])) {
                         $rekapEntry['frequency'] = $item['frequency'];
@@ -1182,6 +1313,13 @@ $paramValue = $isGroutTile
                         $rekapEntry['brick_id'] = $comboBrick->id;
                         $rekapEntry['brick_brand'] = $formatBrickBrandForRekap($comboBrick);
                         $rekapEntry['brick_detail'] = $formatBrickDetailForRekap($comboBrick);
+                        $appendRekapMaterialVariant(
+                            $rekapEntry,
+                            'brick',
+                            $comboBrick->id ?? null,
+                            $rekapEntry['brick_brand'],
+                            $rekapEntry['brick_detail'],
+                        );
                     }
 
                     if (isset($item['cement'])) {
@@ -1189,6 +1327,13 @@ $paramValue = $isGroutTile
                         $rekapEntry['cement_brand'] = $item['cement']->brand;
                         $rekapEntry['cement_detail'] =
                             ($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg';
+                        $appendRekapMaterialVariant(
+                            $rekapEntry,
+                            'cement',
+                            $item['cement']->id ?? null,
+                            $rekapEntry['cement_brand'],
+                            $rekapEntry['cement_detail'],
+                        );
                     }
 
                     if (isset($item['sand'])) {
@@ -1200,6 +1345,13 @@ $paramValue = $isGroutTile
                             (($item['sand']->package_volume ?? 0) > 0
                                 ? $item['sand']->package_volume + 0 . ' M3'
                                 : '-');
+                        $appendRekapMaterialVariant(
+                            $rekapEntry,
+                            'sand',
+                            $item['sand']->id ?? null,
+                            $rekapEntry['sand_brand'],
+                            $rekapEntry['sand_detail'],
+                        );
                     }
 
                     if (isset($item['cat'])) {
@@ -1237,6 +1389,13 @@ $paramValue = $isGroutTile
                         $catDetailParts[] =
                             'BB: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
                         $rekapEntry['cat_detail'] = implode(' - ', $catDetailParts);
+                        $appendRekapMaterialVariant(
+                            $rekapEntry,
+                            'cat',
+                            $cat->id ?? null,
+                            $rekapEntry['cat_brand'],
+                            $rekapEntry['cat_detail'],
+                        );
                     }
 
                     if (isset($item['ceramic'])) {
@@ -1249,6 +1408,13 @@ $paramValue = $isGroutTile
                             'x' .
                             ($item['ceramic']->dimension_width + 0) .
                             ')';
+                        $appendRekapMaterialVariant(
+                            $rekapEntry,
+                            'ceramic',
+                            $item['ceramic']->id ?? null,
+                            $rekapEntry['ceramic_brand'],
+                            $rekapEntry['ceramic_detail'],
+                        );
                     }
 
                     if (isset($item['nat'])) {
@@ -1256,6 +1422,61 @@ $paramValue = $isGroutTile
                         $rekapEntry['nat_brand'] = $item['nat']->brand;
                         $rekapEntry['nat_detail'] =
                             ($item['nat']->color ?? 'Nat') . ' (' . ($item['nat']->package_weight_net + 0) . ' kg)';
+                        $appendRekapMaterialVariant(
+                            $rekapEntry,
+                            'nat',
+                            $item['nat']->id ?? null,
+                            $rekapEntry['nat_brand'],
+                            $rekapEntry['nat_detail'],
+                        );
+                    }
+
+                    // Bundle mode: keep all material variants per material type.
+                    $bundleVariants = $extractBundleMaterialVariantsForRekap($item);
+                    foreach ($bundleVariants as $materialKey => $variantRows) {
+                        if (!is_array($variantRows) || empty($variantRows)) {
+                            continue;
+                        }
+                        foreach ($variantRows as $variantRow) {
+                            $appendRekapMaterialVariant(
+                                $rekapEntry,
+                                $materialKey,
+                                $variantRow['id'] ?? null,
+                                $variantRow['brand'] ?? '-',
+                                $variantRow['detail'] ?? '-',
+                            );
+                        }
+
+                        if ($materialKey === 'brick') {
+                            $hasBrick = true;
+                        } elseif ($materialKey === 'cement') {
+                            $hasCement = true;
+                        } elseif ($materialKey === 'sand') {
+                            $hasSand = true;
+                        } elseif ($materialKey === 'cat') {
+                            $hasCat = true;
+                        } elseif ($materialKey === 'ceramic') {
+                            $hasCeramic = true;
+                        } elseif ($materialKey === 'nat') {
+                            $hasNat = true;
+                        }
+                    }
+
+                    // Backward compatibility: keep legacy single fields from first variant.
+                    foreach ($rekapLegacyFieldMap as $materialKey => $fieldMap) {
+                        $firstVariant = $rekapEntry['material_variants'][$materialKey][0] ?? null;
+                        if (!is_array($firstVariant)) {
+                            continue;
+                        }
+                        if (empty($rekapEntry[$fieldMap['id']] ?? null) && !empty($firstVariant['id'])) {
+                            $rekapEntry[$fieldMap['id']] = $firstVariant['id'];
+                        }
+                        if (empty(trim((string) ($rekapEntry[$fieldMap['brand']] ?? '')))) {
+                            $rekapEntry[$fieldMap['brand']] = $firstVariant['brand'] ?? '-';
+                        }
+                        if (empty(trim((string) ($rekapEntry[$fieldMap['detail']] ?? '')))) {
+                            $rekapEntry[$fieldMap['detail']] = $firstVariant['detail'] ?? '-';
+                        }
                     }
 
                     return $rekapEntry;
@@ -1269,10 +1490,13 @@ $paramValue = $isGroutTile
                     &$hasNat,
                     $formatBrickBrandForRekap,
                     $formatBrickDetailForRekap,
+                    $emptyRekapMaterialVariants,
+                    $appendRekapMaterialVariant,
                 ) {
                     $entry = [
                         'grand_total' => null,
                         'filter_label' => $key,
+                        'material_variants' => $emptyRekapMaterialVariants(),
                     ];
 
                     if (!empty($models['brick'])) {
@@ -1281,6 +1505,13 @@ $paramValue = $isGroutTile
                         $entry['brick_id'] = $brick->id;
                         $entry['brick_brand'] = $formatBrickBrandForRekap($brick);
                         $entry['brick_detail'] = $formatBrickDetailForRekap($brick);
+                        $appendRekapMaterialVariant(
+                            $entry,
+                            'brick',
+                            $brick->id ?? null,
+                            $entry['brick_brand'],
+                            $entry['brick_detail'],
+                        );
                     }
 
                     if (!empty($models['cement'])) {
@@ -1290,6 +1521,13 @@ $paramValue = $isGroutTile
                         $entry['cement_brand'] = $cement->brand;
                         $entry['cement_detail'] =
                             ($cement->color ?? '-') . ' - ' . ($cement->package_weight_net + 0) . ' Kg';
+                        $appendRekapMaterialVariant(
+                            $entry,
+                            'cement',
+                            $cement->id ?? null,
+                            $entry['cement_brand'],
+                            $entry['cement_detail'],
+                        );
                     }
 
                     if (!empty($models['sand'])) {
@@ -1301,6 +1539,13 @@ $paramValue = $isGroutTile
                             ($sand->package_unit ?? '-') .
                             ' - ' .
                             (($sand->package_volume ?? 0) > 0 ? $sand->package_volume + 0 . ' M3' : '-');
+                        $appendRekapMaterialVariant(
+                            $entry,
+                            'sand',
+                            $sand->id ?? null,
+                            $entry['sand_brand'],
+                            $entry['sand_detail'],
+                        );
                     }
 
                     if (!empty($models['cat'])) {
@@ -1339,6 +1584,13 @@ $paramValue = $isGroutTile
                         $catDetailParts[] =
                             'BB: ' . \App\Helpers\NumberHelper::format($cat->package_weight_net + 0) . ' kg';
                         $entry['cat_detail'] = implode(' - ', $catDetailParts);
+                        $appendRekapMaterialVariant(
+                            $entry,
+                            'cat',
+                            $cat->id ?? null,
+                            $entry['cat_brand'],
+                            $entry['cat_detail'],
+                        );
                     }
 
                     if (!empty($models['ceramic'])) {
@@ -1353,6 +1605,13 @@ $paramValue = $isGroutTile
                             'x' .
                             ($ceramic->dimension_width + 0) .
                             ')';
+                        $appendRekapMaterialVariant(
+                            $entry,
+                            'ceramic',
+                            $ceramic->id ?? null,
+                            $entry['ceramic_brand'],
+                            $entry['ceramic_detail'],
+                        );
                     }
 
                     if (!empty($models['nat'])) {
@@ -1361,6 +1620,13 @@ $paramValue = $isGroutTile
                         $entry['nat_id'] = $nat->id;
                         $entry['nat_brand'] = $nat->brand;
                         $entry['nat_detail'] = ($nat->color ?? 'Nat') . ' (' . ($nat->package_weight_net + 0) . ' kg)';
+                        $appendRekapMaterialVariant(
+                            $entry,
+                            'nat',
+                            $nat->id ?? null,
+                            $entry['nat_brand'],
+                            $entry['nat_detail'],
+                        );
                     }
 
                     return $entry;
@@ -2739,10 +3005,590 @@ $paramValue = $isGroutTile
                             ? 'LEBAR'
                             : 'TINGGI';
                         // Plinth ceramic uses TINGGI (already in else block, so no change needed)
+                        $bundleWorkItemsForParams = [];
+                        $bundleIgnoredKeys = [
+                            'title',
+                            'work_type',
+                            'active_fields',
+                            'material_type_filters',
+                            'material_type_filters_extra',
+                        ];
+                        $bundleSupportedParamKeys = [
+                            'wall_length',
+                            'wall_height',
+                            'mortar_thickness',
+                            'layer_count',
+                            'plaster_sides',
+                            'skim_sides',
+                            'grout_thickness',
+                            'ceramic_length',
+                            'ceramic_width',
+                            'ceramic_thickness',
+                            'area',
+                        ];
+                        $bundleParamLabelMap = [
+                            'wall_length' => 'Panjang',
+                            'wall_height' => 'Tinggi',
+                            'mortar_thickness' => 'Tebal Adukan',
+                            'layer_count' => 'Tingkat',
+                            'plaster_sides' => 'Sisi Plester',
+                            'skim_sides' => 'Sisi Aci',
+                            'grout_thickness' => 'Tebal Nat',
+                            'ceramic_length' => 'P. Keramik',
+                            'ceramic_width' => 'L. Keramik',
+                            'ceramic_thickness' => 'T. Keramik',
+                            'area' => 'Luas',
+                        ];
+                        $bundleParamUnitMap = [
+                            'wall_length' => 'M',
+                            'wall_height' => 'M',
+                            'mortar_thickness' => 'cm',
+                            'layer_count' => 'Lapis',
+                            'plaster_sides' => 'Sisi',
+                            'skim_sides' => 'Sisi',
+                            'grout_thickness' => 'mm',
+                            'ceramic_length' => 'cm',
+                            'ceramic_width' => 'cm',
+                            'ceramic_thickness' => 'mm',
+                            'area' => 'M2',
+                        ];
+                        $bundleParamOrderMap = [
+                            'wall_length' => 10,
+                            'wall_height' => 20,
+                            'area' => 30,
+                            '__computed_area' => 31,
+                            'mortar_thickness' => 40,
+                            'layer_count' => 50,
+                            'plaster_sides' => 60,
+                            'skim_sides' => 70,
+                            'grout_thickness' => 80,
+                            'ceramic_length' => 90,
+                            'ceramic_width' => 100,
+                            'ceramic_thickness' => 110,
+                        ];
+                        $formatBundleParamLabel = static function (
+                            string $key,
+                            string $workType,
+                        ) use ($bundleParamLabelMap): string {
+                            if ($key === 'wall_height') {
+                                return in_array(
+                                    $workType,
+                                    ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'],
+                                    true,
+                                )
+                                    ? 'Lebar'
+                                    : 'Tinggi';
+                            }
+                            if ($key === 'mortar_thickness' && in_array($workType, ['skim_coating', 'coating_floor'], true)) {
+                                return 'Tebal Acian';
+                            }
+                            if ($key === 'layer_count' && in_array($workType, ['painting', 'wall_painting'], true)) {
+                                return 'Lapis Cat';
+                            }
+                            if (isset($bundleParamLabelMap[$key])) {
+                                return $bundleParamLabelMap[$key];
+                            }
+
+                            return ucwords(str_replace('_', ' ', $key));
+                        };
+                        $resolveFallbackActiveFields = static function (string $workType): array {
+                            $fields = ['wall_length'];
+                            if ($workType !== 'brick_rollag') {
+                                $fields[] = 'wall_height';
+                            }
+                            if (!in_array($workType, ['painting', 'wall_painting', 'grout_tile'], true)) {
+                                $fields[] = 'mortar_thickness';
+                            }
+                            if (in_array($workType, ['brick_rollag', 'painting', 'wall_painting'], true)) {
+                                $fields[] = 'layer_count';
+                            }
+                            if ($workType === 'wall_plastering') {
+                                $fields[] = 'plaster_sides';
+                            }
+                            if ($workType === 'skim_coating') {
+                                $fields[] = 'skim_sides';
+                            }
+                            if (in_array(
+                                $workType,
+                                ['tile_installation', 'grout_tile', 'plinth_ceramic', 'adhesive_mix', 'plinth_adhesive_mix'],
+                                true,
+                            )) {
+                                $fields[] = 'grout_thickness';
+                            }
+                            if ($workType === 'grout_tile') {
+                                $fields[] = 'ceramic_length';
+                                $fields[] = 'ceramic_width';
+                                $fields[] = 'ceramic_thickness';
+                            }
+
+                            return array_values(array_unique($fields));
+                        };
+                        $resolveBundleParamUnit = static function (string $key, string $workType) use (
+                            $bundleParamUnitMap,
+                        ): string {
+                            if ($key === 'wall_height' && $workType === 'plinth_ceramic') {
+                                return 'cm';
+                            }
+
+                            return $bundleParamUnitMap[$key] ?? '';
+                        };
+                        $normalizeBundleParamValue = static function ($value): ?string {
+                            if ($value === null || is_array($value) || is_object($value)) {
+                                return null;
+                            }
+                            if (is_bool($value)) {
+                                return $value ? 'Ya' : 'Tidak';
+                            }
+
+                            $text = trim((string) $value);
+                            if ($text === '') {
+                                return null;
+                            }
+                            if (is_numeric($value)) {
+                                return \App\Helpers\NumberHelper::format((float) $value);
+                            }
+
+                            return $text;
+                        };
+                        $buildBundleItemVariables = function (array $item, string $workType) use (
+                            $bundleIgnoredKeys,
+                            $bundleSupportedParamKeys,
+                            $bundleParamOrderMap,
+                            $formatBundleParamLabel,
+                            $resolveFallbackActiveFields,
+                            $resolveBundleParamUnit,
+                            $normalizeBundleParamValue,
+                        ): array {
+                            $variables = [];
+                            $activeFields = array_values(
+                                array_filter(
+                                    array_map(static fn($field) => trim((string) $field), $item['active_fields'] ?? []),
+                                    static fn($field) => $field !== '',
+                                ),
+                            );
+                            if (empty($activeFields)) {
+                                $activeFields = $resolveFallbackActiveFields($workType);
+                            }
+                            $activeFieldsLookup = array_fill_keys($activeFields, true);
+
+                            foreach ($item as $rawKey => $rawValue) {
+                                $paramKey = trim((string) $rawKey);
+                                if ($paramKey === '' || in_array($paramKey, $bundleIgnoredKeys, true)) {
+                                    continue;
+                                }
+                                if (!in_array($paramKey, $bundleSupportedParamKeys, true)) {
+                                    continue;
+                                }
+                                if (!isset($activeFieldsLookup[$paramKey])) {
+                                    continue;
+                                }
+                                if (str_starts_with($paramKey, 'material_type_filter') || str_ends_with($paramKey, '_id')) {
+                                    continue;
+                                }
+
+                                $normalizedValue = $normalizeBundleParamValue($rawValue);
+                                if ($normalizedValue === null) {
+                                    continue;
+                                }
+
+                                $variables[$paramKey] = [
+                                    'key' => $paramKey,
+                                    'label' => $formatBundleParamLabel($paramKey, $workType),
+                                    'value' => $normalizedValue,
+                                    'unit' => $resolveBundleParamUnit($paramKey, $workType),
+                                ];
+                            }
+
+                            $length = is_numeric($item['wall_length'] ?? null) ? (float) $item['wall_length'] : 0;
+                            $height = is_numeric($item['wall_height'] ?? null) ? (float) $item['wall_height'] : 0;
+                            $isRollag = $workType === 'brick_rollag';
+                            if (
+                                !$isRollag &&
+                                $length > 0 &&
+                                $height > 0 &&
+                                !isset($variables['area']) &&
+                                isset($activeFieldsLookup['wall_length']) &&
+                                isset($activeFieldsLookup['wall_height'])
+                            ) {
+                                $computedArea =
+                                    $workType === 'plinth_ceramic' ? $length * ($height / 100) : $length * $height;
+                                $variables['__computed_area'] = [
+                                    'key' => '__computed_area',
+                                    'label' => 'Luas',
+                                    'value' => \App\Helpers\NumberHelper::format($computedArea),
+                                    'unit' => 'M2',
+                                ];
+                            }
+
+                            $orderedVariables = array_values($variables);
+                            usort($orderedVariables, static function (array $a, array $b) use ($bundleParamOrderMap) {
+                                $orderA = $bundleParamOrderMap[$a['key']] ?? 999;
+                                $orderB = $bundleParamOrderMap[$b['key']] ?? 999;
+                                if ($orderA !== $orderB) {
+                                    return $orderA <=> $orderB;
+                                }
+
+                                return strcmp((string) ($a['label'] ?? ''), (string) ($b['label'] ?? ''));
+                            });
+                            return $orderedVariables;
+                        };
+                        $rawWorkItemsPayload = $requestData['work_items_payload'] ?? null;
+                        if (is_string($rawWorkItemsPayload) && trim($rawWorkItemsPayload) !== '') {
+                            $decodedWorkItems = json_decode($rawWorkItemsPayload, true);
+                            if (is_array($decodedWorkItems)) {
+                                foreach ($decodedWorkItems as $idx => $decodedItem) {
+                                    if (!is_array($decodedItem)) {
+                                        continue;
+                                    }
+                                    $workTypeCode = trim((string) ($decodedItem['work_type'] ?? ''));
+                                    if ($workTypeCode === '') {
+                                        continue;
+                                    }
+                                    $formulaMeta = \App\Services\FormulaRegistry::find($workTypeCode);
+                                    $workTypeName = $formulaMeta['name'] ?? ucwords(str_replace('_', ' ', $workTypeCode));
+                                    $itemTitle = trim((string) ($decodedItem['title'] ?? ''));
+                                    if ($itemTitle === '') {
+                                        $itemTitle = 'Item Pekerjaan ' . ($idx + 1);
+                                    }
+
+                                    $variables = $buildBundleItemVariables($decodedItem, $workTypeCode);
+
+                                    $bundleWorkItemsForParams[] = [
+                                        'title' => $itemTitle,
+                                        'work_type_code' => $workTypeCode,
+                                        'work_type_name' => $workTypeName,
+                                        'raw' => $decodedItem,
+                                        'variables' => $variables,
+                                    ];
+                                }
+                            }
+                        }
+                        $hasBundleWorkItemDropdown = count($bundleWorkItemsForParams) > 1;
+                        $bundleWorkItemsLabel = count($bundleWorkItemsForParams) . ' Item Pekerjaan';
                     @endphp
                     <div class="card p-3 shadow-sm border-0 preview-params-sticky"
                         style="background-color: #fdfdfd; border-radius: 12px;">
-                        <div class="d-flex flex-wrap align-items-end gap-3 justify-content-start preview-param-row">
+                        <div
+                            class="d-flex flex-wrap align-items-end gap-3 justify-content-start preview-param-row {{ $hasBundleWorkItemDropdown ? 'preview-param-row-with-dropdown' : '' }}">
+                            @if ($hasBundleWorkItemDropdown)
+                                <div style="flex: 1; min-width: 320px;">
+                                    <label class="fw-bold mb-2 text-uppercase"
+                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                        <i class="bi bi-briefcase me-1"></i>Item Pekerjaan
+                                    </label>
+                                    <div class="dropdown w-100 preview-param-items-dropdown" data-bs-auto-close="outside">
+                                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start fw-bold"
+                                            type="button" data-bs-toggle="dropdown" data-param-dropdown-toggle="true"
+                                            aria-expanded="false"
+                                            style="background-color: #e9ecef; border-color: #ced4da; color: #111827;">
+                                            {{ $bundleWorkItemsLabel }}
+                                        </button>
+                                        <div class="dropdown-menu p-2 shadow-sm bundle-param-dropdown-menu"
+                                            style="max-height: 360px; overflow-y: auto;">
+                                            @foreach ($bundleWorkItemsForParams as $bundleIndex => $bundleItemParam)
+                                                @php
+                                                    $itemWorkType = $bundleItemParam['work_type_code'] ?? '';
+                                                    $isItemRollag = $itemWorkType === 'brick_rollag';
+                                                    $itemHeightLabel = in_array(
+                                                        $itemWorkType,
+                                                        ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'],
+                                                        true,
+                                                    )
+                                                        ? 'LEBAR'
+                                                        : 'TINGGI';
+                                                    $itemVarMap = [];
+                                                    foreach ($bundleItemParam['variables'] as $itemVariable) {
+                                                        $varKey = trim((string) ($itemVariable['key'] ?? ''));
+                                                        if ($varKey === '') {
+                                                            continue;
+                                                        }
+                                                        $itemVarMap[$varKey] = $itemVariable;
+                                                    }
+                                                    $itemHas = static fn($key) => isset($itemVarMap[$key]);
+                                                    $itemVal = static fn($key, $default = '-') => $itemVarMap[$key]['value'] ?? $default;
+                                                    $itemUnit = static fn($key, $default = '') => $itemVarMap[$key]['unit'] ?? $default;
+                                                    $itemAreaKey = $itemHas('area') ? 'area' : ($itemHas('__computed_area') ? '__computed_area' : null);
+                                                    $showLength = $itemHas('wall_length');
+                                                    $showHeight = !$isItemRollag && $itemHas('wall_height');
+                                                    $showArea = !empty($itemAreaKey);
+                                                    $showMortar = $itemHas('mortar_thickness');
+                                                    $showLayerRollag = $itemHas('layer_count') && $itemWorkType === 'brick_rollag';
+                                                    $showPlaster = $itemHas('plaster_sides');
+                                                    $showSkim = $itemHas('skim_sides');
+                                                    $showLayerPaint = $itemHas('layer_count') && in_array($itemWorkType, ['painting', 'wall_painting'], true);
+                                                    $showGrout = $itemHas('grout_thickness');
+                                                    $showCerLen = $itemHas('ceramic_length');
+                                                    $showCerWid = $itemHas('ceramic_width');
+                                                    $showCerThk = $itemHas('ceramic_thickness');
+                                                    $sizeFieldCount = ($showLength ? 1 : 0) + ($showHeight ? 1 : 0) + ($showArea ? 1 : 0);
+                                                    $supportFieldCount =
+                                                        ($showMortar ? 1 : 0) +
+                                                        ($showLayerRollag ? 1 : 0) +
+                                                        ($showPlaster ? 1 : 0) +
+                                                        ($showSkim ? 1 : 0) +
+                                                        ($showLayerPaint ? 1 : 0) +
+                                                        ($showGrout ? 1 : 0) +
+                                                        ($showCerLen ? 1 : 0) +
+                                                        ($showCerWid ? 1 : 0) +
+                                                        ($showCerThk ? 1 : 0);
+                                                @endphp
+                                                <div
+                                                    class="px-2 py-2 bundle-param-item-card {{ $bundleIndex > 0 ? 'border-top mt-1' : '' }}">
+                                                    <div class="bundle-param-item-layout">
+                                                        <div class="bundle-param-section bundle-param-section--worktype">
+                                                            <label class="fw-bold mb-2 text-uppercase"
+                                                                style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                                                <i class="bi bi-briefcase me-1"></i>Jenis Item Pekerjaan
+                                                            </label>
+                                                            <div
+                                                                class="form-control fw-bold border-secondary text-dark bundle-param-worktype-value"
+                                                                style="background-color: #e9ecef; opacity: 1;">
+                                                                {{ $bundleItemParam['work_type_name'] }}
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="bundle-param-section bundle-param-section--size">
+                                                            <div class="bundle-param-section-fields">
+                                                                @if ($showLength)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-light border">PANJANG</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #e9ecef;">
+                                                                                {{ $itemVal('wall_length') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-light small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('wall_length', 'M') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showHeight)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-light border">{{ $itemHeightLabel }}</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #e9ecef;">
+                                                                                {{ $itemVal('wall_height') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-light small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('wall_height', 'M') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showArea)
+                                                                    <div class="bundle-param-field bundle-param-field--md">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-danger text-white border border-danger">LUAS</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center bg-white text-danger px-1"
+                                                                                style="border-color: #dc3545;">
+                                                                                {{ $itemVal($itemAreaKey) }}
+                                                                            </div>
+                                                                            <span
+                                                                                class="input-group-text bg-danger text-white small px-1"
+                                                                                style="font-size: 0.7rem; border-color: #dc3545;">{{ $itemUnit($itemAreaKey, 'M2') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($sizeFieldCount === 0)
+                                                                    <div class="bundle-param-empty">-</div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="bundle-param-section bundle-param-section--support">
+                                                            <div class="bundle-param-section-fields">
+                                                                @if ($showMortar)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-light border">TEBAL ADUKAN</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #e9ecef;">
+                                                                                {{ $itemVal('mortar_thickness') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-light small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('mortar_thickness', 'cm') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showLayerRollag)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-warning border">TINGKAT</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #fffbeb; border-color: #fcd34d;">
+                                                                                {{ $itemVal('layer_count') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-warning small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('layer_count', 'Lapis') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showPlaster)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-success text-white border">SISI PLESTER</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #d1fae5; border-color: #34d399;">
+                                                                                {{ $itemVal('plaster_sides') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-success text-white small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('plaster_sides', 'Sisi') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showSkim)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-info text-white border">SISI ACI</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #e0f2fe; border-color: #38bdf8;">
+                                                                                {{ $itemVal('skim_sides') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-info text-white small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('skim_sides', 'Sisi') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showLayerPaint)
+                                                                    <div class="bundle-param-field bundle-param-field--md">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-primary text-white border border-primary">LAPIS CAT</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #dbeafe; border-color: #3b82f6;">
+                                                                                {{ $itemVal('layer_count') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-primary text-white small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('layer_count', 'Lapisan') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showGrout)
+                                                                    <div class="bundle-param-field bundle-param-field--sm">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge bg-info text-white border">TEBAL NAT</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #e0f2fe; border-color: #38bdf8;">
+                                                                                {{ $itemVal('grout_thickness') }}
+                                                                            </div>
+                                                                            <span class="input-group-text bg-info text-white small px-1"
+                                                                                style="font-size: 0.7rem;">{{ $itemUnit('grout_thickness', 'mm') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showCerLen)
+                                                                    <div class="bundle-param-field bundle-param-field--ceramic">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge text-white border"
+                                                                                style="background-color: #f59e0b;">P. KERAMIK</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #fef3c7; border-color: #fde047;">
+                                                                                {{ $itemVal('ceramic_length') }}
+                                                                            </div>
+                                                                            <span class="input-group-text text-white small px-1"
+                                                                                style="background-color: #f59e0b; font-size: 0.7rem;">{{ $itemUnit('ceramic_length', 'cm') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showCerWid)
+                                                                    <div class="bundle-param-field bundle-param-field--ceramic">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge text-white border"
+                                                                                style="background-color: #f59e0b;">L. KERAMIK</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #fef3c7; border-color: #fde047;">
+                                                                                {{ $itemVal('ceramic_width') }}
+                                                                            </div>
+                                                                            <span class="input-group-text text-white small px-1"
+                                                                                style="background-color: #f59e0b; font-size: 0.7rem;">{{ $itemUnit('ceramic_width', 'cm') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($showCerThk)
+                                                                    <div class="bundle-param-field bundle-param-field--ceramic">
+                                                                        <label
+                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
+                                                                            style="font-size: 0.75rem;">
+                                                                            <span class="badge text-white border"
+                                                                                style="background-color: #f59e0b;">T. KERAMIK</span>
+                                                                        </label>
+                                                                        <div class="input-group">
+                                                                            <div class="form-control fw-bold text-center px-1"
+                                                                                style="background-color: #fef3c7; border-color: #fde047;">
+                                                                                {{ $itemVal('ceramic_thickness') }}
+                                                                            </div>
+                                                                            <span class="input-group-text text-white small px-1"
+                                                                                style="background-color: #f59e0b; font-size: 0.7rem;">{{ $itemUnit('ceramic_thickness', 'mm') }}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                @endif
+
+                                                                @if ($supportFieldCount === 0)
+                                                                    <div class="bundle-param-empty">-</div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+                            @else
                             {{-- ===== GRUP UTAMA: Item Pekerjaan + Dimensi ===== --}}
 
                             {{-- Jenis Item Pekerjaan --}}
@@ -2977,6 +3823,7 @@ $paramValue = $isGroutTile
                                     </div>
                                 </div>
                             @endif
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -2994,76 +3841,138 @@ $paramValue = $isGroutTile
                                 border: 1px solid #f1f5f9;
                             }
                         </style>
+                        @php
+                            $rekapMaterialColumns = [
+                                'brick' => [
+                                    'enabled' => $hasBrick,
+                                    'label' => 'Bata',
+                                    'brand_field' => 'brick_brand',
+                                    'detail_field' => 'brick_detail',
+                                ],
+                                'cement' => [
+                                    'enabled' => $hasCement,
+                                    'label' => 'Semen',
+                                    'brand_field' => 'cement_brand',
+                                    'detail_field' => 'cement_detail',
+                                ],
+                                'sand' => [
+                                    'enabled' => $hasSand,
+                                    'label' => 'Pasir',
+                                    'brand_field' => 'sand_brand',
+                                    'detail_field' => 'sand_detail',
+                                ],
+                                'cat' => [
+                                    'enabled' => $hasCat,
+                                    'label' => 'Cat',
+                                    'brand_field' => 'cat_brand',
+                                    'detail_field' => 'cat_detail',
+                                ],
+                                'ceramic' => [
+                                    'enabled' => $hasCeramic,
+                                    'label' => 'Keramik',
+                                    'brand_field' => 'ceramic_brand',
+                                    'detail_field' => 'ceramic_detail',
+                                ],
+                                'nat' => [
+                                    'enabled' => $hasNat,
+                                    'label' => 'Nat',
+                                    'brand_field' => 'nat_brand',
+                                    'detail_field' => 'nat_detail',
+                                ],
+                            ];
+                            $activeRekapMaterialKeys = array_values(
+                                array_filter(array_keys($rekapMaterialColumns), fn($matKey) => $rekapMaterialColumns[$matKey]['enabled']),
+                            );
+                            $getRekapVariantsForDisplay = function (?array $entry, string $materialKey) use (
+                                $rekapMaterialColumns,
+                            ): array {
+                                if (!is_array($entry) || !isset($rekapMaterialColumns[$materialKey])) {
+                                    return [];
+                                }
+
+                                $variants = $entry['material_variants'][$materialKey] ?? [];
+                                if (!is_array($variants)) {
+                                    $variants = [];
+                                }
+
+                                $normalized = [];
+                                foreach ($variants as $variant) {
+                                    if (!is_array($variant)) {
+                                        continue;
+                                    }
+                                    $brand = trim((string) ($variant['brand'] ?? ''));
+                                    $detail = trim((string) ($variant['detail'] ?? ''));
+                                    if ($brand === '' && $detail === '') {
+                                        continue;
+                                    }
+                                    $normalized[] = [
+                                        'brand' => $brand !== '' ? $brand : '-',
+                                        'detail' => $detail !== '' ? $detail : '-',
+                                    ];
+                                }
+
+                                if (!empty($normalized)) {
+                                    return $normalized;
+                                }
+
+                                $brandField = $rekapMaterialColumns[$materialKey]['brand_field'];
+                                $detailField = $rekapMaterialColumns[$materialKey]['detail_field'];
+                                $legacyBrand = trim((string) ($entry[$brandField] ?? ''));
+                                $legacyDetail = trim((string) ($entry[$detailField] ?? ''));
+                                if ($legacyBrand === '' && $legacyDetail === '') {
+                                    return [];
+                                }
+
+                                return [
+                                    [
+                                        'brand' => $legacyBrand !== '' ? $legacyBrand : '-',
+                                        'detail' => $legacyDetail !== '' ? $legacyDetail : '-',
+                                    ],
+                                ];
+                            };
+                            $rekapVariantCounts = [];
+                            foreach ($activeRekapMaterialKeys as $materialKey) {
+                                $maxVariants = 1;
+                                foreach ($rekapCategories as $filterType) {
+                                    foreach ($getDisplayKeys($filterType) as $displayKey) {
+                                        $entry = $globalRekapData[$displayKey] ?? null;
+                                        $variantCount = count($getRekapVariantsForDisplay($entry, $materialKey));
+                                        if ($variantCount > $maxVariants) {
+                                            $maxVariants = $variantCount;
+                                        }
+                                    }
+                                }
+                                $rekapVariantCounts[$materialKey] = $maxVariants;
+                            }
+                        @endphp
                         <table class="table-preview table-rekap-global" data-rekap-table="true" style="margin: 0;">
                             <thead>
                                 <tr>
                                     <th rowspan="2"
+                                        class="rekap-sticky-col-label"
                                         style="background: #891313; color: white; position: sticky; left: 0; z-index: 3; width: 80px; min-width: 80px;">
                                         Rekap</th>
                                     <th rowspan="2"
-                                        style="background: #891313; color: white; position: sticky; left: 80px; z-index: 3; width: 120px; min-width: 120px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.3);">
+                                        class="rekap-sticky-col-total"
+                                        style="background: #891313; color: white; position: sticky; left: var(--rekap-left-2, 80px); z-index: 3; width: 120px; min-width: 120px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.3);">
                                         Grand Total</th>
-                                    @if ($hasBrick)
-                                        <th colspan="2" style="background: #891313; color: white;">Bata</th>
-                                    @endif
-                                    @if ($hasCement)
-                                        <th colspan="2" style="background: #891313; color: white;">Semen</th>
-                                    @endif
-                                    @if ($hasSand)
-                                        <th colspan="2" style="background: #891313; color: white;">Pasir</th>
-                                    @endif
-                                    @if ($hasCat)
-                                        <th colspan="2" style="background: #891313; color: white;">Cat</th>
-                                    @endif
-                                    @if ($hasCeramic)
-                                        <th colspan="2" style="background: #891313; color: white;">Keramik</th>
-                                    @endif
-                                    @if ($hasNat)
-                                        <th colspan="2" style="background: #891313; color: white;">Nat</th>
-                                    @endif
+                                    @foreach ($activeRekapMaterialKeys as $materialKey)
+                                        <th colspan="{{ ($rekapVariantCounts[$materialKey] ?? 1) * 2 }}"
+                                            style="background: #891313; color: white;">
+                                            {{ $rekapMaterialColumns[$materialKey]['label'] }}
+                                        </th>
+                                    @endforeach
                                 </tr>
                                 <tr>
-                                    @if ($hasBrick)
-                                        <th style="background: #891313; color: white;">Merek</th>
-                                        <th style="background: #891313; color: white;">Detail</th>
-                                    @endif
-                                    @if ($hasCement)
-                                        <th style="background: #891313; color: white;">Merek</th>
-                                        <th style="background: #891313; color: white;">Detail</th>
-                                    @endif
-                                    @if ($hasSand)
-                                        <th style="background: #891313; color: white;">Merek</th>
-                                        <th style="background: #891313; color: white;">Detail</th>
-                                    @endif
-                                    @if ($hasCat)
-                                        <th style="background: #891313; color: white;">Merek</th>
-                                        <th style="background: #891313; color: white;">Detail</th>
-                                    @endif
-                                    @if ($hasCeramic)
-                                        <th style="background: #891313; color: white;">Merek</th>
-                                        <th style="background: #891313; color: white;">Detail</th>
-                                    @endif
-                                    @if ($hasNat)
-                                        <th style="background: #891313; color: white;">Merek</th>
-                                        <th style="background: #891313; color: white;">Detail</th>
-                                    @endif
+                                    @foreach ($activeRekapMaterialKeys as $materialKey)
+                                        @for ($variantIndex = 0; $variantIndex < ($rekapVariantCounts[$materialKey] ?? 1); $variantIndex++)
+                                            <th style="background: #891313; color: white;">Merek</th>
+                                            <th style="background: #891313; color: white;">Detail</th>
+                                        @endfor
+                                    @endforeach
                                 </tr>
                             </thead>
                             <tbody>
-                                @php
-                                    $requiredMaterialsForRekap = $requiredMaterials ?? \App\Services\FormulaRegistry::materialsFor($requestData['work_type'] ?? '');
-                                    if (empty($requiredMaterialsForRekap)) {
-                                        $requiredMaterialsForRekap = ['brick', 'cement', 'sand'];
-                                    }
-                                    $rekapFieldMap = [
-                                        'brick' => 'brick_brand',
-                                        'cement' => 'cement_brand',
-                                        'sand' => 'sand_brand',
-                                        'cat' => 'cat_brand',
-                                        'ceramic' => 'ceramic_brand',
-                                        'nat' => 'nat_brand',
-                                    ];
-                                @endphp
                                 @foreach ($rekapCategories as $filterType)
                                     @foreach ($getDisplayKeys($filterType) as $displayIndex => $key)
                                         @php
@@ -3080,44 +3989,29 @@ $paramValue = $isGroutTile
                                             $natBgColor = $natColorMap[$key] ?? '#ffffff';
                                             $ceramicBgColor = $ceramicColorMap[$key] ?? '#ffffff';
                                             $isPopulerRow = str_contains($filterType, 'Populer');
-
-                                            // Calculate Percentages based on BRAND NAME matching
-                                            $brickPercent = isset($globalRekapData[$key])
-                                                ? $formatUsagePercent(
-                                                    'brick',
-                                                    $globalRekapData[$key]['brick_brand'] ?? null,
-                                                )
-                                                : null;
-                                            $cementPercent = isset($globalRekapData[$key])
-                                                ? $formatUsagePercent(
-                                                    'cement',
-                                                    $globalRekapData[$key]['cement_brand'] ?? null,
-                                                )
-                                                : null;
-                                            $sandPercent = isset($globalRekapData[$key])
-                                                ? $formatUsagePercent(
-                                                    'sand',
-                                                    $globalRekapData[$key]['sand_brand'] ?? null,
-                                                )
-                                                : null;
-                                            $catPercent = isset($globalRekapData[$key])
-                                                ? $formatUsagePercent(
-                                                    'cat',
-                                                    $globalRekapData[$key]['cat_brand'] ?? null,
-                                                )
-                                                : null;
-                                            $ceramicPercent = isset($globalRekapData[$key])
-                                                ? $formatUsagePercent(
-                                                    'ceramic',
-                                                    $globalRekapData[$key]['ceramic_brand'] ?? null,
-                                                )
-                                                : null;
-                                            $natPercent = isset($globalRekapData[$key])
-                                                ? $formatUsagePercent(
-                                                    'nat',
-                                                    $globalRekapData[$key]['nat_brand'] ?? null,
-                                                )
-                                                : null;
+                                            $materialBgByKey = [
+                                                'brick' => $brickBgColor,
+                                                'cement' => $cementBgColor,
+                                                'sand' => $sandBgColor,
+                                                'cat' => $catBgColor,
+                                                'ceramic' => $ceramicBgColor,
+                                                'nat' => $natBgColor,
+                                            ];
+                                            $rekapVariantsByMaterial = [];
+                                            $usagePercentByMaterial = [];
+                                            foreach ($activeRekapMaterialKeys as $materialKey) {
+                                                $rekapVariantsByMaterial[$materialKey] = $getRekapVariantsForDisplay(
+                                                    $rekapEntry,
+                                                    $materialKey,
+                                                );
+                                                $firstBrand =
+                                                    $rekapVariantsByMaterial[$materialKey][0]['brand'] ??
+                                                    ($rekapEntry[$rekapMaterialColumns[$materialKey]['brand_field']] ??
+                                                        null);
+                                                $usagePercentByMaterial[$materialKey] = isset($globalRekapData[$key])
+                                                    ? $formatUsagePercent($materialKey, $firstBrand)
+                                                    : null;
+                                            }
 
                                             // Get label color untuk kolom Rekap
                                             $labelColor = $rekapLabelColors[$filterType][$rank] ?? [
@@ -3129,6 +4023,7 @@ $paramValue = $isGroutTile
                                         <tr>
                                             {{-- Column 1: Filter Label --}}
                                             <td
+                                                class="rekap-sticky-col-label"
                                                 style="font-weight: 700; position: sticky; left: 0; z-index: 2; background: {{ $labelColor['bg'] }}; color: {{ $labelColor['text'] }}; padding: 4px 8px; vertical-align: middle; width: 80px; min-width: 80px;">
                                                 <a href="#detail-{{ strtolower(str_replace(' ', '-', $key)) }}"
                                                     style="color: inherit; text-decoration: none; display: block; cursor: pointer;">
@@ -3137,8 +4032,8 @@ $paramValue = $isGroutTile
                                             </td>
 
                                             {{-- Column 2: Grand Total --}}
-                                            <td class="text-end fw-bold"
-                                                style="position: sticky; left: 80px; box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); {{ $grandTotalBg ? 'background: ' . $grandTotalBg . ';' : '' }} padding: 4px 8px; vertical-align: middle; width: 140px; min-width: 140px;">
+                                            <td class="text-end fw-bold rekap-sticky-col-total"
+                                                style="position: sticky; left: var(--rekap-left-2, 80px); box-shadow: 2px 0 4px -2px rgba(0, 0, 0, 0.1); background: {{ $grandTotalBg ?: '#ffffff' }}; padding: 4px 8px; vertical-align: middle; width: 140px; min-width: 140px;">
                                                 @if (isset($globalRekapData[$key]))
                                                     <div class="d-flex flex-column align-items-end w-100">
                                                         {{-- Usage Frequency Badge (Populer) --}}
@@ -3164,157 +4059,50 @@ $paramValue = $isGroutTile
                                                 @endif
                                             </td>
 
-                                            {{-- Column 3: Merek Bata --}}
-                                            @if ($hasBrick)
-                                                <td style="background: {{ $brickBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]))
-                                                        <div title="Grand Total: @currency($globalRekapData[$key]['grand_total'])">
-                                                            {{ !empty($globalRekapData[$key]['brick_brand']) ? $globalRekapData[$key]['brick_brand'] : '-' }}
-                                                            @if ($isPopulerRow && $brickPercent)
+                                            @foreach ($activeRekapMaterialKeys as $materialKey)
+                                                @php
+                                                    $variantLimit = $rekapVariantCounts[$materialKey] ?? 1;
+                                                    $materialVariants = $rekapVariantsByMaterial[$materialKey] ?? [];
+                                                    $materialBg = $materialBgByKey[$materialKey] ?? '#ffffff';
+                                                    $materialPercent = $usagePercentByMaterial[$materialKey] ?? null;
+                                                @endphp
+                                                @for ($variantIndex = 0; $variantIndex < $variantLimit; $variantIndex++)
+                                                    @php
+                                                        $variant = $materialVariants[$variantIndex] ?? null;
+                                                        $brandText = trim((string) ($variant['brand'] ?? '-'));
+                                                        if ($brandText === '') {
+                                                            $brandText = '-';
+                                                        }
+                                                        $detailText = trim((string) ($variant['detail'] ?? '-'));
+                                                        if ($detailText === '') {
+                                                            $detailText = '-';
+                                                        }
+                                                        $isLastVariant = $variantIndex === $variantLimit - 1;
+                                                        $detailCellStyle = 'background: ' . $materialBg . '; vertical-align: middle;';
+                                                        if ($isLastVariant) {
+                                                            $detailCellStyle .= ' border-right: 2px solid #891313;';
+                                                        }
+                                                    @endphp
+                                                    <td style="background: {{ $materialBg }}; vertical-align: middle;">
+                                                        @if (isset($globalRekapData[$key]))
+                                                            {{ $brandText }}
+                                                            @if ($variantIndex === 0 && $isPopulerRow && $materialPercent)
                                                                 <span class="badge rounded-pill bg-primary text-white"
-                                                                    style="font-size: 0.7rem; color: white !important;">{{ $brickPercent }}%</span>
+                                                                    style="font-size: 0.7rem; color: white !important;">{{ $materialPercent }}%</span>
                                                             @endif
-                                                        </div>
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-
-                                                {{-- Column 4: Detail Bata --}}
-                                                <td class="text-muted small"
-                                                    style="background: {{ $brickBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
-                                                    @if (isset($globalRekapData[$key]))
-                                                        {{ !empty($globalRekapData[$key]['brick_detail']) ? $globalRekapData[$key]['brick_detail'] : '-' }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            @endif
-
-                                            {{-- Column 5: Merek Semen --}}
-                                            @if ($hasCement)
-                                                <td style="background: {{ $cementBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]))
-                                                        {{ $globalRekapData[$key]['cement_brand'] ?? '-' }}
-                                                        @if ($isPopulerRow && $cementPercent)
-                                                            <span class="badge rounded-pill bg-primary text-white"
-                                                                style="font-size: 0.7rem; color: white !important;">{{ $cementPercent }}%</span>
+                                                        @else
+                                                            <span class="text-muted">-</span>
                                                         @endif
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-
-                                                {{-- Column 6: Detail Semen --}}
-                                                <td class="text-muted small"
-                                                    style="background: {{ $cementBgColor }}; vertical-align: middle; border-right: 2px solid #891313;">
-                                                    @if (isset($globalRekapData[$key]))
-                                                        {{ $globalRekapData[$key]['cement_detail'] ?? '-' }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            @endif
-
-                                            {{-- Column 7: Merek Pasir --}}
-                                            @if ($hasSand)
-                                                <td style="background: {{ $sandBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]))
-                                                        {{ $globalRekapData[$key]['sand_brand'] ?? '-' }}
-                                                        @if ($isPopulerRow && $sandPercent)
-                                                            <span class="badge rounded-pill bg-primary text-white"
-                                                                style="font-size: 0.7rem; color: white !important;">{{ $sandPercent }}%</span>
+                                                    </td>
+                                                    <td class="text-muted small" style="{{ $detailCellStyle }}">
+                                                        @if (isset($globalRekapData[$key]))
+                                                            {{ $detailText }}
+                                                        @else
+                                                            -
                                                         @endif
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-
-                                                {{-- Column 8: Detail Pasir --}}
-                                                <td class="text-muted small"
-                                                    style="background: {{ $sandBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['sand_brand']))
-                                                        {{ $globalRekapData[$key]['sand_detail'] ?? '-' }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            @endif
-
-                                            {{-- Column 9: Merek Cat --}}
-                                            @if ($hasCat)
-                                                <td style="background: {{ $catBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_brand']))
-                                                        {{ $globalRekapData[$key]['cat_brand'] ?? '-' }}
-                                                        @if ($isPopulerRow && $catPercent)
-                                                            <span class="badge rounded-pill bg-primary text-white"
-                                                                style="font-size: 0.7rem; color: white !important;">{{ $catPercent }}%</span>
-                                                        @endif
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-
-                                                {{-- Column 10: Detail Cat --}}
-                                                <td class="text-muted small"
-                                                    style="background: {{ $catBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['cat_detail']))
-                                                        {{ $globalRekapData[$key]['cat_detail'] ?? '-' }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            @endif
-
-                                            {{-- Column 11: Merek Keramik --}}
-                                            @if ($hasCeramic)
-                                                <td style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_brand']))
-                                                        {{ $globalRekapData[$key]['ceramic_brand'] ?? '-' }}
-                                                        @if ($isPopulerRow && $ceramicPercent)
-                                                            <span class="badge rounded-pill bg-primary text-white"
-                                                                style="font-size: 0.7rem; color: white !important;">{{ $ceramicPercent }}%</span>
-                                                        @endif
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-
-                                                {{-- Column 12: Detail Keramik --}}
-                                                <td class="text-muted small"
-                                                    style="background: {{ $ceramicBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['ceramic_detail']))
-                                                        {{ $globalRekapData[$key]['ceramic_detail'] ?? '-' }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            @endif
-
-                                            {{-- Column 13: Merek Nat --}}
-                                            @if ($hasNat)
-                                                <td style="background: {{ $natBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_brand']))
-                                                        {{ $globalRekapData[$key]['nat_brand'] ?? '-' }}
-                                                        @if ($isPopulerRow && $natPercent)
-                                                            <span class="badge rounded-pill bg-primary text-white"
-                                                                style="font-size: 0.7rem; color: white !important;">{{ $natPercent }}%</span>
-                                                        @endif
-                                                    @else
-                                                        <span class="text-muted">-</span>
-                                                    @endif
-                                                </td>
-
-                                                {{-- Column 14: Detail Nat --}}
-                                                <td class="text-muted small"
-                                                    style="background: {{ $natBgColor }}; vertical-align: middle;">
-                                                    @if (isset($globalRekapData[$key]) && isset($globalRekapData[$key]['nat_detail']))
-                                                        {{ $globalRekapData[$key]['nat_detail'] ?? '-' }}
-                                                    @else
-                                                        -
-                                                    @endif
-                                                </td>
-                                            @endif
+                                                    </td>
+                                                @endfor
+                                            @endforeach
                                         </tr>
                                     @endforeach
                                 @endforeach
@@ -4005,6 +4793,25 @@ $paramValue = $isGroutTile
                                     ],
                                 ];
 
+                                $bundleMaterialRows = $item['bundle_material_rows'] ?? [];
+                                if (is_array($bundleMaterialRows) && !empty($bundleMaterialRows)) {
+                                    $materialConfig = [];
+                                    foreach (array_values($bundleMaterialRows) as $bundleIndex => $bundleRow) {
+                                        if (!is_array($bundleRow)) {
+                                            continue;
+                                        }
+                                        $materialTypeKey = trim((string) ($bundleRow['material_key'] ?? ''));
+                                        if ($materialTypeKey === '') {
+                                            $materialTypeKey = 'material';
+                                        }
+                                        $bundleRow['material_key'] = $materialTypeKey;
+                                        if (!isset($bundleRow['check_field'])) {
+                                            $bundleRow['check_field'] = 'qty';
+                                        }
+                                        $materialConfig[$materialTypeKey . '_' . $bundleIndex] = $bundleRow;
+                                    }
+                                }
+
                                 // Filter materials: only show if qty > 0
                                 $visibleMaterials = array_filter($materialConfig, function ($mat) {
                                     return isset($mat['qty']) && $mat['qty'] > 0;
@@ -4169,6 +4976,7 @@ $paramValue = $isGroutTile
                                     $matIndex++;
                                     $isFirstMaterial = $matIndex === 1;
                                     $isLastMaterial = $matIndex === count($visibleMaterials);
+                                    $materialTypeKey = $mat['material_key'] ?? $matKey;
                                     $pricePerUnit = $mat['price_per_unit'] ?? ($mat['package_price'] ?? 0);
                                     $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                     $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
@@ -4223,7 +5031,7 @@ $paramValue = $isGroutTile
                                             ' / ' .
                                             $priceUnitLabel;
                                     }
-                                    if ($matKey === 'sand' && $detailValue > 0) {
+                                    if ($materialTypeKey === 'sand' && $detailValue > 0) {
                                         $convertedSand = $mat['package_price'] / $detailValue;
                                         $packagePriceTitleParts[] =
                                             'Konversi: Rp ' .
@@ -4257,12 +5065,12 @@ $paramValue = $isGroutTile
                                         {{ $mat['type_display'] ?? ($mat['object']->{$mat['type_field']} ?? '-') }}</td>
                                     <td class="fw-bold" style="border-left: none; border-right: none;">
                                         {{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}</td>
-                                    <td class="{{ $matKey === 'brick' ? 'text-start text-nowrap' : '' }}"
+                                    <td class="{{ $materialTypeKey === 'brick' ? 'text-start text-nowrap' : '' }}"
                                         style="border-left: none; border-right: none;">
                                         {{ $mat['detail_display'] }}</td>
-                                    <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }} {{ $matKey === 'brick' ? 'preview-scroll-td' : '' }}"
+                                    <td class="{{ $materialTypeKey === 'cement' || $materialTypeKey === 'sand' || $materialTypeKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }} {{ $materialTypeKey === 'brick' ? 'preview-scroll-td' : '' }}"
                                         title="{{ $detailTitle }}" style="border-left: none;">
-                                        @if ($matKey === 'brick')
+                                        @if ($materialTypeKey === 'brick')
                                             <div class="preview-scroll-cell">{{ $mat['detail_extra'] ?? '' }}</div>
                                         @else
                                             {{ $mat['detail_extra'] ?? '' }}
@@ -4325,7 +5133,7 @@ $paramValue = $isGroutTile
                                     {{-- Column 13-15: Rowspan columns (Grand Total, Cost per M2, Action) --}}
                                     @if ($isFirstMaterial)
                                         @php
-                                            // Build debug breakdown for grand_total (harga per kemasan × qty)
+                                            // Build debug breakdown for grand_total (harga per kemasan Ã— qty)
                                             $grandTotalParts = [];
                                             $calculatedGrandTotal = 0;
                                             foreach ($visibleMaterials as $debugMatKey => $debugMat) {
@@ -4406,7 +5214,7 @@ $paramValue = $isGroutTile
                                             $normalizedDetailValue = (float) $detailValue;
 
                                             // Untuk sand, hanya hitung total_price / qty (tanpa pembagian detail_value)
-                                            if ($matKey === 'sand') {
+                                            if ($materialTypeKey === 'sand') {
                                                 $actualBuyPrice =
                                                     $normalizedQtyValue > 0 ? $totalPriceValue / $normalizedQtyValue : 0;
                                                 $hargaBeliAktualDebug =
@@ -4733,6 +5541,108 @@ $paramValue = $isGroutTile
             min-width: 0;
         }
 
+        .preview-combinations-page .preview-param-row.preview-param-row-with-dropdown {
+            overflow: visible;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown {
+            position: relative;
+            z-index: 95;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown .dropdown-menu {
+            z-index: 1305;
+            overflow-x: hidden;
+            --bundle-col-work: 340px;
+            --bundle-col-size: 260px;
+            --bundle-col-support: 320px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown .bundle-param-dropdown-menu {
+            width: 100%;
+            min-width: 100%;
+            max-width: min(100%, calc(100vw - 24px));
+        }
+
+        .preview-combinations-page .bundle-param-item-card {
+            background: #ffffff;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .preview-combinations-page .bundle-param-item-layout {
+            display: grid;
+            grid-template-columns: var(--bundle-col-work) var(--bundle-col-size) var(--bundle-col-support);
+            gap: 0.85rem 1rem;
+            align-items: start;
+            width: 100%;
+            min-width: 0;
+        }
+
+        .preview-combinations-page .bundle-param-section {
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .preview-combinations-page .bundle-param-section-fields {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 0.5rem 0.6rem;
+            align-items: flex-end;
+            min-height: 46px;
+            overflow: hidden;
+        }
+
+        .preview-combinations-page .bundle-param-field {
+            flex: 0 0 auto;
+        }
+
+        .preview-combinations-page .bundle-param-field--sm {
+            width: 100px;
+        }
+
+        .preview-combinations-page .bundle-param-field--md {
+            width: 120px;
+        }
+
+        .preview-combinations-page .bundle-param-field--ceramic {
+            width: 110px;
+        }
+
+        .preview-combinations-page .bundle-param-section-fields .badge {
+            font-size: 0.62rem;
+            padding: 0.2rem 0.45rem;
+            letter-spacing: 0.2px;
+        }
+
+        .preview-combinations-page .bundle-param-empty {
+            min-width: 96px;
+            min-height: 36px;
+            padding: 0 0.75rem;
+            border: 1px dashed #d1d5db;
+            border-radius: 0.4rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            color: #9ca3af;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .preview-combinations-page .bundle-param-worktype-value {
+            width: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @media (max-width: 1199.98px) {
+            .preview-combinations-page .bundle-param-item-layout {
+                min-width: 100%;
+            }
+        }
+
         .preview-combinations-page .preview-params-sticky {
             position: sticky;
             top: 60px;
@@ -4779,6 +5689,12 @@ $paramValue = $isGroutTile
             margin: 0 auto;
             padding: 0 12px;
             -webkit-overflow-scrolling: touch;
+        }
+
+        .preview-combinations-page .preview-params-fixed .preview-param-row.preview-param-row-with-dropdown {
+            flex-wrap: wrap !important;
+            overflow: visible !important;
+            max-width: 100% !important;
         }
 
         @media (min-width: 576px) {
@@ -4845,6 +5761,7 @@ $paramValue = $isGroutTile
 
         .table-rekap-global {
             --sticky-top: 0px;
+            --rekap-left-2: 80px;
         }
 
         .rekap-card {
@@ -4876,16 +5793,30 @@ $paramValue = $isGroutTile
             visibility: hidden;
         }
 
+        .table-rekap-global .rekap-sticky-col-label,
+        .table-rekap-global .rekap-sticky-col-total {
+            background-clip: padding-box;
+        }
+
         .rekap-sticky-header {
             position: fixed;
             left: 0;
             z-index: 120;
             pointer-events: none;
-            overflow: hidden;
+            overflow-x: auto;
+            overflow-y: hidden;
             opacity: 0;
             transform: translateY(-6px);
             visibility: hidden;
             transition: opacity 0.2s ease, transform 0.2s ease;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .rekap-sticky-header::-webkit-scrollbar {
+            width: 0;
+            height: 0;
+            display: none;
         }
 
         .rekap-sticky-header:not(.is-active) {
@@ -5646,6 +6577,12 @@ $paramValue = $isGroutTile
                         const stickyCells = stickyHead.querySelectorAll('th');
                         const rect = rekapTable.getBoundingClientRect();
                         stickyTable.style.width = `${rect.width}px`;
+                        const stickyLabelCell = rekapTable.querySelector('.rekap-sticky-col-label');
+                        if (stickyLabelCell) {
+                            const stickyLeft2 = stickyLabelCell.getBoundingClientRect().width;
+                            rekapTable.style.setProperty('--rekap-left-2', `${stickyLeft2}px`);
+                            stickyTable.style.setProperty('--rekap-left-2', `${stickyLeft2}px`);
+                        }
                         sourceCells.forEach((cell, idx) => {
                             const stickyCell = stickyCells[idx];
                             if (!stickyCell) return;
@@ -5687,7 +6624,8 @@ $paramValue = $isGroutTile
                         stickyContainer.style.top = `${stickyTop}px`;
                         stickyContainer.style.left = `${wrapRect.left}px`;
                         stickyContainer.style.width = `${wrapRect.width}px`;
-                        stickyTable.style.transform = `translateX(${-scrollLeft}px)`;
+                        stickyContainer.scrollLeft = scrollLeft;
+                        stickyTable.style.transform = '';
                         const detailWrap = document.querySelector('.detail-table-wrap');
                         const detailRect = detailWrap ? detailWrap.getBoundingClientRect() : null;
                         const detailAtTop = detailRect ? detailRect.top <= stickyTop + headHeight : false;
@@ -5763,6 +6701,252 @@ $paramValue = $isGroutTile
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            function initBundleParamDropdown() {
+                const defaultBundleCols = {
+                    work: 340,
+                    size: 260,
+                    support: 320,
+                };
+                const minBundleCols = {
+                    work: 180,
+                    size: 200,
+                    support: 220,
+                };
+                const resetBundleMenuColumns = (menu) => {
+                    if (!menu) {
+                        return;
+                    }
+                    menu.style.setProperty('--bundle-col-work', `${defaultBundleCols.work}px`);
+                    menu.style.setProperty('--bundle-col-size', `${defaultBundleCols.size}px`);
+                    menu.style.setProperty('--bundle-col-support', `${defaultBundleCols.support}px`);
+                };
+                const measureIntrinsicWidth = (element, host) => {
+                    if (!element || !host) {
+                        return 0;
+                    }
+                    const clone = element.cloneNode(true);
+                    clone.style.position = 'absolute';
+                    clone.style.visibility = 'hidden';
+                    clone.style.pointerEvents = 'none';
+                    clone.style.left = '-100000px';
+                    clone.style.top = '0';
+                    clone.style.width = 'max-content';
+                    clone.style.minWidth = '0';
+                    clone.style.maxWidth = 'none';
+                    clone.style.overflow = 'visible';
+                    host.appendChild(clone);
+                    const width = Math.ceil(clone.getBoundingClientRect().width);
+                    clone.remove();
+                    return width;
+                };
+                const clampBundleMenuInViewport = (menu) => {
+                    if (!menu) {
+                        return;
+                    }
+                    menu.style.marginLeft = '0px';
+                    const margin = 12;
+                    const rect = menu.getBoundingClientRect();
+                    let shift = 0;
+                    if (rect.right > window.innerWidth - margin) {
+                        shift = rect.right - (window.innerWidth - margin);
+                    }
+                    if (rect.left - shift < margin) {
+                        shift = rect.left - margin;
+                    }
+                    if (Math.abs(shift) > 0.5) {
+                        menu.style.marginLeft = `${-shift}px`;
+                    }
+                };
+
+                const syncBundleParamColumns = (wrapper) => {
+                    const menu = wrapper?.querySelector('.dropdown-menu');
+                    if (!menu) {
+                        return;
+                    }
+                    resetBundleMenuColumns(menu);
+                    const isVisible = menu.classList.contains('show') || window.getComputedStyle(menu).display !== 'none';
+                    if (!isVisible) {
+                        return;
+                    }
+                    const layouts = menu.querySelectorAll('.bundle-param-item-layout');
+                    if (!layouts.length) {
+                        return;
+                    }
+
+                    let maxWork = 340;
+                    let maxSize = 260;
+                    let maxSupport = 320;
+
+                    layouts.forEach((layout) => {
+                        const workValue = layout.querySelector(
+                            '.bundle-param-section--worktype .bundle-param-worktype-value',
+                        );
+                        const sizeFields = layout.querySelector('.bundle-param-section--size .bundle-param-section-fields');
+                        const supportFields = layout.querySelector(
+                            '.bundle-param-section--support .bundle-param-section-fields',
+                        );
+
+                        maxWork = Math.max(maxWork, measureIntrinsicWidth(workValue, menu) + 10);
+                        maxSize = Math.max(maxSize, measureIntrinsicWidth(sizeFields, menu) + 8);
+                        maxSupport = Math.max(maxSupport, measureIntrinsicWidth(supportFields, menu) + 8);
+                    });
+
+                    const firstLayout = layouts[0];
+                    const layoutStyles = firstLayout ? window.getComputedStyle(firstLayout) : null;
+                    const columnGap = layoutStyles
+                        ? parseFloat(layoutStyles.columnGap || layoutStyles.gap || '16') || 16
+                        : 16;
+                    const totalGap = columnGap * 2;
+                    const menuStyles = window.getComputedStyle(menu);
+                    const paddingLeft = parseFloat(menuStyles.paddingLeft || '0') || 0;
+                    const paddingRight = parseFloat(menuStyles.paddingRight || '0') || 0;
+                    const horizontalPadding = paddingLeft + paddingRight;
+
+                    const triggerWidth = Math.ceil(wrapper.getBoundingClientRect().width);
+                    const availableContentWidth = Math.max(0, triggerWidth - horizontalPadding);
+
+                    let sizeCol = maxSize;
+                    let supportCol = maxSupport;
+                    let workCol = maxWork;
+
+                    // Keep middle/right as close as possible to content, but force total columns to fit dropdown width.
+                    const desiredTotal = workCol + sizeCol + supportCol + totalGap;
+                    if (desiredTotal > availableContentWidth) {
+                        const targetWork = Math.max(minBundleCols.work, Math.min(workCol, Math.round(availableContentWidth * 0.36)));
+                        let remainingForRight = Math.max(0, availableContentWidth - totalGap - targetWork);
+
+                        const minRightTotal = minBundleCols.size + minBundleCols.support;
+                        if (remainingForRight < minRightTotal) {
+                            const fallbackWork = Math.max(120, availableContentWidth - totalGap - minRightTotal);
+                            remainingForRight = Math.max(0, availableContentWidth - totalGap - fallbackWork);
+                            workCol = fallbackWork;
+                        } else {
+                            workCol = targetWork;
+                        }
+
+                        const desiredRightTotal = sizeCol + supportCol;
+                        if (desiredRightTotal > remainingForRight) {
+                            const shrinkableSize = Math.max(0, sizeCol - minBundleCols.size);
+                            const shrinkableSupport = Math.max(0, supportCol - minBundleCols.support);
+                            const totalShrinkable = shrinkableSize + shrinkableSupport;
+                            const needShrink = desiredRightTotal - remainingForRight;
+
+                            if (totalShrinkable > 0 && needShrink > 0) {
+                                const sizeShrink = Math.min(
+                                    shrinkableSize,
+                                    Math.round((needShrink * shrinkableSize) / totalShrinkable),
+                                );
+                                sizeCol -= sizeShrink;
+                                supportCol -= Math.min(shrinkableSupport, needShrink - sizeShrink);
+                            }
+
+                            sizeCol = Math.max(minBundleCols.size, sizeCol);
+                            supportCol = Math.max(minBundleCols.support, supportCol);
+
+                            const overflowAfterMin = sizeCol + supportCol - remainingForRight;
+                            if (overflowAfterMin > 0) {
+                                const giveFromWork = Math.min(workCol - 120, overflowAfterMin);
+                                if (giveFromWork > 0) {
+                                    workCol -= giveFromWork;
+                                }
+                            }
+                        }
+                    }
+
+                    // Fill remaining space to left column so the row always spans full dropdown width.
+                    const occupied = workCol + sizeCol + supportCol + totalGap;
+                    if (availableContentWidth > occupied) {
+                        workCol += availableContentWidth - occupied;
+                    }
+
+                    menu.style.setProperty('--bundle-col-work', `${Math.max(120, Math.round(workCol))}px`);
+                    menu.style.setProperty('--bundle-col-size', `${Math.max(140, Math.round(sizeCol))}px`);
+                    menu.style.setProperty('--bundle-col-support', `${Math.max(160, Math.round(supportCol))}px`);
+                    clampBundleMenuInViewport(menu);
+                };
+
+                const dropdownWrappers = document.querySelectorAll('.preview-param-items-dropdown');
+                dropdownWrappers.forEach((wrapper) => {
+                    const button = wrapper.querySelector('[data-param-dropdown-toggle="true"]');
+                    const menu = wrapper.querySelector('.dropdown-menu');
+                    if (!button || !menu || button.__bundleDropdownBound) {
+                        return;
+                    }
+                    button.__bundleDropdownBound = true;
+                    button.style.pointerEvents = 'auto';
+
+                    button.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        if (window.bootstrap && bootstrap.Dropdown) {
+                            const instance = bootstrap.Dropdown.getOrCreateInstance(button, {
+                                autoClose: 'outside',
+                            });
+                            instance.toggle();
+                            return;
+                        }
+
+                        const willShow = !menu.classList.contains('show');
+                        wrapper.classList.toggle('show', willShow);
+                        menu.classList.toggle('show', willShow);
+                        button.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+                        if (willShow) {
+                            requestAnimationFrame(() => syncBundleParamColumns(wrapper));
+                        } else {
+                            menu.style.marginLeft = '0px';
+                            resetBundleMenuColumns(menu);
+                        }
+                    });
+
+                    if (!wrapper.__bundleDropdownShownBound && window.bootstrap && bootstrap.Dropdown) {
+                        wrapper.__bundleDropdownShownBound = true;
+                        wrapper.addEventListener('shown.bs.dropdown', function() {
+                            syncBundleParamColumns(wrapper);
+                        });
+                        wrapper.addEventListener('hidden.bs.dropdown', function() {
+                            menu.style.marginLeft = '0px';
+                            resetBundleMenuColumns(menu);
+                        });
+                    }
+                });
+
+                if (!window.bootstrap && !document.__bundleDropdownOutsideBound) {
+                    document.__bundleDropdownOutsideBound = true;
+                    document.addEventListener('click', function(event) {
+                        document.querySelectorAll('.preview-param-items-dropdown').forEach((wrapper) => {
+                            if (wrapper.contains(event.target)) {
+                                return;
+                            }
+                            wrapper.classList.remove('show');
+                            const menu = wrapper.querySelector('.dropdown-menu');
+                            if (menu) {
+                                menu.classList.remove('show');
+                                menu.style.marginLeft = '0px';
+                                resetBundleMenuColumns(menu);
+                            }
+                            const button = wrapper.querySelector('[data-param-dropdown-toggle="true"]');
+                            if (button) {
+                                button.setAttribute('aria-expanded', 'false');
+                            }
+                        });
+                    });
+                }
+
+                if (!window.__bundleDropdownResizeBound) {
+                    window.__bundleDropdownResizeBound = true;
+                    window.addEventListener('resize', function() {
+                        document.querySelectorAll('.preview-param-items-dropdown').forEach((wrapper) => {
+                            const menu = wrapper.querySelector('.dropdown-menu');
+                            if (!menu || !menu.classList.contains('show')) {
+                                return;
+                            }
+                            syncBundleParamColumns(wrapper);
+                        });
+                    });
+                }
+            }
+
             const sessionData = @json($requestData ?? request()->except(['_token', 'confirm_save']));
             try {
                 localStorage.setItem('materialCalculationSession', JSON.stringify({
@@ -5777,6 +6961,8 @@ $paramValue = $isGroutTile
             } catch (error) {
                 console.warn('Failed to store calculation session', error);
             }
+
+            initBundleParamDropdown();
         });
     </script>
     <script>
