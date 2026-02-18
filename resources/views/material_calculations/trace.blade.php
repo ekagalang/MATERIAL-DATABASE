@@ -343,44 +343,229 @@ if (ceramicSelectForSync) {
     });
 }
 
+const traceApiUrl = '/api/material-calculator/trace';
+const traceCsrfToken = '{{ csrf_token() }}';
+
+function sanitizeTraceParams(inputParams = {}) {
+    const params = { ...inputParams };
+
+    params.has_additional_layer = true;
+
+    if (params.formula_code === 'painting') {
+        if (!params.mortar_thickness || params.mortar_thickness === '0' || params.mortar_thickness === 0) {
+            delete params.mortar_thickness;
+        }
+        if (params.mortar_thickness) {
+            params.mortar_thickness = 1;
+        }
+    }
+
+    Object.keys(params).forEach((key) => {
+        const value = params[key];
+        if (value === null || value === undefined || value === '') {
+            delete params[key];
+        }
+    });
+
+    return params;
+}
+
+function decodeBase64UrlPayload(value) {
+    if (!value || typeof value !== 'string') {
+        return null;
+    }
+    try {
+        const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+        return atob(padded);
+    } catch (error) {
+        return null;
+    }
+}
+
+function parseBundleTracePayload(searchParams) {
+    if (!(searchParams instanceof URLSearchParams)) {
+        return null;
+    }
+
+    const encodedPayload = searchParams.get('bundle_trace_payload');
+    if (!encodedPayload) {
+        return null;
+    }
+
+    let rawPayload = decodeBase64UrlPayload(encodedPayload);
+    if (!rawPayload) {
+        rawPayload = encodedPayload;
+    }
+
+    try {
+        const parsed = JSON.parse(rawPayload);
+        if (parsed && Array.isArray(parsed.items) && parsed.items.length > 0) {
+            return parsed;
+        }
+    } catch (error) {
+        console.error('Gagal parse bundle trace payload:', error);
+    }
+
+    return null;
+}
+
+function escapeHtml(value) {
+    const text = String(value ?? '');
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+async function requestTrace(params) {
+    const response = await fetch(traceApiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': traceCsrfToken,
+        },
+        body: JSON.stringify(params),
+    });
+    return response.json();
+}
+
+function renderBundleTraceResults(results) {
+    const traceContainer = document.getElementById('traceContent');
+    if (!traceContainer) {
+        return;
+    }
+
+    let html = `
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0">Trace Multi Item Pekerjaan</h4>
+            </div>
+            <div class="card-body">
+    `;
+
+    results.forEach((entry, index) => {
+        const itemTitle = entry.title ? String(entry.title) : `Item ${index + 1}`;
+        const formulaCode = entry.formula_code ? String(entry.formula_code) : '-';
+        html += `
+            <div class="border rounded p-3 mb-3">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+                    <h5 class="mb-0">Item ${index + 1}: ${escapeHtml(itemTitle)}</h5>
+                    <span class="badge bg-secondary">${escapeHtml(formulaCode)}</span>
+                </div>
+        `;
+
+        if (entry.success) {
+            html += `<div id="bundleTraceItem_${index}"></div>`;
+        } else {
+            html += `
+                <div class="alert alert-danger mb-0">
+                    <strong>Gagal trace:</strong> ${escapeHtml(entry.message || 'Parameter tidak valid')}
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+    });
+
+    html += `
+            </div>
+        </div>
+    `;
+
+    traceContainer.innerHTML = html;
+
+    results.forEach((entry, index) => {
+        if (!entry.success || !entry.trace) {
+            return;
+        }
+        renderTrace(entry.trace, `bundleTraceItem_${index}`);
+    });
+}
+
+async function runBundleTraceFromPayload(bundlePayload) {
+    const items = Array.isArray(bundlePayload?.items) ? bundlePayload.items : [];
+    if (items.length === 0) {
+        return;
+    }
+
+    const resultsContainer = document.getElementById('resultsContainer');
+    const traceContainer = document.getElementById('traceContent');
+    if (resultsContainer) {
+        resultsContainer.style.display = 'block';
+    }
+    if (traceContainer) {
+        traceContainer.innerHTML = `
+            <div class="text-center p-5">
+                <div class="spinner-border"></div>
+                <p class="mt-2">Calculating multi-item trace...</p>
+            </div>
+        `;
+    }
+
+    const results = [];
+    for (let index = 0; index < items.length; index += 1) {
+        const rawItem = items[index] && typeof items[index] === 'object' ? items[index] : {};
+        const params = sanitizeTraceParams(rawItem);
+        const title = rawItem.title || `Item ${index + 1}`;
+        const formulaCode = params.formula_code || rawItem.formula_code || '';
+
+        if (!params.formula_code) {
+            results.push({
+                success: false,
+                title,
+                formula_code: formulaCode,
+                message: 'formula_code tidak ditemukan',
+            });
+            continue;
+        }
+
+        try {
+            const response = await requestTrace(params);
+            if (response?.success) {
+                results.push({
+                    success: true,
+                    title,
+                    formula_code: formulaCode,
+                    trace: response.data,
+                });
+            } else {
+                results.push({
+                    success: false,
+                    title,
+                    formula_code: formulaCode,
+                    message: response?.message || 'Validasi gagal',
+                });
+            }
+        } catch (error) {
+            results.push({
+                success: false,
+                title,
+                formula_code: formulaCode,
+                message: error?.message || 'Request gagal',
+            });
+        }
+    }
+
+    renderBundleTraceResults(results);
+}
+
 document.getElementById('traceForm').addEventListener('submit', async function(e) {
     e.preventDefault();
 
     syncCeramicDimensionsFromSelection(false);
 
     const formData = new FormData(this);
-    const params = Object.fromEntries(formData.entries());
-
-    // Selalu gunakan strip tambahan di sisi kiri & bawah
-    params.has_additional_layer = true;
-
-    // Remove parameter yang tidak diperlukan untuk formula painting
-    if (params.formula_code === 'painting') {
-        // Hapus mortar_thickness jika kosong atau 0
-        if (!params.mortar_thickness || params.mortar_thickness === '0' || params.mortar_thickness === 0) {
-            delete params.mortar_thickness;
-        }
-        // Set default mortar_thickness ke 1 jika masih ada
-        if (params.mortar_thickness) {
-            params.mortar_thickness = 1;
-        }
-    }
+    const params = sanitizeTraceParams(Object.fromEntries(formData.entries()));
 
     // Show loading
     document.getElementById('resultsContainer').style.display = 'block';
     document.getElementById('traceContent').innerHTML = '<div class="text-center p-5"><div class="spinner-border"></div><p class="mt-2">Calculating...</p></div>';
 
     try {
-        const response = await fetch('/api/material-calculator/trace', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-            },
-            body: JSON.stringify(params)
-        });
-
-        const data = await response.json();
+        const data = await requestTrace(params);
 
         if (data.success) {
             renderTrace(data.data, 'traceContent');
@@ -607,6 +792,20 @@ document.getElementById('formulaSelector').dispatchEvent(new Event('change'));
 function applyQueryParamsToTraceForm() {
     const params = new URLSearchParams(window.location.search);
     if (!params.size) {
+        return;
+    }
+
+    const bundleTracePayload = parseBundleTracePayload(params);
+    if (bundleTracePayload && Array.isArray(bundleTracePayload.items) && bundleTracePayload.items.length > 0) {
+        const shouldAutoTrace =
+            params.get('auto_trace') === '1' ||
+            bundleTracePayload.auto_trace === 1 ||
+            bundleTracePayload.auto_trace === '1';
+        if (shouldAutoTrace) {
+            setTimeout(() => {
+                runBundleTraceFromPayload(bundleTracePayload);
+            }, 50);
+        }
         return;
     }
 
@@ -1122,4 +1321,3 @@ code {
     }
 </style>
 @endsection
-

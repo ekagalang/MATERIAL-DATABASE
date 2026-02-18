@@ -48,6 +48,28 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                         ->with('error', 'Mode paket membutuhkan minimal 2 item pekerjaan.');
                 }
 
+                if ($request->boolean('confirm_save')) {
+                    $bundleCalculation = $this->buildBundleCalculationFromSelection($request, $bundleItems);
+                    if (!$bundleCalculation) {
+                        DB::rollBack();
+
+                        return redirect()
+                            ->back()
+                            ->withInput()
+                            ->with(
+                                'error',
+                                'Data kombinasi paket terpilih tidak ditemukan. Silakan pilih ulang kombinasi dari halaman preview.',
+                            );
+                    }
+
+                    $bundleCalculation->save();
+                    DB::commit();
+
+                    return redirect()
+                        ->route('material-calculations.show', $bundleCalculation)
+                        ->with('success', 'Perhitungan paket berhasil disimpan!');
+                }
+
                 DB::rollBack();
 
                 return $this->generateBundleCombinations($request, $bundleItems);
@@ -310,6 +332,173 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         return array_values($items);
+    }
+
+    protected function buildBundleCalculationFromSelection(Request $request, array $bundleItems): ?BrickCalculation
+    {
+        $rawSelectedResult = $request->input('bundle_selected_result');
+        if (!is_string($rawSelectedResult) || trim($rawSelectedResult) === '') {
+            return null;
+        }
+
+        $selectedResult = json_decode($rawSelectedResult, true);
+        if (!is_array($selectedResult)) {
+            $decodedHtml = html_entity_decode($rawSelectedResult, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $selectedResult = json_decode($decodedHtml, true);
+        }
+        if (!is_array($selectedResult)) {
+            return null;
+        }
+
+        $bundleMaterialRows = [];
+        $rawBundleMaterialRows = $request->input('bundle_material_rows');
+        if (is_string($rawBundleMaterialRows) && trim($rawBundleMaterialRows) !== '') {
+            $decodedBundleRows = json_decode($rawBundleMaterialRows, true);
+            if (!is_array($decodedBundleRows)) {
+                $decodedBundleRows = json_decode(
+                    html_entity_decode($rawBundleMaterialRows, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                    true,
+                );
+            }
+            if (is_array($decodedBundleRows)) {
+                $bundleMaterialRows = array_values(
+                    array_filter($decodedBundleRows, static fn($row) => is_array($row)),
+                );
+            }
+        } elseif (is_array($rawBundleMaterialRows)) {
+            $bundleMaterialRows = array_values(
+                array_filter($rawBundleMaterialRows, static fn($row) => is_array($row)),
+            );
+        }
+
+        $n = static fn($value): float => (float) ($value ?? 0);
+        $parse = static fn($value): float => (float) (\App\Helpers\NumberHelper::parseNullable($value) ?? 0);
+
+        $defaultInstallationType = BrickInstallationType::where('is_active', true)->orderBy('id')->first();
+        $defaultMortarFormula = MortarFormula::where('is_active', true)
+            ->where('cement_ratio', 1)
+            ->where('sand_ratio', 3)
+            ->first();
+        if (!$defaultMortarFormula) {
+            $defaultMortarFormula = MortarFormula::first();
+        }
+
+        $installationTypeId = (int) ($request->input('installation_type_id') ?: ($defaultInstallationType?->id ?? 1));
+        $mortarFormulaId = (int) ($request->input('mortar_formula_id') ?: ($defaultMortarFormula?->id ?? 1));
+        $mortarThickness = $parse($request->input('mortar_thickness')) > 0 ? $parse($request->input('mortar_thickness')) : 1;
+
+        $bundleTotalArea = 0.0;
+        foreach ($bundleItems as $bundleItem) {
+            if (!is_array($bundleItem)) {
+                continue;
+            }
+            $itemLength = $parse($bundleItem['wall_length'] ?? null);
+            $itemHeight = $parse($bundleItem['wall_height'] ?? null);
+            $itemArea = $parse($bundleItem['area'] ?? null);
+            $itemWorkType = (string) ($bundleItem['work_type'] ?? '');
+            if ($itemArea <= 0 && $itemLength > 0 && $itemHeight > 0 && $itemWorkType !== 'brick_rollag') {
+                $itemArea = $itemWorkType === 'plinth_ceramic' ? $itemLength * ($itemHeight / 100) : $itemLength * $itemHeight;
+            }
+            $bundleTotalArea += max(0, $itemArea);
+        }
+
+        $wallLength = $parse($request->input('wall_length'));
+        $wallHeight = $parse($request->input('wall_height'));
+        if ($wallLength <= 0 || $wallHeight <= 0) {
+            if ($bundleTotalArea > 0) {
+                $wallLength = $bundleTotalArea;
+                $wallHeight = 1;
+            } else {
+                $wallLength = 1;
+                $wallHeight = 1;
+            }
+        }
+        $wallArea = $bundleTotalArea > 0 ? $bundleTotalArea : $wallLength * $wallHeight;
+
+        $cementId = $request->input('cement_id');
+        $cement = $cementId ? \App\Models\Cement::find($cementId) : null;
+        $cementPackageWeight = $n($cement?->package_weight_net ?? 50);
+        if ($cementPackageWeight <= 0) {
+            $cementPackageWeight = 50;
+        }
+
+        $cementKg = $n($selectedResult['cement_kg'] ?? 0);
+        $cementSak = $n($selectedResult['cement_sak'] ?? ($cementKg > 0 ? $cementKg / $cementPackageWeight : 0));
+        $sandM3 = $n($selectedResult['sand_m3'] ?? 0);
+        $brickQty = $n($selectedResult['total_bricks'] ?? 0);
+        $mortarVolume =
+            $n($selectedResult['mortar_volume'] ?? ($n($selectedResult['cement_m3'] ?? 0) + $n($selectedResult['sand_m3'] ?? 0)));
+        $brickTotal = $n($selectedResult['total_brick_price'] ?? 0);
+        $brickPricePerPiece = $n($selectedResult['brick_price_per_piece'] ?? ($brickQty > 0 ? $brickTotal / $brickQty : 0));
+        $waterLiters = $n($selectedResult['total_water_liters'] ?? ($selectedResult['water_liters'] ?? 0));
+
+        $calculation = new BrickCalculation();
+        $calculation->fill([
+            'project_name' => $request->input('project_name'),
+            'notes' => $request->input('notes'),
+            'project_address' => $request->input('project_address'),
+            'project_latitude' => $request->input('project_latitude'),
+            'project_longitude' => $request->input('project_longitude'),
+            'project_place_id' => $request->input('project_place_id'),
+            'wall_length' => $wallLength,
+            'wall_height' => $wallHeight,
+            'wall_area' => $wallArea,
+            'installation_type_id' => $installationTypeId,
+            'mortar_thickness' => $mortarThickness,
+            'mortar_formula_id' => $mortarFormulaId,
+            'use_custom_ratio' => (bool) $request->boolean('use_custom_ratio'),
+            'custom_cement_ratio' => $request->input('custom_cement_ratio'),
+            'custom_sand_ratio' => $request->input('custom_sand_ratio'),
+            'custom_water_ratio' => $request->input('custom_water_ratio'),
+            'brick_quantity' => $brickQty,
+            'brick_id' => $request->input('brick_id'),
+            'brick_price_per_piece' => $brickPricePerPiece,
+            'brick_total_cost' => $brickTotal,
+            'mortar_volume' => $mortarVolume,
+            'mortar_volume_per_brick' => $brickQty > 0 ? $mortarVolume / $brickQty : 0,
+            'cement_quantity_40kg' => $cementKg > 0 ? $cementKg / 40 : 0,
+            'cement_quantity_50kg' => $cementKg > 0 ? $cementKg / 50 : 0,
+            'cement_kg' => $cementKg,
+            'cement_package_weight' => $cementPackageWeight,
+            'cement_quantity_sak' => $cementSak,
+            'cement_id' => $cementId,
+            'cement_price_per_sak' => $n($selectedResult['cement_price_per_sak'] ?? 0),
+            'cement_total_cost' => $n($selectedResult['total_cement_price'] ?? 0),
+            'sand_sak' => $n($selectedResult['sand_sak'] ?? 0),
+            'sand_m3' => $sandM3,
+            'sand_kg' => $n($selectedResult['sand_kg'] ?? ($sandM3 * 1600)),
+            'sand_id' => $request->input('sand_id'),
+            'sand_price_per_m3' => $n($selectedResult['sand_price_per_m3'] ?? 0),
+            'sand_total_cost' => $n($selectedResult['total_sand_price'] ?? 0),
+            'cat_id' => $request->input('cat_id'),
+            'cat_quantity' => $n($selectedResult['cat_packages'] ?? 0),
+            'cat_kg' => $n($selectedResult['cat_kg'] ?? 0),
+            'paint_liters' => $n($selectedResult['cat_liters'] ?? 0),
+            'cat_price_per_package' => $n($selectedResult['cat_price_per_package'] ?? 0),
+            'cat_total_cost' => $n($selectedResult['total_cat_price'] ?? 0),
+            'ceramic_id' => $request->input('ceramic_id'),
+            'ceramic_quantity' => $n($selectedResult['total_tiles'] ?? 0),
+            'ceramic_packages' => $n($selectedResult['tiles_packages'] ?? 0),
+            'ceramic_total_cost' => $n($selectedResult['total_ceramic_price'] ?? 0),
+            'nat_id' => $request->input('nat_id'),
+            'nat_quantity' => $n($selectedResult['grout_packages'] ?? 0),
+            'nat_kg' => $n($selectedResult['grout_kg'] ?? 0),
+            'nat_total_cost' => $n($selectedResult['total_grout_price'] ?? 0),
+            'water_liters' => $waterLiters,
+            'total_material_cost' => $n($selectedResult['grand_total'] ?? 0),
+            'calculation_params' => [
+                'is_bundle' => true,
+                'bundle_name' => $request->input('bundle_name'),
+                'bundle_selected_label' => $request->input('bundle_selected_label'),
+                'bundle_items' => $bundleItems,
+                'bundle_selected_result' => $selectedResult,
+                'bundle_material_rows' => $bundleMaterialRows,
+                'formula_used' => $request->input('work_type'),
+                'work_type' => $request->input('work_type'),
+            ],
+        ]);
+
+        return $calculation;
     }
 
     protected function normalizeBundleMaterialTypeFilters(mixed $rawFilters): array
@@ -583,6 +772,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 $selectedItems[] = [
                     'title' => $bundleItemPayload['title'] ?? ('Item ' . ($index + 1)),
                     'work_type' => $bundleItemPayload['work_type'] ?? ($bundleItemPayload['requestData']['work_type'] ?? ''),
+                    'request_data' => is_array($bundleItemPayload['requestData'] ?? null)
+                        ? $bundleItemPayload['requestData']
+                        : [],
                     'combination' => $selected,
                 ];
             }
@@ -673,20 +865,73 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         $itemRows = [];
+        $bundleItemMaterialBreakdowns = [];
         foreach ($selectedItems as $index => $selectedItem) {
             $combo = $selectedItem['combination'] ?? [];
+            $workTypeCode = (string) ($selectedItem['work_type'] ?? '');
+            $workTypeMeta = \App\Services\FormulaRegistry::find($workTypeCode);
+            $workTypeName = $workTypeMeta['name'] ?? ucwords(str_replace('_', ' ', $workTypeCode));
+            $materialRows = is_array($combo) && !empty($combo) ? $this->buildBundleMaterialRows([$combo]) : [];
+            $itemRequestData = is_array($selectedItem['request_data'] ?? null) ? $selectedItem['request_data'] : [];
+            $lengthValue = \App\Helpers\NumberHelper::parseNullable($itemRequestData['wall_length'] ?? null);
+            $heightValue = \App\Helpers\NumberHelper::parseNullable($itemRequestData['wall_height'] ?? null);
+            $areaValue = \App\Helpers\NumberHelper::parseNullable($itemRequestData['area'] ?? null);
+            $isRollag = $workTypeCode === 'brick_rollag';
+            $isPlinthCeramic = $workTypeCode === 'plinth_ceramic';
+            $computedArea = null;
+            if (
+                !$isRollag &&
+                $lengthValue !== null &&
+                $heightValue !== null &&
+                $lengthValue > 0 &&
+                $heightValue > 0
+            ) {
+                $computedArea = $isPlinthCeramic ? $lengthValue * ($heightValue / 100) : $lengthValue * $heightValue;
+            }
+            if ($areaValue === null || $areaValue <= 0) {
+                $areaValue = $computedArea;
+            }
+            $heightLabel = in_array(
+                $workTypeCode,
+                ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'],
+                true,
+            )
+                ? 'Lebar'
+                : 'Tinggi';
+            $heightUnit = $isPlinthCeramic ? 'cm' : 'm';
             $itemRows[] = [
                 'title' => $selectedItem['title'] ?? ('Item ' . ($index + 1)),
-                'work_type' => $selectedItem['work_type'] ?? '',
+                'work_type' => $workTypeCode,
+                'work_type_name' => $workTypeName,
                 'label' => $label,
                 'grand_total' => (float) ($combo['result']['grand_total'] ?? 0),
             ];
+            $bundleItemMaterialBreakdowns[] = [
+                'title' => $selectedItem['title'] ?? ('Item ' . ($index + 1)),
+                'work_type' => $workTypeCode,
+                'work_type_name' => $workTypeName,
+                'grand_total' => (float) ($combo['result']['grand_total'] ?? 0),
+                'request_data' => $itemRequestData,
+                'field_size' => [
+                    'length' => $lengthValue,
+                    'length_unit' => 'm',
+                    'height' => $heightValue,
+                    'height_label' => $heightLabel,
+                    'height_unit' => $heightUnit,
+                    'area' => $areaValue,
+                    'area_unit' => 'm2',
+                    'is_rollag' => $isRollag,
+                ],
+                'materials' => $materialRows,
+            ];
         }
+        $bundleItemMaterialBreakdowns = $this->assignBundleBreakdownDisplayTotals($bundleItemMaterialBreakdowns);
 
         return [
             'filter_label' => $label,
             'source_filters' => ['bundle'],
             'bundle_items' => $itemRows,
+            'bundle_item_material_breakdowns' => $bundleItemMaterialBreakdowns,
             'bundle_material_rows' => $bundleMaterialRows,
             'brick' => $brick,
             'cement' => $cement,
@@ -697,6 +942,113 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'result' => $aggregateResult,
             'total_cost' => (float) ($aggregateResult['grand_total'] ?? 0),
         ];
+    }
+
+    protected function assignBundleBreakdownDisplayTotals(array $breakdowns): array
+    {
+        if (empty($breakdowns)) {
+            return $breakdowns;
+        }
+
+        $groupedRows = [];
+
+        foreach ($breakdowns as $breakdownIndex => $breakdown) {
+            $materials = is_array($breakdown['materials'] ?? null) ? $breakdown['materials'] : [];
+            foreach ($materials as $materialIndex => $materialRow) {
+                if (!is_array($materialRow) || (bool) ($materialRow['is_special'] ?? false)) {
+                    continue;
+                }
+
+                $materialKey = (string) ($materialRow['material_key'] ?? '');
+                if ($materialKey === '') {
+                    continue;
+                }
+
+                $rawTotal = (float) ($materialRow['total_price'] ?? 0);
+                if ($rawTotal <= 0) {
+                    $pricePerUnit = (float) ($materialRow['price_per_unit'] ?? ($materialRow['package_price'] ?? 0));
+                    $priceCalcQty = (float) ($materialRow['price_calc_qty'] ?? ($materialRow['qty'] ?? 0));
+                    $rawTotal = $pricePerUnit * $priceCalcQty;
+                }
+
+                $signature = $this->buildBundleMaterialSignature($materialKey, $materialRow);
+                $groupedRows[$signature][] = [
+                    'breakdown_index' => $breakdownIndex,
+                    'material_index' => $materialIndex,
+                    'raw_total' => $rawTotal,
+                ];
+            }
+        }
+
+        foreach ($groupedRows as $rows) {
+            if (empty($rows)) {
+                continue;
+            }
+
+            $targetRoundedTotal = (int) round(
+                array_sum(array_map(static fn($entry) => (float) ($entry['raw_total'] ?? 0), $rows)),
+                0,
+            );
+
+            $prepared = [];
+            $sumFloors = 0;
+            foreach ($rows as $entry) {
+                $raw = (float) ($entry['raw_total'] ?? 0);
+                $floorValue = (int) floor($raw + 1e-9);
+                $fraction = $raw - $floorValue;
+                $sumFloors += $floorValue;
+                $prepared[] = array_merge($entry, [
+                    'display_total' => $floorValue,
+                    'fraction' => $fraction,
+                ]);
+            }
+
+            $remaining = $targetRoundedTotal - $sumFloors;
+            if ($remaining > 0) {
+                usort($prepared, static function ($a, $b) {
+                    $fractionCompare = ($b['fraction'] ?? 0) <=> ($a['fraction'] ?? 0);
+                    if ($fractionCompare !== 0) {
+                        return $fractionCompare;
+                    }
+
+                    $rawCompare = ((float) ($b['raw_total'] ?? 0)) <=> ((float) ($a['raw_total'] ?? 0));
+                    if ($rawCompare !== 0) {
+                        return $rawCompare;
+                    }
+
+                    $breakdownCompare = ((int) ($a['breakdown_index'] ?? 0)) <=> ((int) ($b['breakdown_index'] ?? 0));
+                    if ($breakdownCompare !== 0) {
+                        return $breakdownCompare;
+                    }
+
+                    return ((int) ($a['material_index'] ?? 0)) <=> ((int) ($b['material_index'] ?? 0));
+                });
+
+                $countPrepared = count($prepared);
+                for ($i = 0; $i < $remaining && $countPrepared > 0; $i++) {
+                    $targetIndex = $i % $countPrepared;
+                    $prepared[$targetIndex]['display_total']++;
+                }
+            }
+
+            foreach ($prepared as $entry) {
+                $breakdownIndex = (int) ($entry['breakdown_index'] ?? -1);
+                $materialIndex = (int) ($entry['material_index'] ?? -1);
+                if (
+                    !isset($breakdowns[$breakdownIndex]) ||
+                    !isset($breakdowns[$breakdownIndex]['materials']) ||
+                    !is_array($breakdowns[$breakdownIndex]['materials']) ||
+                    !isset($breakdowns[$breakdownIndex]['materials'][$materialIndex]) ||
+                    !is_array($breakdowns[$breakdownIndex]['materials'][$materialIndex])
+                ) {
+                    continue;
+                }
+
+                $breakdowns[$breakdownIndex]['materials'][$materialIndex]['display_total_price'] = (float) ($entry['display_total'] ?? 0);
+            }
+        }
+
+        return $breakdowns;
     }
 
     protected function aggregateBundleResultValues(array $combinations): array

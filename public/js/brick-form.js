@@ -19,6 +19,13 @@ function initBrickForm(root) {
     const pricePerPieceDisplay = getElement('price_per_piece_display');
     const comparisonPrice = getElement('comparison_price_per_m3');
     const comparisonPriceDisplay = getElement('comparison_price_display');
+    const packageType = getElement('package_type');
+    const packageTypeDisplay = getElement('package_type_display');
+    const packageTypeList = getElement('package_type-list');
+    const packageQtyDisplay = getElement('package_qty_display');
+    const packageQtySuffix = getElement('package_qty_suffix');
+    const pricePerPieceSuffix = getElement('price_per_piece_suffix');
+    const comparisonPriceSuffix = getElement('comparison_price_suffix');
 
     function unformatRupiah(str) {
         return (str || '').toString().replace(/\./g, '').replace(/,/g, '.').replace(/[^0-9.]/g, '');
@@ -110,6 +117,16 @@ function initBrickForm(root) {
         return plain || '';
     }
 
+    function normalizeVolumePrecision(value) {
+        const num = Number(value);
+        if (!isFinite(num)) return NaN;
+
+        // Keep high precision for volume (similar to NumberHelper::formatPlain default behavior).
+        const precisionFactor = 10 ** 11;
+        const rounded = Math.round((num + Number.EPSILON) * precisionFactor) / precisionFactor;
+        return rounded;
+    }
+
     function formatRupiah(num) {
         const plain = formatPlainNumber(num, 0);
         if (!plain) return '';
@@ -166,7 +183,186 @@ function initBrickForm(root) {
             if (pricePerPieceDisplay) pricePerPieceDisplay.value = formatted.price?.formatted || '';
             if (comparisonPrice) comparisonPrice.value = formatted.comparison?.plain || '';
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = formatted.comparison?.formatted || '';
+
+            // Kubik mode: display "Harga Beli" sebagai harga per M3 (nilai comparison).
+            if (getPackageTypeMode() === 'kubik' && pricePerPieceDisplay) {
+                pricePerPieceDisplay.value = formatted.comparison?.formatted || '';
+            }
         });
+    }
+
+    function getPackageTypeMode() {
+        return packageType?.value === 'kubik' ? 'kubik' : 'eceran';
+    }
+
+    function packageTypeLabel(value) {
+        return value === 'kubik' ? 'Kubik' : 'Eceran';
+    }
+
+    function updatePackageQtyPreview() {
+        if (!packageQtyDisplay) return;
+
+        const isKubik = getPackageTypeMode() === 'kubik';
+        let qtyValue = '-';
+
+        if (!isKubik) {
+            qtyValue = '1';
+        } else if (currentVolume > 0) {
+            qtyValue = formatPlainNumber(Math.floor(1 / currentVolume), 0) || '0';
+        }
+
+        packageQtyDisplay.value = qtyValue;
+        if (packageQtySuffix) {
+            packageQtySuffix.textContent = 'Bh';
+        }
+    }
+
+    function normalizePackageType(value) {
+        const normalized = (value || '').toString().trim().toLowerCase();
+        if (normalized === 'kubik' || normalized === 'm3') return 'kubik';
+        if (normalized === 'eceran' || normalized === 'buah' || normalized === 'bh') return 'eceran';
+        return '';
+    }
+
+    function initPackageTypeDropdown() {
+        if (!packageType || !packageTypeDisplay || !packageTypeList) return;
+
+        const setPackageType = (value, dispatch = true, updateDisplay = true) => {
+            const normalized = normalizePackageType(value);
+            const previous = packageType.value || '';
+            packageType.value = normalized;
+
+            if (updateDisplay && normalized) {
+                packageTypeDisplay.value = packageTypeLabel(normalized);
+            }
+
+            if (dispatch && previous !== normalized) {
+                packageType.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        };
+
+        const initialValue = normalizePackageType(packageType.value || packageTypeDisplay.value) || 'eceran';
+        setPackageType(initialValue, false, true);
+
+        const closeList = () => {
+            packageTypeList.classList.remove('package-open');
+            packageTypeList.style.setProperty('display', 'none', 'important');
+        };
+
+        const openList = () => {
+            packageTypeList.classList.add('package-open');
+            packageTypeList.style.setProperty('display', 'block', 'important');
+        };
+
+        const getItems = () => Array.from(packageTypeList.querySelectorAll('.autocomplete-item[data-value]'));
+
+        const filterItems = (term = '') => {
+            const normalizedTerm = term.toString().trim().toLowerCase();
+            const items = getItems();
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const label = (item.textContent || '').toLowerCase();
+                const value = (item.getAttribute('data-value') || '').toLowerCase();
+                const isVisible = normalizedTerm === '' || label.includes(normalizedTerm) || value.includes(normalizedTerm);
+                item.style.display = isVisible ? 'block' : 'none';
+                if (isVisible) visibleCount += 1;
+            });
+
+            if (visibleCount > 0) {
+                openList();
+            } else {
+                closeList();
+            }
+        };
+
+        const selectPackageType = (value) => {
+            setPackageType(value, true, true);
+            closeList();
+        };
+
+        packageTypeDisplay.addEventListener('click', function(e) {
+            e.stopPropagation();
+            filterItems('');
+        });
+
+        packageTypeDisplay.addEventListener('focus', function() {
+            filterItems('');
+        });
+
+        packageTypeDisplay.addEventListener('input', function() {
+            const typed = packageTypeDisplay.value || '';
+            const normalized = normalizePackageType(typed);
+            if (normalized) {
+                setPackageType(normalized, true, false);
+            } else if (!typed.trim()) {
+                setPackageType('', true, false);
+            }
+            filterItems(typed);
+        });
+
+        packageTypeDisplay.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeList();
+                return;
+            }
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                filterItems('');
+                return;
+            }
+
+            if (e.key === 'Enter') {
+                const firstVisible = getItems().find(item => item.style.display !== 'none');
+                if (firstVisible) {
+                    e.preventDefault();
+                    selectPackageType(firstVisible.getAttribute('data-value'));
+                }
+            }
+        });
+
+        packageTypeDisplay.addEventListener('blur', function() {
+            window.setTimeout(() => {
+                const normalized = normalizePackageType(packageTypeDisplay.value);
+                if (normalized) {
+                    setPackageType(normalized, true, true);
+                } else if (!packageTypeDisplay.value.trim()) {
+                    setPackageType('', true, false);
+                } else if (packageType.value) {
+                    packageTypeDisplay.value = packageTypeLabel(packageType.value);
+                }
+                closeList();
+            }, 120);
+        });
+
+        getItems().forEach(item => {
+            item.addEventListener('click', function() {
+                selectPackageType(item.getAttribute('data-value'));
+            });
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!packageTypeList.contains(e.target) && e.target !== packageTypeDisplay) {
+                closeList();
+            }
+        });
+    }
+
+    function syncPackageTypeUi() {
+        const isKubik = getPackageTypeMode() === 'kubik';
+        if (pricePerPieceSuffix) {
+            pricePerPieceSuffix.textContent = isKubik ? '/ M3' : '/ Buah';
+        }
+        if (comparisonPriceSuffix) {
+            comparisonPriceSuffix.textContent = '/ M3';
+        }
+        if (comparisonPriceDisplay) {
+            comparisonPriceDisplay.readOnly = isKubik;
+            comparisonPriceDisplay.style.background = isKubik ? '#f8fafc' : '';
+            comparisonPriceDisplay.style.cursor = isKubik ? 'not-allowed' : '';
+        }
+        updatePackageQtyPreview();
     }
 
     // Handle price per piece input
@@ -176,14 +372,25 @@ function initBrickForm(root) {
 
         const raw = unformatRupiah(pricePerPieceDisplay?.value || '');
         const numericPrice = raw ? Number(raw) : null;
+        const isKubik = getPackageTypeMode() === 'kubik';
 
         // Mark that price was edited last
         if (raw) {
             lastEditedPriceField = 'price';
         }
 
-        // Calculate comparison price from price per piece
-        if (numericPrice && currentVolume > 0) {
+        // Kubik: harga beli utama adalah per M3 (sama dengan comparison)
+        if (isKubik && numericPrice) {
+            const calcComparison = numericPrice;
+            const calcPrice = currentVolume > 0 ? numericPrice * currentVolume : null;
+            applyPriceFormatting(calcPrice, calcComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        }
+
+        // Eceran: harga beli utama adalah per buah
+        if (!isKubik && numericPrice && currentVolume > 0) {
             const calcComparison = numericPrice / currentVolume;
             applyPriceFormatting(numericPrice, calcComparison).finally(() => {
                 isUpdatingPrice = false;
@@ -196,8 +403,13 @@ function initBrickForm(root) {
             if (pricePerPieceDisplay) pricePerPieceDisplay.value = '';
             if (comparisonPrice) comparisonPrice.value = '';
             if (comparisonPriceDisplay) comparisonPriceDisplay.value = '';
-        } else {
+        } else if (!isKubik) {
             applyPriceFormatting(numericPrice, null).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        } else {
+            applyPriceFormatting(null, numericPrice).finally(() => {
                 isUpdatingPrice = false;
             });
             return;
@@ -213,6 +425,7 @@ function initBrickForm(root) {
 
         const raw = unformatRupiah(comparisonPriceDisplay?.value || '');
         const numericComparison = raw ? Number(raw) : null;
+        const isKubik = getPackageTypeMode() === 'kubik';
 
         // Mark that comparison was edited last
         if (raw) {
@@ -223,6 +436,13 @@ function initBrickForm(root) {
         if (numericComparison && currentVolume > 0) {
             const calcPrice = numericComparison * currentVolume;
             applyPriceFormatting(calcPrice, numericComparison).finally(() => {
+                isUpdatingPrice = false;
+            });
+            return;
+        }
+
+        if (numericComparison && isKubik) {
+            applyPriceFormatting(null, numericComparison).finally(() => {
                 isUpdatingPrice = false;
             });
             return;
@@ -247,6 +467,9 @@ function initBrickForm(root) {
     const autosuggestInputs = (scope && scope.querySelectorAll) ? scope.querySelectorAll('.autocomplete-input') : document.querySelectorAll('.autocomplete-input');
     autosuggestInputs.forEach(input => {
         const field = input.dataset.field;
+        if (!field) {
+            return;
+        }
 
         // Skip store and address fields - handled by store-autocomplete.js
         if (field === 'store' || field === 'address') {
@@ -582,14 +805,13 @@ function initBrickForm(root) {
         if (length > 0 && width > 0 && height > 0) {
             const volumeCm3 = length * width * height;
             const volumeM3 = volumeCm3 / 1000000;
-            const normalizedVolume = normalizeSmartDecimal(volumeM3);
+            const normalizedVolume = normalizeVolumePrecision(volumeM3);
             currentVolume = normalizedVolume;
             formatValuesWithHelper([
                 { key: 'length', value: length },
                 { key: 'width', value: width },
                 { key: 'height', value: height },
                 { key: 'volumeCm3', value: volumeCm3 },
-                { key: 'volumeM3', value: normalizedVolume },
             ]).then((formatted) => {
                 const volumeText = formatVolumeDisplay(normalizedVolume);
                 const volumePlain = formatVolumePlain(normalizedVolume);
@@ -611,6 +833,7 @@ function initBrickForm(root) {
                     volumeCalculationDisplay.textContent =
                         `${lengthText} x ${widthText} x ${heightText} = ${volumeCm3Text} cm3 = ${volumeText} M3`;
                 }
+                updatePackageQtyPreview();
             });
             // Recalculate prices when volume changes
             if (!isUpdatingPrice) {
@@ -631,6 +854,7 @@ function initBrickForm(root) {
             if (volumeCalculationDisplay) {
                 volumeCalculationDisplay.textContent = '-';
             }
+            updatePackageQtyPreview();
         }
     }
 
@@ -639,6 +863,18 @@ function initBrickForm(root) {
 
         const priceValue = parseDecimal(pricePerPiece?.value) || 0;
         const compValue = parseDecimal(comparisonPrice?.value) || 0;
+        const isKubik = getPackageTypeMode() === 'kubik';
+
+        if (isKubik) {
+            const comparisonBase = compValue > 0
+                ? compValue
+                : (priceValue > 0 && currentVolume > 0 ? priceValue / currentVolume : 0);
+            if (comparisonBase > 0) {
+                const calcPrice = comparisonBase * currentVolume;
+                applyPriceFormatting(calcPrice, comparisonBase);
+            }
+            return;
+        }
 
         // Recalculate based on which field was edited last
         if (lastEditedPriceField === 'price' && priceValue > 0) {
@@ -751,6 +987,10 @@ function initBrickForm(root) {
 
     pricePerPieceDisplay?.addEventListener('input', syncPriceFromDisplay);
     comparisonPriceDisplay?.addEventListener('input', syncComparisonFromDisplay);
+    packageType?.addEventListener('change', function() {
+        syncPackageTypeUi();
+        recalculatePrices();
+    });
 
     // Format existing values on load
     if ((pricePerPiece && pricePerPiece.value) || (comparisonPrice && comparisonPrice.value)) {
@@ -759,5 +999,7 @@ function initBrickForm(root) {
         applyPriceFormatting(priceValue, comparisonValue);
     }
 
+    initPackageTypeDropdown();
+    syncPackageTypeUi();
     calculateVolume();
 }

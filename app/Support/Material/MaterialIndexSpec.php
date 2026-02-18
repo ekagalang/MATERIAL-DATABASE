@@ -9,12 +9,13 @@ class MaterialIndexSpec
      */
     private const SPECS = [
         'brick' => [
-            'search_columns' => ['type', 'brand', 'form', 'store', 'address'],
+            'search_columns' => ['type', 'brand', 'form', 'package_type', 'store', 'address'],
             'allowed_sorts' => [
                 'material_name',
                 'type',
                 'brand',
                 'form',
+                'package_type',
                 'dimension_length',
                 'dimension_width',
                 'dimension_height',

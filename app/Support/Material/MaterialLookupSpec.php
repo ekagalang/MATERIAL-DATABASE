@@ -12,6 +12,7 @@ class MaterialLookupSpec
             'type',
             'brand',
             'form',
+            'package_type',
             'store',
             'address',
             'dimension_length',
@@ -104,7 +105,7 @@ class MaterialLookupSpec
      * @var array<string, array<int, string>>
      */
     private const API_FILTER_KEYS = [
-        'brick' => ['brand', 'store'],
+        'brick' => ['brand', 'store', 'package_type'],
         'cement' => ['brand', 'store', 'package_unit'],
         'sand' => ['brand', 'store'],
         'cat' => ['brand', 'store', 'package_unit'],

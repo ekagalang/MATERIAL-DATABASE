@@ -28,6 +28,7 @@ class BrickFactory extends Factory
             'dimension_width' => $width,
             'dimension_height' => $height,
             'package_volume' => $volumeM3,
+            'package_type' => 'eceran',
             'store' => $this->faker->company(),
             'address' => $this->faker->address(),
             'price_per_piece' => $pricePerPiece,

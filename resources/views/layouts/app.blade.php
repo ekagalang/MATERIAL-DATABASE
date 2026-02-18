@@ -8,8 +8,8 @@
         $topbarTitle = $explicitTitle !== '' ? $explicitTitle : 'Database Material';
         $routeTitleMap = [
             'dashboard' => 'Dashboard',
-            'material-calculations.*' => 'Kalkulator Material',
-            'material-calculator.*' => 'Kalkulator Material',
+            'material-calculations.*' => 'Proyek',
+            'material-calculator.*' => 'Proyek',
             'materials.*' => 'Database Material',
             'bricks.*' => 'Database Material',
             'cements.*' => 'Database Material',
@@ -323,7 +323,7 @@
             <!-- Item Pekerjaan Dropdown -->
             <div class="nav-dropdown-wrapper work-item-wrapper">
                 <button type="button" class="nav-link-btn {{ request()->routeIs('work-items.*') ? 'active' : '' }}" id="workItemDropdownToggle">
-                    <i class="bi bi-building-gear"></i> Item Pekerjaan <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+                    <i class="bi bi-building-gear"></i> Proyek <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
                 </button>
 
                 <div class="nav-dropdown-menu" id="workItemDropdownMenu">
@@ -333,7 +333,7 @@
                             <a href="{{ route('work-items.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
-                                Lihat Item Pekerjaan
+                                Lihat Daftar Item Pekerjaan
                             </a>
                         </div>
 
@@ -342,7 +342,7 @@
                             <a href="{{ route('material-calculations.create') }}" id="calcNavLink"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
-                                Hitung Item Pekerjaan
+                                Hitung Item Pekerjaan Proyek
                             </a>
                         </div>
 
@@ -383,7 +383,7 @@
                             <a href="{{ route('settings.recommendations.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
-                                Filter Preferensi
+                                Manajemen Filter Preferensi
                             </a>
                         </div>
                     </div>

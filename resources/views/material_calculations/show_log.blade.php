@@ -74,6 +74,24 @@
         $hasCat = $materialCalculation->cat_quantity > 0;
         $hasCeramic = ($materialCalculation->ceramic_quantity ?? 0) > 0;
         $hasNat = ($materialCalculation->nat_quantity ?? 0) > 0;
+
+        $projectAddress = trim((string) ($materialCalculation->project_address ?? ''));
+        $projectPlaceId = trim((string) ($materialCalculation->project_place_id ?? ''));
+        $projectLatitude = $materialCalculation->project_latitude;
+        $projectLongitude = $materialCalculation->project_longitude;
+        $hasProjectCoordinates = is_numeric($projectLatitude) && is_numeric($projectLongitude);
+        $hasProjectLocation = $projectAddress !== '' || $hasProjectCoordinates || $projectPlaceId !== '';
+        $projectMapQuery = '';
+        if ($hasProjectCoordinates) {
+            $projectMapQuery = $projectLatitude . ',' . $projectLongitude;
+        } elseif ($projectAddress !== '') {
+            $projectMapQuery = $projectAddress;
+        } elseif ($projectPlaceId !== '') {
+            $projectMapQuery = 'place_id:' . $projectPlaceId;
+        }
+        $projectMapEmbedUrl = $projectMapQuery !== ''
+            ? 'https://maps.google.com/maps?q=' . urlencode($projectMapQuery) . '&z=15&output=embed'
+            : null;
         
         // Calculate rowSpan based on active materials + Water (always 1)
         $rowSpan = 1 + ($hasBrick ? 1 : 0) + ($hasCement ? 1 : 0) + ($hasSand ? 1 : 0) + ($hasCat ? 1 : 0) + ($showCeramicRow ? 1 : 0) + ($hasNat ? 1 : 0);
@@ -81,6 +99,30 @@
         // Track rendered rows to place rowspan on the first one
         $isFirstRow = true;
     @endphp
+
+    @if ($hasProjectLocation)
+        <div class="container mb-3">
+            <div class="card p-3 shadow-sm border-0"
+                style="background-color: #fdfdfd; border-radius: 12px;">
+                @if ($projectMapEmbedUrl)
+                    <iframe
+                        src="{{ $projectMapEmbedUrl }}"
+                        width="100%"
+                        height="240"
+                        style="border: 0; border-radius: 10px;"
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        allowfullscreen>
+                    </iframe>
+                    @if ($projectAddress !== '')
+                        <div class="mt-2 small text-muted">{{ $projectAddress }}</div>
+                    @endif
+                @else
+                    <div class="text-muted">Lokasi proyek tidak tersedia.</div>
+                @endif
+            </div>
+        </div>
+    @endif
 
     {{-- Header Info: Item Pekerjaan Details Card --}}
     <div class="container mb-3">
@@ -714,7 +756,165 @@
                         }
 
                         // Prepare Material Config
-                        $materialConfig = [
+                        $bundleMaterialRows = $params['bundle_material_rows'] ?? [];
+                        if (is_string($bundleMaterialRows) && trim($bundleMaterialRows) !== '') {
+                            $decodedBundleMaterialRows = json_decode($bundleMaterialRows, true);
+                            if (!is_array($decodedBundleMaterialRows)) {
+                                $decodedBundleMaterialRows = json_decode(
+                                    html_entity_decode($bundleMaterialRows, ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+                                    true,
+                                );
+                            }
+                            $bundleMaterialRows = is_array($decodedBundleMaterialRows)
+                                ? $decodedBundleMaterialRows
+                                : [];
+                        }
+                        if (!is_array($bundleMaterialRows)) {
+                            $bundleMaterialRows = [];
+                        }
+
+                        $materialConfig = [];
+                        if (!empty($bundleMaterialRows)) {
+                            $hasBundleWaterRow = false;
+                            foreach ($bundleMaterialRows as $bundleRowIndex => $bundleRow) {
+                                if (!is_array($bundleRow)) {
+                                    continue;
+                                }
+
+                                $bundleQty = \App\Helpers\NumberHelper::parseNullable($bundleRow['qty'] ?? null);
+                                if ($bundleQty === null || $bundleQty <= 0) {
+                                    continue;
+                                }
+
+                                $bundleMaterialKey = trim((string) ($bundleRow['material_key'] ?? ''));
+                                if ($bundleMaterialKey === '') {
+                                    $bundleMaterialKey = 'material';
+                                }
+                                if ($bundleMaterialKey === 'water') {
+                                    $hasBundleWaterRow = true;
+                                }
+
+                                $bundleDetailValue = \App\Helpers\NumberHelper::parseNullable(
+                                    $bundleRow['detail_value'] ?? null,
+                                );
+                                if ($bundleDetailValue === null || $bundleDetailValue <= 0) {
+                                    $bundleDetailValue = 1;
+                                }
+
+                                $bundleName = trim((string) ($bundleRow['name'] ?? 'Material'));
+                                if ($bundleName === '') {
+                                    $bundleName = 'Material';
+                                }
+                                $bundleUnit = trim((string) ($bundleRow['unit'] ?? '-'));
+                                if ($bundleUnit === '') {
+                                    $bundleUnit = '-';
+                                }
+                                $bundleComparisonUnit = trim((string) ($bundleRow['comparison_unit'] ?? $bundleUnit));
+                                if ($bundleComparisonUnit === '') {
+                                    $bundleComparisonUnit = '-';
+                                }
+
+                                $bundleTypeDisplay = trim((string) ($bundleRow['type_display'] ?? '-'));
+                                if ($bundleTypeDisplay === '') {
+                                    $bundleTypeDisplay = '-';
+                                }
+                                $bundleBrandDisplay = trim((string) ($bundleRow['brand_display'] ?? '-'));
+                                if ($bundleBrandDisplay === '') {
+                                    $bundleBrandDisplay = '-';
+                                }
+                                $bundleStoreDisplay = trim((string) ($bundleRow['store_display'] ?? '-'));
+                                if ($bundleStoreDisplay === '') {
+                                    $bundleStoreDisplay = '-';
+                                }
+                                $bundleAddressDisplay = trim((string) ($bundleRow['address_display'] ?? '-'));
+                                if ($bundleAddressDisplay === '') {
+                                    $bundleAddressDisplay = '-';
+                                }
+                                $bundleDetailDisplay = trim((string) ($bundleRow['detail_display'] ?? '-'));
+                                if ($bundleDetailDisplay === '') {
+                                    $bundleDetailDisplay = '-';
+                                }
+                                $bundleDetailExtra = trim((string) ($bundleRow['detail_extra'] ?? ''));
+
+                                $bundlePackagePrice = (float) ($bundleRow['package_price'] ?? 0);
+                                $bundlePackageUnit = trim((string) ($bundleRow['package_unit'] ?? ''));
+                                $bundlePricePerUnit = (float) ($bundleRow['price_per_unit'] ?? $bundlePackagePrice);
+                                $bundlePriceCalcQty = \App\Helpers\NumberHelper::parseNullable(
+                                    $bundleRow['price_calc_qty'] ?? null,
+                                );
+                                if ($bundlePriceCalcQty === null || $bundlePriceCalcQty <= 0) {
+                                    $bundlePriceCalcQty = (float) $bundleQty;
+                                }
+                                $bundleTotalPrice = (float) ($bundleRow['total_price'] ?? 0);
+                                $bundleUnitPrice = (float) ($bundleRow['unit_price'] ?? $bundlePricePerUnit);
+
+                                $materialConfig[$bundleMaterialKey . '_' . $bundleRowIndex] = [
+                                    'material_key' => $bundleMaterialKey,
+                                    'name' => $bundleName,
+                                    'check_field' => $bundleRow['check_field'] ?? $bundleMaterialKey,
+                                    'qty' => (float) $bundleQty,
+                                    'qty_debug' => $bundleRow['qty_debug'] ?? '',
+                                    'unit' => $bundleUnit,
+                                    'comparison_unit' => $bundleComparisonUnit,
+                                    'detail_value' => (float) $bundleDetailValue,
+                                    'detail_value_debug' => $bundleRow['detail_value_debug'] ?? '',
+                                    'object' => null,
+                                    'type_field' => null,
+                                    'type_display' => $bundleTypeDisplay,
+                                    'brand_field' => null,
+                                    'brand_display' => $bundleBrandDisplay,
+                                    'detail_display' => $bundleDetailDisplay,
+                                    'detail_extra' => $bundleDetailExtra,
+                                    'store_field' => null,
+                                    'store_display' => $bundleStoreDisplay,
+                                    'address_field' => null,
+                                    'address_display' => $bundleAddressDisplay,
+                                    'package_price' => $bundlePackagePrice,
+                                    'package_unit' => $bundlePackageUnit,
+                                    'price_per_unit' => $bundlePricePerUnit,
+                                    'price_unit_label' => $bundleRow['price_unit_label'] ?? $bundlePackageUnit,
+                                    'price_calc_qty' => (float) $bundlePriceCalcQty,
+                                    'price_calc_unit' => $bundleRow['price_calc_unit'] ?? $bundleUnit,
+                                    'total_price' => $bundleTotalPrice,
+                                    'unit_price' => $bundleUnitPrice,
+                                    'unit_price_label' =>
+                                        $bundleRow['unit_price_label'] ??
+                                        ($bundleRow['price_unit_label'] ?? $bundlePackageUnit),
+                                    'is_special' => (bool) ($bundleRow['is_special'] ?? false),
+                                ];
+                            }
+
+                            if (!$hasBundleWaterRow && ($materialCalculation->water_liters ?? 0) > 0) {
+                                $materialConfig['water_fallback'] = [
+                                    'material_key' => 'water',
+                                    'name' => 'Air',
+                                    'check_field' => 'water_liters',
+                                    'qty' => (float) ($materialCalculation->water_liters ?? 0),
+                                    'qty_debug' => 'Kebutuhan air',
+                                    'unit' => 'L',
+                                    'comparison_unit' => 'L',
+                                    'detail_value' => 1,
+                                    'object' => null,
+                                    'type_field' => null,
+                                    'type_display' => 'Bersih',
+                                    'brand_field' => null,
+                                    'brand_display' => 'PDAM',
+                                    'detail_display' => '',
+                                    'detail_extra' => '',
+                                    'store_field' => null,
+                                    'store_display' => 'Customer',
+                                    'address_field' => null,
+                                    'address_display' => '-',
+                                    'package_price' => 0,
+                                    'package_unit' => '',
+                                    'total_price' => 0,
+                                    'unit_price' => 0,
+                                    'unit_price_label' => '',
+                                    'is_special' => true,
+                                ];
+                            }
+                        } else {
+                            $materialConfig = [
                             'brick' => [
                                 'name' => 'Bata',
                                 'check_field' => 'brick_quantity',
@@ -897,7 +1097,8 @@
                                 'unit_price_label' => '',
                                 'is_special' => true,
                             ],
-                        ];
+                            ];
+                        }
 
                         $visibleMaterials = array_filter($materialConfig, function ($mat) {
                             return isset($mat['qty']) && $mat['qty'] > 0;
@@ -913,6 +1114,7 @@
                             $matIndex++;
                             $isFirstMaterial = $matIndex === 1;
                             $isLastMaterial = $matIndex === count($visibleMaterials);
+                            $materialTypeKey = (string) ($mat['material_key'] ?? $matKey);
                             
                             $pricePerUnit = $mat['price_per_unit'] ?? ($mat['package_price'] ?? 0);
                             $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
@@ -956,11 +1158,11 @@
                             <td class="fw-bold" style="border-left: none; border-right: none;">
                                 {{ $mat['brand_display'] ?? ($mat['object']->{$mat['brand_field']} ?? '-') }}
                             </td>
-                            <td class="{{ $matKey === 'brick' ? 'text-start text-nowrap' : '' }}" style="border-left: none; border-right: none;">
+                            <td class="{{ $materialTypeKey === 'brick' ? 'text-start text-nowrap' : '' }}" style="border-left: none; border-right: none;">
                                 {{ $mat['detail_display'] }}
                             </td>
-                            <td class="{{ $matKey === 'cement' || $matKey === 'sand' || $matKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }} {{ $matKey === 'brick' ? 'preview-scroll-td' : '' }}" title="{{ $detailTitle }}" style="border-left: none;">
-                                @if ($matKey === 'brick')
+                            <td class="{{ $materialTypeKey === 'cement' || $materialTypeKey === 'sand' || $materialTypeKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }} {{ $materialTypeKey === 'brick' ? 'preview-scroll-td' : '' }}" title="{{ $detailTitle }}" style="border-left: none;">
+                                @if ($materialTypeKey === 'brick')
                                     <div class="preview-scroll-cell">{{ $mat['detail_extra'] ?? '' }}</div>
                                 @else
                                     {{ $mat['detail_extra'] ?? '' }}
@@ -1030,7 +1232,7 @@
                                     $totalPriceValue = round((float) $hargaKomparasi, 0);
                                     $normalizedDetailValue = (float) $detailValue;
                                     
-                                    if ($matKey === 'sand') {
+                                    if ($materialTypeKey === 'sand') {
                                         $actualBuyPrice = $normalizedQtyValue > 0 ? $totalPriceValue / $normalizedQtyValue : 0;
                                     } else {
                                         $actualBuyPrice = ($normalizedQtyValue > 0 && $normalizedDetailValue > 0) ? $totalPriceValue / $normalizedQtyValue / $normalizedDetailValue : 0;

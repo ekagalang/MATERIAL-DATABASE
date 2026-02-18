@@ -27,6 +27,7 @@ class Brick extends Model
         'dimension_width',
         'dimension_height',
         'package_volume',
+        'package_type',
         'store',
         'address',
         'store_location_id',
@@ -108,6 +109,48 @@ class Brick extends Model
         }
 
         return 0;
+    }
+
+    /**
+     * Sinkronkan harga berdasarkan tipe kemasan.
+     * - eceran: harga beli utama = price_per_piece, comparison dihitung dari volume.
+     * - kubik: harga beli utama = comparison_price_per_m3, price_per_piece dihitung dari volume.
+     */
+    public function syncPricingByPackageType(): void
+    {
+        $packageType = strtolower(trim((string) ($this->package_type ?? '')));
+        $isKubik = $packageType === 'kubik';
+        $volume = (float) ($this->package_volume ?? 0);
+        $piecePrice = is_numeric($this->price_per_piece) ? (float) $this->price_per_piece : 0.0;
+        $comparisonPrice = is_numeric($this->comparison_price_per_m3) ? (float) $this->comparison_price_per_m3 : 0.0;
+
+        if ($isKubik) {
+            if ($comparisonPrice > 0) {
+                $this->price_per_piece = $volume > 0 ? (float) ($comparisonPrice * $volume) : null;
+                return;
+            }
+
+            if ($piecePrice > 0 && $volume > 0) {
+                $this->comparison_price_per_m3 = (float) ($piecePrice / $volume);
+                return;
+            }
+
+            $this->price_per_piece = null;
+            $this->comparison_price_per_m3 = null;
+            return;
+        }
+
+        if ($piecePrice > 0) {
+            $this->comparison_price_per_m3 = $volume > 0 ? (float) ($piecePrice / $volume) : null;
+            return;
+        }
+
+        if ($comparisonPrice > 0 && $volume > 0) {
+            $this->price_per_piece = (float) ($comparisonPrice * $volume);
+            return;
+        }
+
+        $this->comparison_price_per_m3 = null;
     }
 
     /**

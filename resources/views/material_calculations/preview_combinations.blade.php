@@ -1186,6 +1186,10 @@ $paramValue = $isGroutTile
                         ($materialId ?? 'null') . '|' . preg_replace('/\s+/u', ' ', $brandText) . '|' . preg_replace('/\s+/u', ' ', $detailText),
                     );
                     foreach ($entry['material_variants'][$materialKey] as $existing) {
+                        $existingId = is_array($existing) && is_numeric($existing['id'] ?? null) ? (int) $existing['id'] : null;
+                        if ($materialId !== null && $existingId !== null && $materialId === $existingId) {
+                            return;
+                        }
                         if (($existing['signature'] ?? '') === $signature) {
                             return;
                         }
@@ -3144,11 +3148,15 @@ $paramValue = $isGroutTile
                             if ($text === '') {
                                 return null;
                             }
-                            if (is_numeric($value)) {
-                                return \App\Helpers\NumberHelper::format((float) $value);
+                            $parsedNumeric = \App\Helpers\NumberHelper::parseNullable($value);
+                            if ($parsedNumeric !== null) {
+                                return \App\Helpers\NumberHelper::format($parsedNumeric);
                             }
 
                             return $text;
+                        };
+                        $parseBundleNumeric = static function ($value): ?float {
+                            return \App\Helpers\NumberHelper::parseNullable($value);
                         };
                         $buildBundleItemVariables = function (array $item, string $workType) use (
                             $bundleIgnoredKeys,
@@ -3158,6 +3166,7 @@ $paramValue = $isGroutTile
                             $resolveFallbackActiveFields,
                             $resolveBundleParamUnit,
                             $normalizeBundleParamValue,
+                            $parseBundleNumeric,
                         ): array {
                             $variables = [];
                             $activeFields = array_values(
@@ -3179,7 +3188,7 @@ $paramValue = $isGroutTile
                                 if (!in_array($paramKey, $bundleSupportedParamKeys, true)) {
                                     continue;
                                 }
-                                if (!isset($activeFieldsLookup[$paramKey])) {
+                                if (!isset($activeFieldsLookup[$paramKey]) && $paramKey !== 'area') {
                                     continue;
                                 }
                                 if (str_starts_with($paramKey, 'material_type_filter') || str_ends_with($paramKey, '_id')) {
@@ -3199,16 +3208,14 @@ $paramValue = $isGroutTile
                                 ];
                             }
 
-                            $length = is_numeric($item['wall_length'] ?? null) ? (float) $item['wall_length'] : 0;
-                            $height = is_numeric($item['wall_height'] ?? null) ? (float) $item['wall_height'] : 0;
+                            $length = $parseBundleNumeric($item['wall_length'] ?? null) ?? 0;
+                            $height = $parseBundleNumeric($item['wall_height'] ?? null) ?? 0;
                             $isRollag = $workType === 'brick_rollag';
                             if (
                                 !$isRollag &&
                                 $length > 0 &&
                                 $height > 0 &&
-                                !isset($variables['area']) &&
-                                isset($activeFieldsLookup['wall_length']) &&
-                                isset($activeFieldsLookup['wall_height'])
+                                !isset($variables['area'])
                             ) {
                                 $computedArea =
                                     $workType === 'plinth_ceramic' ? $length * ($height / 100) : $length * $height;
@@ -3264,27 +3271,25 @@ $paramValue = $isGroutTile
                             }
                         }
                         $hasBundleWorkItemDropdown = count($bundleWorkItemsForParams) > 1;
-                        $bundleWorkItemsLabel = count($bundleWorkItemsForParams) . ' Item Pekerjaan';
                     @endphp
-                    <div class="card p-3 shadow-sm border-0 preview-params-sticky"
+                    <div
+                        class="card p-3 shadow-sm border-0 preview-params-sticky {{ $hasBundleWorkItemDropdown ? 'preview-params-sticky--bundle' : '' }}"
                         style="background-color: #fdfdfd; border-radius: 12px;">
                         <div
                             class="d-flex flex-wrap align-items-end gap-3 justify-content-start preview-param-row {{ $hasBundleWorkItemDropdown ? 'preview-param-row-with-dropdown' : '' }}">
                             @if ($hasBundleWorkItemDropdown)
                                 <div style="flex: 1; min-width: 320px;">
-                                    <label class="fw-bold mb-2 text-uppercase"
-                                        style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                        <i class="bi bi-briefcase me-1"></i>Item Pekerjaan
-                                    </label>
-                                    <div class="dropdown w-100 preview-param-items-dropdown" data-bs-auto-close="outside">
-                                        <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start fw-bold"
-                                            type="button" data-bs-toggle="dropdown" data-param-dropdown-toggle="true"
-                                            aria-expanded="false"
-                                            style="background-color: #e9ecef; border-color: #ced4da; color: #111827;">
-                                            {{ $bundleWorkItemsLabel }}
-                                        </button>
-                                        <div class="dropdown-menu p-2 shadow-sm bundle-param-dropdown-menu"
-                                            style="max-height: 360px; overflow-y: auto;">
+                                    <div class="dropdown w-100 preview-param-items-dropdown preview-param-items-dropdown-inline"
+                                        data-bs-auto-close="outside">
+                                        <div class="mb-2">
+                                            <button
+                                                class="dropdown-toggle fw-bold text-uppercase preview-param-label-toggle"
+                                                type="button" data-bs-toggle="dropdown" data-param-dropdown-toggle="true"
+                                                aria-expanded="false">
+                                                <i class="bi bi-briefcase me-1"></i>Item Pekerjaan
+                                            </button>
+                                        </div>
+                                        <div class="dropdown-menu p-2 shadow-sm bundle-param-dropdown-menu">
                                             @foreach ($bundleWorkItemsForParams as $bundleIndex => $bundleItemParam)
                                                 @php
                                                     $itemWorkType = $bundleItemParam['work_type_code'] ?? '';
@@ -3336,10 +3341,6 @@ $paramValue = $isGroutTile
                                                     class="px-2 py-2 bundle-param-item-card {{ $bundleIndex > 0 ? 'border-top mt-1' : '' }}">
                                                     <div class="bundle-param-item-layout">
                                                         <div class="bundle-param-section bundle-param-section--worktype">
-                                                            <label class="fw-bold mb-2 text-uppercase"
-                                                                style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                                                                <i class="bi bi-briefcase me-1"></i>Jenis Item Pekerjaan
-                                                            </label>
                                                             <div
                                                                 class="form-control fw-bold border-secondary text-dark bundle-param-worktype-value"
                                                                 style="background-color: #e9ecef; opacity: 1;">
@@ -3896,15 +3897,22 @@ $paramValue = $isGroutTile
                                 }
 
                                 $normalized = [];
+                                $seenVariantKeys = [];
                                 foreach ($variants as $variant) {
                                     if (!is_array($variant)) {
                                         continue;
                                     }
+                                    $variantId = is_numeric($variant['id'] ?? null) ? (int) $variant['id'] : null;
                                     $brand = trim((string) ($variant['brand'] ?? ''));
                                     $detail = trim((string) ($variant['detail'] ?? ''));
                                     if ($brand === '' && $detail === '') {
                                         continue;
                                     }
+                                    $dedupeKey = $variantId !== null ? 'id:' . $variantId : strtolower($brand . '|' . $detail);
+                                    if (isset($seenVariantKeys[$dedupeKey])) {
+                                        continue;
+                                    }
+                                    $seenVariantKeys[$dedupeKey] = true;
                                     $normalized[] = [
                                         'brand' => $brand !== '' ? $brand : '-',
                                         'detail' => $detail !== '' ? $detail : '-',
@@ -5263,86 +5271,514 @@ $paramValue = $isGroutTile
                                     @if ($isFirstMaterial)
                                         <td rowspan="{{ $rowCount }}" class="text-center align-top rowspan-cell">
                                             @php
-                                                $traceFormulaCode =
-                                                    $requestData['formula_code'] ?? ($requestData['work_type'] ?? null);
-                                                $traceCeramic = $item['ceramic'] ?? null;
-                                                $traceCeramicLength =
-                                                    $requestData['ceramic_length'] ??
-                                                    data_get($requestData, 'ceramic_dimensions.length') ??
-                                                    data_get($requestData, 'params.ceramic_length') ??
-                                                    data_get($requestData, 'params.ceramic_dimensions.length');
-                                                $traceCeramicWidth =
-                                                    $requestData['ceramic_width'] ??
-                                                    data_get($requestData, 'ceramic_dimensions.width') ??
-                                                    data_get($requestData, 'params.ceramic_width') ??
-                                                    data_get($requestData, 'params.ceramic_dimensions.width');
-                                                $traceCeramicThickness =
-                                                    $requestData['ceramic_thickness'] ??
-                                                    data_get($requestData, 'ceramic_dimensions.thickness') ??
-                                                    data_get($requestData, 'params.ceramic_thickness') ??
-                                                    data_get($requestData, 'params.ceramic_dimensions.thickness');
-                                                if (
-                                                    (!is_numeric($traceCeramicLength) || (float) $traceCeramicLength <= 0) &&
-                                                    $traceCeramic
-                                                ) {
-                                                    $traceCeramicLength = $traceCeramic->dimension_length ?? null;
+                                                $detailModalId =
+                                                    'materialDetailModal_' .
+                                                    $globalIndex .
+                                                    '_' .
+                                                    trim((string) preg_replace('/[^a-z0-9]+/i', '_', strtolower((string) $label)), '_');
+                                                $detailMaterialBreakdowns = [];
+                                                $isBundleDetail = !empty($item['bundle_items'] ?? null);
+                                                $rawBreakdowns = $item['bundle_item_material_breakdowns'] ?? null;
+                                                if (is_array($rawBreakdowns)) {
+                                                    foreach ($rawBreakdowns as $breakdownIndex => $breakdownRow) {
+                                                        if (!is_array($breakdownRow)) {
+                                                            continue;
+                                                        }
+                                                        $materials = $breakdownRow['materials'] ?? [];
+                                                        if (!is_array($materials)) {
+                                                            $materials = [];
+                                                        }
+                                                        $materials = array_values(
+                                                            array_filter($materials, function ($matRow) {
+                                                                return is_array($matRow) && ((float) ($matRow['qty'] ?? 0)) > 0;
+                                                            }),
+                                                        );
+                                                        if (empty($materials)) {
+                                                            continue;
+                                                        }
+                                                        $detailMaterialBreakdowns[] = [
+                                                            'title' => $breakdownRow['title'] ?? ('Item ' . ($breakdownIndex + 1)),
+                                                            'work_type' => $breakdownRow['work_type'] ?? '',
+                                                            'work_type_name' =>
+                                                                $breakdownRow['work_type_name'] ??
+                                                                ucwords(str_replace('_', ' ', (string) ($breakdownRow['work_type'] ?? ''))),
+                                                            'grand_total' => (float) ($breakdownRow['grand_total'] ?? 0),
+                                                            'request_data' => is_array($breakdownRow['request_data'] ?? null)
+                                                                ? $breakdownRow['request_data']
+                                                                : [],
+                                                            'materials' => $materials,
+                                                        ];
+                                                    }
                                                 }
-                                                if (
-                                                    (!is_numeric($traceCeramicWidth) || (float) $traceCeramicWidth <= 0) &&
-                                                    $traceCeramic
-                                                ) {
-                                                    $traceCeramicWidth = $traceCeramic->dimension_width ?? null;
+                                                if (!empty($detailMaterialBreakdowns)) {
+                                                    $buildDetailMaterialSignature = static function (
+                                                        string $materialKey,
+                                                        array $row,
+                                                    ): string {
+                                                        $normalize = static function ($value): string {
+                                                            $text = trim((string) $value);
+                                                            if ($text === '') {
+                                                                return '';
+                                                            }
+                                                            $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+
+                                                            return strtolower($text);
+                                                        };
+
+                                                        $model = $row['object'] ?? null;
+                                                        $typeField = (string) ($row['type_field'] ?? '');
+                                                        $brandField = (string) ($row['brand_field'] ?? '');
+                                                        $storeField = (string) ($row['store_field'] ?? '');
+                                                        $addressField = (string) ($row['address_field'] ?? '');
+
+                                                        $type = $row['type_display'] ??
+                                                            (is_object($model) && $typeField !== '' ? ($model->{$typeField} ?? '') : '');
+                                                        $brand = $row['brand_display'] ??
+                                                            (is_object($model) && $brandField !== '' ? ($model->{$brandField} ?? '') : '');
+                                                        $store = $row['store_display'] ??
+                                                            (is_object($model) && $storeField !== '' ? ($model->{$storeField} ?? '') : '');
+                                                        $address = $row['address_display'] ??
+                                                            (is_object($model) && $addressField !== ''
+                                                                ? ($model->{$addressField} ?? '')
+                                                                : '');
+
+                                                        $signatureData = [
+                                                            'material' => $normalize($materialKey),
+                                                            'name' => $normalize($row['name'] ?? ''),
+                                                            'type' => $normalize($type),
+                                                            'brand' => $normalize($brand),
+                                                            'detail' => $normalize($row['detail_display'] ?? ''),
+                                                            'detail_extra' => $normalize($row['detail_extra'] ?? ''),
+                                                            'store' => $normalize($store),
+                                                            'address' => $normalize($address),
+                                                            'package_unit' => $normalize($row['package_unit'] ?? ''),
+                                                            'package_price' => round((float) ($row['package_price'] ?? 0), 4),
+                                                            'unit' => $normalize($row['unit'] ?? ''),
+                                                        ];
+
+                                                        return hash('sha256', json_encode($signatureData, JSON_UNESCAPED_UNICODE));
+                                                    };
+
+                                                    $groupedDisplayRows = [];
+                                                    foreach ($detailMaterialBreakdowns as $breakdownIndex => $breakdownRow) {
+                                                        $materials = is_array($breakdownRow['materials'] ?? null)
+                                                            ? $breakdownRow['materials']
+                                                            : [];
+                                                        foreach ($materials as $materialIndex => $materialRow) {
+                                                            if (
+                                                                !is_array($materialRow) ||
+                                                                (bool) ($materialRow['is_special'] ?? false)
+                                                            ) {
+                                                                continue;
+                                                            }
+
+                                                            $materialKey = trim((string) ($materialRow['material_key'] ?? ''));
+                                                            if ($materialKey === '') {
+                                                                continue;
+                                                            }
+
+                                                            $rawTotal = (float) ($materialRow['total_price'] ?? 0);
+                                                            if ($rawTotal <= 0) {
+                                                                $pricePerUnit = (float) ($materialRow['price_per_unit'] ?? ($materialRow['package_price'] ?? 0));
+                                                                $priceCalcQty = (float) ($materialRow['price_calc_qty'] ?? ($materialRow['qty'] ?? 0));
+                                                                $rawTotal = $pricePerUnit * $priceCalcQty;
+                                                            }
+
+                                                            $signature = $buildDetailMaterialSignature($materialKey, $materialRow);
+                                                            $groupedDisplayRows[$signature][] = [
+                                                                'breakdown_index' => $breakdownIndex,
+                                                                'material_index' => $materialIndex,
+                                                                'raw_total' => $rawTotal,
+                                                            ];
+                                                        }
+                                                    }
+
+                                                    foreach ($groupedDisplayRows as $signatureRows) {
+                                                        if (empty($signatureRows)) {
+                                                            continue;
+                                                        }
+
+                                                        $targetRoundedTotal = (int) round(
+                                                            array_sum(
+                                                                array_map(
+                                                                    static fn($entry) => (float) ($entry['raw_total'] ?? 0),
+                                                                    $signatureRows,
+                                                                ),
+                                                            ),
+                                                            0,
+                                                        );
+
+                                                        $prepared = [];
+                                                        $sumFloors = 0;
+                                                        foreach ($signatureRows as $entry) {
+                                                            $raw = (float) ($entry['raw_total'] ?? 0);
+                                                            $floorValue = (int) floor($raw + 1e-9);
+                                                            $fraction = $raw - $floorValue;
+                                                            $sumFloors += $floorValue;
+                                                            $prepared[] = array_merge($entry, [
+                                                                'display_total' => $floorValue,
+                                                                'fraction' => $fraction,
+                                                            ]);
+                                                        }
+
+                                                        $remaining = $targetRoundedTotal - $sumFloors;
+                                                        if ($remaining > 0) {
+                                                            usort($prepared, static function ($a, $b) {
+                                                                $fractionCompare = ($b['fraction'] ?? 0) <=> ($a['fraction'] ?? 0);
+                                                                if ($fractionCompare !== 0) {
+                                                                    return $fractionCompare;
+                                                                }
+
+                                                                $rawCompare = ((float) ($b['raw_total'] ?? 0)) <=>
+                                                                    ((float) ($a['raw_total'] ?? 0));
+                                                                if ($rawCompare !== 0) {
+                                                                    return $rawCompare;
+                                                                }
+
+                                                                $breakdownCompare = ((int) ($a['breakdown_index'] ?? 0)) <=>
+                                                                    ((int) ($b['breakdown_index'] ?? 0));
+                                                                if ($breakdownCompare !== 0) {
+                                                                    return $breakdownCompare;
+                                                                }
+
+                                                                return ((int) ($a['material_index'] ?? 0)) <=>
+                                                                    ((int) ($b['material_index'] ?? 0));
+                                                            });
+
+                                                            $preparedCount = count($prepared);
+                                                            for ($inc = 0; $inc < $remaining && $preparedCount > 0; $inc++) {
+                                                                $targetIndex = $inc % $preparedCount;
+                                                                $prepared[$targetIndex]['display_total']++;
+                                                            }
+                                                        }
+
+                                                        foreach ($prepared as $entry) {
+                                                            $bi = (int) ($entry['breakdown_index'] ?? -1);
+                                                            $mi = (int) ($entry['material_index'] ?? -1);
+                                                            if (
+                                                                !isset($detailMaterialBreakdowns[$bi]) ||
+                                                                !isset($detailMaterialBreakdowns[$bi]['materials']) ||
+                                                                !is_array($detailMaterialBreakdowns[$bi]['materials']) ||
+                                                                !isset($detailMaterialBreakdowns[$bi]['materials'][$mi]) ||
+                                                                !is_array($detailMaterialBreakdowns[$bi]['materials'][$mi])
+                                                            ) {
+                                                                continue;
+                                                            }
+
+                                                            $detailMaterialBreakdowns[$bi]['materials'][$mi]['display_total_price'] = (float) ($entry['display_total'] ?? 0);
+                                                        }
+                                                    }
                                                 }
-                                                if (
-                                                    (!is_numeric($traceCeramicThickness) ||
-                                                        (float) $traceCeramicThickness <= 0) &&
-                                                    $traceCeramic
-                                                ) {
-                                                    $traceCeramicThickness = $traceCeramic->dimension_thickness ?? null;
-                                                }
-                                                $traceParams = [
-                                                    'formula_code' => $traceFormulaCode,
-                                                    'work_type' => $requestData['work_type'] ?? null,
-                                                    'wall_length' => $requestData['wall_length'] ?? null,
-                                                    'wall_height' => $requestData['wall_height'] ?? null,
-                                                    'area' => $requestData['area'] ?? null,
-                                                    'mortar_thickness' => $requestData['mortar_thickness'] ?? null,
-                                                    'grout_thickness' => $requestData['grout_thickness'] ?? null,
-                                                    'ceramic_length' => $traceCeramicLength,
-                                                    'ceramic_width' => $traceCeramicWidth,
-                                                    'ceramic_thickness' => $traceCeramicThickness,
-                                                    'painting_layers' => $requestData['painting_layers'] ?? null,
-                                                    'layer_count' => $requestData['layer_count'] ?? null,
-                                                    'auto_trace' => 1,
-                                                ];
-                                                if ($brick) {
-                                                    $traceParams['brick_id'] = $brick->id;
-                                                }
-                                                if (isset($item['cement'])) {
-                                                    $traceParams['cement_id'] = $item['cement']->id;
-                                                }
-                                                if (isset($item['sand'])) {
-                                                    $traceParams['sand_id'] = $item['sand']->id;
-                                                }
-                                                if (isset($item['cat'])) {
-                                                    $traceParams['cat_id'] = $item['cat']->id;
-                                                }
-                                                if (isset($item['ceramic']) && ($requestData['work_type'] ?? '') !== 'grout_tile') {
-                                                    $traceParams['ceramic_id'] = $item['ceramic']->id;
-                                                }
-                                                if (isset($item['nat'])) {
-                                                    $traceParams['nat_id'] = $item['nat']->id;
-                                                }
-                                                $traceUrl =
-                                                    route('material-calculator.trace') .
-                                                    '?' .
-                                                    http_build_query(
-                                                        array_filter($traceParams, function ($value) {
-                                                            return $value !== null && $value !== '';
+                                                if (empty($detailMaterialBreakdowns) && !$isBundleDetail) {
+                                                    $fallbackMaterials = array_values(
+                                                        array_filter($visibleMaterials ?? [], function ($matRow) {
+                                                            return is_array($matRow) && ((float) ($matRow['qty'] ?? 0)) > 0;
                                                         }),
                                                     );
+                                                    if (!empty($fallbackMaterials)) {
+                                                        $detailMaterialBreakdowns[] = [
+                                                            'title' => 'Item Pekerjaan',
+                                                            'work_type_name' => $formulaName ?? '-',
+                                                            'grand_total' => (float) ($item['result']['grand_total'] ?? 0),
+                                                            'materials' => $fallbackMaterials,
+                                                        ];
+                                                    }
+                                                }
+                                                $bundleDetailFallbackItems = [];
+                                                if ($isBundleDetail && empty($detailMaterialBreakdowns)) {
+                                                    $rawBundleItems = $item['bundle_items'] ?? [];
+                                                    if (is_array($rawBundleItems)) {
+                                                        foreach ($rawBundleItems as $bundleItemIndex => $bundleItemRow) {
+                                                            if (!is_array($bundleItemRow)) {
+                                                                continue;
+                                                            }
+                                                            $bundleWorkType = trim((string) ($bundleItemRow['work_type'] ?? ''));
+                                                            $bundleWorkTypeMeta = $bundleWorkType !== ''
+                                                                ? \App\Services\FormulaRegistry::find($bundleWorkType)
+                                                                : null;
+                                                            $bundleDetailFallbackItems[] = [
+                                                                'title' =>
+                                                                    $bundleItemRow['title'] ??
+                                                                    ('Item ' . ($bundleItemIndex + 1)),
+                                                                'work_type_name' =>
+                                                                    $bundleWorkTypeMeta['name'] ??
+                                                                    ucwords(str_replace('_', ' ', $bundleWorkType)),
+                                                                'grand_total' => (float) ($bundleItemRow['grand_total'] ?? 0),
+                                                            ];
+                                                        }
+                                                    }
+                                                }
+                                                $bundleTracePayloadEncoded = null;
+                                                if ($isBundleDetail && is_array($rawBreakdowns)) {
+                                                    $bundleTraceItems = [];
+                                                    $workItemsPayloadData = [];
+                                                    $rawWorkItemsPayload = $requestData['work_items_payload'] ?? null;
+                                                    if (is_string($rawWorkItemsPayload) && trim($rawWorkItemsPayload) !== '') {
+                                                        $decodedWorkItemsPayload = json_decode($rawWorkItemsPayload, true);
+                                                        if (is_array($decodedWorkItemsPayload)) {
+                                                            $workItemsPayloadData = array_values($decodedWorkItemsPayload);
+                                                        }
+                                                    }
+
+                                                    foreach ($rawBreakdowns as $traceItemIndex => $traceRow) {
+                                                        if (!is_array($traceRow)) {
+                                                            continue;
+                                                        }
+
+                                                        $traceWorkType = trim((string) ($traceRow['work_type'] ?? ''));
+                                                        if ($traceWorkType === '') {
+                                                            continue;
+                                                        }
+
+                                                        $traceRequestData = is_array($traceRow['request_data'] ?? null)
+                                                            ? $traceRow['request_data']
+                                                            : [];
+                                                        if (
+                                                            empty($traceRequestData) &&
+                                                            isset($workItemsPayloadData[$traceItemIndex]) &&
+                                                            is_array($workItemsPayloadData[$traceItemIndex])
+                                                        ) {
+                                                            $traceRequestData = $workItemsPayloadData[$traceItemIndex];
+                                                        }
+
+                                                        $traceMaterials = is_array($traceRow['materials'] ?? null) ? $traceRow['materials'] : [];
+                                                        $traceMaterialIds = [
+                                                            'brick_id' => null,
+                                                            'cement_id' => null,
+                                                            'sand_id' => null,
+                                                            'cat_id' => null,
+                                                            'ceramic_id' => null,
+                                                            'nat_id' => null,
+                                                        ];
+                                                        foreach ($traceMaterials as $traceMatRow) {
+                                                            if (!is_array($traceMatRow)) {
+                                                                continue;
+                                                            }
+                                                            $traceMatQty = \App\Helpers\NumberHelper::parseNullable(
+                                                                $traceMatRow['qty'] ?? null,
+                                                            );
+                                                            if ($traceMatQty === null || $traceMatQty <= 0) {
+                                                                continue;
+                                                            }
+                                                            $traceMaterialKey = trim((string) ($traceMatRow['material_key'] ?? ''));
+                                                            if ($traceMaterialKey === '') {
+                                                                continue;
+                                                            }
+                                                            $traceMatModel = $traceMatRow['object'] ?? null;
+                                                            $traceMatId = null;
+                                                            if (
+                                                                is_object($traceMatModel) &&
+                                                                isset($traceMatModel->id) &&
+                                                                is_numeric($traceMatModel->id)
+                                                            ) {
+                                                                $traceMatId = (int) $traceMatModel->id;
+                                                            } elseif (
+                                                                is_array($traceMatModel) &&
+                                                                is_numeric($traceMatModel['id'] ?? null)
+                                                            ) {
+                                                                $traceMatId = (int) ($traceMatModel['id'] ?? 0);
+                                                            }
+                                                            if ($traceMatId === null || $traceMatId <= 0) {
+                                                                continue;
+                                                            }
+
+                                                            if ($traceMaterialKey === 'brick' && $traceMaterialIds['brick_id'] === null) {
+                                                                $traceMaterialIds['brick_id'] = $traceMatId;
+                                                            } elseif (
+                                                                $traceMaterialKey === 'cement' &&
+                                                                $traceMaterialIds['cement_id'] === null
+                                                            ) {
+                                                                $traceMaterialIds['cement_id'] = $traceMatId;
+                                                            } elseif ($traceMaterialKey === 'sand' && $traceMaterialIds['sand_id'] === null) {
+                                                                $traceMaterialIds['sand_id'] = $traceMatId;
+                                                            } elseif ($traceMaterialKey === 'cat' && $traceMaterialIds['cat_id'] === null) {
+                                                                $traceMaterialIds['cat_id'] = $traceMatId;
+                                                            } elseif (
+                                                                $traceMaterialKey === 'ceramic' &&
+                                                                $traceMaterialIds['ceramic_id'] === null
+                                                            ) {
+                                                                $traceMaterialIds['ceramic_id'] = $traceMatId;
+                                                            } elseif ($traceMaterialKey === 'nat' && $traceMaterialIds['nat_id'] === null) {
+                                                                $traceMaterialIds['nat_id'] = $traceMatId;
+                                                            }
+                                                        }
+
+                                                        $traceItemParams = [
+                                                            'title' => $traceRow['title'] ?? ('Item ' . ($traceItemIndex + 1)),
+                                                            'formula_code' => $traceWorkType,
+                                                            'work_type' => $traceWorkType,
+                                                            'wall_length' =>
+                                                                $traceRequestData['wall_length'] ?? ($requestData['wall_length'] ?? null),
+                                                            'wall_height' =>
+                                                                $traceRequestData['wall_height'] ?? ($requestData['wall_height'] ?? null),
+                                                            'area' => $traceRequestData['area'] ?? ($requestData['area'] ?? null),
+                                                            'mortar_thickness' =>
+                                                                $traceRequestData['mortar_thickness'] ??
+                                                                ($requestData['mortar_thickness'] ?? null),
+                                                            'grout_thickness' =>
+                                                                $traceRequestData['grout_thickness'] ??
+                                                                ($requestData['grout_thickness'] ?? null),
+                                                            'ceramic_length' =>
+                                                                $traceRequestData['ceramic_length'] ??
+                                                                ($requestData['ceramic_length'] ?? null),
+                                                            'ceramic_width' =>
+                                                                $traceRequestData['ceramic_width'] ??
+                                                                ($requestData['ceramic_width'] ?? null),
+                                                            'ceramic_thickness' =>
+                                                                $traceRequestData['ceramic_thickness'] ??
+                                                                ($requestData['ceramic_thickness'] ?? null),
+                                                            'painting_layers' =>
+                                                                $traceRequestData['painting_layers'] ??
+                                                                ($requestData['painting_layers'] ?? null),
+                                                            'layer_count' =>
+                                                                $traceRequestData['layer_count'] ??
+                                                                ($requestData['layer_count'] ?? null),
+                                                            'plaster_sides' =>
+                                                                $traceRequestData['plaster_sides'] ??
+                                                                ($requestData['plaster_sides'] ?? null),
+                                                            'skim_sides' =>
+                                                                $traceRequestData['skim_sides'] ??
+                                                                ($requestData['skim_sides'] ?? null),
+                                                            'installation_type_id' =>
+                                                                $traceRequestData['installation_type_id'] ??
+                                                                ($requestData['installation_type_id'] ?? null),
+                                                            'mortar_formula_id' =>
+                                                                $traceRequestData['mortar_formula_id'] ??
+                                                                ($requestData['mortar_formula_id'] ?? null),
+                                                        ];
+
+                                                        foreach ($traceMaterialIds as $traceMatKey => $traceMatIdValue) {
+                                                            if ($traceMatIdValue !== null && $traceMatIdValue > 0) {
+                                                                $traceItemParams[$traceMatKey] = $traceMatIdValue;
+                                                            }
+                                                        }
+
+                                                        $traceItemParams = array_filter($traceItemParams, function ($value) {
+                                                            return $value !== null && $value !== '';
+                                                        });
+
+                                                        if (!empty($traceItemParams['formula_code'])) {
+                                                            $bundleTraceItems[] = $traceItemParams;
+                                                        }
+                                                    }
+
+                                                    if (!empty($bundleTraceItems)) {
+                                                        $bundleTracePayloadJson = json_encode(
+                                                            [
+                                                                'items' => $bundleTraceItems,
+                                                                'auto_trace' => 1,
+                                                            ],
+                                                            JSON_UNESCAPED_UNICODE,
+                                                        );
+                                                        if (is_string($bundleTracePayloadJson) && $bundleTracePayloadJson !== '') {
+                                                            $bundleTracePayloadEncoded = rtrim(
+                                                                strtr(base64_encode($bundleTracePayloadJson), '+/', '-_'),
+                                                                '=',
+                                                            );
+                                                        }
+                                                    }
+                                                }
+
+                                                if ($bundleTracePayloadEncoded !== null) {
+                                                    $traceUrl =
+                                                        route('material-calculator.trace') .
+                                                        '?' .
+                                                        http_build_query([
+                                                            'bundle_trace_payload' => $bundleTracePayloadEncoded,
+                                                            'auto_trace' => 1,
+                                                        ]);
+                                                } else {
+                                                    $traceFormulaCode =
+                                                        $requestData['formula_code'] ?? ($requestData['work_type'] ?? null);
+                                                    $traceCeramic = $item['ceramic'] ?? null;
+                                                    $traceCeramicLength =
+                                                        $requestData['ceramic_length'] ??
+                                                        data_get($requestData, 'ceramic_dimensions.length') ??
+                                                        data_get($requestData, 'params.ceramic_length') ??
+                                                        data_get($requestData, 'params.ceramic_dimensions.length');
+                                                    $traceCeramicWidth =
+                                                        $requestData['ceramic_width'] ??
+                                                        data_get($requestData, 'ceramic_dimensions.width') ??
+                                                        data_get($requestData, 'params.ceramic_width') ??
+                                                        data_get($requestData, 'params.ceramic_dimensions.width');
+                                                    $traceCeramicThickness =
+                                                        $requestData['ceramic_thickness'] ??
+                                                        data_get($requestData, 'ceramic_dimensions.thickness') ??
+                                                        data_get($requestData, 'params.ceramic_thickness') ??
+                                                        data_get($requestData, 'params.ceramic_dimensions.thickness');
+                                                    if (
+                                                        (!is_numeric($traceCeramicLength) || (float) $traceCeramicLength <= 0) &&
+                                                        $traceCeramic
+                                                    ) {
+                                                        $traceCeramicLength = $traceCeramic->dimension_length ?? null;
+                                                    }
+                                                    if (
+                                                        (!is_numeric($traceCeramicWidth) || (float) $traceCeramicWidth <= 0) &&
+                                                        $traceCeramic
+                                                    ) {
+                                                        $traceCeramicWidth = $traceCeramic->dimension_width ?? null;
+                                                    }
+                                                    if (
+                                                        (!is_numeric($traceCeramicThickness) ||
+                                                            (float) $traceCeramicThickness <= 0) &&
+                                                        $traceCeramic
+                                                    ) {
+                                                        $traceCeramicThickness = $traceCeramic->dimension_thickness ?? null;
+                                                    }
+                                                    $traceParams = [
+                                                        'formula_code' => $traceFormulaCode,
+                                                        'work_type' => $requestData['work_type'] ?? null,
+                                                        'wall_length' => $requestData['wall_length'] ?? null,
+                                                        'wall_height' => $requestData['wall_height'] ?? null,
+                                                        'area' => $requestData['area'] ?? null,
+                                                        'mortar_thickness' => $requestData['mortar_thickness'] ?? null,
+                                                        'grout_thickness' => $requestData['grout_thickness'] ?? null,
+                                                        'ceramic_length' => $traceCeramicLength,
+                                                        'ceramic_width' => $traceCeramicWidth,
+                                                        'ceramic_thickness' => $traceCeramicThickness,
+                                                        'painting_layers' => $requestData['painting_layers'] ?? null,
+                                                        'layer_count' => $requestData['layer_count'] ?? null,
+                                                        'auto_trace' => 1,
+                                                    ];
+                                                    if ($brick) {
+                                                        $traceParams['brick_id'] = $brick->id;
+                                                    }
+                                                    if (isset($item['cement'])) {
+                                                        $traceParams['cement_id'] = $item['cement']->id;
+                                                    }
+                                                    if (isset($item['sand'])) {
+                                                        $traceParams['sand_id'] = $item['sand']->id;
+                                                    }
+                                                    if (isset($item['cat'])) {
+                                                        $traceParams['cat_id'] = $item['cat']->id;
+                                                    }
+                                                    if (
+                                                        isset($item['ceramic']) &&
+                                                        ($requestData['work_type'] ?? '') !== 'grout_tile'
+                                                    ) {
+                                                        $traceParams['ceramic_id'] = $item['ceramic']->id;
+                                                    }
+                                                    if (isset($item['nat'])) {
+                                                        $traceParams['nat_id'] = $item['nat']->id;
+                                                    }
+                                                    $traceUrl =
+                                                        route('material-calculator.trace') .
+                                                        '?' .
+                                                        http_build_query(
+                                                            array_filter($traceParams, function ($value) {
+                                                                return $value !== null && $value !== '';
+                                                            }),
+                                                        );
+                                                }
                                             @endphp
                                             <div class="d-flex flex-column gap-2 align-items-center">
+                                                @if (!empty($detailMaterialBreakdowns) || $isBundleDetail)
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                        style="--bs-btn-color: #000000; --bs-btn-hover-color: #000000; --bs-btn-active-color: #000000; color: #000000 !important;"
+                                                        data-bs-toggle="modal" data-bs-target="#{{ $detailModalId }}">
+                                                        <i class="bi bi-card-list me-1"></i> Detail
+                                                    </button>
+                                                @endif
                                                 <a href="{{ $traceUrl }}" class="btn btn-outline-secondary btn-sm"
                                                     style="--bs-btn-color: #000000; --bs-btn-hover-color: #000000; --bs-btn-active-color: #000000; color: #000000 !important;"
                                                     target="_blank" rel="noopener">
@@ -5426,6 +5862,102 @@ $paramValue = $isGroutTile
                                                         <input type="hidden" name="nat_id"
                                                             value="{{ $item['nat']->id }}">
                                                     @endif
+                                                    @if ($isBundleDetail)
+                                                        @php
+                                                            $bundleMaterialRowsPayload = [];
+                                                            $rawBundleMaterialRows = $item['bundle_material_rows'] ?? [];
+                                                            if (is_array($rawBundleMaterialRows)) {
+                                                                foreach ($rawBundleMaterialRows as $bundleRow) {
+                                                                    if (!is_array($bundleRow)) {
+                                                                        continue;
+                                                                    }
+                                                                    $bundleObj = $bundleRow['object'] ?? null;
+                                                                    $bundleTypeField = is_string($bundleRow['type_field'] ?? null)
+                                                                        ? $bundleRow['type_field']
+                                                                        : '';
+                                                                    $bundleBrandField = is_string($bundleRow['brand_field'] ?? null)
+                                                                        ? $bundleRow['brand_field']
+                                                                        : '';
+                                                                    $bundleStoreField = is_string($bundleRow['store_field'] ?? null)
+                                                                        ? $bundleRow['store_field']
+                                                                        : '';
+                                                                    $bundleAddressField = is_string($bundleRow['address_field'] ?? null)
+                                                                        ? $bundleRow['address_field']
+                                                                        : '';
+
+                                                                    $bundleTypeDisplay = trim((string) ($bundleRow['type_display'] ?? ''));
+                                                                    if (
+                                                                        $bundleTypeDisplay === '' &&
+                                                                        is_object($bundleObj) &&
+                                                                        $bundleTypeField !== ''
+                                                                    ) {
+                                                                        $bundleTypeDisplay = trim((string) ($bundleObj->{$bundleTypeField} ?? ''));
+                                                                    }
+
+                                                                    $bundleBrandDisplay = trim((string) ($bundleRow['brand_display'] ?? ''));
+                                                                    if (
+                                                                        $bundleBrandDisplay === '' &&
+                                                                        is_object($bundleObj) &&
+                                                                        $bundleBrandField !== ''
+                                                                    ) {
+                                                                        $bundleBrandDisplay = trim((string) ($bundleObj->{$bundleBrandField} ?? ''));
+                                                                    }
+
+                                                                    $bundleStoreDisplay = trim((string) ($bundleRow['store_display'] ?? ''));
+                                                                    if (
+                                                                        $bundleStoreDisplay === '' &&
+                                                                        is_object($bundleObj) &&
+                                                                        $bundleStoreField !== ''
+                                                                    ) {
+                                                                        $bundleStoreDisplay = trim((string) ($bundleObj->{$bundleStoreField} ?? ''));
+                                                                    }
+
+                                                                    $bundleAddressDisplay = trim((string) ($bundleRow['address_display'] ?? ''));
+                                                                    if (
+                                                                        $bundleAddressDisplay === '' &&
+                                                                        is_object($bundleObj) &&
+                                                                        $bundleAddressField !== ''
+                                                                    ) {
+                                                                        $bundleAddressDisplay = trim((string) ($bundleObj->{$bundleAddressField} ?? ''));
+                                                                    }
+
+                                                                    $bundleMaterialRowsPayload[] = [
+                                                                        'material_key' => $bundleRow['material_key'] ?? null,
+                                                                        'name' => $bundleRow['name'] ?? null,
+                                                                        'check_field' => $bundleRow['check_field'] ?? null,
+                                                                        'qty' => $bundleRow['qty'] ?? null,
+                                                                        'qty_debug' => $bundleRow['qty_debug'] ?? null,
+                                                                        'unit' => $bundleRow['unit'] ?? null,
+                                                                        'comparison_unit' => $bundleRow['comparison_unit'] ?? null,
+                                                                        'detail_value' => $bundleRow['detail_value'] ?? null,
+                                                                        'detail_value_debug' => $bundleRow['detail_value_debug'] ?? null,
+                                                                        'detail_display' => $bundleRow['detail_display'] ?? null,
+                                                                        'detail_extra' => $bundleRow['detail_extra'] ?? null,
+                                                                        'store_display' => $bundleStoreDisplay,
+                                                                        'address_display' => $bundleAddressDisplay,
+                                                                        'type_display' => $bundleTypeDisplay,
+                                                                        'brand_display' => $bundleBrandDisplay,
+                                                                        'package_price' => $bundleRow['package_price'] ?? null,
+                                                                        'package_unit' => $bundleRow['package_unit'] ?? null,
+                                                                        'price_per_unit' => $bundleRow['price_per_unit'] ?? null,
+                                                                        'price_unit_label' => $bundleRow['price_unit_label'] ?? null,
+                                                                        'price_calc_qty' => $bundleRow['price_calc_qty'] ?? null,
+                                                                        'price_calc_unit' => $bundleRow['price_calc_unit'] ?? null,
+                                                                        'total_price' => $bundleRow['total_price'] ?? null,
+                                                                        'unit_price' => $bundleRow['unit_price'] ?? null,
+                                                                        'unit_price_label' => $bundleRow['unit_price_label'] ?? null,
+                                                                        'is_special' => (bool) ($bundleRow['is_special'] ?? false),
+                                                                    ];
+                                                                }
+                                                            }
+                                                        @endphp
+                                                        <input type="hidden" name="bundle_selected_label"
+                                                            value="{{ $label }}">
+                                                        <input type="hidden" name="bundle_selected_result"
+                                                            value="{{ json_encode($item['result'] ?? [], JSON_UNESCAPED_UNICODE) }}">
+                                                        <input type="hidden" name="bundle_material_rows"
+                                                            value="{{ json_encode($bundleMaterialRowsPayload, JSON_UNESCAPED_UNICODE) }}">
+                                                    @endif
                                                     <input type="hidden" name="price_filters[]" value="custom">
                                                     <input type="hidden" name="confirm_save" value="1">
                                                     <button type="submit" class="btn-select">
@@ -5433,6 +5965,369 @@ $paramValue = $isGroutTile
                                                     </button>
                                                 </form>
                                             </div>
+                                            @if (!empty($detailMaterialBreakdowns) || $isBundleDetail)
+                                                <div class="modal fade modal-high" id="{{ $detailModalId }}" tabindex="-1"
+                                                    aria-labelledby="{{ $detailModalId }}Label" aria-hidden="true">
+                                                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header py-2">
+                                                                <h5 class="modal-title fs-6"
+                                                                    id="{{ $detailModalId }}Label">
+                                                                    Rincian Material per Item Pekerjaan
+                                                                </h5>
+                                                                <button type="button" class="btn-close"
+                                                                    data-bs-dismiss="modal"
+                                                                    aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body p-2">
+                                                                @foreach ($detailMaterialBreakdowns as $detailGroup)
+                                                                    @php
+                                                                        $groupTitle = trim((string) ($detailGroup['title'] ?? 'Item Pekerjaan'));
+                                                                        if ($groupTitle === '') {
+                                                                            $groupTitle = 'Item Pekerjaan';
+                                                                        }
+                                                                        $groupWorkType = trim((string) ($detailGroup['work_type_name'] ?? '-'));
+                                                                        if ($groupWorkType === '') {
+                                                                            $groupWorkType = '-';
+                                                                        }
+                                                                        $displayGroupTitle = $groupTitle;
+                                                                        if (preg_match('/^item\s+\d+$/i', $displayGroupTitle) && $groupWorkType !== '-') {
+                                                                            $displayGroupTitle = $groupWorkType;
+                                                                        }
+                                                                        $groupGrandTotal = (float) ($detailGroup['grand_total'] ?? 0);
+                                                                        $fieldSize = is_array($detailGroup['field_size'] ?? null)
+                                                                            ? $detailGroup['field_size']
+                                                                            : [];
+                                                                        $fieldSizeParts = [];
+                                                                        $fieldLength = \App\Helpers\NumberHelper::parseNullable($fieldSize['length'] ?? null);
+                                                                        $fieldHeight = \App\Helpers\NumberHelper::parseNullable($fieldSize['height'] ?? null);
+                                                                        $fieldArea = \App\Helpers\NumberHelper::parseNullable($fieldSize['area'] ?? null);
+                                                                        $fieldIsRollag = (bool) ($fieldSize['is_rollag'] ?? false);
+                                                                        $fieldHeightLabel = trim((string) ($fieldSize['height_label'] ?? 'Tinggi'));
+                                                                        if ($fieldHeightLabel === '') {
+                                                                            $fieldHeightLabel = 'Tinggi';
+                                                                        }
+                                                                        $fieldLengthUnit = trim((string) ($fieldSize['length_unit'] ?? 'm'));
+                                                                        if ($fieldLengthUnit === '') {
+                                                                            $fieldLengthUnit = 'm';
+                                                                        }
+                                                                        $fieldHeightUnit = trim((string) ($fieldSize['height_unit'] ?? 'm'));
+                                                                        if ($fieldHeightUnit === '') {
+                                                                            $fieldHeightUnit = 'm';
+                                                                        }
+                                                                        if ($fieldLength !== null && $fieldLength > 0) {
+                                                                            $fieldSizeParts[] =
+                                                                                'Panjang: ' .
+                                                                                \App\Helpers\NumberHelper::format($fieldLength) .
+                                                                                ' ' .
+                                                                                strtoupper($fieldLengthUnit);
+                                                                        }
+                                                                        if (!$fieldIsRollag && $fieldHeight !== null && $fieldHeight > 0) {
+                                                                            $fieldSizeParts[] =
+                                                                                $fieldHeightLabel .
+                                                                                ': ' .
+                                                                                \App\Helpers\NumberHelper::format($fieldHeight) .
+                                                                                ' ' .
+                                                                                strtoupper($fieldHeightUnit);
+                                                                        }
+                                                                        if ($fieldArea !== null && $fieldArea > 0) {
+                                                                            $fieldSizeParts[] =
+                                                                                'Luas: ' .
+                                                                                \App\Helpers\NumberHelper::format($fieldArea) .
+                                                                                ' M2';
+                                                                        }
+                                                                        $groupMaterials = is_array($detailGroup['materials'] ?? null)
+                                                                            ? $detailGroup['materials']
+                                                                            : [];
+                                                                        $groupComputedGrandTotal = 0.0;
+                                                                        foreach ($groupMaterials as $sumMat) {
+                                                                            if (!is_array($sumMat)) {
+                                                                                continue;
+                                                                            }
+                                                                            if ((bool) ($sumMat['is_special'] ?? false)) {
+                                                                                continue;
+                                                                            }
+                                                                            $sumPricePerUnit = (float) ($sumMat['price_per_unit'] ?? ($sumMat['package_price'] ?? 0));
+                                                                            $sumCalcQty = (float) ($sumMat['price_calc_qty'] ?? ($sumMat['qty'] ?? 0));
+                                                                            $sumDisplayTotal = \App\Helpers\NumberHelper::parseNullable(
+                                                                                $sumMat['display_total_price'] ?? null,
+                                                                            );
+                                                                            $sumTotal =
+                                                                                $sumDisplayTotal !== null
+                                                                                    ? (float) round($sumDisplayTotal, 0)
+                                                                                    : round((float) ($sumMat['total_price'] ?? 0), 0);
+                                                                            if ($sumDisplayTotal === null && $sumTotal <= 0) {
+                                                                                $sumTotal = round((float) ($sumPricePerUnit * $sumCalcQty), 0);
+                                                                            }
+                                                                            $groupComputedGrandTotal += $sumTotal;
+                                                                        }
+                                                                        $groupDisplayGrandTotal =
+                                                                            $groupComputedGrandTotal > 0
+                                                                                ? $groupComputedGrandTotal
+                                                                                : round($groupGrandTotal, 0);
+                                                                        $materialQtyParts = [];
+                                                                        foreach ($groupMaterials as $summaryMat) {
+                                                                            if (!is_array($summaryMat)) {
+                                                                                continue;
+                                                                            }
+                                                                            $summaryQty = \App\Helpers\NumberHelper::parseNullable($summaryMat['qty'] ?? null);
+                                                                            if ($summaryQty === null || $summaryQty <= 0) {
+                                                                                continue;
+                                                                            }
+                                                                            $summaryName = trim((string) ($summaryMat['name'] ?? 'Material'));
+                                                                            if ($summaryName === '') {
+                                                                                $summaryName = 'Material';
+                                                                            }
+                                                                            $summaryUnit = trim((string) ($summaryMat['unit'] ?? ''));
+                                                                            $summaryText =
+                                                                                $summaryName .
+                                                                                ': ' .
+                                                                                \App\Helpers\NumberHelper::format($summaryQty);
+                                                                            if ($summaryUnit !== '') {
+                                                                                $summaryText .= ' ' . $summaryUnit;
+                                                                            }
+                                                                            $materialQtyParts[] = $summaryText;
+                                                                        }
+                                                                    @endphp
+                                                                    <div class="card border mb-2">
+                                                                        <div class="card-body p-2">
+                                                                            <div
+                                                                                class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                                                                <div class="text-start">
+                                                                                    <div class="fw-bold">
+                                                                                        {{ $displayGroupTitle }}
+                                                                                    </div>
+                                                                                    @if ($groupWorkType !== '-' && strcasecmp($displayGroupTitle, $groupWorkType) !== 0)
+                                                                                        <div class="small text-muted">
+                                                                                            {{ $groupWorkType }}
+                                                                                        </div>
+                                                                                    @endif
+                                                                                </div>
+                                                                                <span
+                                                                                    class="badge bg-light border text-dark">
+                                                                                    Harga: Rp {{ $formatMoney($groupDisplayGrandTotal) }}
+                                                                                </span>
+                                                                            </div>
+                                                                            @if (!empty($fieldSizeParts))
+                                                                                <div class="small text-muted mb-1">
+                                                                                    <strong>Ukuran Bidang:</strong>
+                                                                                    {{ implode(' | ', $fieldSizeParts) }}
+                                                                                </div>
+                                                                            @endif
+                                                                            @if (!empty($materialQtyParts))
+                                                                                <div class="small text-muted mb-2">
+                                                                                    <strong>Jumlah Material:</strong>
+                                                                                    {{ implode(' | ', $materialQtyParts) }}
+                                                                                </div>
+                                                                            @endif
+                                                                            <div class="table-responsive">
+                                                                                <table
+                                                                                    class="table table-sm align-middle mb-0 detail-breakdown-table">
+                                                                                    <thead class="detail-breakdown-thead">
+                                                                                        <tr>
+                                                                                            <th class="text-end">Qty
+                                                                                            </th>
+                                                                                            <th>Sat.</th>
+                                                                                            <th>Material</th>
+                                                                                            <th>Tipe</th>
+                                                                                            <th>Merek</th>
+                                                                                            <th>Detail</th>
+                                                                                            <th>Toko</th>
+                                                                                            <th>Alamat</th>
+                                                                                            <th class="text-end">Harga
+                                                                                                Beli</th>
+                                                                                            <th class="text-end">Biaya
+                                                                                                Material</th>
+                                                                                            <th class="text-end">Harga
+                                                                                                Satuan</th>
+                                                                                        </tr>
+                                                                                    </thead>
+                                                                                    <tbody>
+                                                                                        @foreach ($groupMaterials as $detailMat)
+                                                                                            @php
+                                                                                                $detailModel = $detailMat['object'] ?? null;
+                                                                                                $detailTypeField = $detailMat['type_field'] ?? null;
+                                                                                                $detailBrandField = $detailMat['brand_field'] ?? null;
+                                                                                                $detailStoreField = $detailMat['store_field'] ?? null;
+                                                                                                $detailAddressField = $detailMat['address_field'] ?? null;
+                                                                                                $detailType = trim(
+                                                                                                    (string) ($detailMat['type_display'] ??
+                                                                                                        (is_object($detailModel) && is_string($detailTypeField) && $detailTypeField !== ''
+                                                                                                            ? ($detailModel->{$detailTypeField} ?? '')
+                                                                                                            : '')),
+                                                                                                );
+                                                                                                if ($detailType === '') {
+                                                                                                    $detailType = '-';
+                                                                                                }
+                                                                                                $detailBrand = trim(
+                                                                                                    (string) ($detailMat['brand_display'] ??
+                                                                                                        (is_object($detailModel) && is_string($detailBrandField) && $detailBrandField !== ''
+                                                                                                            ? ($detailModel->{$detailBrandField} ?? '')
+                                                                                                            : '')),
+                                                                                                );
+                                                                                                if ($detailBrand === '') {
+                                                                                                    $detailBrand = '-';
+                                                                                                }
+                                                                                                $detailDisplay = trim((string) ($detailMat['detail_display'] ?? '-'));
+                                                                                                $detailExtra = trim((string) ($detailMat['detail_extra'] ?? ''));
+                                                                                                $detailText = $detailDisplay !== '' ? $detailDisplay : '-';
+                                                                                                if ($detailExtra !== '' && $detailExtra !== '-') {
+                                                                                                    $detailText .= ' - ' . $detailExtra;
+                                                                                                }
+                                                                                                $detailStore = trim(
+                                                                                                    (string) ($detailMat['store_display'] ??
+                                                                                                        (is_object($detailModel) && is_string($detailStoreField) && $detailStoreField !== ''
+                                                                                                            ? ($detailModel->{$detailStoreField} ?? '')
+                                                                                                            : '')),
+                                                                                                );
+                                                                                                if ($detailStore === '') {
+                                                                                                    $detailStore = '-';
+                                                                                                }
+                                                                                                $detailAddress = trim(
+                                                                                                    (string) ($detailMat['address_display'] ??
+                                                                                                        (is_object($detailModel) && is_string($detailAddressField) && $detailAddressField !== ''
+                                                                                                            ? ($detailModel->{$detailAddressField} ?? '')
+                                                                                                            : '')),
+                                                                                                );
+                                                                                                if ($detailAddress === '') {
+                                                                                                    $detailAddress = '-';
+                                                                                                }
+                                                                                                $detailQty = \App\Helpers\NumberHelper::parseNullable($detailMat['qty'] ?? null) ?? 0.0;
+                                                                                                $detailValue = \App\Helpers\NumberHelper::parseNullable($detailMat['detail_value'] ?? null);
+                                                                                                if ($detailValue === null || $detailValue <= 0) {
+                                                                                                    $detailValue = 1.0;
+                                                                                                }
+                                                                                                $detailPricePerUnit = (float) ($detailMat['price_per_unit'] ?? ($detailMat['package_price'] ?? 0));
+                                                                                                $detailPriceCalcQty = (float) ($detailMat['price_calc_qty'] ?? ($detailMat['qty'] ?? 0));
+                                                                                                $detailDisplayTotal = \App\Helpers\NumberHelper::parseNullable(
+                                                                                                    $detailMat['display_total_price'] ?? null,
+                                                                                                );
+                                                                                                $detailTotalPrice =
+                                                                                                    $detailDisplayTotal !== null
+                                                                                                        ? (float) round($detailDisplayTotal, 0)
+                                                                                                        : round((float) ($detailMat['total_price'] ?? 0), 0);
+                                                                                                $detailPackagePrice = (float) ($detailMat['package_price'] ?? 0);
+                                                                                                $detailPackageUnit = trim((string) ($detailMat['package_unit'] ?? ''));
+                                                                                                if ($detailPackageUnit === '') {
+                                                                                                    $detailPackageUnit = '-';
+                                                                                                }
+                                                                                                $detailComparisonUnit = trim(
+                                                                                                    (string) ($detailMat['comparison_unit'] ?? ($detailMat['unit'] ?? '')),
+                                                                                                );
+                                                                                                if ($detailComparisonUnit === '') {
+                                                                                                    $detailComparisonUnit = '-';
+                                                                                                }
+                                                                                                $detailMaterialKey = trim((string) ($detailMat['material_key'] ?? ''));
+                                                                                                $detailIsSpecial = (bool) ($detailMat['is_special'] ?? false);
+                                                                                                if (!$detailIsSpecial && $detailDisplayTotal === null && $detailTotalPrice <= 0) {
+                                                                                                    $detailTotalPrice = round((float) ($detailPricePerUnit * $detailPriceCalcQty), 0);
+                                                                                                }
+                                                                                                $detailActualBuyPrice = 0.0;
+                                                                                                if (!$detailIsSpecial && $detailQty > 0) {
+                                                                                                    if ($detailMaterialKey === 'sand') {
+                                                                                                        $detailActualBuyPrice = $detailTotalPrice / $detailQty;
+                                                                                                    } else {
+                                                                                                        $detailActualBuyPrice = $detailTotalPrice / ($detailQty * $detailValue);
+                                                                                                    }
+                                                                                                }
+                                                                                            @endphp
+                                                                                            <tr>
+                                                                                                <td class="text-end">
+                                                                                                    @formatResult($detailMat['qty'] ?? 0)
+                                                                                                </td>
+                                                                                                <td>{{ $detailMat['unit'] ?? '-' }}
+                                                                                                </td>
+                                                                                                <td>{{ $detailMat['name'] ?? '-' }}
+                                                                                                </td>
+                                                                                                <td>{{ $detailType }}</td>
+                                                                                                <td>{{ $detailBrand }}</td>
+                                                                                                <td>{{ $detailText }}</td>
+                                                                                                <td>{{ $detailStore }}</td>
+                                                                                                <td class="small text-muted">
+                                                                                                    {{ $detailAddress }}
+                                                                                                </td>
+                                                                                                <td class="text-end">
+                                                                                                    @if ($detailIsSpecial)
+                                                                                                        -
+                                                                                                    @else
+                                                                                                        Rp {{ $formatMoney($detailPackagePrice) }} /
+                                                                                                        {{ $detailPackageUnit }}
+                                                                                                    @endif
+                                                                                                </td>
+                                                                                                <td class="text-end">
+                                                                                                    @if ($detailIsSpecial)
+                                                                                                        -
+                                                                                                    @else
+                                                                                                        Rp {{ $formatMoney($detailTotalPrice) }}
+                                                                                                    @endif
+                                                                                                </td>
+                                                                                                <td class="text-end">
+                                                                                                    @if ($detailIsSpecial)
+                                                                                                        -
+                                                                                                    @else
+                                                                                                        Rp {{ $formatMoney($detailActualBuyPrice) }} /
+                                                                                                        {{ $detailComparisonUnit }}
+                                                                                                    @endif
+                                                                                                </td>
+                                                                                            </tr>
+                                                                                        @endforeach
+                                                                                    </tbody>
+                                                                                </table>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                @endforeach
+                                                                @if (empty($detailMaterialBreakdowns) && !empty($bundleDetailFallbackItems))
+                                                                    <div class="alert alert-warning py-2 px-3 mb-2">
+                                                                        Rincian material per item belum tersedia dari cache lama.
+                                                                        Jalankan ulang hitung kombinasi untuk memunculkan detail material tiap item.
+                                                                    </div>
+                                                                    <div class="table-responsive">
+                                                                        <table
+                                                                            class="table table-sm align-middle mb-0 detail-breakdown-table detail-breakdown-table--fallback">
+                                                                            <thead class="detail-breakdown-thead">
+                                                                                <tr>
+                                                                                    <th>Item Pekerjaan</th>
+                                                                                    <th>Jenis</th>
+                                                                                    <th class="text-end">Harga</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                @foreach ($bundleDetailFallbackItems as $fallbackItem)
+                                                                                    @php
+                                                                                        $fallbackTitle = trim((string) ($fallbackItem['title'] ?? 'Item Pekerjaan'));
+                                                                                        if ($fallbackTitle === '') {
+                                                                                            $fallbackTitle = 'Item Pekerjaan';
+                                                                                        }
+                                                                                        $fallbackWorkType = trim((string) ($fallbackItem['work_type_name'] ?? '-'));
+                                                                                        if ($fallbackWorkType === '') {
+                                                                                            $fallbackWorkType = '-';
+                                                                                        }
+                                                                                        if (preg_match('/^item\s+\d+$/i', $fallbackTitle) && $fallbackWorkType !== '-') {
+                                                                                            $fallbackTitle = $fallbackWorkType;
+                                                                                        }
+                                                                                    @endphp
+                                                                                    <tr>
+                                                                                        <td>{{ $fallbackTitle }}</td>
+                                                                                        <td>{{ $fallbackWorkType }}</td>
+                                                                                        <td class="text-end">
+                                                                                            Rp {{ $formatMoney((float) ($fallbackItem['grand_total'] ?? 0)) }}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                @endforeach
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                @elseif(empty($detailMaterialBreakdowns) && $isBundleDetail)
+                                                                    <div class="text-muted small">
+                                                                        Data detail item pekerjaan belum tersedia.
+                                                                    </div>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endif
                                         </td>
                                     @endif
                                 </tr>
@@ -5516,6 +6411,123 @@ $paramValue = $isGroutTile
             scroll-margin-top: var(--preview-scroll-offset, 60px);
         }
 
+        .detail-breakdown-table {
+            width: 100%;
+            min-width: 0;
+            max-width: 100%;
+            table-layout: fixed;
+        }
+
+        .detail-breakdown-table th,
+        .detail-breakdown-table td {
+            white-space: nowrap !important;
+            vertical-align: top;
+            padding: 0.28rem 0.42rem !important;
+            font-size: 0.62rem;
+            line-height: 1.2;
+            width: auto !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .detail-breakdown-table thead {
+            display: table-header-group !important;
+        }
+
+        .detail-breakdown-table thead th {
+            font-size: 0.63rem;
+            background: #891313 !important;
+            color: #ffffff !important;
+            border-bottom: 1px solid #6b0f0f;
+            text-transform: uppercase;
+            letter-spacing: 0.15px;
+        }
+
+        .detail-breakdown-table th:nth-child(1),
+        .detail-breakdown-table td:nth-child(1) {
+            width: 6%;
+        }
+
+        .detail-breakdown-table th:nth-child(2),
+        .detail-breakdown-table td:nth-child(2) {
+            width: 5%;
+        }
+
+        .detail-breakdown-table th:nth-child(3),
+        .detail-breakdown-table td:nth-child(3) {
+            width: 9%;
+        }
+
+        .detail-breakdown-table th:nth-child(4),
+        .detail-breakdown-table td:nth-child(4) {
+            width: 7%;
+        }
+
+        .detail-breakdown-table th:nth-child(5),
+        .detail-breakdown-table td:nth-child(5) {
+            width: 8%;
+        }
+
+        .detail-breakdown-table th:nth-child(6),
+        .detail-breakdown-table td:nth-child(6) {
+            width: 12%;
+        }
+
+        .detail-breakdown-table th:nth-child(7),
+        .detail-breakdown-table td:nth-child(7) {
+            width: 8%;
+        }
+
+        .detail-breakdown-table th:nth-child(8),
+        .detail-breakdown-table td:nth-child(8) {
+            width: 14%;
+        }
+
+        /* Allow wrap only for Toko and Alamat columns */
+        .detail-breakdown-table th:nth-child(7),
+        .detail-breakdown-table th:nth-child(8),
+        .detail-breakdown-table td:nth-child(7),
+        .detail-breakdown-table td:nth-child(8) {
+            white-space: normal !important;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            overflow: visible;
+            text-overflow: unset;
+        }
+
+        .detail-breakdown-table th:nth-child(9),
+        .detail-breakdown-table td:nth-child(9) {
+            width: 11%;
+        }
+
+        .detail-breakdown-table th:nth-child(10),
+        .detail-breakdown-table td:nth-child(10) {
+            width: 10%;
+        }
+
+        .detail-breakdown-table th:nth-child(11),
+        .detail-breakdown-table td:nth-child(11) {
+            width: 10%;
+        }
+
+        .detail-breakdown-table--fallback th:nth-child(1),
+        .detail-breakdown-table--fallback td:nth-child(1) {
+            width: 50% !important;
+            min-width: 0 !important;
+        }
+
+        .detail-breakdown-table--fallback th:nth-child(2),
+        .detail-breakdown-table--fallback td:nth-child(2) {
+            width: 30% !important;
+            min-width: 0 !important;
+        }
+
+        .detail-breakdown-table--fallback th:nth-child(3),
+        .detail-breakdown-table--fallback td:nth-child(3) {
+            width: 20% !important;
+            min-width: 0 !important;
+        }
+
         /* Hover effect untuk button cancel */
         .preview-combinations-page .btn-cancel:hover {
             background: linear-gradient(135deg, #891313 0%, #a61515 100%) !important;
@@ -5562,6 +6574,132 @@ $paramValue = $isGroutTile
             width: 100%;
             min-width: 100%;
             max-width: min(100%, calc(100vw - 24px));
+        }
+
+        /* Multi-item dropdown should open inline (non-floating) */
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline {
+            z-index: auto;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .dropdown-menu {
+            position: static !important;
+            inset: auto !important;
+            transform: none !important;
+            float: none !important;
+            margin-top: 0.5rem !important;
+            width: 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+            overflow-x: hidden;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-dropdown-menu {
+            padding: 0 !important;
+            box-shadow: none !important;
+            border: 0 !important;
+            background: transparent !important;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-item-card {
+            margin-bottom: 0.35rem;
+            padding: 0.22rem 0.35rem !important;
+            border-radius: 7px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-item-card:last-child {
+            margin-bottom: 0;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-item-layout {
+            gap: 0.4rem 0.55rem;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-section label {
+            font-size: 0.6rem !important;
+            margin-bottom: 0.2rem !important;
+            letter-spacing: 0.25px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-section-fields {
+            gap: 0.25rem 0.3rem;
+            min-height: 28px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-field--sm {
+            width: 74px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-field--md {
+            width: 88px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-field--ceramic {
+            width: 84px;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-section-fields .badge {
+            font-size: 0.5rem !important;
+            padding: 0.08rem 0.24rem !important;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-worktype-value {
+            margin-top: 15px;
+            font-size: 0.7rem;
+            min-height: 26px;
+            padding: 0.16rem 0.34rem;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .form-control {
+            font-size: 0.7rem;
+            min-height: 26px;
+            padding: 0.12rem 0.28rem !important;
+            line-height: 1.2;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .input-group-text {
+            font-size: 0.56rem !important;
+            padding: 0.1rem 0.24rem !important;
+            min-height: 26px;
+            line-height: 1.1;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .dropdown-toggle {
+            font-size: 0.72rem;
+            padding: 0.3rem 0.56rem;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle {
+            color: #4b5563;
+            text-decoration: none !important;
+            border: 0 !important;
+            border-bottom: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            font-size: 0.68rem;
+            letter-spacing: 0.35px;
+            padding: 0 !important;
+            display: inline-flex;
+            align-items: center;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            line-height: 1.1;
+            pointer-events: auto !important;
+            outline: none !important;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle::after {
+            margin-left: 0.35rem;
+            vertical-align: middle;
+            border-top-color: #6b7280;
+        }
+
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle:hover,
+        .preview-combinations-page .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle:focus {
+            color: #111827;
+            text-decoration: none;
         }
 
         .preview-combinations-page .bundle-param-item-card {
@@ -5635,6 +6773,53 @@ $paramValue = $isGroutTile
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            margin-top: 26px;
+        }
+
+        /* Compact and vertically centered variable fields in sticky parameter row */
+        .preview-combinations-page .preview-params-sticky .preview-param-row label {
+            font-size: 0.6rem !important;
+            margin-bottom: 0.2rem !important;
+            line-height: 1.1;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row .badge {
+            font-size: 0.5rem !important;
+            padding: 0.08rem 0.24rem !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row .form-control {
+            min-height: 26px;
+            font-size: 0.7rem;
+            padding: 0.12rem 0.28rem !important;
+            line-height: 1.1;
+            display: flex;
+            align-items: center;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row .form-control.text-center {
+            justify-content: center;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row .input-group-text {
+            min-height: 26px;
+            font-size: 0.56rem !important;
+            padding: 0.1rem 0.24rem !important;
+            line-height: 1.1;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row>div[style*="width: 100px"] {
+            width: 74px !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row>div[style*="width: 110px"] {
+            width: 84px !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky .preview-param-row>div[style*="width: 120px"] {
+            width: 88px !important;
         }
 
         @media (max-width: 1199.98px) {
@@ -5652,6 +6837,26 @@ $paramValue = $isGroutTile
             transition: transform 0.2s ease, padding 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, left 0.2s ease, right 0.2s ease, width 0.2s ease;
             transform-origin: top center;
             will-change: transform, opacity;
+        }
+
+        .preview-combinations-page .preview-params-sticky.preview-params-sticky--bundle {
+            padding: 0.5rem 0.85rem !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky.preview-params-sticky--bundle .preview-param-row {
+            gap: 0.45rem !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky.preview-params-sticky--bundle .preview-param-items-dropdown-inline>.mb-2 {
+            margin-bottom: 0 !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky.preview-params-sticky--bundle.preview-params-sticky--bundle-open {
+            padding: 0.72rem 0.9rem !important;
+        }
+
+        .preview-combinations-page .preview-params-sticky.preview-params-sticky--bundle.preview-params-sticky--bundle-open .preview-param-items-dropdown-inline>.mb-2 {
+            margin-bottom: 0.2rem !important;
         }
 
         .preview-combinations-page .preview-params-sticky>* {
@@ -6461,12 +7666,24 @@ $paramValue = $isGroutTile
 
 @push('styles')
     <style>
-        #allPriceModal.modal-high {
+        .modal.modal-high {
             z-index: 20050 !important;
+            overscroll-behavior: contain;
         }
 
         .modal-backdrop.modal-high-backdrop {
             z-index: 20040 !important;
+        }
+
+        html.modal-open-force,
+        body.modal-open-force {
+            overflow: hidden !important;
+        }
+
+        .modal.modal-high .modal-body,
+        #allPriceModal .modal-body,
+        .modal[id^="ceramicAllPriceModal-"] .modal-body {
+            overscroll-behavior: contain;
         }
 
         #allPriceModal .modal-dialog {
@@ -6720,6 +7937,13 @@ $paramValue = $isGroutTile
                     menu.style.setProperty('--bundle-col-size', `${defaultBundleCols.size}px`);
                     menu.style.setProperty('--bundle-col-support', `${defaultBundleCols.support}px`);
                 };
+                const syncBundleCardOpenState = (wrapper, isOpen) => {
+                    const stickyCard = wrapper?.closest('.preview-params-sticky--bundle');
+                    if (!stickyCard) {
+                        return;
+                    }
+                    stickyCard.classList.toggle('preview-params-sticky--bundle-open', Boolean(isOpen));
+                };
                 const measureIntrinsicWidth = (element, host) => {
                     if (!element || !host) {
                         return 0;
@@ -6741,6 +7965,11 @@ $paramValue = $isGroutTile
                 };
                 const clampBundleMenuInViewport = (menu) => {
                     if (!menu) {
+                        return;
+                    }
+                    const wrapper = menu.closest('.preview-param-items-dropdown');
+                    if (wrapper && wrapper.classList.contains('preview-param-items-dropdown-inline')) {
+                        menu.style.marginLeft = '0px';
                         return;
                     }
                     menu.style.marginLeft = '0px';
@@ -6862,22 +8091,41 @@ $paramValue = $isGroutTile
                     menu.style.setProperty('--bundle-col-work', `${Math.max(120, Math.round(workCol))}px`);
                     menu.style.setProperty('--bundle-col-size', `${Math.max(140, Math.round(sizeCol))}px`);
                     menu.style.setProperty('--bundle-col-support', `${Math.max(160, Math.round(supportCol))}px`);
-                    clampBundleMenuInViewport(menu);
+                    const isInlineDropdown = wrapper.classList.contains('preview-param-items-dropdown-inline');
+                    if (!isInlineDropdown) {
+                        clampBundleMenuInViewport(menu);
+                    }
                 };
 
                 const dropdownWrappers = document.querySelectorAll('.preview-param-items-dropdown');
                 dropdownWrappers.forEach((wrapper) => {
                     const button = wrapper.querySelector('[data-param-dropdown-toggle="true"]');
                     const menu = wrapper.querySelector('.dropdown-menu');
+                    const isInlineDropdown = wrapper.classList.contains('preview-param-items-dropdown-inline');
                     if (!button || !menu || button.__bundleDropdownBound) {
                         return;
                     }
                     button.__bundleDropdownBound = true;
                     button.style.pointerEvents = 'auto';
+                    syncBundleCardOpenState(wrapper, menu.classList.contains('show'));
 
                     button.addEventListener('click', function(event) {
                         event.preventDefault();
                         event.stopPropagation();
+
+                        if (isInlineDropdown) {
+                            const willShow = !menu.classList.contains('show');
+                            wrapper.classList.toggle('show', willShow);
+                            menu.classList.toggle('show', willShow);
+                            button.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+                            syncBundleCardOpenState(wrapper, willShow);
+                            if (willShow) {
+                                requestAnimationFrame(() => syncBundleParamColumns(wrapper));
+                            } else {
+                                resetBundleMenuColumns(menu);
+                            }
+                            return;
+                        }
 
                         if (window.bootstrap && bootstrap.Dropdown) {
                             const instance = bootstrap.Dropdown.getOrCreateInstance(button, {
@@ -6891,10 +8139,13 @@ $paramValue = $isGroutTile
                         wrapper.classList.toggle('show', willShow);
                         menu.classList.toggle('show', willShow);
                         button.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+                        syncBundleCardOpenState(wrapper, willShow);
                         if (willShow) {
                             requestAnimationFrame(() => syncBundleParamColumns(wrapper));
                         } else {
-                            menu.style.marginLeft = '0px';
+                            if (!isInlineDropdown) {
+                                menu.style.marginLeft = '0px';
+                            }
                             resetBundleMenuColumns(menu);
                         }
                     });
@@ -6902,29 +8153,40 @@ $paramValue = $isGroutTile
                     if (!wrapper.__bundleDropdownShownBound && window.bootstrap && bootstrap.Dropdown) {
                         wrapper.__bundleDropdownShownBound = true;
                         wrapper.addEventListener('shown.bs.dropdown', function() {
+                            syncBundleCardOpenState(wrapper, true);
                             syncBundleParamColumns(wrapper);
                         });
                         wrapper.addEventListener('hidden.bs.dropdown', function() {
-                            menu.style.marginLeft = '0px';
+                            syncBundleCardOpenState(wrapper, false);
+                            if (!isInlineDropdown) {
+                                menu.style.marginLeft = '0px';
+                            }
                             resetBundleMenuColumns(menu);
                         });
                     }
                 });
 
-                if (!window.bootstrap && !document.__bundleDropdownOutsideBound) {
+                if (!document.__bundleDropdownOutsideBound) {
                     document.__bundleDropdownOutsideBound = true;
                     document.addEventListener('click', function(event) {
                         document.querySelectorAll('.preview-param-items-dropdown').forEach((wrapper) => {
                             if (wrapper.contains(event.target)) {
                                 return;
                             }
+                            const isInlineDropdown = wrapper.classList.contains('preview-param-items-dropdown-inline');
+                            if (window.bootstrap && !isInlineDropdown) {
+                                return;
+                            }
                             wrapper.classList.remove('show');
                             const menu = wrapper.querySelector('.dropdown-menu');
                             if (menu) {
                                 menu.classList.remove('show');
-                                menu.style.marginLeft = '0px';
+                                if (!isInlineDropdown) {
+                                    menu.style.marginLeft = '0px';
+                                }
                                 resetBundleMenuColumns(menu);
                             }
+                            syncBundleCardOpenState(wrapper, false);
                             const button = wrapper.querySelector('[data-param-dropdown-toggle="true"]');
                             if (button) {
                                 button.setAttribute('aria-expanded', 'false');
@@ -7458,22 +8720,60 @@ $paramValue = $isGroutTile
         </script>
     @endif
     <script>
+        const updateModalScrollLockState = () => {
+            const hasVisiblePriorityModal = Boolean(
+                document.querySelector(
+                    '.modal.show.modal-high, #allPriceModal.show, .modal[id^="ceramicAllPriceModal-"].show',
+                ),
+            );
+            document.documentElement.classList.toggle('modal-open-force', hasVisiblePriorityModal);
+            document.body.classList.toggle('modal-open-force', hasVisiblePriorityModal);
+        };
+
+        document.addEventListener(
+            'click',
+            function(event) {
+                const trigger = event.target.closest('[data-bs-target^="#materialDetailModal_"]');
+                if (!trigger) return;
+                const targetSelector = trigger.getAttribute('data-bs-target');
+                if (!targetSelector) return;
+                const modalEl = document.querySelector(targetSelector);
+                if (!modalEl) return;
+                modalEl.classList.add('modal-high');
+                if (modalEl.parentElement !== document.body) {
+                    document.body.appendChild(modalEl);
+                }
+            },
+            true,
+        );
+
         document.addEventListener('shown.bs.modal', function(event) {
             if (!event.target) return;
-            if (event.target.id !== 'allPriceModal' && !event.target.id.startsWith('ceramicAllPriceModal-')) return;
+            const isHighModal =
+                event.target.classList.contains('modal-high') ||
+                event.target.id === 'allPriceModal' ||
+                event.target.id.startsWith('ceramicAllPriceModal-');
+            if (!isHighModal) return;
             const backdrop = document.querySelector('.modal-backdrop');
             if (backdrop) {
                 backdrop.classList.add('modal-high-backdrop');
             }
+            updateModalScrollLockState();
         });
 
         document.addEventListener('hidden.bs.modal', function(event) {
             if (!event.target) return;
-            if (event.target.id !== 'allPriceModal' && !event.target.id.startsWith('ceramicAllPriceModal-')) return;
+            const isHighModal =
+                event.target.classList.contains('modal-high') ||
+                event.target.id === 'allPriceModal' ||
+                event.target.id.startsWith('ceramicAllPriceModal-');
+            if (!isHighModal) return;
+            if (document.querySelector('.modal.show.modal-high')) return;
             const backdrop = document.querySelector('.modal-backdrop');
             if (backdrop) {
                 backdrop.classList.remove('modal-high-backdrop');
             }
+            updateModalScrollLockState();
         });
 
         // Handle Back/Forward Navigation (BFCache) for Preview Page

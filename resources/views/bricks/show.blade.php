@@ -1,4 +1,19 @@
 <div class="card">
+    @php
+        $packageType = strtolower((string) ($brick->package_type ?? '')) === 'kubik' ? 'kubik' : 'eceran';
+        $purchasePrice = $packageType === 'kubik'
+            ? ($brick->comparison_price_per_m3 ?? $brick->price_per_piece)
+            : ($brick->price_per_piece ?? $brick->comparison_price_per_m3);
+        $purchaseUnit = $packageType === 'kubik' ? '/ M3' : '/ Buah';
+        $packageLabel = $packageType === 'kubik' ? 'Kubik' : 'Eceran';
+        $packageQty = null;
+        if ($packageType === 'eceran') {
+            $packageQty = 1;
+        } elseif (!is_null($brick->package_volume) && (float) $brick->package_volume > 0) {
+            $packageQty = (int) floor(1 / (float) $brick->package_volume);
+        }
+        $packageQtyUnitLabel = 'Bh )';
+    @endphp
     <div style="display: flex; gap: 32px;">
         <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
@@ -132,6 +147,31 @@
                                    border-bottom: 1px solid #f1f5f9;
                                    font-size: 13px;
                                    text-align: left;">
+                            Kemasan
+                        </td>
+                        <td style="padding: 14px 20px; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   color: #1e293b;">
+                            <div style="display: grid; grid-template-columns: max-content max-content max-content; column-gap: 6px; align-items: center; width: fit-content;">
+                                <span style="text-align: right; font-weight: 600;">{{ $packageLabel }}</span>
+                                <span style="text-align: right; color: #475569;">
+                                    @if(!is_null($packageQty))
+                                        ( {{ \App\Helpers\NumberHelper::formatPlain($packageQty) }}
+                                    @else
+                                        ( -
+                                    @endif
+                                </span>
+                                <span style="text-align: left; color: #475569;">{{ $packageQtyUnitLabel }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 14px 20px; 
+                                   font-weight: 600; 
+                                   color: #475569; 
+                                   border-bottom: 1px solid #f1f5f9;
+                                   font-size: 13px;
+                                   text-align: left;">
                             Toko
                         </td>
                         <td style="padding: 14px 20px; 
@@ -168,12 +208,12 @@
                         <td style="padding: 14px 20px; 
                                    border-bottom: 1px solid #f1f5f9;
                                    color: #1e293b;">
-                            @if($brick->price_per_piece)
+                            @if($purchasePrice)
                                 <span style="font-weight: 600; color: #64748b;">Rp</span>
                                 <span style="font-weight: 700; color: #0f172a;">
-                                    @price($brick->price_per_piece)
+                                    @price($purchasePrice)
                                 </span>
-                                <span style="color: #94a3b8; font-size: 12px;">/ Buah</span>
+                                <span style="color: #94a3b8; font-size: 12px;">{{ $purchaseUnit }}</span>
                             @else
                                 -
                             @endif

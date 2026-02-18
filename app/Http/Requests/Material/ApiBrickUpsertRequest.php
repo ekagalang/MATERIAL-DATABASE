@@ -21,9 +21,11 @@ class ApiBrickUpsertRequest extends FormRequest
             'dimension_length' => 'nullable|numeric|min:0',
             'dimension_width' => 'nullable|numeric|min:0',
             'dimension_height' => 'nullable|numeric|min:0',
+            'package_type' => 'nullable|in:eceran,kubik',
             'store' => 'nullable|string|max:255',
             'address' => 'nullable|string',
             'price_per_piece' => 'nullable|numeric|min:0',
+            'comparison_price_per_m3' => 'nullable|numeric|min:0',
         ];
     }
 }

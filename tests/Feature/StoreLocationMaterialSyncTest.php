@@ -59,6 +59,7 @@ beforeEach(function () {
         $table->decimal('dimension_width', 10, 2)->nullable();
         $table->decimal('dimension_height', 10, 2)->nullable();
         $table->decimal('package_volume', 10, 6)->nullable();
+        $table->string('package_type')->default('eceran');
         $table->string('store')->nullable();
         $table->text('address')->nullable();
         $table->unsignedBigInteger('store_location_id')->nullable();

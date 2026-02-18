@@ -164,6 +164,46 @@
                     </div>
                 </div>
 
+                <!-- Kemasan -->
+                <div class="row" style="align-items: stretch; margin-top: 15px;">
+                    <label style="padding-top: 10px;">Kemasan</label>
+                    <div style="flex: 1; display: flex; gap: 15px; align-items: stretch;">
+                        <div class="flex-fill" style="flex: 1; display: flex; align-items: stretch; position: relative;">
+                            <input type="hidden" name="package_type" id="package_type" value="{{ old('package_type', 'eceran') }}">
+                            <div class="package-type-wrapper" style="flex: 1; display: flex; align-items: stretch; position: relative;">
+                                <input type="text"
+                                       id="package_type_display"
+                                       class="autocomplete-input package-type-display"
+                                       value="{{ old('package_type', 'eceran') === 'kubik' ? 'Kubik' : 'Eceran' }}"
+                                       placeholder="Pilih kemasan..."
+                                       autocomplete="off"
+                                       style="padding-right: 38px; cursor: pointer;">
+                                <span style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 12px; color: #64748b; pointer-events: none;">
+                                    <i class="bi bi-chevron-down"></i>
+                                </span>
+                                <div class="autocomplete-list" id="package_type-list">
+                                    <div class="autocomplete-item" data-value="eceran">Eceran</div>
+                                    <div class="autocomplete-item" data-value="kubik">Kubik</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mini-input-wrapper flex-fill" style="display: flex; flex-direction: column; flex: 1; min-width: 0;">
+                            <span style="font-size: 13px; font-style: italic; margin-bottom: 4px;">Isi per Kemasan</span>
+                            <div style="display: flex; align-items: center; position: relative;">
+                                <div style="flex: 1; display: flex; align-items: center; position: relative;">
+                                    <input type="text"
+                                           id="package_qty_display"
+                                           class="autocomplete-input"
+                                           value="-"
+                                           readonly
+                                           style="width: 100%; height: 38px; padding-right: 45px; text-align: right; background: #f8fafc; cursor: not-allowed;">
+                                    <span id="package_qty_suffix" class="unit-inside" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; color: #94a3b8; pointer-events: none; white-space: nowrap;">Bh</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Toko -->
                 <div class="row">
                     <label>Toko</label>
@@ -214,7 +254,7 @@
                                        placeholder="0"
                                        autocomplete="off"
                                        style="width: 100%; height: 100%; padding: 10px 60px 10px 38px; font-size: 14px;">
-                                <span class="price-suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ Buah</span>
+                                <span class="price-suffix" id="price_per_piece_suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ Buah</span>
                             </div>
                             <div class="autocomplete-list" id="price_per_piece-list"></div>
                         </div>
@@ -228,13 +268,14 @@
                                     <span class="price-prefix" style="position: absolute; left: 10px; font-size: 14px; font-weight: 600; pointer-events: none; z-index: 1;">Rp</span>
                                     <input type="text"
                                            id="comparison_price_display"
+                                           value="{{ old('comparison_price_per_m3') }}"
                                            class="autocomplete-input"
                                            data-field="comparison_price_per_m3"
                                            inputmode="numeric"
                                            placeholder="0"
                                            autocomplete="off"
                                            style="width: 100%; height: 38px; padding: 10px 50px 10px 38px; font-size: 14px;">
-                                    <span class="price-suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ M3</span>
+                                    <span class="price-suffix" id="comparison_price_suffix" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; pointer-events: none;">/ M3</span>
                                 </div>
                                 <div class="autocomplete-list" id="comparison_price_per_m3-list"></div>
                             </div>
@@ -289,6 +330,46 @@
     </form>
 </div>
 
+<style>
+    .package-type-wrapper {
+        position: relative;
+        flex: 1;
+    }
+
+    .package-type-display {
+        width: 100%;
+        height: 100% !important;
+        min-height: 38px;
+        padding: 10px 38px 10px 14px !important;
+        border: 1.5px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        background-color: #fff !important;
+        font-size: 13.5px !important;
+        line-height: 1.4;
+        cursor: pointer;
+    }
+
+    .package-type-wrapper::after {
+        content: "\F282";
+        font-family: "bootstrap-icons";
+        position: absolute;
+        right: 20px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        color: #64748b;
+        pointer-events: none;
+    }
+
+    .package-type-wrapper .autocomplete-list {
+        display: none !important;
+    }
+
+    .package-type-wrapper .autocomplete-list.package-open {
+        display: block !important;
+    }
+</style>
+
 <script src="/js/brick-form.js?v={{ time() }}"></script>
 <script src="{{ asset('js/store-autocomplete.js') }}?v={{ time() }}"></script>
 <script>
@@ -300,4 +381,3 @@
         initStoreAutocomplete(document.getElementById('brickForm')?.parentElement);
     }
 </script>
-

@@ -67,7 +67,7 @@
     </div>
 </div>
 
-<h3 class="calc-style"><i class="bi bi-calculator text-primary"></i> Kalkulasi Item Pekerjaan Proyek</h3>
+<h3 class="calc-style"><i class="bi bi-calculator text-primary"></i> Hitung Item Pekerjaan Proyek</h3>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -607,13 +607,10 @@
 
                     <div class="work-item-bottom-bar">
                         <div class="work-item-stepper" aria-label="Kontrol item pekerjaan">
-                            <button type="button" id="removeWorkItemBtn" class="work-item-stepper-btn" title="Hapus item pekerjaan tambahan">
-                                <i class="bi bi-dash-lg"></i>
-                            </button>
-                            <span class="work-item-stepper-label">Item Pekerjaan</span>
                             <button type="button" id="addWorkItemBtn" class="work-item-stepper-btn" title="Tambah item pekerjaan tambahan">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
+                            <span class="work-item-stepper-label">Item Pekerjaan</span>
                         </div>
                         <div class="button-actions">
                             <button type="submit" class="btn btn-submit">
@@ -700,7 +697,7 @@
     .work-item-stepper {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 4px;
     }
 
     .work-item-stepper-label {
@@ -766,7 +763,7 @@
 
     #calculationForm #inputFormContainer,
     #calculationForm #additionalWorkItemsSection {
-        margin-left: 14px;
+        margin-left: 125px;
         padding-left: 12px;
     }
 
@@ -857,8 +854,8 @@
 
     .additional-worktype-group {
         margin-bottom: 12px;
-        margin-left: -26px;
-        width: calc(100% + 26px);
+        margin-left: -136px;
+        width: calc(100% + 136px);
     }
 
     .additional-worktype-input {

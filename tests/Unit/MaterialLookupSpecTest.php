@@ -4,7 +4,7 @@ use App\Support\Material\MaterialLookupSpec;
 
 test('material lookup spec exposes expected web allowed fields', function () {
     expect(MaterialLookupSpec::allowedFields('brick'))
-        ->toContain('type', 'brand', 'price_per_piece')
+        ->toContain('type', 'brand', 'price_per_piece', 'package_type')
         ->and(MaterialLookupSpec::allowedFields('cat'))
         ->toContain('cat_name', 'color_code', 'purchase_price')
         ->and(MaterialLookupSpec::allowedFields('ceramic'))
@@ -20,7 +20,7 @@ test('material lookup spec exposes expected nat field map', function () {
 });
 
 test('material lookup spec exposes expected api filter keys', function () {
-    expect(MaterialLookupSpec::apiFilterKeys('brick'))->toBe(['brand', 'store'])
+    expect(MaterialLookupSpec::apiFilterKeys('brick'))->toBe(['brand', 'store', 'package_type'])
         ->and(MaterialLookupSpec::apiFilterKeys('cement'))->toBe(['brand', 'store', 'package_unit'])
         ->and(MaterialLookupSpec::apiFilterKeys('ceramic'))->toBe(['brand', 'store', 'type', 'packaging']);
 });

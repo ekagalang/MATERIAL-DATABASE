@@ -36,6 +36,7 @@ class BrickRepository extends BaseRepository
                 $q->where('type', 'like', "%{$query}%")
                     ->orWhere('brand', 'like', "%{$query}%")
                     ->orWhere('form', 'like', "%{$query}%")
+                    ->orWhere('package_type', 'like', "%{$query}%")
                     ->orWhere('store', 'like', "%{$query}%")
                     ->orWhere('address', 'like', "%{$query}%");
             })
@@ -73,6 +74,7 @@ class BrickRepository extends BaseRepository
             'type',
             'brand',
             'form',
+            'package_type',
             'store',
             'address',
             'dimension_length',

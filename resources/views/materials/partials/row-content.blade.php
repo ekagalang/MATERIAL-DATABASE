@@ -2,6 +2,21 @@
     $showStoreInfo = $showStoreInfo ?? true;
 @endphp
 @if($material['type'] == 'brick')
+    @php
+        $brickPackageType = strtolower((string) ($item->package_type ?? '')) === 'kubik' ? 'kubik' : 'eceran';
+        $brickPurchasePrice = $brickPackageType === 'kubik'
+            ? ($item->comparison_price_per_m3 ?? $item->price_per_piece)
+            : ($item->price_per_piece ?? $item->comparison_price_per_m3);
+        $brickPurchaseUnit = $brickPackageType === 'kubik' ? '/ M3' : '/ Bh';
+        $brickPackageCount = null;
+        if ($brickPackageType === 'eceran') {
+            $brickPackageCount = 1;
+        } elseif (!is_null($item->package_volume) && (float) $item->package_volume > 0) {
+            $brickPackageCount = (int) floor(1 / (float) $item->package_volume);
+        }
+        $brickPackageLabel = $brickPackageType === 'kubik' ? 'Kubik' : 'Eceran';
+        $brickPackageUnitLabel = $brickPackageType === 'kubik' ? 'Bh )' : 'Bh )';
+    @endphp
     <td class="{{ $stickyClass }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif style="text-align: center; width: 40px; min-width: 40px;">
         {{ $rowNumber }}
     </td>
@@ -39,6 +54,15 @@
         @endif
     </td>
     <td class="border-left-none" style="text-align: left; width: 40px; min-width: 40px;">M3</td>
+    <td class="border-right-none" style="text-align: left;">{{ $brickPackageLabel }}</td>
+    <td class="border-left-none border-right-none" style="text-align: right;">
+        @if(!is_null($brickPackageCount))
+            ( {{ \App\Helpers\NumberHelper::formatPlain($brickPackageCount) }}
+        @else
+            <span>( -</span>
+        @endif
+    </td>
+    <td class="border-left-none" style="text-align: left;">{{ $brickPackageUnitLabel }}</td>
     @if($showStoreInfo)
     <td class="brick-scroll-td" style="text-align: left; width: 150px; min-width: 150px; max-width: 150px;">
         <div class="brick-scroll-cell" style="max-width: 150px; width: 100%; white-space: nowrap;">{{ $item->store ?? '-' }}</div>
@@ -49,13 +73,13 @@
     @endif
     <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
     <td class="border-left-none border-right-none" style="text-align: right; width: 60px; min-width: 60px;">
-        @if($item->price_per_piece)
-            @price($item->price_per_piece)
+        @if($brickPurchasePrice)
+            @price($brickPurchasePrice)
         @else
             <span>-</span>
         @endif
     </td>
-    <td class="border-left-none" style="text-align: left; width: 60px; min-width: 60px;">/ Bh</td>
+    <td class="border-left-none" style="text-align: left; width: 60px; min-width: 60px;">{{ $brickPurchaseUnit }}</td>
     <td class="border-right-none" style="text-align: right; width: 40px; min-width: 40px;">Rp</td>
     <td class="border-left-none border-right-none" style="text-align: right; width: 80px; min-width: 80px;">
         @if($item->comparison_price_per_m3)

@@ -207,13 +207,7 @@ class BrickService extends BaseService
             $brick->calculateVolume();
         }
 
-        // Calculate comparison price if price and volume are available
-        // IMPORTANT: Set to NULL if conditions not met (same as old controller)
-        if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
-            $brick->calculateComparisonPrice();
-        } else {
-            $brick->comparison_price_per_m3 = null;
-        }
+        $brick->syncPricingByPackageType();
 
         $brick->save();
     }

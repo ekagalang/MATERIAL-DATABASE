@@ -31,6 +31,7 @@ class BrickResource extends JsonResource
             'dimension_width' => $this->dimension_width,
             'dimension_height' => $this->dimension_height,
             'package_volume' => $this->package_volume,
+            'package_type' => $this->package_type,
 
             // Location
             'store' => $this->store,

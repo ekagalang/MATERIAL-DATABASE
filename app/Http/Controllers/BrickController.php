@@ -436,14 +436,7 @@ class BrickController extends Controller
             $brick->calculateVolume();
         }
 
-        if ($brick->price_per_piece && $brick->package_volume && $brick->package_volume > 0) {
-            $brick->calculateComparisonPrice();
-            return;
-        }
-
-        if ($resetComparisonPriceIfMissing) {
-            $brick->comparison_price_per_m3 = null;
-        }
+        $brick->syncPricingByPackageType();
     }
 
     private function syncStoreLocationOnCreate(Request $request, Brick $brick): void

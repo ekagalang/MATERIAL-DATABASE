@@ -544,6 +544,7 @@ class StoreLocationController extends Controller
                 'dimension_width',
                 'dimension_height',
                 'package_volume',
+                'package_type',
                 'store',
                 'address',
                 'price_per_piece',
