@@ -263,6 +263,7 @@
     .hover-arrow:hover {
         transform: translateX(3px);
     }
+
 </style>
 @endpush
 @endsection

@@ -11,6 +11,7 @@ function initMaterialCalculationForm(root, formData) {
     const cementsData = formData?.cements || [];
     const sandsData = formData?.sands || [];
     const catsData = formData?.cats || [];
+    const storeLocationsDataRaw = Array.isArray(formData?.storeLocations) ? formData.storeLocations : [];
     const materialTypeLabels = {
         brick: 'Bata',
         cement: 'Semen',
@@ -22,6 +23,117 @@ function initMaterialCalculationForm(root, formData) {
     };
     const ceramicsData = formData?.ceramics || [];
     const natsData = formData?.nats || [];
+    const storeLocationsData = storeLocationsDataRaw
+        .map(function (location) {
+            const lat = Number(location?.latitude);
+            const lng = Number(location?.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                return null;
+            }
+
+            return {
+                id: Number(location?.id || 0),
+                storeName: String(location?.store_name || 'Toko'),
+                address: String(location?.address || ''),
+                latitude: lat,
+                longitude: lng,
+                serviceRadiusKm: location?.service_radius_km !== null && location?.service_radius_km !== undefined
+                    ? Number(location.service_radius_km)
+                    : null,
+            };
+        })
+        .filter(Boolean);
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function buildStoreInfoContent(location) {
+        const addressText = location.address ? escapeHtml(location.address) : '-';
+        const radiusText = Number.isFinite(location.serviceRadiusKm)
+            ? `<div style="font-size:12px;color:#475569;">Radius layanan: ${location.serviceRadiusKm} km</div>`
+            : '';
+
+        return `
+            <div style="min-width:220px;line-height:1.45;">
+                <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${escapeHtml(location.storeName)}</div>
+                <div style="font-size:12px;color:#64748b;">${addressText}</div>
+                ${radiusText}
+            </div>
+        `;
+    }
+
+    function createStoreMarkerIcon(mapElement) {
+        const iconUrl = mapElement?.dataset?.storeMarkerIcon || '/images/store-marker.svg';
+        return {
+            url: iconUrl,
+            scaledSize: new google.maps.Size(30, 30),
+            anchor: new google.maps.Point(15, 30),
+        };
+    }
+
+    function addStoreMarkersToMap(map, mapElement) {
+        if (!map || !window.google?.maps || map.__storeMarkersBound) {
+            return;
+        }
+
+        map.__storeMarkersBound = true;
+        if (!storeLocationsData.length) {
+            return;
+        }
+
+        const infoWindow = new google.maps.InfoWindow();
+        const icon = createStoreMarkerIcon(mapElement);
+        const bounds = new google.maps.LatLngBounds();
+        const projectLatInput = scope.querySelector('#projectLatitude') || document.getElementById('projectLatitude');
+        const projectLngInput = scope.querySelector('#projectLongitude') || document.getElementById('projectLongitude');
+        const projectLatRaw = (projectLatInput?.value ?? '').toString().trim();
+        const projectLngRaw = (projectLngInput?.value ?? '').toString().trim();
+        const hasProjectLocation =
+            projectLatRaw !== '' &&
+            projectLngRaw !== '' &&
+            Number.isFinite(Number(projectLatRaw)) &&
+            Number.isFinite(Number(projectLngRaw));
+
+        const markers = storeLocationsData.map(function (location) {
+            const position = { lat: location.latitude, lng: location.longitude };
+            bounds.extend(position);
+
+            const marker = new google.maps.Marker({
+                map,
+                position,
+                title: location.storeName,
+                icon,
+                zIndex: 10,
+            });
+
+            marker.addListener('click', function () {
+                infoWindow.setContent(buildStoreInfoContent(location));
+                infoWindow.open(map, marker);
+            });
+
+            return marker;
+        });
+
+        map.__storeMarkers = markers;
+
+        if (!hasProjectLocation && markers.length > 0) {
+            map.fitBounds(bounds, 70);
+            const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', function () {
+                if (map.getZoom() > 14) {
+                    map.setZoom(14);
+                }
+            });
+            if (listener) {
+                map.__storeBoundsListener = listener;
+            }
+        }
+    }
 
     function truncateNumber(value, decimals = 2) {
         const num = Number(value);
@@ -210,6 +322,8 @@ function initMaterialCalculationForm(root, formData) {
             formattedAddressInput: '#projectAddress',
             gestureHandling: 'greedy',
             scrollwheel: true,
+        }).then((picker) => {
+            addStoreMarkersToMap(picker?.map, mapElement);
         }).catch((error) => {
             console.error('Failed to initialize project location map picker:', error);
         });

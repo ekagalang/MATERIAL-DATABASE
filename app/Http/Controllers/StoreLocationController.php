@@ -33,11 +33,23 @@ class StoreLocationController extends Controller
      */
     public function store(Request $request, Store $store)
     {
+        $request->merge([
+            'contact_name' => $this->normalizeContactField($request->input('contact_name')),
+            'contact_phone' => $this->normalizeContactField($request->input('contact_phone')),
+        ]);
+
         $request->validate((new StoreLocationUpsertRequest())->rules());
+        $contactData = $this->buildNormalizedContactData($request->input('contact_name', []), $request->input('contact_phone', []));
+
+        if ($contactData['error']) {
+            return back()
+                ->withErrors($contactData['error'])
+                ->withInput();
+        }
 
         DB::beginTransaction();
         try {
-            $locationData = $this->extractLocationData($request);
+            $locationData = $this->extractLocationData($request, $contactData['name'], $contactData['phone']);
 
             $store->locations()->create($locationData);
 
@@ -66,11 +78,23 @@ class StoreLocationController extends Controller
      */
     public function update(Request $request, Store $store, StoreLocation $location)
     {
+        $request->merge([
+            'contact_name' => $this->normalizeContactField($request->input('contact_name')),
+            'contact_phone' => $this->normalizeContactField($request->input('contact_phone')),
+        ]);
+
         $request->validate((new StoreLocationUpsertRequest())->rules());
+        $contactData = $this->buildNormalizedContactData($request->input('contact_name', []), $request->input('contact_phone', []));
+
+        if ($contactData['error']) {
+            return back()
+                ->withErrors($contactData['error'])
+                ->withInput();
+        }
 
         DB::beginTransaction();
         try {
-            $locationData = $this->extractLocationData($request);
+            $locationData = $this->extractLocationData($request, $contactData['name'], $contactData['phone']);
 
             $location->update($locationData);
             $this->syncMaterialLocationSnapshot($store, $location);
@@ -719,9 +743,9 @@ class StoreLocationController extends Controller
         }
     }
 
-    private function extractLocationData(Request $request): array
+    private function extractLocationData(Request $request, ?string $contactName, ?string $contactPhone): array
     {
-        return $request->only([
+        $locationData = $request->only([
             'address',
             'district',
             'city',
@@ -731,8 +755,91 @@ class StoreLocationController extends Controller
             'place_id',
             'formatted_address',
             'service_radius_km',
-            'contact_name',
-            'contact_phone',
         ]);
+
+        $locationData['contact_name'] = $contactName;
+        $locationData['contact_phone'] = $contactPhone;
+
+        return $locationData;
+    }
+
+    private function normalizeContactField(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values($value);
+        }
+
+        if ($value === null) {
+            return [];
+        }
+
+        return [$value];
+    }
+
+    private function buildNormalizedContactData(array $names, array $phones): array
+    {
+        $pairs = $this->normalizeContactPairs($names, $phones);
+        $contactName = $this->flattenContactColumn($pairs, 'name');
+        $contactPhone = $this->flattenContactColumn($pairs, 'phone');
+
+        if ($contactName !== null && mb_strlen($contactName) > 255) {
+            return [
+                'name' => null,
+                'phone' => null,
+                'error' => ['contact_name' => 'Total gabungan nama kontak maksimal 255 karakter.'],
+            ];
+        }
+
+        if ($contactPhone !== null && mb_strlen($contactPhone) > 255) {
+            return [
+                'name' => null,
+                'phone' => null,
+                'error' => ['contact_phone' => 'Total gabungan nomor kontak maksimal 255 karakter.'],
+            ];
+        }
+
+        return [
+            'name' => $contactName,
+            'phone' => $contactPhone,
+            'error' => null,
+        ];
+    }
+
+    private function normalizeContactPairs(array $names, array $phones): array
+    {
+        $count = max(count($names), count($phones));
+        $pairs = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            $name = trim((string) ($names[$i] ?? ''));
+            $phone = trim((string) ($phones[$i] ?? ''));
+
+            if ($name === '' && $phone === '') {
+                continue;
+            }
+
+            $pairs[] = [
+                'name' => $name,
+                'phone' => $phone,
+            ];
+        }
+
+        return $pairs;
+    }
+
+    private function flattenContactColumn(array $pairs, string $column): ?string
+    {
+        if (empty($pairs)) {
+            return null;
+        }
+
+        $values = array_map(
+            fn(array $pair) => $pair[$column] !== '' ? $pair[$column] : '-',
+            $pairs,
+        );
+
+        $text = implode(' | ', $values);
+
+        return $text !== '' ? $text : null;
     }
 }

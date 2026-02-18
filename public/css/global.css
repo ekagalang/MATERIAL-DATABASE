@@ -4303,3 +4303,73 @@ body.confirm-open {
         transition: none;
     }
 }
+
+/* Store contact repeater (works for full page + global open modal) */
+.store-create-form .store-contact-row,
+.store-location-form .store-contact-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.store-create-form .store-contact-row .autocomplete-input,
+.store-location-form .store-contact-row .autocomplete-input {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.store-create-form .store-contact-remove-btn,
+.store-location-form .store-contact-remove-btn {
+    flex: 0 0 auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid #fecaca;
+    background: #fff1f2;
+    color: #b91c1c;
+    line-height: 1;
+}
+
+.store-create-form .store-contact-remove-btn:disabled,
+.store-location-form .store-contact-remove-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.store-create-form .store-contact-add-btn,
+.store-location-form .store-contact-add-btn {
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border: 1px solid #cbd5e1;
+    background: #f8fafc;
+    color: #334155;
+}
+
+#globalModalBody form.store-create-form .row,
+#globalModalBody form.store-location-form .row {
+    gap: 0 !important;
+    --bs-gutter-x: 0 !important;
+    --bs-gutter-y: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 10px !important;
+}
+
+#globalModalBody form.store-create-form .row > label,
+#globalModalBody form.store-location-form .row > label {
+    width: 118px !important;
+    min-width: 118px !important;
+    flex: 0 0 118px !important;
+    margin-right: 0 !important;
+    padding-top: 6px !important;
+}
+
+@media (max-width: 992px) {
+    #globalModalBody form.store-create-form .store-create-form-grid,
+    #globalModalBody form.store-location-form .store-location-form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+}

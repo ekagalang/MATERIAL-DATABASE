@@ -30,6 +30,43 @@
             padding-top: 6px !important;
         }
 
+        .store-location-modal .store-contact-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .store-location-modal .store-contact-row .autocomplete-input {
+            flex: 1 1 0;
+            min-width: 0;
+        }
+
+        .store-location-modal .store-contact-remove-btn {
+            flex: 0 0 auto;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            background: #fff1f2;
+            color: #b91c1c;
+            line-height: 1;
+        }
+
+        .store-location-modal .store-contact-remove-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .store-location-modal .store-contact-add-btn {
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            background: #f8fafc;
+            color: #334155;
+        }
+
         @media (max-width: 992px) {
             .store-location-modal .store-location-form-grid {
                 grid-template-columns: 1fr !important;
@@ -37,6 +74,20 @@
             }
         }
     </style>
+
+    @php
+        $oldContactNames = old('contact_name', ['']);
+        if (!is_array($oldContactNames)) {
+            $oldContactNames = [$oldContactNames];
+        }
+
+        $oldContactPhones = old('contact_phone', ['']);
+        if (!is_array($oldContactPhones)) {
+            $oldContactPhones = [$oldContactPhones];
+        }
+
+        $contactRowCount = max(count($oldContactNames), count($oldContactPhones), 1);
+    @endphp
 
     <form action="{{ route('store-locations.store', $store) }}" method="POST" class="store-location-form">
         @csrf
@@ -105,26 +156,32 @@
                 <h5 class="mt-4 mb-3 text-secondary border-bottom pb-2">Informasi Kontak</h5>
 
                 <div class="row">
-                    <label>Nama Kontak</label>
+                    <label>Kontak</label>
                     <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="contact_name"
-                               id="contact_name"
-                               value="{{ old('contact_name') }}"
-                               class="autocomplete-input"
-                               placeholder="contoh: Budi Santoso">
-                    </div>
-                </div>
-
-                <div class="row">
-                    <label>No. Telepon <span class="text-warning">*</span></label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="text"
-                               name="contact_phone"
-                               id="contact_phone"
-                               value="{{ old('contact_phone') }}"
-                               class="autocomplete-input"
-                               placeholder="08123456789">
+                        <div class="d-flex flex-column gap-2" data-contact-list>
+                            @for ($i = 0; $i < $contactRowCount; $i++)
+                                <div class="store-contact-row" data-contact-row>
+                                    <input type="text"
+                                           name="contact_name[]"
+                                           value="{{ $oldContactNames[$i] ?? '' }}"
+                                           class="autocomplete-input"
+                                           placeholder="Nama kontak">
+                                    <input type="text"
+                                           name="contact_phone[]"
+                                           value="{{ $oldContactPhones[$i] ?? '' }}"
+                                           class="autocomplete-input"
+                                           inputmode="tel"
+                                           pattern="[0-9+\- ]*"
+                                           placeholder="No. telepon">
+                                    <button type="button" class="store-contact-remove-btn" data-contact-remove aria-label="Hapus kontak">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            @endfor
+                        </div>
+                        <button type="button" class="store-contact-add-btn mt-2" data-contact-add>
+                            <i class="bi bi-plus-circle me-1"></i> Tambah Kontak
+                        </button>
                     </div>
                 </div>
 
@@ -189,6 +246,26 @@
                 </div>
             </div>
         </div>
+
+        <template id="store-location-contact-row-template" data-contact-template>
+            <div class="store-contact-row" data-contact-row>
+                <input type="text"
+                       name="contact_name[]"
+                       value=""
+                       class="autocomplete-input"
+                       placeholder="Nama kontak">
+                <input type="text"
+                       name="contact_phone[]"
+                       value=""
+                       class="autocomplete-input"
+                       inputmode="tel"
+                       pattern="[0-9+\- ]*"
+                       placeholder="No. telepon">
+                <button type="button" class="store-contact-remove-btn" data-contact-remove aria-label="Hapus kontak">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+        </template>
     </form>
 </div>
 @endsection

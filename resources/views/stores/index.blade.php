@@ -37,6 +37,45 @@
         </form>
 
         <!-- Table Layout -->
+        @php
+            $storeLocationPoints = $stores
+                ->flatMap(function ($store) {
+                    return $store->locations->map(function ($location) use ($store) {
+                        return [
+                            'store_name' => (string) $store->name,
+                            'address' => trim((string) ($location->formatted_address ?: $location->address ?: '-')),
+                            'city' => trim((string) ($location->city ?? '')),
+                            'province' => trim((string) ($location->province ?? '')),
+                            'latitude' => is_numeric($location->latitude) ? (float) $location->latitude : null,
+                            'longitude' => is_numeric($location->longitude) ? (float) $location->longitude : null,
+                            'service_radius_km' => $location->service_radius_km !== null ? (float) $location->service_radius_km : null,
+                        ];
+                    });
+                })
+                ->filter(fn($point) => is_numeric($point['latitude']) && is_numeric($point['longitude']))
+                ->values();
+        @endphp
+
+        <div class="stores-map-card card border-0 shadow-sm mb-3">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 fw-bold text-dark">Preview Semua Lokasi Toko</h6>
+                    <span class="stores-map-legend"><i class="bi bi-shop me-1"></i> Lokasi toko tersimpan</span>
+                </div>
+
+                @if ($storeLocationPoints->isNotEmpty())
+                    <div id="storesIndexLocationsMap"
+                        class="stores-index-map"
+                        data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                        data-store-marker-icon="{{ asset('images/store-marker.svg') }}"></div>
+                @else
+                    <div class="alert alert-light border mb-0 py-2 px-3 small text-muted">
+                        Belum ada lokasi toko yang memiliki koordinat.
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <div class="stores-table-wrapper">
             <div class="table-container text-nowrap">
                 <table>
@@ -146,6 +185,25 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+    }
+
+    .stores-map-card {
+        flex: 0 0 auto;
+    }
+
+    .stores-index-map {
+        width: 100%;
+        height: 230px;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+    }
+
+    .stores-map-legend {
+        font-size: 12px;
+        color: #64748b;
+        display: inline-flex;
+        align-items: center;
     }
 
     .stores-table-wrapper .card {
@@ -399,6 +457,99 @@
     });
     window.addEventListener('load', updateStoreScrollIndicators);
 })();
+
+document.addEventListener('DOMContentLoaded', function() {
+    const mapEl = document.getElementById('storesIndexLocationsMap');
+    if (!mapEl) return;
+
+    const points = @json($storeLocationPoints);
+    if (!Array.isArray(points) || points.length === 0) return;
+
+    const apiKey = mapEl.dataset.googleMapsApiKey || '';
+    if (!window.GoogleMapsPicker || typeof window.GoogleMapsPicker.loadApi !== 'function') {
+        console.warn('GoogleMapsPicker helper is not available for stores index map.');
+        return;
+    }
+
+    const createStoreIcon = function() {
+        const iconUrl = mapEl.dataset.storeMarkerIcon || '/images/store-marker.svg';
+        return {
+            url: iconUrl,
+            scaledSize: new google.maps.Size(30, 30),
+            anchor: new google.maps.Point(15, 30),
+        };
+    };
+
+    const escapeHtml = function(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    };
+
+    window.GoogleMapsPicker.loadApi(apiKey)
+        .then(function() {
+            if (!window.google?.maps) return;
+
+            const map = new google.maps.Map(mapEl, {
+                center: { lat: Number(points[0].latitude), lng: Number(points[0].longitude) },
+                zoom: 11,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: false,
+                gestureHandling: 'greedy',
+            });
+
+            const bounds = new google.maps.LatLngBounds();
+            const infoWindow = new google.maps.InfoWindow();
+            const icon = createStoreIcon();
+
+            points.forEach(function(point) {
+                const lat = Number(point.latitude);
+                const lng = Number(point.longitude);
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+                const position = { lat, lng };
+                bounds.extend(position);
+
+                const marker = new google.maps.Marker({
+                    map,
+                    position,
+                    title: point.store_name || 'Toko',
+                    icon,
+                });
+
+                marker.addListener('click', function() {
+                    const radius = Number(point.service_radius_km);
+                    const radiusInfo = Number.isFinite(radius)
+                        ? `<div style="font-size:12px;color:#475569;">Radius layanan: ${radius} km</div>`
+                        : '';
+
+                    infoWindow.setContent(`
+                        <div style="min-width:220px;line-height:1.45;">
+                            <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${escapeHtml(point.store_name || '-')}</div>
+                            <div style="font-size:12px;color:#64748b;">${escapeHtml(point.address || '-')}</div>
+                            <div style="font-size:12px;color:#64748b;">${escapeHtml(point.city || '-')} ${point.province ? ', ' + escapeHtml(point.province) : ''}</div>
+                            ${radiusInfo}
+                        </div>
+                    `);
+                    infoWindow.open(map, marker);
+                });
+            });
+
+            if (points.length === 1) {
+                map.setCenter(bounds.getCenter());
+                map.setZoom(14);
+            } else {
+                map.fitBounds(bounds, 60);
+            }
+        })
+        .catch(function(error) {
+            console.error('Failed to initialize stores index map:', error);
+        });
+});
 </script>
 
 @endsection

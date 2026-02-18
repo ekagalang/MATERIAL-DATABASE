@@ -64,24 +64,53 @@ class StoreController extends Controller
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            // Location fields
-            'address' => 'nullable|string',
-            'district' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:255',
-            'province' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'place_id' => 'nullable|string|max:255',
-            'formatted_address' => 'nullable|string',
-            'service_radius_km' => 'nullable|numeric|min:0',
-            'contact_name' => 'nullable|string|max:255',
-            'contact_phone' => 'nullable|string|max:255',
+        $request->merge([
+            'contact_name' => $this->normalizeContactField($request->input('contact_name')),
+            'contact_phone' => $this->normalizeContactField($request->input('contact_phone')),
         ]);
+
+        $request->validate(
+            [
+                'name' => 'required|string|max:255',
+                // Location fields
+                'address' => 'nullable|string',
+                'district' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'province' => 'nullable|string|max:255',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
+                'place_id' => 'nullable|string|max:255',
+                'formatted_address' => 'nullable|string',
+                'service_radius_km' => 'nullable|numeric|min:0',
+                'contact_name' => 'nullable|array',
+                'contact_name.*' => 'nullable|string|max:255',
+                'contact_phone' => 'nullable|array',
+                'contact_phone.*' => ['nullable', 'string', 'max:255', 'regex:/^[0-9+\-\s]*$/'],
+            ],
+            [
+                'contact_phone.*.regex' => 'No telepon hanya boleh berisi angka, spasi, tanda +, dan -.',
+            ],
+        );
+
+        $contactPairs = $this->normalizeContactPairs($request->input('contact_name', []), $request->input('contact_phone', []));
+        $contactNameText = $this->flattenContactColumn($contactPairs, 'name');
+        $contactPhoneText = $this->flattenContactColumn($contactPairs, 'phone');
+
+        if ($contactNameText !== null && mb_strlen($contactNameText) > 255) {
+            return back()
+                ->withErrors(['contact_name' => 'Total gabungan nama kontak maksimal 255 karakter.'])
+                ->withInput();
+        }
+
+        if ($contactPhoneText !== null && mb_strlen($contactPhoneText) > 255) {
+            return back()
+                ->withErrors(['contact_phone' => 'Total gabungan nomor kontak maksimal 255 karakter.'])
+                ->withInput();
+        }
 
         DB::beginTransaction();
         try {
+
             $storeData = [
                 'name' => $request->name,
             ];
@@ -100,8 +129,8 @@ class StoreController extends Controller
                 $request->filled('place_id') ||
                 $request->filled('formatted_address') ||
                 $request->filled('service_radius_km') ||
-                $request->filled('contact_name') ||
-                $request->filled('contact_phone');
+                $contactNameText !== null ||
+                $contactPhoneText !== null;
 
             if ($hasInitialLocationData) {
                 $store->locations()->create([
@@ -114,8 +143,8 @@ class StoreController extends Controller
                     'place_id' => $request->place_id,
                     'formatted_address' => $request->formatted_address,
                     'service_radius_km' => $request->service_radius_km,
-                    'contact_name' => $request->contact_name,
-                    'contact_phone' => $request->contact_phone,
+                    'contact_name' => $contactNameText,
+                    'contact_phone' => $contactPhoneText,
                 ]);
             }
 
@@ -129,6 +158,57 @@ class StoreController extends Controller
                 ->with('error', 'Gagal menyimpan toko: ' . $e->getMessage())
                 ->withInput();
         }
+    }
+
+    private function normalizeContactField(mixed $value): array
+    {
+        if (is_array($value)) {
+            return array_values($value);
+        }
+
+        if ($value === null) {
+            return [];
+        }
+
+        return [$value];
+    }
+
+    private function normalizeContactPairs(array $names, array $phones): array
+    {
+        $count = max(count($names), count($phones));
+        $pairs = [];
+
+        for ($i = 0; $i < $count; $i++) {
+            $name = trim((string) ($names[$i] ?? ''));
+            $phone = trim((string) ($phones[$i] ?? ''));
+
+            if ($name === '' && $phone === '') {
+                continue;
+            }
+
+            $pairs[] = [
+                'name' => $name,
+                'phone' => $phone,
+            ];
+        }
+
+        return $pairs;
+    }
+
+    private function flattenContactColumn(array $pairs, string $column): ?string
+    {
+        if (empty($pairs)) {
+            return null;
+        }
+
+        $values = array_map(
+            fn(array $pair) => $pair[$column] !== '' ? $pair[$column] : '-',
+            $pairs,
+        );
+
+        $text = implode(' | ', $values);
+
+        return $text !== '' ? $text : null;
     }
 
     /**

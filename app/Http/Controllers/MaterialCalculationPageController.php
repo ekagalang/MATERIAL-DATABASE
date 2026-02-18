@@ -12,6 +12,7 @@ use App\Models\MortarFormula;
 use App\Models\Nat;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
+use App\Models\StoreLocation;
 use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -64,6 +65,26 @@ class MaterialCalculationPageController extends MaterialCalculationController
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
+        $storeLocationsForMap = StoreLocation::query()
+            ->with('store:id,name')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->get()
+            ->filter(
+                fn(StoreLocation $location) => is_numeric($location->latitude) && is_numeric($location->longitude),
+            )
+            ->map(function (StoreLocation $location): array {
+                return [
+                    'id' => (int) $location->id,
+                    'store_name' => trim((string) optional($location->store)->name),
+                    'address' => trim((string) ($location->formatted_address ?: $location->address)),
+                    'latitude' => (float) $location->latitude,
+                    'longitude' => (float) $location->longitude,
+                    'service_radius_km' => $location->service_radius_km !== null ? (float) $location->service_radius_km : null,
+                ];
+            })
+            ->values()
+            ->all();
 
         // Get distinct ceramic types and sizes for filters
         $ceramicTypes = Ceramic::whereNotNull('type')->distinct()->pluck('type')->filter()->sort()->values();
@@ -115,6 +136,7 @@ class MaterialCalculationPageController extends MaterialCalculationController
                 'sands',
                 'cats',
                 'ceramics',
+                'storeLocationsForMap',
                 'ceramicTypes',
                 'ceramicSizes',
                 'defaultInstallationType',

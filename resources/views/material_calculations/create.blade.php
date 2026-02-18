@@ -115,8 +115,9 @@
                     <div class="project-map-content">
                         <div id="projectLocationMap"
                              data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                             data-store-marker-icon="{{ asset('images/store-marker.svg') }}"
                              class="project-location-map"></div>
-                        <small class="text-muted d-block mb-0">Pilih alamat proyek dari Google Maps, lalu sesuaikan pin jika diperlukan.</small>
+                        <small class="text-muted d-block mb-0">Pilih alamat proyek dari Google Maps, lalu sesuaikan pin jika diperlukan. Marker ikon toko menampilkan lokasi toko tersimpan.</small>
                     </div>
                 </div>
 
@@ -1207,6 +1208,7 @@
     'sands' => $sands,
     'cats' => $cats ?? [],
     'ceramics' => $ceramics ?? [],
+    'storeLocations' => $storeLocationsForMap ?? [],
 ]) !!}
 </script>
 <script>
