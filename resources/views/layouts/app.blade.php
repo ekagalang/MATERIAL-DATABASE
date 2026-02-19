@@ -137,7 +137,6 @@
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="nat"> Nat</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
                                     <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
                                 </div>
@@ -168,7 +167,6 @@
                                     <a href="{{ route('bricks.create') }}" class="dropdown-item global-open-modal">Bata</a>
                                     <a href="{{ route('cats.create') }}" class="dropdown-item global-open-modal">Cat</a>
                                     <a href="{{ route('ceramics.create') }}" class="dropdown-item global-open-modal">Keramik</a>
-                                    <a href="{{ route('nats.create') }}" class="dropdown-item global-open-modal">Nat</a>
                                     <a href="{{ route('sands.create') }}" class="dropdown-item global-open-modal">Pasir</a>
                                     <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
                                 </div>
@@ -661,6 +659,12 @@
                     .replace(/\s+/g, ' ');
             }
 
+            function normalizeMaterialTypeAlias(type) {
+                const raw = String(type || '').trim().toLowerCase();
+                if (!raw) return '';
+                return raw === 'nat' ? 'cement' : raw;
+            }
+
             function filterMaterialTypeOptions(term, options) {
                 const query = normalizeMaterialType(term);
                 if (!query) return options;
@@ -707,7 +711,7 @@
                         const items = Array.isArray(data && data.items) ? data.items : [];
                         const mappedItems = items
                             .map(item => ({
-                                materialType: item.material_type,
+                                materialType: normalizeMaterialTypeAlias(item.material_type),
                                 type: item.type,
                                 label: item.label || item.type
                             }))
@@ -751,6 +755,11 @@
                 }
 
                 function buildSearchFilter(materialType) {
+                    const normalizedMaterialType = normalizeMaterialTypeAlias(materialType);
+                    if (!normalizedMaterialType) {
+                        return { selected: [], order: [] };
+                    }
+
                     let currentFilter = { selected: [], order: [] };
                     try {
                         const stored = localStorage.getItem(STORAGE_KEY);
@@ -759,25 +768,30 @@
                         currentFilter = { selected: [], order: [] };
                     }
 
-                    const selected = Array.isArray(currentFilter.selected) ? currentFilter.selected.slice() : [];
-                    const order = Array.isArray(currentFilter.order) ? currentFilter.order.slice() : [];
+                    const selected = Array.isArray(currentFilter.selected)
+                        ? currentFilter.selected.map(item => normalizeMaterialTypeAlias(item)).filter(Boolean)
+                        : [];
+                    const order = Array.isArray(currentFilter.order)
+                        ? currentFilter.order.map(item => normalizeMaterialTypeAlias(item)).filter(Boolean)
+                        : [];
 
-                    if (!selected.includes(materialType)) {
-                        selected.push(materialType);
+                    if (!selected.includes(normalizedMaterialType)) {
+                        selected.push(normalizedMaterialType);
                     }
 
-                    const nextOrder = [materialType, ...order.filter(item => item !== materialType)];
+                    const nextOrder = [normalizedMaterialType, ...order.filter(item => item !== normalizedMaterialType)];
                     return { selected: selected, order: nextOrder };
                 }
 
                 function navigateToMaterialType(materialType, materialValue) {
-                    if (!materialType) return;
-                    const updatedFilter = buildSearchFilter(materialType);
+                    const normalizedMaterialType = normalizeMaterialTypeAlias(materialType);
+                    if (!normalizedMaterialType) return;
+                    const updatedFilter = buildSearchFilter(normalizedMaterialType);
 
                     try {
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedFilter));
-                        localStorage.setItem('materialActiveTab', materialType);
-                        localStorage.setItem('materialNavSearchBlink', materialType);
+                        localStorage.setItem('materialActiveTab', normalizedMaterialType);
+                        localStorage.setItem('materialNavSearchBlink', normalizedMaterialType);
                         if (materialValue) {
                             localStorage.setItem('materialNavSearchType', materialValue);
                         } else {
@@ -787,7 +801,7 @@
                         // Ignore storage errors
                     }
 
-                    window.location.href = '{{ route("materials.index") }}' + '?tab=' + encodeURIComponent(materialType);
+                    window.location.href = '{{ route("materials.index") }}' + '?tab=' + encodeURIComponent(normalizedMaterialType);
                 }
 
                 function findExactNavMaterial(term, items) {
@@ -849,12 +863,12 @@
                     const createUrlMap = {
                         brick: '{{ route("bricks.create") }}',
                         cement: '{{ route("cements.create") }}',
-                        nat: '{{ route("nats.create") }}',
+                        nat: '{{ route("cements.create") }}',
                         sand: '{{ route("sands.create") }}',
                         cat: '{{ route("cats.create") }}',
                         ceramic: '{{ route("ceramics.create") }}'
                     };
-                    const targetUrl = createUrlMap[option.materialType];
+                    const targetUrl = createUrlMap[normalizeMaterialTypeAlias(option.materialType)];
                     if (targetUrl && typeof openGlobalMaterialModal === 'function') {
                         openGlobalMaterialModal(targetUrl);
                     }
@@ -903,6 +917,12 @@
             } catch (e) {
                 savedFilter = { selected: [], order: [] };
             }
+            savedFilter.selected = Array.isArray(savedFilter.selected)
+                ? savedFilter.selected.map(item => normalizeMaterialTypeAlias(item)).filter(Boolean)
+                : [];
+            savedFilter.order = Array.isArray(savedFilter.order)
+                ? savedFilter.order.map(item => normalizeMaterialTypeAlias(item)).filter(Boolean)
+                : [];
 
             navToggles.forEach(toggle => {
                 const materialType = toggle.dataset.material;
@@ -934,7 +954,7 @@
                     // Let's rely on a simple logic: Just save what is checked.
                     navToggles.forEach(toggle => {
                         if (toggle.checked) {
-                            selectedMaterials.push(toggle.dataset.material);
+                            selectedMaterials.push(normalizeMaterialTypeAlias(toggle.dataset.material));
                         }
                     });
 
@@ -1045,7 +1065,7 @@
                 if (url.includes('/bricks/')) { materialType = 'brick'; materialLabel = 'Bata'; } 
                 else if (url.includes('/cats/')) { materialType = 'cat'; materialLabel = 'Cat'; } 
                 else if (url.includes('/cements/')) { materialType = 'cement'; materialLabel = 'Semen'; } 
-                else if (url.includes('/nats/')) { materialType = 'nat'; materialLabel = 'Nat'; }
+                else if (url.includes('/nats/')) { materialType = 'cement'; materialLabel = 'Semen'; }
                 else if (url.includes('/sands/')) { materialType = 'sand'; materialLabel = 'Pasir'; }
                 else if (url.includes('/ceramics/')) { materialType = 'ceramic'; materialLabel = 'Keramik'; }
                 else if (url.includes('/store-locations/') || (url.includes('/stores/') && url.includes('/locations'))) { materialType = 'store-location'; materialLabel = 'Lokasi Toko'; }

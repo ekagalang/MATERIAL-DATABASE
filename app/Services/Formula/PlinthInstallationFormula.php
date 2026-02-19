@@ -96,7 +96,7 @@ class PlinthInstallationFormula
 
         if (!$nat) {
             throw new \RuntimeException(
-                'Data material nat tidak tersedia di database. Pastikan ada data di tabel nats.',
+                'Data material nat tidak tersedia di database. Pastikan ada data di tabel cements dengan material_kind=nat.',
             );
         }
 

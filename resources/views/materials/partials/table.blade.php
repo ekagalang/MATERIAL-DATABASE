@@ -1334,6 +1334,7 @@
                                 if($material['type'] == 'ceramic') $stickyClass = 'ceramic-sticky-col col-no';
                                 elseif($material['type'] == 'cat') $stickyClass = 'cat-sticky-col col-no';
                                 elseif(in_array($material['type'], ['cement', 'nat'])) $stickyClass = 'cement-sticky-col';
+                                $rowMaterialType = $item->row_material_type ?? (($item->material_kind ?? null) === 'nat' ? 'nat' : $material['type']);
                             @endphp
                     <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? $item->nat_name ?? '' }}" data-material-search="{{ $searchValue }}" data-material-brand-letter="{{ $rowLetter }}">
                         {{--  ... ROW CONTENT ... --}}
@@ -1352,16 +1353,16 @@
                         @if($showActions)
                         <td class="text-center action-cell">
                             <div class="btn-group-compact">
-                                <a href="{{ route($material['type'] . 's.show', $item->id) }}" class="btn btn-primary-glossy btn-action open-modal" title="Detail">
+                                <a href="{{ route($rowMaterialType . 's.show', $item->id) }}" class="btn btn-primary-glossy btn-action open-modal" title="Detail">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ route($material['type'] . 's.edit', $item->id) }}" class="btn btn-warning btn-action open-modal" title="Edit">
+                                <a href="{{ route($rowMaterialType . 's.edit', $item->id) }}" class="btn btn-warning btn-action open-modal" title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
                                 <button type="button"
                                     class="btn btn-danger btn-action"
                                     title="Hapus"
-                                    onclick="deleteMaterial('{{ $material['type'] }}', {{ $item->id }})">
+                                    onclick="deleteMaterial('{{ $rowMaterialType }}', {{ $item->id }})">
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </div>

@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class NatSeeder extends Seeder
 {
@@ -202,18 +201,8 @@ class NatSeeder extends Seeder
 
     public function run(): void
     {
-        $cements = self::rows();
-
-        foreach ($cements as $cement) {
-            DB::table('cements')->insert(
-                array_merge($cement, [
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]),
-            );
-        }
-
-        $this->command->info('✅ Nat seeded successfully!');
-        $this->command->info('📊 Total cements created: ' . DB::table('cements')->count());
+        $this->command?->warn(
+            'NatSeeder::run() is deprecated and intentionally does not write to cements. Use NatTableSeeder instead.',
+        );
     }
 }

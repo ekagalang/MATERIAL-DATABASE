@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\SyncsStoreLocationSnapshot;
+use App\Support\Material\MaterialKindResolver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,11 +17,15 @@ class Nat extends Model
     use HasFactory;
     use SyncsStoreLocationSnapshot;
 
-    protected $table = 'nats';
+    public const MATERIAL_KIND = 'nat';
+
+    protected $table = 'cements';
 
     protected $fillable = [
+        'cement_name',
         'nat_name',
         'type',
+        'material_kind',
         'photo',
         'brand',
         'sub_brand',
@@ -46,6 +52,25 @@ class Nat extends Model
     ];
 
     protected $appends = ['photo_url'];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('material_kind_nat', function (Builder $query) {
+            $query->where($query->qualifyColumn('material_kind'), self::MATERIAL_KIND);
+        });
+
+        static::saving(function (self $nat): void {
+            $nat->material_kind = MaterialKindResolver::inferFromType($nat->type, self::MATERIAL_KIND);
+
+            if (blank($nat->nat_name) && filled($nat->cement_name)) {
+                $nat->nat_name = $nat->cement_name;
+            }
+
+            if (blank($nat->cement_name) && filled($nat->nat_name)) {
+                $nat->cement_name = $nat->nat_name;
+            }
+        });
+    }
 
     public static function getMaterialType(): string
     {
@@ -134,5 +159,16 @@ class Nat extends Model
         }
 
         return 0;
+    }
+
+    public function getNatNameAttribute(?string $value): ?string
+    {
+        if (filled($value)) {
+            return $value;
+        }
+
+        $fallback = $this->attributes['cement_name'] ?? null;
+
+        return filled($fallback) ? (string) $fallback : null;
     }
 }

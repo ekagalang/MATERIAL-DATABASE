@@ -2,10 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Cement;
-use App\Models\Nat;
 use Illuminate\Console\Command;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class MigrateLegacyNatDataCommand extends Command
@@ -14,49 +12,55 @@ class MigrateLegacyNatDataCommand extends Command
         {--dry-run : Preview migration without writing changes}
         {--limit=0 : Process only first N legacy rows (0 = all)}
         {--chunk=200 : Chunk size for processing}
-        {--skip-match-existing : Do not try to relink existing unmapped nats}
+        {--delete-source : Delete migrated rows from legacy nats table}
         {--force : Skip confirmation prompt}';
 
-    protected $description = 'Backfill nats table from legacy cements rows where type = Nat';
+    protected $description = 'Move legacy nats rows into cements with material_kind=nat and repoint references';
 
     public function handle(): int
     {
-        if (!Schema::hasTable('nats') || !Schema::hasColumn('nats', 'legacy_cement_id')) {
-            $this->warn('Legacy mapping column `nats.legacy_cement_id` is not available.');
-            $this->line('Nat has been finalized as standalone material. This command is no longer applicable.');
+        if (!Schema::hasTable('cements')) {
+            $this->error('Table cements tidak tersedia.');
+            return self::FAILURE;
+        }
 
+        if (!Schema::hasColumn('cements', 'material_kind') || !Schema::hasColumn('cements', 'nat_name')) {
+            $this->error('Kolom cements.material_kind / cements.nat_name belum tersedia.');
+            $this->line('Jalankan migration terbaru terlebih dulu.');
+            return self::FAILURE;
+        }
+
+        if (!Schema::hasTable('nats')) {
+            $this->info('Table nats tidak ditemukan. Tidak ada data legacy yang perlu dipindahkan.');
             return self::SUCCESS;
         }
 
         $dryRun = (bool) $this->option('dry-run');
         $limit = max(0, (int) $this->option('limit'));
         $chunk = max(1, (int) $this->option('chunk'));
-        $matchExisting = !$this->option('skip-match-existing');
+        $deleteSource = (bool) $this->option('delete-source');
 
-        $query = Cement::query()->where('type', 'Nat')->orderBy('id');
+        $query = DB::table('nats')->orderBy('id');
+        $totalRows = (clone $query)->count();
+        $total = $limit > 0 ? min($limit, $totalRows) : $totalRows;
 
-        $totalLegacyRows = (clone $query)->count();
-        $total = $limit > 0 ? min($limit, $totalLegacyRows) : $totalLegacyRows;
+        if ($total === 0) {
+            $this->warn('Table nats kosong. Tidak ada data untuk dipindahkan.');
+            return self::SUCCESS;
+        }
 
         if ($limit > 0) {
             $query->limit($limit);
         }
 
-        if ($total === 0) {
-            $this->warn('No legacy Nat rows found in cements table.');
-
-            return self::SUCCESS;
-        }
-
-        $this->info('Legacy Nat rows found: ' . $total);
+        $this->info('Rows in nats to process: ' . $total);
         $this->line('Mode: ' . ($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
         $this->line('Chunk size: ' . $chunk);
-        $this->line('Match existing unmapped rows: ' . ($matchExisting ? 'yes' : 'no'));
+        $this->line('Delete source rows: ' . ($deleteSource ? 'yes' : 'no'));
 
         if (!$dryRun && !$this->option('force')) {
-            if (!$this->confirm('Proceed with migrating legacy Nat data into nats table?', true)) {
-                $this->warn('Migration cancelled.');
-
+            if (!$this->confirm('Lanjutkan migrasi legacy nat dari table nats ke cements?', true)) {
+                $this->warn('Migrasi dibatalkan.');
                 return self::SUCCESS;
             }
         }
@@ -64,84 +68,68 @@ class MigrateLegacyNatDataCommand extends Command
         $stats = [
             'processed' => 0,
             'created' => 0,
-            'updated' => 0,
-            'relinked' => 0,
+            'reused' => 0,
+            'repointed_calculations' => 0,
+            'repointed_recommendations' => 0,
+            'repointed_availabilities' => 0,
+            'source_deleted' => 0,
         ];
 
         $progress = $this->output->createProgressBar($total);
         $progress->start();
 
-        $processor = function (Collection $cements) use (&$stats, $progress, $dryRun, $matchExisting): void {
-            $legacyIds = $cements->pluck('id')->all();
-            $existing = Nat::query()->whereIn('legacy_cement_id', $legacyIds)->pluck('id', 'legacy_cement_id');
+        $processor = function ($natRows) use (&$stats, $progress, $dryRun, $deleteSource): void {
+            $idMap = [];
+            $sourceIds = [];
 
-            foreach ($cements as $cement) {
-                $payload = $this->mapCementToNatPayload($cement);
-                $hasExisting = $existing->has($cement->id);
-                $matchedNat = null;
+            foreach ($natRows as $natRow) {
+                $targetId = $this->findMatchingNatCementId($natRow);
 
-                if (!$hasExisting && $matchExisting) {
-                    $matchedNat = Nat::query()
-                        ->whereNull('legacy_cement_id')
-                        ->where('brand', $cement->brand)
-                        ->where('sub_brand', $cement->sub_brand)
-                        ->where('code', $cement->code)
-                        ->where('color', $cement->color)
-                        ->where('package_unit', $cement->package_unit)
-                        ->where('package_weight_net', $cement->package_weight_net)
-                        ->where('package_price', $cement->package_price)
-                        ->where('store', $cement->store)
-                        ->where('address', $cement->address)
-                        ->orderBy('id')
-                        ->first();
-                }
-
-                $action = 'created';
-                if ($hasExisting) {
-                    $action = 'updated';
-                } elseif ($matchedNat) {
-                    $action = 'relinked';
-                }
-
-                if ($dryRun) {
-                    $stats[$action]++;
-                    $stats['processed']++;
-                    $progress->advance();
-
-                    continue;
-                }
-
-                if ($hasExisting) {
-                    Nat::query()
-                        ->whereKey($existing[$cement->id])
-                        ->update($payload);
-                } elseif ($matchedNat) {
-                    $matchedNat->update(
-                        array_merge($payload, [
-                            'legacy_cement_id' => $cement->id,
-                        ]),
-                    );
+                if (!$targetId) {
+                    $payload = $this->mapNatRowToCementPayload($natRow);
+                    $targetId = $dryRun ? 0 : (int) DB::table('cements')->insertGetId($payload);
+                    $stats['created']++;
                 } else {
-                    Nat::query()->create(
-                        array_merge($payload, [
-                            'legacy_cement_id' => $cement->id,
-                        ]),
-                    );
+                    if (!$dryRun) {
+                        DB::table('cements')->where('id', $targetId)->update([
+                            'material_kind' => 'nat',
+                            'nat_name' => $natRow->nat_name ?: ($natRow->brand ?? 'Nat'),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                    $stats['reused']++;
                 }
 
-                $stats[$action]++;
+                $idMap[(int) $natRow->id] = (int) $targetId;
+                $sourceIds[] = (int) $natRow->id;
                 $stats['processed']++;
                 $progress->advance();
+            }
+
+            if ($dryRun) {
+                $this->countRepointCandidates($idMap, $stats);
+                if ($deleteSource) {
+                    $stats['source_deleted'] += count($sourceIds);
+                }
+                return;
+            }
+
+            $this->repointReferences($idMap, $stats);
+
+            if ($deleteSource && !empty($sourceIds)) {
+                $stats['source_deleted'] += DB::table('nats')->whereIn('id', $sourceIds)->delete();
             }
         };
 
         if ($limit > 0) {
-            $allRows = $query->get();
-            $allRows->chunk($chunk)->each($processor);
+            $rows = $query->get();
+            foreach ($rows->chunk($chunk) as $chunkRows) {
+                $processor($chunkRows);
+            }
         } else {
-            $query->chunkById($chunk, function ($cements) use ($processor) {
-                $processor($cements);
-            });
+            $query->chunkById($chunk, function ($rows) use ($processor) {
+                $processor($rows);
+            }, 'id');
         }
 
         $progress->finish();
@@ -151,51 +139,172 @@ class MigrateLegacyNatDataCommand extends Command
             ['Metric', 'Count'],
             [
                 ['Processed', $stats['processed']],
-                ['Created', $stats['created']],
-                ['Updated', $stats['updated']],
-                ['Relinked Existing', $stats['relinked']],
+                ['Created in cements', $stats['created']],
+                ['Reused existing cements rows', $stats['reused']],
+                ['Repointed brick_calculations.nat_id', $stats['repointed_calculations']],
+                ['Repointed recommended_combinations.nat_id', $stats['repointed_recommendations']],
+                ['Repointed store_material_availabilities', $stats['repointed_availabilities']],
+                ['Deleted rows from nats', $stats['source_deleted']],
             ],
         );
 
-        $legacyTotal = Cement::query()->where('type', 'Nat')->count();
-        $mappedTotal = Nat::query()->whereNotNull('legacy_cement_id')->count();
-        $unmappedTotal = Nat::query()->whereNull('legacy_cement_id')->count();
-        $missingMappings = max(0, $legacyTotal - $mappedTotal);
+        $natInCements = DB::table('cements')->where('material_kind', 'nat')->count();
+        $natInLegacyTable = Schema::hasTable('nats') ? DB::table('nats')->count() : 0;
 
         $this->table(
             ['Post-check', 'Count'],
             [
-                ['Legacy Nat rows (cements)', $legacyTotal],
-                ['Mapped Nat rows (nats.legacy_cement_id not null)', $mappedTotal],
-                ['Unmapped Nat rows (nats.legacy_cement_id null)', $unmappedTotal],
-                ['Missing mappings', $missingMappings],
+                ['Rows in cements (material_kind=nat)', $natInCements],
+                ['Remaining rows in nats', $natInLegacyTable],
             ],
         );
 
-        $this->info($dryRun ? 'Dry-run completed.' : 'Legacy Nat migration completed.');
+        $this->info($dryRun ? 'Dry-run selesai.' : 'Migrasi legacy nat selesai.');
 
         return self::SUCCESS;
     }
 
-    protected function mapCementToNatPayload(Cement $cement): array
+    private function countRepointCandidates(array $idMap, array &$stats): void
     {
-        return [
-            'nat_name' => $cement->cement_name ?: 'Nat',
-            'photo' => $cement->photo,
-            'brand' => $cement->brand,
-            'sub_brand' => $cement->sub_brand,
-            'code' => $cement->code,
-            'color' => $cement->color,
-            'package_unit' => $cement->package_unit,
-            'package_weight_gross' => $cement->package_weight_gross,
-            'package_weight_net' => $cement->package_weight_net,
-            'package_volume' => $cement->package_volume,
-            'store' => $cement->store,
-            'address' => $cement->address,
-            'store_location_id' => $cement->store_location_id,
-            'package_price' => $cement->package_price,
-            'price_unit' => $cement->price_unit,
-            'comparison_price_per_kg' => $cement->comparison_price_per_kg,
+        foreach ($idMap as $oldId => $newId) {
+            if ($newId <= 0 || $oldId === $newId) {
+                continue;
+            }
+
+            if (Schema::hasTable('brick_calculations') && Schema::hasColumn('brick_calculations', 'nat_id')) {
+                $stats['repointed_calculations'] += DB::table('brick_calculations')->where('nat_id', $oldId)->count();
+            }
+
+            if (
+                Schema::hasTable('recommended_combinations') &&
+                Schema::hasColumn('recommended_combinations', 'nat_id')
+            ) {
+                $stats['repointed_recommendations'] += DB::table('recommended_combinations')
+                    ->where('nat_id', $oldId)
+                    ->count();
+            }
+
+            if (
+                Schema::hasTable('store_material_availabilities') &&
+                Schema::hasColumn('store_material_availabilities', 'materialable_id') &&
+                Schema::hasColumn('store_material_availabilities', 'materialable_type')
+            ) {
+                $stats['repointed_availabilities'] += DB::table('store_material_availabilities')
+                    ->where('materialable_type', 'App\\Models\\Nat')
+                    ->where('materialable_id', $oldId)
+                    ->count();
+            }
+        }
+    }
+
+    private function repointReferences(array $idMap, array &$stats): void
+    {
+        foreach ($idMap as $oldId => $newId) {
+            if ($newId <= 0 || $oldId === $newId) {
+                continue;
+            }
+
+            if (Schema::hasTable('brick_calculations') && Schema::hasColumn('brick_calculations', 'nat_id')) {
+                $stats['repointed_calculations'] += DB::table('brick_calculations')
+                    ->where('nat_id', $oldId)
+                    ->update(['nat_id' => $newId]);
+            }
+
+            if (
+                Schema::hasTable('recommended_combinations') &&
+                Schema::hasColumn('recommended_combinations', 'nat_id')
+            ) {
+                $stats['repointed_recommendations'] += DB::table('recommended_combinations')
+                    ->where('nat_id', $oldId)
+                    ->update(['nat_id' => $newId]);
+            }
+
+            if (
+                Schema::hasTable('store_material_availabilities') &&
+                Schema::hasColumn('store_material_availabilities', 'materialable_id') &&
+                Schema::hasColumn('store_material_availabilities', 'materialable_type')
+            ) {
+                $stats['repointed_availabilities'] += DB::table('store_material_availabilities')
+                    ->where('materialable_type', 'App\\Models\\Nat')
+                    ->where('materialable_id', $oldId)
+                    ->update(['materialable_id' => $newId]);
+            }
+        }
+    }
+
+    private function findMatchingNatCementId(object $natRow): ?int
+    {
+        $natName = $natRow->nat_name ?: ($natRow->brand ?? 'Nat');
+
+        $query = DB::table('cements')->where('material_kind', 'nat');
+        $query->where(function ($q) use ($natName) {
+            $q->where('nat_name', $natName)->orWhere('cement_name', $natName);
+        });
+
+        $this->applyNullableWhere($query, 'type', $natRow->type ?? null);
+        $this->applyNullableWhere($query, 'brand', $natRow->brand ?? null);
+        $this->applyNullableWhere($query, 'sub_brand', $natRow->sub_brand ?? null);
+        $this->applyNullableWhere($query, 'code', $natRow->code ?? null);
+        $this->applyNullableWhere($query, 'color', $natRow->color ?? null);
+        $this->applyNullableWhere($query, 'package_unit', $natRow->package_unit ?? null);
+        $this->applyNullableWhere($query, 'package_weight_net', $natRow->package_weight_net ?? null);
+        $this->applyNullableWhere($query, 'package_price', $natRow->package_price ?? null);
+        $this->applyNullableWhere($query, 'store', $natRow->store ?? null);
+        $this->applyNullableWhere($query, 'address', $natRow->address ?? null);
+
+        if (Schema::hasColumn('cements', 'store_location_id')) {
+            $this->applyNullableWhere($query, 'store_location_id', $natRow->store_location_id ?? null);
+        }
+
+        $id = $query->value('id');
+
+        return $id ? (int) $id : null;
+    }
+
+    private function applyNullableWhere($query, string $column, mixed $value): void
+    {
+        if ($value === null || $value === '') {
+            $query->whereNull($column);
+            return;
+        }
+
+        $query->where($column, $value);
+    }
+
+    private function mapNatRowToCementPayload(object $natRow): array
+    {
+        $natName = $natRow->nat_name ?: ($natRow->brand ?? 'Nat');
+
+        $payload = [
+            'cement_name' => $natName,
+            'nat_name' => $natName,
+            'material_kind' => 'nat',
+            'type' => $natRow->type ?? null,
+            'photo' => $natRow->photo ?? null,
+            'brand' => $natRow->brand ?? null,
+            'sub_brand' => $natRow->sub_brand ?? null,
+            'code' => $natRow->code ?? null,
+            'color' => $natRow->color ?? null,
+            'package_unit' => $natRow->package_unit ?? null,
+            'package_weight_gross' => $natRow->package_weight_gross ?? null,
+            'package_weight_net' => $natRow->package_weight_net ?? null,
+            'package_volume' => $natRow->package_volume ?? null,
+            'store' => $natRow->store ?? null,
+            'address' => $natRow->address ?? null,
+            'store_location_id' => $natRow->store_location_id ?? null,
+            'package_price' => $natRow->package_price ?? null,
+            'price_unit' => $natRow->price_unit ?? null,
+            'comparison_price_per_kg' => $natRow->comparison_price_per_kg ?? null,
+            'created_at' => $natRow->created_at ?? now(),
+            'updated_at' => $natRow->updated_at ?? now(),
         ];
+
+        $columns = Schema::getColumnListing('cements');
+
+        return array_filter(
+            $payload,
+            fn($value, $key) => in_array($key, $columns, true),
+            ARRAY_FILTER_USE_BOTH,
+        );
     }
 }

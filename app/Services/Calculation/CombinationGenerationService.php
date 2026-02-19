@@ -78,6 +78,320 @@ class CombinationGenerationService
         return array_values(array_unique($tokens));
     }
 
+    protected function allowedMaterialCustomizeFields(): array
+    {
+        return [
+            'brick' => ['brand', 'dimension'],
+            'cement' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+            'sand' => ['brand'],
+            'cat' => ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+            'ceramic' => ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
+            'nat' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+        ];
+    }
+
+    protected function normalizeMaterialCustomizeFilters($value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $allowed = $this->allowedMaterialCustomizeFields();
+        $normalized = [];
+        foreach ($value as $materialKey => $fieldMap) {
+            $material = trim((string) $materialKey);
+            if ($material === '' || !isset($allowed[$material]) || !is_array($fieldMap)) {
+                continue;
+            }
+
+            $normalizedFieldMap = [];
+            foreach ($allowed[$material] as $fieldKey) {
+                $tokens = $this->normalizeMaterialTypeFilterValues($fieldMap[$fieldKey] ?? null);
+                if (empty($tokens)) {
+                    continue;
+                }
+                $normalizedFieldMap[$fieldKey] = count($tokens) === 1 ? $tokens[0] : array_values($tokens);
+            }
+
+            if (!empty($normalizedFieldMap)) {
+                $normalized[$material] = $normalizedFieldMap;
+            }
+        }
+
+        return $normalized;
+    }
+
+    protected function normalizeComparableText(?string $value): string
+    {
+        $text = strtolower(trim((string) $value));
+        if ($text === '') {
+            return '';
+        }
+
+        $text = str_replace(['Ãƒâ€”', 'Ã—'], 'x', $text);
+        $text = preg_replace('/\s+/', ' ', $text);
+        return trim((string) $text);
+    }
+
+    protected function extractAllFloats(?string $value): array
+    {
+        $text = str_replace(',', '.', (string) $value);
+        if (!preg_match_all('/-?\d+(?:\.\d+)?/', $text, $matches)) {
+            return [];
+        }
+
+        return array_values(array_map(static fn($item) => (float) $item, $matches[0]));
+    }
+
+    protected function extractFirstFloat(?string $value): ?float
+    {
+        $numbers = $this->extractAllFloats($value);
+        return $numbers[0] ?? null;
+    }
+
+    protected function floatsEqual(?float $left, ?float $right, float $epsilon = 0.0001): bool
+    {
+        if ($left === null || $right === null) {
+            return false;
+        }
+
+        return abs($left - $right) <= $epsilon;
+    }
+
+    protected function normalizeUnitText(?string $value): string
+    {
+        $text = strtolower((string) $value);
+        $text = preg_replace('/[-+0-9\.,\s]/', '', $text);
+        return trim((string) $text);
+    }
+
+    protected function getMaterialCustomizeTextValue(string $materialKey, string $fieldKey, $model): ?string
+    {
+        if (!$model) {
+            return null;
+        }
+
+        return match ($materialKey . ':' . $fieldKey) {
+            'brick:brand',
+            'sand:brand',
+            'cement:brand',
+            'nat:brand',
+            'cat:brand',
+            'ceramic:brand' => (string) ($model->brand ?? ''),
+            'cement:sub_brand',
+            'nat:sub_brand',
+            'cat:sub_brand',
+            'ceramic:sub_brand' => (string) ($model->sub_brand ?? ''),
+            'cement:code',
+            'nat:code',
+            'ceramic:code' => (string) ($model->code ?? ''),
+            'cement:color',
+            'nat:color',
+            'ceramic:color' => (string) ($model->color ?? ''),
+            'cat:color_code' => (string) ($model->color_code ?? ''),
+            'cat:color_name' => (string) ($model->color_name ?? ''),
+            'cement:package_unit',
+            'nat:package_unit',
+            'cat:package_unit' => (string) ($model->package_unit ?? ''),
+            'ceramic:surface' => (string) ($model->surface ?? ''),
+            default => null,
+        };
+    }
+
+    protected function matchesMaterialCustomizeField(string $materialKey, string $fieldKey, $model, array $filterValues): bool
+    {
+        if (!$model) {
+            return false;
+        }
+
+        foreach ($filterValues as $rawFilterValue) {
+            $filterValue = trim((string) $rawFilterValue);
+            if ($filterValue === '') {
+                continue;
+            }
+
+            if ($fieldKey === 'dimension') {
+                $parts = $this->extractAllFloats($filterValue);
+                if ($materialKey === 'brick') {
+                    if (count($parts) >= 3) {
+                        $actual = [
+                            (float) ($model->dimension_length ?? 0),
+                            (float) ($model->dimension_width ?? 0),
+                            (float) ($model->dimension_height ?? 0),
+                        ];
+                        if (
+                            $this->floatsEqual($parts[0], $actual[0]) &&
+                            $this->floatsEqual($parts[1], $actual[1]) &&
+                            $this->floatsEqual($parts[2], $actual[2])
+                        ) {
+                            return true;
+                        }
+                    }
+                    continue;
+                }
+
+                if ($materialKey === 'ceramic' && count($parts) >= 2) {
+                    $actual = [
+                        (float) min((float) ($model->dimension_length ?? 0), (float) ($model->dimension_width ?? 0)),
+                        (float) max((float) ($model->dimension_length ?? 0), (float) ($model->dimension_width ?? 0)),
+                    ];
+                    $expected = [(float) min($parts[0], $parts[1]), (float) max($parts[0], $parts[1])];
+                    if ($this->floatsEqual($expected[0], $actual[0]) && $this->floatsEqual($expected[1], $actual[1])) {
+                        return true;
+                    }
+                }
+                continue;
+            }
+
+            if ($fieldKey === 'package_weight_net') {
+                $expectedWeight = $this->extractFirstFloat($filterValue);
+                $actualWeight = isset($model->package_weight_net) ? (float) $model->package_weight_net : null;
+                if ($this->floatsEqual($expectedWeight, $actualWeight)) {
+                    return true;
+                }
+                continue;
+            }
+
+            if ($fieldKey === 'volume_display' && $materialKey === 'cat') {
+                $expectedVolume = $this->extractFirstFloat($filterValue);
+                $actualVolume = isset($model->volume) ? (float) $model->volume : null;
+                if (!$this->floatsEqual($expectedVolume, $actualVolume)) {
+                    continue;
+                }
+
+                $expectedUnit = $this->normalizeUnitText($filterValue);
+                if ($expectedUnit === '') {
+                    return true;
+                }
+
+                $actualUnit = $this->normalizeComparableText((string) ($model->volume_unit ?? ''));
+                if ($actualUnit !== '' && str_contains($expectedUnit, str_replace(' ', '', $actualUnit))) {
+                    return true;
+                }
+                continue;
+            }
+
+            $actualText = $this->normalizeComparableText($this->getMaterialCustomizeTextValue($materialKey, $fieldKey, $model));
+            $expectedText = $this->normalizeComparableText($filterValue);
+            if ($actualText !== '' && $actualText === $expectedText) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function matchesMaterialCustomizeFilters(string $materialKey, $model, array $materialCustomizeFilters): bool
+    {
+        $fieldMap = $materialCustomizeFilters[$materialKey] ?? [];
+        if (!is_array($fieldMap) || empty($fieldMap)) {
+            return true;
+        }
+
+        if (!$model) {
+            return false;
+        }
+
+        foreach ($fieldMap as $fieldKey => $rawValue) {
+            $filterValues = $this->normalizeMaterialTypeFilterValues($rawValue);
+            if (empty($filterValues)) {
+                continue;
+            }
+            if (!$this->matchesMaterialCustomizeField($materialKey, (string) $fieldKey, $model, $filterValues)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected function combinationMatchesMaterialCustomizeFilters(array $combination, array $materialCustomizeFilters): bool
+    {
+        foreach (['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'] as $materialKey) {
+            if (!$this->matchesMaterialCustomizeFilters($materialKey, $combination[$materialKey] ?? null, $materialCustomizeFilters)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected function filterFlatCombinationsByMaterialCustomize(array $combinations, array $requestData): array
+    {
+        $materialCustomizeFilters = $this->resolveApplicableMaterialCustomizeFilters($requestData);
+        if (empty($materialCustomizeFilters)) {
+            return $combinations;
+        }
+
+        return array_values(
+            array_filter($combinations, function ($combo) use ($materialCustomizeFilters) {
+                return is_array($combo) && $this->combinationMatchesMaterialCustomizeFilters($combo, $materialCustomizeFilters);
+            }),
+        );
+    }
+
+    protected function filterGroupedCombinationsByMaterialCustomize(array $groupedCombinations, array $requestData): array
+    {
+        $materialCustomizeFilters = $this->resolveApplicableMaterialCustomizeFilters($requestData);
+        if (empty($materialCustomizeFilters)) {
+            return $groupedCombinations;
+        }
+
+        $filtered = [];
+        foreach ($groupedCombinations as $label => $items) {
+            if (!is_array($items)) {
+                continue;
+            }
+            $rowItems = array_values(
+                array_filter($items, function ($combo) use ($materialCustomizeFilters) {
+                    return is_array($combo) &&
+                        $this->combinationMatchesMaterialCustomizeFilters($combo, $materialCustomizeFilters);
+                }),
+            );
+            if (!empty($rowItems)) {
+                $filtered[$label] = $rowItems;
+            }
+        }
+
+        return $filtered;
+    }
+
+    protected function resolveApplicableMaterialCustomizeFilters(array $requestData): array
+    {
+        $allFilters = $this->normalizeMaterialCustomizeFilters($requestData['material_customize_filters'] ?? []);
+        if (empty($allFilters)) {
+            return [];
+        }
+
+        $workType = (string) ($requestData['work_type'] ?? 'brick_half');
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+
+        $filtered = [];
+        foreach ($requiredMaterials as $materialKey) {
+            if (!isset($allFilters[$materialKey]) || !is_array($allFilters[$materialKey])) {
+                continue;
+            }
+            $filtered[$materialKey] = $allFilters[$materialKey];
+        }
+
+        return $filtered;
+    }
+
+    protected function filterIterableByMaterialCustomize(iterable $items, string $materialKey, array $materialCustomizeFilters): iterable
+    {
+        if (empty($materialCustomizeFilters[$materialKey] ?? [])) {
+            return $items;
+        }
+
+        return (function () use ($items, $materialKey, $materialCustomizeFilters) {
+            foreach ($items as $item) {
+                if ($this->matchesMaterialCustomizeFilters($materialKey, $item, $materialCustomizeFilters)) {
+                    yield $item;
+                }
+            }
+        })();
+    }
+
     protected function normalizeNatTypeFilterValues($value): array
     {
         $values = $this->normalizeMaterialTypeFilterValues($value);
@@ -271,7 +585,7 @@ class CombinationGenerationService
 
             $storeResults = $this->getStoreBasedCombinations($request, $constraints);
             if (!empty($storeResults)) {
-                return $storeResults;
+                return $this->filterGroupedCombinationsByMaterialCustomize($storeResults, $request->all());
             }
 
             Log::info('Store-based combinations empty', [
@@ -289,6 +603,7 @@ class CombinationGenerationService
 
         if (count($requestedFilters) === 1 && $requestedFilters[0] === 'best') {
             $bestCombinations = $this->getBestCombinations($brick, $request->all(), $fixedCeramic);
+            $bestCombinations = $this->filterFlatCombinationsByMaterialCustomize($bestCombinations, $request->all());
             $finalResults = [];
             foreach ($bestCombinations as $index => $combo) {
                 $label = 'Preferensi ' . ($index + 1);
@@ -317,6 +632,10 @@ class CombinationGenerationService
             }
 
             $combinations = $this->getCombinationsByFilter($brick, $request->all(), $filter, $fixedCeramic);
+            $combinations = $this->filterFlatCombinationsByMaterialCustomize($combinations, $request->all());
+            if (empty($combinations)) {
+                continue;
+            }
 
             foreach ($combinations as $index => $combo) {
                 $number = $index + 1;
@@ -2129,12 +2448,28 @@ class CombinationGenerationService
             'ceramic_thickness' => $request['ceramic_thickness'] ?? 0, // For Grout Tile formula (from form input)
         ];
 
-        $cats = $cats ?? collect();
-        $ceramics = $ceramics ?? collect();
-        $nats = $nats ?? collect();
+        $requiredMaterials = $this->resolveRequiredMaterials($workType);
+        $materialCustomizeFilters = $this->resolveApplicableMaterialCustomizeFilters($request);
+        if (
+            in_array('brick', $requiredMaterials, true) &&
+            !$this->matchesMaterialCustomizeFilters('brick', $brick, $materialCustomizeFilters)
+        ) {
+            return [];
+        }
+
+        $cements = $this->filterIterableByMaterialCustomize($cements, 'cement', $materialCustomizeFilters);
+        $sands = $this->filterIterableByMaterialCustomize($sands, 'sand', $materialCustomizeFilters);
+        $cats = $this->filterIterableByMaterialCustomize($cats ?? collect(), 'cat', $materialCustomizeFilters);
+        $ceramics = $this->filterIterableByMaterialCustomize($ceramics ?? collect(), 'ceramic', $materialCustomizeFilters);
+        $nats = $this->filterIterableByMaterialCustomize($nats ?? collect(), 'nat', $materialCustomizeFilters);
 
         if ($workType === 'grout_tile') {
-            $ceramics = collect([$this->buildGroutTileFallbackCeramic($paramsBase)]);
+            $fallbackCeramic = $this->buildGroutTileFallbackCeramic($paramsBase);
+            $ceramics = $this->filterIterableByMaterialCustomize(
+                [$fallbackCeramic],
+                'ceramic',
+                $materialCustomizeFilters,
+            );
         }
 
         // Determine sorting direction based on group label for optimization
@@ -2228,7 +2563,7 @@ class CombinationGenerationService
 
         if (in_array('cat', $requiredMaterials, true)) {
             foreach ($cats as $cat) {
-                if ($cat->purchase_price <= 0) {
+                if (!$this->hasCompleteCatCalculationData($cat)) {
                     continue;
                 }
 
@@ -2248,7 +2583,7 @@ class CombinationGenerationService
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
                     ];
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     continue;
                 }
             }
@@ -2262,9 +2597,18 @@ class CombinationGenerationService
             // Note: ceramic dimensions come from request params (user input), not from ceramic model
             foreach ($ceramics as $ceramic) {
                 foreach ($nats as $nat) {
+                    if (!$this->hasCompleteNatCalculationData($nat)) {
+                        continue;
+                    }
+
+                    $natId = $this->extractNatIdFromModel($nat);
+                    if ($natId === null) {
+                        continue;
+                    }
+
                     $params = array_merge($paramsBase, [
                         'ceramic_id' => $ceramic->id,
-                        'nat_id' => $this->extractNatIdFromModel($nat),
+                        'nat_id' => $natId,
                         // ceramic_length, ceramic_width, ceramic_thickness already in paramsBase from request
                     ]);
 
@@ -2283,7 +2627,7 @@ class CombinationGenerationService
                             'result' => $result,
                             'total_cost' => $result['grand_total'],
                         ];
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         Log::warning('GroutTile calculation failed', [
                             'ceramic_id' => $ceramic->id,
                             'nat_id' => $params['nat_id'] ?? null,
@@ -2303,8 +2647,12 @@ class CombinationGenerationService
         ) {
             // Cement + Ceramic only (e.g., adhesive_mix / pasang keramik saja)
             foreach ($ceramics as $ceramic) {
+                if (!$this->hasCompleteCeramicCalculationData($ceramic, $workType)) {
+                    continue;
+                }
+
                 foreach ($cements as $cement) {
-                    if ($cement->package_weight_net <= 0) {
+                    if (!$this->hasCompleteCementCalculationData($cement)) {
                         continue;
                     }
 
@@ -2328,14 +2676,14 @@ class CombinationGenerationService
                             'result' => $result,
                             'total_cost' => $result['grand_total'],
                         ];
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         continue;
                     }
                 }
             }
         } elseif (in_array('cement', $requiredMaterials, true) && !in_array('sand', $requiredMaterials, true)) {
             foreach ($cements as $cement) {
-                if ($cement->package_weight_net <= 0) {
+                if (!$this->hasCompleteCementCalculationData($cement)) {
                     continue;
                 }
 
@@ -2355,21 +2703,18 @@ class CombinationGenerationService
                         'result' => $result,
                         'total_cost' => $result['grand_total'],
                     ];
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     continue;
                 }
             }
         } else {
             foreach ($cements as $cement) {
-                if ($cement->package_weight_net <= 0) {
+                if (!$this->hasCompleteCementCalculationData($cement)) {
                     continue;
                 }
 
                 foreach ($sands as $sand) {
-                    $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
-                    $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
-
-                    if (!$hasPricePerM3 && !$hasPackageData) {
+                    if (!$this->hasCompleteSandCalculationData($sand)) {
                         continue;
                     }
 
@@ -2393,7 +2738,7 @@ class CombinationGenerationService
                             'result' => $result,
                             'total_cost' => $result['grand_total'],
                         ];
-                    } catch (\Exception $e) {
+                    } catch (\Throwable $e) {
                         continue;
                     }
                 }
@@ -2727,7 +3072,7 @@ class CombinationGenerationService
                         'filter_type' => 'common',
                         'frequency' => $combo->frequency,
                     ];
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     continue;
                 }
             }
@@ -2777,7 +3122,7 @@ class CombinationGenerationService
                         'filter_type' => 'common',
                         'frequency' => $combo->frequency,
                     ];
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     continue;
                 }
             }
@@ -2843,7 +3188,7 @@ class CombinationGenerationService
                         'filter_type' => 'common',
                         'frequency' => $combo->frequency,
                     ];
-                } catch (\Exception $e) {
+                } catch (\Throwable $e) {
                     continue;
                 }
             }
@@ -2920,7 +3265,7 @@ class CombinationGenerationService
                     'filter_type' => 'common',
                     'frequency' => $combo->frequency,
                 ];
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 continue;
             }
         }
@@ -3307,6 +3652,66 @@ class CombinationGenerationService
         return isset($nat->id) ? (int) $nat->id : null;
     }
 
+    protected function hasCompleteCementCalculationData($cement): bool
+    {
+        if (!$cement) {
+            return false;
+        }
+
+        return (float) ($cement->package_weight_net ?? 0) > 0
+            && (float) ($cement->package_price ?? 0) > 0;
+    }
+
+    protected function hasCompleteSandCalculationData($sand): bool
+    {
+        if (!$sand) {
+            return false;
+        }
+
+        $hasPricePerM3 = (float) ($sand->comparison_price_per_m3 ?? 0) > 0;
+        $hasPackageData = (float) ($sand->package_volume ?? 0) > 0
+            && (float) ($sand->package_price ?? 0) > 0;
+
+        return $hasPricePerM3 || $hasPackageData;
+    }
+
+    protected function hasCompleteCatCalculationData($cat): bool
+    {
+        if (!$cat) {
+            return false;
+        }
+
+        return (float) ($cat->purchase_price ?? 0) > 0
+            && (float) ($cat->package_weight_net ?? 0) > 0;
+    }
+
+    protected function hasCompleteCeramicCalculationData($ceramic, string $workType): bool
+    {
+        if (!$ceramic) {
+            return false;
+        }
+
+        if ($workType === 'grout_tile') {
+            return true;
+        }
+
+        return (float) ($ceramic->dimension_length ?? 0) > 0
+            && (float) ($ceramic->dimension_width ?? 0) > 0
+            && (float) ($ceramic->pieces_per_package ?? 0) > 0
+            && (float) ($ceramic->price_per_package ?? 0) > 0;
+    }
+
+    protected function hasCompleteNatCalculationData($nat): bool
+    {
+        if (!$nat) {
+            return false;
+        }
+
+        return $this->extractNatIdFromModel($nat) !== null
+            && (float) ($nat->package_weight_net ?? 0) > 0
+            && (float) ($nat->package_price ?? 0) > 0;
+    }
+
     /**
      * Get filter label for display
      */
@@ -3544,22 +3949,33 @@ class CombinationGenerationService
         string $groupLabel,
     ) {
         foreach ($ceramics as $ceramic) {
+            if (!$this->hasCompleteCeramicCalculationData($ceramic, $workType)) {
+                continue;
+            }
+
             foreach ($nats as $nat) {
+                if (!$this->hasCompleteNatCalculationData($nat)) {
+                    continue;
+                }
+
+                $natId = $this->extractNatIdFromModel($nat);
+                if ($natId === null) {
+                    continue;
+                }
+
                 foreach ($cements as $cement) {
-                    if ($cement->package_weight_net <= 0) {
+                    if (!$this->hasCompleteCementCalculationData($cement)) {
                         continue;
                     }
 
                     foreach ($sands as $sand) {
-                        $hasPricePerM3 = $sand->comparison_price_per_m3 > 0;
-                        $hasPackageData = $sand->package_volume > 0 && $sand->package_price > 0;
-                        if (!$hasPricePerM3 && !$hasPackageData) {
+                        if (!$this->hasCompleteSandCalculationData($sand)) {
                             continue;
                         }
 
                         $params = array_merge($paramsBase, [
                             'ceramic_id' => $ceramic->id,
-                            'nat_id' => $this->extractNatIdFromModel($nat),
+                            'nat_id' => $natId,
                             'cement_id' => $cement->id,
                             'sand_id' => $sand->id,
                         ]);
@@ -3582,7 +3998,7 @@ class CombinationGenerationService
                                 'total_cost' => $result['grand_total'],
                                 'filter_type' => $groupLabel,
                             ];
-                        } catch (\Exception $e) {
+                        } catch (\Throwable $e) {
                             continue;
                         }
                     }
@@ -3616,9 +4032,3 @@ class CombinationGenerationService
         return $results;
     }
 }
-
-
-
-
-
-

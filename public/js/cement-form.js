@@ -1,6 +1,7 @@
 function initCementForm(root) {
     const scope = root || document;
     const form = scope.querySelector('#cementForm');
+    const autocompleteKinds = encodeURIComponent('cement,nat');
     
     // Idempotent guard
     if (!form || form.__cementFormInited) {
@@ -162,19 +163,19 @@ function initCementForm(root) {
 
             if (field === 'store') {
                 const materialType = (term === '' || term.length === 0) ? 'cement' : 'all';
-                url = `/api/cements/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
+                url = `/api/cements/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}&kinds=${autocompleteKinds}`;
             }
             else if (field === 'address') {
                 const storeInput = getEl('store');
                 const storeVal = storeInput ? storeInput.value : '';
                 if (storeVal) {
-                    url = `/api/cements/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeVal)}`;
+                    url = `/api/cements/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeVal)}&kinds=${autocompleteKinds}`;
                 } else {
-                    url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+                    url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20&kinds=${autocompleteKinds}`;
                 }
             }
             else {
-                url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+                url = `/api/cements/field-values/${field}?search=${encodeURIComponent(term)}&limit=20&kinds=${autocompleteKinds}`;
 
                 if (['sub_brand', 'code', 'color', 'dimension_length', 'dimension_width', 'dimension_height', 'package_weight_gross'].includes(field)) {
                     const brandInput = getEl('brand');

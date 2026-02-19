@@ -10,6 +10,7 @@ use App\Models\MaterialSetting;
 use App\Models\Nat;
 use App\Models\Sand;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class MaterialController extends Controller
 {
@@ -17,39 +18,34 @@ class MaterialController extends Controller
     {
         // Load ALL materials data (not filtered)
         // JavaScript will handle showing/hiding tabs based on checkbox
-        $allSettings = MaterialSetting::query()
-            ->get()
-            ->sortBy(function ($setting) {
-                return MaterialSetting::getMaterialLabel($setting->material_type);
-            })
-            ->values();
+        $allSettings = $this->getDisplayMaterialSettings();
 
         $materials = [];
         $grandTotal = 0;
 
         // Determine active tab from request or default to the first one
-        $activeTab = $request->query('tab');
+        $activeTab = $this->normalizeDisplayMaterialType((string) $request->query('tab', ''));
 
         // If no tab is specified, we'll load the first one by default.
         // However, we don't know the user's preference order on server-side.
         // We'll trust that if 'tab' is missing, we load the first one in the list.
-        $firstType = $allSettings->first()->material_type ?? 'brick';
+        $firstType = $this->normalizeDisplayMaterialType((string) ($allSettings->first()->material_type ?? 'brick'));
         $targetTab = $activeTab ?: $firstType;
 
         foreach ($allSettings as $setting) {
-            $type = $setting->material_type;
+            $type = $this->normalizeDisplayMaterialType((string) $setting->material_type);
 
-            $dbCount = $this->countMaterialRecordsByType($type);
+            $dbCount = $this->countDisplayMaterialRecordsByType($type);
             $grandTotal += $dbCount;
 
             // Get active letters for this material type
-            $activeLetters = $this->getActiveLetters($type);
+            $activeLetters = $this->getDisplayActiveLetters($type);
 
             // Lazy Load Logic: Only fetch data if it's the target tab
             $isLoaded = $type === $targetTab;
 
             if ($isLoaded) {
-                $data = $this->getMaterialData($type, $request);
+                $data = $this->getDisplayMaterialData($type, $request);
             } else {
                 // Return empty collection for non-active tabs to avoid heavy queries
                 $data = collect();
@@ -71,8 +67,10 @@ class MaterialController extends Controller
 
     public function fetchTab(Request $request, $type)
     {
+        $displayType = $this->normalizeDisplayMaterialType((string) $type);
+
         // Validate type
-        if (!$this->isSupportedMaterialType((string) $type)) {
+        if (!$this->isSupportedDisplayMaterialType($displayType)) {
             abort(404);
         }
 
@@ -81,25 +79,206 @@ class MaterialController extends Controller
         // Ideally, grandTotal should be passed from the main view or recalculated.
         // Recalculating is cheap (count queries).
         $grandTotal = 0;
-        $allSettings = MaterialSetting::query()->get();
+        $allSettings = $this->getDisplayMaterialSettings();
         foreach ($allSettings as $setting) {
-            $grandTotal += $this->countMaterialRecordsByType((string) $setting->material_type);
+            $grandTotal += $this->countDisplayMaterialRecordsByType(
+                $this->normalizeDisplayMaterialType((string) $setting->material_type),
+            );
         }
 
-        $data = $this->getMaterialData($type, $request);
-        $dbCount = $this->countMaterialRecordsByType((string) $type);
+        $data = $this->getDisplayMaterialData($displayType, $request);
+        $dbCount = $this->countDisplayMaterialRecordsByType($displayType);
 
         $material = [
-            'type' => $type,
-            'label' => MaterialSetting::getMaterialLabel($type),
+            'type' => $displayType,
+            'label' => MaterialSetting::getMaterialLabel($displayType),
             'data' => $data,
             'count' => $data->count(),
             'db_count' => $dbCount,
-            'active_letters' => $this->getActiveLetters($type),
+            'active_letters' => $this->getDisplayActiveLetters($displayType),
             'is_loaded' => true,
         ];
 
         return view('materials.partials.table', compact('material', 'grandTotal'));
+    }
+
+    private function normalizeDisplayMaterialType(string $type): string
+    {
+        return $type === 'nat' ? 'cement' : $type;
+    }
+
+    private function getDisplayMaterialSettings(): Collection
+    {
+        return MaterialSetting::query()
+            ->where('material_type', '!=', 'nat')
+            ->get()
+            ->sortBy(function ($setting) {
+                $type = $this->normalizeDisplayMaterialType((string) $setting->material_type);
+
+                return MaterialSetting::getMaterialLabel($type);
+            })
+            ->values();
+    }
+
+    private function supportedDisplayMaterialTypes(): array
+    {
+        return $this->getDisplayMaterialSettings()
+            ->pluck('material_type')
+            ->map(fn($type) => $this->normalizeDisplayMaterialType((string) $type))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function isSupportedDisplayMaterialType(string $type): bool
+    {
+        return in_array($type, $this->supportedDisplayMaterialTypes(), true);
+    }
+
+    private function countDisplayMaterialRecordsByType(string $type): int
+    {
+        if ($type === 'cement') {
+            return Cement::count() + Nat::count();
+        }
+
+        return $this->countMaterialRecordsByType($type);
+    }
+
+    private function getDisplayActiveLetters(string $type): array
+    {
+        if ($type !== 'cement') {
+            return $this->getActiveLetters($type);
+        }
+
+        return collect(array_merge($this->getActiveLetters('cement'), $this->getActiveLetters('nat')))
+            ->filter(fn($letter) => filled($letter))
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+    }
+
+    private function getDisplayMaterialData(string $type, Request $request): Collection
+    {
+        if ($type === 'cement') {
+            return $this->getMergedCementAndNatData($request);
+        }
+
+        $data = $this->getMaterialData($type, $request);
+
+        if ($data instanceof Collection) {
+            return $data;
+        }
+
+        return collect();
+    }
+
+    private function getMergedCementAndNatData(Request $request): Collection
+    {
+        $cementRows = ($this->getMaterialData('cement', $request) ?? collect())->map(function ($row) {
+            $row->row_material_type = 'cement';
+
+            return $row;
+        });
+
+        $natRows = ($this->getMaterialData('nat', $request) ?? collect())->map(function ($row) {
+            $row->row_material_type = 'nat';
+
+            return $row;
+        });
+
+        return $this->sortMergedCementAndNatRows($cementRows->concat($natRows), $request)->values();
+    }
+
+    private function sortMergedCementAndNatRows(Collection $rows, Request $request): Collection
+    {
+        $sortBy = (string) $request->get('sort_by', '');
+        $sortDirection = strtolower((string) $request->get('sort_direction', 'asc'));
+        $sortDirection = in_array($sortDirection, ['asc', 'desc'], true) ? $sortDirection : 'asc';
+
+        $allowedSortColumns = [
+            'type',
+            'brand',
+            'sub_brand',
+            'code',
+            'color',
+            'package_unit',
+            'package_weight_net',
+            'store',
+            'address',
+            'package_price',
+            'comparison_price_per_kg',
+        ];
+        if ($sortBy !== '' && !in_array($sortBy, $allowedSortColumns, true)) {
+            $sortBy = '';
+        }
+
+        $defaultColumns = [
+            'type',
+            'brand',
+            'sub_brand',
+            'code',
+            'color',
+            'package_unit',
+            'package_weight_net',
+            'store',
+            'address',
+            'package_price',
+            'comparison_price_per_kg',
+            'id',
+        ];
+
+        $sortColumns = $defaultColumns;
+        if ($sortBy !== '') {
+            $sortColumns = array_merge([$sortBy], array_values(array_diff($defaultColumns, [$sortBy])));
+        }
+
+        return $rows->sort(function ($left, $right) use ($sortColumns, $sortBy, $sortDirection) {
+            foreach ($sortColumns as $column) {
+                $leftValue = $left->{$column} ?? null;
+                $rightValue = $right->{$column} ?? null;
+
+                $comparison = $this->compareNullableValues($leftValue, $rightValue);
+                if ($comparison === 0) {
+                    continue;
+                }
+
+                $direction = ($sortBy !== '' && $column === $sortBy) ? $sortDirection : 'asc';
+
+                return $direction === 'desc' ? -$comparison : $comparison;
+            }
+
+            $leftMaterialType = (string) ($left->row_material_type ?? $left->material_kind ?? 'cement');
+            $rightMaterialType = (string) ($right->row_material_type ?? $right->material_kind ?? 'cement');
+            $materialTypeComparison = strcmp($leftMaterialType, $rightMaterialType);
+            if ($materialTypeComparison !== 0) {
+                return $materialTypeComparison;
+            }
+
+            return ((int) ($left->id ?? 0)) <=> ((int) ($right->id ?? 0));
+        })->values();
+    }
+
+    private function compareNullableValues($left, $right): int
+    {
+        $leftIsEmpty = is_null($left) || trim((string) $left) === '';
+        $rightIsEmpty = is_null($right) || trim((string) $right) === '';
+
+        if ($leftIsEmpty && $rightIsEmpty) {
+            return 0;
+        }
+        if ($leftIsEmpty) {
+            return 1;
+        }
+        if ($rightIsEmpty) {
+            return -1;
+        }
+
+        if (is_numeric($left) && is_numeric($right)) {
+            return (float) $left <=> (float) $right;
+        }
+
+        return strnatcasecmp((string) $left, (string) $right);
     }
 
     public function typeSuggestions(Request $request)
@@ -113,13 +292,14 @@ class MaterialController extends Controller
             'cat' => 'cat',
             'semen' => 'cement',
             'cement' => 'cement',
-            'nat' => 'nat',
-            'grout' => 'nat',
+            'nat' => 'cement',
+            'grout' => 'cement',
             'pasir' => 'sand',
             'sand' => 'sand',
             'keramik' => 'ceramic',
             'ceramic' => 'ceramic',
         ];
+        $normalizeSuggestionMaterialType = static fn(string $type): string => $type === 'nat' ? 'cement' : $type;
         $materialTokens = [];
         $searchTokens = [];
         foreach ($tokens as $token) {
@@ -161,8 +341,9 @@ class MaterialController extends Controller
                     ->pluck('type');
 
                 foreach ($types as $type) {
+                    $normalizedMaterialType = $normalizeSuggestionMaterialType($materialType);
                     $items->push([
-                        'material_type' => $materialType,
+                        'material_type' => $normalizedMaterialType,
                         'type' => $type,
                         'label' => $type,
                     ]);
@@ -177,7 +358,7 @@ class MaterialController extends Controller
             'cement' => 'Semen',
             'sand' => 'Pasir',
             'ceramic' => 'Keramik',
-            'nat' => 'Nat',
+            'nat' => 'Semen',
         ];
         $labelColumns = [
             'brick' => ['material_name', 'brand', 'form', 'type'],
@@ -198,7 +379,8 @@ class MaterialController extends Controller
 
         $items = collect();
         foreach ($models as $materialType => $model) {
-            if (!empty($targetMaterialTypes) && !in_array($materialType, $targetMaterialTypes, true)) {
+            $normalizedMaterialType = $normalizeSuggestionMaterialType($materialType);
+            if (!empty($targetMaterialTypes) && !in_array($normalizedMaterialType, $targetMaterialTypes, true)) {
                 continue;
             }
             $materialLabel = $materialLabels[$materialType] ?? ucfirst($materialType);
@@ -230,7 +412,7 @@ class MaterialController extends Controller
                     continue;
                 }
                 $items->push([
-                    'material_type' => $materialType,
+                    'material_type' => $normalizedMaterialType,
                     'type' => $row->{$typeColumn},
                     'label' => $label,
                 ]);
@@ -251,7 +433,7 @@ class MaterialController extends Controller
                 }
                 if ($labelMatches) {
                     $items->push([
-                        'material_type' => $materialType,
+                        'material_type' => $normalizedMaterialType,
                         'type' => $materialLabel,
                         'label' => $materialLabel,
                     ]);
@@ -282,7 +464,7 @@ class MaterialController extends Controller
 
                 foreach ($typeMatches as $type) {
                     $items->push([
-                        'material_type' => $materialType,
+                        'material_type' => $normalizedMaterialType,
                         'type' => $type,
                         'label' => $type,
                     ]);

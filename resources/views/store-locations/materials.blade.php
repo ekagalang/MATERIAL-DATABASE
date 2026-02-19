@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Material ' . $store->name)
 
@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 (function() {
     function updateCeramicScrollIndicators() {
-        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-nat .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
         cells.forEach(td => {
             const scroller = td.querySelector('.ceramic-scroll-cell, .cement-scroll-cell, .sand-scroll-cell, .cat-scroll-cell, .brick-scroll-cell');
             if (!scroller) return;
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function bindCeramicScrollHandlers() {
-        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-nat .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
+        const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
         cells.forEach(td => {
             const scroller = td.querySelector('.ceramic-scroll-cell, .cement-scroll-cell, .sand-scroll-cell, .cat-scroll-cell, .brick-scroll-cell');
             if (!scroller || scroller.__ceramicScrollBound) return;
@@ -184,14 +184,12 @@ html.materials-booting .page-content {
   #section-sand .table-container thead,
   #section-cat .table-container thead,
   #section-cement .table-container thead,
-  #section-nat .table-container thead,
   #section-ceramic .table-container thead {
       height: 40px !important;
   }
 
   /* Single header rows should fill the full 40px - COMPACT */
   #section-cat .table-container thead.single-header tr th,
-  #section-nat .table-container thead.single-header tr th,
   #section-cement .table-container thead.single-header tr th {
       height: 40px !important;
       line-height: 1.2 !important;
@@ -230,7 +228,6 @@ html.materials-booting .page-content {
   #section-sand .table-container thead th,
   #section-cat .table-container thead th,
   #section-cement .table-container thead th,
-  #section-nat .table-container thead th,
   #section-ceramic .table-container thead th {
       vertical-align: top !important;
       font-size: 14px !important;
@@ -287,7 +284,6 @@ html.materials-booting .page-content {
   #section-sand .table-container tbody td,
   #section-cat .table-container tbody td,
   #section-cement .table-container tbody td,
-  #section-nat .table-container tbody td,
   #section-ceramic .table-container tbody td {
       height: 35px !important;
       padding: 2px 8px !important;
@@ -318,7 +314,6 @@ html.materials-booting .page-content {
   /* Ceramic scroll cells: keep text inside cell */
   #section-ceramic .ceramic-scroll-td,
   #section-cement .cement-scroll-td,
-  #section-nat .cement-scroll-td,
   #section-sand .sand-scroll-td,
   #section-cat .cat-scroll-td,
   #section-brick .brick-scroll-td {
@@ -327,7 +322,6 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-td.is-scrollable::after,
   #section-cement .cement-scroll-td.is-scrollable::after,
-  #section-nat .cement-scroll-td.is-scrollable::after,
   #section-sand .sand-scroll-td.is-scrollable::after,
   #section-cat .cat-scroll-td.is-scrollable::after,
   #section-brick .brick-scroll-td.is-scrollable::after {
@@ -345,7 +339,6 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-td.is-scrolled-end::after,
   #section-cement .cement-scroll-td.is-scrolled-end::after,
-  #section-nat .cement-scroll-td.is-scrolled-end::after,
   #section-sand .sand-scroll-td.is-scrolled-end::after,
   #section-cat .cat-scroll-td.is-scrolled-end::after,
   #section-brick .brick-scroll-td.is-scrolled-end::after {
@@ -353,7 +346,6 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-cell,
   #section-cement .cement-scroll-cell,
-  #section-nat .cement-scroll-cell,
   #section-sand .sand-scroll-cell,
   #section-cat .cat-scroll-cell,
   #section-brick .brick-scroll-cell {
@@ -365,7 +357,6 @@ html.materials-booting .page-content {
   }
   #section-ceramic .ceramic-scroll-cell::-webkit-scrollbar,
   #section-cement .cement-scroll-cell::-webkit-scrollbar,
-  #section-nat .cement-scroll-cell::-webkit-scrollbar,
   #section-sand .sand-scroll-cell::-webkit-scrollbar,
   #section-cat .cat-scroll-cell::-webkit-scrollbar,
   #section-brick .brick-scroll-cell::-webkit-scrollbar {
@@ -492,21 +483,10 @@ html.materials-booting .page-content {
     background: #ffffff;
     z-index: 3;
 }
-#section-nat .cement-sticky-col {
-    position: sticky;
-    background: #ffffff;
-    z-index: 3;
-}
 #section-cement thead .cement-sticky-col {
     z-index: 7;
 }
-#section-nat thead .cement-sticky-col {
-    z-index: 7;
-}
 #section-cement .cement-sticky-edge {
-    box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
-}
-#section-nat .cement-sticky-edge {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
 }
 
@@ -964,7 +944,7 @@ html.materials-booting .page-content {
                     <h5 class="fw-bold mb-0">
                         {{ $store->name ?? 'Toko Tanpa Nama' }}
                     </h5>
-                    <span class="text-secondary small">•</span>
+                    <span class="text-secondary small">â€¢</span>
                     <p class="text-secondary mb-0 small d-flex align-items-center">
                         <i class="bi bi-geo-alt me-1"></i>
                         {{ $location->address ?? $location->city ?? 'Lokasi Tanpa Alamat' }}
@@ -992,6 +972,9 @@ html.materials-booting .page-content {
             $availableTypes = collect($materials)->pluck('type')->toArray();
             // Check if there's a saved tab from localStorage (set by inline script)
             $activeTab = request('tab');
+            if ($activeTab === 'nat') {
+                $activeTab = 'cement';
+            }
             if (!$activeTab && !empty($availableTypes)) {
                 // Will be overridden by JavaScript if localStorage has value
                 $activeTab = $materials[0]['type'] ?? null;
@@ -1076,7 +1059,7 @@ html.materials-booting .page-content {
 
             <!-- Empty state when no materials selected -->
             <div id="emptyMaterialState" style="display: block; padding: 60px 40px; text-align: center; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; margin-top: 20px;">
-                <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;">📋</div>
+                <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;">ðŸ“‹</div>
                 <h3 style="margin: 0 0 8px 0; color: #0f172a; font-size: 18px; font-weight: 700;">Tidak Ada Material yang Ditampilkan</h3>
                 <p style="margin: 0; color: #64748b; font-size: 14px;">Pilih material yang ingin ditampilkan dari dropdown <strong>"Filter"</strong> di atas.</p>
             </div>
@@ -1102,7 +1085,7 @@ html.materials-booting .page-content {
                 @endforeach
             @else
                 <div class="empty-state">
-                    <div class="empty-state-icon">📦</div>
+                    <div class="empty-state-icon">ðŸ“¦</div>
                     <p>Tidak ada data material.</p>
                     <p style="font-size: 14px; color: #94a3b8;">Belum ada material yang ditambahkan ke lokasi ini.</p>
                 </div>
@@ -1126,32 +1109,27 @@ html.materials-booting .page-content {
             <p style="color: #64748b; margin-bottom: 24px;">Pilih jenis material yang ingin Anda tambahkan:</p>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
                 <a href="{{ route('bricks.create') }}" class="material-choice-card open-modal">
-                    <div class="material-choice-icon">🧱</div>
+                    <div class="material-choice-icon">ðŸ§±</div>
                     <div class="material-choice-label">Bata</div>
                     <div class="material-choice-desc">Tambah data bata</div>
                 </a>
                 <a href="{{ route('cats.create') }}" class="material-choice-card open-modal">
-                    <div class="material-choice-icon">🎨</div>
+                    <div class="material-choice-icon">ðŸŽ¨</div>
                     <div class="material-choice-label">Cat</div>
                     <div class="material-choice-desc">Tambah data cat</div>
                 </a>
                 <a href="{{ route('cements.create') }}" class="material-choice-card open-modal">
-                    <div class="material-choice-icon">🏗️</div>
+                    <div class="material-choice-icon">ðŸ—ï¸</div>
                     <div class="material-choice-label">Semen</div>
-                    <div class="material-choice-desc">Tambah data semen</div>
-                </a>
-                <a href="{{ route('nats.create') }}" class="material-choice-card open-modal">
-                    <div class="material-choice-icon">🧱</div>
-                    <div class="material-choice-label">Nat</div>
-                    <div class="material-choice-desc">Tambah data nat</div>
+                    <div class="material-choice-desc">Tambah data semen/nat (otomatis dari jenis)</div>
                 </a>
                 <a href="{{ route('sands.create') }}" class="material-choice-card open-modal">
-                    <div class="material-choice-icon">⛱️</div>
+                    <div class="material-choice-icon">â›±ï¸</div>
                     <div class="material-choice-label">Pasir</div>
                     <div class="material-choice-desc">Tambah data pasir</div>
                 </a>
                 <a href="{{ route('ceramics.create') }}" class="material-choice-card open-modal">
-                    <div class="material-choice-icon">🟫</div>
+                    <div class="material-choice-icon">ðŸŸ«</div>
                     <div class="material-choice-label">Keramik</div>
                     <div class="material-choice-desc">Tambah data keramik</div>
                 </a>
@@ -1170,7 +1148,7 @@ html.materials-booting .page-content {
         </div>
         <div class="floating-modal-body" id="modalBody">
             <div style="text-align: center; padding: 60px; color: #94a3b8;">
-                <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                <div style="font-size: 48px; margin-bottom: 16px;">â³</div>
                 <div style="font-weight: 500;">Loading...</div>
             </div>
         </div>
@@ -1195,13 +1173,38 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {
         savedFilter = { selected: [], order: [] };
     }
+    const TAB_ALIAS_MAP = Object.freeze({
+        nat: 'cement',
+    });
+    const normalizeMaterialTab = (type) => {
+        const rawType = String(type || '').trim();
+        if (!rawType) return '';
+        return TAB_ALIAS_MAP[rawType] || rawType;
+    };
+    const normalizeMaterialPayload = (payload) => {
+        if (!payload || typeof payload !== 'object') return payload;
+        const normalizedType = normalizeMaterialTab(payload.type);
+        if (!normalizedType || normalizedType === payload.type) return payload;
+
+        return { ...payload, type: normalizedType };
+    };
+
+    if (!Array.isArray(savedFilter.selected)) {
+        savedFilter.selected = [];
+    }
+    if (!Array.isArray(savedFilter.order)) {
+        savedFilter.order = [];
+    }
+    savedFilter.selected = Array.from(new Set(savedFilter.selected.map(type => normalizeMaterialTab(type)).filter(Boolean)));
+    savedFilter.order = Array.from(new Set(savedFilter.order.map(type => normalizeMaterialTab(type)).filter(Boolean)));
+
     const searchQuery = @json(request('search'));
     const searchQueryRaw = typeof searchQuery === 'string' ? searchQuery.trim() : '';
     const normalizedSearchQuery = searchQueryRaw.toLowerCase();
     const hasSearchQuery = normalizedSearchQuery.length > 0;
-    const newMaterialData = @json(session('new_material'));
+    const newMaterialData = normalizeMaterialPayload(@json(session('new_material')));
     let materialOrder = savedFilter.order || [];
-    const navBlinkMaterial = localStorage.getItem('materialNavSearchBlink');
+    const navBlinkMaterial = normalizeMaterialTab(localStorage.getItem('materialNavSearchBlink'));
     const navSearchType = localStorage.getItem('materialNavSearchType');
 
     if (navBlinkMaterial) {
@@ -1292,6 +1295,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // function requestStickyUpdate() { ... }
 
     function setActiveTab(materialType) {
+        materialType = normalizeMaterialTab(materialType);
+        if (!materialType) return;
+
         console.log('[Tab] Setting active tab:', materialType);
 
         // Deactivate all
@@ -1357,7 +1363,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     })
                     .catch(err => {
                         console.error('Failed to load tab:', err);
-                        loadingEl.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;"><div style="font-size: 32px; margin-bottom: 8px;">⚠️</div><div>Gagal memuat data.</div><button class="btn btn-sm btn-outline-danger mt-2" onclick="location.reload()">Coba Lagi</button></div>';
+                        loadingEl.innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;"><div style="font-size: 32px; margin-bottom: 8px;">âš ï¸</div><div>Gagal memuat data.</div><button class="btn btn-sm btn-outline-danger mt-2" onclick="location.reload()">Coba Lagi</button></div>';
                     })
                     .finally(() => {
                         delete card.dataset.fetching;
@@ -1469,6 +1475,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to update tab visibility based on checkboxes
     function updateTabVisibility(preferredTab = null) {
         console.log('[updateTabVisibility] Started');
+        const normalizedPreferredTab = normalizeMaterialTab(preferredTab);
         const checkedMaterials = [];
         const emptyState = document.getElementById('emptyMaterialState');
         const tabContainer = document.querySelector('.material-tabs');
@@ -1550,10 +1557,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (visibleOrder.length > 0) {
             let tabToActivate = visibleOrder[0];
 
-            const hasPreferredTab = preferredTab && checkedMaterials.includes(preferredTab);
+            const hasPreferredTab = normalizedPreferredTab && checkedMaterials.includes(normalizedPreferredTab);
 
             if (hasPreferredTab) {
-                tabToActivate = preferredTab;
+                tabToActivate = normalizedPreferredTab;
             } else if (hasSearchQuery && searchCounts) {
                 const firstWithResults = visibleOrder.find(type => (searchCounts[type] || 0) > 0);
                 if (firstWithResults) {
@@ -1601,13 +1608,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page state: restore from localStorage or show empty state
     console.log('[Restore] Calling updateTabVisibility');
-    const tabFromQuery = new URLSearchParams(window.location.search).get('tab');
-    const savedTab = tabFromQuery || window.__materialSavedTab || localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+    const tabFromQuery = normalizeMaterialTab(new URLSearchParams(window.location.search).get('tab'));
+    const savedTab = tabFromQuery
+        || normalizeMaterialTab(window.__materialSavedTab)
+        || normalizeMaterialTab(localStorage.getItem(ACTIVE_TAB_STORAGE_KEY));
     updateTabVisibility(savedTab);
     document.documentElement.classList.remove('materials-booting');
 
     if (navSearchType) {
-        const searchTab = navBlinkMaterial || savedTab;
+        const searchTab = normalizeMaterialTab(navBlinkMaterial || savedTab);
         window.setTimeout(() => {
             highlightMaterialRowByType(searchTab, navSearchType);
         }, 150);
@@ -1768,8 +1777,8 @@ document.addEventListener('DOMContentLoaded', function() {
             materialType = 'cement';
             materialLabel = 'Semen';
         } else if (url.includes('/nats/')) {
-            materialType = 'nat';
-            materialLabel = 'Nat';
+            materialType = 'cement';
+            materialLabel = 'Semen';
         } else if (url.includes('/sands/')) {
             materialType = 'sand';
             materialLabel = 'Pasir';
@@ -1929,7 +1938,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(err => {
-                modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">⚠️</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
+                modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #ef4444;"><div style="font-size: 48px; margin-bottom: 16px;">âš ï¸</div><div style="font-weight: 500;">Gagal memuat form. Silakan coba lagi.</div></div>';
                 console.error('Fetch error:', err);
             });
         });
@@ -1955,7 +1964,7 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
-            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">â³</div><div style="font-weight: 500;">Loading...</div></div>';
             isFormDirty = false;
         }, 300);
     }
@@ -2158,6 +2167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function highlightMaterialRowByType(materialTab, typeValue) {
+        materialTab = normalizeMaterialTab(materialTab);
         if (!materialTab || !typeValue) return;
         const panel = document.querySelector(`.material-tab-panel[data-tab="${materialTab}"]`);
         if (!panel) return;
@@ -2272,7 +2282,7 @@ document.addEventListener('DOMContentLoaded', function() {
             brick: 'bata',
             cat: 'cat',
             cement: 'semen',
-            nat: 'nat',
+            nat: 'semen',
             sand: 'pasir',
             ceramic: 'keramik',
         };
@@ -2296,7 +2306,7 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             const result = await api.delete(`/${endpoint}/${id}`);
             if (result.success) {
-                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, type);
+                localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, normalizeMaterialTab(type));
                 sessionStorage.setItem('pendingToast', JSON.stringify({
                     type: 'success',
                     message: `Data ${label} berhasil dihapus.`
@@ -2719,7 +2729,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Apply to Cement (new)
         applyToSection('section-cement', 'cement-sticky-col');
-        applyToSection('section-nat', 'cement-sticky-col');
 
         // Apply to Brick and Sand too
         applyToSection('section-brick', 'brick-sticky-col');
@@ -2832,3 +2841,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+

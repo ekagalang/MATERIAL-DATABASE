@@ -210,122 +210,95 @@
                         </label>
                     </div>
 
-                    <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_custom" value="custom">
-                        <label for="filter_custom">
-                            <span class="tickbox-title d-flex">
-                                <b class="tickbox-title-label flex-shrink-0">Custom</b>
-                                <span class="text-muted">: Pilih kombinasi sendiri secara manual</span>
-                            </span>
-                        </label>
-                    </div>
                 </div>
 
-                {{-- CUSTOM FORM - MOVED TO RIGHT COLUMN --}}
+                {{-- LEGACY CUSTOM FORM (hidden, used for data binding) --}}
                     <div id="customMaterialForm" style="display:none; margin-top:16px;">
 
                         {{-- 1. BATA SECTION --}}
                         <div class="material-section" data-material="brick">
                             <h4 class="section-header">Bata</h4>
 
+                            @php
+                                $selectedBrickId = (string) (old('brick_id') ?? ($singleBrick?->id ?? ''));
+                            @endphp
+
                             @if($isMultiBrick)
                                 {{-- TAMPILAN MULTI BATA --}}
                                 <div class="alert alert-info border-primary py-2">
                                     <strong><i class="bi bi-collection-fill me-2"></i>{{ $selectedBricks->count() }} Bata Terpilih</strong>
-                                    <div class="text-muted small mt-1">Akan dibuat perbandingan untuk semua bata ini.</div>
+                                    <div class="text-muted small mt-1">Akan dibuat perbandingan untuk semua bata ini. Customize tetap tersedia untuk memfilter daftar bata.</div>
                                     @foreach($selectedBricks as $b)
                                         <input type="hidden" name="brick_ids[]" value="{{ $b->id }}">
                                     @endforeach
                                 </div>
-                            @elseif($isSingleCarryOver && $singleBrick)
-                                {{-- TAMPILAN SINGLE BATA (READONLY) --}}
+                            @endif
+
+                            @if($isSingleCarryOver && $singleBrick)
+                                {{-- INFO SINGLE BATA CARRY OVER --}}
                                 <div class="form-group">
-                                    <label>Bata :</label>
+                                    <label>Carry Over :</label>
                                     <div class="input-wrapper">
                                         <input type="text" value="{{ $singleBrick->brand }} - {{ $singleBrick->type }}" readonly style="background-color:#d1fae5; font-weight:bold;">
-                                        <input type="hidden" name="brick_id" value="{{ $singleBrick->id }}">
                                     </div>
-                                </div>
-                            @else
-                                {{-- TAMPILAN NORMAL (DROPDOWN) - OPTIONAL --}}
-                                <div class="form-group">
-                                    <label>Bata :</label>
-                                    <div class="input-wrapper">
-                                        <select name="brick_id" id="customBrick" class="form-select select-green">
-                                            <option value="">-- Semua Bata (Auto) --</option>
-                                            @foreach($bricks as $brick)
-                                                <option value="{{ $brick->id }}">
-                                                    {{ $brick->brand }} - {{ $brick->type }} ({{ $brick->dimension_length }}x{{ $brick->dimension_width }}x{{ $brick->dimension_height }} cm) - @currency($brick->price_per_piece)
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="alert alert-info py-1 px-2 mb-2" style="font-size:12px;">
-                                    <i class="bi bi-info-circle"></i> Kosongkan untuk menampilkan kombinasi dari beberapa bata
                                 </div>
                             @endif
+
+                            <div class="form-group">
+                                <label>Material :</label>
+                                <div class="input-wrapper">
+                                    <select name="brick_id" id="customBrick" class="form-select select-green">
+                                        <option value="">-- Semua Bata (Auto) --</option>
+                                        @foreach($bricks as $brick)
+                                            <option value="{{ $brick->id }}" {{ $selectedBrickId === (string) $brick->id ? 'selected' : '' }}>
+                                                {{ $brick->brand }} - {{ $brick->type }} ({{ $brick->dimension_length }}x{{ $brick->dimension_width }}x{{ $brick->dimension_height }} cm) - @currency($brick->price_per_piece)
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="alert alert-info py-1 px-2 mb-2" style="font-size:12px;">
+                                <i class="bi bi-info-circle"></i> Kosongkan untuk menampilkan kombinasi dari beberapa bata
+                            </div>
                         </div>
 
-                        {{-- 2. SEMEN SECTION (RESTORED DROPDOWNS) --}}
+                        {{-- 2. SEMEN SECTION --}}
                         <div class="material-section" data-material="cement">
                             <h4 class="section-header">Semen</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Semen
                             </div>
-
                             <div class="form-group">
-                                <label>Jenis :</label>
+                                <label>Material :</label>
                                 <div class="input-wrapper">
-                                    <select id="customCementType" name="custom_cement_type" class="select-pink">
-                                        <option value="">-- Pilih Jenis --</option>
-                                        @foreach($cements->groupBy('cement_name')->keys() as $type)
-                                            <option value="{{ $type }}">{{ $type }}</option>
+                                    <select id="customCement" name="cement_id" class="select-orange">
+                                        <option value="">-- Semua Semen (Auto) --</option>
+                                        @foreach($cements as $cement)
+                                            <option value="{{ $cement->id }}" {{ (string) old('cement_id') === (string) $cement->id ? 'selected' : '' }}>
+                                                {{ $cement->brand }}{{ $cement->sub_brand ? ' - ' . $cement->sub_brand : '' }}{{ $cement->code ? ' - ' . $cement->code : '' }}{{ $cement->color ? ' - ' . $cement->color : '' }} ({{ $cement->package_unit ?? '-' }}, {{ $cement->package_weight_net ?? 0 }} kg)
+                                            </option>
                                         @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Merek :</label>
-                                <div class="input-wrapper">
-                                    <select id="customCementBrand" name="cement_id" class="select-orange">
-                                        <option value="">-- Pilih Merk (Opsional) --</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- 3. PASIR SECTION (RESTORED DROPDOWNS) --}}
+                        {{-- 3. PASIR SECTION --}}
                         <div class="material-section" data-material="sand">
                             <h4 class="section-header">Pasir</h4>
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Pasir
                             </div>
-
                             <div class="form-group">
-                                <label>Jenis :</label>
+                                <label>Material :</label>
                                 <div class="input-wrapper">
-                                    <select id="customSandType" name="custom_sand_type" class="select-gray">
-                                        <option value="">-- Pilih Jenis --</option>
-                                        @foreach($sands->groupBy('sand_name')->keys() as $type)
-                                            <option value="{{ $type }}">{{ $type }}</option>
+                                    <select id="customSand" name="sand_id" class="select-gray">
+                                        <option value="">-- Semua Pasir (Auto) --</option>
+                                        @foreach($sands as $sand)
+                                            <option value="{{ $sand->id }}" {{ (string) old('sand_id') === (string) $sand->id ? 'selected' : '' }}>
+                                                {{ $sand->brand }} ({{ $sand->package_unit ?? '-' }}, {{ $sand->package_volume ?? 0 }} M3)
+                                            </option>
                                         @endforeach
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Merek :</label>
-                                <div class="input-wrapper">
-                                    <select id="customSandBrand" name="custom_sand_brand" class="select-gray">
-                                        <option value="">-- Pilih Merk --</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Kemasan :</label>
-                                <div class="input-wrapper">
-                                    <select id="customSandPackage" name="sand_id" class="select-gray-light">
-                                        <option value="">-- Pilih Kemasan (Opsional) --</option>
                                     </select>
                                 </div>
                             </div>
@@ -337,33 +310,18 @@
                             <div class="alert alert-warning py-1 px-2 mb-2" style="font-size:12px;">
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Cat
                             </div>
-
                             <div class="form-group">
-                                <label>Jenis :</label>
+                                <label>Material :</label>
                                 <div class="input-wrapper">
-                                    <select id="customCatType" name="custom_cat_type" class="select-gray">
-                                        <option value="">-- Pilih Jenis --</option>
+                                    <select id="customCat" name="cat_id" class="select-gray">
+                                        <option value="">-- Semua Cat (Auto) --</option>
                                         @if(isset($cats))
-                                            @foreach($cats->groupBy('cat_name')->keys() as $type)
-                                                <option value="{{ $type }}">{{ $type }}</option>
+                                            @foreach($cats as $cat)
+                                                <option value="{{ $cat->id }}" {{ (string) old('cat_id') === (string) $cat->id ? 'selected' : '' }}>
+                                                    {{ $cat->brand }}{{ $cat->sub_brand ? ' - ' . $cat->sub_brand : '' }}{{ $cat->color_code ? ' - ' . $cat->color_code : '' }}{{ $cat->color_name ? ' - ' . $cat->color_name : '' }} ({{ $cat->package_unit ?? '-' }}, {{ $cat->volume ?? 0 }} {{ $cat->volume_unit ?? '' }}, {{ $cat->package_weight_net ?? 0 }} kg)
+                                                </option>
                                             @endforeach
                                         @endif
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Merek :</label>
-                                <div class="input-wrapper">
-                                    <select id="customCatBrand" name="custom_cat_brand" class="select-gray">
-                                        <option value="">-- Pilih Merk --</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Kemasan :</label>
-                                <div class="input-wrapper">
-                                    <select id="customCatPackage" name="cat_id" class="select-gray-light">
-                                        <option value="">-- Pilih Kemasan (Opsional) --</option>
                                     </select>
                                 </div>
                             </div>
@@ -376,14 +334,14 @@
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Keramik
                             </div>
                             <div class="form-group">
-                                <label>Pilih :</label>
+                                <label>Material :</label>
                                 <div class="input-wrapper">
-                                    <select name="ceramic_id" class="select-gray">
+                                    <select id="customCeramic" name="ceramic_id" class="select-gray">
                                         <option value="">-- Semua Keramik (Auto) --</option>
                                         @if(isset($ceramics))
                                             @foreach($ceramics as $ceramic)
-                                                <option value="{{ $ceramic->id }}">
-                                                    {{ $ceramic->brand }} - {{ $ceramic->color }} ({{ $ceramic->dimension_length }}x{{ $ceramic->dimension_width }} cm)
+                                                <option value="{{ $ceramic->id }}" {{ (string) old('ceramic_id') === (string) $ceramic->id ? 'selected' : '' }}>
+                                                    {{ $ceramic->brand }}{{ $ceramic->sub_brand ? ' - ' . $ceramic->sub_brand : '' }}{{ $ceramic->surface ? ' - ' . $ceramic->surface : '' }}{{ $ceramic->code ? ' - ' . $ceramic->code : '' }}{{ $ceramic->color ? ' - ' . $ceramic->color : '' }} ({{ $ceramic->dimension_length }}x{{ $ceramic->dimension_width }} cm)
                                                 </option>
                                             @endforeach
                                         @endif
@@ -399,14 +357,14 @@
                                 <i class="bi bi-info-circle"></i> Kosongkan pilihan untuk melihat semua kombinasi Nat
                             </div>
                             <div class="form-group">
-                                <label>Pilih :</label>
+                                <label>Material :</label>
                                 <div class="input-wrapper">
-                                    <select name="nat_id" class="select-gray">
+                                    <select id="customNat" name="nat_id" class="select-gray">
                                         <option value="">-- Semua Nat (Auto) --</option>
                                         @if(isset($nats))
                                             @foreach($nats as $nat)
-                                                <option value="{{ $nat->id }}">
-                                                    {{ $nat->nat_name ?? $nat->brand }} ({{ $nat->package_weight_net }} kg)
+                                                <option value="{{ $nat->id }}" {{ (string) old('nat_id') === (string) $nat->id ? 'selected' : '' }}>
+                                                    {{ $nat->brand }}{{ $nat->sub_brand ? ' - ' . $nat->sub_brand : '' }}{{ $nat->code ? ' - ' . $nat->code : '' }}{{ $nat->color ? ' - ' . $nat->color : '' }} ({{ $nat->package_unit ?? '-' }}, {{ $nat->package_weight_net ?? 0 }} kg)
                                                 </option>
                                             @endforeach
                                         @endif
@@ -448,6 +406,8 @@
                             value="{{ old('enable_bundle_mode', 0) }}">
                         <input type="hidden" id="workItemsPayload" name="work_items_payload"
                             value="{{ old('work_items_payload') }}">
+                        <input type="hidden" id="materialCustomizeFiltersPayload" name="material_customize_filters_payload"
+                            value="{{ old('material_customize_filters_payload') }}">
                     </div>
                 </div>
 
@@ -562,6 +522,7 @@
                                                 : 'Pilih atau ketik jenis ' . strtolower($materialLabel) . '...');
                                     @endphp
                                     <label>{{ $labelText }}</label>
+                                    <div class="material-type-filter-body">
                                     <div class="material-type-rows" data-material-type="{{ $materialKey }}">
                                         <div class="material-type-row material-type-row-base" data-material-type="{{ $materialKey }}">
                                             <div class="input-wrapper">
@@ -593,8 +554,161 @@
                                                     <i class="bi bi-plus-lg"></i>
                                                 </button>
                                             </div>
+                                            @if(in_array($materialKey, ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'], true))
+                                                <button type="button"
+                                                    class="material-type-row-btn material-type-row-btn-customize"
+                                                    data-customize-toggle="{{ $materialKey }}"
+                                                    data-customize-panel-id="customizePanel-{{ $materialKey }}"
+                                                    title="Customize {{ $materialLabel }}">
+                                                    Customize
+                                                </button>
+                                            @endif
                                         </div>
-                                        <div class="material-type-extra-rows" data-material-type="{{ $materialKey }}"></div>
+                                    </div>
+                                    @if($materialKey === 'brick')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-brick" data-customize-panel="brick" hidden>
+                                            <div class="customize-grid">
+                                                <div class="form-group">
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeBrickBrand" data-customize-filter="brick" data-filter-key="brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Dimensi :</label>
+                                                    <div class="input-wrapper"><select id="customizeBrickDimension" data-customize-filter="brick" data-filter-key="dimension" class="select-gray"></select></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($materialKey === 'cement')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-cement" data-customize-panel="cement" hidden>
+                                            <div class="customize-grid">
+                                                <div class="form-group">
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCementBrand" data-customize-filter="cement" data-filter-key="brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Sub Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCementSubBrand" data-customize-filter="cement" data-filter-key="sub_brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kode :</label>
+                                                    <div class="input-wrapper"><select id="customizeCementCode" data-customize-filter="cement" data-filter-key="code" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Warna :</label>
+                                                    <div class="input-wrapper"><select id="customizeCementColor" data-customize-filter="cement" data-filter-key="color" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kemasan :</label>
+                                                    <div class="input-wrapper"><select id="customizeCementPackage" data-customize-filter="cement" data-filter-key="package_unit" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Berat Bersih :</label>
+                                                    <div class="input-wrapper"><select id="customizeCementWeight" data-customize-filter="cement" data-filter-key="package_weight_net" class="select-gray"></select></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($materialKey === 'sand')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-sand" data-customize-panel="sand" hidden>
+                                            <div class="customize-grid">
+                                                <div class="form-group">
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeSandBrand" data-customize-filter="sand" data-filter-key="brand" class="select-gray"></select></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($materialKey === 'cat')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-cat" data-customize-panel="cat" hidden>
+                                            <div class="customize-grid">
+                                                <div class="form-group">
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatBrand" data-customize-filter="cat" data-filter-key="brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Sub Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatSubBrand" data-customize-filter="cat" data-filter-key="sub_brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kode :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatCode" data-customize-filter="cat" data-filter-key="color_code" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Warna :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatColor" data-customize-filter="cat" data-filter-key="color_name" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kemasan :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatPackage" data-customize-filter="cat" data-filter-key="package_unit" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Volume :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatVolume" data-customize-filter="cat" data-filter-key="volume_display" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Berat Bersih :</label>
+                                                    <div class="input-wrapper"><select id="customizeCatWeight" data-customize-filter="cat" data-filter-key="package_weight_net" class="select-gray"></select></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($materialKey === 'ceramic')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-ceramic" data-customize-panel="ceramic" hidden>
+                                            <div class="customize-grid">
+                                                <div class="form-group">
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicBrand" data-customize-filter="ceramic" data-filter-key="brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Dimensi :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicDimension" data-customize-filter="ceramic" data-filter-key="dimension" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Sub Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicSubBrand" data-customize-filter="ceramic" data-filter-key="sub_brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Permukaan :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicSurface" data-customize-filter="ceramic" data-filter-key="surface" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kode Pembakaran :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicCode" data-customize-filter="ceramic" data-filter-key="code" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Corak :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicPattern" data-customize-filter="ceramic" data-filter-key="color" class="select-gray"></select></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @elseif($materialKey === 'nat')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-nat" data-customize-panel="nat" hidden>
+                                            <div class="customize-grid">
+                                                <div class="form-group">
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeNatBrand" data-customize-filter="nat" data-filter-key="brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Sub Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeNatSubBrand" data-customize-filter="nat" data-filter-key="sub_brand" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kode :</label>
+                                                    <div class="input-wrapper"><select id="customizeNatCode" data-customize-filter="nat" data-filter-key="code" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Warna :</label>
+                                                    <div class="input-wrapper"><select id="customizeNatColor" data-customize-filter="nat" data-filter-key="color" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Kemasan :</label>
+                                                    <div class="input-wrapper"><select id="customizeNatPackage" data-customize-filter="nat" data-filter-key="package_unit" class="select-gray"></select></div>
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Berat Bersih :</label>
+                                                    <div class="input-wrapper"><select id="customizeNatWeight" data-customize-filter="nat" data-filter-key="package_weight_net" class="select-gray"></select></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    <div class="material-type-extra-rows" data-material-type="{{ $materialKey }}"></div>
                                     </div>
                                 </div>
                             @endforeach
@@ -934,10 +1048,95 @@
         margin-bottom: 0 !important;
     }
 
+    .material-type-filter-item .material-type-filter-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+    }
+
     .material-type-filter-item .material-type-rows {
         flex: 1 1 auto;
         min-width: 0;
         width: 100%;
+    }
+
+    .customize-tools {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: -4px;
+        margin-bottom: 8px;
+    }
+
+    .customize-toggle-btn {
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        color: #1e293b;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 10px;
+        line-height: 1.3;
+    }
+
+    .customize-toggle-btn.is-active,
+    .customize-toggle-btn:hover {
+        border-color: #60a5fa;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .customize-panel {
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        padding: 0;
+        margin-bottom: 10px;
+    }
+
+    .customize-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+    }
+
+    .customize-panel .form-group {
+        margin-bottom: 0;
+    }
+
+    .customize-panel .form-group > label {
+        font-size: 12px;
+        margin-bottom: 3px;
+    }
+
+    .material-type-customize-panel .input-wrapper {
+        margin-bottom: 0;
+    }
+
+    .material-type-customize-panel select[data-customize-filter] {
+        width: 100% !important;
+        min-height: 38px !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px !important;
+        background: #ffffff !important;
+        background-image: none !important;
+        appearance: none !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        padding: 8px 12px !important;
+        padding-right: 12px !important;
+        box-shadow: none !important;
+        transform: none !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .material-type-customize-panel select[data-customize-filter]:focus {
+        outline: none !important;
+        border-color: #891313 !important;
+        border-width: 2px !important;
+        box-shadow: 0 0 0 4px rgba(137, 19, 19, 0.15), 0 4px 12px rgba(137, 19, 19, 0.1) !important;
+        background-color: #fffbfb !important;
+        transform: translateY(-1px);
+        z-index: 5;
     }
 
     .material-type-rows {
@@ -1034,6 +1233,35 @@
 
     .material-type-row-btn-add {
         color: #166534;
+    }
+
+    .material-type-row-btn-customize {
+        margin-left: 8px;
+        width: auto;
+        min-width: 86px;
+        min-height: 38px;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 4px;
+        padding: 0 10px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #1d4ed8;
+        background: #eff6ff;
+        white-space: nowrap;
+    }
+
+    .material-type-row-btn-customize:hover,
+    .material-type-row-btn-customize.is-active {
+        color: #1e40af;
+        background: #dbeafe;
+    }
+
+    .material-type-customize-panel {
+        margin-top: 8px;
+    }
+
+    .material-type-customize-panel .customize-grid {
+        grid-template-columns: 1fr;
     }
 
     .material-type-row:focus-within .work-type-input:focus-within {
@@ -1193,6 +1421,10 @@
             width: 100%;
         }
 
+        .customize-grid {
+            grid-template-columns: 1fr;
+        }
+
     }
 </style>
 
@@ -1227,6 +1459,7 @@
                 }
             });
         }
+        const materialTypeLabels = @json($materialTypeLabels);
         if (typeof initMaterialCalculationForm === 'function') {
             try {
                 initMaterialCalculationForm(document, payload);
@@ -1315,6 +1548,7 @@
             };
             const typeControllers = {};
             let extraRowSequence = 0;
+            let customizePanelSequence = 0;
 
             function createActionButton(type, action) {
                 const btn = document.createElement('button');
@@ -1567,6 +1801,7 @@
                     const rowEl = document.createElement('div');
                     rowEl.className = 'material-type-row material-type-row-extra';
                     rowEl.dataset.materialType = type;
+                    const supportsCustomize = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'].includes(type);
 
                     const inputWrapperEl = document.createElement('div');
                     inputWrapperEl.className = 'input-wrapper';
@@ -1608,7 +1843,43 @@
 
                     rowEl.appendChild(inputWrapperEl);
                     rowEl.appendChild(actionEl);
+                    let rowCustomizePanelEl = null;
+                    if (supportsCustomize) {
+                        const customizeBtn = document.createElement('button');
+                        customizeBtn.type = 'button';
+                        customizeBtn.className = 'material-type-row-btn material-type-row-btn-customize';
+                        customizeBtn.dataset.customizeToggle = type;
+                        customizeBtn.title = `Customize ${materialTypeLabels[type] || type}`;
+                        customizeBtn.textContent = 'Customize';
+
+                        const templatePanel = itemEl.querySelector(`[data-customize-panel="${type}"]`) ||
+                            document.getElementById(`customizePanel-${type}`);
+                        if (templatePanel) {
+                            const panelId = `customizePanel-${type}-extra-${++customizePanelSequence}`;
+                            rowCustomizePanelEl = templatePanel.cloneNode(true);
+                            rowCustomizePanelEl.hidden = true;
+                            rowCustomizePanelEl.id = panelId;
+                            rowCustomizePanelEl.dataset.customizePanel = type;
+                            rowCustomizePanelEl.querySelectorAll('.customize-filter-autocomplete').forEach(el => el.remove());
+                            rowCustomizePanelEl.querySelectorAll('select[data-customize-filter]').forEach((selectEl, index) => {
+                                selectEl.value = '';
+                                selectEl.style.display = '';
+                                selectEl.tabIndex = 0;
+                                delete selectEl.dataset.customizeAutocompleteBound;
+                                if (selectEl.id) {
+                                    selectEl.id = `${selectEl.id}-extra-${customizePanelSequence}-${index}`;
+                                }
+                            });
+                            customizeBtn.dataset.customizePanelId = panelId;
+                        }
+
+                        rowEl.appendChild(customizeBtn);
+                    }
                     extraRowsContainer.appendChild(rowEl);
+                    if (rowCustomizePanelEl) {
+                        extraRowsContainer.appendChild(rowCustomizePanelEl);
+                        rowEl.__customizePanelEl = rowCustomizePanelEl;
+                    }
                     updateRowButtons();
 
                     setupAutocomplete({
@@ -1622,6 +1893,9 @@
                     syncRows();
 
                     deleteBtn.addEventListener('click', function() {
+                        if (rowEl.__customizePanelEl) {
+                            rowEl.__customizePanelEl.remove();
+                        }
                         rowEl.remove();
                         updateRowButtons();
                         syncRows();
@@ -1654,6 +1928,9 @@
                         }
 
                         firstExtraRow.remove();
+                        if (firstExtraRow.__customizePanelEl) {
+                            firstExtraRow.__customizePanelEl.remove();
+                        }
                         updateRowButtons();
                         syncRows();
                         return;
@@ -1901,13 +2178,10 @@
         const filterCheckboxes = document.querySelectorAll('input[name="price_filters[]"]');
         const customForm = document.getElementById('customMaterialForm');
         const filterAll = document.getElementById('filter_all');
-        const filterCustom = document.getElementById('filter_custom');
 
-        // Function to toggle custom form visibility
-        function toggleCustomForm() {
-            if (filterCustom && filterCustom.checked) {
-                customForm.style.display = 'block';
-            } else {
+        // Legacy custom form stays hidden (custom UI lives in material type section)
+        function ensureCustomFormVisible() {
+            if (customForm) {
                 customForm.style.display = 'none';
             }
         }
@@ -1924,14 +2198,9 @@
             if (filterAll) {
                 if (filterAll.checked) {
                     const includeBest = shouldIncludeBest();
-                    // Check all other checkboxes except custom, best only if available
+                    // Check all other checkboxes, best only if available
                     filterCheckboxes.forEach(checkbox => {
                         if (checkbox === filterAll) return;
-
-                        if (checkbox.value === 'custom') {
-                            checkbox.checked = false;
-                            return;
-                        }
 
                         if (checkbox.value === 'best') {
                             checkbox.checked = includeBest;
@@ -1955,7 +2224,6 @@
             const includeBest = shouldIncludeBest();
             const allOthersChecked = Array.from(filterCheckboxes).every(checkbox => {
                 if (checkbox === filterAll) return true;
-                if (checkbox === filterCustom) return true;
                 if (checkbox.value === 'best' && !includeBest) return true;
                 return checkbox.checked;
             });
@@ -1965,8 +2233,8 @@
             }
         }
 
-        // Initialize form visibility on page load
-        toggleCustomForm();
+        // Initialize custom form visibility on page load
+        ensureCustomFormVisible();
 
         // Handle Work Type Change for Layer Inputs (Rollag), Plaster Sides, and Skim Sides
         const workTypeSelector = document.getElementById('workTypeSelector');
@@ -2411,7 +2679,6 @@
         if (filterAll) {
             filterAll.addEventListener('change', function() {
                 handleAllCheckbox();
-                toggleCustomForm();
             });
         }
 
@@ -2419,7 +2686,6 @@
             if (checkbox !== filterAll) {
                 checkbox.addEventListener('change', function() {
                     handleOtherCheckboxes();
-                    toggleCustomForm();
                 });
             }
         });
@@ -2434,6 +2700,10 @@
         const removeWorkItemBtn = document.getElementById('removeWorkItemBtn');
         const enableBundleModeInput = document.getElementById('enableBundleMode');
         const workItemsPayloadInput = document.getElementById('workItemsPayload');
+        const materialCustomizeFiltersPayloadInput = document.getElementById('materialCustomizeFiltersPayload');
+        const initialMaterialCustomizeFiltersPayloadRaw = materialCustomizeFiltersPayloadInput
+            ? String(materialCustomizeFiltersPayloadInput.value || '').trim()
+            : '';
         const additionalWorkItemsSection = document.getElementById('additionalWorkItemsSection');
         const additionalWorkItemsList = document.getElementById('additionalWorkItemsList');
         const mainWorkTypeLabel = document.getElementById('mainWorkTypeLabel');
@@ -2455,9 +2725,11 @@
             { el: mainWallHeightInput, defaultRequired: !!mainWallHeightInput?.required },
         ];
         const bundleMaterialTypeOrder = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'ceramic', 'nat'];
+        const bundleCustomizeSupportedTypes = new Set(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
         const bundleMaterialTypeLabels = @json($materialTypeLabels);
         const bundleMaterialTypeOptions = buildMaterialTypeOptionMap(payload);
         let bundleAdditionalAutocompleteSeq = 0;
+        let bundleCustomizePanelSeq = 0;
 
         function escapeHtml(raw) {
             return String(raw ?? '')
@@ -2515,9 +2787,107 @@
             return values;
         }
 
+        function buildBundleCustomizePanelHtml(type, panelId = '') {
+            const renderField = (label, key) => `
+                <div class="form-group">
+                    <label>${escapeHtml(label)} :</label>
+                    <div class="input-wrapper">
+                        <select data-customize-filter="${type}" data-filter-key="${key}" class="select-gray"></select>
+                    </div>
+                </div>
+            `;
+
+            if (type === 'brick') {
+                return `
+                    <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
+                        <div class="customize-grid">
+                            ${renderField('Merek', 'brand')}
+                            ${renderField('Dimensi', 'dimension')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (type === 'cement') {
+                return `
+                    <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
+                        <div class="customize-grid">
+                            ${renderField('Merek', 'brand')}
+                            ${renderField('Sub Merek', 'sub_brand')}
+                            ${renderField('Kode', 'code')}
+                            ${renderField('Warna', 'color')}
+                            ${renderField('Kemasan', 'package_unit')}
+                            ${renderField('Berat Bersih', 'package_weight_net')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (type === 'sand') {
+                return `
+                    <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
+                        <div class="customize-grid">
+                            ${renderField('Merek', 'brand')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (type === 'cat') {
+                return `
+                    <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
+                        <div class="customize-grid">
+                            ${renderField('Merek', 'brand')}
+                            ${renderField('Sub Merek', 'sub_brand')}
+                            ${renderField('Kode', 'color_code')}
+                            ${renderField('Warna', 'color_name')}
+                            ${renderField('Kemasan', 'package_unit')}
+                            ${renderField('Volume', 'volume_display')}
+                            ${renderField('Berat Bersih', 'package_weight_net')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (type === 'ceramic') {
+                return `
+                    <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
+                        <div class="customize-grid">
+                            ${renderField('Merek', 'brand')}
+                            ${renderField('Dimensi', 'dimension')}
+                            ${renderField('Sub Merek', 'sub_brand')}
+                            ${renderField('Permukaan', 'surface')}
+                            ${renderField('Kode Pembakaran', 'code')}
+                            ${renderField('Corak', 'color')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (type === 'nat') {
+                return `
+                    <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
+                        <div class="customize-grid">
+                            ${renderField('Merek', 'brand')}
+                            ${renderField('Sub Merek', 'sub_brand')}
+                            ${renderField('Kode', 'code')}
+                            ${renderField('Warna', 'color')}
+                            ${renderField('Kemasan', 'package_unit')}
+                            ${renderField('Berat Bersih', 'package_weight_net')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            return '';
+        }
+
         function buildBundleMaterialFilterSectionHtml(item) {
             const rows = bundleMaterialTypeOrder
                 .map(type => {
+                    const typeLabel = bundleMaterialTypeLabels[type] || type;
+                    const supportsCustomize = bundleCustomizeSupportedTypes.has(String(type || '').trim());
+                    const basePanelId = supportsCustomize ? `bundleCustomizePanel-${type}-${++bundleCustomizePanelSeq}` : '';
                     return `
                         <div class="form-group material-type-filter-item additional-material-filter-item" data-material-wrap="${type}">
                             <label>${escapeHtml(getBundleMaterialTypeFieldLabel(type))}</label>
@@ -2550,7 +2920,17 @@
                                             <i class="bi bi-plus-lg"></i>
                                         </button>
                                     </div>
+                                    ${supportsCustomize ? `
+                                        <button type="button"
+                                            class="material-type-row-btn material-type-row-btn-customize"
+                                            data-customize-toggle="${type}"
+                                            data-customize-panel-id="${basePanelId}"
+                                            title="Customize ${escapeHtml(typeLabel)}">
+                                            Customize
+                                        </button>
+                                    ` : ''}
                                 </div>
+                                ${buildBundleCustomizePanelHtml(type, basePanelId)}
                                 <div class="material-type-extra-rows" data-material-type="${type}"></div>
                             </div>
                         </div>
@@ -2604,6 +2984,274 @@
             });
 
             return normalized;
+        }
+
+        function normalizeBundleMaterialCustomizeFilters(rawFilters) {
+            if (!rawFilters || typeof rawFilters !== 'object') {
+                return {};
+            }
+
+            const allowedFieldsByMaterial = {
+                brick: ['brand', 'dimension'],
+                cement: ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+                sand: ['brand'],
+                cat: ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+                ceramic: ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
+                nat: ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+            };
+
+            const normalized = {};
+            Object.entries(rawFilters).forEach(([materialKey, fieldMap]) => {
+                const material = String(materialKey || '').trim();
+                if (!material || !allowedFieldsByMaterial[material] || !fieldMap || typeof fieldMap !== 'object') {
+                    return;
+                }
+
+                const normalizedFieldMap = {};
+                allowedFieldsByMaterial[material].forEach(fieldKey => {
+                    const rawValue = fieldMap[fieldKey];
+                    const values = uniqueFilterTokens(Array.isArray(rawValue) ? rawValue : [rawValue]);
+                    if (!values.length) {
+                        return;
+                    }
+                    normalizedFieldMap[fieldKey] = values.length === 1 ? values[0] : values;
+                });
+
+                if (Object.keys(normalizedFieldMap).length > 0) {
+                    normalized[material] = normalizedFieldMap;
+                }
+            });
+
+            return normalized;
+        }
+
+        function collectCustomizeFiltersFromRoot(rootEl, options = {}) {
+            if (!rootEl) {
+                return {};
+            }
+
+            const excludeAdditional = !!options.excludeAdditional;
+            const grouped = {};
+            const panelEls = Array.from(rootEl.querySelectorAll('.customize-panel[data-customize-panel]'));
+
+            panelEls.forEach(panelEl => {
+                if (!(panelEl instanceof HTMLElement)) {
+                    return;
+                }
+                if (excludeAdditional && panelEl.closest('[data-additional-work-item="true"]')) {
+                    return;
+                }
+
+                const materialKey = String(panelEl.dataset.customizePanel || '').trim();
+                if (!materialKey) {
+                    return;
+                }
+
+                const selectEls = panelEl.querySelectorAll(`select[data-customize-filter="${materialKey}"][data-filter-key]`);
+                selectEls.forEach(selectEl => {
+                    const filterKey = String(selectEl.dataset.filterKey || '').trim();
+                    if (!filterKey) {
+                        return;
+                    }
+                    const value = String(selectEl.value || '').trim();
+                    if (!value) {
+                        return;
+                    }
+
+                    if (!grouped[materialKey]) {
+                        grouped[materialKey] = {};
+                    }
+                    if (!grouped[materialKey][filterKey]) {
+                        grouped[materialKey][filterKey] = [];
+                    }
+                    grouped[materialKey][filterKey].push(value);
+                });
+            });
+
+            return normalizeBundleMaterialCustomizeFilters(grouped);
+        }
+
+        function collectMainMaterialCustomizeFilters() {
+            const root = document.getElementById('inputFormContainer') || document;
+            return collectCustomizeFiltersFromRoot(root, { excludeAdditional: true });
+        }
+
+        function parseObjectPayload(raw) {
+            const text = String(raw || '').trim();
+            if (!text) {
+                return {};
+            }
+            try {
+                const parsed = JSON.parse(text);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (error) {
+                try {
+                    const helper = document.createElement('textarea');
+                    helper.innerHTML = text;
+                    const decoded = JSON.parse(helper.value);
+                    return decoded && typeof decoded === 'object' ? decoded : {};
+                } catch (decodeError) {
+                    return {};
+                }
+            }
+        }
+
+        function getFirstFilterToken(rawValue) {
+            const tokens = uniqueFilterTokens(Array.isArray(rawValue) ? rawValue : [rawValue]);
+            return tokens[0] || '';
+        }
+
+        function panelHasActiveCustomizeValues(panelEl) {
+            if (!(panelEl instanceof HTMLElement)) {
+                return false;
+            }
+            const materialKey = String(panelEl.dataset.customizePanel || '').trim();
+            if (!materialKey) {
+                return false;
+            }
+            const selectEls = panelEl.querySelectorAll(`select[data-customize-filter="${materialKey}"][data-filter-key]`);
+            return Array.from(selectEls).some(selectEl => String(selectEl.value || '').trim() !== '');
+        }
+
+        function collapseEmptyCustomizePanels(rootEl = document) {
+            if (!rootEl) {
+                return;
+            }
+
+            const panelEls = Array.from(rootEl.querySelectorAll('.customize-panel[data-customize-panel]'));
+            panelEls.forEach(panelEl => {
+                if (!(panelEl instanceof HTMLElement)) {
+                    return;
+                }
+                if (panelHasActiveCustomizeValues(panelEl)) {
+                    return;
+                }
+                panelEl.hidden = true;
+
+                const panelId = String(panelEl.id || '').trim();
+                if (!panelId) {
+                    return;
+                }
+                document.querySelectorAll(`[data-customize-panel-id="${panelId}"]`).forEach(btn => {
+                    btn.classList.remove('is-active');
+                });
+            });
+        }
+
+        function bindAutoHideEmptyCustomizePanels() {
+            if (document.__autoHideEmptyCustomizeBound) {
+                return;
+            }
+            document.__autoHideEmptyCustomizeBound = true;
+
+            const shouldSkipAutoHide = target => {
+                if (!(target instanceof Element)) {
+                    return false;
+                }
+                if (target.closest('[data-customize-toggle]')) {
+                    return true;
+                }
+                if (target.closest('.customize-panel[data-customize-panel]')) {
+                    return true;
+                }
+                return false;
+            };
+
+            document.addEventListener('click', function(event) {
+                const target = event?.target;
+                if (shouldSkipAutoHide(target)) {
+                    return;
+                }
+                collapseEmptyCustomizePanels(document);
+            });
+
+            document.addEventListener('focusin', function(event) {
+                const target = event?.target;
+                if (shouldSkipAutoHide(target)) {
+                    return;
+                }
+                collapseEmptyCustomizePanels(document);
+            });
+        }
+
+        function applyMaterialCustomizeFiltersToPanels(rootEl, rawFilters) {
+            if (!rootEl) {
+                return;
+            }
+
+            const normalizedFilters = normalizeBundleMaterialCustomizeFilters(rawFilters);
+            if (Object.keys(normalizedFilters).length === 0) {
+                return;
+            }
+
+            Object.entries(normalizedFilters).forEach(([materialKey, fieldMap]) => {
+                const panels = Array.from(
+                    rootEl.querySelectorAll(`.customize-panel[data-customize-panel="${materialKey}"]`),
+                );
+                if (!panels.length || !fieldMap || typeof fieldMap !== 'object') {
+                    return;
+                }
+
+                const selectedValues = {};
+                Object.entries(fieldMap).forEach(([fieldKey, rawValue]) => {
+                    const firstValue = getFirstFilterToken(rawValue);
+                    if (!firstValue) {
+                        return;
+                    }
+                    selectedValues[String(fieldKey || '').trim()] = firstValue;
+                });
+                if (Object.keys(selectedValues).length === 0) {
+                    return;
+                }
+
+                const panelEl = panels[0];
+                if (!(panelEl instanceof HTMLElement)) {
+                    return;
+                }
+
+                const wasHidden = !!panelEl.hidden;
+                const panelId = String(panelEl.id || '').trim();
+                const openBtn = panelId
+                    ? (rootEl.querySelector(`[data-customize-panel-id="${panelId}"]`) ||
+                        document.querySelector(`[data-customize-panel-id="${panelId}"]`))
+                    : null;
+
+                if (wasHidden) {
+                    if (openBtn instanceof HTMLElement) {
+                        openBtn.click();
+                    } else {
+                        panelEl.hidden = false;
+                    }
+                }
+
+                const selectEls = Array.from(
+                    panelEl.querySelectorAll(`select[data-customize-filter="${materialKey}"][data-filter-key]`),
+                );
+                selectEls.forEach(selectEl => {
+                    const filterKey = String(selectEl.dataset.filterKey || '').trim();
+                    if (!filterKey || !Object.prototype.hasOwnProperty.call(selectedValues, filterKey)) {
+                        return;
+                    }
+                    const nextValue = String(selectedValues[filterKey] || '').trim();
+                    if (!nextValue) {
+                        return;
+                    }
+                    selectEl.value = nextValue;
+                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
+                panelEl.hidden = false;
+            });
+        }
+
+        function syncMaterialCustomizeFiltersPayload() {
+            if (!materialCustomizeFiltersPayloadInput) {
+                return;
+            }
+            const filters = collectMainMaterialCustomizeFilters();
+            materialCustomizeFiltersPayloadInput.value = Object.keys(filters).length > 0
+                ? JSON.stringify(filters)
+                : '';
         }
 
         const bundleParameterFields = [
@@ -2705,6 +3353,7 @@
                 ceramic_thickness: String(entry.ceramic_thickness || '').trim(),
                 active_fields: normalizeActiveFieldList(entry.active_fields),
                 material_type_filters: normalizeBundleMaterialTypeFilters(entry.material_type_filters || {}),
+                material_customize_filters: normalizeBundleMaterialCustomizeFilters(entry.material_customize_filters || {}),
             };
         }
 
@@ -2759,6 +3408,7 @@
                     ceramic_thickness: getMainFormValue('ceramicThickness'),
                     active_fields: getMainActiveParameterFields(),
                     material_type_filters: collectMainMaterialTypeFilters(),
+                    material_customize_filters: collectMainMaterialCustomizeFilters(),
                 },
                 0,
             );
@@ -2945,6 +3595,7 @@
             }
 
             const normalizeOption = value => String(value ?? '').trim().toLowerCase();
+            let additionalCustomizePanelSequence = 0;
 
             bundleMaterialTypeOrder.forEach(type => {
                 const wrap = itemEl.querySelector(`[data-material-wrap="${type}"]`);
@@ -3146,6 +3797,7 @@
                     const rowEl = document.createElement('div');
                     rowEl.className = 'material-type-row material-type-row-extra';
                     rowEl.dataset.materialType = type;
+                    const supportsCustomize = bundleCustomizeSupportedTypes.has(String(type || '').trim());
 
                     const inputWrapperEl = document.createElement('div');
                     inputWrapperEl.className = 'input-wrapper';
@@ -3196,7 +3848,42 @@
 
                     rowEl.appendChild(inputWrapperEl);
                     rowEl.appendChild(actionEl);
+                    let rowCustomizePanelEl = null;
+                    if (supportsCustomize) {
+                        const customizeBtn = document.createElement('button');
+                        customizeBtn.type = 'button';
+                        customizeBtn.className = 'material-type-row-btn material-type-row-btn-customize';
+                        customizeBtn.dataset.customizeToggle = type;
+                        customizeBtn.title = `Customize ${bundleMaterialTypeLabels[type] || type}`;
+                        customizeBtn.textContent = 'Customize';
+
+                        const templatePanel = wrap.querySelector(`[data-customize-panel="${type}"]`);
+                        if (templatePanel) {
+                            const panelId = `bundleCustomizePanel-${type}-extra-${++additionalCustomizePanelSequence}`;
+                            rowCustomizePanelEl = templatePanel.cloneNode(true);
+                            rowCustomizePanelEl.hidden = true;
+                            rowCustomizePanelEl.id = panelId;
+                            rowCustomizePanelEl.dataset.customizePanel = type;
+                            rowCustomizePanelEl.querySelectorAll('.customize-filter-autocomplete').forEach(el => el.remove());
+                            rowCustomizePanelEl.querySelectorAll('select[data-customize-filter]').forEach((selectEl, index) => {
+                                selectEl.value = '';
+                                selectEl.style.display = '';
+                                selectEl.tabIndex = 0;
+                                delete selectEl.dataset.customizeAutocompleteBound;
+                                if (selectEl.id) {
+                                    selectEl.id = `${selectEl.id}-extra-${additionalCustomizePanelSequence}-${index}`;
+                                }
+                            });
+                            customizeBtn.dataset.customizePanelId = panelId;
+                        }
+
+                        rowEl.appendChild(customizeBtn);
+                    }
                     extraRowsContainer.appendChild(rowEl);
+                    if (rowCustomizePanelEl) {
+                        extraRowsContainer.appendChild(rowCustomizePanelEl);
+                        rowEl.__customizePanelEl = rowCustomizePanelEl;
+                    }
 
                     setupAutocomplete({
                         rowEl,
@@ -3206,24 +3893,6 @@
                         renderList() {},
                         closeList() {},
                     });
-
-                    const deleteBtn = actionEl.querySelector('[data-material-type-action="remove"]');
-                    const addBtn = actionEl.querySelector('[data-material-type-action="add"]');
-
-                    if (deleteBtn) {
-                        deleteBtn.addEventListener('click', function() {
-                            rowEl.remove();
-                            updateRowButtons();
-                            syncRows();
-                        });
-                    }
-                    if (addBtn) {
-                        addBtn.addEventListener('click', function() {
-                            createExtraRow('');
-                            updateRowButtons();
-                            syncRows();
-                        });
-                    }
 
                     updateRowButtons();
                     return rowEl;
@@ -3256,6 +3925,9 @@
                         const promoted = String(state?.hiddenEl?.value ?? state?.displayEl?.value ?? '').trim();
                         baseDisplay.value = promoted;
                         baseHidden.value = promoted;
+                        if (firstExtra.__customizePanelEl) {
+                            firstExtra.__customizePanelEl.remove();
+                        }
                         firstExtra.remove();
                         updateRowButtons();
                         syncRows();
@@ -3267,14 +3939,40 @@
                     syncRows();
                 };
 
-                baseAddBtn.addEventListener('click', function() {
-                    createExtraRow('');
-                    updateRowButtons();
-                    syncRows();
-                });
+                wrap.addEventListener('click', function(event) {
+                    const target = event?.target;
+                    if (!(target instanceof HTMLElement)) return;
+                    const actionBtn = target.closest('[data-material-type-action]');
+                    if (!actionBtn || !wrap.contains(actionBtn)) return;
 
-                baseDeleteBtn.addEventListener('click', function() {
-                    removeBaseRow();
+                    const action = String(actionBtn.dataset.materialTypeAction || '').trim();
+                    if (!action) return;
+
+                    if (action === 'add') {
+                        event.preventDefault();
+                        createExtraRow('');
+                        updateRowButtons();
+                        syncRows();
+                        return;
+                    }
+
+                    if (action === 'remove') {
+                        event.preventDefault();
+                        const row = actionBtn.closest('.material-type-row');
+                        if (!row) return;
+
+                        if (row.classList.contains('material-type-row-base')) {
+                            removeBaseRow();
+                            return;
+                        }
+
+                        if (row.__customizePanelEl) {
+                            row.__customizePanelEl.remove();
+                        }
+                        row.remove();
+                        updateRowButtons();
+                        syncRows();
+                    }
                 });
 
                 setupAutocomplete({
@@ -3431,6 +4129,7 @@
 
             initAdditionalWorkTypeAutocomplete(wrapper, item);
             initAdditionalMaterialTypeFilters(wrapper, item.material_type_filters || {});
+            applyMaterialCustomizeFiltersToPanels(wrapper, item.material_customize_filters || {});
             attachAdditionalWorkItemEvents(wrapper);
             applyAdditionalWorkItemVisibility(wrapper);
             refreshAdditionalWorkItemHeader();
@@ -3558,6 +4257,10 @@
             return filters;
         }
 
+        function collectAdditionalMaterialCustomizeFilters(itemEl) {
+            return collectCustomizeFiltersFromRoot(itemEl);
+        }
+
         function collectAdditionalWorkItems(strict = false) {
             if (!additionalWorkItemsList) {
                 return { items: [], error: null };
@@ -3612,6 +4315,7 @@
                             ceramic_thickness: getAdditionalFieldValue(row, 'ceramic_thickness'),
                             active_fields: getAdditionalActiveParameterFields(row),
                             material_type_filters: collectAdditionalMaterialTypeFilters(row),
+                            material_customize_filters: collectAdditionalMaterialCustomizeFilters(row),
                         },
                         i + 1,
                     ),
@@ -3668,6 +4372,7 @@
         function syncBundleFromForms() {
             const result = buildBundleItems(false);
             const items = result.items || [];
+            syncMaterialCustomizeFiltersPayload();
             if (workItemsPayloadInput) {
                 workItemsPayloadInput.value = items.length >= 2 ? JSON.stringify(items) : '';
             }
@@ -4021,6 +4726,14 @@
             }
         }
         syncBundleFromForms();
+        if (initialMaterialCustomizeFiltersPayloadRaw) {
+            const initialMainCustomizeFilters = parseObjectPayload(initialMaterialCustomizeFiltersPayloadRaw);
+            const mainRoot = document.getElementById('inputFormContainer') || document;
+            applyMaterialCustomizeFiltersToPanels(mainRoot, initialMainCustomizeFilters);
+            syncBundleFromForms();
+        }
+        bindAutoHideEmptyCustomizePanels();
+        collapseEmptyCustomizePanels(document);
 
         // Loading State Handler with Real Progress Simulation
         const form = document.getElementById('calculationForm');
@@ -4073,7 +4786,7 @@
                 setMainFormRequired(true);
                 syncBundleFromForms();
 
-                toggleCustomForm();
+                ensureCustomFormVisible();
                 if (typeof handleWorkTypeChange === 'function') {
                     handleWorkTypeChange();
                 }
@@ -4097,6 +4810,41 @@
                     data[normalizedKey] = [data[normalizedKey], value];
                 }
             });
+
+            const customizePanelState = {};
+            document.querySelectorAll('.customize-panel[data-customize-panel]').forEach(panelEl => {
+                const panelId = String(panelEl.id || '').trim();
+                const materialKey = String(panelEl.dataset.customizePanel || '').trim();
+                if (!panelId || !materialKey) {
+                    return;
+                }
+
+                const fieldValues = {};
+                panelEl.querySelectorAll(`select[data-customize-filter="${materialKey}"][data-filter-key]`).forEach(selectEl => {
+                    const filterKey = String(selectEl.dataset.filterKey || '').trim();
+                    const value = String(selectEl.value || '').trim();
+                    if (!filterKey || !value) {
+                        return;
+                    }
+                    fieldValues[filterKey] = value;
+                });
+
+                const hasValues = Object.keys(fieldValues).length > 0;
+                const isOpen = !panelEl.hidden;
+                if (!hasValues) {
+                    return;
+                }
+
+                customizePanelState[panelId] = {
+                    material_key: materialKey,
+                    values: fieldValues,
+                    open: isOpen,
+                };
+            });
+
+            if (Object.keys(customizePanelState).length > 0) {
+                data.customize_panel_state = customizePanelState;
+            }
             return data;
         }
 
@@ -4165,6 +4913,21 @@
             return false;
         }
 
+        function isBackForwardNavigation() {
+            if (typeof performance === 'undefined') {
+                return false;
+            }
+            try {
+                const entries = performance.getEntriesByType('navigation');
+                if (Array.isArray(entries) && entries.length > 0) {
+                    return entries[0].type === 'back_forward';
+                }
+            } catch (error) {
+                // noop
+            }
+            return false;
+        }
+
         function shouldRestoreCalculationSession() {
             const params = new URLSearchParams(window.location.search);
             if (params.get('resume') === '1') {
@@ -4172,8 +4935,8 @@
                 params.delete('auto_submit');
                 return !params.toString();
             }
-            // Also restore session on normal page refresh (F5/Ctrl+R).
-            return isReloadNavigation();
+            // Restore session on refresh and browser back/forward navigation.
+            return isReloadNavigation() || isBackForwardNavigation();
         }
 
         function applyCalculationSession(state) {
@@ -4183,6 +4946,8 @@
             const workTypeValue = state.work_type_select || state.work_type || '';
             const expectsMm = ['skim_coating', 'coating_floor'].includes(workTypeValue);
             let pendingMortarThickness = null;
+            let pendingCustomizePanelState = null;
+            let pendingMaterialCustomizeFilters = null;
             if (workTypeInput && workTypeValue) {
                 workTypeInput.value = workTypeValue;
                 workTypeInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -4194,6 +4959,25 @@
 
             Object.entries(state).forEach(([key, value]) => {
                 if (key === 'work_type_select' || key === 'work_type') return;
+                if (key === 'customize_panel_state') {
+                    pendingCustomizePanelState = value;
+                    return;
+                }
+                if (key === 'material_customize_filters' && value && typeof value === 'object') {
+                    pendingMaterialCustomizeFilters = value;
+                    return;
+                }
+                if (key === 'material_customize_filters_payload') {
+                    const parsedCustomizePayload = parseObjectPayload(value);
+                    if (parsedCustomizePayload && Object.keys(parsedCustomizePayload).length > 0) {
+                        pendingMaterialCustomizeFilters = parsedCustomizePayload;
+                    }
+                    const hiddenCustomizeInput = form.querySelector('[name="material_customize_filters_payload"]');
+                    if (hiddenCustomizeInput) {
+                        hiddenCustomizeInput.value = String(value || '');
+                    }
+                    return;
+                }
                 
                 // Handle nested material_type_filters object (from JSON state)
                 if (key === 'material_type_filters' && typeof value === 'object' && value !== null) {
@@ -4301,6 +5085,64 @@
                 }
             }
             syncBundleFromForms();
+
+            if (pendingMaterialCustomizeFilters && typeof pendingMaterialCustomizeFilters === 'object') {
+                const mainRoot = document.getElementById('inputFormContainer') || document;
+                applyMaterialCustomizeFiltersToPanels(mainRoot, pendingMaterialCustomizeFilters);
+                syncBundleFromForms();
+            }
+
+            if (pendingCustomizePanelState && typeof pendingCustomizePanelState === 'object') {
+                Object.entries(pendingCustomizePanelState).forEach(([panelId, payload]) => {
+                    const panelEl = document.getElementById(panelId);
+                    if (!panelEl) {
+                        return;
+                    }
+
+                    const materialKey = String(payload?.material_key || panelEl.dataset.customizePanel || '').trim();
+                    if (!materialKey) {
+                        return;
+                    }
+
+                    const values = payload && typeof payload === 'object' && payload.values && typeof payload.values === 'object'
+                        ? payload.values
+                        : {};
+                    const hasRestoredValues = Object.keys(values).length > 0;
+
+                    if (!hasRestoredValues) {
+                        panelEl.hidden = true;
+                        return;
+                    }
+
+                    if (panelEl.hidden) {
+                        const openBtn = document.querySelector(`[data-customize-panel-id="${panelId}"]`);
+                        if (openBtn instanceof HTMLElement) {
+                            openBtn.click();
+                        } else {
+                            panelEl.hidden = false;
+                        }
+                    }
+
+                    const selectEls = Array.from(
+                        panelEl.querySelectorAll(`select[data-customize-filter="${materialKey}"][data-filter-key]`),
+                    );
+
+                    selectEls.forEach(selectEl => {
+                        const filterKey = String(selectEl.dataset.filterKey || '').trim();
+                        if (!filterKey || !Object.prototype.hasOwnProperty.call(values, filterKey)) {
+                            return;
+                        }
+                        const nextValue = String(values[filterKey] || '').trim();
+                        selectEl.value = nextValue;
+                        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    });
+
+                    const shouldOpen = hasRestoredValues;
+                    panelEl.hidden = !shouldOpen;
+                });
+            }
+
+            collapseEmptyCustomizePanels(document);
         }
 
         function restoreCalculationSession() {
@@ -4434,6 +5276,7 @@
             });
 
             form.addEventListener('submit', function(e) {
+                syncMaterialCustomizeFiltersPayload();
                 const bundleBuild = buildBundleItems(true);
                 if (bundleBuild.error) {
                     e.preventDefault();

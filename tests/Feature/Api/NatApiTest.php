@@ -15,8 +15,8 @@ class NatApiTest extends TestCase
     {
         parent::setUp();
 
-        if (!Schema::hasTable('nats')) {
-            $this->markTestSkipped('Table nats tidak tersedia pada environment testing ini.');
+        if (!Schema::hasTable('cements') || !Schema::hasColumn('cements', 'nat_name')) {
+            $this->markTestSkipped('Tabel cements untuk data nat belum tersedia pada environment testing ini.');
         }
 
         Nat::query()->delete();
@@ -58,10 +58,11 @@ class NatApiTest extends TestCase
 
         $response->assertStatus(201)->assertJsonPath('success', true)->assertJsonPath('data.brand', 'Alpha');
 
-        $this->assertDatabaseHas('nats', [
+        $this->assertDatabaseHas('cements', [
             'brand' => 'Alpha',
             'code' => 'A01',
             'price_unit' => 'Bks',
+            'material_kind' => Nat::MATERIAL_KIND,
         ]);
     }
 
@@ -83,10 +84,11 @@ class NatApiTest extends TestCase
 
         $response->assertOk()->assertJsonPath('success', true)->assertJsonPath('data.brand', 'Brand Baru');
 
-        $this->assertDatabaseHas('nats', [
+        $this->assertDatabaseHas('cements', [
             'id' => $nat->id,
             'brand' => 'Brand Baru',
             'price_unit' => 'Bks',
+            'material_kind' => Nat::MATERIAL_KIND,
         ]);
     }
 
@@ -101,8 +103,9 @@ class NatApiTest extends TestCase
 
         $response->assertOk()->assertJsonPath('success', true);
 
-        $this->assertDatabaseMissing('nats', [
+        $this->assertDatabaseMissing('cements', [
             'id' => $nat->id,
+            'material_kind' => Nat::MATERIAL_KIND,
         ]);
     }
 }

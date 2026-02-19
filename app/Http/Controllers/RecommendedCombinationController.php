@@ -12,6 +12,7 @@ use App\Models\Sand;
 use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class RecommendedCombinationController extends Controller
 {
@@ -51,11 +52,17 @@ class RecommendedCombinationController extends Controller
             'recommendations' => 'nullable|array',
             'recommendations.*.work_type' => 'required|string',
             'recommendations.*.brick_id' => 'nullable|exists:bricks,id',
-            'recommendations.*.cement_id' => 'nullable|exists:cements,id',
+            'recommendations.*.cement_id' => [
+                'nullable',
+                Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND),
+            ],
             'recommendations.*.sand_id' => 'nullable|exists:sands,id',
             'recommendations.*.cat_id' => 'nullable|exists:cats,id',
             'recommendations.*.ceramic_id' => 'nullable|exists:ceramics,id',
-            'recommendations.*.nat_id' => 'nullable|exists:nats,id',
+            'recommendations.*.nat_id' => [
+                'nullable',
+                Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND),
+            ],
         ]);
 
         try {

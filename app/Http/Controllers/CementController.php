@@ -7,10 +7,12 @@ use App\Actions\Material\DeleteMaterialAction;
 use App\Actions\Material\UpdateMaterialAction;
 use App\Http\Requests\Material\CementUpsertRequest;
 use App\Models\Cement;
+use App\Models\Nat;
 use App\Services\Material\MaterialDuplicateService;
 use App\Services\Material\MaterialPhotoService;
 use App\Support\Material\MaterialIndexQuery;
 use App\Support\Material\MaterialIndexSpec;
+use App\Support\Material\MaterialKindResolver;
 use App\Support\Material\MaterialLookupQuery;
 use App\Support\Material\MaterialLookupSpec;
 use Illuminate\Http\Request;
@@ -45,7 +47,8 @@ class CementController extends Controller
         $request->validate((new CementUpsertRequest())->rules());
 
         $data = $request->all();
-        app(MaterialDuplicateService::class)->ensureNoDuplicate('cement', $data);
+        $detectedMaterialType = $this->resolveMaterialTypeFromInput($data, 'cement');
+        app(MaterialDuplicateService::class)->ensureNoDuplicate($detectedMaterialType, $data);
 
         DB::beginTransaction();
         try {
@@ -59,22 +62,28 @@ class CementController extends Controller
 
             $cement->save();
 
-            $this->syncStoreLocationOnCreate($request, $cement);
+            $this->syncStoreLocationOnSave(
+                $request,
+                $cement->id,
+                $this->resolveMaterialTypeFromKind($cement->material_kind),
+            );
 
             DB::commit();
 
+            $materialType = $this->resolveMaterialTypeFromKind($cement->material_kind);
+            $materialLabel = MaterialKindResolver::labelFromKind($materialType);
             $redirectUrl = $request->filled('_redirect_url')
                 ? $request->input('_redirect_url')
                 : ($request->input('_redirect_to_materials')
                     ? route('materials.index')
-                    : route('cements.index'));
-            $newMaterial = ['type' => 'cement', 'id' => $cement->id];
+                    : route(MaterialKindResolver::indexRouteNameFromKind($materialType)));
+            $newMaterial = ['type' => $materialType, 'id' => $cement->id];
             $isAjaxRequest = $request->expectsJson() || $request->ajax();
 
             if ($isAjaxRequest) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Semen berhasil ditambahkan!',
+                    'message' => $materialLabel . ' berhasil ditambahkan!',
                     'redirect_url' => $redirectUrl,
                     'new_material' => $newMaterial,
                 ]);
@@ -84,18 +93,20 @@ class CementController extends Controller
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
-                    ->with('success', 'Semen berhasil ditambahkan!')
+                    ->with('success', $materialLabel . ' berhasil ditambahkan!')
                     ->with('new_material', $newMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
-                    ->with('success', 'Semen berhasil ditambahkan!')
+                    ->with('success', $materialLabel . ' berhasil ditambahkan!')
                     ->with('new_material', $newMaterial);
             }
 
-            return redirect()->route('cements.index')->with('success', 'Semen berhasil ditambahkan!');
+            return redirect()
+                ->route(MaterialKindResolver::indexRouteNameFromKind($materialType))
+                ->with('success', $materialLabel . ' berhasil ditambahkan!');
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to create cement: ' . $e->getMessage());
@@ -129,7 +140,8 @@ class CementController extends Controller
         $request->validate((new CementUpsertRequest())->rules());
 
         $data = $request->all();
-        app(MaterialDuplicateService::class)->ensureNoDuplicate('cement', $data, $cement->id);
+        $detectedMaterialType = $this->resolveMaterialTypeFromInput($data, 'cement');
+        app(MaterialDuplicateService::class)->ensureNoDuplicate($detectedMaterialType, $data, $cement->id);
 
         DB::beginTransaction();
         try {
@@ -143,22 +155,28 @@ class CementController extends Controller
 
             $cement->save();
 
-            $this->syncStoreLocationOnUpdate($request, $cement);
+            $this->syncStoreLocationOnSave(
+                $request,
+                $cement->id,
+                $this->resolveMaterialTypeFromKind($cement->material_kind),
+            );
 
             DB::commit();
 
+            $materialType = $this->resolveMaterialTypeFromKind($cement->material_kind);
+            $materialLabel = MaterialKindResolver::labelFromKind($materialType);
             $redirectUrl = $request->filled('_redirect_url')
                 ? $request->input('_redirect_url')
                 : ($request->input('_redirect_to_materials')
                     ? route('materials.index')
-                    : route('cements.index'));
-            $updatedMaterial = ['type' => 'cement', 'id' => $cement->id];
+                    : route(MaterialKindResolver::indexRouteNameFromKind($materialType)));
+            $updatedMaterial = ['type' => $materialType, 'id' => $cement->id];
             $isAjaxRequest = $request->expectsJson() || $request->ajax();
 
             if ($isAjaxRequest) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Semen berhasil diupdate!',
+                    'message' => $materialLabel . ' berhasil diupdate!',
                     'redirect_url' => $redirectUrl,
                     'updated_material' => $updatedMaterial,
                 ]);
@@ -168,20 +186,20 @@ class CementController extends Controller
             if ($request->filled('_redirect_url')) {
                 return redirect()
                     ->to($request->input('_redirect_url'))
-                    ->with('success', 'Semen berhasil diupdate!')
+                    ->with('success', $materialLabel . ' berhasil diupdate!')
                     ->with('updated_material', $updatedMaterial);
             }
             // Backward compatibility for older forms
             if ($request->input('_redirect_to_materials')) {
                 return redirect()
                     ->route('materials.index')
-                    ->with('success', 'Semen berhasil diupdate!')
+                    ->with('success', $materialLabel . ' berhasil diupdate!')
                     ->with('updated_material', $updatedMaterial);
             }
 
             return redirect()
-                ->route('cements.index')
-                ->with('success', 'Semen berhasil diupdate!')
+                ->route(MaterialKindResolver::indexRouteNameFromKind($materialType))
+                ->with('success', $materialLabel . ' berhasil diupdate!')
                 ->with('updated_material', $updatedMaterial);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -325,6 +343,44 @@ class CementController extends Controller
         $cement->storeLocations()->detach();
     }
 
+    private function syncStoreLocationOnSave(Request $request, int $materialId, string $materialType): void
+    {
+        $storeLocationId = $request->filled('store_location_id') ? (int) $request->input('store_location_id') : null;
+
+        DB::table('store_material_availabilities')
+            ->where('materialable_id', $materialId)
+            ->whereIn('materialable_type', [Cement::class, Nat::class])
+            ->delete();
+
+        if (!$storeLocationId) {
+            return;
+        }
+
+        if ($materialType === 'nat') {
+            $nat = Nat::query()->find($materialId);
+            if ($nat) {
+                $nat->storeLocations()->syncWithoutDetaching([$storeLocationId]);
+            }
+
+            return;
+        }
+
+        $cement = Cement::query()->find($materialId);
+        if ($cement) {
+            $cement->storeLocations()->syncWithoutDetaching([$storeLocationId]);
+        }
+    }
+
+    private function resolveMaterialTypeFromInput(array $data, string $fallback = 'cement'): string
+    {
+        return MaterialKindResolver::inferFromType($data['type'] ?? null, $fallback);
+    }
+
+    private function resolveMaterialTypeFromKind(?string $kind): string
+    {
+        return MaterialKindResolver::normalizeKind($kind);
+    }
+
     // API untuk mendapatkan unique values per field
     public function getFieldValues(string $field, Request $request)
     {
@@ -337,13 +393,17 @@ class CementController extends Controller
 
         $search = MaterialLookupQuery::stringSearch($request);
         $limit = MaterialLookupQuery::normalizedLimit($request);
+        $kinds = $this->resolveAutocompleteKinds($request, 'cement');
 
         // Get filter parameters for cascading autocomplete
         $brand = (string) $request->query('brand', '');
         $packageUnit = (string) $request->query('package_unit', '');
         $store = (string) $request->query('store', '');
 
-        $query = Cement::query()->whereNotNull($field)->where($field, '!=', '');
+        $query = DB::table('cements')
+            ->whereIn('material_kind', $kinds)
+            ->whereNotNull($field)
+            ->where($field, '!=', '');
 
         // Apply cascading filters based on field
         // Fields that depend on brand selection
@@ -372,8 +432,10 @@ class CementController extends Controller
             // Get stores from all material types
             $allStores = collect();
 
-            // Get from cements
-            $cementStores = Cement::whereNotNull('store')
+            // Get from cement/nat based on kinds filter
+            $cementStores = DB::table('cements')
+                ->whereIn('material_kind', $kinds)
+                ->whereNotNull('store')
                 ->where('store', '!=', '')
                 ->when($search !== '', fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->select('store')
@@ -407,14 +469,16 @@ class CementController extends Controller
         $search = MaterialLookupQuery::stringSearch($request);
         $limit = MaterialLookupQuery::normalizedLimit($request);
         $materialType = MaterialLookupQuery::queryMaterialType($request, 'all'); // 'cement' atau 'all'
+        $kinds = $this->resolveAutocompleteKinds($request, 'cement');
 
         $stores = collect();
 
         // Jika tidak ada search term, hanya tampilkan stores dari cement
         // Jika ada search term, tampilkan dari semua material
         if ($materialType === 'cement' || ($search === '' && $materialType === 'all')) {
-            // Tampilkan dari cement saja
-            $cementStores = Cement::query()
+            // Tampilkan dari material cements table sesuai filter kinds
+            $cementStores = DB::table('cements')
+                ->whereIn('material_kind', $kinds)
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
                 ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
@@ -435,7 +499,8 @@ class CementController extends Controller
                 ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
                 ->pluck('store');
 
-            $cementStores = Cement::query()
+            $cementStores = DB::table('cements')
+                ->whereIn('material_kind', $kinds)
                 ->whereNotNull('store')
                 ->where('store', '!=', '')
                 ->when($search, fn($q) => $q->where('store', 'like', "%{$search}%"))
@@ -469,6 +534,7 @@ class CementController extends Controller
         $store = MaterialLookupQuery::stringStore($request);
         $search = MaterialLookupQuery::stringSearch($request);
         $limit = MaterialLookupQuery::normalizedLimit($request);
+        $kinds = $this->resolveAutocompleteKinds($request, 'cement');
 
         // Jika tidak ada toko yang dipilih, return empty
         if ($store === '') {
@@ -478,7 +544,8 @@ class CementController extends Controller
         $addresses = collect();
 
         // Ambil address dari cement yang sesuai dengan toko
-        $cementAddresses = Cement::query()
+        $cementAddresses = DB::table('cements')
+            ->whereIn('material_kind', $kinds)
             ->where('store', $store)
             ->whereNotNull('address')
             ->where('address', '!=', '')
@@ -521,5 +588,25 @@ class CementController extends Controller
             ->take($limit);
 
         return response()->json($allAddresses);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function resolveAutocompleteKinds(Request $request, string $defaultKind): array
+    {
+        $rawKinds = strtolower((string) $request->query('kinds', ''));
+        if (trim($rawKinds) === '') {
+            return [$defaultKind];
+        }
+
+        $kinds = collect(explode(',', $rawKinds))
+            ->map(fn($kind) => trim($kind))
+            ->filter(fn($kind) => in_array($kind, ['cement', 'nat'], true))
+            ->unique()
+            ->values()
+            ->all();
+
+        return !empty($kinds) ? $kinds : [$defaultKind];
     }
 }

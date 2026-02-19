@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Models\Cement;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class CalculationWriteApiController extends CalculationApiController
 {
@@ -186,7 +188,7 @@ class CalculationWriteApiController extends CalculationApiController
             'installation_type_id' => 'required|exists:brick_installation_types,id',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'required|exists:bricks,id',
-            'cement_id' => 'required|exists:cements,id',
+            'cement_id' => ['required', Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND)],
             'sand_id' => 'required|exists:sands,id',
             'layer_count' => 'nullable|integer|min:1',
             'plaster_sides' => 'nullable|integer|min:1|max:2',
@@ -206,7 +208,7 @@ class CalculationWriteApiController extends CalculationApiController
             'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
+            'cement_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND)],
             'sand_id' => 'nullable|exists:sands,id',
             'project_name' => 'nullable|string|max:255',
             'notes' => 'nullable|string',

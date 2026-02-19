@@ -2,127 +2,181 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Cement;
-use App\Models\Nat;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class CleanupLegacyNatDataCommand extends Command
 {
     protected $signature = 'nat:cleanup-legacy
-        {--dry-run : Preview deletion without writing changes}
-        {--include-unmapped : Also delete legacy Nat rows that are not mapped to nats}
-        {--chunk=500 : Chunk size for deletion}
+        {--dry-run : Preview cleanup without writing changes}
+        {--include-unmapped : Also delete nats rows that have not been matched in cements}
+        {--drop-table : Drop legacy nats table when empty after cleanup}
         {--force : Skip confirmation prompt}';
 
-    protected $description = 'Delete legacy Nat rows from cements table after migration to nats table';
+    protected $description = 'Cleanup legacy nats table after consolidation into cements material_kind=nat';
 
     public function handle(): int
     {
-        if (!Schema::hasTable('nats') || !Schema::hasColumn('nats', 'legacy_cement_id')) {
-            $this->warn('Legacy mapping column `nats.legacy_cement_id` is not available.');
-            $this->line('Nat has been finalized as standalone material. Legacy cleanup command is no longer needed.');
-
+        if (!Schema::hasTable('nats')) {
+            $this->info('Table nats tidak ditemukan. Tidak ada legacy data untuk dibersihkan.');
             return self::SUCCESS;
+        }
+
+        if (!Schema::hasTable('cements')) {
+            $this->error('Table cements tidak tersedia.');
+            return self::FAILURE;
+        }
+
+        if (!Schema::hasColumn('cements', 'material_kind') || !Schema::hasColumn('cements', 'nat_name')) {
+            $this->error('Kolom cements.material_kind / cements.nat_name belum tersedia.');
+            return self::FAILURE;
         }
 
         $dryRun = (bool) $this->option('dry-run');
         $includeUnmapped = (bool) $this->option('include-unmapped');
-        $chunk = max(1, (int) $this->option('chunk'));
+        $dropTable = (bool) $this->option('drop-table');
 
-        $legacyQuery = Cement::query()->where('type', 'Nat');
-        $mappedLegacyQuery = Cement::query()
-            ->where('type', 'Nat')
-            ->whereExists(function ($query) {
-                $query->selectRaw('1')->from('nats')->whereColumn('nats.legacy_cement_id', 'cements.id');
-            });
-
-        $legacyTotal = (clone $legacyQuery)->count();
-        if ($legacyTotal === 0) {
-            $this->warn('No legacy Nat rows found in cements table.');
-
+        $rows = DB::table('nats')->orderBy('id')->get();
+        if ($rows->isEmpty()) {
+            $this->warn('Table nats sudah kosong.');
+            if ($dropTable) {
+                if ($dryRun) {
+                    $this->line('DRY-RUN: table nats akan di-drop karena kosong.');
+                } else {
+                    Schema::dropIfExists('nats');
+                    $this->info('Table nats berhasil di-drop.');
+                }
+            }
             return self::SUCCESS;
         }
 
-        $mappedTotal = (clone $mappedLegacyQuery)->count();
-        $unmappedTotal = max(0, $legacyTotal - $mappedTotal);
+        $mappedIds = [];
+        $unmappedIds = [];
 
-        $targetQuery = $includeUnmapped ? $legacyQuery : $mappedLegacyQuery;
-        $targetCount = (clone $targetQuery)->count();
+        foreach ($rows as $row) {
+            $match = $this->findMatchingNatCementId($row);
+            if ($match) {
+                $mappedIds[] = (int) $row->id;
+            } else {
+                $unmappedIds[] = (int) $row->id;
+            }
+        }
+
+        $targetIds = $includeUnmapped ? $rows->pluck('id')->map(fn($id) => (int) $id)->all() : $mappedIds;
 
         $this->table(
             ['Metric', 'Count'],
             [
-                ['Legacy Nat rows in cements', $legacyTotal],
-                ['Mapped to nats (via legacy_cement_id)', $mappedTotal],
-                ['Unmapped in cements', $unmappedTotal],
-                ['Target rows to delete', $targetCount],
+                ['Rows in nats', $rows->count()],
+                ['Matched in cements(material_kind=nat)', count($mappedIds)],
+                ['Unmatched in cements', count($unmappedIds)],
+                ['Rows to delete now', count($targetIds)],
             ],
         );
 
         $this->line('Mode: ' . ($dryRun ? 'DRY-RUN (no writes)' : 'WRITE'));
-        $this->line('Delete mode: ' . ($includeUnmapped ? 'ALL legacy Nat rows' : 'MAPPED ONLY (safe default)'));
-        $this->line('Chunk size: ' . $chunk);
+        $this->line('Delete scope: ' . ($includeUnmapped ? 'ALL rows in nats' : 'MATCHED rows only'));
+        $this->line('Drop table if empty: ' . ($dropTable ? 'yes' : 'no'));
 
-        if (!$includeUnmapped && $unmappedTotal > 0) {
-            $this->warn(
-                'There are unmapped legacy Nat rows. They will be kept. ' .
-                    'Use --include-unmapped only if you are sure they are no longer needed.',
-            );
+        if (!$includeUnmapped && !empty($unmappedIds)) {
+            $this->warn('Ada row legacy yang belum termatch ke cements. Row ini akan dipertahankan.');
         }
 
-        if ($targetCount === 0) {
-            $this->info('Nothing to delete.');
-
+        if (empty($targetIds)) {
+            $this->info('Tidak ada row yang perlu dihapus.');
             return self::SUCCESS;
         }
 
         if (!$dryRun && !$this->option('force')) {
-            if (!$this->confirm('Proceed with deleting the targeted legacy Nat rows from cements?', false)) {
-                $this->warn('Cleanup cancelled.');
-
+            if (!$this->confirm('Lanjutkan cleanup legacy table nats?', false)) {
+                $this->warn('Cleanup dibatalkan.');
                 return self::SUCCESS;
             }
         }
 
         if ($dryRun) {
-            $this->info('Dry-run completed. No data was deleted.');
-
+            $this->info('Dry-run selesai. Tidak ada data yang diubah.');
             return self::SUCCESS;
         }
 
-        $deleted = 0;
-        $progress = $this->output->createProgressBar($targetCount);
-        $progress->start();
+        $deleted = DB::table('nats')->whereIn('id', $targetIds)->delete();
 
-        $targetQuery->orderBy('id')->chunkById($chunk, function ($cements) use (&$deleted, $progress) {
-            $ids = $cements->pluck('id')->all();
-            if (empty($ids)) {
-                return;
+        // Remove stale polymorphic links for ids that no longer exist as Nat records in cements.
+        if (
+            Schema::hasTable('store_material_availabilities') &&
+            Schema::hasColumn('store_material_availabilities', 'materialable_id') &&
+            Schema::hasColumn('store_material_availabilities', 'materialable_type')
+        ) {
+            $validNatIds = DB::table('cements')->where('material_kind', 'nat')->pluck('id')->map(fn($id) => (int) $id)->all();
+            $staleIds = array_values(array_diff($targetIds, $validNatIds));
+            if (!empty($staleIds)) {
+                DB::table('store_material_availabilities')
+                    ->where('materialable_type', 'App\\Models\\Nat')
+                    ->whereIn('materialable_id', $staleIds)
+                    ->delete();
             }
+        }
 
-            $deleted += Cement::query()->whereIn('id', $ids)->delete();
-            $progress->advance(count($ids));
-        });
-
-        $progress->finish();
-        $this->newLine(2);
-
-        $legacyAfter = Cement::query()->where('type', 'Nat')->count();
-        $mappedAfter = Nat::query()->whereNotNull('legacy_cement_id')->count();
+        $remaining = DB::table('nats')->count();
+        if ($dropTable && $remaining === 0) {
+            Schema::dropIfExists('nats');
+        }
 
         $this->table(
             ['Post-check', 'Count'],
             [
-                ['Deleted rows', $deleted],
-                ['Remaining legacy Nat rows in cements', $legacyAfter],
-                ['Remaining mapped rows in nats (legacy_cement_id not null)', $mappedAfter],
+                ['Deleted rows from nats', $deleted],
+                ['Remaining rows in nats', $remaining],
+                ['Rows in cements (material_kind=nat)', DB::table('cements')->where('material_kind', 'nat')->count()],
             ],
         );
 
-        $this->warn('Note: deleting cements rows sets nats.legacy_cement_id to NULL because of FK nullOnDelete().');
-        $this->info('Legacy Nat cleanup completed.');
+        if ($dropTable && $remaining === 0) {
+            $this->info('Cleanup selesai. Table nats di-drop karena sudah kosong.');
+        } else {
+            $this->info('Cleanup legacy nats selesai.');
+        }
 
         return self::SUCCESS;
+    }
+
+    private function findMatchingNatCementId(object $natRow): ?int
+    {
+        $natName = $natRow->nat_name ?: ($natRow->brand ?? 'Nat');
+
+        $query = DB::table('cements')->where('material_kind', 'nat');
+        $query->where(function ($q) use ($natName) {
+            $q->where('nat_name', $natName)->orWhere('cement_name', $natName);
+        });
+
+        $this->applyNullableWhere($query, 'type', $natRow->type ?? null);
+        $this->applyNullableWhere($query, 'brand', $natRow->brand ?? null);
+        $this->applyNullableWhere($query, 'sub_brand', $natRow->sub_brand ?? null);
+        $this->applyNullableWhere($query, 'code', $natRow->code ?? null);
+        $this->applyNullableWhere($query, 'color', $natRow->color ?? null);
+        $this->applyNullableWhere($query, 'package_unit', $natRow->package_unit ?? null);
+        $this->applyNullableWhere($query, 'package_weight_net', $natRow->package_weight_net ?? null);
+        $this->applyNullableWhere($query, 'package_price', $natRow->package_price ?? null);
+        $this->applyNullableWhere($query, 'store', $natRow->store ?? null);
+        $this->applyNullableWhere($query, 'address', $natRow->address ?? null);
+
+        if (Schema::hasColumn('cements', 'store_location_id')) {
+            $this->applyNullableWhere($query, 'store_location_id', $natRow->store_location_id ?? null);
+        }
+
+        $id = $query->value('id');
+
+        return $id ? (int) $id : null;
+    }
+
+    private function applyNullableWhere($query, string $column, mixed $value): void
+    {
+        if ($value === null || $value === '') {
+            $query->whereNull($column);
+            return;
+        }
+
+        $query->where($column, $value);
     }
 }

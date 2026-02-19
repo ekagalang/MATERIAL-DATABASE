@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             CeramicSeeder::class,
             BrickInstallationTypeSeeder::class,
             MortarFormulaSeeder::class,
-            NatSeeder::class,
             NatTableSeeder::class,
 
             // Uncomment untuk create sample calculation (opsional)

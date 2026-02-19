@@ -59,8 +59,7 @@
         <div class="stores-map-card card border-0 shadow-sm mb-3">
             <div class="card-body py-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 fw-bold text-dark">Preview Semua Lokasi Toko</h6>
-                    <span class="stores-map-legend"><i class="bi bi-shop me-1"></i> Lokasi toko tersimpan</span>
+                    <h6 class="mb-0 fw-bold text-dark">Lokasi Semua Toko</h6>
                 </div>
 
                 @if ($storeLocationPoints->isNotEmpty())

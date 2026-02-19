@@ -281,6 +281,17 @@ class StoreLocationController extends Controller
         $cats = $this->sortMaterialsCollection($cats, 'cat', $sortBy, $sortDirection);
         $ceramics = $this->sortMaterialsCollection($ceramics, 'ceramic', $sortBy, $sortDirection);
         $nats = $this->sortMaterialsCollection($nats, 'nat', $sortBy, $sortDirection);
+        $cements = $cements->map(function ($material) {
+            $material->row_material_type = 'cement';
+
+            return $material;
+        });
+        $nats = $nats->map(function ($material) {
+            $material->row_material_type = 'nat';
+
+            return $material;
+        });
+        $mergedCements = $this->sortMergedStoreLocationCementRows($cements->concat($nats), $sortBy, $sortDirection);
 
         // Prepare data structure for the view (similar to MaterialController@index)
         // IMPORTANT: Always include all material types even if count is 0
@@ -301,20 +312,10 @@ class StoreLocationController extends Controller
         $materials[] = [
             'type' => 'cement',
             'label' => 'Semen',
-            'count' => $cements->count(),
-            'db_count' => $cements->count(),
-            'data' => $cements,
-            'active_letters' => $this->getActiveLetters($cements),
-        ];
-
-        // Always include nat
-        $materials[] = [
-            'type' => 'nat',
-            'label' => 'Nat',
-            'count' => $nats->count(),
-            'db_count' => $nats->count(),
-            'data' => $nats,
-            'active_letters' => $this->getActiveLetters($nats),
+            'count' => $mergedCements->count(),
+            'db_count' => $mergedCements->count(),
+            'data' => $mergedCements,
+            'active_letters' => $this->getActiveLetters($mergedCements),
         ];
 
         // Always include sand
@@ -348,7 +349,10 @@ class StoreLocationController extends Controller
         ];
 
         // Get all settings for filter dropdown (required by the view structure)
-        $allSettings = \App\Models\MaterialSetting::where('is_visible', true)->orderBy('display_order')->get();
+        $allSettings = \App\Models\MaterialSetting::where('is_visible', true)
+            ->where('material_type', '!=', 'nat')
+            ->orderBy('display_order')
+            ->get();
 
         return view('store-locations.materials', compact('store', 'location', 'materials', 'allSettings'));
     }
@@ -359,7 +363,11 @@ class StoreLocationController extends Controller
     public function fetchTab(Request $request, Store $store, StoreLocation $location, $type)
     {
         // Validate type
-        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic', 'nat'])) {
+        if ($type === 'nat') {
+            $type = 'cement';
+        }
+
+        if (!in_array($type, ['brick', 'cat', 'cement', 'sand', 'ceramic'])) {
             abort(404);
         }
 
@@ -381,7 +389,7 @@ class StoreLocationController extends Controller
             'cement' => 'Cement',
             'sand' => 'Sand',
             'ceramic' => 'Ceramic',
-            'nat' => 'Nat',
+            default => null,
         };
 
         foreach ($availabilities as $availability) {
@@ -391,7 +399,10 @@ class StoreLocationController extends Controller
             }
 
             // Filter by type
-            if (class_basename($material) !== $targetClass) {
+            $classType = class_basename($material);
+            $isCementNatMergedType = $type === 'cement' && in_array($classType, ['Cement', 'Nat'], true);
+
+            if (!$isCementNatMergedType && $classType !== $targetClass) {
                 continue;
             }
 
@@ -417,8 +428,7 @@ class StoreLocationController extends Controller
                     $computedFields = match ($type) {
                         'sand' => ['sand_name'],
                         'cat' => ['cat_name'],
-                        'cement' => ['cement_name'],
-                        'nat' => ['nat_name'],
+                        'cement' => $classType === 'Nat' ? ['nat_name'] : ['cement_name'],
                         'ceramic' => ['material_name'],
                         default => [],
                     };
@@ -436,7 +446,7 @@ class StoreLocationController extends Controller
                 }
 
                 // 3. Relationship Search (Package Unit)
-                if (!$found && in_array($type, ['sand', 'cat', 'cement', 'nat'])) {
+                if (!$found && in_array($type, ['sand', 'cat', 'cement'])) {
                     try {
                         if (method_exists($material, 'packageUnit') && $material->packageUnit) {
                             $packageUnitName = $material->packageUnit->name ?? null;
@@ -475,13 +485,21 @@ class StoreLocationController extends Controller
                 }
             }
 
+            if ($type === 'cement') {
+                $material->row_material_type = $classType === 'Nat' ? 'nat' : 'cement';
+            }
+
             $materialsCollection->push($material);
         }
 
         // Sorting
         $sortBy = $request->get('sort_by');
         $sortDirection = $request->get('sort_direction', 'asc');
-        $materialsCollection = $this->sortMaterialsCollection($materialsCollection, $type, $sortBy, $sortDirection);
+        if ($type === 'cement') {
+            $materialsCollection = $this->sortMergedStoreLocationCementRows($materialsCollection, $sortBy, $sortDirection);
+        } else {
+            $materialsCollection = $this->sortMaterialsCollection($materialsCollection, $type, $sortBy, $sortDirection);
+        }
 
         // Calculate Grand Total (Count of all materials in this location)
         // This is needed for the partial view footer usually, or just consistency
@@ -687,6 +705,55 @@ class StoreLocationController extends Controller
         }
 
         return strnatcasecmp((string) $left, (string) $right);
+    }
+
+    private function sortMergedStoreLocationCementRows($collection, ?string $sortBy, string $sortDirection)
+    {
+        $priorityColumns = $this->getMaterialSortPriorityColumns('cement');
+        $normalizedDirection = strtolower((string) $sortDirection) === 'desc' ? 'desc' : 'asc';
+
+        $primaryColumns = [];
+        if ($sortBy && in_array($sortBy, $priorityColumns, true)) {
+            $primaryColumns = [$sortBy];
+        }
+
+        $sortPlan = [];
+        if (empty($primaryColumns)) {
+            foreach ($priorityColumns as $column) {
+                $sortPlan[] = ['column' => $column, 'direction' => 'asc'];
+            }
+        } else {
+            foreach ($primaryColumns as $column) {
+                $sortPlan[] = ['column' => $column, 'direction' => $normalizedDirection];
+            }
+            foreach ($priorityColumns as $column) {
+                if (!in_array($column, $primaryColumns, true)) {
+                    $sortPlan[] = ['column' => $column, 'direction' => 'asc'];
+                }
+            }
+        }
+
+        return $collection
+            ->sort(function ($left, $right) use ($sortPlan) {
+                foreach ($sortPlan as $rule) {
+                    $leftValue = $this->readMaterialSortValue($left, $rule['column'], 'cement');
+                    $rightValue = $this->readMaterialSortValue($right, $rule['column'], 'cement');
+                    $comparison = $this->compareMaterialSortValues($leftValue, $rightValue);
+
+                    if ($comparison !== 0) {
+                        return $rule['direction'] === 'desc' ? -$comparison : $comparison;
+                    }
+                }
+
+                $leftType = (string) ($left->row_material_type ?? 'cement');
+                $rightType = (string) ($right->row_material_type ?? 'cement');
+                if ($leftType !== $rightType) {
+                    return strcmp($leftType, $rightType);
+                }
+
+                return ($left->id ?? 0) <=> ($right->id ?? 0);
+            })
+            ->values();
     }
 
     private function getActiveLetters($collection)

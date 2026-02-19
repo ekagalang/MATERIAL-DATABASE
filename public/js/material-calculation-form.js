@@ -842,145 +842,817 @@ function initMaterialCalculationForm(root, formData) {
         });
     }
 
-    // Toggle custom material selection form
-    const priceFilter = scope.querySelector('#priceFilter') || document.getElementById('priceFilter');
-    if (priceFilter) {
-        priceFilter.addEventListener('change', function() {
-            const customForm = scope.querySelector('#customMaterialForm') || document.getElementById('customMaterialForm');
-            if (customForm) {
-                if (this.value === 'custom') {
-                    customForm.style.display = 'block';
-                } else {
-                    customForm.style.display = 'none';
-                }
+    function setupCustomMaterialAdvancedFilters() {
+        const uniqueSorted = values => Array.from(new Set(values.filter(Boolean).map(value => String(value).trim())))
+            .sort((a, b) => String(a).localeCompare(String(b), 'id-ID', { sensitivity: 'base', numeric: true }));
+        let customizeUiSequence = 0;
+
+        const toPlainNumber = value => {
+            const num = Number(value);
+            if (!isFinite(num) || num <= 0) return '';
+            return formatDynamicPlain(num);
+        };
+
+        const formatDim2 = item => {
+            const l = toPlainNumber(item?.dimension_length);
+            const w = toPlainNumber(item?.dimension_width);
+            if (!l || !w) return '';
+            return `${l} x ${w} cm`;
+        };
+
+        const formatDim3 = item => {
+            const l = toPlainNumber(item?.dimension_length);
+            const w = toPlainNumber(item?.dimension_width);
+            const h = toPlainNumber(item?.dimension_height);
+            if (!l || !w || !h) return '';
+            return `${l} x ${w} x ${h} cm`;
+        };
+
+        const formatWeight = item => {
+            const value = toPlainNumber(item?.package_weight_net);
+            return value ? `${value} kg` : '';
+        };
+
+        const formatCatSummary = item => {
+            const unit = String(item?.package_unit || '').trim() || '-';
+            const volVal = toPlainNumber(item?.volume);
+            const volUnit = String(item?.volume_unit || '').trim();
+            const volume = volVal ? `${volVal} ${volUnit || ''}`.trim() : '-';
+            const weight = formatWeight(item) || '-';
+            return `${unit} | ${volume} | ${weight}`;
+        };
+
+        const formatVolume = item => {
+            const value = toPlainNumber(item?.volume);
+            if (!value) return '';
+            const unit = String(item?.volume_unit || '').trim();
+            return `${value}${unit ? ` ${unit}` : ''}`;
+        };
+
+        const materialConfigs = {
+            brick: {
+                data: Array.isArray(bricksData) ? bricksData : [],
+                selectId: 'customBrick',
+                emptyOption: '-- Semua Bata (Auto) --',
+                materialTypeKeys: ['brick'],
+                fields: ['brand', 'dimension'],
+                resolveMaterialTypeValue(item, typeKey) {
+                    if (typeKey === 'brick') return String(item?.type || '').trim();
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'brand') return String(item?.brand || '').trim();
+                    if (key === 'dimension') return formatDim3(item);
+                    return '';
+                },
+                optionLabel(item) {
+                    const dim = formatDim3(item) || '-';
+                    const type = String(item?.type || '').trim();
+                    const price = formatFixedLocale(item?.price_per_piece || 0, 0);
+                    return `${item?.brand || '-'}${type ? ` - ${type}` : ''} (${dim}) - Rp ${price}`;
+                },
+            },
+            cement: {
+                data: Array.isArray(cementsData) ? cementsData : [],
+                selectId: 'customCement',
+                emptyOption: '-- Semua Semen (Auto) --',
+                materialTypeKeys: ['cement'],
+                fields: ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+                resolveMaterialTypeValue(item, typeKey) {
+                    if (typeKey === 'cement') return String(item?.type || '').trim();
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'package_weight_net') return formatWeight(item);
+                    return String(item?.[key] || '').trim();
+                },
+                optionLabel(item) {
+                    const parts = [
+                        item?.brand || '-',
+                        item?.sub_brand || '',
+                        item?.code || '',
+                        item?.color || '',
+                    ].filter(Boolean);
+                    const suffix = `${item?.package_unit || '-'}, ${formatWeight(item) || '-'}`;
+                    return `${parts.join(' - ')} (${suffix})`;
+                },
+            },
+            sand: {
+                data: Array.isArray(sandsData) ? sandsData : [],
+                selectId: 'customSand',
+                emptyOption: '-- Semua Pasir (Auto) --',
+                materialTypeKeys: ['sand'],
+                fields: ['brand'],
+                resolveMaterialTypeValue(item, typeKey) {
+                    if (typeKey === 'sand') return String(item?.type || '').trim();
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'brand') return String(item?.brand || '').trim();
+                    return '';
+                },
+                optionLabel(item) {
+                    const volume = toPlainNumber(item?.package_volume);
+                    return `${item?.brand || '-'} (${item?.package_unit || '-'}${volume ? `, ${volume} M3` : ''})`;
+                },
+            },
+            cat: {
+                data: Array.isArray(catsData) ? catsData : [],
+                selectId: 'customCat',
+                emptyOption: '-- Semua Cat (Auto) --',
+                materialTypeKeys: ['cat'],
+                fields: ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+                resolveMaterialTypeValue(item, typeKey) {
+                    if (typeKey === 'cat') return String(item?.type || '').trim();
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'volume_display') return formatVolume(item);
+                    if (key === 'package_weight_net') return formatWeight(item);
+                    return String(item?.[key] || '').trim();
+                },
+                optionLabel(item) {
+                    const parts = [
+                        item?.brand || '-',
+                        item?.sub_brand || '',
+                        item?.color_code || '',
+                        item?.color_name || '',
+                    ].filter(Boolean);
+                    return `${parts.join(' - ')} (${formatCatSummary(item)})`;
+                },
+            },
+            ceramic: {
+                data: Array.isArray(ceramicsData) ? ceramicsData : [],
+                selectId: 'customCeramic',
+                emptyOption: '-- Semua Keramik (Auto) --',
+                materialTypeKeys: ['ceramic_type', 'ceramic'],
+                fields: ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
+                resolveMaterialTypeValue(item, typeKey) {
+                    if (typeKey === 'ceramic_type') return String(item?.type || '').trim();
+                    if (typeKey === 'ceramic') return formatDim2(item);
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'dimension') return formatDim2(item);
+                    return String(item?.[key] || '').trim();
+                },
+                optionLabel(item) {
+                    const base = [
+                        item?.brand || '-',
+                        item?.sub_brand || '',
+                        item?.surface || '',
+                        item?.code || '',
+                        item?.color || '',
+                    ].filter(Boolean).join(' - ');
+                    return `${base} (${formatDim2(item) || '-'})`;
+                },
+            },
+            nat: {
+                data: Array.isArray(natsData) ? natsData : [],
+                selectId: 'customNat',
+                emptyOption: '-- Semua Nat (Auto) --',
+                materialTypeKeys: ['nat'],
+                fields: ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+                resolveMaterialTypeValue(item, typeKey) {
+                    if (typeKey === 'nat') return String(item?.type || '').trim();
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'package_weight_net') return formatWeight(item);
+                    return String(item?.[key] || '').trim();
+                },
+                optionLabel(item) {
+                    const parts = [
+                        item?.brand || '-',
+                        item?.sub_brand || '',
+                        item?.code || '',
+                        item?.color || '',
+                    ].filter(Boolean);
+                    const suffix = `${item?.package_unit || '-'}, ${formatWeight(item) || '-'}`;
+                    return `${parts.join(' - ')} (${suffix})`;
+                },
+            },
+        };
+
+                Object.entries(materialConfigs).forEach(([materialKey, config]) => {
+            const mainSelect = scope.querySelector(`#${config.selectId}`) || document.getElementById(config.selectId);
+            if (!mainSelect || !Array.isArray(config.data) || config.data.length === 0) {
+                return;
             }
-        });
-    }
 
-    // Cement type change handler
-    const customCementType = scope.querySelector('#customCementType') || document.getElementById('customCementType');
-    if (customCementType) {
-        customCementType.addEventListener('change', function() {
-            const type = this.value;
-            const brandSelect = scope.querySelector('#customCementBrand') || document.getElementById('customCementBrand');
+            const getToggleButtons = () => {
+                const toggleBtnSet = new Set([
+                    ...Array.from(scope.querySelectorAll(`[data-customize-toggle="${materialKey}"]`)),
+                    ...Array.from(document.querySelectorAll(`[data-customize-toggle="${materialKey}"]`)),
+                ]);
+                return Array.from(toggleBtnSet);
+            };
 
-            if (brandSelect) {
-                brandSelect.innerHTML = '<option value="">-- Pilih Merk --</option>';
+            const getAllPanels = () => {
+                const panelSet = new Set([
+                    ...Array.from(scope.querySelectorAll(`[data-customize-panel="${materialKey}"]`)),
+                    ...Array.from(document.querySelectorAll(`[data-customize-panel="${materialKey}"]`)),
+                ]);
+                const idPanel = scope.querySelector(`#customizePanel-${materialKey}`) || document.getElementById(`customizePanel-${materialKey}`);
+                if (idPanel) {
+                    panelSet.add(idPanel);
+                }
+                return Array.from(panelSet);
+            };
 
-                if (type) {
-                    const filteredCements = cementsData.filter(c => c.cement_name === type);
-                    filteredCements.forEach(cement => {
-                        const option = document.createElement('option');
-                        option.value = cement.id;
-                        const price = formatFixedLocale(cement.package_price || 0, 0);
-                        option.textContent = `${cement.brand} (${cement.package_weight_net}kg) - Rp ${price}`;
-                        brandSelect.appendChild(option);
+            const getPanelForToggle = toggleBtn => {
+                if (!(toggleBtn instanceof HTMLElement)) {
+                    return null;
+                }
+                const explicitPanelId = String(toggleBtn.dataset.customizePanelId || '').trim();
+                if (explicitPanelId) {
+                    const explicitPanel = document.getElementById(explicitPanelId);
+                    if (explicitPanel) {
+                        return explicitPanel;
+                    }
+                }
+                const wrap = toggleBtn.closest('.material-type-filter-item, .additional-material-filter-item, [data-material-wrap]');
+                if (wrap) {
+                    const panelInWrap = wrap.querySelector(`[data-customize-panel="${materialKey}"]`);
+                    if (panelInWrap) {
+                        return panelInWrap;
+                    }
+                }
+                return scope.querySelector(`#customizePanel-${materialKey}`) || document.getElementById(`customizePanel-${materialKey}`);
+            };
+
+            const getToggleButtonsForPanel = panelEl => {
+                if (!(panelEl instanceof HTMLElement)) {
+                    return getToggleButtons();
+                }
+                const panelId = String(panelEl.id || '').trim();
+                if (panelId) {
+                    const idMatchedButtons = Array.from(document.querySelectorAll(`[data-customize-panel-id="${panelId}"]`));
+                    if (idMatchedButtons.length > 0) {
+                        return idMatchedButtons;
+                    }
+                }
+                const wrap = panelEl.closest('.material-type-filter-item, .additional-material-filter-item, [data-material-wrap]');
+                if (!wrap) {
+                    return getToggleButtons();
+                }
+                return Array.from(wrap.querySelectorAll(`[data-customize-toggle="${materialKey}"]`));
+            };
+
+            const setupCustomizeAutocomplete = selectEl => {
+                if (!selectEl || selectEl.dataset.customizeAutocompleteBound === '1') return;
+
+                const inputWrapper = selectEl.closest('.input-wrapper');
+                if (!inputWrapper) return;
+
+                const autocompleteEl = document.createElement('div');
+                autocompleteEl.className = 'work-type-autocomplete customize-filter-autocomplete';
+
+                const inputShellEl = document.createElement('div');
+                inputShellEl.className = 'work-type-input';
+
+                const displayEl = document.createElement('input');
+                displayEl.type = 'text';
+                displayEl.className = 'autocomplete-input customize-filter-display';
+                displayEl.autocomplete = 'off';
+
+                const listEl = document.createElement('div');
+                listEl.className = 'autocomplete-list';
+                listEl.id = `${selectEl.id || `customize-filter-${materialKey}-${++customizeUiSequence}`}-list`;
+
+                inputShellEl.appendChild(displayEl);
+                autocompleteEl.appendChild(inputShellEl);
+                autocompleteEl.appendChild(listEl);
+
+                inputWrapper.appendChild(autocompleteEl);
+                selectEl.style.display = 'none';
+                selectEl.tabIndex = -1;
+                selectEl.dataset.customizeAutocompleteBound = '1';
+
+                const closeList = () => {
+                    listEl.style.display = 'none';
+                };
+
+                const getVisibleOptions = (term = '') => {
+                    const query = String(term || '').trim().toLowerCase();
+                    const options = Array.from(selectEl.options)
+                        .filter(option => String(option.value || '').trim() !== '');
+
+                    if (!query) return options;
+                    return options.filter(option => {
+                        return String(option.textContent || '').toLowerCase().includes(query);
+                    });
+                };
+
+                const syncDisplayFromSelect = () => {
+                    const selectedOption = selectEl.options[selectEl.selectedIndex];
+                    displayEl.value = selectedOption && selectedOption.value ? String(selectedOption.textContent || '') : '';
+                    const firstOption = selectEl.options[0];
+                    displayEl.placeholder = String(firstOption?.textContent || '-- Semua --');
+                };
+
+                const applyValue = value => {
+                    const nextValue = String(value || '').trim();
+                    if (selectEl.value !== nextValue) {
+                        selectEl.value = nextValue;
+                        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else {
+                        syncDisplayFromSelect();
+                    }
+                    closeList();
+                };
+
+                const renderList = term => {
+                    listEl.innerHTML = '';
+
+                    const clearItem = document.createElement('div');
+                    clearItem.className = 'autocomplete-item';
+                    clearItem.textContent = '- Tidak Pilih -';
+                    clearItem.addEventListener('click', () => applyValue(''));
+                    listEl.appendChild(clearItem);
+
+                    getVisibleOptions(term).forEach(option => {
+                        const item = document.createElement('div');
+                        item.className = 'autocomplete-item';
+                        item.textContent = String(option.textContent || '');
+                        item.addEventListener('click', () => applyValue(option.value));
+                        listEl.appendChild(item);
+                    });
+
+                    listEl.style.display = 'block';
+                };
+
+                const findExactMatch = term => {
+                    const query = String(term || '').trim().toLowerCase();
+                    if (!query) return null;
+
+                    return getVisibleOptions('').find(option => {
+                        return String(option.textContent || '').trim().toLowerCase() === query;
+                    }) || null;
+                };
+
+                displayEl.addEventListener('focus', function() {
+                    renderList(displayEl.value || '');
+                });
+
+                displayEl.addEventListener('input', function() {
+                    const term = String(displayEl.value || '');
+                    renderList(term);
+
+                    if (!term.trim()) {
+                        applyValue('');
+                        return;
+                    }
+
+                    const exact = findExactMatch(term);
+                    if (exact) {
+                        applyValue(exact.value);
+                    } else if (selectEl.value) {
+                        applyValue('');
+                    }
+                });
+
+                displayEl.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        const exact = findExactMatch(displayEl.value || '');
+                        if (exact) {
+                            applyValue(exact.value);
+                            event.preventDefault();
+                        }
+                    } else if (event.key === 'Escape') {
+                        closeList();
+                    }
+                });
+
+                displayEl.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        syncDisplayFromSelect();
+                        closeList();
+                    }, 150);
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (event.target === displayEl || listEl.contains(event.target)) return;
+                    closeList();
+                });
+
+                selectEl.addEventListener('change', function() {
+                    syncDisplayFromSelect();
+                });
+
+                selectEl.__customizeAutocompleteUi = {
+                    syncDisplayFromSelect,
+                    renderList,
+                    listEl,
+                    displayEl,
+                };
+
+                syncDisplayFromSelect();
+            };
+
+            const resolveFieldValue = (item, key) => String(config.resolveFieldValue(item, key) || '').trim();
+            const materialTypeKeys = Array.isArray(config.materialTypeKeys) ? config.materialTypeKeys : [];
+            const resolveMaterialTypeValue = (item, typeKey) => {
+                if (typeof config.resolveMaterialTypeValue === 'function') {
+                    return String(config.resolveMaterialTypeValue(item, typeKey) || '').trim();
+                }
+                return String(item?.type || '').trim();
+            };
+
+            const tokenize = value => String(value || '')
+                .split('|')
+                .map(part => String(part || '').trim())
+                .filter(Boolean);
+
+            const pushTokenValues = (collector, seen, rawValue) => {
+                tokenize(rawValue).forEach(token => {
+                    const norm = token.toLowerCase();
+                    if (!seen.has(norm)) {
+                        seen.add(norm);
+                        collector.push(token);
+                    }
+                });
+            };
+
+            const resolveContextRoot = contextRow => {
+                if (!(contextRow instanceof HTMLElement)) {
+                    return null;
+                }
+                const additionalItem = contextRow.closest('[data-additional-work-item="true"]');
+                if (additionalItem) {
+                    return additionalItem;
+                }
+                const mainContainer = contextRow.closest('#inputFormContainer');
+                if (mainContainer) {
+                    return mainContainer;
+                }
+                return null;
+            };
+
+            const collectContextInputsByType = (rootEl, typeKey) => {
+                if (!rootEl) return [];
+                const selectorParts = [
+                    `input[name="material_type_filters[${typeKey}]"]`,
+                    `input[name="material_type_filters_extra[${typeKey}][]"]`,
+                    `input[data-field="material_type_${typeKey}"][data-material-type-hidden="1"]`,
+                    `#materialTypeSelector-${typeKey}`,
+                ];
+                return Array.from(rootEl.querySelectorAll(selectorParts.join(', ')));
+            };
+
+            const collectRowInputsByType = (rowEl, typeKey) => {
+                if (!rowEl) return [];
+                const selectorParts = [
+                    `input[name="material_type_filters[${typeKey}]"]`,
+                    `input[name="material_type_filters_extra[${typeKey}][]"]`,
+                    `input[data-field="material_type_${typeKey}"][data-material-type-hidden="1"]`,
+                    'input[data-material-type-hidden="1"]',
+                ];
+                return Array.from(rowEl.querySelectorAll(selectorParts.join(', ')));
+            };
+
+            const getMaterialTypeSelectedValues = (typeKey, contextRow = null) => {
+                const values = [];
+                const seen = new Set();
+
+                if (contextRow instanceof HTMLElement) {
+                    const rowType = String(contextRow.dataset.materialType || '').trim();
+                    if (rowType === typeKey) {
+                        collectRowInputsByType(contextRow, typeKey).forEach(inputEl => {
+                            pushTokenValues(values, seen, inputEl?.value || '');
+                        });
+                        if (values.length > 0) {
+                            return values;
+                        }
+                    }
+
+                    const contextRoot = resolveContextRoot(contextRow);
+                    collectContextInputsByType(contextRoot, typeKey).forEach(inputEl => {
+                        pushTokenValues(values, seen, inputEl?.value || '');
+                    });
+                    return values;
+                }
+
+                const directInputs = [
+                    ...(scope.querySelectorAll(`#materialTypeSelector-${typeKey}`) || []),
+                    ...(scope.querySelectorAll(`input[name="material_type_filters[${typeKey}]"]`) || []),
+                    ...(scope.querySelectorAll(`input[name="material_type_filters_extra[${typeKey}][]"]`) || []),
+                    ...(document.querySelectorAll(`#materialTypeSelector-${typeKey}`) || []),
+                    ...(document.querySelectorAll(`input[name="material_type_filters[${typeKey}]"]`) || []),
+                    ...(document.querySelectorAll(`input[name="material_type_filters_extra[${typeKey}][]"]`) || []),
+                ];
+
+                directInputs.forEach(inputEl => {
+                    pushTokenValues(values, seen, inputEl?.value || '');
+                });
+
+                return values;
+            };
+
+            const applyMaterialTypeBaseFilter = (rows, contextRow = null) => {
+                let filtered = Array.isArray(rows) ? rows : [];
+
+                materialTypeKeys.forEach(typeKey => {
+                    const selectedValues = getMaterialTypeSelectedValues(typeKey, contextRow);
+                    if (!selectedValues.length) return;
+
+                    const selectedSet = new Set(selectedValues.map(value => String(value || '').trim().toLowerCase()));
+                    filtered = filtered.filter(item => {
+                        const itemTokens = tokenize(resolveMaterialTypeValue(item, typeKey))
+                            .map(token => token.toLowerCase());
+                        if (itemTokens.length === 0) return false;
+                        return itemTokens.some(token => selectedSet.has(token));
+                    });
+                });
+
+                return filtered;
+            };
+
+            const panelStates = new WeakMap();
+
+            const getDataByPrefixSelection = (state, fieldIndex) => {
+                const activeFilters = {};
+                state.fieldSelects.slice(0, fieldIndex).forEach(selectEl => {
+                    const key = selectEl.dataset.filterKey;
+                    const value = String(selectEl.value || '').trim();
+                    if (key && value) {
+                        activeFilters[key] = value;
+                    }
+                });
+
+                const baseRows = applyMaterialTypeBaseFilter(config.data, state.contextRow);
+                return baseRows.filter(item => Object.entries(activeFilters).every(([key, value]) => {
+                    return resolveFieldValue(item, key) === value;
+                }));
+            };
+
+            const getDataByAllSelections = state => {
+                const activeFilters = {};
+                state.fieldSelects.forEach(selectEl => {
+                    const key = selectEl.dataset.filterKey;
+                    const value = String(selectEl.value || '').trim();
+                    if (key && value) {
+                        activeFilters[key] = value;
+                    }
+                });
+                const baseRows = applyMaterialTypeBaseFilter(config.data, state.contextRow);
+                return baseRows.filter(item => Object.entries(activeFilters).every(([key, value]) => {
+                    return resolveFieldValue(item, key) === value;
+                }));
+            };
+
+            const renderFieldOptions = (selectEl, sourceRows, keepCurrent = true) => {
+                if (!selectEl) return;
+                const filterKey = selectEl.dataset.filterKey;
+                const existingValue = keepCurrent ? String(selectEl.value || '').trim() : '';
+                const values = uniqueSorted(sourceRows.map(item => resolveFieldValue(item, filterKey)));
+                const placeholder = selectEl.dataset.placeholder || '-- Semua --';
+
+                selectEl.innerHTML = '';
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = placeholder;
+                selectEl.appendChild(emptyOption);
+
+                values.forEach(value => {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = value;
+                    if (existingValue && existingValue === value) {
+                        option.selected = true;
+                    }
+                    selectEl.appendChild(option);
+                });
+
+                if (existingValue && !values.includes(existingValue)) {
+                    selectEl.value = '';
+                }
+
+                if (selectEl.__customizeAutocompleteUi?.syncDisplayFromSelect) {
+                    selectEl.__customizeAutocompleteUi.syncDisplayFromSelect();
+                }
+            };
+
+            const updateButtonState = state => {
+                const hasActiveFilter = state.fieldSelects.some(selectEl => String(selectEl.value || '').trim() !== '');
+                getToggleButtonsForPanel(state.panelEl).forEach(btn => btn.classList.toggle('is-active', hasActiveFilter));
+            };
+
+            const updateProgressiveFieldVisibility = state => {
+                if (!state || !Array.isArray(state.fieldSelects)) {
+                    return;
+                }
+
+                let lastFilledIndex = -1;
+                state.fieldSelects.forEach((selectEl, index) => {
+                    if (String(selectEl.value || '').trim() !== '') {
+                        lastFilledIndex = index;
+                    }
+                });
+
+                const maxVisibleIndex = Math.min(
+                    state.fieldSelects.length - 1,
+                    Math.max(0, lastFilledIndex + 1),
+                );
+
+                state.fieldSelects.forEach((selectEl, index) => {
+                    const groupEl = selectEl.closest('.form-group');
+                    if (!groupEl) {
+                        return;
+                    }
+                    const shouldShow = index <= maxVisibleIndex;
+                    groupEl.style.display = shouldShow ? '' : 'none';
+                });
+            };
+
+            const panelHasActiveFilter = state => {
+                if (!state || !Array.isArray(state.fieldSelects)) {
+                    return false;
+                }
+                return state.fieldSelects.some(selectEl => String(selectEl.value || '').trim() !== '');
+            };
+
+            const closePanelIfEmpty = panelEl => {
+                if (!(panelEl instanceof HTMLElement) || panelEl.hidden) {
+                    return;
+                }
+                const state = ensurePanelState(panelEl);
+                if (!state) {
+                    return;
+                }
+                if (panelHasActiveFilter(state)) {
+                    updateProgressiveFieldVisibility(state);
+                    return;
+                }
+                panelEl.hidden = true;
+                updateButtonState(state);
+            };
+
+            const collapseEmptyOpenPanels = (exceptPanel = null) => {
+                getAllPanels().forEach(panelEl => {
+                    if (!(panelEl instanceof HTMLElement)) {
+                        return;
+                    }
+                    if (exceptPanel && panelEl === exceptPanel) {
+                        return;
+                    }
+                    closePanelIfEmpty(panelEl);
+                });
+            };
+
+            const renderMaterialOptions = state => {
+                const selectedRows = getDataByAllSelections(state);
+                const currentValue = String(mainSelect.value || '').trim();
+
+                mainSelect.innerHTML = '';
+                const emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = config.emptyOption;
+                mainSelect.appendChild(emptyOption);
+
+                selectedRows.forEach(item => {
+                    const option = document.createElement('option');
+                    option.value = String(item?.id ?? '');
+                    option.textContent = config.optionLabel(item);
+                    if (currentValue && option.value === currentValue) {
+                        option.selected = true;
+                    }
+                    mainSelect.appendChild(option);
+                });
+
+                if (currentValue && !selectedRows.some(item => String(item?.id ?? '') === currentValue)) {
+                    mainSelect.value = '';
+                }
+            };
+
+            const refreshFromFieldIndex = (state, index = 0) => {
+                for (let i = index; i < state.fieldSelects.length; i++) {
+                    const selectEl = state.fieldSelects[i];
+                    renderFieldOptions(selectEl, getDataByPrefixSelection(state, i), true);
+                }
+                renderMaterialOptions(state);
+                updateButtonState(state);
+                updateProgressiveFieldVisibility(state);
+            };
+
+            const ensurePanelState = panelEl => {
+                if (!(panelEl instanceof HTMLElement)) {
+                    return null;
+                }
+                const existing = panelStates.get(panelEl);
+                if (existing) {
+                    return existing;
+                }
+
+                const fieldSelects = Array.from(panelEl.querySelectorAll(`[data-customize-filter="${materialKey}"][data-filter-key]`));
+                const state = {
+                    panelEl,
+                    fieldSelects,
+                    contextRow: null,
+                };
+
+                fieldSelects.forEach((selectEl, index) => {
+                    if (!selectEl.dataset.placeholder) {
+                        const labelEl = selectEl.closest('.form-group')?.querySelector('label');
+                        const labelText = labelEl ? labelEl.textContent.replace(':', '').trim() : 'Filter';
+                        selectEl.dataset.placeholder = `-- Semua ${labelText} --`;
+                    }
+
+                    setupCustomizeAutocomplete(selectEl);
+                    selectEl.addEventListener('change', function() {
+                        for (let i = index + 1; i < fieldSelects.length; i++) {
+                            fieldSelects[i].value = '';
+                        }
+                        refreshFromFieldIndex(state, index + 1);
+                    });
+                });
+
+                panelStates.set(panelEl, state);
+                return state;
+            };
+
+            if (materialTypeKeys.length > 0) {
+                document.addEventListener('change', function(event) {
+                    const target = event?.target;
+                    if (!(target instanceof HTMLElement)) return;
+
+                    const targetId = String(target.id || '');
+                    const targetName = String(target.getAttribute('name') || '');
+                    const shouldRefresh = materialTypeKeys.some(typeKey => {
+                        if (targetId === `materialTypeSelector-${typeKey}`) return true;
+                        if (targetName === `material_type_filters[${typeKey}]`) return true;
+                        if (targetName === `material_type_filters_extra[${typeKey}][]`) return true;
+                        return false;
+                    });
+
+                    if (!shouldRefresh) {
+                        return;
+                    }
+                    getAllPanels().forEach(panelEl => {
+                        if (!(panelEl instanceof HTMLElement) || panelEl.hidden) {
+                            return;
+                        }
+                        const state = ensurePanelState(panelEl);
+                        if (state) {
+                            refreshFromFieldIndex(state, 0);
+                        }
+                    });
+                });
+            }
+
+            document.addEventListener('click', function(event) {
+                const target = event?.target;
+                if (!(target instanceof HTMLElement)) return;
+                const toggleBtn = target.closest(`[data-customize-toggle="${materialKey}"]`);
+                if (!toggleBtn) {
+                    const clickedInsidePanel = target.closest(`.customize-panel[data-customize-panel="${materialKey}"]`);
+                    if (!clickedInsidePanel) {
+                        collapseEmptyOpenPanels();
+                    }
+                    return;
+                }
+
+                const panel = getPanelForToggle(toggleBtn);
+                if (!panel) return;
+                const panelState = ensurePanelState(panel);
+                if (!panelState) return;
+
+                const nextContextRow = toggleBtn.closest('.material-type-row');
+                const isSameOpenContext =
+                    !panel.hidden &&
+                    panelState.contextRow &&
+                    nextContextRow &&
+                    panelState.contextRow === nextContextRow;
+
+                if (isSameOpenContext) {
+                    panel.hidden = true;
+                    return;
+                }
+
+                const hasContextChanged = panelState.contextRow !== nextContextRow;
+                panelState.contextRow = nextContextRow instanceof HTMLElement ? nextContextRow : null;
+
+                if (hasContextChanged) {
+                    panelState.fieldSelects.forEach(selectEl => {
+                        selectEl.value = '';
                     });
                 }
-            }
+
+                panel.hidden = false;
+                refreshFromFieldIndex(panelState, 0);
+                collapseEmptyOpenPanels(panel);
+            });
+
+            document.addEventListener('focusin', function(event) {
+                const target = event?.target;
+                if (!(target instanceof HTMLElement)) return;
+                if (target.closest(`[data-customize-toggle="${materialKey}"]`)) return;
+                if (target.closest(`.customize-panel[data-customize-panel="${materialKey}"]`)) return;
+                collapseEmptyOpenPanels();
+            });
         });
     }
 
-    // Sand type change handler
-    const customSandType = scope.querySelector('#customSandType') || document.getElementById('customSandType');
-    if (customSandType) {
-        customSandType.addEventListener('change', function() {
-            const type = this.value;
-            const brandSelect = scope.querySelector('#customSandBrand') || document.getElementById('customSandBrand');
-
-            if (brandSelect) {
-                brandSelect.innerHTML = '<option value="">-- Pilih Merk --</option>';
-
-                if (type) {
-                    const filteredSands = sandsData.filter(s => s.sand_name === type);
-                    const uniqueBrands = [...new Set(filteredSands.map(s => s.brand))];
-
-                    uniqueBrands.forEach(brand => {
-                        const option = document.createElement('option');
-                        option.value = brand;
-                        option.textContent = brand;
-                        brandSelect.appendChild(option);
-                    });
-                }
-            }
-        });
-    }
-
-    // Sand brand change handler
-    const customSandBrand = scope.querySelector('#customSandBrand') || document.getElementById('customSandBrand');
-    if (customSandBrand) {
-        customSandBrand.addEventListener('change', function() {
-            const brand = this.value;
-            const typeEl = scope.querySelector('#customSandType') || document.getElementById('customSandType');
-            const packageSelect = scope.querySelector('#customSandPackage') || document.getElementById('customSandPackage');
-
-            if (packageSelect && typeEl) {
-                const type = typeEl.value;
-                packageSelect.innerHTML = '<option value="">-- Pilih Kemasan --</option>';
-
-                if (brand && type) {
-                    const filteredSands = sandsData.filter(s => s.brand === brand && s.sand_name === type);
-                    filteredSands.forEach(sand => {
-                        const option = document.createElement('option');
-                        option.value = sand.id;
-                        const pricePerM3 = sand.comparison_price_per_m3 || (sand.package_price / sand.package_volume);
-                        const roundedPrice = formatFixedLocale(pricePerM3 || 0, 0);
-                        option.textContent = `${sand.package_volume} M3 - Rp ${roundedPrice}/M3`;
-                        packageSelect.appendChild(option);
-                    });
-                }
-            }
-        });
-    }
-
-    // Cat type change handler
-    const customCatType = scope.querySelector('#customCatType') || document.getElementById('customCatType');
-    if (customCatType) {
-        customCatType.addEventListener('change', function() {
-            const type = this.value;
-            const brandSelect = scope.querySelector('#customCatBrand') || document.getElementById('customCatBrand');
-
-            if (brandSelect) {
-                brandSelect.innerHTML = '<option value="">-- Pilih Merk --</option>';
-
-                if (type) {
-                    const filteredCats = catsData.filter(c => c.cat_name === type);
-                    const uniqueBrands = [...new Set(filteredCats.map(c => c.brand))];
-
-                    uniqueBrands.forEach(brand => {
-                        const option = document.createElement('option');
-                        option.value = brand;
-                        option.textContent = brand;
-                        brandSelect.appendChild(option);
-                    });
-                }
-            }
-        });
-    }
-
-    // Cat brand change handler
-    const customCatBrand = scope.querySelector('#customCatBrand') || document.getElementById('customCatBrand');
-    if (customCatBrand) {
-        customCatBrand.addEventListener('change', function() {
-            const brand = this.value;
-            const typeEl = scope.querySelector('#customCatType') || document.getElementById('customCatType');
-            const packageSelect = scope.querySelector('#customCatPackage') || document.getElementById('customCatPackage');
-
-            if (packageSelect && typeEl) {
-                const type = typeEl.value;
-                packageSelect.innerHTML = '<option value="">-- Pilih Kemasan --</option>';
-
-                if (brand && type) {
-                    const filteredCats = catsData.filter(c => c.brand === brand && c.cat_name === type);
-                    filteredCats.forEach(cat => {
-                        const option = document.createElement('option');
-                        option.value = cat.id;
-                        const price = formatFixedLocale(cat.purchase_price || 0, 0);
-                        option.textContent = `${cat.package_weight_net} kg - Rp ${price}`;
-                        packageSelect.appendChild(option);
-                    });
-                }
-            }
-        });
-    }
+    setupCustomMaterialAdvancedFilters();
 }
+

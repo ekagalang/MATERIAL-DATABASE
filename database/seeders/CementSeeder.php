@@ -142,6 +142,7 @@ class CementSeeder extends Seeder
         foreach ($cements as $cement) {
             DB::table('cements')->insert(
                 array_merge($cement, [
+                    'material_kind' => $cement['material_kind'] ?? 'cement',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]),

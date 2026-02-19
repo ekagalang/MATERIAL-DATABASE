@@ -12,6 +12,7 @@ use App\Models\Nat;
 use App\Models\Sand;
 use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class MaterialCalculationTraceController extends MaterialCalculationController
 {
@@ -55,11 +56,11 @@ class MaterialCalculationTraceController extends MaterialCalculationController
             'mortar_thickness' => 'nullable|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'nullable|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
+            'cement_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND)],
             'sand_id' => 'nullable|exists:sands,id',
             'cat_id' => 'nullable|exists:cats,id',
             'ceramic_id' => 'nullable|exists:ceramics,id',
-            'nat_id' => 'nullable|exists:nats,id',
+            'nat_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND)],
             'grout_thickness' => 'nullable|numeric|min:0.1|max:20',
             'grout_package_weight' => 'nullable|numeric|min:0.1',
             'grout_volume_per_package' => 'nullable|numeric|min:0.0001',

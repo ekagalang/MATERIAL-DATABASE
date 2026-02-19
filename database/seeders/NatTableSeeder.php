@@ -10,9 +10,13 @@ class NatTableSeeder extends Seeder
     public function run(): void
     {
         $nats = array_map(function (array $row) {
+            $natName = $row['nat_name'] ?? ($row['cement_name'] ?? 'Nat');
+
             return [
-                'nat_name' => $row['cement_name'] ?? 'Nat',
+                'cement_name' => $natName,
+                'nat_name' => $natName,
                 'type' => $row['type'] ?? 'Nat',
+                'material_kind' => 'nat',
                 'photo' => $row['photo'] ?? null,
                 'brand' => $row['brand'] ?? null,
                 'sub_brand' => $row['sub_brand'] ?? null,
@@ -32,7 +36,7 @@ class NatTableSeeder extends Seeder
         }, NatSeeder::rows());
 
         foreach ($nats as $nat) {
-            DB::table('nats')->insert(
+            DB::table('cements')->insert(
                 array_merge($nat, [
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -41,6 +45,8 @@ class NatTableSeeder extends Seeder
         }
 
         $this->command->info('Nat standalone data seeded successfully.');
-        $this->command->info('Total nats created: ' . DB::table('nats')->count());
+        $this->command->info(
+            'Total nats created: ' . DB::table('cements')->where('material_kind', 'nat')->count(),
+        );
     }
 }

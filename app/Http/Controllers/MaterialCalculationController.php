@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class MaterialCalculationController extends Controller
 {
@@ -240,6 +241,8 @@ class MaterialCalculationController extends Controller
                 'material_type_filters_extra' => 'nullable|array',
                 'material_type_filters_extra.*' => 'nullable|array',
                 'material_type_filters_extra.*.*' => 'nullable|string',
+                'material_customize_filters_payload' => 'nullable|string',
+                'material_customize_filters' => 'nullable|array',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
@@ -316,15 +319,22 @@ class MaterialCalculationController extends Controller
             // Nat Validation
             if ($needsNat) {
                 if (in_array('custom', $request->price_filters ?? [])) {
-                    $rules['nat_id'] = 'required|exists:nats,id';
+                    $rules['nat_id'] = [
+                        'required',
+                        Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND),
+                    ];
                 } else {
-                    $rules['nat_id'] = 'nullable|exists:nats,id';
+                    $rules['nat_id'] = [
+                        'nullable',
+                        Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND),
+                    ];
                 }
             } else {
                 $rules['nat_id'] = 'nullable';
             }
 
             $this->mergeMaterialTypeFilters($request);
+            $this->mergeMaterialCustomizeFilters($request);
             $request->validate($rules);
 
             // 2. SETUP DEFAULT
@@ -1839,6 +1849,110 @@ class MaterialCalculationController extends Controller
         $request->merge(['material_type_filters' => $mergedFilters]);
     }
 
+    protected function mergeMaterialCustomizeFilters(Request $request): void
+    {
+        $merged = [];
+
+        $rawDirect = $request->input('material_customize_filters');
+        $rawPayload = $request->input('material_customize_filters_payload');
+
+        $sources = [];
+        if (is_array($rawDirect)) {
+            $sources[] = $rawDirect;
+        }
+        if (is_string($rawPayload) && trim($rawPayload) !== '') {
+            $decoded = json_decode($rawPayload, true);
+            if (!is_array($decoded)) {
+                $decoded = json_decode(html_entity_decode($rawPayload, ENT_QUOTES | ENT_HTML5, 'UTF-8'), true);
+            }
+            if (is_array($decoded)) {
+                $sources[] = $decoded;
+            }
+        }
+
+        $allowedFields = $this->allowedMaterialCustomizeFields();
+        foreach ($sources as $source) {
+            foreach ($source as $materialKey => $fieldMap) {
+                $material = trim((string) $materialKey);
+                if ($material === '' || !isset($allowedFields[$material]) || !is_array($fieldMap)) {
+                    continue;
+                }
+
+                foreach ($allowedFields[$material] as $fieldKey) {
+                    $values = $this->normalizeMaterialTypeFilterValues($fieldMap[$fieldKey] ?? null);
+                    if (empty($values)) {
+                        continue;
+                    }
+
+                    $existing = $merged[$material][$fieldKey] ?? [];
+                    $merged[$material][$fieldKey] = array_values(array_unique(array_merge($existing, $values)));
+                }
+            }
+        }
+
+        $normalized = [];
+        foreach ($merged as $material => $fieldMap) {
+            $normalizedFieldMap = [];
+            foreach ($fieldMap as $field => $values) {
+                $tokens = $this->normalizeMaterialTypeFilterValues($values);
+                if (empty($tokens)) {
+                    continue;
+                }
+                $normalizedFieldMap[$field] = count($tokens) === 1 ? $tokens[0] : array_values($tokens);
+            }
+
+            if (!empty($normalizedFieldMap)) {
+                $normalized[$material] = $normalizedFieldMap;
+            }
+        }
+
+        $request->merge(['material_customize_filters' => $normalized]);
+    }
+
+    protected function normalizeMaterialCustomizeFilters(mixed $rawFilters): array
+    {
+        if (!is_array($rawFilters)) {
+            return [];
+        }
+
+        $allowedFields = $this->allowedMaterialCustomizeFields();
+        $normalized = [];
+
+        foreach ($rawFilters as $materialKey => $fieldMap) {
+            $material = trim((string) $materialKey);
+            if ($material === '' || !isset($allowedFields[$material]) || !is_array($fieldMap)) {
+                continue;
+            }
+
+            $normalizedFieldMap = [];
+            foreach ($allowedFields[$material] as $fieldKey) {
+                $tokens = $this->normalizeMaterialTypeFilterValues($fieldMap[$fieldKey] ?? null);
+                if (empty($tokens)) {
+                    continue;
+                }
+                $normalizedFieldMap[$fieldKey] = count($tokens) === 1 ? $tokens[0] : array_values($tokens);
+            }
+
+            if (!empty($normalizedFieldMap)) {
+                $normalized[$material] = $normalizedFieldMap;
+            }
+        }
+
+        return $normalized;
+    }
+
+    protected function allowedMaterialCustomizeFields(): array
+    {
+        return [
+            'brick' => ['brand', 'dimension'],
+            'cement' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+            'sand' => ['brand'],
+            'cat' => ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+            'ceramic' => ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
+            'nat' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
+        ];
+    }
+
     protected function normalizeMaterialTypeFilterValues($value): array
     {
         if (is_array($value)) {
@@ -1894,7 +2008,7 @@ class MaterialCalculationController extends Controller
             'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
+            'cement_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND)],
             'sand_id' => 'nullable|exists:sands,id',
             'layer_count' => 'nullable|integer|min:1',
         ];
@@ -1934,11 +2048,11 @@ class MaterialCalculationController extends Controller
             'mortar_thickness' => 'nullable|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'nullable|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
+            'cement_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND)],
             'sand_id' => 'nullable|exists:sands,id',
             'cat_id' => 'nullable|exists:cats,id',
             'ceramic_id' => 'nullable|exists:ceramics,id',
-            'nat_id' => 'nullable|exists:nats,id',
+            'nat_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND)],
             'grout_thickness' => 'nullable|numeric|min:0.1|max:20',
             'grout_package_weight' => 'nullable|numeric|min:0.1',
             'grout_volume_per_package' => 'nullable|numeric|min:0.0001',

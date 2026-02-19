@@ -11,7 +11,6 @@ use App\Models\Sand;
 use App\Models\Store;
 use App\Models\StoreLocation;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class MigrateStoresToNewSystem extends Command
 {
@@ -66,10 +65,11 @@ class MigrateStoresToNewSystem extends Command
         $storeAddressPairs = collect();
 
         // Collect all unique store+address pairs from all material tables
-        foreach ($this->materialModels as $tableName => $modelClass) {
-            $this->info("  Scanning {$tableName}...");
+        foreach ($this->materialModels as $label => $modelClass) {
+            $this->info("  Scanning {$label}...");
 
-            $pairs = DB::table($tableName)
+            $pairs = $modelClass
+                ::query()
                 ->select('store', 'address')
                 ->whereNotNull('store')
                 ->where('store', '!=', '')

@@ -95,6 +95,12 @@ class PaintingFormula implements FormulaInterface
         $coverageRate = $n(7.5); // M2 per kg per lapis
         $ratioAir = $n(0.05); // 5% dari berat bersih cat
 
+        if ($beratBersihCat <= 0) {
+            throw new \RuntimeException(
+                'Data cat tidak lengkap untuk kalkulasi: berat bersih kemasan (package_weight_net) harus lebih dari 0.',
+            );
+        }
+
         $trace['steps'][] = [
             'step' => 2,
             'title' => 'Data Material',
@@ -139,6 +145,12 @@ class PaintingFormula implements FormulaInterface
         // ============ STEP 5: Hitung Luas Pengecatan Per Lapis Per Kemasan ============
         // Luas pengecatan per lapis per kemasan = 7.5 M2 per kg per lapis * volume adukan per kemasan
         $luasPengecatanPerLapisPerKemasan = $n($coverageRate * $volumeAdukanPerKemasan);
+
+        if ($luasPengecatanPerLapisPerKemasan <= 0) {
+            throw new \RuntimeException(
+                'Luas pengecatan per lapis tidak valid (0). Periksa data berat bersih cat dan parameter coverage.',
+            );
+        }
 
         $trace['steps'][] = [
             'step' => 5,

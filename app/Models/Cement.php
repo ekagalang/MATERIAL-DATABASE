@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Models\Concerns\SyncsStoreLocationSnapshot;
+use App\Support\Material\MaterialKindResolver;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphToMany;
@@ -16,11 +18,14 @@ class Cement extends Model
     use HasFactory;
     use SyncsStoreLocationSnapshot;
 
+    public const MATERIAL_KIND = 'cement';
+
     protected $table = 'cements';
 
     protected $fillable = [
         'cement_name',
         'type',
+        'material_kind',
         'photo',
         'brand',
         'sub_brand',
@@ -47,6 +52,17 @@ class Cement extends Model
     ];
 
     protected $appends = ['photo_url'];
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope('material_kind_cement', function (Builder $query) {
+            $query->where($query->qualifyColumn('material_kind'), self::MATERIAL_KIND);
+        });
+
+        static::saving(function (self $cement): void {
+            $cement->material_kind = MaterialKindResolver::inferFromType($cement->type, self::MATERIAL_KIND);
+        });
+    }
 
     /**
      * Get material type untuk model ini

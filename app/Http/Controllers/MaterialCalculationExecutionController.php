@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Brick;
 use App\Models\BrickCalculation;
 use App\Models\BrickInstallationType;
+use App\Models\Cement;
 use App\Models\Ceramic;
 use App\Models\MortarFormula;
+use App\Models\Nat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class MaterialCalculationExecutionController extends MaterialCalculationController
 {
@@ -109,6 +112,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'material_type_filters_extra' => 'nullable|array',
                 'material_type_filters_extra.*' => 'nullable|array',
                 'material_type_filters_extra.*.*' => 'nullable|string',
+                'material_customize_filters_payload' => 'nullable|string',
+                'material_customize_filters' => 'nullable|array',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
@@ -185,15 +190,22 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             // Nat Validation
             if ($needsNat) {
                 if (in_array('custom', $request->price_filters ?? [])) {
-                    $rules['nat_id'] = 'required|exists:nats,id';
+                    $rules['nat_id'] = [
+                        'required',
+                        Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND),
+                    ];
                 } else {
-                    $rules['nat_id'] = 'nullable|exists:nats,id';
+                    $rules['nat_id'] = [
+                        'nullable',
+                        Rule::exists('cements', 'id')->where('material_kind', Nat::MATERIAL_KIND),
+                    ];
                 }
             } else {
                 $rules['nat_id'] = 'nullable';
             }
 
             $this->mergeMaterialTypeFilters($request);
+            $this->mergeMaterialCustomizeFilters($request);
             $request->validate($rules);
 
             // 2. SETUP DEFAULT
@@ -327,6 +339,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'ceramic_thickness' => $entry['ceramic_thickness'] ?? null,
                 'material_type_filters' => $this->normalizeBundleMaterialTypeFilters(
                     $entry['material_type_filters'] ?? [],
+                ),
+                'material_customize_filters' => $this->normalizeBundleMaterialCustomizeFilters(
+                    $entry['material_customize_filters'] ?? [],
                 ),
             ];
         }
@@ -525,6 +540,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         return $normalized;
     }
 
+    protected function normalizeBundleMaterialCustomizeFilters(mixed $rawFilters): array
+    {
+        return $this->normalizeMaterialCustomizeFilters($rawFilters);
+    }
+
     protected function generateBundleCombinations(Request $request, array $bundleItems)
     {
         $bundleName = trim((string) $request->input('bundle_name', 'Paket Pekerjaan'));
@@ -600,10 +620,19 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             } else {
                 unset($itemRequestData['material_type_filters'], $itemRequestData['material_type_filters_extra']);
             }
+            $itemMaterialCustomizeFilters = $this->normalizeBundleMaterialCustomizeFilters(
+                $bundleItem['material_customize_filters'] ?? [],
+            );
+            if (!empty($itemMaterialCustomizeFilters)) {
+                $itemRequestData['material_customize_filters'] = $itemMaterialCustomizeFilters;
+            } else {
+                unset($itemRequestData['material_customize_filters'], $itemRequestData['material_customize_filters_payload']);
+            }
 
             $itemRequest = Request::create('/material-calculations', 'POST', $itemRequestData);
             $this->normalizeNatIdentifiers($itemRequest);
             $this->mergeMaterialTypeFilters($itemRequest);
+            $this->mergeMaterialCustomizeFilters($itemRequest);
 
             // Generate + cache preview payload per item using existing engine
             $this->generateCombinations($itemRequest);
@@ -1761,7 +1790,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'mortar_thickness' => 'required|numeric|min:0.01|max:10',
             'mortar_formula_id' => 'required|exists:mortar_formulas,id',
             'brick_id' => 'nullable|exists:bricks,id',
-            'cement_id' => 'nullable|exists:cements,id',
+            'cement_id' => ['nullable', Rule::exists('cements', 'id')->where('material_kind', Cement::MATERIAL_KIND)],
             'sand_id' => 'nullable|exists:sands,id',
             'layer_count' => 'nullable|integer|min:1',
         ];

@@ -1,6 +1,7 @@
 function initNatForm(root) {
     const scope = root || document;
     const form = scope.querySelector('#natForm');
+    const autocompleteKinds = encodeURIComponent('cement,nat');
     
     // Idempotent guard
     if (!form || form.__natFormInited) {
@@ -162,19 +163,19 @@ function initNatForm(root) {
 
             if (field === 'store') {
                 const materialType = (term === '' || term.length === 0) ? 'nat' : 'all';
-                url = `/api/nats/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}`;
+                url = `/api/nats/all-stores?search=${encodeURIComponent(term)}&limit=20&material_type=${materialType}&kinds=${autocompleteKinds}`;
             }
             else if (field === 'address') {
                 const storeInput = getEl('store');
                 const storeVal = storeInput ? storeInput.value : '';
                 if (storeVal) {
-                    url = `/api/nats/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeVal)}`;
+                    url = `/api/nats/addresses-by-store?search=${encodeURIComponent(term)}&limit=20&store=${encodeURIComponent(storeVal)}&kinds=${autocompleteKinds}`;
                 } else {
-                    url = `/api/nats/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+                    url = `/api/nats/field-values/${field}?search=${encodeURIComponent(term)}&limit=20&kinds=${autocompleteKinds}`;
                 }
             }
             else {
-                url = `/api/nats/field-values/${field}?search=${encodeURIComponent(term)}&limit=20`;
+                url = `/api/nats/field-values/${field}?search=${encodeURIComponent(term)}&limit=20&kinds=${autocompleteKinds}`;
 
                 if (['sub_brand', 'code', 'color', 'dimension_length', 'dimension_width', 'dimension_height', 'package_weight_gross'].includes(field)) {
                     const brandInput = getEl('brand');
