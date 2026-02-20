@@ -17,6 +17,8 @@ use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkerController;
 use App\Http\Controllers\SkillController;
 use App\Http\Controllers\StoreLocationController;
+use App\Http\Controllers\WorkAreaController;
+use App\Http\Controllers\WorkFieldController;
 use App\Helpers\NumberHelper;
 use App\Models\BrickCalculation;
 // use App\Http\Controllers\Dev\PriceAnalysisController;
@@ -320,6 +322,20 @@ Route::prefix('settings/recommendations')
     ->group(function () {
         Route::get('/', [App\Http\Controllers\RecommendedCombinationController::class, 'index'])->name('index');
         Route::post('/', [App\Http\Controllers\RecommendedCombinationController::class, 'store'])->name('store');
+    });
+
+Route::prefix('settings')
+    ->name('settings.')
+    ->group(function () {
+        Route::get('/work-areas', [WorkAreaController::class, 'index'])->name('work-areas.index');
+        Route::post('/work-areas', [WorkAreaController::class, 'store'])->name('work-areas.store');
+        Route::put('/work-areas/{workArea}', [WorkAreaController::class, 'update'])->name('work-areas.update');
+        Route::delete('/work-areas/{workArea}', [WorkAreaController::class, 'destroy'])->name('work-areas.destroy');
+
+        Route::get('/work-fields', [WorkFieldController::class, 'index'])->name('work-fields.index');
+        Route::post('/work-fields', [WorkFieldController::class, 'store'])->name('work-fields.store');
+        Route::put('/work-fields/{workField}', [WorkFieldController::class, 'update'])->name('work-fields.update');
+        Route::delete('/work-fields/{workField}', [WorkFieldController::class, 'destroy'])->name('work-fields.destroy');
     });
 
 // Store Location Routes

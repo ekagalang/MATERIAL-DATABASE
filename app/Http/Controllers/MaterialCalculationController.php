@@ -13,6 +13,9 @@ use App\Models\Nat;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
 use App\Models\StoreLocation;
+use App\Models\WorkArea;
+use App\Models\WorkField;
+use App\Models\WorkItemGrouping;
 use App\Repositories\CalculationRepository;
 use App\Services\Calculation\CombinationGenerationService;
 use App\Services\FormulaRegistry;
@@ -99,6 +102,20 @@ class MaterialCalculationController extends Controller
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
+        $workAreas = WorkArea::orderBy('name')->get(['id', 'name']);
+        $workFields = WorkField::orderBy('name')->get(['id', 'name']);
+        $workItemGroupings = WorkItemGrouping::query()
+            ->with(['workArea:id,name', 'workField:id,name'])
+            ->get()
+            ->map(function (WorkItemGrouping $grouping): array {
+                return [
+                    'formula_code' => (string) $grouping->formula_code,
+                    'work_area' => trim((string) optional($grouping->workArea)->name),
+                    'work_field' => trim((string) optional($grouping->workField)->name),
+                ];
+            })
+            ->values()
+            ->all();
         $storeLocationsForMap = StoreLocation::query()
             ->with('store:id,name')
             ->whereNotNull('latitude')
@@ -147,8 +164,13 @@ class MaterialCalculationController extends Controller
         // LOGIC BARU: Handle Multi-Select Bricks dari Price Analysis
         // Kita kirim variable $selectedBricks ke View
         $selectedBricks = collect();
-        if ($request->has('brick_ids')) {
-            $selectedBricks = Brick::whereIn('id', $request->brick_ids)->get();
+        $selectedBrickIds = $request->input('brick_ids', old('brick_ids', []));
+        if (!is_array($selectedBrickIds)) {
+            $selectedBrickIds = [$selectedBrickIds];
+        }
+        $selectedBrickIds = array_values(array_filter(array_map('intval', $selectedBrickIds), static fn($id) => $id > 0));
+        if (!empty($selectedBrickIds)) {
+            $selectedBricks = Brick::whereIn('id', $selectedBrickIds)->get();
         }
 
         // Check availability of 'best' recommendations per work type
@@ -170,6 +192,9 @@ class MaterialCalculationController extends Controller
                 'sands',
                 'cats',
                 'ceramics',
+                'workAreas',
+                'workFields',
+                'workItemGroupings',
                 'storeLocationsForMap',
                 'ceramicTypes',
                 'ceramicSizes',
@@ -243,6 +268,10 @@ class MaterialCalculationController extends Controller
                 'material_type_filters_extra.*.*' => 'nullable|string',
                 'material_customize_filters_payload' => 'nullable|string',
                 'material_customize_filters' => 'nullable|array',
+                'work_areas' => 'nullable|array',
+                'work_areas.*' => 'nullable|string|max:120',
+                'work_fields' => 'nullable|array',
+                'work_fields.*' => 'nullable|string|max:120',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
@@ -335,7 +364,10 @@ class MaterialCalculationController extends Controller
 
             $this->mergeMaterialTypeFilters($request);
             $this->mergeMaterialCustomizeFilters($request);
+            $this->mergeWorkTaxonomyFilters($request);
             $request->validate($rules);
+            $workAreas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
+            $workFields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
 
             // 2. SETUP DEFAULT
             $defaultInstallationType = BrickInstallationType::where('is_active', true)->orderBy('id')->first();
@@ -398,6 +430,7 @@ class MaterialCalculationController extends Controller
 
             if ($needCombinations) {
                 DB::rollBack();
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
 
                 return $this->generateCombinations($request);
             }
@@ -407,6 +440,7 @@ class MaterialCalculationController extends Controller
 
             if (!$request->boolean('confirm_save')) {
                 DB::rollBack();
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
                 $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat']);
 
                 return view('material_calculations.preview', [
@@ -416,6 +450,7 @@ class MaterialCalculationController extends Controller
                 ]);
             }
 
+            $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
             $calculation->save();
             DB::commit();
 
@@ -790,7 +825,10 @@ class MaterialCalculationController extends Controller
         if ($targetCeramics->isEmpty()) {
             \Log::warning('No ceramics found matching filters');
 
-            return redirect()->back()->with('error', 'Tidak ada keramik yang sesuai dengan filter yang dipilih.');
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'Tidak ada keramik yang sesuai dengan filter yang dipilih.');
         }
 
         // LAZY LOAD: DON'T calculate combinations here
@@ -1907,6 +1945,106 @@ class MaterialCalculationController extends Controller
         }
 
         $request->merge(['material_customize_filters' => $normalized]);
+    }
+
+    protected function mergeWorkTaxonomyFilters(Request $request): void
+    {
+        $areas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
+        $fields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
+
+        $request->merge([
+            'work_areas' => $areas,
+            'work_fields' => $fields,
+        ]);
+    }
+
+    protected function normalizeWorkTaxonomyValues(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            $tokens = [];
+            foreach ($raw as $value) {
+                $tokens = array_merge($tokens, $this->normalizeWorkTaxonomyValues($value));
+            }
+
+            return array_values(array_unique($tokens));
+        }
+
+        $text = trim((string) $raw);
+        if ($text === '') {
+            return [];
+        }
+
+        return [$text];
+    }
+
+    protected function persistWorkItemTaxonomy(string $workType, array $areas = [], array $fields = []): void
+    {
+        $formulaCode = trim($workType);
+        if ($formulaCode === '') {
+            return;
+        }
+
+        $areaIds = collect($areas)
+            ->map(fn($name) => trim((string) $name))
+            ->filter()
+            ->unique()
+            ->values()
+            ->map(function (string $name): int {
+                $area = WorkArea::firstOrCreate(['name' => $name]);
+
+                return (int) $area->id;
+            })
+            ->all();
+
+        $fieldIds = collect($fields)
+            ->map(fn($name) => trim((string) $name))
+            ->filter()
+            ->unique()
+            ->values()
+            ->map(function (string $name): int {
+                $field = WorkField::firstOrCreate(['name' => $name]);
+
+                return (int) $field->id;
+            })
+            ->all();
+
+        if (empty($areaIds) && empty($fieldIds)) {
+            return;
+        }
+
+        if (!empty($areaIds) && !empty($fieldIds)) {
+            foreach ($areaIds as $areaId) {
+                foreach ($fieldIds as $fieldId) {
+                    WorkItemGrouping::firstOrCreate([
+                        'formula_code' => $formulaCode,
+                        'work_area_id' => $areaId,
+                        'work_field_id' => $fieldId,
+                    ]);
+                }
+            }
+
+            return;
+        }
+
+        if (!empty($areaIds)) {
+            foreach ($areaIds as $areaId) {
+                WorkItemGrouping::firstOrCreate([
+                    'formula_code' => $formulaCode,
+                    'work_area_id' => $areaId,
+                    'work_field_id' => null,
+                ]);
+            }
+
+            return;
+        }
+
+        foreach ($fieldIds as $fieldId) {
+            WorkItemGrouping::firstOrCreate([
+                'formula_code' => $formulaCode,
+                'work_area_id' => null,
+                'work_field_id' => $fieldId,
+            ]);
+        }
     }
 
     protected function normalizeMaterialCustomizeFilters(mixed $rawFilters): array

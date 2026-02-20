@@ -22,6 +22,14 @@
 
     $selectedCeramicTypes = old('ceramic_types', request('ceramic_types', []));
     $selectedCeramicTypes = is_array($selectedCeramicTypes) ? $selectedCeramicTypes : [$selectedCeramicTypes];
+    $selectedWorkAreas = old('work_areas', request('work_areas', []));
+    $selectedWorkAreas = is_array($selectedWorkAreas) ? $selectedWorkAreas : [$selectedWorkAreas];
+    $selectedWorkAreas = array_values(array_filter(array_map(static fn($value) => trim((string) $value), $selectedWorkAreas), static fn($value) => $value !== ''));
+    $selectedWorkFields = old('work_fields', request('work_fields', []));
+    $selectedWorkFields = is_array($selectedWorkFields) ? $selectedWorkFields : [$selectedWorkFields];
+    $selectedWorkFields = array_values(array_filter(array_map(static fn($value) => trim((string) $value), $selectedWorkFields), static fn($value) => $value !== ''));
+    $selectedPriceFilters = old('price_filters', ['best']);
+    $selectedPriceFilters = is_array($selectedPriceFilters) ? $selectedPriceFilters : [$selectedPriceFilters];
     $materialTypeLabels = [
         'brick' => 'Bata',
         'cement' => 'Semen',
@@ -37,8 +45,9 @@
     }
     
     // Cek Single Brick (Carry Over)
-    $isSingleCarryOver = request()->has('brick_id');
-    $singleBrick = $isSingleCarryOver ? $bricks->find(request('brick_id')) : null;
+    $carryOverBrickId = old('brick_id', request('brick_id'));
+    $isSingleCarryOver = !empty($carryOverBrickId);
+    $singleBrick = $isSingleCarryOver ? $bricks->find($carryOverBrickId) : null;
 
     // FIX: Definisikan variable $isMultiBrick dengan benar
     $isMultiBrick = isset($selectedBricks) && $selectedBricks->count() > 0;
@@ -144,7 +153,7 @@
                     <label class="filter-section-title">+ Filter by:</label>
                     <div class="filter-tickbox-list">
                     <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_all" value="all">
+                        <input type="checkbox" name="price_filters[]" id="filter_all" value="all" {{ in_array('all', $selectedPriceFilters, true) ? 'checked' : '' }}>
                         <label for="filter_all">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Semua</b>
@@ -154,7 +163,7 @@
                     </div>
 
                     <div class="tickbox-item position-relative">
-                        <input type="checkbox" name="price_filters[]" id="filter_best" value="best" checked>
+                        <input type="checkbox" name="price_filters[]" id="filter_best" value="best" {{ in_array('best', $selectedPriceFilters, true) ? 'checked' : '' }}>
                         <label for="filter_best" class="w-100">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Preferensi</b>
@@ -171,7 +180,7 @@
                     </div>
 
                     <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_common" value="common">
+                        <input type="checkbox" name="price_filters[]" id="filter_common" value="common" {{ in_array('common', $selectedPriceFilters, true) ? 'checked' : '' }}>
                         <label for="filter_common">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Populer</b>
@@ -181,7 +190,7 @@
                     </div>
 
                     <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest">
+                        <input type="checkbox" name="price_filters[]" id="filter_cheapest" value="cheapest" {{ in_array('cheapest', $selectedPriceFilters, true) ? 'checked' : '' }}>
                         <label for="filter_cheapest">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Ekonomis</b>
@@ -191,7 +200,7 @@
                     </div>
 
                     <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium">
+                        <input type="checkbox" name="price_filters[]" id="filter_medium" value="medium" {{ in_array('medium', $selectedPriceFilters, true) ? 'checked' : '' }}>
                         <label for="filter_medium">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Average</b>
@@ -201,7 +210,7 @@
                     </div>
 
                     <div class="tickbox-item">
-                        <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive">
+                        <input type="checkbox" name="price_filters[]" id="filter_expensive" value="expensive" {{ in_array('expensive', $selectedPriceFilters, true) ? 'checked' : '' }}>
                         <label for="filter_expensive">
                             <span class="tickbox-title d-flex">
                                 <b class="tickbox-title-label flex-shrink-0">Termahal</b>
@@ -384,34 +393,124 @@
 
             {{-- RIGHT COLUMN: FILTERS --}}
             <div class="right-column">
-                {{-- WORK TYPE --}}
-                <div class="form-group work-type-group">
-                    <label id="mainWorkTypeLabel">Item Pekerjaan</label>
-                    <div class="input-wrapper">
-                        <div class="work-type-autocomplete">
-                            <div class="work-type-input">
-                                <input type="text"
-                                       id="workTypeDisplay"
-                                       class="autocomplete-input"
-                                       placeholder="Pilih atau ketik item pekerjaan..."
-                                       autocomplete="off"
-                                       value="{{ $selectedWorkTypeLabel }}"
-                                       {{ request('formula_code') ? 'readonly' : '' }}
-                                       required>
+                <div class="taxonomy-tree-main taxonomy-group-card">
+                    <div class="taxonomy-node taxonomy-node-area">
+                        <div class="form-group work-area-group taxonomy-card taxonomy-card-area taxonomy-inline-group">
+                            <label>Area</label>
+                            <div class="material-type-filter-body">
+                                <div class="material-type-rows" id="workAreaRows" data-taxonomy-kind="area" data-initial-values='@json($selectedWorkAreas)'>
+                                    <div class="material-type-row material-type-row-base" data-taxonomy-kind="area">
+                                        <div class="input-wrapper">
+                                            <div class="work-type-autocomplete">
+                                                <div class="work-type-input">
+                                                    <input type="text"
+                                                           id="workAreaDisplay"
+                                                           class="autocomplete-input"
+                                                           placeholder="Pilih atau ketik area..."
+                                                           autocomplete="off"
+                                                           value="{{ $selectedWorkAreas[0] ?? '' }}"
+                                                           data-taxonomy-display="1">
+                                                </div>
+                                                <div class="autocomplete-list" id="workArea-list"></div>
+                                            </div>
+                                            <input type="hidden"
+                                                   id="workAreaValue"
+                                                   name="work_areas[]"
+                                                   value="{{ $selectedWorkAreas[0] ?? '' }}"
+                                                   data-taxonomy-hidden="1">
+                                        </div>
+                                        <div class="material-type-row-actions">
+                                            <button type="button" class="material-type-row-btn material-type-row-btn-delete" data-taxonomy-action="remove" data-taxonomy-kind="area" title="Hapus baris">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            <button type="button" class="material-type-row-btn material-type-row-btn-add" data-taxonomy-action="add" data-taxonomy-kind="area" title="Tambah baris">
+                                                <i class="bi bi-plus-lg"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="autocomplete-list" id="workType-list"></div>
+                            <div class="taxonomy-level-actions">
+                                <button type="button" id="addFieldFromMainBtn" class="taxonomy-level-btn" title="Bidang">
+                                    + Bidang
+                                </button>
+                            </div>
                         </div>
-                        <input type="hidden" id="workTypeSelector" name="work_type_select" value="{{ $selectedWorkType }}">
-                        <input type="hidden" id="enableBundleMode" name="enable_bundle_mode"
-                            value="{{ old('enable_bundle_mode', 0) }}">
-                        <input type="hidden" id="workItemsPayload" name="work_items_payload"
-                            value="{{ old('work_items_payload') }}">
-                        <input type="hidden" id="materialCustomizeFiltersPayload" name="material_customize_filters_payload"
-                            value="{{ old('material_customize_filters_payload') }}">
-                    </div>
-                </div>
 
-                <div id="inputFormContainer">
+                        <div class="taxonomy-node-children">
+                            <div class="taxonomy-node taxonomy-node-field">
+                                <div class="form-group work-field-group taxonomy-card taxonomy-card-field taxonomy-inline-group">
+                                    <label>Bidang</label>
+                                    <div class="material-type-filter-body">
+                                        <div class="material-type-rows" id="workFieldRows" data-taxonomy-kind="field" data-initial-values='@json($selectedWorkFields)'>
+                                            <div class="material-type-row material-type-row-base" data-taxonomy-kind="field">
+                                                <div class="input-wrapper">
+                                                    <div class="work-type-autocomplete">
+                                                        <div class="work-type-input">
+                                                            <input type="text"
+                                                                   id="workFieldDisplay"
+                                                                   class="autocomplete-input"
+                                                                   placeholder="Pilih atau ketik bidang..."
+                                                                   autocomplete="off"
+                                                                   value="{{ $selectedWorkFields[0] ?? '' }}"
+                                                                   data-taxonomy-display="1">
+                                                        </div>
+                                                        <div class="autocomplete-list" id="workField-list"></div>
+                                                    </div>
+                                                    <input type="hidden"
+                                                           id="workFieldValue"
+                                                           name="work_fields[]"
+                                                           value="{{ $selectedWorkFields[0] ?? '' }}"
+                                                           data-taxonomy-hidden="1">
+                                                </div>
+                                                <div class="material-type-row-actions">
+                                                    <button type="button" class="material-type-row-btn material-type-row-btn-delete" data-taxonomy-action="remove" data-taxonomy-kind="field" title="Hapus baris">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                    <button type="button" class="material-type-row-btn material-type-row-btn-add" data-taxonomy-action="add" data-taxonomy-kind="field" title="Tambah baris">
+                                                        <i class="bi bi-plus-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="taxonomy-level-actions">
+                                        <button type="button" id="addItemFromMainBtn" class="taxonomy-level-btn" title="Tambah Item Pekerjaan di Bidang ini">
+                                            + Item Pekerjaan
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="taxonomy-node-children">
+                                    <div class="taxonomy-node taxonomy-node-item">
+                                        {{-- WORK TYPE --}}
+                                        <div class="form-group work-type-group taxonomy-card taxonomy-card-item taxonomy-inline-item">
+                                            <label id="mainWorkTypeLabel">Item Pekerjaan</label>
+                                            <div class="input-wrapper">
+                                                <div class="work-type-autocomplete">
+                                                    <div class="work-type-input">
+                                                        <input type="text"
+                                                               id="workTypeDisplay"
+                                                               class="autocomplete-input"
+                                                               placeholder="Pilih atau ketik item pekerjaan..."
+                                                               autocomplete="off"
+                                                               value="{{ $selectedWorkTypeLabel }}"
+                                                               {{ request('formula_code') ? 'readonly' : '' }}
+                                                               required>
+                                                    </div>
+                                                    <div class="autocomplete-list" id="workType-list"></div>
+                                                </div>
+                                                <input type="hidden" id="workTypeSelector" name="work_type_select" value="{{ $selectedWorkType }}">
+                                                <input type="hidden" id="enableBundleMode" name="enable_bundle_mode"
+                                                    value="{{ old('enable_bundle_mode', 0) }}">
+                                                <input type="hidden" id="workItemsPayload" name="work_items_payload"
+                                                    value="{{ old('work_items_payload') }}">
+                                                <input type="hidden" id="materialCustomizeFiltersPayload" name="material_customize_filters_payload"
+                                                    value="{{ old('material_customize_filters_payload') }}">
+                                            </div>
+                                        </div>
+
+                                        <div id="inputFormContainer">
                     <div id="brickForm" class="work-type-form">
 
                         {{-- DIMENSI - VERTICAL LAYOUT --}}
@@ -420,7 +519,7 @@
                                 <label>Panjang</label>
                                 <div class="input-with-unit">
                                     <input type="text" inputmode="decimal" name="wall_length" id="wallLength" step="0.01" min="0.01"
-                                        value="{{ request('wall_length') }}" required>
+                                        value="{{ old('wall_length', request('wall_length')) }}" required>
                                     <span class="unit">M</span>
                                 </div>
                             </div>
@@ -429,7 +528,7 @@
                                 <label id="wallHeightLabel">Tinggi</label>
                                 <div class="input-with-unit">
                                     <input type="text" inputmode="decimal" name="wall_height" id="wallHeight" step="0.01" min="0.01"
-                                        value="{{ request('wall_height') }}" required>
+                                        value="{{ old('wall_height', request('wall_height')) }}" required>
                                     <span class="unit">M</span>
                                 </div>
                             </div>
@@ -438,7 +537,7 @@
                                 <label id="mortarThicknessLabel">Tebal Adukan</label>
                                 <div class="input-with-unit">
                                     <input type="text" inputmode="decimal" name="mortar_thickness" id="mortarThickness" step="0.1" min="0.1" data-unit="cm"
-                                        value="{{ request('mortar_thickness', 2) }}">
+                                        value="{{ old('mortar_thickness', request('mortar_thickness', 2)) }}">
                                     <span class="unit" id="mortarThicknessUnit">cm</span>
                                 </div>
                             </div>
@@ -447,7 +546,7 @@
                             <div class="dimension-item" id="layerCountGroup" style="display: none;">
                                 <label id="layerCountLabel">Tingkat</label>
                                 <div class="input-with-unit" id="layerCountInputWrapper" style="background-color: #fffbeb; border-color: #fcd34d;">
-                                    <input type="text" inputmode="decimal" name="layer_count" id="layerCount" step="1" min="1" value="{{ request('layer_count') ?? 1 }}">
+                                    <input type="text" inputmode="decimal" name="layer_count" id="layerCount" step="1" min="1" value="{{ old('layer_count', request('layer_count') ?? 1) }}">
                                     <span class="unit" id="layerCountUnit" style="background-color: #fef3c7;">Lapis</span>
                                 </div>
                             </div>
@@ -456,7 +555,7 @@
                             <div class="dimension-item" id="plasterSidesGroup" style="display: none;">
                                 <label>Sisi Plesteran</label>
                                 <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                                    <input type="text" inputmode="decimal" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ request('plaster_sides') ?? 1 }}">
+                                    <input type="text" inputmode="decimal" name="plaster_sides" id="plasterSides" step="1" min="1" value="{{ old('plaster_sides', request('plaster_sides') ?? 1) }}">
                                     <span class="unit" style="background-color: #bae6fd;">Sisi</span>
                                 </div>
                             </div>
@@ -465,7 +564,7 @@
                             <div class="dimension-item" id="skimSidesGroup" style="display: none;">
                                 <label>Sisi Acian</label>
                                 <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
-                                    <input type="text" inputmode="decimal" name="skim_sides" id="skimSides" step="1" min="1" value="{{ request('skim_sides') ?? 1 }}">
+                                    <input type="text" inputmode="decimal" name="skim_sides" id="skimSides" step="1" min="1" value="{{ old('skim_sides', request('skim_sides') ?? 1) }}">
                                     <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
                                 </div>
                             </div>
@@ -474,7 +573,7 @@
                             <div class="dimension-item" id="groutThicknessGroup" style="display: none;">
                                 <label>Tebal Nat</label>
                                 <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
-                                    <input type="text" inputmode="decimal" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ request('grout_thickness', 2) }}">
+                                    <input type="text" inputmode="decimal" name="grout_thickness" id="groutThickness" step="0.1" min="0.1" value="{{ old('grout_thickness', request('grout_thickness', 2)) }}">
                                     <span class="unit" style="background-color: #e2e8f0;">mm</span>
                                 </div>
                             </div>
@@ -483,7 +582,7 @@
                             <div class="dimension-item" id="ceramicLengthGroup" style="display: none;">
                                 <label>Panjang Keramik</label>
                                 <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="text" inputmode="decimal" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ request('ceramic_length', 30) }}">
+                                    <input type="text" inputmode="decimal" name="ceramic_length" id="ceramicLength" step="0.1" min="1" value="{{ old('ceramic_length', request('ceramic_length', 30)) }}">
                                     <span class="unit" style="background-color: #fef08a;">cm</span>
                                 </div>
                             </div>
@@ -491,7 +590,7 @@
                             <div class="dimension-item" id="ceramicWidthGroup" style="display: none;">
                                 <label>Lebar Keramik</label>
                                 <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="text" inputmode="decimal" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ request('ceramic_width', 30) }}">
+                                    <input type="text" inputmode="decimal" name="ceramic_width" id="ceramicWidth" step="0.1" min="1" value="{{ old('ceramic_width', request('ceramic_width', 30)) }}">
                                     <span class="unit" style="background-color: #fef08a;">cm</span>
                                 </div>
                             </div>
@@ -499,7 +598,7 @@
                             <div class="dimension-item" id="ceramicThicknessGroup" style="display: none;">
                                 <label>Tebal Keramik</label>
                                 <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                    <input type="text" inputmode="decimal" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ request('ceramic_thickness', 8) }}">
+                                    <input type="text" inputmode="decimal" name="ceramic_thickness" id="ceramicThickness" step="0.1" min="0.1" value="{{ old('ceramic_thickness', request('ceramic_thickness', 8)) }}">
                                     <span class="unit" style="background-color: #fef08a;">mm</span>
                                 </div>
                             </div>
@@ -559,8 +658,8 @@
                                                     class="material-type-row-btn material-type-row-btn-customize"
                                                     data-customize-toggle="{{ $materialKey }}"
                                                     data-customize-panel-id="customizePanel-{{ $materialKey }}"
-                                                    title="Customize {{ $materialLabel }}">
-                                                    Customize
+                                                    title="Custom {{ $materialLabel }}">
+                                                    Custom
                                                 </button>
                                             @endif
                                         </div>
@@ -714,26 +813,47 @@
                             @endforeach
                         </div>
                     </div>
-                </div>
-
-                    <div id="additionalWorkItemsSection" class="additional-work-items-section" style="display: none;">
-                        <div id="additionalWorkItemsList" class="additional-work-items-list"></div>
-                    </div>
-
-                    <div class="work-item-bottom-bar">
-                        <div class="work-item-stepper" aria-label="Kontrol item pekerjaan">
-                            <button type="button" id="addWorkItemBtn" class="work-item-stepper-btn" title="Tambah item pekerjaan tambahan">
-                                <i class="bi bi-plus-lg"></i>
-                            </button>
-                            <span class="work-item-stepper-label">Item Pekerjaan</span>
-                        </div>
-                        <div class="button-actions">
-                            <button type="submit" class="btn btn-submit">
-                                <i class="bi bi-search"></i> Hitung
-                            </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
+
                 </div>
+                </div>
+
+                <div id="additionalWorkItemsSection" class="additional-work-items-section" style="display: none;">
+                    <div id="additionalWorkItemsList" class="additional-work-items-list"></div>
+                </div>
+
+                <div class="form-group work-area-group work-area-extra-group" id="workAreaExtraSection" hidden>
+                    <label>Area</label>
+                    <div class="material-type-filter-body">
+                        <div class="material-type-extra-rows" id="workAreaExtraRows"></div>
+                    </div>
+                </div>
+
+                <div class="form-group work-field-group work-field-extra-group" id="workFieldExtraSection" hidden>
+                    <label>Bidang</label>
+                    <div class="material-type-filter-body">
+                        <div class="material-type-extra-rows" id="workFieldExtraRows"></div>
+                    </div>
+                </div>
+
+                <div class="work-item-bottom-bar work-item-bottom-bar-outside">
+                    <div class="work-item-stepper" aria-label="Kontrol item pekerjaan">
+                        <button type="button" id="addWorkItemBtn" class="work-item-stepper-btn" title="Tambah Area Baru" aria-label="Tambah Area Baru">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                        <span class="work-item-stepper-label">Area Baru</span>
+                    </div>
+                    <div class="button-actions">
+                        <button type="submit" class="btn btn-submit">
+                            <i class="bi bi-search"></i> Hitung
+                        </button>
+                    </div>
+                </div>
+            </div>
 
         </div>
     </form>
@@ -751,6 +871,193 @@
         font-weight: var(--special-font-weight);
         -webkit-text-stroke: var(--special-text-stroke);
         font-size: 32px;
+    }
+
+    #calculationForm .right-column {
+        --work-taxonomy-indent-step: 18px;
+        --work-item-parameter-indent: 125px;
+        --work-item-parameter-indent-mobile: 10px;
+    }
+
+    #calculationForm .taxonomy-tree-main {
+        display: block;
+        margin-bottom: 8px;
+    }
+
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card {
+        border: 1px solid #dbe3ee;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        padding: 10px;
+    }
+
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card > .taxonomy-node > .taxonomy-card {
+        margin-top: 0;
+    }
+
+    #calculationForm .taxonomy-node {
+        display: block;
+    }
+
+    #calculationForm .taxonomy-node-children {
+        margin-left: var(--work-taxonomy-indent-step);
+        padding-left: 12px;
+        border-left: 1px dashed #cbd5e1;
+    }
+
+    /* Level 1: Bidang menjorong 15px dari Area */
+    #calculationForm .taxonomy-node-area > .taxonomy-node-children {
+        margin-left: 15px;
+    }
+
+    /* Level 2: Item Pekerjaan menjorong ke kanan, start sejajar akhir teks "Bidang" */
+    #calculationForm .taxonomy-node-field > .taxonomy-node-children {
+        margin-left: 44px;
+        padding-left: 10px;
+        border-left: 1px dashed #cbd5e1;
+    }
+
+    #calculationForm .taxonomy-card {
+        display: block;
+        background: #ffffff;
+        border: 1px solid #dbe3ee;
+        border-radius: 10px;
+        padding: 10px 10px 8px 10px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        margin-bottom: 10px;
+    }
+
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card {
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+    }
+
+    #calculationForm .taxonomy-card > label {
+        display: block;
+        width: auto !important;
+        margin-bottom: 6px;
+        font-weight: 700;
+        color: #334155;
+    }
+
+    #calculationForm .taxonomy-card .input-wrapper,
+    #calculationForm .taxonomy-card .material-type-filter-body,
+    #calculationForm .taxonomy-card .work-type-autocomplete {
+        width: 100%;
+    }
+
+    #calculationForm .taxonomy-card-area {
+        border-left: 4px solid #334155;
+    }
+
+    #calculationForm .taxonomy-card-field {
+        border-left: 4px solid #f59e0b;
+    }
+
+    #calculationForm .taxonomy-card-item {
+        border-left: 4px solid #10b981;
+    }
+
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-area,
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-field,
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-item {
+        border-left: 0;
+    }
+
+    #calculationForm .taxonomy-inline-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #calculationForm .taxonomy-inline-group > label {
+        display: inline-flex;
+        align-items: center;
+        justify-content: flex-start;
+        flex: 0 0 72px;
+        width: 72px !important;
+        margin-bottom: 0;
+        padding-top: 0 !important;
+        white-space: nowrap;
+    }
+
+    #calculationForm .taxonomy-inline-group .material-type-filter-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+    }
+
+    #calculationForm .taxonomy-inline-group .taxonomy-level-actions {
+        margin-top: 0;
+        margin-left: 2px;
+        flex: 0 0 auto;
+    }
+
+    #calculationForm .taxonomy-inline-group .taxonomy-level-btn {
+        min-height: 38px;
+        white-space: nowrap;
+    }
+
+    #calculationForm .taxonomy-inline-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    #calculationForm .taxonomy-inline-item > label {
+        display: inline-flex;
+        align-items: center;
+        flex: 0 0 110px;
+        width: 110px !important;
+        margin-bottom: 0;
+        padding-top: 0 !important;
+        white-space: nowrap;
+    }
+
+    #calculationForm .taxonomy-inline-item > .input-wrapper {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+        margin-bottom: 0;
+    }
+
+    #calculationForm .work-area-group,
+    #calculationForm .work-field-group {
+        align-items: flex-start;
+    }
+
+    #calculationForm .work-area-group .material-type-filter-body,
+    #calculationForm .work-field-group .material-type-filter-body {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+    }
+
+    #calculationForm .work-area-group .material-type-rows,
+    #calculationForm .work-field-group .material-type-rows,
+    #calculationForm .work-area-group .material-type-extra-rows,
+    #calculationForm .work-field-group .material-type-extra-rows {
+        width: 100%;
+    }
+
+    #workAreaRows .material-type-row-actions,
+    #workFieldRows .material-type-row-actions {
+        display: none;
+    }
+
+    #workAreaRows .material-type-row .work-type-input,
+    #workFieldRows .material-type-row .work-type-input {
+        border-right: 1px solid #cbd5e1 !important;
+        border-radius: 4px;
+    }
+
+    .work-area-extra-group,
+    .work-field-extra-group {
+        display: none !important;
     }
 
     .work-type-input-with-action {
@@ -803,6 +1110,10 @@
         justify-content: space-between;
         gap: 12px;
         margin-top: 12px;
+    }
+
+    .work-item-bottom-bar-outside {
+        margin-top: 14px;
     }
 
     .work-item-bottom-bar .button-actions {
@@ -876,15 +1187,64 @@
         cursor: not-allowed;
     }
 
+    .taxonomy-level-actions {
+        margin-top: 6px;
+    }
+
+    .taxonomy-level-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #ffffff;
+        color: #334155;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.15s ease;
+    }
+
+    .taxonomy-level-btn:hover {
+        background: #f8fafc;
+        border-color: #94a3b8;
+        color: #0f172a;
+    }
+
     #calculationForm #inputFormContainer,
     #calculationForm #additionalWorkItemsSection {
-        margin-left: 125px;
-        padding-left: 12px;
+        margin-left: 0;
+        padding-left: 0;
+    }
+
+    #calculationForm #inputFormContainer {
+        margin-top: 0;
+        padding-top: 0;
+        padding-left: var(--work-item-parameter-indent);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    #calculationForm #inputFormContainer .dimensions-container-vertical,
+    #calculationForm #inputFormContainer .material-type-filter-group {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
     }
 
     .additional-work-items-section {
         margin-top: 12px;
         padding: 0;
+    }
+
+    #calculationForm .right-column > #additionalWorkItemsSection {
+        margin-top: 10px;
+        padding-top: 0;
+        border-top: 0;
     }
 
     .additional-work-items-title {
@@ -902,10 +1262,23 @@
 
     .additional-work-item {
         border: 0;
-        border-top: 1px dashed #cbd5e1;
         border-radius: 0;
         background: transparent;
-        padding: 10px 0 0 0;
+        padding: 0;
+    }
+
+    #calculationForm .additional-work-item[data-row-kind="area"] {
+        margin-top: 0;
+    }
+
+    #calculationForm .additional-work-item.taxonomy-tree-main.taxonomy-group-card > .additional-work-item-grid > .taxonomy-node > .taxonomy-card {
+        margin-top: 0;
+    }
+
+    .additional-work-item.field-break {
+        margin-top: 0;
+        padding-top: 4px;
+        border-top: 1px dashed #cbd5e1;
     }
 
     .additional-work-item-header {
@@ -932,6 +1305,27 @@
         display: flex;
         flex-direction: column;
         gap: 0;
+    }
+
+    .additional-area-children {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-top: 6px;
+    }
+
+    .additional-area-children:empty {
+        display: none;
+        margin-top: 0;
+    }
+
+    .additional-area-children > .additional-work-item {
+        margin-top: 0 !important;
+    }
+
+    /* Tambah jeda khusus antara item utama dan item ke-2 di Area utama */
+    .main-area-children > .additional-work-item:first-child {
+        margin-top: 8px !important;
     }
 
     .additional-material-inline {
@@ -969,8 +1363,71 @@
 
     .additional-worktype-group {
         margin-bottom: 12px;
-        margin-left: -136px;
-        width: calc(100% + 136px);
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .additional-dimensions-container {
+        margin-top: 0;
+        padding-top: 0;
+        margin-left: 0;
+        padding-left: var(--work-item-parameter-indent);
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .additional-work-area-group,
+    .additional-work-field-group {
+        margin-bottom: 8px;
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .additional-work-item[data-row-kind="field"] .additional-work-area-group,
+    .additional-work-item[data-row-kind="item"] .additional-work-area-group {
+        display: none !important;
+    }
+
+    .additional-work-item[data-row-kind="item"] .additional-work-field-group {
+        display: none !important;
+    }
+
+    .additional-work-item .taxonomy-node-children {
+        margin-top: 2px;
+    }
+
+    .additional-work-item[data-row-kind="field"] .additional-node-area > .taxonomy-node-children,
+    .additional-work-item[data-row-kind="item"] .additional-node-area > .taxonomy-node-children {
+        margin-top: 0;
+        margin-left: 0;
+        padding-left: 0;
+        border-left: 0;
+    }
+
+    .additional-work-item[data-row-kind="item"] .additional-node-field > .taxonomy-node-children {
+        margin-top: 0;
+        margin-left: 0;
+        padding-left: 10px;
+        border-left: 1px dashed #cbd5e1;
+    }
+
+    .additional-work-item .additional-worktype-group {
+        margin-bottom: 2px;
+    }
+
+    .additional-work-item .dimensions-container-vertical {
+        margin-bottom: 0;
+    }
+
+    .additional-work-item .material-type-filter-group {
+        margin-top: 2px;
+    }
+
+    .material-type-row.no-actions .work-type-input {
+        border-right: 1px solid #cbd5e1 !important;
+        border-radius: 4px;
     }
 
     .additional-worktype-input {
@@ -1026,7 +1483,7 @@
     }
 
     .material-type-filter-group {
-        margin-top: 16px;
+        margin-top: 5px;
         display: block;
     }
 
@@ -1152,6 +1609,14 @@
         width: 100%;
     }
 
+    .material-type-extra-rows[data-material-type] {
+        gap: 5px;
+    }
+
+    .material-type-extra-rows[data-material-type]:not(:empty) {
+        margin-top: 5px;
+    }
+
     .material-type-row {
         display: flex;
         align-items: stretch;
@@ -1238,7 +1703,6 @@
     .material-type-row-btn-customize {
         margin-left: 8px;
         width: auto;
-        min-width: 86px;
         min-height: 38px;
         border: 1px solid #cbd5e1 !important;
         border-radius: 4px;
@@ -1387,6 +1851,47 @@
     }
 
     @media (max-width: 768px) {
+        #calculationForm .taxonomy-node-children {
+            margin-left: 8px;
+            padding-left: 8px;
+        }
+
+        #calculationForm .taxonomy-node-area > .taxonomy-node-children {
+            margin-left: 15px;
+        }
+
+        #calculationForm .taxonomy-node-field > .taxonomy-node-children {
+            margin-left: 32px;
+            padding-left: 8px;
+            border-left: 1px dashed #cbd5e1;
+        }
+
+        #calculationForm .taxonomy-inline-group {
+            gap: 6px;
+        }
+
+        #calculationForm .taxonomy-inline-group > label {
+            flex-basis: 54px;
+            width: 54px !important;
+            font-size: 12px;
+        }
+
+        #calculationForm .taxonomy-inline-group .taxonomy-level-btn {
+            min-height: 34px;
+            padding: 0 8px;
+            font-size: 11px;
+        }
+
+        #calculationForm .taxonomy-inline-item {
+            gap: 6px;
+        }
+
+        #calculationForm .taxonomy-inline-item > label {
+            flex-basis: 96px;
+            width: 96px !important;
+            font-size: 12px;
+        }
+
         .work-item-bottom-bar {
             flex-direction: column;
             align-items: stretch;
@@ -1405,7 +1910,23 @@
         #calculationForm #additionalWorkItemsSection {
             margin-left: 0;
             padding-left: 0;
-            border-left: 0;
+        }
+
+        #calculationForm #inputFormContainer {
+            padding-left: var(--work-item-parameter-indent-mobile);
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .additional-dimensions-container {
+            margin-left: 0;
+            padding-left: var(--work-item-parameter-indent-mobile);
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
         }
 
         .additional-work-item-grid {
@@ -1440,6 +1961,9 @@
     'sands' => $sands,
     'cats' => $cats ?? [],
     'ceramics' => $ceramics ?? [],
+    'workAreas' => $workAreas ?? [],
+    'workFields' => $workFields ?? [],
+    'workItemGroupings' => $workItemGroupings ?? [],
     'storeLocations' => $storeLocationsForMap ?? [],
 ]) !!}
 </script>
@@ -1505,6 +2029,556 @@
             } catch (error) {
                 return list.sort((a, b) => String(a ?? '').localeCompare(String(b ?? ''), 'id-ID'));
             }
+        }
+
+        function initWorkTaxonomyFilters(formPayload) {
+            const workAreaRows = document.getElementById('workAreaRows');
+            const workFieldRows = document.getElementById('workFieldRows');
+            const workAreaExtraRows = document.getElementById('workAreaExtraRows');
+            const workFieldExtraRows = document.getElementById('workFieldExtraRows');
+            const workAreaExtraSection = document.getElementById('workAreaExtraSection');
+            const workFieldExtraSection = document.getElementById('workFieldExtraSection');
+            const rightColumn = document.querySelector('#calculationForm .right-column');
+            const emptyApi = {
+                setValues() {},
+                getValues() { return []; },
+                subscribe() { return function() {}; },
+                refresh() {},
+            };
+
+            if (!workAreaRows || !workFieldRows || !workAreaExtraRows || !workFieldExtraRows) {
+                return emptyApi;
+            }
+
+            // Keep taxonomy-extra rows as a dedicated grouping section at the bottom.
+            if (
+                rightColumn instanceof HTMLElement &&
+                workAreaExtraSection instanceof HTMLElement &&
+                workFieldExtraSection instanceof HTMLElement
+            ) {
+                rightColumn.appendChild(workAreaExtraSection);
+                rightColumn.appendChild(workFieldExtraSection);
+            }
+
+            const normalizeOption = value => String(value ?? '').trim().toLowerCase();
+            const baseAreaOptions = sortAlphabetic(
+                uniqueFilterTokens((formPayload?.workAreas || []).map(item => item?.name || '')),
+            );
+            const baseFieldOptions = sortAlphabetic(
+                uniqueFilterTokens((formPayload?.workFields || []).map(item => item?.name || '')),
+            );
+            const normalizedGroupings = Array.isArray(formPayload?.workItemGroupings)
+                ? formPayload.workItemGroupings
+                    .map(item => ({
+                        work_area: String(item?.work_area || '').trim(),
+                        work_area_norm: normalizeOption(item?.work_area || ''),
+                        work_field: String(item?.work_field || '').trim(),
+                        work_field_norm: normalizeOption(item?.work_field || ''),
+                        formula_code: String(item?.formula_code || '').trim(),
+                    }))
+                    .filter(item => item.formula_code !== '')
+                : [];
+            const listeners = new Set();
+            let taxonomyRowListSequence = 0;
+            let fieldController = null;
+
+            const parseInitialValues = rowsContainer => {
+                if (!rowsContainer) return [];
+                try {
+                    const raw = rowsContainer.dataset.initialValues || '[]';
+                    const parsed = JSON.parse(raw);
+                    return uniqueFilterTokens(Array.isArray(parsed) ? parsed : [parsed]);
+                } catch (error) {
+                    return [];
+                }
+            };
+
+            const notifyChanged = () => {
+                listeners.forEach(callback => {
+                    try {
+                        callback();
+                    } catch (error) {
+                        console.warn('work taxonomy callback failed', error);
+                    }
+                });
+            };
+
+            const initKind = ({ kind, rowsContainer, extraRowsContainer, inputName, placeholder, initialOptions, onRowsChanged }) => {
+                const baseRow = rowsContainer.querySelector('.material-type-row-base');
+                const baseDisplay = baseRow?.querySelector('input[data-taxonomy-display="1"]');
+                const baseHidden = baseRow?.querySelector('input[data-taxonomy-hidden="1"]');
+                const baseList = baseRow?.querySelector('.autocomplete-list');
+                const baseDeleteBtn = baseRow?.querySelector('[data-taxonomy-action="remove"]');
+                const baseAddBtn = baseRow?.querySelector('[data-taxonomy-action="add"]');
+                const extraSectionEl = document.getElementById(kind === 'area' ? 'workAreaExtraSection' : 'workFieldExtraSection');
+
+                if (
+                    !baseRow ||
+                    !baseDisplay ||
+                    !baseHidden ||
+                    !baseList ||
+                    !baseDeleteBtn ||
+                    !baseAddBtn ||
+                    !extraRowsContainer
+                ) {
+                    return null;
+                }
+
+                baseHidden.name = inputName;
+                let currentOptions = sortAlphabetic(uniqueFilterTokens(initialOptions));
+                let isSyncing = false;
+
+                const getRowStates = () => {
+                    const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
+                    return rows.map(row => row.__taxonomyRowState).filter(Boolean);
+                };
+
+                const getHiddenInputs = () => getRowStates().map(state => state.hiddenEl).filter(Boolean);
+
+                const updateRowButtons = () => {
+                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
+                    const hasExtra = extraRows.length > 0;
+                    baseRow.classList.toggle('has-multiple', hasExtra);
+                    baseDeleteBtn.classList.toggle('is-visible', hasExtra);
+                    if (extraSectionEl) {
+                        extraSectionEl.hidden = !hasExtra;
+                    }
+                    extraRows.forEach(row => {
+                        const btn = row.querySelector('[data-taxonomy-action="remove"]');
+                        if (btn) {
+                            btn.classList.add('is-visible');
+                        }
+                    });
+                };
+
+                const getAvailableOptions = (term = '', currentHiddenEl = null, includeCurrentSelection = false) => {
+                    const query = normalizeOption(term);
+                    const selectedSet = new Set();
+                    getHiddenInputs().forEach(hiddenEl => {
+                        if (!hiddenEl) return;
+                        if (includeCurrentSelection && hiddenEl === currentHiddenEl) return;
+                        const normalizedValue = normalizeOption(hiddenEl.value);
+                        if (normalizedValue) {
+                            selectedSet.add(normalizedValue);
+                        }
+                    });
+
+                    const options = uniqueFilterTokens(currentOptions);
+                    const filtered = options.filter(option => {
+                        const normalized = normalizeOption(option);
+                        if (!normalized) return false;
+                        if (selectedSet.has(normalized)) return false;
+                        if (!query) return true;
+                        return normalized.includes(query);
+                    });
+
+                    return sortAlphabetic(filtered);
+                };
+
+                const refreshOpenLists = () => {
+                    getRowStates().forEach(state => {
+                        if (state.listEl && state.listEl.style.display === 'block') {
+                            state.renderList(state.displayEl.value || '');
+                        }
+                    });
+                };
+
+                const enforceUniqueSelections = () => {
+                    if (isSyncing) return;
+                    isSyncing = true;
+                    try {
+                        const seen = new Set();
+                        getRowStates().forEach(state => {
+                            const currentValue = String(state.hiddenEl.value || '').trim();
+                            if (!currentValue) {
+                                return;
+                            }
+                            const normalized = normalizeOption(currentValue);
+                            if (!normalized) {
+                                return;
+                            }
+
+                            if (seen.has(normalized)) {
+                                state.hiddenEl.value = '';
+                                state.displayEl.value = '';
+                                state.hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                                return;
+                            }
+
+                            seen.add(normalized);
+                        });
+                    } finally {
+                        isSyncing = false;
+                    }
+                };
+
+                const syncRows = () => {
+                    enforceUniqueSelections();
+                    refreshOpenLists();
+                    if (typeof onRowsChanged === 'function') {
+                        onRowsChanged();
+                    }
+                };
+
+                const createRowState = (rowEl, displayEl, hiddenEl, listEl) => {
+                    const closeList = () => {
+                        listEl.style.display = 'none';
+                    };
+
+                    const applySelection = optionValue => {
+                        const finalValue = String(optionValue || '').trim();
+                        displayEl.value = finalValue;
+                        if (hiddenEl.value !== finalValue) {
+                            hiddenEl.value = finalValue;
+                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                        closeList();
+                        syncRows();
+                    };
+
+                    const renderList = (term = '') => {
+                        listEl.innerHTML = '';
+
+                        const emptyItem = document.createElement('div');
+                        emptyItem.className = 'autocomplete-item';
+                        emptyItem.textContent = '- Tidak Pilih -';
+                        emptyItem.addEventListener('click', function() {
+                            applySelection('');
+                        });
+                        listEl.appendChild(emptyItem);
+
+                        getAvailableOptions(term, hiddenEl).forEach(option => {
+                            const item = document.createElement('div');
+                            item.className = 'autocomplete-item';
+                            item.textContent = option;
+                            item.addEventListener('click', function() {
+                                applySelection(option);
+                            });
+                            listEl.appendChild(item);
+                        });
+
+                        listEl.style.display = 'block';
+                    };
+
+                    const findExactOption = term => {
+                        const query = normalizeOption(term);
+                        if (!query) return null;
+                        const available = getAvailableOptions(term, hiddenEl, true);
+                        return available.find(option => normalizeOption(option) === query) || null;
+                    };
+
+                    const rowState = {
+                        rowEl,
+                        displayEl,
+                        hiddenEl,
+                        listEl,
+                        closeList,
+                        renderList,
+                    };
+                    rowEl.__taxonomyRowState = rowState;
+
+                    displayEl.addEventListener('focus', function() {
+                        if (displayEl.readOnly || displayEl.disabled) return;
+                        renderList(displayEl.value || '');
+                    });
+
+                    displayEl.addEventListener('input', function() {
+                        if (displayEl.readOnly || displayEl.disabled) return;
+                        const typed = String(this.value || '').trim();
+                        hiddenEl.value = typed;
+                        hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        renderList(this.value || '');
+                        syncRows();
+                    });
+
+                    displayEl.addEventListener('keydown', function(event) {
+                        if (event.key === 'Enter') {
+                            const exactMatch = findExactOption(displayEl.value || '');
+                            if (exactMatch) {
+                                applySelection(exactMatch);
+                            } else {
+                                applySelection(displayEl.value || '');
+                            }
+                            event.preventDefault();
+                            return;
+                        }
+                        if (event.key === 'Escape') {
+                            closeList();
+                        }
+                    });
+
+                    displayEl.addEventListener('blur', function() {
+                        setTimeout(() => {
+                            displayEl.value = String(hiddenEl.value || '').trim();
+                            closeList();
+                        }, 150);
+                    });
+
+                    document.addEventListener('click', function(event) {
+                        if (event.target === displayEl || listEl.contains(event.target)) return;
+                        closeList();
+                    });
+
+                    hiddenEl.addEventListener('change', function() {
+                        const value = String(hiddenEl.value || '').trim();
+                        if (displayEl.value !== value) {
+                            displayEl.value = value;
+                        }
+                    });
+
+                    return rowState;
+                };
+
+                const createExtraRow = (value = '') => {
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'material-type-row material-type-row-extra';
+                    rowEl.dataset.taxonomyKind = kind;
+
+                    const inputWrapper = document.createElement('div');
+                    inputWrapper.className = 'input-wrapper';
+
+                    const autocompleteWrap = document.createElement('div');
+                    autocompleteWrap.className = 'work-type-autocomplete';
+
+                    const inputShell = document.createElement('div');
+                    inputShell.className = 'work-type-input';
+
+                    const displayEl = document.createElement('input');
+                    displayEl.type = 'text';
+                    displayEl.className = 'autocomplete-input';
+                    displayEl.placeholder = placeholder;
+                    displayEl.autocomplete = 'off';
+                    displayEl.dataset.taxonomyDisplay = '1';
+                    displayEl.value = String(value || '');
+
+                    const listEl = document.createElement('div');
+                    listEl.className = 'autocomplete-list';
+                    listEl.id = `workTaxonomy-${kind}-list-${++taxonomyRowListSequence}`;
+
+                    const hiddenEl = document.createElement('input');
+                    hiddenEl.type = 'hidden';
+                    hiddenEl.name = inputName;
+                    hiddenEl.value = String(value || '').trim();
+                    hiddenEl.dataset.taxonomyHidden = '1';
+
+                    inputShell.appendChild(displayEl);
+                    autocompleteWrap.appendChild(inputShell);
+                    autocompleteWrap.appendChild(listEl);
+                    inputWrapper.appendChild(autocompleteWrap);
+                    inputWrapper.appendChild(hiddenEl);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'material-type-row-actions';
+                    actions.innerHTML = `
+                        <button type="button"
+                            class="material-type-row-btn material-type-row-btn-delete is-visible"
+                            data-taxonomy-action="remove"
+                            data-taxonomy-kind="${kind}"
+                            title="Hapus baris">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <button type="button"
+                            class="material-type-row-btn material-type-row-btn-add"
+                            data-taxonomy-action="add"
+                            data-taxonomy-kind="${kind}"
+                            title="Tambah baris">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    `;
+
+                    rowEl.appendChild(inputWrapper);
+                    rowEl.appendChild(actions);
+                    extraRowsContainer.appendChild(rowEl);
+                    createRowState(rowEl, displayEl, hiddenEl, listEl);
+                    updateRowButtons();
+                    return rowEl;
+                };
+
+                const setValues = values => {
+                    const tokens = uniqueFilterTokens(Array.isArray(values) ? values : [values]);
+                    while (extraRowsContainer.firstChild) {
+                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
+                    }
+
+                    baseDisplay.value = '';
+                    baseHidden.value = '';
+
+                    const firstValue = tokens[0] || '';
+                    baseDisplay.value = firstValue;
+                    baseHidden.value = firstValue;
+
+                    tokens.slice(1).forEach(token => {
+                        createExtraRow(token);
+                    });
+
+                    updateRowButtons();
+                    syncRows();
+                };
+
+                const removeBaseRow = () => {
+                    const extraRows = Array.from(extraRowsContainer.querySelectorAll('.material-type-row-extra'));
+                    if (extraRows.length > 0) {
+                        const firstExtra = extraRows[0];
+                        const state = firstExtra.__taxonomyRowState;
+                        const promoted = String(state?.hiddenEl?.value ?? '').trim();
+                        baseDisplay.value = promoted;
+                        baseHidden.value = promoted;
+                        firstExtra.remove();
+                        updateRowButtons();
+                        syncRows();
+                        return;
+                    }
+
+                    baseDisplay.value = '';
+                    baseHidden.value = '';
+                    syncRows();
+                };
+
+                const handleRowActionClick = function(event) {
+                    const target = event?.target;
+                    if (!(target instanceof HTMLElement)) return;
+                    const actionBtn = target.closest('[data-taxonomy-action]');
+                    if (!actionBtn) return;
+
+                    const action = String(actionBtn.dataset.taxonomyAction || '').trim();
+                    if (!action) return;
+
+                    if (action === 'add') {
+                        event.preventDefault();
+                        createExtraRow('');
+                        syncRows();
+                        return;
+                    }
+
+                    if (action === 'remove') {
+                        event.preventDefault();
+                        const row = actionBtn.closest('.material-type-row');
+                        if (!row) return;
+                        if (row.classList.contains('material-type-row-base')) {
+                            removeBaseRow();
+                            return;
+                        }
+                        row.remove();
+                        updateRowButtons();
+                        syncRows();
+                    }
+                };
+
+                rowsContainer.addEventListener('click', handleRowActionClick);
+                extraRowsContainer.addEventListener('click', handleRowActionClick);
+
+                createRowState(baseRow, baseDisplay, baseHidden, baseList);
+                baseHidden.value = String(baseHidden.value || '').trim();
+                baseDisplay.value = baseHidden.value;
+                updateRowButtons();
+
+                return {
+                    setValues,
+                    setOptions(nextOptions) {
+                        currentOptions = sortAlphabetic(uniqueFilterTokens(nextOptions || []));
+                        refreshOpenLists();
+                    },
+                    getValues() {
+                        return uniqueFilterTokens(getHiddenInputs().map(input => input.value));
+                    },
+                };
+            };
+
+            const computeFieldOptions = areaController => {
+                let scopedOptions = [...baseFieldOptions];
+                if (!areaController) {
+                    return sortAlphabetic(uniqueFilterTokens(scopedOptions));
+                }
+
+                const selectedAreas = areaController.getValues();
+                if (selectedAreas.length > 0 && normalizedGroupings.length > 0) {
+                    const selectedAreaSet = new Set(selectedAreas.map(value => normalizeOption(value)));
+                    const matchedFields = normalizedGroupings
+                        .filter(item => item.work_area_norm && selectedAreaSet.has(item.work_area_norm) && item.work_field)
+                        .map(item => item.work_field);
+
+                    if (matchedFields.length > 0) {
+                        scopedOptions = sortAlphabetic(uniqueFilterTokens(matchedFields));
+                    }
+                }
+
+                if (fieldController) {
+                    scopedOptions = uniqueFilterTokens([...scopedOptions, ...fieldController.getValues()]);
+                }
+
+                return sortAlphabetic(scopedOptions);
+            };
+
+            const areaController = initKind({
+                kind: 'area',
+                rowsContainer: workAreaRows,
+                extraRowsContainer: workAreaExtraRows,
+                inputName: 'work_areas[]',
+                placeholder: 'Pilih atau ketik area...',
+                initialOptions: baseAreaOptions,
+                onRowsChanged() {
+                    if (fieldController) {
+                        fieldController.setOptions(computeFieldOptions(areaController));
+                    }
+                    notifyChanged();
+                },
+            });
+
+            fieldController = initKind({
+                kind: 'field',
+                rowsContainer: workFieldRows,
+                extraRowsContainer: workFieldExtraRows,
+                inputName: 'work_fields[]',
+                placeholder: 'Pilih atau ketik bidang...',
+                initialOptions: baseFieldOptions,
+                onRowsChanged() {
+                    notifyChanged();
+                },
+            });
+
+            if (!areaController || !fieldController) {
+                return emptyApi;
+            }
+
+            areaController.setValues(parseInitialValues(workAreaRows));
+            fieldController.setValues(parseInitialValues(workFieldRows));
+            fieldController.setOptions(computeFieldOptions(areaController));
+
+            return {
+                setValues(kind, values) {
+                    const type = String(kind || '').trim();
+                    if (type === 'area') {
+                        areaController.setValues(values);
+                        return;
+                    }
+                    if (type === 'field') {
+                        fieldController.setValues(values);
+                    }
+                },
+                getValues(kind) {
+                    const type = String(kind || '').trim();
+                    if (type === 'area') {
+                        return areaController.getValues();
+                    }
+                    if (type === 'field') {
+                        return fieldController.getValues();
+                    }
+                    return [];
+                },
+                subscribe(callback) {
+                    if (typeof callback !== 'function') {
+                        return function() {};
+                    }
+                    listeners.add(callback);
+                    return function unsubscribe() {
+                        listeners.delete(callback);
+                    };
+                },
+                refresh() {
+                    fieldController.setOptions(computeFieldOptions(areaController));
+                    notifyChanged();
+                },
+            };
         }
 
         function buildMaterialTypeOptionMap(formPayload) {
@@ -1849,8 +2923,8 @@
                         customizeBtn.type = 'button';
                         customizeBtn.className = 'material-type-row-btn material-type-row-btn-customize';
                         customizeBtn.dataset.customizeToggle = type;
-                        customizeBtn.title = `Customize ${materialTypeLabels[type] || type}`;
-                        customizeBtn.textContent = 'Customize';
+                        customizeBtn.title = `Custom ${materialTypeLabels[type] || type}`;
+                        customizeBtn.textContent = 'Custom';
 
                         const templatePanel = itemEl.querySelector(`[data-customize-panel="${type}"]`) ||
                             document.getElementById(`customizePanel-${type}`);
@@ -2024,6 +3098,7 @@
             return api;
         }
 
+        const workTaxonomyFilterApi = initWorkTaxonomyFilters(payload);
         const materialTypeFilterMultiApi = initMultiMaterialTypeFilters(payload);
         const initialMaterialTypeFilters = @json($selectedMaterialTypeFilters);
         if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.setValues === 'function' && initialMaterialTypeFilters) {
@@ -2719,6 +3794,151 @@
                     name: String(item.name || item.code),
                 }))
             : [];
+        const enableWorkTypeTaxonomyScoping = false;
+        const workItemGroupingIndex = Array.isArray(payload?.workItemGroupings)
+            ? payload.workItemGroupings
+                .map(item => ({
+                    formula_code: String(item?.formula_code || '').trim(),
+                    work_area_norm: String(item?.work_area || '').trim().toLowerCase(),
+                    work_field_norm: String(item?.work_field || '').trim().toLowerCase(),
+                    work_field: String(item?.work_field || '').trim(),
+                }))
+                .filter(item => item.formula_code !== '')
+            : [];
+        const workAreaOptionValues = sortAlphabetic(
+            uniqueFilterTokens((payload?.workAreas || []).map(item => item?.name || '')),
+        );
+        const workFieldOptionValues = sortAlphabetic(
+            uniqueFilterTokens((payload?.workFields || []).map(item => item?.name || '')),
+        );
+        const mainTaxonomyGroupCard = document.querySelector('#calculationForm .taxonomy-tree-main.taxonomy-group-card');
+
+        function getMainAreaChildrenHost() {
+            if (!(mainTaxonomyGroupCard instanceof HTMLElement)) {
+                return null;
+            }
+
+            let host = mainTaxonomyGroupCard.querySelector('[data-main-area-children]');
+            if (host instanceof HTMLElement) {
+                return host;
+            }
+
+            host = document.createElement('div');
+            host.className = 'additional-area-children main-area-children';
+            host.setAttribute('data-main-area-children', '1');
+            mainTaxonomyGroupCard.appendChild(host);
+            return host;
+        }
+
+        function resolveScopedWorkTypeOptionsByTaxonomy(selectedAreasInput = [], selectedFieldsInput = []) {
+            if (!enableWorkTypeTaxonomyScoping) {
+                return bundleFormulaOptions;
+            }
+
+            const areaSet = new Set(
+                uniqueFilterTokens(Array.isArray(selectedAreasInput) ? selectedAreasInput : [selectedAreasInput])
+                    .map(value => String(value || '').trim().toLowerCase())
+                    .filter(Boolean),
+            );
+            const fieldSet = new Set(
+                uniqueFilterTokens(Array.isArray(selectedFieldsInput) ? selectedFieldsInput : [selectedFieldsInput])
+                    .map(value => String(value || '').trim().toLowerCase())
+                    .filter(Boolean),
+            );
+
+            if (areaSet.size === 0 && fieldSet.size === 0) {
+                return bundleFormulaOptions;
+            }
+
+            if (workItemGroupingIndex.length === 0) {
+                return bundleFormulaOptions;
+            }
+
+            const matchedCodes = new Set();
+            workItemGroupingIndex.forEach(item => {
+                if (areaSet.size > 0 && (!item.work_area_norm || !areaSet.has(item.work_area_norm))) {
+                    return;
+                }
+                if (fieldSet.size > 0 && (!item.work_field_norm || !fieldSet.has(item.work_field_norm))) {
+                    return;
+                }
+                if (item.formula_code) {
+                    matchedCodes.add(item.formula_code);
+                }
+            });
+
+            if (matchedCodes.size === 0) {
+                return bundleFormulaOptions;
+            }
+
+            return bundleFormulaOptions.filter(option => matchedCodes.has(String(option.code || '').trim()));
+        }
+
+        function resolveScopedWorkFieldOptionsByArea(selectedAreasInput = [], includeFieldsInput = []) {
+            const areaSet = new Set(
+                uniqueFilterTokens(Array.isArray(selectedAreasInput) ? selectedAreasInput : [selectedAreasInput])
+                    .map(value => String(value || '').trim().toLowerCase())
+                    .filter(Boolean),
+            );
+            const includeFields = uniqueFilterTokens(
+                Array.isArray(includeFieldsInput) ? includeFieldsInput : [includeFieldsInput],
+            );
+
+            if (areaSet.size === 0 || workItemGroupingIndex.length === 0) {
+                return sortAlphabetic(uniqueFilterTokens([...workFieldOptionValues, ...includeFields]));
+            }
+
+            const scoped = sortAlphabetic(
+                uniqueFilterTokens(
+                    workItemGroupingIndex
+                        .filter(item => item.work_area_norm && areaSet.has(item.work_area_norm))
+                        .map(item => item.work_field)
+                        .filter(Boolean),
+                ),
+            );
+
+            if (!scoped.length) {
+                return sortAlphabetic(uniqueFilterTokens([...workFieldOptionValues, ...includeFields]));
+            }
+
+            return sortAlphabetic(uniqueFilterTokens([...scoped, ...includeFields]));
+        }
+
+        function resolveScopedWorkTypeOptions() {
+            const selectedAreas = workTaxonomyFilterApi && typeof workTaxonomyFilterApi.getValues === 'function'
+                ? workTaxonomyFilterApi.getValues('area')
+                : [];
+            const selectedFields = workTaxonomyFilterApi && typeof workTaxonomyFilterApi.getValues === 'function'
+                ? workTaxonomyFilterApi.getValues('field')
+                : [];
+            return resolveScopedWorkTypeOptionsByTaxonomy(selectedAreas, selectedFields);
+        }
+
+        function refreshWorkTypeOptionConsumers() {
+            document.dispatchEvent(new Event('material-calculation:refresh-work-type-options'));
+            if (!additionalWorkItemsList) {
+                return;
+            }
+            additionalWorkItemsList
+                .querySelectorAll('[data-additional-work-item="true"]')
+                .forEach(itemEl => {
+                    if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
+                        itemEl.__refreshWorkTypeOptions();
+                    }
+                });
+        }
+
+        window.MaterialCalculationWorkTypeOptionsProvider = function() {
+            return resolveScopedWorkTypeOptions();
+        };
+
+        if (workTaxonomyFilterApi && typeof workTaxonomyFilterApi.subscribe === 'function') {
+            workTaxonomyFilterApi.subscribe(function() {
+                refreshWorkTypeOptionConsumers();
+            });
+        }
+        refreshWorkTypeOptionConsumers();
+
         const bundleRequiredTargets = [
             { el: mainWorkTypeDisplayInput, defaultRequired: !!mainWorkTypeDisplayInput?.required },
             { el: mainWallLengthInput, defaultRequired: !!mainWallLengthInput?.required },
@@ -2925,8 +4145,8 @@
                                             class="material-type-row-btn material-type-row-btn-customize"
                                             data-customize-toggle="${type}"
                                             data-customize-panel-id="${basePanelId}"
-                                            title="Customize ${escapeHtml(typeLabel)}">
-                                            Customize
+                                            title="Custom ${escapeHtml(typeLabel)}">
+                                            Custom
                                         </button>
                                     ` : ''}
                                 </div>
@@ -3334,12 +4554,23 @@
             return active;
         }
 
+        function normalizeBundleRowKind(value) {
+            const kind = String(value || '').trim().toLowerCase();
+            if (kind === 'field' || kind === 'item') {
+                return kind;
+            }
+            return 'area';
+        }
+
         function normalizeBundleItem(item, index) {
             const entry = item && typeof item === 'object' ? item : {};
             const title = String(entry.title || '').trim();
             const workType = String(entry.work_type || '').trim();
             return {
                 title: title || `Item ${index + 1}`,
+                row_kind: normalizeBundleRowKind(entry.row_kind),
+                work_area: String(entry.work_area || '').trim(),
+                work_field: String(entry.work_field || '').trim(),
                 work_type: workType,
                 wall_length: String(entry.wall_length || '').trim(),
                 wall_height: String(entry.wall_height || '').trim(),
@@ -3387,6 +4618,13 @@
             return el ? String(el.value || '').trim() : '';
         }
 
+        function getMainTaxonomyValue(kind) {
+            const normalized = kind === 'field' ? 'field' : 'area';
+            const hiddenId = normalized === 'field' ? 'workFieldValue' : 'workAreaValue';
+            const displayId = normalized === 'field' ? 'workFieldDisplay' : 'workAreaDisplay';
+            return getMainFormValue(hiddenId) || getMainFormValue(displayId);
+        }
+
         function collectMainWorkItem() {
             const workType = mainWorkTypeHiddenInput ? String(mainWorkTypeHiddenInput.value || '').trim() : '';
             if (!workType) {
@@ -3395,6 +4633,8 @@
             return normalizeBundleItem(
                 {
                     title: mainWorkTypeDisplayInput ? String(mainWorkTypeDisplayInput.value || '').trim() : '',
+                    work_area: getMainTaxonomyValue('area'),
+                    work_field: getMainTaxonomyValue('field'),
                     work_type: workType,
                     wall_length: getMainFormValue('wallLength'),
                     wall_height: getMainFormValue('wallHeight'),
@@ -3440,6 +4680,181 @@
             );
         }
 
+        function initAdditionalWorkTaxonomyAutocomplete(itemEl, initial = {}) {
+            if (!itemEl) {
+                return;
+            }
+
+            const areaDisplayInput = itemEl.querySelector('[data-field-display="work_area"]');
+            const areaHiddenInput = itemEl.querySelector('[data-field="work_area"]');
+            const areaListEl = itemEl.querySelector('[data-field-list="work_area"]');
+            const fieldDisplayInput = itemEl.querySelector('[data-field-display="work_field"]');
+            const fieldHiddenInput = itemEl.querySelector('[data-field="work_field"]');
+            const fieldListEl = itemEl.querySelector('[data-field-list="work_field"]');
+
+            if (
+                !areaDisplayInput ||
+                !areaHiddenInput ||
+                !areaListEl ||
+                !fieldDisplayInput ||
+                !fieldHiddenInput ||
+                !fieldListEl
+            ) {
+                return;
+            }
+
+            bindAutocompleteScrollLock(areaListEl);
+            bindAutocompleteScrollLock(fieldListEl);
+
+            const normalize = text =>
+                String(text || '')
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/gi, '')
+                    .trim();
+
+            const setupAutocomplete = ({ displayInput, hiddenInput, listEl, getOptions, onChanged }) => {
+                const closeList = () => {
+                    listEl.style.display = 'none';
+                };
+
+                const getFilteredOptions = term => {
+                    const options = uniqueFilterTokens(getOptions() || []);
+                    const query = normalize(term);
+                    if (!query) return options;
+                    return options.filter(option => normalize(option).includes(query));
+                };
+
+                const applyRawValue = value => {
+                    const finalValue = String(value || '').trim();
+                    displayInput.value = finalValue;
+                    if (hiddenInput.value !== finalValue) {
+                        hiddenInput.value = finalValue;
+                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    } else if (typeof onChanged === 'function') {
+                        onChanged();
+                    }
+                };
+
+                const renderList = term => {
+                    listEl.innerHTML = '';
+
+                    const emptyItem = document.createElement('div');
+                    emptyItem.className = 'autocomplete-item';
+                    emptyItem.textContent = '- Tidak Pilih -';
+                    emptyItem.addEventListener('click', function() {
+                        applyRawValue('');
+                        closeList();
+                    });
+                    listEl.appendChild(emptyItem);
+
+                    getFilteredOptions(term).forEach(option => {
+                        const item = document.createElement('div');
+                        item.className = 'autocomplete-item';
+                        item.textContent = option;
+                        item.addEventListener('click', function() {
+                            applyRawValue(option);
+                            closeList();
+                        });
+                        listEl.appendChild(item);
+                    });
+
+                    listEl.style.display = 'block';
+                };
+
+                const findExactMatch = term => {
+                    const query = normalize(term);
+                    if (!query) return null;
+                    return getFilteredOptions('').find(option => normalize(option) === query) || null;
+                };
+
+                displayInput.addEventListener('focus', function() {
+                    renderList(displayInput.value || '');
+                });
+
+                displayInput.addEventListener('input', function() {
+                    const term = String(displayInput.value || '');
+                    applyRawValue(term);
+                    renderList(term);
+                });
+
+                displayInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        const exact = findExactMatch(displayInput.value || '');
+                        if (exact) {
+                            applyRawValue(exact);
+                        } else {
+                            applyRawValue(displayInput.value || '');
+                        }
+                        closeList();
+                        event.preventDefault();
+                    } else if (event.key === 'Escape') {
+                        closeList();
+                    }
+                });
+
+                displayInput.addEventListener('blur', function() {
+                    setTimeout(() => {
+                        displayInput.value = String(hiddenInput.value || '').trim();
+                        closeList();
+                    }, 150);
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (event.target === displayInput || listEl.contains(event.target)) return;
+                    closeList();
+                });
+
+                hiddenInput.addEventListener('change', function() {
+                    const value = String(hiddenInput.value || '').trim();
+                    if (displayInput.value !== value) {
+                        displayInput.value = value;
+                    }
+                    if (typeof onChanged === 'function') {
+                        onChanged();
+                    }
+                });
+
+                return {
+                    setValue(value) {
+                        applyRawValue(value);
+                    },
+                };
+            };
+
+            const areaAutocomplete = setupAutocomplete({
+                displayInput: areaDisplayInput,
+                hiddenInput: areaHiddenInput,
+                listEl: areaListEl,
+                getOptions: () => sortAlphabetic(uniqueFilterTokens([...workAreaOptionValues, areaHiddenInput.value])),
+                onChanged: () => {
+                    if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
+                        itemEl.__refreshWorkTypeOptions();
+                    }
+                },
+            });
+
+            const fieldAutocomplete = setupAutocomplete({
+                displayInput: fieldDisplayInput,
+                hiddenInput: fieldHiddenInput,
+                listEl: fieldListEl,
+                getOptions: () => resolveScopedWorkFieldOptionsByArea(areaHiddenInput.value, fieldHiddenInput.value),
+                onChanged: () => {
+                    if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
+                        itemEl.__refreshWorkTypeOptions();
+                    }
+                },
+            });
+
+            const initialArea = String(initial.work_area || '').trim();
+            const initialField = String(initial.work_field || '').trim();
+            if (initialArea) {
+                areaAutocomplete.setValue(initialArea);
+            }
+            if (initialField) {
+                fieldAutocomplete.setValue(initialField);
+            }
+        }
+
         function initAdditionalWorkTypeAutocomplete(itemEl, initial = {}) {
             if (!itemEl) {
                 return;
@@ -3455,12 +4870,34 @@
 
             bindAutocompleteScrollLock(listEl);
 
-            const options = bundleFormulaOptions
+            const baseOptions = bundleFormulaOptions
                 .filter(option => option && option.code && option.name)
                 .map(option => ({
                     code: String(option.code),
                     name: String(option.name),
                 }));
+
+            const getScopedOptions = () => {
+                const rowKind = normalizeBundleRowKind(
+                    getAdditionalFieldValue(itemEl, 'row_kind') || itemEl.dataset.rowKind || 'area',
+                );
+                if (rowKind === 'item') {
+                    return baseOptions;
+                }
+
+                const selectedArea = getAdditionalFieldValue(itemEl, 'work_area');
+                const selectedField = getAdditionalFieldValue(itemEl, 'work_field');
+                const scoped = resolveScopedWorkTypeOptionsByTaxonomy(selectedArea, selectedField);
+                if (!Array.isArray(scoped) || scoped.length === 0) {
+                    return baseOptions;
+                }
+                return scoped
+                    .filter(option => option && option.code && option.name)
+                    .map(option => ({
+                        code: String(option.code),
+                        name: String(option.name),
+                    }));
+            };
 
             const normalize = text =>
                 String(text || '')
@@ -3469,6 +4906,7 @@
                     .trim();
 
             const filterOptions = term => {
+                const options = getScopedOptions();
                 const query = normalize(term);
                 if (!query) return options;
                 return options.filter(option => {
@@ -3479,6 +4917,7 @@
             };
 
             const findExactMatch = term => {
+                const options = getScopedOptions();
                 const query = normalize(term);
                 if (!query) return null;
                 return options.find(option => normalize(option.name) === query || normalize(option.code) === query) || null;
@@ -3564,6 +5003,7 @@
             });
 
             hiddenInput.addEventListener('change', function() {
+                const options = getScopedOptions();
                 const selected = options.find(option => option.code === hiddenInput.value);
                 if (selected) {
                     if (displayInput.value !== selected.name) {
@@ -3576,6 +5016,18 @@
                 }
             });
 
+            const refreshOptions = () => {
+                const options = getScopedOptions();
+                const selected = options.find(option => option.code === hiddenInput.value);
+                if (selected) {
+                    if (displayInput.value !== selected.name) {
+                        displayInput.value = selected.name;
+                    }
+                } else if (listEl.style.display === 'block') {
+                    renderList(filterOptions(displayInput.value || ''));
+                }
+            };
+
             const initialWorkType = String(initial.work_type || '').trim();
             if (initialWorkType) {
                 hiddenInput.value = initialWorkType;
@@ -3587,6 +5039,7 @@
 
             // Expose helper so newly added rows can reliably auto-open the dropdown.
             displayInput.__openAdditionalWorkTypeList = openList;
+            itemEl.__refreshWorkTypeOptions = refreshOptions;
         }
 
         function initAdditionalMaterialTypeFilters(itemEl, initialFilters = {}) {
@@ -3854,8 +5307,8 @@
                         customizeBtn.type = 'button';
                         customizeBtn.className = 'material-type-row-btn material-type-row-btn-customize';
                         customizeBtn.dataset.customizeToggle = type;
-                        customizeBtn.title = `Customize ${bundleMaterialTypeLabels[type] || type}`;
-                        customizeBtn.textContent = 'Customize';
+                        customizeBtn.title = `Custom ${bundleMaterialTypeLabels[type] || type}`;
+                        customizeBtn.textContent = 'Custom';
 
                         const templatePanel = wrap.querySelector(`[data-customize-panel="${type}"]`);
                         if (templatePanel) {
@@ -3997,19 +5450,89 @@
             });
         }
 
-        function createAdditionalWorkItemForm(initial = {}, afterElement = null) {
+        function createAdditionalWorkItemForm(initial = {}, afterElement = null, options = {}) {
             if (!additionalWorkItemsList) {
                 return null;
             }
 
-            const item = normalizeBundleItem(initial, additionalWorkItemsList.children.length + 1);
+            const requestedRowKind = normalizeBundleRowKind(options.rowKind || initial.row_kind);
+            const item = normalizeBundleItem(
+                {
+                    ...initial,
+                    row_kind: requestedRowKind,
+                },
+                getAllAdditionalWorkRows().length + 1,
+            );
             const wrapper = document.createElement('div');
             wrapper.className = 'additional-work-item';
             wrapper.setAttribute('data-additional-work-item', 'true');
+            wrapper.setAttribute('data-row-kind', item.row_kind);
             wrapper.innerHTML = `
                 <div class="additional-work-item-grid">
                     <input type="hidden" data-field="title" value="${escapeHtml(item.title)}">
-                    <div class="form-group work-type-group additional-worktype-group">
+                    <input type="hidden" data-field="row_kind" value="${escapeHtml(item.row_kind)}">
+                    <div class="taxonomy-node taxonomy-node-area additional-node-area">
+                    <div class="form-group work-area-group additional-work-area-group taxonomy-card taxonomy-card-area taxonomy-inline-group">
+                        <label>Area</label>
+                        <div class="material-type-filter-body">
+                            <div class="material-type-rows">
+                                <div class="material-type-row material-type-row-base no-actions">
+                                    <div class="input-wrapper">
+                                        <div class="work-type-autocomplete">
+                                            <div class="work-type-input">
+                                                <input type="text"
+                                                       class="autocomplete-input"
+                                                       data-field-display="work_area"
+                                                       placeholder="Pilih atau ketik area..."
+                                                       autocomplete="off"
+                                                       value="">
+                                            </div>
+                                            <div class="autocomplete-list" data-field-list="work_area" id="additionalWorkArea-list-${++bundleAdditionalAutocompleteSeq}"></div>
+                                        </div>
+                                        <input type="hidden" data-field="work_area" value="${escapeHtml(item.work_area)}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="taxonomy-level-actions">
+                            <button type="button" class="taxonomy-level-btn" data-action="add-field" title="Bidang">
+                                + Bidang
+                            </button>
+                        </div>
+                    </div>
+                    <div class="taxonomy-node-children">
+                        <div class="taxonomy-node taxonomy-node-field additional-node-field">
+                    <div class="form-group work-field-group additional-work-field-group taxonomy-card taxonomy-card-field taxonomy-inline-group">
+                        <label>Bidang</label>
+                        <div class="material-type-filter-body">
+                            <div class="material-type-rows">
+                                <div class="material-type-row material-type-row-base no-actions">
+                                    <div class="input-wrapper">
+                                        <div class="work-type-autocomplete">
+                                            <div class="work-type-input">
+                                                <input type="text"
+                                                       class="autocomplete-input"
+                                                       data-field-display="work_field"
+                                                       placeholder="Pilih atau ketik bidang..."
+                                                       autocomplete="off"
+                                                       value="">
+                                            </div>
+                                            <div class="autocomplete-list" data-field-list="work_field" id="additionalWorkField-list-${++bundleAdditionalAutocompleteSeq}"></div>
+                                        </div>
+                                        <input type="hidden" data-field="work_field" value="${escapeHtml(item.work_field)}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="taxonomy-level-actions">
+                            <button type="button" class="taxonomy-level-btn" data-action="add-item" title="Tambah Item Pekerjaan di Bidang ini">
+                                + Item Pekerjaan
+                            </button>
+                        </div>
+                    </div>
+                    <div class="taxonomy-node-children">
+                        <div class="taxonomy-node taxonomy-node-item additional-node-item">
+                    <div class="form-group work-type-group additional-worktype-group taxonomy-card taxonomy-card-item taxonomy-inline-item">
                         <label data-additional-worktype-label>Item Pekerjaan</label>
                         <div class="input-wrapper">
                             <div class="work-type-autocomplete">
@@ -4105,6 +5628,12 @@
                         </div>
                         ${buildBundleMaterialFilterSectionHtml(item)}
                     </div>
+                        </div>
+                    </div>
+                        </div>
+                    </div>
+                    </div>
+                    <div class="additional-area-children" data-area-children></div>
                 </div>
             `;
 
@@ -4121,13 +5650,19 @@
                 initialMortarInput.dataset.mode = isInitialAci ? 'acian' : 'adukan';
             }
 
-            if (afterElement && afterElement.parentNode === additionalWorkItemsList) {
-                additionalWorkItemsList.insertBefore(wrapper, afterElement.nextSibling);
+            const target = resolveAdditionalInsertionTarget(item, afterElement, options);
+            if (target.referenceNode && target.referenceNode.parentNode === target.parent) {
+                target.parent.insertBefore(wrapper, target.referenceNode);
             } else {
-                additionalWorkItemsList.appendChild(wrapper);
+                target.parent.appendChild(wrapper);
             }
 
+            setAdditionalWorkItemRowKind(wrapper, item.row_kind);
+            initAdditionalWorkTaxonomyAutocomplete(wrapper, item);
             initAdditionalWorkTypeAutocomplete(wrapper, item);
+            if (typeof wrapper.__refreshWorkTypeOptions === 'function') {
+                wrapper.__refreshWorkTypeOptions();
+            }
             initAdditionalMaterialTypeFilters(wrapper, item.material_type_filters || {});
             applyMaterialCustomizeFiltersToPanels(wrapper, item.material_customize_filters || {});
             attachAdditionalWorkItemEvents(wrapper);
@@ -4151,28 +5686,320 @@
             return wrapper;
         }
 
+        function getMainTaxonomyContext() {
+            return {
+                work_area: getMainTaxonomyValue('area'),
+                work_field: getMainTaxonomyValue('field'),
+            };
+        }
+
+        function setAdditionalWorkItemRowKind(itemEl, rowKind = 'area') {
+            if (!itemEl) {
+                return;
+            }
+
+            const normalizedKind = normalizeBundleRowKind(rowKind);
+            itemEl.setAttribute('data-row-kind', normalizedKind);
+            const isAreaRow = normalizedKind === 'area';
+            itemEl.classList.toggle('taxonomy-tree-main', isAreaRow);
+            itemEl.classList.toggle('taxonomy-group-card', isAreaRow);
+
+            const rowKindInput = itemEl.querySelector('[data-field="row_kind"]');
+            if (rowKindInput) {
+                rowKindInput.value = normalizedKind;
+            }
+
+            const areaCard = itemEl.querySelector('.additional-work-area-group');
+            const fieldCard = itemEl.querySelector('.additional-work-field-group');
+            if (areaCard) {
+                areaCard.style.display = normalizedKind === 'area' ? '' : 'none';
+            }
+            if (fieldCard) {
+                fieldCard.style.display = normalizedKind === 'item' ? 'none' : '';
+            }
+        }
+
+        function createAndFocusAdditionalWorkItem(initial = {}, afterElement = null, focusField = 'work_type', options = {}) {
+            const newForm = createAdditionalWorkItemForm(initial, afterElement, options);
+            if (!newForm) {
+                return null;
+            }
+
+            const selectorMap = {
+                work_area: '[data-field-display="work_area"]',
+                work_field: '[data-field-display="work_field"]',
+                work_type: '[data-field-display="work_type"]',
+            };
+            const focusSelector = selectorMap[focusField] || selectorMap.work_type;
+            const focusInput = newForm.querySelector(focusSelector);
+            if (focusInput) {
+                focusInput.focus();
+                if (typeof focusInput.__openAdditionalWorkTypeList === 'function') {
+                    focusInput.__openAdditionalWorkTypeList();
+                }
+            }
+            return newForm;
+        }
+
+        function showTaxonomyActionError(message, focusEl = null) {
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, 'error');
+            } else {
+                alert(message);
+            }
+            if (focusEl && typeof focusEl.focus === 'function') {
+                focusEl.focus();
+                if (typeof focusEl.__openAdditionalWorkTypeList === 'function') {
+                    focusEl.__openAdditionalWorkTypeList();
+                }
+            }
+        }
+
         function refreshAdditionalWorkItemHeader() {
             if (!additionalWorkItemsList) {
                 return;
             }
-            const items = Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'));
+            const items = getAllAdditionalWorkRows();
             const hasAdditionalItems = items.length > 0;
 
             if (mainWorkTypeLabel) {
                 mainWorkTypeLabel.textContent = hasAdditionalItems ? 'Item Pekerjaan 1' : 'Item Pekerjaan';
             }
 
-            items.forEach((itemEl, idx) => {
+            const setAdditionalItemLabel = (itemEl, numberInArea) => {
+                if (!(itemEl instanceof HTMLElement)) {
+                    return;
+                }
                 const label = itemEl.querySelector('[data-additional-worktype-label]');
                 if (label) {
-                    label.textContent = `Item Pekerjaan ${idx + 2}`;
+                    label.textContent = `Item Pekerjaan ${numberInArea}`;
                 }
+
+                const rowKind = normalizeBundleRowKind(
+                    getAdditionalFieldValue(itemEl, 'row_kind') || itemEl.dataset.rowKind || 'area',
+                );
+                const shouldShowFieldBreak = numberInArea > 1 && rowKind === 'field';
+                itemEl.classList.toggle('field-break', shouldShowFieldBreak);
+            };
+
+            const mainAreaChildren = getMainAreaChildrenHost();
+            let mainAreaCounter = 2;
+            if (mainAreaChildren instanceof HTMLElement) {
+                Array.from(mainAreaChildren.children)
+                    .filter(row => row instanceof HTMLElement && row.matches('[data-additional-work-item="true"]'))
+                    .forEach(row => {
+                        setAdditionalItemLabel(row, mainAreaCounter);
+                        mainAreaCounter += 1;
+                    });
+            }
+
+            getTopLevelAdditionalRows().forEach(areaRow => {
+                const rowKind = normalizeBundleRowKind(
+                    getAdditionalFieldValue(areaRow, 'row_kind') || areaRow.dataset.rowKind || 'area',
+                );
+
+                if (rowKind !== 'area') {
+                    setAdditionalItemLabel(areaRow, 1);
+                    return;
+                }
+
+                setAdditionalItemLabel(areaRow, 1);
+                const areaChildren = areaRow.querySelector('[data-area-children]');
+                let areaCounter = 2;
+                if (!(areaChildren instanceof HTMLElement)) {
+                    return;
+                }
+
+                Array.from(areaChildren.children)
+                    .filter(row => row instanceof HTMLElement && row.matches('[data-additional-work-item="true"]'))
+                    .forEach(row => {
+                        setAdditionalItemLabel(row, areaCounter);
+                        areaCounter += 1;
+                    });
             });
         }
 
         function getAdditionalFieldValue(itemEl, key) {
             const el = itemEl.querySelector(`[data-field="${key}"]`);
-            return el ? String(el.value || '').trim() : '';
+            const hiddenValue = el ? String(el.value || '').trim() : '';
+            if (hiddenValue) {
+                return hiddenValue;
+            }
+
+            if (key === 'work_area' || key === 'work_field' || key === 'work_type') {
+                const displayEl = itemEl.querySelector(`[data-field-display="${key}"]`);
+                return displayEl ? String(displayEl.value || '').trim() : '';
+            }
+
+            return '';
+        }
+
+        function normalizeTaxonomyValue(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        function findLastAdditionalRowByTaxonomy(workArea = '', workField = '', matchField = true) {
+            if (!additionalWorkItemsList) {
+                return null;
+            }
+
+            const targetArea = normalizeTaxonomyValue(workArea);
+            const targetField = normalizeTaxonomyValue(workField);
+            if (!targetArea) {
+                return null;
+            }
+
+            const rows = getAllAdditionalWorkRows();
+            let matchedRow = null;
+            rows.forEach(row => {
+                const rowArea = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_area'));
+                if (rowArea !== targetArea) {
+                    return;
+                }
+
+                if (matchField) {
+                    const rowField = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_field'));
+                    if (rowField !== targetField) {
+                        return;
+                    }
+                }
+
+                matchedRow = row;
+            });
+            return matchedRow;
+        }
+
+        function getTopLevelAdditionalRows() {
+            if (!additionalWorkItemsList) {
+                return [];
+            }
+            return Array.from(additionalWorkItemsList.children).filter(el =>
+                el instanceof HTMLElement && el.matches('[data-additional-work-item="true"]'),
+            );
+        }
+
+        function getAllAdditionalWorkRows() {
+            const mainHost = getMainAreaChildrenHost();
+            const mainRows = mainHost
+                ? Array.from(mainHost.querySelectorAll('[data-additional-work-item="true"]'))
+                : [];
+            const extraRows = additionalWorkItemsList
+                ? Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'))
+                : [];
+            return [...mainRows, ...extraRows];
+        }
+
+        function findLastAdditionalAreaCardByWorkArea(workArea = '') {
+            const targetArea = normalizeTaxonomyValue(workArea);
+            if (!targetArea) {
+                return null;
+            }
+
+            let matched = null;
+            getTopLevelAdditionalRows().forEach(row => {
+                if (row.getAttribute('data-row-kind') !== 'area') {
+                    return;
+                }
+                const rowArea = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_area'));
+                if (rowArea === targetArea) {
+                    matched = row;
+                }
+            });
+
+            return matched;
+        }
+
+        function resolveAdditionalInsertionTarget(item, afterElement = null, options = {}) {
+            const beforeElement = options.beforeElement || null;
+            const forceMainAreaHost = options.targetMainArea === true;
+            let parent = additionalWorkItemsList;
+            let referenceNode = null;
+            const mainHost = getMainAreaChildrenHost();
+
+            if (!additionalWorkItemsList) {
+                return { parent, referenceNode };
+            }
+
+            if (item.row_kind !== 'area') {
+                if (forceMainAreaHost && mainHost instanceof HTMLElement) {
+                    parent = mainHost;
+                    if (beforeElement && beforeElement.parentNode === parent) {
+                        referenceNode = beforeElement;
+                    } else if (afterElement && afterElement.parentNode === parent) {
+                        referenceNode = afterElement.nextSibling;
+                    }
+                    return { parent, referenceNode };
+                }
+
+                if (afterElement instanceof HTMLElement && afterElement.parentNode instanceof HTMLElement) {
+                    const afterParent = afterElement.parentNode;
+                    if (
+                        afterParent.matches('[data-area-children]') ||
+                        afterParent.matches('[data-main-area-children]')
+                    ) {
+                        return { parent: afterParent, referenceNode: afterElement.nextSibling };
+                    }
+                }
+                if (beforeElement instanceof HTMLElement && beforeElement.parentNode instanceof HTMLElement) {
+                    const beforeParent = beforeElement.parentNode;
+                    if (
+                        beforeParent.matches('[data-area-children]') ||
+                        beforeParent.matches('[data-main-area-children]')
+                    ) {
+                        return { parent: beforeParent, referenceNode: beforeElement };
+                    }
+                }
+
+                let hostAreaRow = null;
+
+                if (afterElement instanceof HTMLElement) {
+                    hostAreaRow = afterElement.closest('.additional-work-item[data-row-kind="area"]');
+                }
+                if (!hostAreaRow && beforeElement instanceof HTMLElement) {
+                    hostAreaRow = beforeElement.closest('.additional-work-item[data-row-kind="area"]');
+                }
+                if (!hostAreaRow && item.work_area) {
+                    hostAreaRow = findLastAdditionalAreaCardByWorkArea(item.work_area);
+                }
+
+                if (hostAreaRow instanceof HTMLElement) {
+                    const areaChildren = hostAreaRow.querySelector('[data-area-children]');
+                    if (areaChildren instanceof HTMLElement) {
+                        parent = areaChildren;
+                        if (beforeElement && beforeElement.parentNode === parent) {
+                            referenceNode = beforeElement;
+                        } else if (afterElement && afterElement.parentNode === parent) {
+                            referenceNode = afterElement.nextSibling;
+                        }
+                        return { parent, referenceNode };
+                    }
+                }
+
+                const mainAreaNormalized = normalizeTaxonomyValue(getMainFormValue('workAreaValue'));
+                const itemAreaNormalized = normalizeTaxonomyValue(item.work_area);
+                if (
+                    mainHost instanceof HTMLElement &&
+                    itemAreaNormalized &&
+                    mainAreaNormalized &&
+                    itemAreaNormalized === mainAreaNormalized
+                ) {
+                    parent = mainHost;
+                    if (beforeElement && beforeElement.parentNode === parent) {
+                        referenceNode = beforeElement;
+                    } else if (afterElement && afterElement.parentNode === parent) {
+                        referenceNode = afterElement.nextSibling;
+                    }
+                    return { parent, referenceNode };
+                }
+            }
+
+            if (beforeElement && beforeElement.parentNode === additionalWorkItemsList) {
+                referenceNode = beforeElement;
+            } else if (afterElement && afterElement.parentNode === additionalWorkItemsList) {
+                referenceNode = afterElement.nextSibling;
+            }
+
+            return { parent, referenceNode };
         }
 
         function normalizeComparableValue(value) {
@@ -4235,6 +6062,10 @@
                 return true;
             }
 
+            if (getAdditionalFieldValue(itemEl, 'work_area') || getAdditionalFieldValue(itemEl, 'work_field')) {
+                return true;
+            }
+
             const workType = getAdditionalFieldValue(itemEl, 'work_type');
             const fieldDefaults = getAdditionalWorkItemDefaults(workType);
             return Object.entries(fieldDefaults).some(([key, defaultValue]) =>
@@ -4266,13 +6097,34 @@
                 return { items: [], error: null };
             }
 
-            const rows = Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'));
+            const rows = getAllAdditionalWorkRows();
             const items = [];
             for (let i = 0; i < rows.length; i += 1) {
                 const row = rows[i];
+                const rowKind = normalizeBundleRowKind(getAdditionalFieldValue(row, 'row_kind') || row.dataset.rowKind || 'area');
+                const workArea = getAdditionalFieldValue(row, 'work_area');
+                const workField = getAdditionalFieldValue(row, 'work_field');
                 const workType = getAdditionalFieldValue(row, 'work_type');
                 const wallLength = getAdditionalFieldValue(row, 'wall_length');
                 const wallHeight = getAdditionalFieldValue(row, 'wall_height');
+                if (strict && !workArea) {
+                    return {
+                        items: [],
+                        error: {
+                            message: `Item tambahan ${i + 2} belum mengisi Area.`,
+                            focusEl: row.querySelector('[data-field-display="work_area"]'),
+                        },
+                    };
+                }
+                if (strict && rowKind !== 'item' && !workField) {
+                    return {
+                        items: [],
+                        error: {
+                            message: `Item tambahan ${i + 2} belum mengisi Bidang.`,
+                            focusEl: row.querySelector('[data-field-display="work_field"]'),
+                        },
+                    };
+                }
                 if (strict && !workType) {
                     return {
                         items: [],
@@ -4302,6 +6154,9 @@
                     normalizeBundleItem(
                         {
                             title: getAdditionalFieldValue(row, 'title'),
+                            row_kind: rowKind,
+                            work_area: workArea,
+                            work_field: workField,
                             work_type: workType,
                             wall_length: wallLength,
                             wall_height: wallHeight,
@@ -4356,6 +6211,27 @@
                     },
                 };
             }
+            if (strict && additionalItems.length > 0 && !String(mainItem.work_area || '').trim()) {
+                return {
+                    items: [],
+                    error: {
+                        message: 'Area pada item pekerjaan utama wajib diisi.',
+                        focusEl: document.getElementById('workAreaDisplay'),
+                    },
+                };
+            }
+            const requiresMainWorkField = additionalItems.some(
+                item => normalizeBundleRowKind(item?.row_kind || 'area') !== 'item',
+            );
+            if (strict && requiresMainWorkField && !String(mainItem.work_field || '').trim()) {
+                return {
+                    items: [],
+                    error: {
+                        message: 'Bidang pada item pekerjaan utama wajib diisi.',
+                        focusEl: document.getElementById('workFieldDisplay'),
+                    },
+                };
+            }
             if (strict && mainItem.work_type !== 'brick_rollag' && !mainItem.wall_height) {
                 return {
                     items: [],
@@ -4393,10 +6269,7 @@
             }
 
             if (removeWorkItemBtn) {
-                const hasAdditionalRows = !!(
-                    additionalWorkItemsList &&
-                    additionalWorkItemsList.querySelector('[data-additional-work-item="true"]')
-                );
+                const hasAdditionalRows = getAllAdditionalWorkRows().length > 0;
                 removeWorkItemBtn.disabled = !hasAdditionalRows;
             }
         }
@@ -4583,6 +6456,8 @@
         function attachAdditionalWorkItemEvents(itemEl) {
             const addBtn = itemEl.querySelector('[data-action="add"]');
             const removeBtn = itemEl.querySelector('[data-action="remove"]');
+            const addFieldBtn = itemEl.querySelector('[data-action="add-field"]');
+            const addItemBtn = itemEl.querySelector('[data-action="add-item"]');
             const workTypeSelect = itemEl.querySelector('[data-field="work_type"]');
 
             if (addBtn) {
@@ -4614,6 +6489,57 @@
                 });
             }
 
+            if (addFieldBtn) {
+                addFieldBtn.addEventListener('click', function() {
+                    const areaValue = getAdditionalFieldValue(itemEl, 'work_area');
+                    if (!areaValue) {
+                        showTaxonomyActionError(
+                            'Isi Area terlebih dahulu sebelum menambah Bidang baru.',
+                            itemEl.querySelector('[data-field-display="work_area"]'),
+                        );
+                        return;
+                    }
+                    const afterTarget = findLastAdditionalRowByTaxonomy(areaValue, '', false) || itemEl;
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_area: areaValue,
+                            work_field: '',
+                            work_type: '',
+                            row_kind: 'field',
+                        },
+                        afterTarget,
+                        'work_field',
+                        { rowKind: 'field' },
+                    );
+                });
+            }
+
+            if (addItemBtn) {
+                addItemBtn.addEventListener('click', function() {
+                    const areaValue = getAdditionalFieldValue(itemEl, 'work_area');
+                    const fieldValue = getAdditionalFieldValue(itemEl, 'work_field');
+                    if (!areaValue) {
+                        showTaxonomyActionError(
+                            'Isi Area terlebih dahulu sebelum menambah Item Pekerjaan.',
+                            itemEl.querySelector('[data-field-display="work_area"]'),
+                        );
+                        return;
+                    }
+                    const afterTarget = findLastAdditionalRowByTaxonomy(areaValue, fieldValue, true) || itemEl;
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_area: areaValue,
+                            work_field: fieldValue,
+                            work_type: '',
+                            row_kind: 'item',
+                        },
+                        afterTarget,
+                        'work_type',
+                        { rowKind: 'item' },
+                    );
+                });
+            }
+
             if (workTypeSelect) {
                 workTypeSelect.addEventListener('change', function() {
                     applyAdditionalWorkItemVisibility(itemEl);
@@ -4642,14 +6568,73 @@
             }
         }
 
+        const addFieldFromMainBtn = document.getElementById('addFieldFromMainBtn');
+        const addItemFromMainBtn = document.getElementById('addItemFromMainBtn');
+
+        if (addFieldFromMainBtn) {
+            addFieldFromMainBtn.addEventListener('click', function() {
+                const context = getMainTaxonomyContext();
+                if (!context.work_area) {
+                    showTaxonomyActionError(
+                        'Isi Area utama terlebih dahulu sebelum menambah Bidang.',
+                        document.getElementById('workAreaDisplay'),
+                    );
+                    return;
+                }
+                const afterTarget = findLastAdditionalRowByTaxonomy(context.work_area, '', false);
+                const firstAdditionalRow = additionalWorkItemsList
+                    ? additionalWorkItemsList.querySelector('[data-additional-work-item="true"]')
+                    : null;
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_area: context.work_area,
+                            work_field: '',
+                            work_type: '',
+                            row_kind: 'field',
+                        },
+                        afterTarget,
+                        'work_field',
+                        { rowKind: 'field', beforeElement: afterTarget ? null : firstAdditionalRow, targetMainArea: true },
+                    );
+                });
+            }
+
+        if (addItemFromMainBtn) {
+            addItemFromMainBtn.addEventListener('click', function() {
+                const context = getMainTaxonomyContext();
+                if (!context.work_area) {
+                    showTaxonomyActionError(
+                        'Isi Area utama terlebih dahulu sebelum menambah Item Pekerjaan.',
+                        document.getElementById('workAreaDisplay'),
+                    );
+                    return;
+                }
+                const afterTarget = findLastAdditionalRowByTaxonomy(context.work_area, context.work_field, true);
+                const firstAdditionalRow = additionalWorkItemsList
+                    ? additionalWorkItemsList.querySelector('[data-additional-work-item="true"]')
+                    : null;
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_area: context.work_area,
+                            work_field: context.work_field,
+                            work_type: '',
+                            row_kind: 'item',
+                        },
+                        afterTarget,
+                        'work_type',
+                        { rowKind: 'item', beforeElement: afterTarget ? null : firstAdditionalRow, targetMainArea: true },
+                    );
+                });
+            }
+
         if (addWorkItemBtn) {
             addWorkItemBtn.addEventListener('click', function() {
                 const mainItem = collectMainWorkItem();
                 if (!mainItem) {
                     if (typeof window.showToast === 'function') {
-                        window.showToast('Isi item pekerjaan utama dulu, lalu klik + untuk tambah form berikutnya.', 'error');
+                        window.showToast('Isi item pekerjaan utama dulu, lalu klik + untuk tambah area berikutnya.', 'error');
                     } else {
-                        alert('Isi item pekerjaan utama dulu, lalu klik + untuk tambah form berikutnya.');
+                        alert('Isi item pekerjaan utama dulu, lalu klik + untuk tambah area berikutnya.');
                     }
                     if (mainWorkTypeDisplayInput) {
                         mainWorkTypeDisplayInput.focus();
@@ -4657,50 +6642,21 @@
                     return;
                 }
 
-                if (additionalWorkItemsList) {
-                    const rows = additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]');
-                    if (rows.length > 0) {
-                        const lastRow = rows[rows.length - 1];
-                        const lastWorkType = getAdditionalFieldValue(lastRow, 'work_type');
-                        if (!lastWorkType) {
-                            if (typeof window.showToast === 'function') {
-                                window.showToast(
-                                    'Pilih Item Pekerjaan di form terakhir dulu sebelum menambah item berikutnya.',
-                                    'error',
-                                );
-                            } else {
-                                alert('Pilih Item Pekerjaan di form terakhir dulu sebelum menambah item berikutnya.');
-                            }
-
-                            const pendingWorkTypeDisplay = lastRow.querySelector('[data-field-display="work_type"]');
-                            if (pendingWorkTypeDisplay) {
-                                pendingWorkTypeDisplay.focus();
-                                if (typeof pendingWorkTypeDisplay.__openAdditionalWorkTypeList === 'function') {
-                                    pendingWorkTypeDisplay.__openAdditionalWorkTypeList();
-                                }
-                            }
-                            return;
-                        }
-                    }
-                }
-
-                const newForm = createAdditionalWorkItemForm({});
-                const workTypeDisplay = newForm ? newForm.querySelector('[data-field-display="work_type"]') : null;
-                if (workTypeDisplay) {
-                    workTypeDisplay.focus();
-                    if (typeof workTypeDisplay.__openAdditionalWorkTypeList === 'function') {
-                        workTypeDisplay.__openAdditionalWorkTypeList();
-                    }
-                }
+                createAndFocusAdditionalWorkItem(
+                    { work_area: '', work_field: '', work_type: '', row_kind: 'area' },
+                    null,
+                    'work_area',
+                    { rowKind: 'area' },
+                );
             });
         }
 
         if (removeWorkItemBtn) {
             removeWorkItemBtn.addEventListener('click', async function() {
-                if (!additionalWorkItemsList) {
+                const rows = getAllAdditionalWorkRows();
+                if (rows.length === 0) {
                     return;
                 }
-                const rows = additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]');
                 const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
                 if (!lastRow) {
                     return;
@@ -4773,6 +6729,10 @@
 
                 if (additionalWorkItemsList) {
                     additionalWorkItemsList.innerHTML = '';
+                }
+                const mainAreaChildrenHost = getMainAreaChildrenHost();
+                if (mainAreaChildrenHost) {
+                    mainAreaChildrenHost.innerHTML = '';
                 }
                 if (additionalWorkItemsSection) {
                     additionalWorkItemsSection.style.display = 'none';
@@ -4978,7 +6938,15 @@
                     }
                     return;
                 }
-                
+
+                if (key === 'work_areas' || key === 'work_fields') {
+                    if (workTaxonomyFilterApi && typeof workTaxonomyFilterApi.setValues === 'function') {
+                        const normalizedValues = uniqueFilterTokens(Array.isArray(value) ? value : [value]);
+                        workTaxonomyFilterApi.setValues(key === 'work_areas' ? 'area' : 'field', normalizedValues);
+                    }
+                    return;
+                }
+                 
                 // Handle nested material_type_filters object (from JSON state)
                 if (key === 'material_type_filters' && typeof value === 'object' && value !== null) {
                     Object.entries(value).forEach(([subKey, subValue]) => {
@@ -5077,6 +7045,10 @@
 
             if (additionalWorkItemsList) {
                 additionalWorkItemsList.innerHTML = '';
+                const mainAreaChildrenHost = getMainAreaChildrenHost();
+                if (mainAreaChildrenHost) {
+                    mainAreaChildrenHost.innerHTML = '';
+                }
                 const restoredBundleItems = parseBundleItemsFromHidden();
                 if (restoredBundleItems.length > 1) {
                     for (let i = 1; i < restoredBundleItems.length; i += 1) {

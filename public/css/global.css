@@ -2853,8 +2853,8 @@ input[type="text"]:focus {
     .dimensions-container-vertical {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        margin-bottom: 16px;
+        gap: 5px;
+        margin-bottom: 5px;
         width: 100%;
     }
 

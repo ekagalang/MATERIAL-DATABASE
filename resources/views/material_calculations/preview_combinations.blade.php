@@ -2437,10 +2437,52 @@ $paramValue = $isGroutTile
                 $priceRankFilters = ['Ekonomis', 'Average', 'Termahal'];
                 $needsPriceRanks = count(array_intersect($filterCategories, $priceRankFilters)) > 0;
                 if ($needsPriceRanks) {
+                    $buildCombinationSignature = function ($project, $item) {
+                        $parts = [];
+                        $matKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+                        foreach ($matKeys as $matKey) {
+                            $matObj = $item[$matKey] ?? null;
+                            if ($matObj === null && $matKey === 'brick') {
+                                $matObj = $project['brick'] ?? null;
+                            }
+                            $matId = null;
+                            if (is_object($matObj) && isset($matObj->id) && is_numeric($matObj->id)) {
+                                $matId = (int) $matObj->id;
+                            } elseif (is_array($matObj) && is_numeric($matObj['id'] ?? null)) {
+                                $matId = (int) ($matObj['id'] ?? 0);
+                            }
+                            $parts[] = $matKey . ':' . ($matId ?? 0);
+                        }
+
+                        return implode('|', $parts);
+                    };
+                    $popularCombinationSignatures = [];
+                    foreach ($populerDetailMap ?? [] as $popularEntry) {
+                        if (!is_array($popularEntry)) {
+                            continue;
+                        }
+                        $popularProject = is_array($popularEntry['project'] ?? null) ? $popularEntry['project'] : [];
+                        $popularItem = is_array($popularEntry['item'] ?? null) ? $popularEntry['item'] : [];
+                        if (empty($popularItem)) {
+                            continue;
+                        }
+                        $signature = $buildCombinationSignature($popularProject, $popularItem);
+                        if ($signature !== '') {
+                            $popularCombinationSignatures[$signature] = true;
+                        }
+                    }
                     $allPriceCandidates = [];
                     foreach ($projects as $project) {
                         foreach ($project['combinations'] as $label => $items) {
+                            $labelPrefix = trim((string) preg_replace('/\s+\d+.*$/u', '', (string) $label));
+                            if (strcasecmp($labelPrefix, 'Populer') === 0) {
+                                continue;
+                            }
                             foreach ($items as $item) {
+                                $candidateSignature = $buildCombinationSignature($project, $item);
+                                if ($candidateSignature !== '' && isset($popularCombinationSignatures[$candidateSignature])) {
+                                    continue;
+                                }
                                 $allPriceCandidates[] = [
                                     'project' => $project,
                                     'item' => $item,
@@ -3902,20 +3944,32 @@ $paramValue = $isGroutTile
                                     if (!is_array($variant)) {
                                         continue;
                                     }
-                                    $variantId = is_numeric($variant['id'] ?? null) ? (int) $variant['id'] : null;
-                                    $brand = trim((string) ($variant['brand'] ?? ''));
-                                    $detail = trim((string) ($variant['detail'] ?? ''));
-                                    if ($brand === '' && $detail === '') {
+                                    $brandRaw = trim((string) ($variant['brand'] ?? ''));
+                                    $detailRaw = trim((string) ($variant['detail'] ?? ''));
+                                    if ($brandRaw === '' && $detailRaw === '') {
                                         continue;
                                     }
-                                    $dedupeKey = $variantId !== null ? 'id:' . $variantId : strtolower($brand . '|' . $detail);
+                                    $brand = $brandRaw !== '' ? $brandRaw : '-';
+                                    $detail = $detailRaw !== '' ? $detailRaw : '-';
+                                    if ($brand === '-' && $detail === '-') {
+                                        continue;
+                                    }
+                                    $normalizeVariantText = static function (string $text): string {
+                                        $normalizedText = preg_replace('/\s+/u', ' ', trim($text));
+                                        if (!is_string($normalizedText)) {
+                                            $normalizedText = trim($text);
+                                        }
+
+                                        return strtolower($normalizedText);
+                                    };
+                                    $dedupeKey = $normalizeVariantText($brand) . '|' . $normalizeVariantText($detail);
                                     if (isset($seenVariantKeys[$dedupeKey])) {
                                         continue;
                                     }
                                     $seenVariantKeys[$dedupeKey] = true;
                                     $normalized[] = [
-                                        'brand' => $brand !== '' ? $brand : '-',
-                                        'detail' => $detail !== '' ? $detail : '-',
+                                        'brand' => $brand,
+                                        'detail' => $detail,
                                     ];
                                 }
 
@@ -3925,18 +3979,57 @@ $paramValue = $isGroutTile
 
                                 $brandField = $rekapMaterialColumns[$materialKey]['brand_field'];
                                 $detailField = $rekapMaterialColumns[$materialKey]['detail_field'];
-                                $legacyBrand = trim((string) ($entry[$brandField] ?? ''));
-                                $legacyDetail = trim((string) ($entry[$detailField] ?? ''));
-                                if ($legacyBrand === '' && $legacyDetail === '') {
+                                $legacyBrandRaw = trim((string) ($entry[$brandField] ?? ''));
+                                $legacyDetailRaw = trim((string) ($entry[$detailField] ?? ''));
+                                if ($legacyBrandRaw === '' && $legacyDetailRaw === '') {
+                                    return [];
+                                }
+                                $legacyBrand = $legacyBrandRaw !== '' ? $legacyBrandRaw : '-';
+                                $legacyDetail = $legacyDetailRaw !== '' ? $legacyDetailRaw : '-';
+                                if ($legacyBrand === '-' && $legacyDetail === '-') {
                                     return [];
                                 }
 
                                 return [
                                     [
-                                        'brand' => $legacyBrand !== '' ? $legacyBrand : '-',
-                                        'detail' => $legacyDetail !== '' ? $legacyDetail : '-',
+                                        'brand' => $legacyBrand,
+                                        'detail' => $legacyDetail,
                                     ],
                                 ];
+                            };
+                            $isPopularRekapEntryComplete = function (?array $entry) use (
+                                $requiredMaterials,
+                                $isBrickless,
+                                $rekapMaterialColumns,
+                                $getRekapVariantsForDisplay,
+                            ): bool {
+                                if (!is_array($entry)) {
+                                    return false;
+                                }
+                                $required = is_array($requiredMaterials ?? null) ? $requiredMaterials : [];
+                                if (empty($required)) {
+                                    return true;
+                                }
+                                foreach ($required as $materialKeyRaw) {
+                                    $materialKey = trim((string) $materialKeyRaw);
+                                    if ($materialKey === '' || !isset($rekapMaterialColumns[$materialKey])) {
+                                        continue;
+                                    }
+                                    if ($materialKey === 'brick' && ($isBrickless ?? false)) {
+                                        continue;
+                                    }
+                                    $variants = $getRekapVariantsForDisplay($entry, $materialKey);
+                                    if (!empty($variants)) {
+                                        continue;
+                                    }
+                                    $idField = $rekapMaterialColumns[$materialKey]['id_field'] ?? null;
+                                    $materialId = is_string($idField) && $idField !== '' ? ($entry[$idField] ?? null) : null;
+                                    if (empty($materialId)) {
+                                        return false;
+                                    }
+                                }
+
+                                return true;
                             };
                             $rekapVariantCounts = [];
                             foreach ($activeRekapMaterialKeys as $materialKey) {
@@ -4020,6 +4113,33 @@ $paramValue = $isGroutTile
                                                     ? $formatUsagePercent($materialKey, $firstBrand)
                                                     : null;
                                             }
+                                            $popularHasCompleteVisibleMaterials = true;
+                                            if ($isPopulerRow) {
+                                                foreach ($activeRekapMaterialKeys as $materialKey) {
+                                                    $variants = $rekapVariantsByMaterial[$materialKey] ?? [];
+                                                    $hasRealVariant = false;
+                                                    foreach ($variants as $variant) {
+                                                        if (!is_array($variant)) {
+                                                            continue;
+                                                        }
+                                                        $variantBrand = trim((string) ($variant['brand'] ?? ''));
+                                                        $variantDetail = trim((string) ($variant['detail'] ?? ''));
+                                                        if (
+                                                            ($variantBrand !== '' && $variantBrand !== '-') ||
+                                                            ($variantDetail !== '' && $variantDetail !== '-')
+                                                        ) {
+                                                            $hasRealVariant = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (!$hasRealVariant) {
+                                                        $popularHasCompleteVisibleMaterials = false;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            $canShowGrandTotal = !$isPopulerRow ||
+                                                ($popularHasCompleteVisibleMaterials && $isPopularRekapEntryComplete($rekapEntry));
 
                                             // Get label color untuk kolom Rekap
                                             $labelColor = $rekapLabelColors[$filterType][$rank] ?? [
@@ -4053,7 +4173,7 @@ $paramValue = $isGroutTile
                                                             </span>
                                                         @endif
 
-                                                        @if (isset($globalRekapData[$key]['grand_total']) && $globalRekapData[$key]['grand_total'] !== null)
+                                                        @if ($canShowGrandTotal && isset($globalRekapData[$key]['grand_total']) && $globalRekapData[$key]['grand_total'] !== null)
                                                             <div class="d-flex justify-content-between w-100">
                                                                 <span>Rp</span>
                                                                 <span>@price($globalRekapData[$key]['grand_total'])</span>
@@ -5279,6 +5399,20 @@ $paramValue = $isGroutTile
                                                 $detailMaterialBreakdowns = [];
                                                 $isBundleDetail = !empty($item['bundle_items'] ?? null);
                                                 $rawBreakdowns = $item['bundle_item_material_breakdowns'] ?? null;
+                                                $resolveFirstTaxonomyValue = static function (mixed $value): string {
+                                                    if (is_array($value)) {
+                                                        foreach ($value as $entry) {
+                                                            $text = trim((string) $entry);
+                                                            if ($text !== '') {
+                                                                return $text;
+                                                            }
+                                                        }
+
+                                                        return '';
+                                                    }
+
+                                                    return trim((string) $value);
+                                                };
                                                 if (is_array($rawBreakdowns)) {
                                                     foreach ($rawBreakdowns as $breakdownIndex => $breakdownRow) {
                                                         if (!is_array($breakdownRow)) {
@@ -5296,16 +5430,38 @@ $paramValue = $isGroutTile
                                                         if (empty($materials)) {
                                                             continue;
                                                         }
+                                                        $rowRequestData = is_array($breakdownRow['request_data'] ?? null)
+                                                            ? $breakdownRow['request_data']
+                                                            : [];
+                                                        $groupWorkArea = trim((string) ($breakdownRow['work_area'] ?? ''));
+                                                        if ($groupWorkArea === '') {
+                                                            $groupWorkArea = $resolveFirstTaxonomyValue(
+                                                                $rowRequestData['work_areas'] ?? ($rowRequestData['work_area'] ?? ''),
+                                                            );
+                                                        }
+                                                        $groupWorkField = trim((string) ($breakdownRow['work_field'] ?? ''));
+                                                        if ($groupWorkField === '') {
+                                                            $groupWorkField = $resolveFirstTaxonomyValue(
+                                                                $rowRequestData['work_fields'] ?? ($rowRequestData['work_field'] ?? ''),
+                                                            );
+                                                        }
+                                                        $groupRowKind = strtolower(
+                                                            trim((string) ($breakdownRow['row_kind'] ?? ($rowRequestData['row_kind'] ?? 'item'))),
+                                                        );
+                                                        if (!in_array($groupRowKind, ['area', 'field', 'item'], true)) {
+                                                            $groupRowKind = 'item';
+                                                        }
                                                         $detailMaterialBreakdowns[] = [
                                                             'title' => $breakdownRow['title'] ?? ('Item ' . ($breakdownIndex + 1)),
                                                             'work_type' => $breakdownRow['work_type'] ?? '',
                                                             'work_type_name' =>
                                                                 $breakdownRow['work_type_name'] ??
                                                                 ucwords(str_replace('_', ' ', (string) ($breakdownRow['work_type'] ?? ''))),
+                                                            'row_kind' => $groupRowKind,
+                                                            'work_area' => $groupWorkArea,
+                                                            'work_field' => $groupWorkField,
                                                             'grand_total' => (float) ($breakdownRow['grand_total'] ?? 0),
-                                                            'request_data' => is_array($breakdownRow['request_data'] ?? null)
-                                                                ? $breakdownRow['request_data']
-                                                                : [],
+                                                            'request_data' => $rowRequestData,
                                                             'materials' => $materials,
                                                         ];
                                                     }
@@ -5493,6 +5649,14 @@ $paramValue = $isGroutTile
                                                                 continue;
                                                             }
                                                             $bundleWorkType = trim((string) ($bundleItemRow['work_type'] ?? ''));
+                                                            $bundleWorkArea = trim((string) ($bundleItemRow['work_area'] ?? ''));
+                                                            if ($bundleWorkArea === '') {
+                                                                $bundleWorkArea = $resolveFirstTaxonomyValue($bundleItemRow['work_areas'] ?? '');
+                                                            }
+                                                            $bundleWorkField = trim((string) ($bundleItemRow['work_field'] ?? ''));
+                                                            if ($bundleWorkField === '') {
+                                                                $bundleWorkField = $resolveFirstTaxonomyValue($bundleItemRow['work_fields'] ?? '');
+                                                            }
                                                             $bundleWorkTypeMeta = $bundleWorkType !== ''
                                                                 ? \App\Services\FormulaRegistry::find($bundleWorkType)
                                                                 : null;
@@ -5503,6 +5667,8 @@ $paramValue = $isGroutTile
                                                                 'work_type_name' =>
                                                                     $bundleWorkTypeMeta['name'] ??
                                                                     ucwords(str_replace('_', ' ', $bundleWorkType)),
+                                                                'work_area' => $bundleWorkArea,
+                                                                'work_field' => $bundleWorkField,
                                                                 'grand_total' => (float) ($bundleItemRow['grand_total'] ?? 0),
                                                             ];
                                                         }
@@ -5990,6 +6156,42 @@ $paramValue = $isGroutTile
                                                                         if ($groupWorkType === '') {
                                                                             $groupWorkType = '-';
                                                                         }
+                                                                        $groupRequestData = is_array($detailGroup['request_data'] ?? null)
+                                                                            ? $detailGroup['request_data']
+                                                                            : [];
+                                                                        $resolveGroupTaxonomyValue = static function (mixed $value): string {
+                                                                            if (is_array($value)) {
+                                                                                foreach ($value as $entry) {
+                                                                                    $text = trim((string) $entry);
+                                                                                    if ($text !== '') {
+                                                                                        return $text;
+                                                                                    }
+                                                                                }
+
+                                                                                return '';
+                                                                            }
+
+                                                                            return trim((string) $value);
+                                                                        };
+                                                                        $groupWorkArea = trim((string) ($detailGroup['work_area'] ?? ''));
+                                                                        if ($groupWorkArea === '') {
+                                                                            $groupWorkArea = $resolveGroupTaxonomyValue(
+                                                                                $groupRequestData['work_areas'] ?? ($groupRequestData['work_area'] ?? ''),
+                                                                            );
+                                                                        }
+                                                                        $groupWorkField = trim((string) ($detailGroup['work_field'] ?? ''));
+                                                                        if ($groupWorkField === '') {
+                                                                            $groupWorkField = $resolveGroupTaxonomyValue(
+                                                                                $groupRequestData['work_fields'] ?? ($groupRequestData['work_field'] ?? ''),
+                                                                            );
+                                                                        }
+                                                                        $groupTaxonomyParts = [];
+                                                                        if ($groupWorkArea !== '') {
+                                                                            $groupTaxonomyParts[] = 'Area: ' . $groupWorkArea;
+                                                                        }
+                                                                        if ($groupWorkField !== '') {
+                                                                            $groupTaxonomyParts[] = 'Bidang: ' . $groupWorkField;
+                                                                        }
                                                                         $displayGroupTitle = $groupTitle;
                                                                         if (preg_match('/^item\s+\d+$/i', $displayGroupTitle) && $groupWorkType !== '-') {
                                                                             $displayGroupTitle = $groupWorkType;
@@ -6100,6 +6302,11 @@ $paramValue = $isGroutTile
                                                                                     @if ($groupWorkType !== '-' && strcasecmp($displayGroupTitle, $groupWorkType) !== 0)
                                                                                         <div class="small text-muted">
                                                                                             {{ $groupWorkType }}
+                                                                                        </div>
+                                                                                    @endif
+                                                                                    @if (!empty($groupTaxonomyParts))
+                                                                                        <div class="small text-muted">
+                                                                                            {{ implode(' | ', $groupTaxonomyParts) }}
                                                                                         </div>
                                                                                     @endif
                                                                                 </div>
@@ -6303,12 +6510,28 @@ $paramValue = $isGroutTile
                                                                                         if ($fallbackWorkType === '') {
                                                                                             $fallbackWorkType = '-';
                                                                                         }
+                                                                                        $fallbackWorkArea = trim((string) ($fallbackItem['work_area'] ?? ''));
+                                                                                        $fallbackWorkField = trim((string) ($fallbackItem['work_field'] ?? ''));
+                                                                                        $fallbackTaxonomyParts = [];
+                                                                                        if ($fallbackWorkArea !== '') {
+                                                                                            $fallbackTaxonomyParts[] = 'Area: ' . $fallbackWorkArea;
+                                                                                        }
+                                                                                        if ($fallbackWorkField !== '') {
+                                                                                            $fallbackTaxonomyParts[] = 'Bidang: ' . $fallbackWorkField;
+                                                                                        }
                                                                                         if (preg_match('/^item\s+\d+$/i', $fallbackTitle) && $fallbackWorkType !== '-') {
                                                                                             $fallbackTitle = $fallbackWorkType;
                                                                                         }
                                                                                     @endphp
                                                                                     <tr>
-                                                                                        <td>{{ $fallbackTitle }}</td>
+                                                                                        <td>
+                                                                                            <div>{{ $fallbackTitle }}</div>
+                                                                                            @if (!empty($fallbackTaxonomyParts))
+                                                                                                <div class="small text-muted">
+                                                                                                    {{ implode(' | ', $fallbackTaxonomyParts) }}
+                                                                                                </div>
+                                                                                            @endif
+                                                                                        </td>
                                                                                         <td>{{ $fallbackWorkType }}</td>
                                                                                         <td class="text-end">
                                                                                             Rp {{ $formatMoney((float) ($fallbackItem['grand_total'] ?? 0)) }}
@@ -6873,7 +7096,7 @@ $paramValue = $isGroutTile
         .preview-combinations-page .preview-params-fixed {
             position: fixed;
             top: 60px !important;
-            z-index: 80;
+            z-index: 180;
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
@@ -6882,6 +7105,14 @@ $paramValue = $isGroutTile
             border-radius: 0 !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
             box-sizing: border-box;
+        }
+
+        .preview-combinations-page .preview-params-fixed.preview-params-sticky--bundle-open {
+            z-index: 220;
+        }
+
+        .preview-combinations-page .preview-params-fixed .preview-param-items-dropdown .dropdown-menu {
+            z-index: 230;
         }
 
         .preview-combinations-page .preview-params-fixed .preview-param-row {
@@ -7438,10 +7669,41 @@ $paramValue = $isGroutTile
             if (isset($globalRekapData)) {
                 foreach ($globalRekapData as $label => $row) {
                     if (str_starts_with($label, 'Populer')) {
+                        $commonGrandTotal = array_key_exists('grand_total', $row) ? $row['grand_total'] : null;
+                        $commonMaterialComplete = true;
+                        foreach ($activeRekapMaterialKeys ?? [] as $materialKey) {
+                            $materialVariants = is_array($row['material_variants'][$materialKey] ?? null)
+                                ? $row['material_variants'][$materialKey]
+                                : [];
+                            $hasRealVariant = false;
+                            foreach ($materialVariants as $variant) {
+                                if (!is_array($variant)) {
+                                    continue;
+                                }
+                                $variantBrand = trim((string) ($variant['brand'] ?? ''));
+                                $variantDetail = trim((string) ($variant['detail'] ?? ''));
+                                if (($variantBrand !== '' && $variantBrand !== '-') || ($variantDetail !== '' && $variantDetail !== '-')) {
+                                    $hasRealVariant = true;
+                                    break;
+                                }
+                            }
+                            if ($hasRealVariant) {
+                                continue;
+                            }
+                            $idField = $rekapMaterialColumns[$materialKey]['id_field'] ?? null;
+                            $materialId = is_string($idField) && $idField !== '' ? ($row[$idField] ?? null) : null;
+                            if (empty($materialId)) {
+                                $commonMaterialComplete = false;
+                                break;
+                            }
+                        }
+                        if (!$commonMaterialComplete) {
+                            $commonGrandTotal = null;
+                        }
                         $commonRows[] = [
                             'display_label' => $label,
                             'brick' => $row['brick_brand'] ?? '',
-                            'grand_total' => (float) ($row['grand_total'] ?? 0),
+                            'grand_total' => $commonGrandTotal,
                         ];
                     }
                 }
@@ -7553,8 +7815,13 @@ $paramValue = $isGroutTile
                                                     @if ($hasAllPriceBrick)
                                                         <td>{{ $row['brick'] ?: '-' }}</td>
                                                     @endif
-                                                    <td class="text-end">Rp
-                                                        {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}
+                                                    <td class="text-end">
+                                                        @if (array_key_exists('grand_total', $row) && $row['grand_total'] !== null)
+                                                            Rp
+                                                            {{ \App\Helpers\NumberHelper::formatFixed((float) $row['grand_total'], 0) }}
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -7585,8 +7852,13 @@ $paramValue = $isGroutTile
                                                     @if ($hasAllPriceBrick)
                                                         <td>{{ $row['brick'] ?: '-' }}</td>
                                                     @endif
-                                                    <td class="text-end">Rp
-                                                        {{ \App\Helpers\NumberHelper::formatFixed($row['grand_total'], 0) }}
+                                                    <td class="text-end">
+                                                        @if (array_key_exists('grand_total', $row) && $row['grand_total'] !== null)
+                                                            Rp
+                                                            {{ \App\Helpers\NumberHelper::formatFixed((float) $row['grand_total'], 0) }}
+                                                        @else
+                                                            <span class="text-muted">-</span>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -7877,6 +8149,8 @@ $paramValue = $isGroutTile
                             updateSticky();
                         });
                     };
+                    window.__refreshRekapStickyLayout = scheduleSync;
+                    window.addEventListener('preview:params-layout-change', scheduleSync);
 
                     scheduleSync();
                     window.addEventListener('scroll', scheduleSync, {
@@ -7943,6 +8217,10 @@ $paramValue = $isGroutTile
                         return;
                     }
                     stickyCard.classList.toggle('preview-params-sticky--bundle-open', Boolean(isOpen));
+                    if (typeof window.__refreshRekapStickyLayout === 'function') {
+                        window.__refreshRekapStickyLayout();
+                    }
+                    window.dispatchEvent(new CustomEvent('preview:params-layout-change'));
                 };
                 const measureIntrinsicWidth = (element, host) => {
                     if (!element || !host) {

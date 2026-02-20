@@ -41,6 +41,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             ]);
 
             $bundleItems = $this->parseBundleItemsPayload($request->input('work_items_payload'));
+            $this->mergeWorkTaxonomyFilters($request);
+            $workAreas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
+            $workFields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
             if ($request->boolean('enable_bundle_mode')) {
                 if (count($bundleItems) < 2) {
                     DB::rollBack();
@@ -65,6 +68,18 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                             );
                     }
 
+                    foreach ($bundleItems as $bundleItem) {
+                        $bundleWorkType = trim((string) ($bundleItem['work_type'] ?? ''));
+                        if ($bundleWorkType !== '') {
+                            $bundleItemAreas = $this->normalizeWorkTaxonomyValues(
+                                $bundleItem['work_areas'] ?? ($bundleItem['work_area'] ?? $workAreas),
+                            );
+                            $bundleItemFields = $this->normalizeWorkTaxonomyValues(
+                                $bundleItem['work_fields'] ?? ($bundleItem['work_field'] ?? $workFields),
+                            );
+                            $this->persistWorkItemTaxonomy($bundleWorkType, $bundleItemAreas, $bundleItemFields);
+                        }
+                    }
                     $bundleCalculation->save();
                     DB::commit();
 
@@ -74,6 +89,18 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 }
 
                 DB::rollBack();
+                foreach ($bundleItems as $bundleItem) {
+                    $bundleWorkType = trim((string) ($bundleItem['work_type'] ?? ''));
+                    if ($bundleWorkType !== '') {
+                        $bundleItemAreas = $this->normalizeWorkTaxonomyValues(
+                            $bundleItem['work_areas'] ?? ($bundleItem['work_area'] ?? $workAreas),
+                        );
+                        $bundleItemFields = $this->normalizeWorkTaxonomyValues(
+                            $bundleItem['work_fields'] ?? ($bundleItem['work_field'] ?? $workFields),
+                        );
+                        $this->persistWorkItemTaxonomy($bundleWorkType, $bundleItemAreas, $bundleItemFields);
+                    }
+                }
 
                 return $this->generateBundleCombinations($request, $bundleItems);
             }
@@ -114,6 +141,10 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'material_type_filters_extra.*.*' => 'nullable|string',
                 'material_customize_filters_payload' => 'nullable|string',
                 'material_customize_filters' => 'nullable|array',
+                'work_areas' => 'nullable|array',
+                'work_areas.*' => 'nullable|string|max:120',
+                'work_fields' => 'nullable|array',
+                'work_fields.*' => 'nullable|string|max:120',
                 'wall_length' => 'required|numeric|min:0.01',
                 'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
                 'mortar_thickness' => 'required|numeric|min:0.01',
@@ -206,7 +237,10 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             $this->mergeMaterialTypeFilters($request);
             $this->mergeMaterialCustomizeFilters($request);
+            $this->mergeWorkTaxonomyFilters($request);
             $request->validate($rules);
+            $workAreas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
+            $workFields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
 
             // 2. SETUP DEFAULT
             $defaultInstallationType = BrickInstallationType::where('is_active', true)->orderBy('id')->first();
@@ -269,6 +303,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             if ($needCombinations) {
                 DB::rollBack();
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
 
                 return $this->generateCombinations($request);
             }
@@ -278,6 +313,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             if (!$request->boolean('confirm_save')) {
                 DB::rollBack();
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
                 $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat']);
 
                 return view('material_calculations.preview', [
@@ -287,6 +323,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 ]);
             }
 
+            $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
             $calculation->save();
             DB::commit();
 
@@ -323,9 +360,16 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             if ($workType === '') {
                 continue;
             }
+            $rowKind = strtolower(trim((string) ($entry['row_kind'] ?? 'area')));
+            if (!in_array($rowKind, ['area', 'field', 'item'], true)) {
+                $rowKind = 'area';
+            }
 
             $items[] = [
                 'title' => trim((string) ($entry['title'] ?? '')),
+                'row_kind' => $rowKind,
+                'work_area' => trim((string) ($entry['work_area'] ?? '')),
+                'work_field' => trim((string) ($entry['work_field'] ?? '')),
                 'work_type' => $workType,
                 'wall_length' => $entry['wall_length'] ?? null,
                 'wall_height' => $entry['wall_height'] ?? null,
@@ -594,10 +638,15 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             if ($itemTitle === '') {
                 $itemTitle = 'Item ' . ($index + 1);
             }
+            $rowKind = strtolower(trim((string) ($bundleItem['row_kind'] ?? 'item')));
+            if (!in_array($rowKind, ['area', 'field', 'item'], true)) {
+                $rowKind = 'item';
+            }
 
             $itemRequestData = array_merge($baseRequestData, [
                 'work_type' => $bundleItem['work_type'],
                 'work_type_select' => $bundleItem['work_type'],
+                'row_kind' => $rowKind,
                 'wall_length' => $bundleItem['wall_length'],
                 'wall_height' => $bundleItem['wall_height'],
                 'mortar_thickness' => $bundleItem['mortar_thickness'],
@@ -611,6 +660,16 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'installation_type_id' => $request->input('installation_type_id') ?? $defaultInstallationType?->id,
                 'mortar_formula_id' => $request->input('mortar_formula_id') ?? $defaultMortarFormula?->id,
             ]);
+            $bundleWorkArea = trim((string) ($bundleItem['work_area'] ?? ''));
+            $bundleWorkField = trim((string) ($bundleItem['work_field'] ?? ''));
+            $itemRequestData['work_area'] = $bundleWorkArea;
+            $itemRequestData['work_field'] = $bundleWorkField;
+            if ($bundleWorkArea !== '') {
+                $itemRequestData['work_areas'] = [$bundleWorkArea];
+            }
+            if ($bundleWorkField !== '') {
+                $itemRequestData['work_fields'] = [$bundleWorkField];
+            }
             $itemMaterialTypeFilters = $this->normalizeBundleMaterialTypeFilters(
                 $bundleItem['material_type_filters'] ?? [],
             );
@@ -645,6 +704,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             $itemPayload['title'] = $itemTitle;
             $itemPayload['work_type'] = $bundleItem['work_type'];
+            $itemPayload['row_kind'] = $rowKind;
+            $itemPayload['work_area'] = $bundleWorkArea;
+            $itemPayload['work_field'] = $bundleWorkField;
             $bundleItemPayloads[] = $itemPayload;
         }
 
@@ -679,7 +741,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 ->withInput()
                 ->with(
                     'error',
-                    'Tidak ada kombinasi lengkap untuk seluruh item paket pada jangkauan toko yang tersedia.',
+                    'Tidak ada kombinasi lengkap untuk seluruh item paket. Coba longgarkan filter harga/material lalu hitung ulang.',
                 );
         }
 
@@ -784,31 +846,218 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         foreach ($bundleItemPayloads as $bundleItemPayload) {
             $itemCombinationMaps[] = $this->extractBestCombinationMapForPayload($bundleItemPayload);
         }
+        $itemCombinationMaps = array_values($itemCombinationMaps);
+
+        if (empty($itemCombinationMaps)) {
+            return [];
+        }
+        foreach ($itemCombinationMaps as $itemMap) {
+            if (!is_array($itemMap) || empty($itemMap)) {
+                return [];
+            }
+        }
+
+        $extractLabelPrefix = static function (string $label): string {
+            return trim((string) preg_replace('/\s+\d+\s*$/u', '', $label));
+        };
+        $extractLabelRank = static function (string $label): int {
+            if (preg_match('/\s+(\d+)\s*$/u', $label, $matches)) {
+                return max(1, (int) ($matches[1] ?? 1));
+            }
+
+            return 1;
+        };
+        $allowedPrefixes = array_values(
+            array_filter(
+                array_map(
+                    static fn($filter) => $labelPrefixes[$filter] ?? null,
+                    $requestedFilters,
+                ),
+                static fn($prefix) => is_string($prefix) && trim($prefix) !== '',
+            ),
+        );
+        $popularPrefix = strtolower((string) ($labelPrefixes['common'] ?? 'Populer'));
+        $resolveItemCandidate = static function (
+            array $itemMap,
+            string $targetLabel,
+        ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix): ?array {
+            if (isset($itemMap[$targetLabel]) && is_array($itemMap[$targetLabel])) {
+                return $itemMap[$targetLabel];
+            }
+
+            $targetPrefix = $extractLabelPrefix($targetLabel);
+            $targetRank = $extractLabelRank($targetLabel);
+            $prefixCandidates = [];
+            foreach ($itemMap as $candidateLabel => $candidateRow) {
+                if (!is_array($candidateRow)) {
+                    continue;
+                }
+                if (strcasecmp($extractLabelPrefix((string) $candidateLabel), $targetPrefix) !== 0) {
+                    continue;
+                }
+                $prefixCandidates[] = [
+                    'rank' => $extractLabelRank((string) $candidateLabel),
+                    'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                    'candidate' => $candidateRow,
+                ];
+            }
+            if (!empty($prefixCandidates)) {
+                usort($prefixCandidates, static function ($a, $b) {
+                    $rankCompare = ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+                    if ($rankCompare !== 0) {
+                        return $rankCompare;
+                    }
+
+                    return ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                        ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                });
+                $targetIndex = min(max($targetRank - 1, 0), count($prefixCandidates) - 1);
+
+                return $prefixCandidates[$targetIndex]['candidate'] ?? null;
+            }
+
+            // Do not fallback Popular rows to cheapest/other categories.
+            if (strtolower($targetPrefix) === $popularPrefix) {
+                return null;
+            }
+
+            $allowedPrefixLookup = [];
+            foreach ($allowedPrefixes as $allowedPrefix) {
+                $allowedPrefixKey = strtolower(trim((string) $allowedPrefix));
+                if ($allowedPrefixKey === $popularPrefix) {
+                    continue;
+                }
+                $allowedPrefixLookup[$allowedPrefixKey] = true;
+            }
+            $allowedCandidates = [];
+            foreach ($itemMap as $candidateLabel => $candidateRow) {
+                if (!is_array($candidateRow)) {
+                    continue;
+                }
+                $candidatePrefixKey = strtolower($extractLabelPrefix((string) $candidateLabel));
+                if ($candidatePrefixKey === $popularPrefix) {
+                    continue;
+                }
+                if (!isset($allowedPrefixLookup[$candidatePrefixKey])) {
+                    continue;
+                }
+                $allowedCandidates[] = [
+                    'rank' => $extractLabelRank((string) $candidateLabel),
+                    'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                    'candidate' => $candidateRow,
+                ];
+            }
+            if (!empty($allowedCandidates)) {
+                usort($allowedCandidates, static function ($a, $b) {
+                    $totalCompare = ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                        ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                    if ($totalCompare !== 0) {
+                        return $totalCompare;
+                    }
+
+                    return ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+                });
+
+                return $allowedCandidates[0]['candidate'] ?? null;
+            }
+
+            $anyCandidates = [];
+            foreach ($itemMap as $candidateLabel => $candidateRow) {
+                if (!is_array($candidateRow)) {
+                    continue;
+                }
+                $candidatePrefixKey = strtolower($extractLabelPrefix((string) $candidateLabel));
+                if ($candidatePrefixKey === $popularPrefix) {
+                    continue;
+                }
+                $anyCandidates[] = [
+                    'rank' => $extractLabelRank((string) $candidateLabel),
+                    'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                    'candidate' => $candidateRow,
+                ];
+            }
+            if (empty($anyCandidates)) {
+                return null;
+            }
+            usort($anyCandidates, static function ($a, $b) {
+                $totalCompare = ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                    ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                if ($totalCompare !== 0) {
+                    return $totalCompare;
+                }
+
+                return ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+            });
+
+            return $anyCandidates[0]['candidate'] ?? null;
+        };
 
         $bundleCombinations = [];
         foreach ($candidateLabels as $label) {
+            $isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;
             $selectedItems = [];
             $isComplete = true;
 
             foreach ($bundleItemPayloads as $index => $bundleItemPayload) {
                 $itemMap = $itemCombinationMaps[$index] ?? [];
-                $selected = $itemMap[$label] ?? null;
+                $selected = is_array($itemMap) ? $resolveItemCandidate($itemMap, (string) $label) : null;
                 if (!$selected) {
+                    if ($isPopularLabel) {
+                        continue;
+                    }
                     $isComplete = false;
                     break;
+                }
+                $itemRequestData = is_array($bundleItemPayload['requestData'] ?? null)
+                    ? $bundleItemPayload['requestData']
+                    : [];
+                $resolveFirstTaxonomyValue = static function (mixed $value): string {
+                    if (is_array($value)) {
+                        foreach ($value as $entry) {
+                            $text = trim((string) $entry);
+                            if ($text !== '') {
+                                return $text;
+                            }
+                        }
+
+                        return '';
+                    }
+
+                    return trim((string) $value);
+                };
+                $itemWorkArea = trim((string) ($bundleItemPayload['work_area'] ?? ''));
+                if ($itemWorkArea === '') {
+                    $itemWorkArea = $resolveFirstTaxonomyValue(
+                        $itemRequestData['work_areas'] ?? ($itemRequestData['work_area'] ?? ''),
+                    );
+                }
+                $itemWorkField = trim((string) ($bundleItemPayload['work_field'] ?? ''));
+                if ($itemWorkField === '') {
+                    $itemWorkField = $resolveFirstTaxonomyValue(
+                        $itemRequestData['work_fields'] ?? ($itemRequestData['work_field'] ?? ''),
+                    );
+                }
+                $itemRowKind = strtolower(trim((string) ($bundleItemPayload['row_kind'] ?? ($itemRequestData['row_kind'] ?? 'item'))));
+                if (!in_array($itemRowKind, ['area', 'field', 'item'], true)) {
+                    $itemRowKind = 'item';
                 }
 
                 $selectedItems[] = [
                     'title' => $bundleItemPayload['title'] ?? ('Item ' . ($index + 1)),
                     'work_type' => $bundleItemPayload['work_type'] ?? ($bundleItemPayload['requestData']['work_type'] ?? ''),
-                    'request_data' => is_array($bundleItemPayload['requestData'] ?? null)
-                        ? $bundleItemPayload['requestData']
-                        : [],
+                    'row_kind' => $itemRowKind,
+                    'work_area' => $itemWorkArea,
+                    'work_field' => $itemWorkField,
+                    'request_data' => $itemRequestData,
                     'combination' => $selected,
                 ];
             }
 
-            if (!$isComplete) {
+            if ($isPopularLabel) {
+                if (empty($selectedItems)) {
+                    continue;
+                }
+            } elseif (!$isComplete || empty($selectedItems)) {
                 continue;
             }
 
@@ -902,6 +1151,49 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $workTypeName = $workTypeMeta['name'] ?? ucwords(str_replace('_', ' ', $workTypeCode));
             $materialRows = is_array($combo) && !empty($combo) ? $this->buildBundleMaterialRows([$combo]) : [];
             $itemRequestData = is_array($selectedItem['request_data'] ?? null) ? $selectedItem['request_data'] : [];
+            $resolveFirstTaxonomyValue = static function (mixed $value): string {
+                if (is_array($value)) {
+                    foreach ($value as $entry) {
+                        $text = trim((string) $entry);
+                        if ($text !== '') {
+                            return $text;
+                        }
+                    }
+
+                    return '';
+                }
+
+                return trim((string) $value);
+            };
+            $itemWorkArea = trim((string) ($selectedItem['work_area'] ?? ''));
+            if ($itemWorkArea === '') {
+                $itemWorkArea = $resolveFirstTaxonomyValue(
+                    $itemRequestData['work_areas'] ?? ($itemRequestData['work_area'] ?? ''),
+                );
+            }
+            $itemWorkField = trim((string) ($selectedItem['work_field'] ?? ''));
+            if ($itemWorkField === '') {
+                $itemWorkField = $resolveFirstTaxonomyValue(
+                    $itemRequestData['work_fields'] ?? ($itemRequestData['work_field'] ?? ''),
+                );
+            }
+            $itemRowKind = strtolower(trim((string) ($selectedItem['row_kind'] ?? ($itemRequestData['row_kind'] ?? 'item'))));
+            if (!in_array($itemRowKind, ['area', 'field', 'item'], true)) {
+                $itemRowKind = 'item';
+            }
+            if ($itemWorkArea !== '') {
+                $itemRequestData['work_area'] = $itemWorkArea;
+                if (!isset($itemRequestData['work_areas']) || !is_array($itemRequestData['work_areas'])) {
+                    $itemRequestData['work_areas'] = [$itemWorkArea];
+                }
+            }
+            if ($itemWorkField !== '') {
+                $itemRequestData['work_field'] = $itemWorkField;
+                if (!isset($itemRequestData['work_fields']) || !is_array($itemRequestData['work_fields'])) {
+                    $itemRequestData['work_fields'] = [$itemWorkField];
+                }
+            }
+            $itemRequestData['row_kind'] = $itemRowKind;
             $lengthValue = \App\Helpers\NumberHelper::parseNullable($itemRequestData['wall_length'] ?? null);
             $heightValue = \App\Helpers\NumberHelper::parseNullable($itemRequestData['wall_height'] ?? null);
             $areaValue = \App\Helpers\NumberHelper::parseNullable($itemRequestData['area'] ?? null);
@@ -932,6 +1224,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'title' => $selectedItem['title'] ?? ('Item ' . ($index + 1)),
                 'work_type' => $workTypeCode,
                 'work_type_name' => $workTypeName,
+                'row_kind' => $itemRowKind,
+                'work_area' => $itemWorkArea,
+                'work_field' => $itemWorkField,
                 'label' => $label,
                 'grand_total' => (float) ($combo['result']['grand_total'] ?? 0),
             ];
@@ -939,6 +1234,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'title' => $selectedItem['title'] ?? ('Item ' . ($index + 1)),
                 'work_type' => $workTypeCode,
                 'work_type_name' => $workTypeName,
+                'row_kind' => $itemRowKind,
+                'work_area' => $itemWorkArea,
+                'work_field' => $itemWorkField,
                 'grand_total' => (float) ($combo['result']['grand_total'] ?? 0),
                 'request_data' => $itemRequestData,
                 'field_size' => [

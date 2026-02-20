@@ -48,6 +48,36 @@ test('shared preview combinations view preserves calculation session and returns
         ->and($content)->toContain('normalized: true');
 });
 
+test('price rank candidates exclude populer labels so ekonomis does not reuse populer source rows', function () {
+    $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
+
+    expect($content)->toContain("\$labelPrefix = trim((string) preg_replace('/\\s+\\d+.*$/u', '', (string) \$label));")
+        ->and($content)->toContain("if (strcasecmp(\$labelPrefix, 'Populer') === 0)")
+        ->and($content)->toContain('$popularCombinationSignatures')
+        ->and($content)->toContain('$candidateSignature = $buildCombinationSignature($project, $item);')
+        ->and($content)->toContain('isset($popularCombinationSignatures[$candidateSignature])')
+        ->and($content)->toContain('continue;');
+});
+
+test('popular grand total is hidden when required materials are incomplete', function () {
+    $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
+
+    expect($content)->toContain('$isPopularRekapEntryComplete = function (?array $entry)')
+        ->and($content)->toContain('$popularHasCompleteVisibleMaterials = true;')
+        ->and($content)->toContain('$canShowGrandTotal = !$isPopulerRow ||')
+        ->and($content)->toContain('($popularHasCompleteVisibleMaterials && $isPopularRekapEntryComplete($rekapEntry));')
+        ->and($content)->toContain('$commonMaterialComplete = true;')
+        ->and($content)->toContain('@if ($canShowGrandTotal && isset($globalRekapData[$key][\'grand_total\']) && $globalRekapData[$key][\'grand_total\'] !== null)')
+        ->and($content)->toContain('$commonGrandTotal = array_key_exists(\'grand_total\', $row) ? $row[\'grand_total\'] : null;');
+});
+
+test('rekap variants collapse duplicate brand detail rows and skip dash-only placeholders', function () {
+    $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
+
+    expect($content)->toContain("if (\$brand === '-' && \$detail === '-')")
+        ->and($content)->toContain("\$dedupeKey = \$normalizeVariantText(\$brand) . '|' . \$normalizeVariantText(\$detail);");
+});
+
 test('bundle aggregation exposes detailed material rows so preview can render multi-item material variants', function () {
     $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
 
@@ -55,4 +85,24 @@ test('bundle aggregation exposes detailed material rows so preview can render mu
         ->and($content)->toContain('buildBundleMaterialRows(')
         ->and($content)->toContain('buildBundleMaterialSignature(')
         ->and($content)->toContain('buildBundleMaterialRowFromCombination(');
+});
+
+test('bundle popular label does not fallback to cheapest candidate when popular data is missing', function () {
+    $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
+
+    expect($content)->toContain('$popularPrefix')
+        ->and($content)->toContain('Do not fallback Popular rows to cheapest/other categories.')
+        ->and($content)->toContain('if (strtolower($targetPrefix) === $popularPrefix)')
+        ->and($content)->toContain('if ($allowedPrefixKey === $popularPrefix)')
+        ->and($content)->toContain('if ($candidatePrefixKey === $popularPrefix)')
+        ->and($content)->toContain('return null;');
+});
+
+test('bundle popular label allows partial item coverage without forcing all items complete', function () {
+    $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
+
+    expect($content)->toContain('$isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;')
+        ->and($content)->toContain('if ($isPopularLabel) {')
+        ->and($content)->toContain('if (empty($selectedItems)) {')
+        ->and($content)->toContain('} elseif (!$isComplete || empty($selectedItems)) {');
 });

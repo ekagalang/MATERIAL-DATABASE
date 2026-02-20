@@ -384,6 +384,20 @@
                                 Manajemen Filter Preferensi
                             </a>
                         </div>
+                        <div class="dropdown-item-parent">
+                            <a href="{{ route('settings.work-areas.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Manajemen Area
+                            </a>
+                        </div>
+                        <div class="dropdown-item-parent">
+                            <a href="{{ route('settings.work-fields.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Manajemen Bidang
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

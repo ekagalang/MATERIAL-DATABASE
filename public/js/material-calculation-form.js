@@ -338,15 +338,39 @@ function initMaterialCalculationForm(root, formData) {
             return;
         }
 
-        const options = formulasData
+        const baseOptions = formulasData
             .filter(option => option && option.code && option.name)
             .map(option => ({
                 code: String(option.code),
                 name: String(option.name),
             }));
 
-        if (options.length === 0) {
+        if (baseOptions.length === 0) {
             return;
+        }
+
+        function getScopedOptions() {
+            const provider = window.MaterialCalculationWorkTypeOptionsProvider;
+            if (typeof provider === 'function') {
+                try {
+                    const external = provider();
+                    if (Array.isArray(external) && external.length > 0) {
+                        const normalized = external
+                            .filter(option => option && option.code && option.name)
+                            .map(option => ({
+                                code: String(option.code),
+                                name: String(option.name),
+                            }));
+                        if (normalized.length > 0) {
+                            return normalized;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('MaterialCalculationWorkTypeOptionsProvider failed:', error);
+                }
+            }
+
+            return baseOptions;
         }
 
         if (!listEl.__scrollLockBound) {
@@ -395,6 +419,7 @@ function initMaterialCalculationForm(root, formData) {
         }
 
         function filterOptions(term) {
+            const options = getScopedOptions();
             const query = normalize(term);
             if (!query) {
                 return options;
@@ -407,6 +432,7 @@ function initMaterialCalculationForm(root, formData) {
         }
 
         function findExactMatch(term) {
+            const options = getScopedOptions();
             const query = normalize(term);
             if (!query) return null;
             return options.find(option => normalize(option.name) === query || normalize(option.code) === query) || null;
@@ -463,14 +489,37 @@ function initMaterialCalculationForm(root, formData) {
         });
 
         hiddenInput.addEventListener('change', function() {
+            const options = getScopedOptions();
             const selected = options.find(option => option.code === hiddenInput.value);
             if (selected && displayInput.value !== selected.name) {
                 displayInput.value = selected.name;
             }
         });
 
-        if (hiddenInput.value && !displayInput.value) {
+        const refreshOptions = function() {
+            const options = getScopedOptions();
+            if (!hiddenInput.value && !displayInput.value) {
+                return;
+            }
+
             const selected = options.find(option => option.code === hiddenInput.value);
+            if (selected) {
+                if (displayInput.value !== selected.name) {
+                    displayInput.value = selected.name;
+                }
+                return;
+            }
+
+            if (listEl.style.display === 'block') {
+                renderList(filterOptions(displayInput.value || ''));
+            }
+        };
+
+        document.addEventListener('material-calculation:refresh-work-type-options', refreshOptions);
+        displayInput.__refreshWorkTypeOptions = refreshOptions;
+
+        if (hiddenInput.value && !displayInput.value) {
+            const selected = getScopedOptions().find(option => option.code === hiddenInput.value);
             if (selected) {
                 displayInput.value = selected.name;
             }
