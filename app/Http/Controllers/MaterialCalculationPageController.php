@@ -15,6 +15,7 @@ use App\Models\Sand;
 use App\Models\StoreLocation;
 use App\Models\WorkArea;
 use App\Models\WorkField;
+use App\Models\WorkFloor;
 use App\Models\WorkItemGrouping;
 use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
@@ -68,14 +69,16 @@ class MaterialCalculationPageController extends MaterialCalculationController
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
+        $workFloors = WorkFloor::orderBy('name')->get(['id', 'name']);
         $workAreas = WorkArea::orderBy('name')->get(['id', 'name']);
         $workFields = WorkField::orderBy('name')->get(['id', 'name']);
         $workItemGroupings = WorkItemGrouping::query()
-            ->with(['workArea:id,name', 'workField:id,name'])
+            ->with(['workFloor:id,name', 'workArea:id,name', 'workField:id,name'])
             ->get()
             ->map(function (WorkItemGrouping $grouping): array {
                 return [
                     'formula_code' => (string) $grouping->formula_code,
+                    'work_floor' => trim((string) optional($grouping->workFloor)->name),
                     'work_area' => trim((string) optional($grouping->workArea)->name),
                     'work_field' => trim((string) optional($grouping->workField)->name),
                 ];
@@ -158,6 +161,7 @@ class MaterialCalculationPageController extends MaterialCalculationController
                 'sands',
                 'cats',
                 'ceramics',
+                'workFloors',
                 'workAreas',
                 'workFields',
                 'workItemGroupings',

@@ -42,6 +42,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             $bundleItems = $this->parseBundleItemsPayload($request->input('work_items_payload'));
             $this->mergeWorkTaxonomyFilters($request);
+            $workFloors = $this->normalizeWorkTaxonomyValues($request->input('work_floors', []));
             $workAreas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
             $workFields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
             if ($request->boolean('enable_bundle_mode')) {
@@ -71,13 +72,21 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     foreach ($bundleItems as $bundleItem) {
                         $bundleWorkType = trim((string) ($bundleItem['work_type'] ?? ''));
                         if ($bundleWorkType !== '') {
+                            $bundleItemFloors = $this->normalizeWorkTaxonomyValues(
+                                $bundleItem['work_floors'] ?? ($bundleItem['work_floor'] ?? $workFloors),
+                            );
                             $bundleItemAreas = $this->normalizeWorkTaxonomyValues(
                                 $bundleItem['work_areas'] ?? ($bundleItem['work_area'] ?? $workAreas),
                             );
                             $bundleItemFields = $this->normalizeWorkTaxonomyValues(
                                 $bundleItem['work_fields'] ?? ($bundleItem['work_field'] ?? $workFields),
                             );
-                            $this->persistWorkItemTaxonomy($bundleWorkType, $bundleItemAreas, $bundleItemFields);
+                            $this->persistWorkItemTaxonomy(
+                                $bundleWorkType,
+                                $bundleItemFloors,
+                                $bundleItemAreas,
+                                $bundleItemFields,
+                            );
                         }
                     }
                     $bundleCalculation->save();
@@ -92,13 +101,21 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 foreach ($bundleItems as $bundleItem) {
                     $bundleWorkType = trim((string) ($bundleItem['work_type'] ?? ''));
                     if ($bundleWorkType !== '') {
+                        $bundleItemFloors = $this->normalizeWorkTaxonomyValues(
+                            $bundleItem['work_floors'] ?? ($bundleItem['work_floor'] ?? $workFloors),
+                        );
                         $bundleItemAreas = $this->normalizeWorkTaxonomyValues(
                             $bundleItem['work_areas'] ?? ($bundleItem['work_area'] ?? $workAreas),
                         );
                         $bundleItemFields = $this->normalizeWorkTaxonomyValues(
                             $bundleItem['work_fields'] ?? ($bundleItem['work_field'] ?? $workFields),
                         );
-                        $this->persistWorkItemTaxonomy($bundleWorkType, $bundleItemAreas, $bundleItemFields);
+                        $this->persistWorkItemTaxonomy(
+                            $bundleWorkType,
+                            $bundleItemFloors,
+                            $bundleItemAreas,
+                            $bundleItemFields,
+                        );
                     }
                 }
 
@@ -141,6 +158,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'material_type_filters_extra.*.*' => 'nullable|string',
                 'material_customize_filters_payload' => 'nullable|string',
                 'material_customize_filters' => 'nullable|array',
+                'work_floors' => 'nullable|array',
+                'work_floors.*' => 'nullable|string|max:120',
                 'work_areas' => 'nullable|array',
                 'work_areas.*' => 'nullable|string|max:120',
                 'work_fields' => 'nullable|array',
@@ -239,6 +258,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $this->mergeMaterialCustomizeFilters($request);
             $this->mergeWorkTaxonomyFilters($request);
             $request->validate($rules);
+            $workFloors = $this->normalizeWorkTaxonomyValues($request->input('work_floors', []));
             $workAreas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
             $workFields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
 
@@ -303,7 +323,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             if ($needCombinations) {
                 DB::rollBack();
-                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workFloors, $workAreas, $workFields);
 
                 return $this->generateCombinations($request);
             }
@@ -313,7 +333,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             if (!$request->boolean('confirm_save')) {
                 DB::rollBack();
-                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workFloors, $workAreas, $workFields);
                 $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat']);
 
                 return view('material_calculations.preview', [
@@ -323,7 +343,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 ]);
             }
 
-            $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
+            $this->persistWorkItemTaxonomy((string) $request->work_type, $workFloors, $workAreas, $workFields);
             $calculation->save();
             DB::commit();
 
@@ -368,6 +388,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $items[] = [
                 'title' => trim((string) ($entry['title'] ?? '')),
                 'row_kind' => $rowKind,
+                'work_floor' => trim((string) ($entry['work_floor'] ?? '')),
                 'work_area' => trim((string) ($entry['work_area'] ?? '')),
                 'work_field' => trim((string) ($entry['work_field'] ?? '')),
                 'work_type' => $workType,
@@ -660,10 +681,15 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'installation_type_id' => $request->input('installation_type_id') ?? $defaultInstallationType?->id,
                 'mortar_formula_id' => $request->input('mortar_formula_id') ?? $defaultMortarFormula?->id,
             ]);
+            $bundleWorkFloor = trim((string) ($bundleItem['work_floor'] ?? ''));
             $bundleWorkArea = trim((string) ($bundleItem['work_area'] ?? ''));
             $bundleWorkField = trim((string) ($bundleItem['work_field'] ?? ''));
+            $itemRequestData['work_floor'] = $bundleWorkFloor;
             $itemRequestData['work_area'] = $bundleWorkArea;
             $itemRequestData['work_field'] = $bundleWorkField;
+            if ($bundleWorkFloor !== '') {
+                $itemRequestData['work_floors'] = [$bundleWorkFloor];
+            }
             if ($bundleWorkArea !== '') {
                 $itemRequestData['work_areas'] = [$bundleWorkArea];
             }
@@ -702,12 +728,27 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 continue;
             }
 
-            $itemPayload['title'] = $itemTitle;
-            $itemPayload['work_type'] = $bundleItem['work_type'];
-            $itemPayload['row_kind'] = $rowKind;
-            $itemPayload['work_area'] = $bundleWorkArea;
-            $itemPayload['work_field'] = $bundleWorkField;
-            $bundleItemPayloads[] = $itemPayload;
+            // Keep only fields needed for bundle aggregation to reduce memory pressure
+            // when many bundle items are calculated in a single request.
+            $bundleItemPayloads[] = [
+                'projects' => is_array($itemPayload['projects'] ?? null) ? $itemPayload['projects'] : [],
+                'requestData' => is_array($itemPayload['requestData'] ?? null) ? $itemPayload['requestData'] : [],
+                'title' => $itemTitle,
+                'work_type' => $bundleItem['work_type'],
+                'row_kind' => $rowKind,
+                'work_floor' => $bundleWorkFloor,
+                'work_area' => $bundleWorkArea,
+                'work_field' => $bundleWorkField,
+            ];
+
+            // Per-item preview cache is only an intermediate artifact in bundle mode.
+            // Clearing it prevents cache accumulation and may reduce process memory retained
+            // by large payload references in long-running requests.
+            if (is_string($itemCacheKey) && $itemCacheKey !== '') {
+                \Illuminate\Support\Facades\Cache::forget($itemCacheKey);
+            }
+
+            unset($itemPayload);
         }
 
         if (empty($bundleItemPayloads)) {
@@ -1025,6 +1066,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
                     return trim((string) $value);
                 };
+                $itemWorkFloor = trim((string) ($bundleItemPayload['work_floor'] ?? ''));
+                if ($itemWorkFloor === '') {
+                    $itemWorkFloor = $resolveFirstTaxonomyValue(
+                        $itemRequestData['work_floors'] ?? ($itemRequestData['work_floor'] ?? ''),
+                    );
+                }
                 $itemWorkArea = trim((string) ($bundleItemPayload['work_area'] ?? ''));
                 if ($itemWorkArea === '') {
                     $itemWorkArea = $resolveFirstTaxonomyValue(
@@ -1046,6 +1093,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     'title' => $bundleItemPayload['title'] ?? ('Item ' . ($index + 1)),
                     'work_type' => $bundleItemPayload['work_type'] ?? ($bundleItemPayload['requestData']['work_type'] ?? ''),
                     'row_kind' => $itemRowKind,
+                    'work_floor' => $itemWorkFloor,
                     'work_area' => $itemWorkArea,
                     'work_field' => $itemWorkField,
                     'request_data' => $itemRequestData,
@@ -1165,6 +1213,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
                 return trim((string) $value);
             };
+            $itemWorkFloor = trim((string) ($selectedItem['work_floor'] ?? ''));
+            if ($itemWorkFloor === '') {
+                $itemWorkFloor = $resolveFirstTaxonomyValue(
+                    $itemRequestData['work_floors'] ?? ($itemRequestData['work_floor'] ?? ''),
+                );
+            }
             $itemWorkArea = trim((string) ($selectedItem['work_area'] ?? ''));
             if ($itemWorkArea === '') {
                 $itemWorkArea = $resolveFirstTaxonomyValue(
@@ -1180,6 +1234,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $itemRowKind = strtolower(trim((string) ($selectedItem['row_kind'] ?? ($itemRequestData['row_kind'] ?? 'item'))));
             if (!in_array($itemRowKind, ['area', 'field', 'item'], true)) {
                 $itemRowKind = 'item';
+            }
+            if ($itemWorkFloor !== '') {
+                $itemRequestData['work_floor'] = $itemWorkFloor;
+                if (!isset($itemRequestData['work_floors']) || !is_array($itemRequestData['work_floors'])) {
+                    $itemRequestData['work_floors'] = [$itemWorkFloor];
+                }
             }
             if ($itemWorkArea !== '') {
                 $itemRequestData['work_area'] = $itemWorkArea;
@@ -1225,6 +1285,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'work_type' => $workTypeCode,
                 'work_type_name' => $workTypeName,
                 'row_kind' => $itemRowKind,
+                'work_floor' => $itemWorkFloor,
                 'work_area' => $itemWorkArea,
                 'work_field' => $itemWorkField,
                 'label' => $label,
@@ -1235,6 +1296,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'work_type' => $workTypeCode,
                 'work_type_name' => $workTypeName,
                 'row_kind' => $itemRowKind,
+                'work_floor' => $itemWorkFloor,
                 'work_area' => $itemWorkArea,
                 'work_field' => $itemWorkField,
                 'grand_total' => (float) ($combo['result']['grand_total'] ?? 0),

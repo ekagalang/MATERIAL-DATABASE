@@ -5785,41 +5785,6 @@ $paramValue = $isGroutTile
                                                             'title' => $traceRow['title'] ?? ('Item ' . ($traceItemIndex + 1)),
                                                             'formula_code' => $traceWorkType,
                                                             'work_type' => $traceWorkType,
-                                                            'row_kind' =>
-                                                                $traceRequestData['row_kind'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['row_kind'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['row_kind']
-                                                                    : null),
-                                                            'work_floor' =>
-                                                                $traceRequestData['work_floor'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['work_floor'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['work_floor']
-                                                                    : null),
-                                                            'work_area' =>
-                                                                $traceRequestData['work_area'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['work_area'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['work_area']
-                                                                    : null),
-                                                            'work_field' =>
-                                                                $traceRequestData['work_field'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['work_field'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['work_field']
-                                                                    : null),
-                                                            'work_floors' =>
-                                                                $traceRequestData['work_floors'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['work_floors'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['work_floors']
-                                                                    : null),
-                                                            'work_areas' =>
-                                                                $traceRequestData['work_areas'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['work_areas'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['work_areas']
-                                                                    : null),
-                                                            'work_fields' =>
-                                                                $traceRequestData['work_fields'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['work_fields'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['work_fields']
-                                                                    : null),
                                                             'wall_length' =>
                                                                 $traceRequestData['wall_length'] ?? ($requestData['wall_length'] ?? null),
                                                             'wall_height' =>
@@ -5858,16 +5823,6 @@ $paramValue = $isGroutTile
                                                             'mortar_formula_id' =>
                                                                 $traceRequestData['mortar_formula_id'] ??
                                                                 ($requestData['mortar_formula_id'] ?? null),
-                                                            'material_type_filters' =>
-                                                                $traceRequestData['material_type_filters'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['material_type_filters'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['material_type_filters']
-                                                                    : null),
-                                                            'material_customize_filters' =>
-                                                                $traceRequestData['material_customize_filters'] ??
-                                                                (isset($workItemsPayloadData[$traceItemIndex]['material_customize_filters'])
-                                                                    ? $workItemsPayloadData[$traceItemIndex]['material_customize_filters']
-                                                                    : null),
                                                         ];
 
                                                         foreach ($traceMaterialIds as $traceMatKey => $traceMatIdValue) {
@@ -6180,13 +6135,6 @@ $paramValue = $isGroutTile
                                                             value="{{ json_encode($item['result'] ?? [], JSON_UNESCAPED_UNICODE) }}">
                                                         <input type="hidden" name="bundle_material_rows"
                                                             value="{{ json_encode($bundleMaterialRowsPayload, JSON_UNESCAPED_UNICODE) }}">
-                                                        @if (empty($requestData['work_items_payload']) && !empty($item['bundle_items']))
-                                                            <input type="hidden" name="work_items_payload"
-                                                                value="{{ json_encode($item['bundle_items'], JSON_UNESCAPED_UNICODE) }}">
-                                                        @endif
-                                                        @if (empty($requestData['enable_bundle_mode']))
-                                                            <input type="hidden" name="enable_bundle_mode" value="1">
-                                                        @endif
                                                     @endif
                                                     <input type="hidden" name="price_filters[]" value="custom">
                                                     <input type="hidden" name="confirm_save" value="1">

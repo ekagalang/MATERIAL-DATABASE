@@ -385,6 +385,13 @@
                             </a>
                         </div>
                         <div class="dropdown-item-parent">
+                            <a href="{{ route('settings.work-floors.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Manajemen Lantai
+                            </a>
+                        </div>
+                        <div class="dropdown-item-parent">
                             <a href="{{ route('settings.work-areas.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">

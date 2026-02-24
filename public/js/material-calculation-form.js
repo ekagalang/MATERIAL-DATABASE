@@ -794,7 +794,7 @@ function initMaterialCalculationForm(root, formData) {
                     || !otherForm;
 
                 if (usePrimaryForm) {
-                    if (brickForm) brickForm.style.display = 'block';
+                    if (brickForm) brickForm.style.display = 'grid';
                 } else if (otherForm) {
                     otherForm.style.display = 'block';
                 }

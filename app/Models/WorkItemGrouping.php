@@ -10,7 +10,12 @@ class WorkItemGrouping extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['formula_code', 'work_area_id', 'work_field_id'];
+    protected $fillable = ['formula_code', 'work_floor_id', 'work_area_id', 'work_field_id'];
+
+    public function workFloor(): BelongsTo
+    {
+        return $this->belongsTo(WorkFloor::class);
+    }
 
     public function workArea(): BelongsTo
     {
@@ -22,4 +27,3 @@ class WorkItemGrouping extends Model
         return $this->belongsTo(WorkField::class);
     }
 }
-

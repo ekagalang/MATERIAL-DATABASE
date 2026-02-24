@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             BrickInstallationTypeSeeder::class,
             MortarFormulaSeeder::class,
             NatTableSeeder::class,
+            WorkTaxonomySeeder::class,
 
             // Uncomment untuk create sample calculation (opsional)
             // $this->call([

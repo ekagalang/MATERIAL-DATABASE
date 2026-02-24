@@ -67,6 +67,7 @@ Combination branching in `yieldCombinations()` is based on `getMaterialRequireme
 - **CalculationOrchestrationService**: Main coordinator for calculation workflows, generates material combinations, handles comparisons
 - **MaterialSelectionService**: Selects materials based on price filters (cheapest, medium, expensive, best)
 - **CombinationGenerationService**: Generates and merges material combinations with duplicate detection
+- **StoreProximityService**: Ranks/filters store locations by proximity for store-based combination generation
 
 ### Repository & Service Pattern
 
@@ -104,6 +105,7 @@ Filter values support pipe-delimited input: `"Type A | Type B | Type C"` → par
 
 - **Web routes** (`routes/web.php`): Resource controllers for CRUD, material calculator endpoints
 - **API v1** (`routes/api.php`): RESTful API with `/api/v1/` prefix for materials, calculations, work items, units
+- **API controllers**: live in `app/Http/Controllers/Api/V1/` (versioned). Top-level `app/Http/Controllers/Api/` holds non-versioned helpers (e.g. `StoreSearchController`).
 - **Route ordering matters**: Helper routes (field-values, stores, addresses) MUST come before `resource()`/`apiResource()` routes, otherwise `{field}` gets matched as `{id}`
 
 ### Models
@@ -113,12 +115,36 @@ Core domain models in `app/Models/`:
 - Configuration: `BrickInstallationType`, `MortarFormula`, `Unit`, `WorkItem`
 - Calculations: `BrickCalculation`, `RecommendedCombination`
 - Stores: `Store`, `StoreLocation`, `StoreMaterialAvailability`
+- Work Taxonomy: `WorkFloor`, `WorkArea`, `WorkField`, `WorkItemGrouping`
 
 **Nat** has its own `nats` table with a `type` column. It auto-generates `nat_name` from type/brand/sub_brand/code/color if not provided. Uses polymorphic `store_material_availabilities` for store linking.
+
+**Work Taxonomy** is a 3-level hierarchy (`WorkFloor` → `WorkArea` → `WorkField`) used to configure which formula applies to a given context. `WorkItemGrouping` stores the `formula_code` + `work_floor_id` + `work_area_id` + `work_field_id` combination. Managed via `settings/work_floors/` views and `WorkFloorController`.
+
+### Actions (`app/Actions/Material/`)
+
+Thin action classes for material lifecycle:
+- `CreateMaterialAction` / `UpdateMaterialAction` / `DeleteMaterialAction`: resolve the correct Eloquent model from a `$materialType` string and delegate persistence. Use these (not controllers) when creating/updating materials from non-HTTP contexts.
+
+### Support Classes (`app/Support/Material/`)
+
+Query/spec classes for material listing and lookup:
+- `MaterialIndexQuery` / `MaterialApiIndexQuery`: build filtered Eloquent queries for material index pages / API
+- `MaterialIndexSpec` / `MaterialLookupSpec`: value objects describing filter criteria
+- `MaterialKindResolver`: resolves a material type string to its model class
+- `MaterialLookupQuery`: builds a query for single-material lookups
+
+### Material Calculation Strategies (`app/Services/Material/Calculations/`)
+
+Config-driven strategy pattern for derived field calculations on save:
+- `MaterialCalculationStrategyInterface` / `BaseMaterialCalculationStrategy`: contract and no-op base
+- `MaterialCalculationStrategyRegistry::resolve($materialType)`: reads `config('material_calculation_strategies')` to find the correct strategy class, falls back to `BaseMaterialCalculationStrategy`
+- `MaterialCalculationStrategyRegistry::applyFor($materialType, $data, $existing)`: the single call-site used by material services to mutate `$data` before persistence
 
 ### Cache & Observers
 
 - `MaterialObserver` watches `Brick`, `Cement`, `Sand`, `Cat` for changes and invalidates caches via `CacheService`
+- `BrickCalculationObserver` watches `BrickCalculation` for lifecycle events
 - Nat/Ceramic are **not yet observed** — cache invalidation for their changes must be handled manually
 - TTL: materials/combinations 1 hour, dashboard 5 minutes, analytics 30 minutes
 

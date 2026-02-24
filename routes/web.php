@@ -19,6 +19,7 @@ use App\Http\Controllers\SkillController;
 use App\Http\Controllers\StoreLocationController;
 use App\Http\Controllers\WorkAreaController;
 use App\Http\Controllers\WorkFieldController;
+use App\Http\Controllers\WorkFloorController;
 use App\Helpers\NumberHelper;
 use App\Models\BrickCalculation;
 // use App\Http\Controllers\Dev\PriceAnalysisController;
@@ -327,6 +328,11 @@ Route::prefix('settings/recommendations')
 Route::prefix('settings')
     ->name('settings.')
     ->group(function () {
+        Route::get('/work-floors', [WorkFloorController::class, 'index'])->name('work-floors.index');
+        Route::post('/work-floors', [WorkFloorController::class, 'store'])->name('work-floors.store');
+        Route::put('/work-floors/{workFloor}', [WorkFloorController::class, 'update'])->name('work-floors.update');
+        Route::delete('/work-floors/{workFloor}', [WorkFloorController::class, 'destroy'])->name('work-floors.destroy');
+
         Route::get('/work-areas', [WorkAreaController::class, 'index'])->name('work-areas.index');
         Route::post('/work-areas', [WorkAreaController::class, 'store'])->name('work-areas.store');
         Route::put('/work-areas/{workArea}', [WorkAreaController::class, 'update'])->name('work-areas.update');

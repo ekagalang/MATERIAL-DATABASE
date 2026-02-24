@@ -15,6 +15,7 @@ use App\Models\Sand;
 use App\Models\StoreLocation;
 use App\Models\WorkArea;
 use App\Models\WorkField;
+use App\Models\WorkFloor;
 use App\Models\WorkItemGrouping;
 use App\Repositories\CalculationRepository;
 use App\Services\Calculation\CombinationGenerationService;
@@ -102,14 +103,16 @@ class MaterialCalculationController extends Controller
         $sands = Sand::orderBy('brand')->get();
         $cats = Cat::orderBy('brand')->get();
         $ceramics = Ceramic::orderBy('brand')->get();
+        $workFloors = WorkFloor::orderBy('name')->get(['id', 'name']);
         $workAreas = WorkArea::orderBy('name')->get(['id', 'name']);
         $workFields = WorkField::orderBy('name')->get(['id', 'name']);
         $workItemGroupings = WorkItemGrouping::query()
-            ->with(['workArea:id,name', 'workField:id,name'])
+            ->with(['workFloor:id,name', 'workArea:id,name', 'workField:id,name'])
             ->get()
             ->map(function (WorkItemGrouping $grouping): array {
                 return [
                     'formula_code' => (string) $grouping->formula_code,
+                    'work_floor' => trim((string) optional($grouping->workFloor)->name),
                     'work_area' => trim((string) optional($grouping->workArea)->name),
                     'work_field' => trim((string) optional($grouping->workField)->name),
                 ];
@@ -192,6 +195,7 @@ class MaterialCalculationController extends Controller
                 'sands',
                 'cats',
                 'ceramics',
+                'workFloors',
                 'workAreas',
                 'workFields',
                 'workItemGroupings',
@@ -268,6 +272,8 @@ class MaterialCalculationController extends Controller
                 'material_type_filters_extra.*.*' => 'nullable|string',
                 'material_customize_filters_payload' => 'nullable|string',
                 'material_customize_filters' => 'nullable|array',
+                'work_floors' => 'nullable|array',
+                'work_floors.*' => 'nullable|string|max:120',
                 'work_areas' => 'nullable|array',
                 'work_areas.*' => 'nullable|string|max:120',
                 'work_fields' => 'nullable|array',
@@ -366,6 +372,7 @@ class MaterialCalculationController extends Controller
             $this->mergeMaterialCustomizeFilters($request);
             $this->mergeWorkTaxonomyFilters($request);
             $request->validate($rules);
+            $workFloors = $this->normalizeWorkTaxonomyValues($request->input('work_floors', []));
             $workAreas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
             $workFields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
 
@@ -430,7 +437,7 @@ class MaterialCalculationController extends Controller
 
             if ($needCombinations) {
                 DB::rollBack();
-                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workFloors, $workAreas, $workFields);
 
                 return $this->generateCombinations($request);
             }
@@ -440,7 +447,7 @@ class MaterialCalculationController extends Controller
 
             if (!$request->boolean('confirm_save')) {
                 DB::rollBack();
-                $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
+                $this->persistWorkItemTaxonomy((string) $request->work_type, $workFloors, $workAreas, $workFields);
                 $calculation->load(['installationType', 'mortarFormula', 'brick', 'cement', 'sand', 'cat']);
 
                 return view('material_calculations.preview', [
@@ -450,7 +457,7 @@ class MaterialCalculationController extends Controller
                 ]);
             }
 
-            $this->persistWorkItemTaxonomy((string) $request->work_type, $workAreas, $workFields);
+            $this->persistWorkItemTaxonomy((string) $request->work_type, $workFloors, $workAreas, $workFields);
             $calculation->save();
             DB::commit();
 
@@ -1949,10 +1956,12 @@ class MaterialCalculationController extends Controller
 
     protected function mergeWorkTaxonomyFilters(Request $request): void
     {
+        $floors = $this->normalizeWorkTaxonomyValues($request->input('work_floors', []));
         $areas = $this->normalizeWorkTaxonomyValues($request->input('work_areas', []));
         $fields = $this->normalizeWorkTaxonomyValues($request->input('work_fields', []));
 
         $request->merge([
+            'work_floors' => $floors,
             'work_areas' => $areas,
             'work_fields' => $fields,
         ]);
@@ -1977,12 +1986,24 @@ class MaterialCalculationController extends Controller
         return [$text];
     }
 
-    protected function persistWorkItemTaxonomy(string $workType, array $areas = [], array $fields = []): void
+    protected function persistWorkItemTaxonomy(string $workType, array $floors = [], array $areas = [], array $fields = []): void
     {
         $formulaCode = trim($workType);
         if ($formulaCode === '') {
             return;
         }
+
+        $floorIds = collect($floors)
+            ->map(fn($name) => trim((string) $name))
+            ->filter()
+            ->unique()
+            ->values()
+            ->map(function (string $name): int {
+                $floor = WorkFloor::firstOrCreate(['name' => $name]);
+
+                return (int) $floor->id;
+            })
+            ->all();
 
         $areaIds = collect($areas)
             ->map(fn($name) => trim((string) $name))
@@ -2008,42 +2029,25 @@ class MaterialCalculationController extends Controller
             })
             ->all();
 
-        if (empty($areaIds) && empty($fieldIds)) {
+        if (empty($floorIds) && empty($areaIds) && empty($fieldIds)) {
             return;
         }
 
-        if (!empty($areaIds) && !empty($fieldIds)) {
-            foreach ($areaIds as $areaId) {
-                foreach ($fieldIds as $fieldId) {
+        $floorTargets = !empty($floorIds) ? $floorIds : [null];
+        $areaTargets = !empty($areaIds) ? $areaIds : [null];
+        $fieldTargets = !empty($fieldIds) ? $fieldIds : [null];
+
+        foreach ($floorTargets as $floorId) {
+            foreach ($areaTargets as $areaId) {
+                foreach ($fieldTargets as $fieldId) {
                     WorkItemGrouping::firstOrCreate([
                         'formula_code' => $formulaCode,
+                        'work_floor_id' => $floorId,
                         'work_area_id' => $areaId,
                         'work_field_id' => $fieldId,
                     ]);
                 }
             }
-
-            return;
-        }
-
-        if (!empty($areaIds)) {
-            foreach ($areaIds as $areaId) {
-                WorkItemGrouping::firstOrCreate([
-                    'formula_code' => $formulaCode,
-                    'work_area_id' => $areaId,
-                    'work_field_id' => null,
-                ]);
-            }
-
-            return;
-        }
-
-        foreach ($fieldIds as $fieldId) {
-            WorkItemGrouping::firstOrCreate([
-                'formula_code' => $formulaCode,
-                'work_area_id' => null,
-                'work_field_id' => $fieldId,
-            ]);
         }
     }
 
@@ -2141,6 +2145,12 @@ class MaterialCalculationController extends Controller
             'project_place_id' => 'nullable|string|max:255',
             'use_store_filter' => 'nullable|boolean',
             'allow_mixed_store' => 'nullable|boolean',
+            'work_floors' => 'nullable|array',
+            'work_floors.*' => 'nullable|string|max:120',
+            'work_areas' => 'nullable|array',
+            'work_areas.*' => 'nullable|string|max:120',
+            'work_fields' => 'nullable|array',
+            'work_fields.*' => 'nullable|string|max:120',
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
             'mortar_thickness' => 'required|numeric|min:0.01|max:10',
