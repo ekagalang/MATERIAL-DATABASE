@@ -1243,7 +1243,7 @@ html.materials-booting .page-content {
 
         <!-- Empty state when no materials selected -->
         <div id="emptyMaterialState" style="display: block; padding: 60px 40px; text-align: center; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; margin-top: 20px;">
-            <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;">ðŸ“‹</div>
+            <div style="font-size: 64px; margin-bottom: 16px; opacity: 0.3;"></div>
             <h3 style="margin: 0 0 8px 0; color: #0f172a; font-size: 18px; font-weight: 700;">Tidak Ada Material yang Ditampilkan</h3>
             <p style="margin: 0; color: #64748b; font-size: 14px;">Pilih material yang ingin ditampilkan dari dropdown <strong>"Filter"</strong> di atas.</p>
         </div>

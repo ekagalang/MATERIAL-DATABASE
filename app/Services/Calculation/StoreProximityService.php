@@ -20,9 +20,14 @@ class StoreProximityService
         return $earthRadiusKm * $c;
     }
 
-    public function sortReachableLocations(Collection $locations, float $projectLat, float $projectLng): Collection
+    public function sortLocationsByDistance(
+        Collection $locations,
+        float $projectLat,
+        float $projectLng,
+        bool $withinServiceRadiusOnly = false,
+    ): Collection
     {
-        return $locations
+        $ranked = $locations
             ->filter(function ($location) {
                 return is_numeric($location->latitude ?? null) && is_numeric($location->longitude ?? null);
             })
@@ -44,11 +49,23 @@ class StoreProximityService
                     'service_radius_km' => $radiusKm,
                 ];
             })
-            ->filter(function (array $row) {
-                return $row['distance_km'] <= $row['service_radius_km'];
-            })
             ->sortBy('distance_km')
             ->values();
+
+        if ($withinServiceRadiusOnly) {
+            $ranked = $ranked
+                ->filter(function (array $row) {
+                    return $row['distance_km'] <= $row['service_radius_km'];
+                })
+                ->values();
+        }
+
+        return $ranked;
+    }
+
+    public function sortReachableLocations(Collection $locations, float $projectLat, float $projectLng): Collection
+    {
+        return $this->sortLocationsByDistance($locations, $projectLat, $projectLng, true);
     }
 
     public function buildNearestCoveragePlan(

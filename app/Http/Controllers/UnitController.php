@@ -55,7 +55,7 @@ class UnitController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|max:20|unique:units,code',
+            'code' => 'required|string|max:20',
             'material_types' => 'required|array',
             'material_types.*' => 'string',
             'name' => 'required|string|max:100',
@@ -91,7 +91,7 @@ class UnitController extends Controller
     public function update(Request $request, Unit $unit)
     {
         $request->validate([
-            'code' => 'required|string|max:20|unique:units,code,' . $unit->id,
+            'code' => 'required|string|max:20',
             'material_types' => 'required|array',
             'material_types.*' => 'string',
             'name' => 'required|string|max:100',

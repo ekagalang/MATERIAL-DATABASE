@@ -17,7 +17,8 @@ test('material calculation create view exposes customize filters per material ty
         ->and($content)->toContain('id="customizeCatPackage"')
         ->and($content)->toContain('id="customizeCatVolume"')
         ->and($content)->toContain('id="customizeCatWeight"')
-        ->and($content)->toContain('id="customizePanel-ceramic"')
+        ->and($content)->toContain('id="customizePanel-ceramic_type"')
+        ->and($content)->not->toContain('id="customizePanel-ceramic"')
         ->and($content)->toContain('id="customizePanel-nat"')
         ->and($content)->toContain('material-type-customize-panel');
 });
@@ -42,7 +43,7 @@ test('price filter list no longer includes custom option and custom material for
 test('bundle material filter rows include customize button for supported material types', function () {
     $content = File::get(resource_path('views/material_calculations/create.blade.php'));
 
-    expect($content)->toContain("const bundleCustomizeSupportedTypes = new Set(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);")
+    expect($content)->toContain("const bundleCustomizeSupportedTypes = new Set(['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'nat']);")
         ->and($content)->toContain('const supportsCustomize = bundleCustomizeSupportedTypes.has(String(type || \'\').trim());')
         ->and($content)->toContain('${supportsCustomize ? `')
         ->and($content)->toContain('data-customize-toggle="${type}"')

@@ -42,6 +42,38 @@ class MaterialCalculationController extends Controller
         $this->combinationGenerationService = $combinationGenerationService;
     }
 
+    protected function shouldLogMaterialPerformanceDebug(): bool
+    {
+        if (!(bool) config('materials.performance_log_debug', false)) {
+            return false;
+        }
+
+        return app()->environment(['local', 'staging']);
+    }
+
+    /**
+     * @return array<string, float|int>
+     */
+    protected function materialPerformanceSnapshot(float $startedAt): array
+    {
+        return [
+            'elapsed_ms' => (int) round((microtime(true) - $startedAt) * 1000),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1048576, 2),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
+        ];
+    }
+
+    protected function logMaterialPerformanceStage(float $startedAt, string $stage, array $context = []): void
+    {
+        if (!$this->shouldLogMaterialPerformanceDebug()) {
+            return;
+        }
+
+        \Log::info('Material calculation performance', array_merge([
+            'stage' => $stage,
+        ], $this->materialPerformanceSnapshot($startedAt), $context));
+    }
+
     /**
      * Log riwayat perhitungan (sebelumnya index)
      * Now using CalculationRepository for cleaner code
@@ -261,6 +293,7 @@ class MaterialCalculationController extends Controller
                 'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
                 'project_place_id' => 'nullable|string|max:255',
                 'use_store_filter' => 'nullable|boolean',
+                'store_radius_scope' => 'nullable|string|in:within,outside',
                 'allow_mixed_store' => 'nullable|boolean',
                 'price_filters' => 'required|array|min:1',
                 'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
@@ -517,9 +550,13 @@ class MaterialCalculationController extends Controller
 
     protected function generateCombinations(Request $request)
     {
+        $perfStartedAt = microtime(true);
         $cacheKey = $this->buildCalculationCacheKey($request);
         $cachedPayload = $this->getCalculationCachePayload($cacheKey);
         if ($cachedPayload) {
+            $this->logMaterialPerformanceStage($perfStartedAt, 'generate_combinations.cache_hit', [
+                'cache_key' => $cacheKey,
+            ]);
             // Redirect to GET route untuk support pagination dan refresh
             return redirect()->route('material-calculations.preview', ['cacheKey' => $cacheKey]);
         }
@@ -715,11 +752,29 @@ class MaterialCalculationController extends Controller
             ]);
         }
 
+        $this->logMaterialPerformanceStage($perfStartedAt, 'generate_combinations.target_bricks_ready', [
+            'work_type' => $workType,
+            'price_filters' => array_values($priceFilters),
+            'target_bricks_count' => $targetBricks->count(),
+            'is_brickless' => $isBrickless,
+            'use_store_filter' => $useStoreFilter,
+        ]);
+
         $projects = [];
+        $complexityGuardEvents = [];
+        $complexityFastModeEvents = [];
         if (!$isBrickless && $useStoreFilter && !$hasExplicitBrickSelection) {
             // In store-radius mode without explicit brick selection, avoid global brick pool iteration.
             // Let store-based engine pick bricks per reachable store so results stay within radius scope.
             $combinations = $this->combinationGenerationService->calculateCombinations($request, ['brick' => null]);
+            $complexityGuardEvents = array_merge(
+                $complexityGuardEvents,
+                $this->combinationGenerationService->consumeComplexityGuardEvents(),
+            );
+            $complexityFastModeEvents = array_merge(
+                $complexityFastModeEvents,
+                $this->combinationGenerationService->consumeComplexityFastModeEvents(),
+            );
             $displayBrick = $this->resolveDisplayBrickFromCombinations($combinations);
 
             \Log::info('Project combinations for store-filter single pass', [
@@ -735,6 +790,14 @@ class MaterialCalculationController extends Controller
         } else {
             foreach ($targetBricks as $brick) {
                 $combinations = $this->combinationGenerationService->calculateCombinationsForBrick($brick, $request);
+                $complexityGuardEvents = array_merge(
+                    $complexityGuardEvents,
+                    $this->combinationGenerationService->consumeComplexityGuardEvents(),
+                );
+                $complexityFastModeEvents = array_merge(
+                    $complexityFastModeEvents,
+                    $this->combinationGenerationService->consumeComplexityFastModeEvents(),
+                );
                 $displayBrick = $this->resolveDisplayBrickFromCombinations($combinations) ?? $brick;
 
                 \Log::info('Project combinations for brick', [
@@ -752,6 +815,63 @@ class MaterialCalculationController extends Controller
             }
         }
 
+        $projectCombinationGroupCount = 0;
+        $projectCombinationRowCount = 0;
+        foreach ($projects as $projectRow) {
+            $groups = is_array($projectRow['combinations'] ?? null) ? $projectRow['combinations'] : [];
+            $projectCombinationGroupCount += count($groups);
+            foreach ($groups as $groupRows) {
+                if (is_array($groupRows)) {
+                    $projectCombinationRowCount += count($groupRows);
+                }
+            }
+        }
+        $this->logMaterialPerformanceStage($perfStartedAt, 'generate_combinations.projects_built', [
+            'projects_count' => count($projects),
+            'combination_group_count' => $projectCombinationGroupCount,
+            'combination_row_count' => $projectCombinationRowCount,
+            'complexity_guard_event_count' => count($complexityGuardEvents),
+            'complexity_fast_mode_event_count' => count($complexityFastModeEvents),
+        ]);
+
+        $hasAnyCombinationRows = false;
+        foreach ($projects as $projectRow) {
+            if (!is_array($projectRow)) {
+                continue;
+            }
+            $combinationGroups = $projectRow['combinations'] ?? [];
+            if (is_array($combinationGroups) && !empty($combinationGroups)) {
+                $hasAnyCombinationRows = true;
+                break;
+            }
+        }
+
+        if (!$hasAnyCombinationRows && !empty($complexityGuardEvents)) {
+            $maxEstimateSeen = 0;
+            foreach ($complexityGuardEvents as $event) {
+                $estimate = (int) data_get($event, 'estimate.estimated_combinations', 0);
+                if ($estimate > $maxEstimateSeen) {
+                    $maxEstimateSeen = $estimate;
+                }
+            }
+
+            \Log::warning('Preview generation halted by complexity guard', [
+                'work_type' => $workType,
+                'price_filters' => $priceFilters,
+                'guard_events' => $complexityGuardEvents,
+                'max_estimate_seen' => $maxEstimateSeen,
+            ]);
+
+            $message =
+                'Perhitungan dihentikan karena kombinasi material terlalu banyak (complexity guard aktif). ' .
+                'Persempit filter material/harga atau kurangi variasi item.';
+            if ($maxEstimateSeen > 0) {
+                $message .= ' Estimasi kombinasi tertinggi: ' . number_format($maxEstimateSeen, 0, ',', '.');
+            }
+
+            return redirect()->back()->withInput()->with('error', $message);
+        }
+
         $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
         $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
 
@@ -764,9 +884,21 @@ class MaterialCalculationController extends Controller
             'formulaName' => $formulaName,
             'isBrickless' => $isBrickless,
             'ceramicProjects' => [],
+            'calculationDiagnostics' => [
+                'complexity_guard_events' => array_values($complexityGuardEvents),
+                'complexity_fast_mode_events' => array_values($complexityFastModeEvents),
+            ],
         ];
 
         $this->storeCalculationCachePayload($cacheKey, $payload);
+
+        $this->logMaterialPerformanceStage($perfStartedAt, 'generate_combinations.payload_cached', [
+            'cache_key' => $cacheKey,
+            'projects_count' => count($payload['projects'] ?? []),
+            'formula_name' => $formulaName,
+            'complexity_guard_event_count' => count($complexityGuardEvents),
+            'complexity_fast_mode_event_count' => count($complexityFastModeEvents),
+        ]);
 
         \Log::info('Preview payload cached', [
             'cacheKey' => $cacheKey,
@@ -2090,6 +2222,7 @@ class MaterialCalculationController extends Controller
             'cement' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
             'sand' => ['brand'],
             'cat' => ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+            'ceramic_type' => ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
             'ceramic' => ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
             'nat' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
         ];
@@ -2144,6 +2277,7 @@ class MaterialCalculationController extends Controller
             'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
             'project_place_id' => 'nullable|string|max:255',
             'use_store_filter' => 'nullable|boolean',
+            'store_radius_scope' => 'nullable|string|in:within,outside',
             'allow_mixed_store' => 'nullable|boolean',
             'work_floors' => 'nullable|array',
             'work_floors.*' => 'nullable|string|max:120',

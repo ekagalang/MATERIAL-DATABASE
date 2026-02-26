@@ -147,6 +147,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
                 'project_place_id' => 'nullable|string|max:255',
                 'use_store_filter' => 'nullable|boolean',
+                'store_radius_scope' => 'nullable|string|in:within,outside',
                 'allow_mixed_store' => 'nullable|boolean',
                 'price_filters' => 'required|array|min:1',
                 'price_filters.*' => 'in:all,best,common,cheapest,medium,expensive,custom',
@@ -612,6 +613,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
     protected function generateBundleCombinations(Request $request, array $bundleItems)
     {
+        $perfStartedAt = microtime(true);
         $bundleName = trim((string) $request->input('bundle_name', 'Paket Pekerjaan'));
         if ($bundleName === '') {
             $bundleName = 'Paket Pekerjaan';
@@ -654,6 +656,10 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         $bundleItemPayloads = [];
+        $bundleDiagnostics = [
+            'item_complexity_guard_events' => [],
+            'item_complexity_fast_mode_events' => [],
+        ];
         foreach ($bundleItems as $index => $bundleItem) {
             $itemTitle = trim((string) ($bundleItem['title'] ?? ''));
             if ($itemTitle === '') {
@@ -728,11 +734,41 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 continue;
             }
 
+            $itemDiagnostics = is_array($itemPayload['calculationDiagnostics'] ?? null)
+                ? $itemPayload['calculationDiagnostics']
+                : [];
+            $itemGuardEvents = is_array($itemDiagnostics['complexity_guard_events'] ?? null)
+                ? $itemDiagnostics['complexity_guard_events']
+                : [];
+            $itemFastModeEvents = is_array($itemDiagnostics['complexity_fast_mode_events'] ?? null)
+                ? $itemDiagnostics['complexity_fast_mode_events']
+                : [];
+            foreach ($itemGuardEvents as $event) {
+                if (!is_array($event)) {
+                    continue;
+                }
+                $bundleDiagnostics['item_complexity_guard_events'][] = array_merge($event, [
+                    'bundle_item_index' => $index,
+                    'bundle_item_title' => $itemTitle,
+                ]);
+            }
+            foreach ($itemFastModeEvents as $event) {
+                if (!is_array($event)) {
+                    continue;
+                }
+                $bundleDiagnostics['item_complexity_fast_mode_events'][] = array_merge($event, [
+                    'bundle_item_index' => $index,
+                    'bundle_item_title' => $itemTitle,
+                ]);
+            }
+
             // Keep only fields needed for bundle aggregation to reduce memory pressure
             // when many bundle items are calculated in a single request.
             $bundleItemPayloads[] = [
                 'projects' => is_array($itemPayload['projects'] ?? null) ? $itemPayload['projects'] : [],
-                'requestData' => is_array($itemPayload['requestData'] ?? null) ? $itemPayload['requestData'] : [],
+                'requestData' => $this->minimizeBundleItemRequestDataForAggregation(
+                    is_array($itemPayload['requestData'] ?? null) ? $itemPayload['requestData'] : [],
+                ),
                 'title' => $itemTitle,
                 'work_type' => $bundleItem['work_type'],
                 'row_kind' => $rowKind,
@@ -750,6 +786,14 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             unset($itemPayload);
         }
+
+        $this->logMaterialPerformanceStage($perfStartedAt, 'bundle_combinations.item_payloads_built', [
+            'bundle_name' => $bundleName,
+            'bundle_item_input_count' => count($bundleItems),
+            'bundle_item_payload_count' => count($bundleItemPayloads),
+            'bundle_item_complexity_guard_event_count' => count($bundleDiagnostics['item_complexity_guard_events']),
+            'bundle_item_complexity_fast_mode_event_count' => count($bundleDiagnostics['item_complexity_fast_mode_events']),
+        ]);
 
         if (empty($bundleItemPayloads)) {
             return redirect()
@@ -774,7 +818,23 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         $bundleCombinations = $this->buildBundleSummaryCombinations(
             $bundleItemPayloads,
             $request->input('price_filters', ['best']),
+            [
+                'use_store_filter' => (bool) $request->boolean('use_store_filter', true),
+                'allow_mixed_store' => (bool) $request->boolean('allow_mixed_store', false),
+            ],
         );
+
+        $bundleCombinationRowCount = 0;
+        foreach ($bundleCombinations as $rows) {
+            if (is_array($rows)) {
+                $bundleCombinationRowCount += count($rows);
+            }
+        }
+        $this->logMaterialPerformanceStage($perfStartedAt, 'bundle_combinations.summary_built', [
+            'bundle_item_payload_count' => count($bundleItemPayloads),
+            'bundle_combination_label_count' => count($bundleCombinations),
+            'bundle_combination_row_count' => $bundleCombinationRowCount,
+        ]);
 
         if (empty($bundleCombinations)) {
             return redirect()
@@ -787,6 +847,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         $bundleProjects = $this->buildBundleProjectsPayload($bundleCombinations);
+        $this->logMaterialPerformanceStage($perfStartedAt, 'bundle_combinations.projects_payload_built', [
+            'bundle_projects_count' => count($bundleProjects),
+        ]);
         if (empty($bundleProjects)) {
             return redirect()
                 ->route('material-calculations.create')
@@ -831,11 +894,21 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     'bundle_work_types' => $bundleWorkTypes,
                 ],
             ),
+            'calculationDiagnostics' => [
+                'bundle_item_complexity_guard_events' => array_values($bundleDiagnostics['item_complexity_guard_events']),
+                'bundle_item_complexity_fast_mode_events' => array_values(
+                    $bundleDiagnostics['item_complexity_fast_mode_events'],
+                ),
+            ],
         ];
 
         $bundleCacheSeed = [
+            'bundle_summary_engine_version' => 'single-store-lock-v2',
             'bundle_name' => $bundleName,
             'price_filters' => $request->input('price_filters', []),
+            'use_store_filter' => (bool) $request->boolean('use_store_filter', true),
+            'allow_mixed_store' => (bool) $request->boolean('allow_mixed_store', false),
+            'store_radius_scope' => (string) $request->input('store_radius_scope', ''),
             'work_items' => $bundleItems,
             'project_address' => $request->input('project_address'),
             'project_latitude' => $request->input('project_latitude'),
@@ -846,11 +919,23 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
         $this->storeCalculationCachePayload($bundleCacheKey, $bundlePayload);
 
+        $this->logMaterialPerformanceStage($perfStartedAt, 'bundle_combinations.payload_cached', [
+            'bundle_cache_key' => $bundleCacheKey,
+            'bundle_projects_count' => count($bundlePayload['projects'] ?? []),
+            'bundle_work_type_count' => count($bundleWorkTypes),
+            'bundle_item_complexity_guard_event_count' => count($bundleDiagnostics['item_complexity_guard_events']),
+            'bundle_item_complexity_fast_mode_event_count' => count($bundleDiagnostics['item_complexity_fast_mode_events']),
+        ]);
+
         return redirect()->route('material-calculations.preview', ['cacheKey' => $bundleCacheKey]);
     }
 
-    protected function buildBundleSummaryCombinations(array $bundleItemPayloads, array $priceFilters): array
+    protected function buildBundleSummaryCombinations(array $bundleItemPayloads, array $priceFilters, array $bundleOptions = []): array
     {
+        $bundleSummaryStartedAt = microtime(true);
+        $enforceSingleStoreAcrossBundle =
+            (bool) ($bundleOptions['use_store_filter'] ?? true) &&
+            !(bool) ($bundleOptions['allow_mixed_store'] ?? false);
         $requestedFilters = is_array($priceFilters) ? $priceFilters : [$priceFilters];
         $requestedFilters = array_map(static fn($filter) => strtolower(trim((string) $filter)), $requestedFilters);
         $requestedFilters = array_values(array_filter($requestedFilters, static fn($filter) => $filter !== ''));
@@ -882,10 +967,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             }
         }
         $candidateLabels = array_values(array_unique($candidateLabels));
+        $candidateLabelLookup = array_fill_keys($candidateLabels, true);
 
         $itemCombinationMaps = [];
         foreach ($bundleItemPayloads as $bundleItemPayload) {
-            $itemCombinationMaps[] = $this->extractBestCombinationMapForPayload($bundleItemPayload);
+            $itemCombinationMaps[] = $this->extractBestCombinationMapForPayload($bundleItemPayload, $candidateLabelLookup);
         }
         $itemCombinationMaps = array_values($itemCombinationMaps);
 
@@ -1032,15 +1118,255 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
             return $anyCandidates[0]['candidate'] ?? null;
         };
+        $resolveItemCandidateOptions = static function (
+            array $itemMap,
+            string $targetLabel,
+        ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix): array {
+            $appendCandidates = static function (array &$bucket, array $rows): void {
+                foreach ($rows as $row) {
+                    if (!is_array($row)) {
+                        continue;
+                    }
+                    $serialized = json_encode($row, JSON_UNESCAPED_UNICODE);
+                    if (!is_string($serialized)) {
+                        continue;
+                    }
+                    $key = sha1($serialized);
+                    if (isset($bucket[$key])) {
+                        continue;
+                    }
+                    $bucket[$key] = $row;
+                }
+            };
+
+            $targetPrefix = $extractLabelPrefix($targetLabel);
+            $targetRank = $extractLabelRank($targetLabel);
+            $ordered = [];
+
+            if (isset($itemMap[$targetLabel]) && is_array($itemMap[$targetLabel])) {
+                $appendCandidates($ordered, [$itemMap[$targetLabel]]);
+            }
+
+            $prefixCandidates = [];
+            foreach ($itemMap as $candidateLabel => $candidateRow) {
+                if (!is_array($candidateRow)) {
+                    continue;
+                }
+                if (strcasecmp($extractLabelPrefix((string) $candidateLabel), $targetPrefix) !== 0) {
+                    continue;
+                }
+                $prefixCandidates[] = [
+                    'rank' => $extractLabelRank((string) $candidateLabel),
+                    'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                    'candidate' => $candidateRow,
+                ];
+            }
+            if (!empty($prefixCandidates)) {
+                usort($prefixCandidates, static function ($a, $b) {
+                    $rankCompare = ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+                    if ($rankCompare !== 0) {
+                        return $rankCompare;
+                    }
+
+                    return ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                        ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                });
+
+                // Prioritise around target rank, then keep the rest as fallback options.
+                $rankOrdered = [];
+                foreach ($prefixCandidates as $entry) {
+                    $rank = (int) ($entry['rank'] ?? 1);
+                    $distance = abs($rank - $targetRank);
+                    $rankOrdered[] = [
+                        'distance' => $distance,
+                        'rank' => $rank,
+                        'grand_total' => (float) ($entry['grand_total'] ?? PHP_FLOAT_MAX),
+                        'candidate' => $entry['candidate'],
+                    ];
+                }
+                usort($rankOrdered, static function ($a, $b) {
+                    $distanceCompare = ((int) ($a['distance'] ?? 0)) <=> ((int) ($b['distance'] ?? 0));
+                    if ($distanceCompare !== 0) {
+                        return $distanceCompare;
+                    }
+
+                    $rankCompare = ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+                    if ($rankCompare !== 0) {
+                        return $rankCompare;
+                    }
+
+                    return ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                        ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                });
+
+                $appendCandidates($ordered, array_map(static fn($entry) => $entry['candidate'], $rankOrdered));
+            }
+
+            if (strtolower($targetPrefix) !== $popularPrefix) {
+                $allowedPrefixLookup = [];
+                foreach ($allowedPrefixes as $allowedPrefix) {
+                    $allowedPrefixKey = strtolower(trim((string) $allowedPrefix));
+                    if ($allowedPrefixKey === $popularPrefix) {
+                        continue;
+                    }
+                    $allowedPrefixLookup[$allowedPrefixKey] = true;
+                }
+
+                $allowedCandidates = [];
+                foreach ($itemMap as $candidateLabel => $candidateRow) {
+                    if (!is_array($candidateRow)) {
+                        continue;
+                    }
+                    $candidatePrefixKey = strtolower($extractLabelPrefix((string) $candidateLabel));
+                    if ($candidatePrefixKey === $popularPrefix || !isset($allowedPrefixLookup[$candidatePrefixKey])) {
+                        continue;
+                    }
+                    $allowedCandidates[] = [
+                        'rank' => $extractLabelRank((string) $candidateLabel),
+                        'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                        'candidate' => $candidateRow,
+                    ];
+                }
+                usort($allowedCandidates, static function ($a, $b) {
+                    $totalCompare = ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                        ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                    if ($totalCompare !== 0) {
+                        return $totalCompare;
+                    }
+
+                    return ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+                });
+                $appendCandidates($ordered, array_map(static fn($entry) => $entry['candidate'], $allowedCandidates));
+
+                $anyCandidates = [];
+                foreach ($itemMap as $candidateLabel => $candidateRow) {
+                    if (!is_array($candidateRow)) {
+                        continue;
+                    }
+                    $candidatePrefixKey = strtolower($extractLabelPrefix((string) $candidateLabel));
+                    if ($candidatePrefixKey === $popularPrefix) {
+                        continue;
+                    }
+                    $anyCandidates[] = [
+                        'rank' => $extractLabelRank((string) $candidateLabel),
+                        'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                        'candidate' => $candidateRow,
+                    ];
+                }
+                usort($anyCandidates, static function ($a, $b) {
+                    $totalCompare = ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
+                        ((float) ($b['grand_total'] ?? PHP_FLOAT_MAX));
+                    if ($totalCompare !== 0) {
+                        return $totalCompare;
+                    }
+
+                    return ((int) ($a['rank'] ?? 0)) <=> ((int) ($b['rank'] ?? 0));
+                });
+                $appendCandidates($ordered, array_map(static fn($entry) => $entry['candidate'], $anyCandidates));
+            }
+
+            return array_values($ordered);
+        };
+        $buildBundleSelectedItem = static function (array $bundleItemPayload, int $index, array $selected): array {
+            $itemRequestData = is_array($bundleItemPayload['requestData'] ?? null)
+                ? $bundleItemPayload['requestData']
+                : [];
+            $resolveFirstTaxonomyValue = static function (mixed $value): string {
+                if (is_array($value)) {
+                    foreach ($value as $entry) {
+                        $text = trim((string) $entry);
+                        if ($text !== '') {
+                            return $text;
+                        }
+                    }
+
+                    return '';
+                }
+
+                return trim((string) $value);
+            };
+            $itemWorkFloor = trim((string) ($bundleItemPayload['work_floor'] ?? ''));
+            if ($itemWorkFloor === '') {
+                $itemWorkFloor = $resolveFirstTaxonomyValue(
+                    $itemRequestData['work_floors'] ?? ($itemRequestData['work_floor'] ?? ''),
+                );
+            }
+            $itemWorkArea = trim((string) ($bundleItemPayload['work_area'] ?? ''));
+            if ($itemWorkArea === '') {
+                $itemWorkArea = $resolveFirstTaxonomyValue(
+                    $itemRequestData['work_areas'] ?? ($itemRequestData['work_area'] ?? ''),
+                );
+            }
+            $itemWorkField = trim((string) ($bundleItemPayload['work_field'] ?? ''));
+            if ($itemWorkField === '') {
+                $itemWorkField = $resolveFirstTaxonomyValue(
+                    $itemRequestData['work_fields'] ?? ($itemRequestData['work_field'] ?? ''),
+                );
+            }
+            $itemRowKind = strtolower(trim((string) ($bundleItemPayload['row_kind'] ?? ($itemRequestData['row_kind'] ?? 'item'))));
+            if (!in_array($itemRowKind, ['area', 'field', 'item'], true)) {
+                $itemRowKind = 'item';
+            }
+
+            return [
+                'title' => $bundleItemPayload['title'] ?? ('Item ' . ($index + 1)),
+                'work_type' => $bundleItemPayload['work_type'] ?? ($bundleItemPayload['requestData']['work_type'] ?? ''),
+                'row_kind' => $itemRowKind,
+                'work_floor' => $itemWorkFloor,
+                'work_area' => $itemWorkArea,
+                'work_field' => $itemWorkField,
+                'request_data' => $itemRequestData,
+                'combination' => $selected,
+            ];
+        };
 
         $bundleCombinations = [];
         foreach ($candidateLabels as $label) {
             $isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;
             $selectedItems = [];
             $isComplete = true;
+            $pendingStoreConstrainedItems = [];
 
             foreach ($bundleItemPayloads as $index => $bundleItemPayload) {
                 $itemMap = $itemCombinationMaps[$index] ?? [];
+                if ($enforceSingleStoreAcrossBundle) {
+                    $options = is_array($itemMap) ? $resolveItemCandidateOptions($itemMap, (string) $label) : [];
+                    if (empty($options)) {
+                        $isComplete = false;
+                        break;
+                    }
+                    $optionsByStoreKey = [];
+                    foreach ($options as $candidateOption) {
+                        if (!is_array($candidateOption) || empty($candidateOption)) {
+                            continue;
+                        }
+                        $candidateStoreKey = $this->extractBundleStoreIdentityKeyFromCombination($candidateOption);
+                        if ($candidateStoreKey === null) {
+                            continue;
+                        }
+                        $candidateTotal = (float) ($candidateOption['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                        if (
+                            !isset($optionsByStoreKey[$candidateStoreKey]) ||
+                            $candidateTotal < (float) ($optionsByStoreKey[$candidateStoreKey]['total'] ?? PHP_FLOAT_MAX)
+                        ) {
+                            $optionsByStoreKey[$candidateStoreKey] = [
+                                'candidate' => $candidateOption,
+                                'total' => $candidateTotal,
+                            ];
+                        }
+                    }
+                    if (empty($optionsByStoreKey)) {
+                        $isComplete = false;
+                        break;
+                    }
+                    $pendingStoreConstrainedItems[] = [
+                        'bundle_item_payload' => $bundleItemPayload,
+                        'index' => $index,
+                        'options_by_store_key' => $optionsByStoreKey,
+                    ];
+                    continue;
+                }
+
                 $selected = is_array($itemMap) ? $resolveItemCandidate($itemMap, (string) $label) : null;
                 if (!$selected) {
                     if ($isPopularLabel) {
@@ -1049,58 +1375,69 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     $isComplete = false;
                     break;
                 }
-                $itemRequestData = is_array($bundleItemPayload['requestData'] ?? null)
-                    ? $bundleItemPayload['requestData']
-                    : [];
-                $resolveFirstTaxonomyValue = static function (mixed $value): string {
-                    if (is_array($value)) {
-                        foreach ($value as $entry) {
-                            $text = trim((string) $entry);
-                            if ($text !== '') {
-                                return $text;
+
+                $selectedItems[] = $buildBundleSelectedItem($bundleItemPayload, $index, $selected);
+            }
+
+            if ($enforceSingleStoreAcrossBundle && $isComplete) {
+                if (count($pendingStoreConstrainedItems) !== count($bundleItemPayloads)) {
+                    $isComplete = false;
+                } else {
+                    $commonStoreKeys = null;
+                    foreach ($pendingStoreConstrainedItems as $entry) {
+                        $keys = array_keys($entry['options_by_store_key'] ?? []);
+                        if ($commonStoreKeys === null) {
+                            $commonStoreKeys = $keys;
+                            continue;
+                        }
+                        $commonStoreKeys = array_values(array_intersect($commonStoreKeys, $keys));
+                    }
+
+                    if (empty($commonStoreKeys)) {
+                        $isComplete = false;
+                    } else {
+                        $bestStoreKey = null;
+                        $bestStoreTotal = PHP_FLOAT_MAX;
+                        foreach ($commonStoreKeys as $storeKey) {
+                            $sum = 0.0;
+                            $valid = true;
+                            foreach ($pendingStoreConstrainedItems as $entry) {
+                                $opt = $entry['options_by_store_key'][$storeKey] ?? null;
+                                if (!is_array($opt)) {
+                                    $valid = false;
+                                    break;
+                                }
+                                $sum += (float) ($opt['total'] ?? 0);
+                            }
+                            if ($valid && $sum < $bestStoreTotal) {
+                                $bestStoreTotal = $sum;
+                                $bestStoreKey = (string) $storeKey;
                             }
                         }
 
-                        return '';
+                        if ($bestStoreKey === null) {
+                            $isComplete = false;
+                        } else {
+                            foreach ($pendingStoreConstrainedItems as $entry) {
+                                $selected = $entry['options_by_store_key'][$bestStoreKey]['candidate'] ?? null;
+                                if (!is_array($selected)) {
+                                    $isComplete = false;
+                                    break;
+                                }
+                                $selectedItems[] = $buildBundleSelectedItem(
+                                    (array) ($entry['bundle_item_payload'] ?? []),
+                                    (int) ($entry['index'] ?? 0),
+                                    $selected,
+                                );
+                            }
+                        }
                     }
-
-                    return trim((string) $value);
-                };
-                $itemWorkFloor = trim((string) ($bundleItemPayload['work_floor'] ?? ''));
-                if ($itemWorkFloor === '') {
-                    $itemWorkFloor = $resolveFirstTaxonomyValue(
-                        $itemRequestData['work_floors'] ?? ($itemRequestData['work_floor'] ?? ''),
-                    );
                 }
-                $itemWorkArea = trim((string) ($bundleItemPayload['work_area'] ?? ''));
-                if ($itemWorkArea === '') {
-                    $itemWorkArea = $resolveFirstTaxonomyValue(
-                        $itemRequestData['work_areas'] ?? ($itemRequestData['work_area'] ?? ''),
-                    );
-                }
-                $itemWorkField = trim((string) ($bundleItemPayload['work_field'] ?? ''));
-                if ($itemWorkField === '') {
-                    $itemWorkField = $resolveFirstTaxonomyValue(
-                        $itemRequestData['work_fields'] ?? ($itemRequestData['work_field'] ?? ''),
-                    );
-                }
-                $itemRowKind = strtolower(trim((string) ($bundleItemPayload['row_kind'] ?? ($itemRequestData['row_kind'] ?? 'item'))));
-                if (!in_array($itemRowKind, ['area', 'field', 'item'], true)) {
-                    $itemRowKind = 'item';
-                }
-
-                $selectedItems[] = [
-                    'title' => $bundleItemPayload['title'] ?? ('Item ' . ($index + 1)),
-                    'work_type' => $bundleItemPayload['work_type'] ?? ($bundleItemPayload['requestData']['work_type'] ?? ''),
-                    'row_kind' => $itemRowKind,
-                    'work_floor' => $itemWorkFloor,
-                    'work_area' => $itemWorkArea,
-                    'work_field' => $itemWorkField,
-                    'request_data' => $itemRequestData,
-                    'combination' => $selected,
-                ];
             }
 
+            if ($enforceSingleStoreAcrossBundle && (!$isComplete || empty($selectedItems))) {
+                continue;
+            }
             if ($isPopularLabel) {
                 if (empty($selectedItems)) {
                     continue;
@@ -1119,7 +1456,120 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             return $totalA <=> $totalB;
         });
 
+        if ($this->shouldLogBundleSummaryDebug()) {
+            \Log::info('Bundle summary combinations built', [
+                'requested_filters' => $requestedFilters,
+                'bundle_item_count' => count($bundleItemPayloads),
+                'candidate_label_count' => count($candidateLabels),
+                'bundle_combination_count' => count($bundleCombinations),
+                'elapsed_ms' => (int) round((microtime(true) - $bundleSummaryStartedAt) * 1000),
+                'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
+            ]);
+        }
+
         return $bundleCombinations;
+    }
+
+    protected function extractBundleStoreIdentityKeyFromCombination(array $combination): ?string
+    {
+        $storePlan = $combination['store_plan'] ?? null;
+        if (is_array($storePlan) && !empty($storePlan)) {
+            if (count($storePlan) !== 1) {
+                return null;
+            }
+            $entry = $storePlan[0] ?? null;
+            if (is_array($entry)) {
+                $storeLocationId = isset($entry['store_location_id']) ? (int) $entry['store_location_id'] : 0;
+                if ($storeLocationId > 0) {
+                    return 'store_location:' . $storeLocationId;
+                }
+                $storeName = trim((string) ($entry['store_name'] ?? ''));
+                $storeCity = trim((string) ($entry['city'] ?? ''));
+                if ($storeName !== '') {
+                    return 'store_name:' . strtolower($storeName . '|' . $storeCity);
+                }
+            }
+        }
+
+        $storeLocation = $combination['store_location'] ?? null;
+        if (is_object($storeLocation) && isset($storeLocation->id) && (int) $storeLocation->id > 0) {
+            return 'store_location:' . (int) $storeLocation->id;
+        }
+
+        $storeLabel = trim((string) ($combination['store_label'] ?? ''));
+        if ($storeLabel !== '') {
+            $normalized = preg_replace('/\s+\[(?:Hemat|Premium)\]\s*$/u', '', $storeLabel) ?: $storeLabel;
+            $normalized = trim((string) $normalized);
+            if ($normalized !== '') {
+                return 'store_label:' . strtolower($normalized);
+            }
+        }
+
+        return null;
+    }
+
+    protected function shouldLogBundleSummaryDebug(): bool
+    {
+        if (!(bool) config('materials.topk_buffer_log_debug', false)) {
+            return false;
+        }
+
+        return app()->environment(['local', 'staging']);
+    }
+
+    /**
+     * Keep only per-item request fields needed by bundle aggregation/detail/trace fallback.
+     * This avoids retaining the full calculation request payload for every bundle item.
+     */
+    protected function minimizeBundleItemRequestDataForAggregation(array $requestData): array
+    {
+        if (empty($requestData)) {
+            return [];
+        }
+
+        $allowedKeys = [
+            'work_type',
+            'row_kind',
+            'work_floor',
+            'work_area',
+            'work_field',
+            'work_floors',
+            'work_areas',
+            'work_fields',
+            'wall_length',
+            'wall_height',
+            'area',
+            'mortar_thickness',
+            'grout_thickness',
+            'ceramic_length',
+            'ceramic_width',
+            'ceramic_thickness',
+            'painting_layers',
+            'layer_count',
+            'plaster_sides',
+            'skim_sides',
+            'installation_type_id',
+            'mortar_formula_id',
+        ];
+
+        $minimal = [];
+        foreach ($allowedKeys as $key) {
+            if (!array_key_exists($key, $requestData)) {
+                continue;
+            }
+
+            $value = $requestData[$key];
+            if (is_scalar($value) || $value === null) {
+                $minimal[$key] = $value;
+                continue;
+            }
+
+            if (is_array($value)) {
+                $minimal[$key] = $value;
+            }
+        }
+
+        return $minimal;
     }
 
     protected function buildBundleProjectsPayload(array $bundleCombinations): array
@@ -1904,7 +2354,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         return $top['model'] ?? null;
     }
 
-    protected function extractBestCombinationMapForPayload(array $payload): array
+    protected function extractBestCombinationMapForPayload(array $payload, ?array $allowedLabels = null): array
     {
         $map = [];
         $projects = $payload['projects'] ?? [];
@@ -1912,12 +2362,41 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             return $map;
         }
 
+        $resolveTargetLabels = static function (string $label) use ($allowedLabels): array {
+            $normalized = trim($label);
+            if ($normalized === '') {
+                return [];
+            }
+
+            $targets = [$normalized => true];
+
+            if (str_contains($normalized, '=')) {
+                foreach (preg_split('/\s*=\s*/u', $normalized) ?: [] as $alias) {
+                    $alias = trim((string) $alias);
+                    if ($alias === '') {
+                        continue;
+                    }
+                    $targets[$alias] = true;
+                }
+            }
+
+            if (is_array($allowedLabels)) {
+                $targets = array_intersect_key($targets, $allowedLabels);
+            }
+
+            return array_keys($targets);
+        };
+
         foreach ($projects as $project) {
             $combinations = $project['combinations'] ?? [];
             if (!is_array($combinations)) {
                 continue;
             }
             foreach ($combinations as $label => $items) {
+                $targetLabels = $resolveTargetLabels((string) $label);
+                if (empty($targetLabels)) {
+                    continue;
+                }
                 if (!is_array($items)) {
                     continue;
                 }
@@ -1926,19 +2405,54 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                         continue;
                     }
                     $grandTotal = (float) ($candidate['result']['grand_total'] ?? 0);
-                    if (!isset($map[$label])) {
-                        $map[$label] = $candidate;
-                        continue;
-                    }
-                    $existingTotal = (float) ($map[$label]['result']['grand_total'] ?? PHP_FLOAT_MAX);
-                    if ($grandTotal < $existingTotal) {
-                        $map[$label] = $candidate;
+                    $minimizedCandidate = null;
+                    foreach ($targetLabels as $targetLabel) {
+                        if (!isset($map[$targetLabel])) {
+                            $minimizedCandidate ??= $this->minimizeBundleCombinationCandidate($candidate);
+                            $map[$targetLabel] = $minimizedCandidate;
+                            continue;
+                        }
+                        $existingTotal = (float) ($map[$targetLabel]['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                        if ($grandTotal < $existingTotal) {
+                            $minimizedCandidate ??= $this->minimizeBundleCombinationCandidate($candidate);
+                            $map[$targetLabel] = $minimizedCandidate;
+                        }
                     }
                 }
             }
         }
 
         return $map;
+    }
+
+    /**
+     * Bundle summary aggregation only needs result values and chosen material models.
+     * Trimming here avoids retaining heavy debug/preview data for every candidate label.
+     */
+    protected function minimizeBundleCombinationCandidate(array $candidate): array
+    {
+        $result = is_array($candidate['result'] ?? null) ? $candidate['result'] : [];
+
+        return [
+            'result' => $result,
+            'total_cost' => (float) ($candidate['total_cost'] ?? ($result['grand_total'] ?? 0)),
+            'filter_label' => $candidate['filter_label'] ?? null,
+            'filter_type' => $candidate['filter_type'] ?? null,
+            'source_filters' => is_array($candidate['source_filters'] ?? null) ? $candidate['source_filters'] : [],
+            'store_label' => $candidate['store_label'] ?? null,
+            'store_plan' => is_array($candidate['store_plan'] ?? null) ? $candidate['store_plan'] : [],
+            'store_coverage_mode' => $candidate['store_coverage_mode'] ?? null,
+            'store_cost_breakdown' => is_array($candidate['store_cost_breakdown'] ?? null)
+                ? $candidate['store_cost_breakdown']
+                : [],
+            'store_location' => $candidate['store_location'] ?? null,
+            'brick' => $candidate['brick'] ?? null,
+            'cement' => $candidate['cement'] ?? null,
+            'sand' => $candidate['sand'] ?? null,
+            'cat' => $candidate['cat'] ?? null,
+            'ceramic' => $candidate['ceramic'] ?? null,
+            'nat' => $candidate['nat'] ?? null,
+        ];
     }
 
     public function update(Request $request, BrickCalculation $materialCalculation)
@@ -2142,9 +2656,10 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'project_address' => 'nullable|string',
             'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
             'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
-            'project_place_id' => 'nullable|string|max:255',
-            'use_store_filter' => 'nullable|boolean',
-            'allow_mixed_store' => 'nullable|boolean',
+                'project_place_id' => 'nullable|string|max:255',
+                'use_store_filter' => 'nullable|boolean',
+                'store_radius_scope' => 'nullable|string|in:within,outside',
+                'allow_mixed_store' => 'nullable|boolean',
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
             'mortar_thickness' => 'required|numeric|min:0.01|max:10',

@@ -16,6 +16,9 @@ test('execution controller supports bundle mode payload parsing and bundle previ
         ->and($content)->toContain('protected function generateBundleCombinations(Request $request, array $bundleItems)')
         ->and($content)->toContain("\$itemRequestData['material_customize_filters'] = \$itemMaterialCustomizeFilters;")
         ->and($content)->toContain('protected function buildBundleSummaryCombinations(array $bundleItemPayloads, array $priceFilters): array')
+        ->and($content)->toContain('$candidateLabelLookup = array_fill_keys($candidateLabels, true);')
+        ->and($content)->toContain('$this->extractBestCombinationMapForPayload($bundleItemPayload, $candidateLabelLookup);')
+        ->and($content)->toContain('protected function shouldLogBundleSummaryDebug(): bool')
         ->and($content)->toContain('protected function buildBundleProjectsPayload(')
         ->and($content)->toContain('\'projects\' => $bundleProjects')
         ->and($content)->toContain('\'ceramicProjects\' => []');
@@ -84,7 +87,9 @@ test('bundle aggregation exposes detailed material rows so preview can render mu
     expect($content)->toContain('bundle_material_rows')
         ->and($content)->toContain('buildBundleMaterialRows(')
         ->and($content)->toContain('buildBundleMaterialSignature(')
-        ->and($content)->toContain('buildBundleMaterialRowFromCombination(');
+        ->and($content)->toContain('buildBundleMaterialRowFromCombination(')
+        ->and($content)->toContain('minimizeBundleCombinationCandidate(')
+        ->and($content)->toContain('minimizeBundleItemRequestDataForAggregation(');
 });
 
 test('bundle popular label does not fallback to cheapest candidate when popular data is missing', function () {

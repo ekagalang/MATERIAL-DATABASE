@@ -1030,7 +1030,7 @@ function initMaterialCalculationForm(root, formData) {
                     return `${parts.join(' - ')} (${formatCatSummary(item)})`;
                 },
             },
-            ceramic: {
+            ceramic_type: {
                 data: Array.isArray(ceramicsData) ? ceramicsData : [],
                 selectId: 'customCeramic',
                 emptyOption: '-- Semua Keramik (Auto) --',
@@ -1038,6 +1038,31 @@ function initMaterialCalculationForm(root, formData) {
                 fields: ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
                 resolveMaterialTypeValue(item, typeKey) {
                     if (typeKey === 'ceramic_type') return String(item?.type || '').trim();
+                    if (typeKey === 'ceramic') return formatDim2(item);
+                    return '';
+                },
+                resolveFieldValue(item, key) {
+                    if (key === 'dimension') return formatDim2(item);
+                    return String(item?.[key] || '').trim();
+                },
+                optionLabel(item) {
+                    const base = [
+                        item?.brand || '-',
+                        item?.sub_brand || '',
+                        item?.surface || '',
+                        item?.code || '',
+                        item?.color || '',
+                    ].filter(Boolean).join(' - ');
+                    return `${base} (${formatDim2(item) || '-'})`;
+                },
+            },
+            ceramic: {
+                data: Array.isArray(ceramicsData) ? ceramicsData : [],
+                selectId: 'customCeramic',
+                emptyOption: '-- Semua Keramik (Auto) --',
+                materialTypeKeys: ['ceramic'],
+                fields: ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
+                resolveMaterialTypeValue(item, typeKey) {
                     if (typeKey === 'ceramic') return formatDim2(item);
                     return '';
                 },
@@ -1491,26 +1516,28 @@ function initMaterialCalculationForm(root, formData) {
                 if (!state || !Array.isArray(state.fieldSelects)) {
                     return;
                 }
-
-                let lastFilledIndex = -1;
-                state.fieldSelects.forEach((selectEl, index) => {
-                    if (String(selectEl.value || '').trim() !== '') {
-                        lastFilledIndex = index;
-                    }
-                });
-
-                const maxVisibleIndex = Math.min(
-                    state.fieldSelects.length - 1,
-                    Math.max(0, lastFilledIndex + 1),
-                );
-
-                state.fieldSelects.forEach((selectEl, index) => {
+                state.fieldSelects.forEach(selectEl => {
                     const groupEl = selectEl.closest('.form-group');
                     if (!groupEl) {
                         return;
                     }
-                    const shouldShow = index <= maxVisibleIndex;
-                    groupEl.style.display = shouldShow ? '' : 'none';
+                    groupEl.style.display = '';
+                });
+            };
+
+            const collapseEmptyFieldsInPanel = state => {
+                if (!state || !Array.isArray(state.fieldSelects)) {
+                    return;
+                }
+                state.fieldSelects.forEach(selectEl => {
+                    const groupEl = selectEl.closest('.form-group');
+                    if (!groupEl) {
+                        return;
+                    }
+                    const isEmpty = String(selectEl.value || '').trim() === '';
+                    if (isEmpty) {
+                        groupEl.style.display = 'none';
+                    }
                 });
             };
 
@@ -1530,7 +1557,7 @@ function initMaterialCalculationForm(root, formData) {
                     return;
                 }
                 if (panelHasActiveFilter(state)) {
-                    updateProgressiveFieldVisibility(state);
+                    collapseEmptyFieldsInPanel(state);
                     return;
                 }
                 panelEl.hidden = true;
@@ -1609,9 +1636,6 @@ function initMaterialCalculationForm(root, formData) {
 
                     setupCustomizeAutocomplete(selectEl);
                     selectEl.addEventListener('change', function() {
-                        for (let i = index + 1; i < fieldSelects.length; i++) {
-                            fieldSelects[i].value = '';
-                        }
                         refreshFromFieldIndex(state, index + 1);
                     });
                 });
@@ -1667,17 +1691,6 @@ function initMaterialCalculationForm(root, formData) {
                 if (!panelState) return;
 
                 const nextContextRow = toggleBtn.closest('.material-type-row');
-                const isSameOpenContext =
-                    !panel.hidden &&
-                    panelState.contextRow &&
-                    nextContextRow &&
-                    panelState.contextRow === nextContextRow;
-
-                if (isSameOpenContext) {
-                    panel.hidden = true;
-                    return;
-                }
-
                 const hasContextChanged = panelState.contextRow !== nextContextRow;
                 panelState.contextRow = nextContextRow instanceof HTMLElement ? nextContextRow : null;
 

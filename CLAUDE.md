@@ -66,8 +66,21 @@ Combination branching in `yieldCombinations()` is based on `getMaterialRequireme
 
 - **CalculationOrchestrationService**: Main coordinator for calculation workflows, generates material combinations, handles comparisons
 - **MaterialSelectionService**: Selects materials based on price filters (cheapest, medium, expensive, best)
-- **CombinationGenerationService**: Generates and merges material combinations with duplicate detection
+- **CombinationGenerationService**: Generates and merges material combinations with duplicate detection. Also houses complexity estimation, fast mode capping, and TopK collection
 - **StoreProximityService**: Ranks/filters store locations by proximity for store-based combination generation
+
+#### Performance Features in CombinationGenerationService (config/materials.php)
+
+All tunable via `config/materials.php` (env vars in `.env.example`):
+
+- **TopK Buffer** (`MATERIALS_TOPK_BUFFER_ENABLED`): When enabled, `collectTopKGeneratedCombinations()` uses `TopKCandidateBuffer` (in `app/Services/Calculation/Support/`) to stream-collect the best N combinations per filter label without holding all results in memory. Capacity is set per filter label via `MATERIALS_TOPK_CAPACITY_PER_LABEL`.
+- **Complexity Guard** (`MATERIALS_COMBINATION_COMPLEXITY_MAX_ESTIMATED`): Before generating combinations, `estimateCombinationComplexity()` estimates the cartesian product size. If it exceeds the configured max (0 = disabled), generation is aborted early with a user-facing message. Covered by `CombinationComplexityGuardMessagingFeatureTest`.
+- **Fast Mode** (`MATERIALS_COMPLEXITY_FAST_MODE_ENABLED`): Caps the number of candidates per material type to `MATERIALS_COMPLEXITY_FAST_MODE_CAP_PER_MATERIAL` before generation, reducing combinations when complexity would otherwise be too high.
+- **Performance Logging** (`MATERIALS_PERFORMANCE_LOG_DEBUG`): Controllers emit structured log entries at key stages (e.g. `generate_combinations.target_bricks_ready`, `bundle_combinations.summary_built`) when this flag is enabled.
+
+#### TopKCandidateBuffer (app/Services/Calculation/Support/)
+
+A fixed-capacity streaming buffer for collecting top-K items without full materialization. Items are keyed by `signature`. When at capacity, new candidates evict the current worst if they are better (per a caller-supplied `$isBetter` comparator). Exposes `push()`, `all()` (sorted), `worst()`, and `stats()`. Requires every candidate to include a non-empty `signature` key.
 
 ### Repository & Service Pattern
 
@@ -180,6 +193,7 @@ Tests use Pest PHP framework with in-memory SQLite database (configured in `phpu
 - **Telescope**: Disable with `TELESCOPE_ENABLED=false` in `.env` for better performance during development
 - Material calculations use caching to avoid recalculating identical combinations
 - Store-based calculation keeps per-store material sets small, preventing combinatorial explosion
+- **`config/materials.php`**: Central config for TopK buffer, complexity guard, fast mode, and debug logging. All values are environment-driven — see `.env.example` for documented presets per dataset size (small/medium/large).
 
 ===
 

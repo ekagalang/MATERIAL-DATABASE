@@ -33,13 +33,26 @@
     $selectedWorkFields = array_values(array_filter(array_map(static fn($value) => trim((string) $value), $selectedWorkFields), static fn($value) => $value !== ''));
     $selectedPriceFilters = old('price_filters', ['best']);
     $selectedPriceFilters = is_array($selectedPriceFilters) ? $selectedPriceFilters : [$selectedPriceFilters];
+    $initialUseStoreFilter = old('use_store_filter', '1') == '1';
+    $initialAllowMixedStore = old('allow_mixed_store') == '1';
+    $initialStoreRadiusScope = old('store_radius_scope');
+    if (!in_array($initialStoreRadiusScope, ['within', 'outside'], true)) {
+        $initialStoreRadiusScope = $initialUseStoreFilter ? 'within' : '';
+    }
+    $initialStoreSearchMode = 'complete_within';
+    if ($initialAllowMixedStore) {
+        $initialStoreSearchMode = 'incomplete';
+    } elseif ($initialUseStoreFilter && $initialStoreRadiusScope === 'outside') {
+        $initialStoreSearchMode = 'complete_outside';
+    } elseif ($initialUseStoreFilter && $initialStoreRadiusScope === 'within') {
+        $initialStoreSearchMode = 'complete_within';
+    }
     $materialTypeLabels = [
         'brick' => 'Bata',
         'cement' => 'Semen',
         'sand' => 'Pasir',
         'cat' => 'Cat',
         'ceramic_type' => 'Keramik',
-        'ceramic' => 'Keramik',
         'nat' => 'Nat',
     ];
     $selectedMaterialTypeFilters = old('material_type_filters') ?? (request('material_type_filters') ?? []);
@@ -79,7 +92,10 @@
     </div>
 </div>
 
-<h3 class="calc-style"><i class="bi bi-calculator text-primary"></i> Hitung Item Pekerjaan Proyek</h3>
+<div id="calcCreateSearchScope">
+<div class="calc-header-row">
+    <h3 class="calc-style mb-0"><i class="bi bi-calculator text-primary"></i> Hitung Item Pekerjaan Proyek</h3>
+</div>
 
     @if ($errors->any())
         <div class="alert alert-danger">
@@ -137,17 +153,26 @@
                     <label>Mode Pencarian Toko</label>
                     <input type="hidden" name="use_store_filter" value="0">
                     <input type="hidden" name="allow_mixed_store" value="0">
-                    <div class="ssm-row">
-                        <input type="checkbox" id="storeFilterCheck" name="use_store_filter" value="1"
-                            {{ old('use_store_filter', '1') == '1' ? 'checked' : '' }}>
-                        <label for="storeFilterCheck" class="ssm-label">Prioritas Radius</label>
-                        <small class="ssm-desc">Hitung berdasarkan toko terdekat yang radius layanannya menjangkau lokasi proyek.</small>
+                    <input type="hidden" name="store_radius_scope" id="storeRadiusScopeValue" value="{{ $initialStoreRadiusScope }}">
+                    <input type="hidden" id="storeSearchModeValue" value="{{ $initialStoreSearchMode }}">
+                    <div class="ssm-group-title">Lengkap</div>
+                    <div class="ssm-row ssm-row-sub">
+                        <input type="checkbox" id="storeModeCompleteWithinCheck"
+                            {{ $initialStoreSearchMode === 'complete_within' ? 'checked' : '' }}>
+                        <label for="storeModeCompleteWithinCheck" class="ssm-label">Dalam Radius</label>
+                        <small class="ssm-desc">Mencari toko dalam radius layanan yang memiliki material lengkap untuk item pekerjaannya.</small>
+                    </div>
+                    <div class="ssm-row ssm-row-sub">
+                        <input type="checkbox" id="storeModeCompleteOutsideCheck"
+                            {{ $initialStoreSearchMode === 'complete_outside' ? 'checked' : '' }}>
+                        <label for="storeModeCompleteOutsideCheck" class="ssm-label">Luar Radius</label>
+                        <small class="ssm-desc">Sama seperti Lengkap Dalam Radius, tetapi pencarian toko tidak dibatasi radius layanan.</small>
                     </div>
                     <div class="ssm-row">
-                        <input type="checkbox" id="mixedStoreCheck" name="allow_mixed_store" value="1"
-                            {{ old('allow_mixed_store') == '1' ? 'checked' : '' }}>
-                        <label for="mixedStoreCheck" class="ssm-label">Lintas Toko</label>
-                        <small class="ssm-desc">Jika satu toko tidak lengkap, material diambil berurutan dari toko terdekat berikutnya.</small>
+                        <input type="checkbox" id="storeModeIncompleteCheck"
+                            {{ $initialStoreSearchMode === 'incomplete' ? 'checked' : '' }}>
+                        <label for="storeModeIncompleteCheck" class="ssm-label">Tidak Lengkap</label>
+                        <small class="ssm-desc">Material boleh lintas toko dari yang paling dekat ke proyek hingga yang lebih jauh tanpa batas radius.</small>
                     </div>
                 </div>
 
@@ -386,6 +411,30 @@
                         </div>
                     </div>
             </div>
+                <div class="calc-header-row calc-left-search-row">
+                    <div class="calc-inline-search" id="calcInlineSearch" role="search" aria-label="Cari teks pada halaman perhitungan">
+                        <div class="calc-inline-search-inputwrap">
+                            <i class="bi bi-search calc-inline-search-icon" aria-hidden="true"></i>
+                            <input type="text"
+                                   id="calcPageSearchInput"
+                                   class="calc-inline-search-input"
+                                   placeholder="Cari teks, label, atau isi input..."
+                                   autocomplete="off">
+                            <div class="calc-inline-search-suffix">
+                                <span class="calc-inline-search-count" id="calcPageSearchCount" aria-live="polite">0 / 0</span>
+                                <button type="button" class="calc-inline-search-nav" id="calcPageSearchPrev" aria-label="Hasil sebelumnya" title="Sebelumnya">
+                                    <i class="bi bi-arrow-up" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="calc-inline-search-nav" id="calcPageSearchNext" aria-label="Hasil berikutnya" title="Berikutnya">
+                                    <i class="bi bi-arrow-down" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="calc-inline-search-clear" id="calcPageSearchClear" aria-label="Hapus pencarian" title="Hapus">
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div> {{-- /.left-column --}}
 
             {{-- RIGHT GRID SLOT: FILTER BY --}}
@@ -711,7 +760,7 @@
                                                     <i class="bi bi-plus-lg"></i>
                                                 </button>
                                             </div>
-                                            @if(in_array($materialKey, ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'], true))
+                                            @if(in_array($materialKey, ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'nat'], true))
                                                 <button type="button"
                                                     class="material-type-row-btn material-type-row-btn-customize"
                                                     data-customize-toggle="{{ $materialKey }}"
@@ -806,32 +855,32 @@
                                                 </div>
                                             </div>
                                         </div>
-                                    @elseif($materialKey === 'ceramic')
-                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-ceramic" data-customize-panel="ceramic" hidden>
+                                    @elseif($materialKey === 'ceramic_type')
+                                        <div class="customize-panel material-type-customize-panel" id="customizePanel-ceramic_type" data-customize-panel="ceramic_type" hidden>
                                             <div class="customize-grid">
                                                 <div class="form-group">
-                                                    <label>Merek :</label>
-                                                    <div class="input-wrapper"><select id="customizeCeramicBrand" data-customize-filter="ceramic" data-filter-key="brand" class="select-gray"></select></div>
+                                                    <label>Dimensi :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicTypeDimension" data-customize-filter="ceramic_type" data-filter-key="dimension" class="select-gray"></select></div>
                                                 </div>
                                                 <div class="form-group">
-                                                    <label>Dimensi :</label>
-                                                    <div class="input-wrapper"><select id="customizeCeramicDimension" data-customize-filter="ceramic" data-filter-key="dimension" class="select-gray"></select></div>
+                                                    <label>Merek :</label>
+                                                    <div class="input-wrapper"><select id="customizeCeramicTypeBrand" data-customize-filter="ceramic_type" data-filter-key="brand" class="select-gray"></select></div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Sub Merek :</label>
-                                                    <div class="input-wrapper"><select id="customizeCeramicSubBrand" data-customize-filter="ceramic" data-filter-key="sub_brand" class="select-gray"></select></div>
+                                                    <div class="input-wrapper"><select id="customizeCeramicTypeSubBrand" data-customize-filter="ceramic_type" data-filter-key="sub_brand" class="select-gray"></select></div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Permukaan :</label>
-                                                    <div class="input-wrapper"><select id="customizeCeramicSurface" data-customize-filter="ceramic" data-filter-key="surface" class="select-gray"></select></div>
+                                                    <div class="input-wrapper"><select id="customizeCeramicTypeSurface" data-customize-filter="ceramic_type" data-filter-key="surface" class="select-gray"></select></div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Kode Pembakaran :</label>
-                                                    <div class="input-wrapper"><select id="customizeCeramicCode" data-customize-filter="ceramic" data-filter-key="code" class="select-gray"></select></div>
+                                                    <div class="input-wrapper"><select id="customizeCeramicTypeCode" data-customize-filter="ceramic_type" data-filter-key="code" class="select-gray"></select></div>
                                                 </div>
                                                 <div class="form-group">
                                                     <label>Corak :</label>
-                                                    <div class="input-wrapper"><select id="customizeCeramicPattern" data-customize-filter="ceramic" data-filter-key="color" class="select-gray"></select></div>
+                                                    <div class="input-wrapper"><select id="customizeCeramicTypePattern" data-customize-filter="ceramic_type" data-filter-key="color" class="select-gray"></select></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -909,11 +958,11 @@
         </div>
         <div class="work-item-bottom-bar work-item-bottom-bar-outside">
             <div class="work-item-stepper" aria-label="Kontrol item pekerjaan">
-                <button type="button" id="addWorkItemBtn" class="work-item-stepper-btn work-item-stepper-card" title="Tambah Lantai Baru" aria-label="Tambah adsad">
+                <button type="button" id="addWorkItemBtn" class="work-item-stepper-btn work-item-stepper-card" title="Tambah Lantai" aria-label="Tambah Lantai">
                     <span class="work-item-stepper-icon" aria-hidden="true">
                         <i class="bi bi-plus-lg"></i>
                     </span>
-                    <span class="work-item-stepper-label">Lantai Baru</span>
+                    <span class="work-item-stepper-label">Lantai</span>
                 </button>
             </div>
             <div class="button-actions">
@@ -926,6 +975,17 @@
             </div>
         </div>
     </form>
+</div>
+
+    <div class="calc-scroll-fab" id="calcScrollFabWrap" aria-live="polite">
+        <div class="calc-scroll-fab-dropdown" id="calcScrollFabDropdown" role="dialog" aria-label="Ringkasan Lantai Area Bidang">
+            <div class="calc-scroll-fab-dropdown-title">Navigasi Input</div>
+            <div class="calc-scroll-fab-menu-root" data-scroll-summary-tree></div>
+        </div>
+        <button type="button" class="calc-scroll-fab-btn" id="calcScrollFabBtn" aria-label="Scroll ke bawah" title="Scroll ke bawah">
+            <i class="bi bi-arrow-down" id="calcScrollFabIcon" aria-hidden="true"></i>
+        </button>
+    </div>
 @endsection
 
 <style>
@@ -961,6 +1021,483 @@
         font-size: 32px;
     }
 
+    .calc-header-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+    }
+
+    .calc-left-search-row {
+        justify-content: flex-start;
+    }
+
+    .calc-left-search-row .calc-inline-search {
+        justify-content: flex-start;
+        margin-left: 0;
+        margin-right: auto;
+    }
+
+    .calc-inline-search {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+        max-width: min(100%, 620px);
+        flex: 1 1 auto;
+        justify-content: flex-end;
+        margin-left: auto;
+        align-self: flex-start;
+        padding: 0;
+        border-radius: 0;
+        background: transparent;
+        border: 0;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        box-shadow: none;
+    }
+
+    .calc-inline-search.is-sticky-fixed {
+        position: fixed;
+        top: var(--calc-search-sticky-top, 72px);
+        left: var(--calc-inline-search-fixed-left, auto);
+        width: var(--calc-inline-search-fixed-width, auto);
+        max-width: min(100vw - 16px, 620px);
+        margin-left: 0;
+        z-index: 1045;
+    }
+
+    .calc-inline-search-inputwrap {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        border-radius: 999px;
+        padding: 1px 4px 1px 7px;
+        min-width: 0;
+        width: min(100%, 500px);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .calc-inline-search-inputwrap:focus-within {
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+    }
+
+    .calc-inline-search-icon {
+        color: #64748b;
+        font-size: 11px;
+        flex: 0 0 auto;
+    }
+
+    .calc-inline-search-input {
+        border: 0;
+        outline: none;
+        min-width: 0;
+        flex: 1 1 auto;
+        font-size: 11px;
+        color: #0f172a;
+        background: transparent;
+        line-height: 1.15;
+    }
+
+    .calc-inline-search-input::placeholder {
+        color: #94a3b8;
+    }
+
+    .calc-inline-search-suffix {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        flex: 0 0 auto;
+        padding-left: 5px;
+        border-left: 1px solid #e2e8f0;
+        margin-left: 1px;
+    }
+
+    .calc-inline-search-count {
+        min-width: 36px;
+        text-align: center;
+        font-size: 10px;
+        font-weight: 700;
+        color: #334155;
+        padding: 0 2px;
+        line-height: 1;
+    }
+
+    .calc-inline-search-nav {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        border: 0;
+        background: transparent;
+        color: #1d4ed8;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
+    .calc-inline-search-nav:hover:not(:disabled) {
+        background: #eff6ff;
+    }
+
+    .calc-inline-search-nav:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+
+    .calc-inline-search-clear {
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
+    .calc-inline-search-clear:hover {
+        background: #f1f5f9;
+        color: #334155;
+    }
+
+    .calc-search-mark {
+        background: rgba(191, 219, 254, 0.55);
+        color: inherit;
+        border-radius: 4px;
+        padding: 0 1px;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+    }
+
+    .calc-search-mark.is-active {
+        background: rgba(254, 240, 138, 0.9);
+        box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.38);
+    }
+
+    .calc-search-hit-field.is-active {
+        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.38), 0 0 0 5px rgba(254, 240, 138, 0.24);
+        background-color: rgba(254, 249, 195, 0.18);
+        border-radius: 8px;
+        transition: box-shadow 0.18s ease;
+    }
+
+    /* Safe space for fixed FAB so bottom action buttons are not covered */
+    #calculationForm {
+        padding-bottom: 96px;
+    }
+
+    .calc-scroll-fab {
+        position: fixed;
+        right: 18px;
+        bottom: 18px;
+        z-index: 1050;
+        width: 45px;
+        height: 45px;
+    }
+
+    .calc-scroll-fab-btn {
+        width: 45px;
+        height: 45px;
+        border-radius: 999px;
+        border: 1px solid #bfdbfe;
+        background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        color: #1d4ed8;
+        box-shadow: 0 10px 24px rgba(30, 64, 175, 0.18), 0 2px 6px rgba(15, 23, 42, 0.08);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    }
+
+    .calc-scroll-fab-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 14px 28px rgba(30, 64, 175, 0.22), 0 4px 10px rgba(15, 23, 42, 0.1);
+    }
+
+    .calc-scroll-fab-btn i {
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .calc-scroll-fab-dropdown {
+        position: absolute;
+        right: 0;
+        bottom: calc(100% + 6px);
+        width: max-content;
+        min-width: 220px;
+        max-width: min(360px, calc(100vw - 36px));
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid #dbeafe;
+        border-radius: 14px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
+        padding: 10px;
+        backdrop-filter: blur(10px);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(6px);
+        transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+        pointer-events: none;
+    }
+
+    /* Hover bridge between FAB and dropdown so hover doesn't break on the gap */
+    .calc-scroll-fab-dropdown::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: -10px;
+        width: 120px;
+        height: 12px;
+        background: transparent;
+    }
+
+    .calc-scroll-fab:hover .calc-scroll-fab-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .calc-scroll-fab-dropdown-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #1e3a8a;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 8px;
+    }
+
+    .calc-scroll-fab-menu-root {
+        min-width: 0;
+        width: max-content;
+        max-width: 100%;
+    }
+
+    .calc-scroll-fab-menu,
+    .calc-scroll-fab-submenu {
+        margin: 0;
+        padding: 4px;
+        list-style: none;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        width: max-content;
+        min-width: 180px;
+        max-width: min(320px, calc(100vw - 36px));
+    }
+
+    .calc-scroll-fab-submenu {
+        position: absolute;
+        top: auto;
+        bottom: -1px;
+        left: auto;
+        right: calc(100% + 8px);
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateX(-4px);
+        transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+        z-index: 2;
+    }
+
+    /* Hover bridge between parent item and left-opening submenu */
+    .calc-scroll-fab-submenu::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -10px;
+        width: 12px;
+        height: 100%;
+        background: transparent;
+    }
+
+    .calc-scroll-fab-menu-item {
+        position: relative;
+    }
+
+    .calc-scroll-fab-menu-item + .calc-scroll-fab-menu-item {
+        margin-top: 4px;
+    }
+
+    .calc-scroll-fab-menu-item:hover > .calc-scroll-fab-submenu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(0);
+    }
+
+    .calc-scroll-fab-menu-item-label {
+        appearance: none;
+        -webkit-appearance: none;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 8px;
+        border: 1px solid #dbeafe;
+        background: #ffffff;
+        color: #1e293b;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: left;
+    }
+
+    .calc-scroll-fab-menu-item-label.is-clickable {
+        cursor: pointer;
+    }
+
+    .calc-scroll-fab-menu-item-label.is-clickable:hover,
+    .calc-scroll-fab-menu-item-label.is-clickable:focus {
+        outline: none;
+        background: #eff6ff;
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.14);
+    }
+
+    .calc-scroll-fab-menu-item.has-children > .calc-scroll-fab-menu-item-label::before {
+        content: '<';
+        color: #64748b;
+        font-weight: 700;
+        flex: 0 0 auto;
+    }
+
+    .calc-scroll-fab-submenu-title {
+        display: block;
+        padding: 4px 8px 6px 8px;
+        margin: 0 0 4px 0;
+        font-size: 10px;
+        font-weight: 700;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 1px dashed #cbd5e1;
+    }
+
+    .calc-scroll-fab-submenu-title.is-area {
+        color: #a16207;
+        background: linear-gradient(180deg, #fefce8 0%, #fef9c3 100%);
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        border-bottom-style: solid;
+    }
+
+    .calc-scroll-fab-submenu-title.is-field {
+        color: #166534;
+        background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 1px solid #bbf7d0;
+        border-radius: 8px;
+        margin-bottom: 6px;
+        border-bottom-style: solid;
+    }
+
+    .calc-scroll-fab-menu-item-label .calc-scroll-fab-menu-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .calc-scroll-fab-chip.is-empty,
+    .calc-scroll-fab-menu-empty {
+        display: block;
+        width: 100%;
+        border: 1px dashed #cbd5e1;
+        background: #ffffff;
+        color: #64748b;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        line-height: 1.25;
+        font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+        .calc-header-row {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .calc-inline-search {
+            width: 100%;
+            max-width: 100%;
+            justify-content: stretch;
+            padding: 0;
+        }
+
+        .calc-inline-search.is-sticky-fixed {
+            top: var(--calc-search-sticky-top, 64px);
+            max-width: calc(100vw - 12px);
+        }
+
+        .calc-inline-search-inputwrap {
+            width: 100%;
+        }
+
+        .calc-inline-search-suffix {
+            padding-left: 4px;
+            gap: 2px;
+        }
+
+        .calc-inline-search-count {
+            min-width: 34px;
+            font-size: 9px;
+        }
+
+        #calculationForm {
+            padding-bottom: 84px;
+        }
+
+        .calc-scroll-fab {
+            right: 12px;
+            bottom: 12px;
+            width: 45px;
+            height: 45px;
+        }
+
+        .calc-scroll-fab-btn {
+            width: 45px;
+            height: 45px;
+        }
+
+        .calc-scroll-fab-dropdown {
+            width: min(94vw, 320px);
+            max-width: 94vw;
+            min-width: 0;
+            padding: 8px;
+        }
+
+        .calc-scroll-fab-menu-root {
+            min-width: 0;
+        }
+
+        .calc-scroll-fab-submenu {
+            position: static;
+            width: 100%;
+            opacity: 1;
+            visibility: visible;
+            transform: none;
+            box-shadow: none;
+            margin-top: 6px;
+            margin-left: 10px;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .calc-scroll-fab-menu-item + .calc-scroll-fab-menu-item {
+            margin-top: 6px;
+        }
+    }
+
     #calculationForm .filter-right-column {
         min-width: 0;
     }
@@ -971,7 +1508,8 @@
 
     #calculationForm .right-column {
         --work-taxonomy-indent-step: 18px;
-        --work-item-parameter-indent: 125px;
+        /* Samakan start parameter dengan start input "Item Pekerjaan" setelah label bernomor dibuat lebih lebar */
+        --work-item-parameter-indent: 149px;
         --work-item-parameter-indent-mobile: 10px;
         --work-item-inline-indent: 114px;
         --work-item-inline-indent-mobile: 8px;
@@ -1452,6 +1990,16 @@
         margin-bottom: 0;
     }
 
+    /* Beri ruang ekstra saat label berubah menjadi "Item Pekerjaan X" */
+    #calculationForm .work-type-group.taxonomy-inline-item {
+        gap: 12px;
+    }
+
+    #calculationForm .work-type-group.taxonomy-inline-item > label {
+        flex-basis: 136px;
+        width: 136px !important;
+    }
+
     #calculationForm .work-floor-group,
     #calculationForm .work-area-group,
     #calculationForm .work-field-group {
@@ -1512,12 +2060,11 @@
 
     #calculationForm .work-type-group,
     #calculationForm .dimension-item {
-        align-items: flex-start;
+        align-items: center;
     }
 
     #calculationForm .work-type-group > label,
     #calculationForm .dimension-item > label {
-        align-self: flex-start;
         padding-top: 0 !important;
     }
 
@@ -2024,10 +2571,9 @@
     }
 
     .additional-taxonomy-cell-label {
-        font-size: 11px;
+        font-size: 14px;
         font-weight: 600;
         color: #64748b;
-        text-transform: uppercase;
         letter-spacing: 0.03em;
         margin-bottom: 0;
         white-space: nowrap;
@@ -2358,13 +2904,24 @@
     }
 
     .material-type-filter-item {
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: 38px auto;
         margin-bottom: 4px !important;
     }
 
     .material-type-filter-item > label {
-        align-self: flex-start;
+        grid-column: 1;
+        grid-row: 1;
+        display: flex;
+        align-items: center;
         padding-top: 0 !important;
+        margin-bottom: 0;
+    }
+
+    .material-type-filter-item > .material-type-filter-body {
+        grid-column: 2;
+        grid-row: 1 / -1;
     }
 
     .material-type-filter-item.has-extra-rows {
@@ -2664,6 +3221,20 @@
         gap: 6px;
     }
 
+    .ssm-group-title {
+        margin-top: 2px;
+        padding-left: 2px;
+        font-size: 12px;
+        font-weight: 700;
+        color: #475569;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+    }
+
+    .ssm-row-sub {
+        padding-left: 18px;
+    }
+
     .ssm-row input[type="checkbox"] {
         flex: 0 0 auto;
         margin: 0;
@@ -2672,7 +3243,7 @@
 
     .ssm-label {
         flex: 0 0 auto;
-        min-width: 120px;
+        min-width: 138px;
         margin: 0;
         font-weight: 600;
         font-size: 13px;
@@ -2685,6 +3256,15 @@
         font-size: 12px;
         color: #64748b;
         line-height: 1.3;
+    }
+
+    .ssm-row-sub .ssm-label {
+        min-width: 120px;
+    }
+
+    .ssm-row-sub input[type="checkbox"]:disabled + .ssm-label,
+    .ssm-row-sub input[type="checkbox"]:disabled + .ssm-label + .ssm-desc {
+        opacity: 0.55;
     }
 
     .project-location-map {
@@ -2764,6 +3344,19 @@
             flex-basis: 96px;
             width: 96px !important;
             font-size: 12px;
+        }
+
+        #calculationForm .work-type-group.taxonomy-inline-item {
+            gap: 8px;
+        }
+
+        #calculationForm .work-type-group.taxonomy-inline-item > label {
+            flex-basis: 112px;
+            width: 112px !important;
+        }
+
+        #calculationForm .right-column {
+            --work-item-parameter-indent-mobile: 28px;
         }
 
         .work-item-bottom-bar {
@@ -2923,6 +3516,35 @@
             }
         }
 
+        function sortFloors(values) {
+            const list = Array.isArray(values) ? [...values] : [];
+            const getFloorKey = name => {
+                const s = String(name ?? '').trim();
+                if (!s) return null;
+
+                // Accept both legacy and simplified labels:
+                // "Lantai Dasar" / "Dasar", "Lantai 2" / "2", and "Basement 1".
+                if (/^(?:lantai\s+)?dasar$/i.test(s)) return 0;
+
+                const lantaiMatch = /^(?:lantai\s+)?(\d+)$/i.exec(s);
+                if (lantaiMatch) return parseInt(lantaiMatch[1], 10);
+
+                const basementMatch = /^(?:basement|b)\s*(\d+)$/i.exec(s);
+                if (basementMatch) return -parseInt(basementMatch[1], 10);
+                return null;
+            };
+            return list.sort((a, b) => {
+                const keyA = getFloorKey(a);
+                const keyB = getFloorKey(b);
+                if (keyA === null && keyB === null) {
+                    return String(a ?? '').localeCompare(String(b ?? ''), 'id-ID');
+                }
+                if (keyA === null) return 1;
+                if (keyB === null) return -1;
+                return keyB - keyA;
+            });
+        }
+
         function initWorkTaxonomyFilters(formPayload) {
             const workFloorRows = document.getElementById('workFloorRows');
             const workAreaRows = document.getElementById('workAreaRows');
@@ -2965,7 +3587,7 @@
             }
 
             const normalizeOption = value => String(value ?? '').trim().toLowerCase();
-            const baseFloorOptions = sortAlphabetic(
+            const baseFloorOptions = sortFloors(
                 uniqueFilterTokens((formPayload?.workFloors || []).map(item => item?.name || '')),
             );
             const baseAreaOptions = sortAlphabetic(
@@ -3014,7 +3636,7 @@
                 });
             };
 
-            const initKind = ({ kind, rowsContainer, extraRowsContainer, inputName, placeholder, initialOptions, onRowsChanged }) => {
+            const initKind = ({ kind, rowsContainer, extraRowsContainer, inputName, placeholder, initialOptions, onRowsChanged, sortFn }) => {
                 const baseRow = rowsContainer.querySelector('.material-type-row-base');
                 const baseDisplay = baseRow?.querySelector('input[data-taxonomy-display="1"]');
                 const baseHidden = baseRow?.querySelector('input[data-taxonomy-hidden="1"]');
@@ -3042,8 +3664,10 @@
                 }
 
                 baseHidden.name = inputName;
-                let currentOptions = sortAlphabetic(uniqueFilterTokens(initialOptions));
+                const effectiveSortFn = typeof sortFn === 'function' ? sortFn : sortAlphabetic;
+                let currentOptions = effectiveSortFn(uniqueFilterTokens(initialOptions));
                 let isSyncing = false;
+                let isSorting = false;
 
                 const getRowStates = () => {
                     const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
@@ -3089,7 +3713,7 @@
                         return normalized.includes(query);
                     });
 
-                    return sortAlphabetic(filtered);
+                    return effectiveSortFn(filtered);
                 };
 
                 const refreshOpenLists = () => {
@@ -3129,8 +3753,27 @@
                     }
                 };
 
+                const sortRows = () => {
+                    if (isSorting) return;
+                    isSorting = true;
+                    try {
+                        const currentValues = getHiddenInputs()
+                            .map(input => String(input.value || '').trim())
+                            .filter(Boolean);
+                        if (currentValues.length <= 1) return;
+                        const sorted = effectiveSortFn([...currentValues]);
+                        const isSameOrder = currentValues.every((v, i) => v === sorted[i]);
+                        if (!isSameOrder) {
+                            setValues(sorted);
+                        }
+                    } finally {
+                        isSorting = false;
+                    }
+                };
+
                 const syncRows = () => {
                     enforceUniqueSelections();
+                    sortRows();
                     refreshOpenLists();
                     if (typeof onRowsChanged === 'function') {
                         onRowsChanged();
@@ -3394,7 +4037,7 @@
                 return {
                     setValues,
                     setOptions(nextOptions) {
-                        currentOptions = sortAlphabetic(uniqueFilterTokens(nextOptions || []));
+                        currentOptions = effectiveSortFn(uniqueFilterTokens(nextOptions || []));
                         refreshOpenLists();
                     },
                     getValues() {
@@ -3405,21 +4048,6 @@
 
             const computeAreaOptions = floorApi => {
                 let scopedOptions = [...baseAreaOptions];
-                if (!floorApi) {
-                    return sortAlphabetic(uniqueFilterTokens(scopedOptions));
-                }
-
-                const selectedFloors = floorApi.getValues();
-                if (selectedFloors.length > 0 && normalizedGroupings.length > 0) {
-                    const selectedFloorSet = new Set(selectedFloors.map(value => normalizeOption(value)));
-                    const matchedAreas = normalizedGroupings
-                        .filter(item => item.work_floor_norm && selectedFloorSet.has(item.work_floor_norm) && item.work_area)
-                        .map(item => item.work_area);
-
-                    if (matchedAreas.length > 0) {
-                        scopedOptions = sortAlphabetic(uniqueFilterTokens(matchedAreas));
-                    }
-                }
 
                 if (areaController) {
                     scopedOptions = uniqueFilterTokens([...scopedOptions, ...areaController.getValues()]);
@@ -3430,35 +4058,6 @@
 
             const computeFieldOptions = (floorApi, areaApi) => {
                 let scopedOptions = [...baseFieldOptions];
-                if (!areaApi) {
-                    return sortAlphabetic(uniqueFilterTokens(scopedOptions));
-                }
-
-                const selectedFloors = floorApi ? floorApi.getValues() : [];
-                const selectedAreas = areaApi.getValues();
-                if ((selectedFloors.length > 0 || selectedAreas.length > 0) && normalizedGroupings.length > 0) {
-                    const selectedFloorSet = new Set(selectedFloors.map(value => normalizeOption(value)));
-                    const selectedAreaSet = new Set(selectedAreas.map(value => normalizeOption(value)));
-                    const matchedFields = normalizedGroupings
-                        .filter(item => {
-                            if (selectedFloorSet.size > 0) {
-                                if (!item.work_floor_norm || !selectedFloorSet.has(item.work_floor_norm)) {
-                                    return false;
-                                }
-                            }
-                            if (selectedAreaSet.size > 0) {
-                                if (!item.work_area_norm || !selectedAreaSet.has(item.work_area_norm)) {
-                                    return false;
-                                }
-                            }
-                            return !!item.work_field;
-                        })
-                        .map(item => item.work_field);
-
-                    if (matchedFields.length > 0) {
-                        scopedOptions = sortAlphabetic(uniqueFilterTokens(matchedFields));
-                    }
-                }
 
                 if (fieldController) {
                     scopedOptions = uniqueFilterTokens([...scopedOptions, ...fieldController.getValues()]);
@@ -3474,6 +4073,7 @@
                 inputName: 'work_floors[]',
                 placeholder: 'Pilih atau ketik lantai...',
                 initialOptions: baseFloorOptions,
+                sortFn: sortFloors,
                 onRowsChanged() {
                     if (areaController) {
                         areaController.setOptions(computeAreaOptions(floorController));
@@ -3482,6 +4082,7 @@
                         fieldController.setOptions(computeFieldOptions(floorController, areaController));
                     }
                     notifyChanged();
+                    markFloorSortPending();
                 },
             });
 
@@ -3586,7 +4187,6 @@
                 sand: formPayload?.sands || [],
                 cat: formPayload?.cats || [],
                 ceramic_type: formPayload?.ceramics || [],
-                ceramic: formPayload?.ceramics || [],
                 nat: formPayload?.nats || [],
             };
 
@@ -3596,7 +4196,6 @@
                 sand: item => item?.type || '',
                 cat: item => item?.type || '',
                 ceramic_type: item => item?.type || '',
-                ceramic: item => formatMaterialTypeSize(item?.dimension_length, item?.dimension_width),
                 nat: item => item?.type || '',
             };
 
@@ -3873,7 +4472,7 @@
                     const rowEl = document.createElement('div');
                     rowEl.className = 'material-type-row material-type-row-extra';
                     rowEl.dataset.materialType = type;
-                    const supportsCustomize = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'].includes(type);
+                    const supportsCustomize = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'nat'].includes(type);
 
                     const inputWrapperEl = document.createElement('div');
                     inputWrapperEl.className = 'input-wrapper';
@@ -4096,8 +4695,24 @@
             return api;
         }
 
+        let isRebuildingFloorCardOrder = false;
+        let hasPendingFloorSort = false;
+        let lastPointerDownTarget = null;
+        let lastPointerDownAt = 0;
+        let calcScrollFabApi = null;
+        let calcPageSearchApi = null;
+
         const workTaxonomyFilterApi = initWorkTaxonomyFilters(payload);
         const materialTypeFilterMultiApi = initMultiMaterialTypeFilters(payload);
+
+        document.addEventListener(
+            'pointerdown',
+            function(event) {
+                lastPointerDownTarget = event?.target instanceof HTMLElement ? event.target : null;
+                lastPointerDownAt = Date.now();
+            },
+            true,
+        );
         const initialMaterialTypeFilters = @json($selectedMaterialTypeFilters);
         if (materialTypeFilterMultiApi && typeof materialTypeFilterMultiApi.setValues === 'function' && initialMaterialTypeFilters) {
             Object.entries(initialMaterialTypeFilters).forEach(([type, value]) => {
@@ -4779,9 +5394,20 @@
             : '';
         const additionalWorkItemsSection = document.getElementById('additionalWorkItemsSection');
         const additionalWorkItemsList = document.getElementById('additionalWorkItemsList');
+        if (additionalWorkItemsList) {
+            additionalWorkItemsList.addEventListener('change', function(event) {
+                const target = event.target;
+                if (!(target instanceof HTMLElement) || !target.matches('[data-field="work_floor"]')) {
+                    return;
+                }
+                markFloorSortPending();
+            });
+        }
         const mainWorkTypeLabel = document.getElementById('mainWorkTypeLabel');
         const mainWorkTypeDisplayInput = document.getElementById('workTypeDisplay');
         const mainWorkTypeHiddenInput = document.getElementById('workTypeSelector');
+        const mainWorkFloorHiddenInput = document.getElementById('workFloorValue');
+        const mainWorkFloorDisplayInput = document.getElementById('workFloorDisplay');
         const removeMainItemBtn = document.getElementById('removeMainItemBtn');
         const mainWallLengthInput = document.getElementById('wallLength');
         const mainWallHeightInput = document.getElementById('wallHeight');
@@ -4806,7 +5432,7 @@
                 }))
                 .filter(item => item.formula_code !== '')
             : [];
-        const workFloorOptionValues = sortAlphabetic(
+        const workFloorOptionValues = sortFloors(
             uniqueFilterTokens((payload?.workFloors || []).map(item => item?.name || '')),
         );
         const workAreaOptionValues = sortAlphabetic(
@@ -4816,6 +5442,43 @@
             uniqueFilterTokens((payload?.workFields || []).map(item => item?.name || '')),
         );
         const mainTaxonomyGroupCard = document.querySelector('#calculationForm .taxonomy-tree-main.taxonomy-group-card');
+
+        if (mainWorkFloorHiddenInput) {
+            mainWorkFloorHiddenInput.addEventListener('change', function() {
+                markFloorSortPending();
+            });
+        }
+        if (mainWorkFloorDisplayInput) {
+            mainWorkFloorDisplayInput.addEventListener('blur', function() {
+                markFloorSortPending();
+            });
+        }
+        if (mainTaxonomyGroupCard instanceof HTMLElement) {
+            mainTaxonomyGroupCard.addEventListener(
+                'focusout',
+                function() {
+                    flushFloorSortWhenFocusLeaves(mainTaxonomyGroupCard);
+                },
+                true,
+            );
+        }
+        if (additionalWorkItemsList) {
+            additionalWorkItemsList.addEventListener(
+                'focusout',
+                function(event) {
+                    const target = event?.target;
+                    if (!(target instanceof HTMLElement)) {
+                        return;
+                    }
+                    const cardEl = target.closest('.additional-work-item[data-additional-work-item="true"]');
+                    if (!(cardEl instanceof HTMLElement) || !additionalWorkItemsList.contains(cardEl)) {
+                        return;
+                    }
+                    flushFloorSortWhenFocusLeaves(cardEl);
+                },
+                true,
+            );
+        }
 
         relocateFilterSectionToRightGrid();
         relocateMainTaxonomyActionButtonsToFooter();
@@ -4964,33 +5627,11 @@
         }
 
         function resolveScopedWorkAreaOptionsByFloor(selectedFloorsInput = [], includeAreasInput = []) {
-            const floorSet = new Set(
-                uniqueFilterTokens(Array.isArray(selectedFloorsInput) ? selectedFloorsInput : [selectedFloorsInput])
-                    .map(value => String(value || '').trim().toLowerCase())
-                    .filter(Boolean),
-            );
             const includeAreas = uniqueFilterTokens(
                 Array.isArray(includeAreasInput) ? includeAreasInput : [includeAreasInput],
             );
 
-            if (floorSet.size === 0 || workItemGroupingIndex.length === 0) {
-                return sortAlphabetic(uniqueFilterTokens([...workAreaOptionValues, ...includeAreas]));
-            }
-
-            const scoped = sortAlphabetic(
-                uniqueFilterTokens(
-                    workItemGroupingIndex
-                        .filter(item => item.work_floor_norm && floorSet.has(item.work_floor_norm))
-                        .map(item => item.work_area)
-                        .filter(Boolean),
-                ),
-            );
-
-            if (!scoped.length) {
-                return sortAlphabetic(uniqueFilterTokens([...workAreaOptionValues, ...includeAreas]));
-            }
-
-            return sortAlphabetic(uniqueFilterTokens([...scoped, ...includeAreas]));
+            return sortAlphabetic(uniqueFilterTokens([...workAreaOptionValues, ...includeAreas]));
         }
 
         function resolveScopedWorkFieldOptionsByArea(
@@ -4998,50 +5639,11 @@
             selectedAreasInput = [],
             includeFieldsInput = [],
         ) {
-            const floorSet = new Set(
-                uniqueFilterTokens(Array.isArray(selectedFloorsInput) ? selectedFloorsInput : [selectedFloorsInput])
-                    .map(value => String(value || '').trim().toLowerCase())
-                    .filter(Boolean),
-            );
-            const areaSet = new Set(
-                uniqueFilterTokens(Array.isArray(selectedAreasInput) ? selectedAreasInput : [selectedAreasInput])
-                    .map(value => String(value || '').trim().toLowerCase())
-                    .filter(Boolean),
-            );
             const includeFields = uniqueFilterTokens(
                 Array.isArray(includeFieldsInput) ? includeFieldsInput : [includeFieldsInput],
             );
 
-            if ((floorSet.size === 0 && areaSet.size === 0) || workItemGroupingIndex.length === 0) {
-                return sortAlphabetic(uniqueFilterTokens([...workFieldOptionValues, ...includeFields]));
-            }
-
-            const scoped = sortAlphabetic(
-                uniqueFilterTokens(
-                    workItemGroupingIndex
-                        .filter(item => {
-                            if (floorSet.size > 0) {
-                                if (!item.work_floor_norm || !floorSet.has(item.work_floor_norm)) {
-                                    return false;
-                                }
-                            }
-                            if (areaSet.size > 0) {
-                                if (!item.work_area_norm || !areaSet.has(item.work_area_norm)) {
-                                    return false;
-                                }
-                            }
-                            return true;
-                        })
-                        .map(item => item.work_field)
-                        .filter(Boolean),
-                ),
-            );
-
-            if (!scoped.length) {
-                return sortAlphabetic(uniqueFilterTokens([...workFieldOptionValues, ...includeFields]));
-            }
-
-            return sortAlphabetic(uniqueFilterTokens([...scoped, ...includeFields]));
+            return sortAlphabetic(uniqueFilterTokens([...workFieldOptionValues, ...includeFields]));
         }
 
         function resolveScopedWorkTypeOptions() {
@@ -5087,8 +5689,8 @@
             { el: mainWallLengthInput, defaultRequired: !!mainWallLengthInput?.required },
             { el: mainWallHeightInput, defaultRequired: !!mainWallHeightInput?.required },
         ];
-        const bundleMaterialTypeOrder = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'ceramic', 'nat'];
-        const bundleCustomizeSupportedTypes = new Set(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat']);
+        const bundleMaterialTypeOrder = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'nat'];
+        const bundleCustomizeSupportedTypes = new Set(['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'nat']);
         const bundleMaterialTypeLabels = @json($materialTypeLabels);
         const bundleMaterialTypeOptions = buildMaterialTypeOptionMap(payload);
         let bundleAdditionalAutocompleteSeq = 0;
@@ -5121,9 +5723,6 @@
         }
 
         function getBundleMaterialTypeFieldLabel(type) {
-            if (type === 'ceramic') {
-                return 'Ukuran Keramik';
-            }
             if (type === 'ceramic_type') {
                 return 'Jenis Keramik';
             }
@@ -5132,9 +5731,6 @@
         }
 
         function getBundleMaterialTypePlaceholder(type) {
-            if (type === 'ceramic') {
-                return '-- Semua ukuran keramik --';
-            }
             if (type === 'ceramic_type') {
                 return '-- Semua jenis keramik --';
             }
@@ -5212,12 +5808,12 @@
                 `;
             }
 
-            if (type === 'ceramic') {
+            if (type === 'ceramic_type') {
                 return `
                     <div class="customize-panel material-type-customize-panel" data-customize-panel="${type}" ${panelId ? `id="${panelId}"` : ''} hidden>
                         <div class="customize-grid">
-                            ${renderField('Merek', 'brand')}
                             ${renderField('Dimensi', 'dimension')}
+                            ${renderField('Merek', 'brand')}
                             ${renderField('Sub Merek', 'sub_brand')}
                             ${renderField('Permukaan', 'surface')}
                             ${renderField('Kode Pembakaran', 'code')}
@@ -5359,6 +5955,7 @@
                 cement: ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
                 sand: ['brand'],
                 cat: ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+                ceramic_type: ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
                 ceramic: ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
                 nat: ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
             };
@@ -5817,11 +6414,8 @@
             return getMainFormValue(hiddenId) || getMainFormValue(displayId);
         }
 
-        function collectMainWorkItem() {
+        function collectMainWorkItemDraft() {
             const workType = mainWorkTypeHiddenInput ? String(mainWorkTypeHiddenInput.value || '').trim() : '';
-            if (!workType) {
-                return null;
-            }
             return normalizeBundleItem(
                 {
                     title: mainWorkTypeDisplayInput ? String(mainWorkTypeDisplayInput.value || '').trim() : '',
@@ -5845,6 +6439,11 @@
                 },
                 0,
             );
+        }
+
+        function collectMainWorkItem() {
+            const item = collectMainWorkItemDraft();
+            return String(item?.work_type || '').trim() ? item : null;
         }
 
         function bindAutocompleteScrollLock(listEl) {
@@ -6031,11 +6630,12 @@
                 displayInput: floorDisplayInput,
                 hiddenInput: floorHiddenInput,
                 listEl: floorListEl,
-                getOptions: () => sortAlphabetic(uniqueFilterTokens([...workFloorOptionValues, floorHiddenInput.value])),
+                getOptions: () => sortFloors(uniqueFilterTokens([...workFloorOptionValues, floorHiddenInput.value])),
                 onChanged: () => {
                     if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
                         itemEl.__refreshWorkTypeOptions();
                     }
+                    markFloorSortPending();
                 },
             });
 
@@ -7542,6 +8142,246 @@
             }
         }
 
+        function markFloorSortPending() {
+            if (isRebuildingFloorCardOrder) {
+                return;
+            }
+            hasPendingFloorSort = true;
+        }
+
+        function flushPendingFloorSort() {
+            if (isRebuildingFloorCardOrder || !hasPendingFloorSort) {
+                return;
+            }
+            hasPendingFloorSort = false;
+            sortAdditionalWorkItems();
+        }
+
+        function flushFloorSortWhenFocusLeaves(scopeEl) {
+            if (!(scopeEl instanceof HTMLElement) || !hasPendingFloorSort) {
+                return;
+            }
+            setTimeout(() => {
+                const recentlyPointerDownInsideScope =
+                    lastPointerDownTarget instanceof HTMLElement &&
+                    scopeEl.contains(lastPointerDownTarget) &&
+                    Date.now() - lastPointerDownAt < 500;
+                if (recentlyPointerDownInsideScope) {
+                    return;
+                }
+                const activeEl = document.activeElement;
+                if (activeEl instanceof HTMLElement && scopeEl.contains(activeEl)) {
+                    return;
+                }
+                flushPendingFloorSort();
+            }, 0);
+        }
+
+        function sortMainFloorCards() {
+            const mainAreaHost =
+                mainTaxonomyGroupCard instanceof HTMLElement
+                    ? mainTaxonomyGroupCard.querySelector('[data-main-area-children]')
+                    : null;
+            if (!(mainAreaHost instanceof HTMLElement)) {
+                return false;
+            }
+
+            const directRows = getDirectAdditionalChildRows(mainAreaHost);
+            if (directRows.length <= 1) {
+                return false;
+            }
+
+            const getRowKind = row =>
+                normalizeBundleRowKind(getAdditionalFieldValue(row, 'row_kind') || row.dataset.rowKind || 'area');
+            const floorRows = directRows.filter(row => getRowKind(row) === 'area');
+            if (floorRows.length <= 1) {
+                return false;
+            }
+
+            const floorValues = floorRows.map(row => getAdditionalFieldValue(row, 'work_floor'));
+            const sortedFloorValues = sortFloors([...floorValues]);
+            const floorPriority = new Map();
+            sortedFloorValues.forEach((floor, index) => {
+                if (!floorPriority.has(floor)) {
+                    floorPriority.set(floor, index);
+                }
+            });
+
+            const originalIndex = new Map(floorRows.map((row, index) => [row, index]));
+            const sortedFloorRows = [...floorRows].sort((a, b) => {
+                const floorA = getAdditionalFieldValue(a, 'work_floor');
+                const floorB = getAdditionalFieldValue(b, 'work_floor');
+                const priorityA = floorPriority.has(floorA) ? floorPriority.get(floorA) : Infinity;
+                const priorityB = floorPriority.has(floorB) ? floorPriority.get(floorB) : Infinity;
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                return (originalIndex.get(a) ?? 0) - (originalIndex.get(b) ?? 0);
+            });
+
+            let floorIndex = 0;
+            const nextRows = directRows.map(row => (getRowKind(row) === 'area' ? sortedFloorRows[floorIndex++] : row));
+            const alreadySorted = directRows.every((row, index) => row === nextRows[index]);
+            if (alreadySorted) {
+                return false;
+            }
+
+            nextRows.forEach(row => mainAreaHost.appendChild(row));
+            return true;
+        }
+
+        function sortBundleItemsByFloorStable(items) {
+            const list = Array.isArray(items) ? [...items] : [];
+            if (list.length <= 1) {
+                return list;
+            }
+
+            const floorValues = list.map(item => String(item?.work_floor || '').trim());
+            const sortedFloorValues = sortFloors([...floorValues]);
+            const floorPriority = new Map();
+            sortedFloorValues.forEach((floor, index) => {
+                if (!floorPriority.has(floor)) {
+                    floorPriority.set(floor, index);
+                }
+            });
+
+            const originalIndex = new Map(list.map((item, index) => [item, index]));
+            return list.sort((a, b) => {
+                const floorA = String(a?.work_floor || '').trim();
+                const floorB = String(b?.work_floor || '').trim();
+                const priorityA = floorPriority.has(floorA) ? floorPriority.get(floorA) : Infinity;
+                const priorityB = floorPriority.has(floorB) ? floorPriority.get(floorB) : Infinity;
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                return (originalIndex.get(a) ?? 0) - (originalIndex.get(b) ?? 0);
+            });
+        }
+
+        function rebuildBundleUiFromSortedFloorOrder() {
+            if (isRebuildingFloorCardOrder) {
+                return false;
+            }
+
+            const topLevelRows = getTopLevelAdditionalRows();
+            if (topLevelRows.length === 0) {
+                return false;
+            }
+
+            const mainDraft = collectMainWorkItemDraft();
+            const entries = [
+                { source: 'main', row: null, data: mainDraft },
+                ...topLevelRows
+                    .map((row, index) => ({
+                        source: 'additional',
+                        row,
+                        data: collectAdditionalWorkItemData(row, index + 1),
+                    }))
+                    .filter(entry => entry.data),
+            ];
+            if (entries.length <= 1) {
+                return false;
+            }
+
+            const sortedData = sortBundleItemsByFloorStable(entries.map(entry => entry.data));
+            const nextMainData = sortedData[0] || null;
+            if (!nextMainData || nextMainData === mainDraft) {
+                return false;
+            }
+
+            const candidateEntry = entries.find(entry => entry.source === 'additional' && entry.data === nextMainData);
+            if (!candidateEntry || !(candidateEntry.row instanceof HTMLElement)) {
+                return false;
+            }
+
+            const candidateRow = candidateEntry.row;
+            const candidateData = candidateEntry.data;
+            const oldMainFloor = String(mainDraft.work_floor || '').trim();
+            const nextMainFloor = String(candidateData.work_floor || '').trim();
+
+            isRebuildingFloorCardOrder = true;
+            try {
+                const mainAreaHost = getMainAreaChildrenHost();
+                const candidateFloorHost = getDirectAdditionalRowHost(candidateRow, '[data-floor-children]');
+
+                if (mainAreaHost instanceof HTMLElement && candidateFloorHost instanceof HTMLElement) {
+                    // Swap the nested rows too, so the whole floor card (including its children) moves together.
+                    swapDirectAdditionalChildRows(mainAreaHost, candidateFloorHost);
+                }
+
+                if (mainAreaHost instanceof HTMLElement && oldMainFloor !== nextMainFloor) {
+                    setAdditionalFloorValueForRowsInScope(mainAreaHost, nextMainFloor);
+                }
+                if (candidateFloorHost instanceof HTMLElement && oldMainFloor !== nextMainFloor) {
+                    setAdditionalFloorValueForRowsInScope(candidateFloorHost, oldMainFloor);
+                } else if (oldMainFloor !== nextMainFloor) {
+                    setAdditionalFloorValueForRowsInScope(candidateRow, oldMainFloor, { excludeRoot: true });
+                }
+
+                applyMainWorkItemFromBundleItem(candidateData);
+                applyAdditionalWorkItemFromBundleItem(candidateRow, mainDraft);
+                syncBundleFromForms();
+                relocateFilterSectionToRightGrid();
+                relocateMainTaxonomyActionButtonsToFooter();
+                refreshAdditionalTaxonomyActionFooters();
+            } finally {
+                isRebuildingFloorCardOrder = false;
+            }
+
+            return true;
+        }
+
+        function sortAdditionalWorkItems() {
+            if (isRebuildingFloorCardOrder) {
+                return;
+            }
+            hasPendingFloorSort = false;
+            const mainCardSwapped = rebuildBundleUiFromSortedFloorOrder();
+            const mainFloorCardsSorted = sortMainFloorCards();
+            if (!additionalWorkItemsList) {
+                if (mainCardSwapped || mainFloorCardsSorted) {
+                    refreshAdditionalWorkItemHeader();
+                }
+                return;
+            }
+            const items = getTopLevelAdditionalRows();
+            if (items.length <= 1) {
+                if (mainCardSwapped || mainFloorCardsSorted) {
+                    refreshAdditionalWorkItemHeader();
+                }
+                return;
+            }
+
+            const floorValues = items.map(item => getAdditionalFieldValue(item, 'work_floor'));
+            const sortedFloorValues = sortFloors([...floorValues]);
+
+            const floorPriority = new Map();
+            sortedFloorValues.forEach((floor, index) => {
+                if (!floorPriority.has(floor)) {
+                    floorPriority.set(floor, index);
+                }
+            });
+
+            const sortedItems = [...items].sort((a, b) => {
+                const floorA = getAdditionalFieldValue(a, 'work_floor');
+                const floorB = getAdditionalFieldValue(b, 'work_floor');
+                const priorityA = floorPriority.has(floorA) ? floorPriority.get(floorA) : Infinity;
+                const priorityB = floorPriority.has(floorB) ? floorPriority.get(floorB) : Infinity;
+                return priorityA - priorityB;
+            });
+
+            const alreadySorted = items.every((item, i) => item === sortedItems[i]);
+            if (alreadySorted) {
+                if (mainCardSwapped || mainFloorCardsSorted) {
+                    refreshAdditionalWorkItemHeader();
+                }
+                return;
+            }
+
+            sortedItems.forEach(item => additionalWorkItemsList.appendChild(item));
+            refreshAdditionalWorkItemHeader();
+        }
+
         function refreshAdditionalWorkItemHeader() {
             if (!additionalWorkItemsList) {
                 return;
@@ -7667,6 +8507,13 @@
             return Array.from(hostEl.children).filter(
                 row => row instanceof HTMLElement && row.matches('[data-additional-work-item="true"]'),
             );
+        }
+
+        function clearDirectAdditionalChildRows(hostEl) {
+            if (!(hostEl instanceof HTMLElement)) {
+                return;
+            }
+            getDirectAdditionalChildRows(hostEl).forEach(row => row.remove());
         }
 
         function refreshAdditionalTaxonomyActionFooters(contextEl = null) {
@@ -7832,6 +8679,940 @@
                 ? Array.from(additionalWorkItemsList.querySelectorAll('[data-additional-work-item="true"]'))
                 : [];
             return [...mainRows, ...extraRows];
+        }
+
+        function initCalculationPageSearch() {
+            const scopeEl = document.getElementById('calcCreateSearchScope');
+            const searchInput = document.getElementById('calcPageSearchInput');
+            const clearBtn = document.getElementById('calcPageSearchClear');
+            const countEl = document.getElementById('calcPageSearchCount');
+            const prevBtn = document.getElementById('calcPageSearchPrev');
+            const nextBtn = document.getElementById('calcPageSearchNext');
+            const searchWrapEl = document.getElementById('calcInlineSearch');
+            const headerRowEl = searchWrapEl instanceof HTMLElement ? searchWrapEl.closest('.calc-header-row') : null;
+
+            if (
+                !(scopeEl instanceof HTMLElement) ||
+                !(searchInput instanceof HTMLInputElement) ||
+                !(clearBtn instanceof HTMLButtonElement) ||
+                !(countEl instanceof HTMLElement) ||
+                !(prevBtn instanceof HTMLButtonElement) ||
+                !(nextBtn instanceof HTMLButtonElement)
+            ) {
+                return {
+                    refresh() {},
+                };
+            }
+
+            let results = [];
+            let activeIndex = -1;
+            let refreshTimer = null;
+            let mutationObserver = null;
+            let isObserverConnected = false;
+            let isApplyingSearchDecorations = false;
+            let textHighlightMap = new Map();
+            let stickyOffsetRaf = null;
+            let stickyPinRaf = null;
+            let isSearchPinned = false;
+            let searchNaturalWidth = 0;
+            let searchObjectIdSeq = 1;
+            const searchObjectIds = new WeakMap();
+
+            const normalizeText = value => String(value || '').toLowerCase().trim();
+            const prefersReducedMotion = () =>
+                !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+            const getSearchObjectId = value => {
+                if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
+                    return 'na';
+                }
+                if (!searchObjectIds.has(value)) {
+                    searchObjectIds.set(value, searchObjectIdSeq++);
+                }
+                return searchObjectIds.get(value);
+            };
+            const isSearchExcludedElement = el => {
+                if (!(el instanceof Element)) return false;
+                return !!el.closest(
+                    '.calc-inline-search, .calc-scroll-fab, .calc-search-mark, script, style, noscript, template, #projectLocationMap, .project-location-map, .gm-style, .gm-style-cc, .leaflet-container, .leaflet-pane, .leaflet-control-container',
+                );
+            };
+
+            const isElementVisible = el => {
+                if (!(el instanceof HTMLElement)) return false;
+                if (el.hidden) return false;
+                const style = window.getComputedStyle(el);
+                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+                return el.getClientRects().length > 0;
+            };
+
+            const refreshStickySearchTopOffset = () => {
+                let maxBottom = 0;
+                const headerCandidates = document.querySelectorAll(
+                    'body > header, body > nav, #globalTopbar, .global-topbar, .navbar, .topbar, .top-bar, .main-header, .app-header',
+                );
+                headerCandidates.forEach(el => {
+                    if (!(el instanceof HTMLElement)) return;
+                    if (!isElementVisible(el)) return;
+                    const style = window.getComputedStyle(el);
+                    if (style.position !== 'fixed' && style.position !== 'sticky') return;
+                    const rect = el.getBoundingClientRect();
+                    if (rect.bottom <= 0) return;
+                    if (rect.top > Math.max(20, window.innerHeight * 0.05)) return;
+                    maxBottom = Math.max(maxBottom, rect.bottom);
+                });
+                scopeEl.style.setProperty('--calc-search-sticky-top', `${Math.max(0, Math.ceil(maxBottom))}px`);
+            };
+
+            const scheduleStickySearchTopOffsetRefresh = () => {
+                if (stickyOffsetRaf !== null) {
+                    cancelAnimationFrame(stickyOffsetRaf);
+                }
+                stickyOffsetRaf = requestAnimationFrame(() => {
+                    stickyOffsetRaf = null;
+                    refreshStickySearchTopOffset();
+                });
+            };
+
+            const getStickySearchTopPx = () => {
+                refreshStickySearchTopOffset();
+                const raw = scopeEl.style.getPropertyValue('--calc-search-sticky-top')
+                    || getComputedStyle(scopeEl).getPropertyValue('--calc-search-sticky-top');
+                const base = Number.parseFloat(String(raw || '').replace('px', '')) || 0;
+                return base;
+            };
+
+            const syncStickySearchPinState = () => {
+                if (!(searchWrapEl instanceof HTMLElement) || !(headerRowEl instanceof HTMLElement)) {
+                    return;
+                }
+
+                const headerRect = headerRowEl.getBoundingClientRect();
+                const stickyTop = getStickySearchTopPx();
+                const scopeRect = scopeEl.getBoundingClientRect();
+                const searchCurrentHeight = Math.max(searchWrapEl.getBoundingClientRect().height || 0, 44);
+                const shouldPin =
+                    headerRect.top <= stickyTop &&
+                    scopeRect.bottom > stickyTop + searchCurrentHeight + 8;
+
+                if (!isSearchPinned) {
+                    const rect = searchWrapEl.getBoundingClientRect();
+                    if (rect.width > 0) {
+                        searchNaturalWidth = rect.width;
+                    }
+                }
+
+                if (!shouldPin) {
+                    if (isSearchPinned) {
+                        searchWrapEl.classList.remove('is-sticky-fixed');
+                        searchWrapEl.style.removeProperty('--calc-inline-search-fixed-left');
+                        searchWrapEl.style.removeProperty('--calc-inline-search-fixed-width');
+                        isSearchPinned = false;
+                    }
+                    return;
+                }
+
+                const isMobile = window.innerWidth <= 768;
+                const pinLeftAligned = headerRowEl.classList.contains('calc-left-search-row');
+                const rowLeft = Math.max(6, Math.round(headerRect.left));
+                const rowRight = Math.min(window.innerWidth - 6, Math.round(headerRect.right));
+                const availableWidth = Math.max(220, rowRight - rowLeft);
+
+                let width;
+                let left;
+                if (isMobile) {
+                    width = availableWidth;
+                    left = rowLeft;
+                } else {
+                    width = Math.min(Math.max(280, Math.round(searchNaturalWidth || 520)), availableWidth);
+                    left = pinLeftAligned ? rowLeft : Math.max(rowLeft, rowRight - width);
+                }
+
+                searchWrapEl.style.setProperty('--calc-inline-search-fixed-left', `${Math.round(left)}px`);
+                searchWrapEl.style.setProperty('--calc-inline-search-fixed-width', `${Math.round(width)}px`);
+                searchWrapEl.classList.add('is-sticky-fixed');
+                isSearchPinned = true;
+            };
+
+            const scheduleStickySearchPinStateRefresh = () => {
+                if (stickyPinRaf !== null) {
+                    cancelAnimationFrame(stickyPinRaf);
+                }
+                stickyPinRaf = requestAnimationFrame(() => {
+                    stickyPinRaf = null;
+                    syncStickySearchPinState();
+                });
+            };
+
+            const getSearchTargetFromNode = node => {
+                if (!(node instanceof Node)) return null;
+                const baseEl = node instanceof HTMLElement ? node : node.parentElement;
+                if (!(baseEl instanceof HTMLElement)) return null;
+                if (isSearchExcludedElement(baseEl)) return null;
+                const target =
+                    baseEl.closest(
+                        '.additional-taxonomy-cell, .taxonomy-card-floor, .taxonomy-card-area, .taxonomy-card-field, .work-type-group, .dimension-item, .material-type-filter-item, .form-group, .additional-work-item, .tickbox-item, .ssm-row, .alert, .project-location-group, .work-item-bottom-bar',
+                    ) || baseEl;
+                return target instanceof HTMLElement ? target : null;
+            };
+
+            const buildCandidates = () => {
+                const candidates = [];
+
+                const pushCandidate = (text, targetEl, sourceEl, kind = 'text') => {
+                    const raw = String(text || '').replace(/\s+/g, ' ').trim();
+                    if (!raw) return;
+                    if (!(targetEl instanceof HTMLElement) || !isElementVisible(targetEl)) return;
+                    candidates.push({
+                        kind,
+                        text: raw,
+                        norm: normalizeText(raw),
+                        targetEl,
+                        sourceEl: sourceEl instanceof HTMLElement ? sourceEl : targetEl,
+                    });
+                };
+
+                const walker = document.createTreeWalker(scopeEl, NodeFilter.SHOW_TEXT, {
+                    acceptNode(textNode) {
+                        const text = String(textNode.nodeValue || '').replace(/\s+/g, ' ').trim();
+                        if (!text) return NodeFilter.FILTER_REJECT;
+                        const parent = textNode.parentElement;
+                        if (!(parent instanceof HTMLElement)) return NodeFilter.FILTER_REJECT;
+                        if (isSearchExcludedElement(parent)) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        return NodeFilter.FILTER_ACCEPT;
+                    },
+                });
+
+                let currentTextNode = walker.nextNode();
+                while (currentTextNode) {
+                    const targetEl = getSearchTargetFromNode(currentTextNode);
+                    pushCandidate(currentTextNode.nodeValue, targetEl, currentTextNode.parentElement, 'text');
+                    currentTextNode = walker.nextNode();
+                }
+
+                scopeEl.querySelectorAll('input, textarea, select').forEach(field => {
+                    if (!(field instanceof HTMLElement)) return;
+                    if (isSearchExcludedElement(field)) return;
+                    if (field instanceof HTMLInputElement && field.type === 'hidden') return;
+                    if (!isElementVisible(field)) return;
+
+                    const targetEl = getSearchTargetFromNode(field);
+                    if (!(targetEl instanceof HTMLElement)) return;
+
+                    let valueText = '';
+                    if (field instanceof HTMLSelectElement) {
+                        const selected = field.selectedOptions && field.selectedOptions[0];
+                        valueText = String(selected?.textContent || field.value || '').trim();
+                    } else if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+                        valueText = String(field.value || '').trim();
+                    }
+
+                    if (valueText) {
+                        pushCandidate(valueText, targetEl, field, 'field');
+                    }
+                });
+
+                return candidates;
+            };
+
+            const clearActiveSearchState = () => {
+                scopeEl.querySelectorAll('.calc-search-mark.is-active, .calc-search-hit-field.is-active').forEach(el => {
+                    el.classList.remove('is-active');
+                });
+                scopeEl.querySelectorAll('.calc-search-hit-field').forEach(el => {
+                    el.classList.remove('calc-search-hit-field');
+                });
+            };
+
+            const removeHitClasses = () => {
+                clearActiveSearchState();
+                textHighlightMap = new Map();
+                isApplyingSearchDecorations = true;
+                try {
+                    scopeEl.querySelectorAll('mark.calc-search-mark').forEach(mark => {
+                        const parent = mark.parentNode;
+                        if (!parent) {
+                            return;
+                        }
+                        parent.replaceChild(document.createTextNode(mark.textContent || ''), mark);
+                        if (parent instanceof HTMLElement || parent instanceof DocumentFragment) {
+                            try {
+                                parent.normalize();
+                            } catch (error) {
+                                // ignore normalize issues in unsupported nodes
+                            }
+                        }
+                    });
+                } finally {
+                    isApplyingSearchDecorations = false;
+                }
+            };
+
+            const getResultIdentityKey = result => {
+                if (!result || typeof result !== 'object') {
+                    return '';
+                }
+                const sourceId = getSearchObjectId(result.sourceEl || null);
+                const targetId = getSearchObjectId(result.targetEl || null);
+                const markIndexInSource = Number.isInteger(result.markIndexInSource) ? result.markIndexInSource : -1;
+                return `${result.kind || 'unk'}::${sourceId}::${targetId}::${markIndexInSource}`;
+            };
+
+            const applyTextHighlights = query => {
+                textHighlightMap = new Map();
+                if (!query) {
+                    return;
+                }
+
+                const textNodes = [];
+                const walker = document.createTreeWalker(scopeEl, NodeFilter.SHOW_TEXT, {
+                    acceptNode(textNode) {
+                        const parent = textNode.parentElement;
+                        if (!(parent instanceof HTMLElement)) return NodeFilter.FILTER_REJECT;
+                        if (isSearchExcludedElement(parent)) return NodeFilter.FILTER_REJECT;
+                        const value = String(textNode.nodeValue || '');
+                        if (!value.trim()) return NodeFilter.FILTER_REJECT;
+                        return NodeFilter.FILTER_ACCEPT;
+                    },
+                });
+
+                let currentTextNode = walker.nextNode();
+                while (currentTextNode) {
+                    textNodes.push(currentTextNode);
+                    currentTextNode = walker.nextNode();
+                }
+
+                isApplyingSearchDecorations = true;
+                try {
+                    textNodes.forEach(textNode => {
+                        if (!(textNode instanceof Text)) return;
+                        const parentEl = textNode.parentElement;
+                        const parentNode = textNode.parentNode;
+                        if (!(parentEl instanceof HTMLElement) || !(parentNode instanceof Node)) return;
+                        if (isSearchExcludedElement(parentEl)) return;
+
+                        const rawText = String(textNode.nodeValue || '');
+                        const lowerText = rawText.toLowerCase();
+                        if (!lowerText || !lowerText.includes(query)) return;
+
+                        const targetEl = getSearchTargetFromNode(textNode);
+                        if (!(targetEl instanceof HTMLElement) || !isElementVisible(targetEl)) return;
+
+                        const fragment = document.createDocumentFragment();
+                        const marks = [];
+                        let cursor = 0;
+                        let matchIndex = lowerText.indexOf(query, cursor);
+
+                        while (matchIndex !== -1) {
+                            if (matchIndex > cursor) {
+                                fragment.appendChild(document.createTextNode(rawText.slice(cursor, matchIndex)));
+                            }
+                            const mark = document.createElement('mark');
+                            mark.className = 'calc-search-mark';
+                            mark.textContent = rawText.slice(matchIndex, matchIndex + query.length);
+                            fragment.appendChild(mark);
+                            marks.push(mark);
+                            cursor = matchIndex + query.length;
+                            matchIndex = lowerText.indexOf(query, cursor);
+                        }
+
+                        if (!marks.length) return;
+
+                        if (cursor < rawText.length) {
+                            fragment.appendChild(document.createTextNode(rawText.slice(cursor)));
+                        }
+
+                        parentNode.replaceChild(fragment, textNode);
+
+                        if (!textHighlightMap.has(parentEl)) {
+                            textHighlightMap.set(parentEl, []);
+                        }
+                        textHighlightMap.get(parentEl).push(...marks);
+                    });
+                } finally {
+                    isApplyingSearchDecorations = false;
+                }
+            };
+
+            const updateCounter = () => {
+                const total = results.length;
+                const current = total > 0 && activeIndex >= 0 ? activeIndex + 1 : 0;
+                countEl.textContent = `${current} / ${total}`;
+                prevBtn.disabled = total === 0;
+                nextBtn.disabled = total === 0;
+                clearBtn.style.visibility = searchInput.value.trim() ? 'visible' : 'hidden';
+            };
+
+            const setMutationObserverEnabled = shouldEnable => {
+                if (!mutationObserver) {
+                    mutationObserver = new MutationObserver(function(mutationList) {
+                        if (!searchInput.value.trim()) return;
+                        if (isApplyingSearchDecorations) return;
+                        const hasRelevantMutation = mutationList.some(mutation => {
+                            const target = mutation.target;
+                            if (!(target instanceof Node)) return false;
+                            const el = target instanceof Element ? target : target.parentElement;
+                            if (!(el instanceof Element)) return false;
+                            return !isSearchExcludedElement(el);
+                        });
+                        if (!hasRelevantMutation) return;
+                        scheduleRefresh({ scroll: false });
+                    });
+                }
+
+                if (shouldEnable && !isObserverConnected) {
+                    mutationObserver.observe(scopeEl, {
+                        childList: true,
+                        subtree: true,
+                    });
+                    isObserverConnected = true;
+                    return;
+                }
+
+                if (!shouldEnable && isObserverConnected) {
+                    mutationObserver.disconnect();
+                    isObserverConnected = false;
+                }
+            };
+
+            const navigateToResult = (index, options = {}) => {
+                if (!results.length) {
+                    activeIndex = -1;
+                    clearActiveSearchState();
+                    updateCounter();
+                    return;
+                }
+                const total = results.length;
+                const safeIndex = ((index % total) + total) % total;
+                activeIndex = safeIndex;
+                clearActiveSearchState();
+                const result = results[safeIndex];
+                const targetEl = result?.targetEl;
+                if (targetEl instanceof HTMLElement) {
+                    let activeHighlightEl = null;
+                    if (result.kind === 'text' && result.sourceEl instanceof HTMLElement) {
+                        const marks = textHighlightMap.get(result.sourceEl) || [];
+                        if (marks.length) {
+                            const desiredMarkIndex = Number.isInteger(result.markIndexInSource) ? result.markIndexInSource : 0;
+                            activeHighlightEl = marks[desiredMarkIndex] || marks[0];
+                            activeHighlightEl.classList.add('is-active');
+                        }
+                    }
+                    if (!(activeHighlightEl instanceof HTMLElement)) {
+                        const fieldSourceEl =
+                            result.kind === 'field' && result.sourceEl instanceof HTMLElement && isElementVisible(result.sourceEl)
+                                ? result.sourceEl
+                                : null;
+                        const fieldHighlightEl =
+                            fieldSourceEl?.closest(
+                                '.input-wrapper, .material-type-filter-body, .work-type-selector-wrapper, .taxonomy-card-floor, .taxonomy-card-area, .taxonomy-card-field',
+                            ) || fieldSourceEl || targetEl;
+
+                        fieldHighlightEl.classList.add('calc-search-hit-field', 'is-active');
+                        activeHighlightEl = fieldHighlightEl;
+                    }
+                    if (options.scroll !== false) {
+                        const scrollTarget =
+                            activeHighlightEl.closest('.additional-taxonomy-cell') ||
+                            activeHighlightEl.closest('.taxonomy-card-floor') ||
+                            activeHighlightEl.closest('.taxonomy-card-area') ||
+                            activeHighlightEl.closest('.taxonomy-card-field') ||
+                            activeHighlightEl;
+                        try {
+                            scrollTarget.scrollIntoView({
+                                behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+                                block: 'center',
+                                inline: 'nearest',
+                            });
+                        } catch (error) {
+                            const rect = scrollTarget.getBoundingClientRect();
+                            const absoluteTop = rect.top + (window.scrollY || document.documentElement.scrollTop || 0);
+                            window.scrollTo({
+                                top: Math.max(0, absoluteTop - Math.max(120, window.innerHeight * 0.24)),
+                                behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+                            });
+                        }
+                    }
+                    if (
+                        result.kind === 'field' &&
+                        result.sourceEl instanceof HTMLElement &&
+                        isElementVisible(result.sourceEl)
+                    ) {
+                        result.sourceEl.classList.add('calc-search-hit-field', 'is-active');
+                    }
+                }
+                updateCounter();
+            };
+
+            const runSearch = options => {
+                const query = normalizeText(searchInput.value);
+                const prevActiveTarget = activeIndex >= 0 ? results[activeIndex]?.targetEl : null;
+                const prevActiveResultKey = activeIndex >= 0 ? getResultIdentityKey(results[activeIndex]) : '';
+                removeHitClasses();
+
+                if (!query) {
+                    setMutationObserverEnabled(false);
+                    results = [];
+                    activeIndex = -1;
+                    removeHitClasses();
+                    updateCounter();
+                    return;
+                }
+                setMutationObserverEnabled(true);
+
+                const candidates = buildCandidates();
+                applyTextHighlights(query);
+                const expandedResults = [];
+                const markCursorBySource = new Map();
+                candidates.forEach(item => {
+                    if (!item || !item.norm.includes(query)) {
+                        return;
+                    }
+                    if (item.kind !== 'text') {
+                        expandedResults.push(item);
+                        return;
+                    }
+
+                    const sourceEl = item.sourceEl instanceof HTMLElement ? item.sourceEl : item.targetEl;
+                    const currentCursor = sourceEl instanceof HTMLElement ? (markCursorBySource.get(sourceEl) || 0) : 0;
+                    let localMatchCount = 0;
+                    let fromIndex = 0;
+                    while (fromIndex <= item.norm.length) {
+                        const foundAt = item.norm.indexOf(query, fromIndex);
+                        if (foundAt === -1) {
+                            break;
+                        }
+                        expandedResults.push({
+                            ...item,
+                            markIndexInSource: currentCursor + localMatchCount,
+                        });
+                        localMatchCount += 1;
+                        fromIndex = foundAt + Math.max(1, query.length);
+                    }
+
+                    if (sourceEl instanceof HTMLElement) {
+                        markCursorBySource.set(sourceEl, currentCursor + localMatchCount);
+                    }
+                });
+                results = expandedResults;
+
+                if (!results.length) {
+                    activeIndex = -1;
+                    clearActiveSearchState();
+                    updateCounter();
+                    return;
+                }
+
+                const matchedPrevIndexByKey = prevActiveResultKey
+                    ? results.findIndex(item => getResultIdentityKey(item) === prevActiveResultKey)
+                    : -1;
+                const matchedPrevIndex =
+                    matchedPrevIndexByKey >= 0
+                        ? matchedPrevIndexByKey
+                        : prevActiveTarget instanceof HTMLElement
+                            ? results.findIndex(item => item.targetEl === prevActiveTarget)
+                            : -1;
+                const nextIndex = matchedPrevIndex >= 0 ? matchedPrevIndex : 0;
+                navigateToResult(nextIndex, options || {});
+            };
+
+            const scheduleRefresh = (options = {}) => {
+                if (refreshTimer) {
+                    clearTimeout(refreshTimer);
+                }
+                refreshTimer = setTimeout(() => {
+                    refreshTimer = null;
+                    runSearch(options);
+                }, 90);
+            };
+
+            searchInput.addEventListener('input', function() {
+                scheduleRefresh({ scroll: false });
+            });
+
+            searchInput.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (!results.length) {
+                        runSearch({ scroll: true });
+                        return;
+                    }
+                    navigateToResult(activeIndex + (event.shiftKey ? -1 : 1), { scroll: true });
+                } else if (event.key === 'Escape') {
+                    searchInput.value = '';
+                    runSearch({ scroll: false });
+                }
+            });
+
+            clearBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                searchInput.focus();
+                runSearch({ scroll: false });
+            });
+
+            prevBtn.addEventListener('click', function() {
+                navigateToResult(activeIndex - 1, { scroll: true });
+            });
+
+            nextBtn.addEventListener('click', function() {
+                navigateToResult(activeIndex + 1, { scroll: true });
+            });
+
+            scopeEl.addEventListener('input', function() {
+                if (!searchInput.value.trim()) return;
+                scheduleRefresh({ scroll: false });
+            });
+
+            scopeEl.addEventListener('change', function() {
+                if (!searchInput.value.trim()) return;
+                scheduleRefresh({ scroll: false });
+            });
+
+            scheduleStickySearchTopOffsetRefresh();
+            scheduleStickySearchPinStateRefresh();
+            window.addEventListener('resize', function() {
+                scheduleStickySearchTopOffsetRefresh();
+                scheduleStickySearchPinStateRefresh();
+            }, { passive: true });
+            window.addEventListener('scroll', function() {
+                scheduleStickySearchTopOffsetRefresh();
+                scheduleStickySearchPinStateRefresh();
+            }, { passive: true });
+
+            runSearch({ scroll: false });
+
+            return {
+                refresh() {
+                    if (!searchInput.value.trim()) return;
+                    scheduleRefresh({ scroll: false });
+                },
+            };
+        }
+
+        function initCalculationScrollFab() {
+            const fabWrap = document.getElementById('calcScrollFabWrap');
+            const fabBtn = document.getElementById('calcScrollFabBtn');
+            const fabIcon = document.getElementById('calcScrollFabIcon');
+            if (!(fabWrap instanceof HTMLElement) || !(fabBtn instanceof HTMLButtonElement) || !(fabIcon instanceof HTMLElement)) {
+                return {
+                    refresh() {},
+                };
+            }
+
+            const treeHost = fabWrap.querySelector('[data-scroll-summary-tree]');
+
+            const setFabMode = mode => {
+                const normalized = mode === 'up' ? 'up' : 'down';
+                fabWrap.dataset.scrollMode = normalized;
+                fabIcon.classList.remove('bi-arrow-up', 'bi-arrow-down');
+                fabIcon.classList.add(normalized === 'up' ? 'bi-arrow-up' : 'bi-arrow-down');
+                const label = normalized === 'up' ? 'Kembali ke atas' : 'Scroll ke bawah';
+                fabBtn.setAttribute('aria-label', label);
+                fabBtn.setAttribute('title', label);
+            };
+
+            const navigateToTarget = targetEl => {
+                if (!(targetEl instanceof HTMLElement)) {
+                    return;
+                }
+                const scrollTarget =
+                    targetEl.closest('.additional-taxonomy-cell') ||
+                    targetEl.closest('.taxonomy-card-floor') ||
+                    targetEl.closest('.taxonomy-card-area') ||
+                    targetEl.closest('.taxonomy-card-field') ||
+                    targetEl;
+                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                try {
+                    scrollTarget.scrollIntoView({
+                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                        block: 'center',
+                        inline: 'nearest',
+                    });
+                } catch (error) {
+                    const rect = scrollTarget.getBoundingClientRect();
+                    const absoluteTop = rect.top + (window.scrollY || document.documentElement.scrollTop || 0);
+                    window.scrollTo({
+                        top: Math.max(0, absoluteTop - Math.max(120, window.innerHeight * 0.25)),
+                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                    });
+                }
+            };
+
+            const collectSummaryTree = () => {
+                const combos = [];
+                const pushCombo = (floor, area, field, targets = {}) => {
+                    const work_floor = String(floor || '').trim();
+                    const work_area = String(area || '').trim();
+                    const work_field = String(field || '').trim();
+                    if (!work_floor && !work_area && !work_field) {
+                        return;
+                    }
+                    combos.push({
+                        work_floor,
+                        work_area,
+                        work_field,
+                        floorTargetEl: targets.floorTargetEl instanceof HTMLElement ? targets.floorTargetEl : null,
+                        areaTargetEl: targets.areaTargetEl instanceof HTMLElement ? targets.areaTargetEl : null,
+                        fieldTargetEl: targets.fieldTargetEl instanceof HTMLElement ? targets.fieldTargetEl : null,
+                    });
+                };
+
+                pushCombo(getMainTaxonomyValue('floor'), getMainTaxonomyValue('area'), getMainTaxonomyValue('field'), {
+                    floorTargetEl: document.getElementById('workFloorDisplay'),
+                    areaTargetEl: document.getElementById('workAreaDisplay'),
+                    fieldTargetEl: document.getElementById('workFieldDisplay'),
+                });
+                getAllAdditionalWorkRows().forEach(row => {
+                    pushCombo(
+                        getAdditionalFieldValue(row, 'work_floor'),
+                        getAdditionalFieldValue(row, 'work_area'),
+                        getAdditionalFieldValue(row, 'work_field'),
+                        {
+                            floorTargetEl: row.querySelector('[data-field-display="work_floor"]'),
+                            areaTargetEl: row.querySelector('[data-field-display="work_area"]'),
+                            fieldTargetEl: row.querySelector('[data-field-display="work_field"]'),
+                        },
+                    );
+                });
+
+                const normalized = combos.filter(item => item.work_floor);
+                const floorNames = sortFloors(uniqueFilterTokens(normalized.map(item => item.work_floor)));
+
+                const floorMap = new Map();
+                floorNames.forEach(name => {
+                    floorMap.set(name, { label: name, targetEl: null, areas: new Map() });
+                });
+
+                normalized.forEach(item => {
+                    const floorNode = floorMap.get(item.work_floor);
+                    if (!floorNode) {
+                        return;
+                    }
+                    if (!(floorNode.targetEl instanceof HTMLElement) && item.floorTargetEl instanceof HTMLElement) {
+                        floorNode.targetEl = item.floorTargetEl;
+                    }
+                    const areaLabel = item.work_area || '(Tanpa Area)';
+                    if (!floorNode.areas.has(areaLabel)) {
+                        floorNode.areas.set(areaLabel, {
+                            label: areaLabel,
+                            targetEl: item.areaTargetEl || item.floorTargetEl || null,
+                            fields: new Map(),
+                        });
+                    }
+                    const areaNode = floorNode.areas.get(areaLabel);
+                    if (!(areaNode.targetEl instanceof HTMLElement)) {
+                        areaNode.targetEl = item.areaTargetEl || item.floorTargetEl || null;
+                    }
+                    if (item.work_field) {
+                        if (!areaNode.fields.has(item.work_field)) {
+                            areaNode.fields.set(item.work_field, {
+                                label: item.work_field,
+                                targetEl: item.fieldTargetEl || item.areaTargetEl || item.floorTargetEl || null,
+                            });
+                        }
+                    }
+                });
+
+                return floorNames.map(floorName => {
+                    const floorNode = floorMap.get(floorName);
+                    const areaNames = sortAlphabetic(Array.from(floorNode && floorNode.areas ? floorNode.areas.keys() : []));
+                    return {
+                        label: floorName,
+                        targetEl: floorNode?.targetEl || null,
+                        children: areaNames.map(areaName => {
+                            const areaNode = floorNode.areas.get(areaName);
+                            const fieldNames = sortAlphabetic(Array.from(areaNode && areaNode.fields ? areaNode.fields.keys() : []));
+                            return {
+                                label: areaName,
+                                targetEl: areaNode?.targetEl || null,
+                                children: fieldNames.map(fieldName => ({
+                                    ...(areaNode.fields.get(fieldName) || { label: fieldName, targetEl: null }),
+                                    children: [],
+                                })),
+                            };
+                        }),
+                    };
+                });
+            };
+
+            const createMenuNode = (node, level = 0) => {
+                const li = document.createElement('li');
+                li.className = 'calc-scroll-fab-menu-item';
+                if (Array.isArray(node.children) && node.children.length > 0) {
+                    li.classList.add('has-children');
+                }
+
+                const label = document.createElement('button');
+                label.type = 'button';
+                label.className = 'calc-scroll-fab-menu-item-label';
+                if (node.targetEl instanceof HTMLElement) {
+                    label.classList.add('is-clickable');
+                    label.setAttribute('title', `Buka ${String(node.label || '')}`);
+                    const handleNavActivate = event => {
+                        if (event) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        navigateToTarget(node.targetEl);
+                    };
+                    label.addEventListener('pointerdown', function(event) {
+                        if (event.pointerType === 'mouse' && event.button !== 0) {
+                            return;
+                        }
+                        handleNavActivate(event);
+                    });
+                    label.addEventListener('click', function(event) {
+                        handleNavActivate(event);
+                    });
+                    label.addEventListener('keydown', function(event) {
+                        if (event.key !== 'Enter' && event.key !== ' ') {
+                            return;
+                        }
+                        handleNavActivate(event);
+                    });
+                }
+                const textEl = document.createElement('span');
+                textEl.className = 'calc-scroll-fab-menu-text';
+                textEl.textContent = String(node.label || '');
+                label.appendChild(textEl);
+                li.appendChild(label);
+
+                if (Array.isArray(node.children) && node.children.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.className = level === 0 ? 'calc-scroll-fab-submenu' : 'calc-scroll-fab-submenu';
+                    const submenuTitle =
+                        level === 0
+                            ? 'Area'
+                            : level === 1
+                              ? 'Bidang'
+                              : '';
+                    if (submenuTitle) {
+                        const titleEl = document.createElement('li');
+                        titleEl.className = 'calc-scroll-fab-submenu-title';
+                        if (level === 0) {
+                            titleEl.classList.add('is-area');
+                        } else if (level === 1) {
+                            titleEl.classList.add('is-field');
+                        }
+                        titleEl.textContent = submenuTitle;
+                        ul.appendChild(titleEl);
+                    }
+                    node.children.forEach(child => ul.appendChild(createMenuNode(child, level + 1)));
+                    li.appendChild(ul);
+                }
+
+                return li;
+            };
+
+            const renderTree = tree => {
+                if (!(treeHost instanceof HTMLElement)) {
+                    return;
+                }
+                treeHost.innerHTML = '';
+
+                const items = Array.isArray(tree) ? tree : [];
+                if (!items.length) {
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = 'calc-scroll-fab-menu-empty';
+                    emptyEl.textContent = 'Belum ada lantai terinput';
+                    treeHost.appendChild(emptyEl);
+                    return;
+                }
+
+                const rootMenu = document.createElement('ul');
+                rootMenu.className = 'calc-scroll-fab-menu';
+                items.forEach(node => rootMenu.appendChild(createMenuNode(node, 0)));
+                treeHost.appendChild(rootMenu);
+            };
+
+            const refreshSummary = () => {
+                renderTree(collectSummaryTree());
+            };
+
+            const updateVisibilityAndIcon = () => {
+                const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+                const docHeight = Math.max(
+                    document.body.scrollHeight || 0,
+                    document.documentElement.scrollHeight || 0,
+                );
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+                const scrollable = docHeight - viewportHeight;
+                const hasScroll = scrollable > 64;
+
+                fabWrap.hidden = !hasScroll;
+                if (!hasScroll) {
+                    return;
+                }
+
+                const upThreshold = Math.max(120, scrollable * 0.75);
+                const showUp = scrollTop >= upThreshold;
+                setFabMode(showUp ? 'up' : 'down');
+            };
+
+            let refreshTimer = null;
+            const scheduleRefreshSummary = () => {
+                if (refreshTimer) {
+                    clearTimeout(refreshTimer);
+                }
+                refreshTimer = setTimeout(() => {
+                    refreshTimer = null;
+                    refreshSummary();
+                }, 100);
+            };
+
+            fabBtn.addEventListener('click', function() {
+                const mode = fabWrap.dataset.scrollMode === 'up' ? 'up' : 'down';
+                const targetTop =
+                    mode === 'up'
+                        ? 0
+                        : Math.max(
+                              0,
+                              Math.max(document.body.scrollHeight || 0, document.documentElement.scrollHeight || 0) -
+                                  (window.innerHeight || document.documentElement.clientHeight || 0),
+                          );
+                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                window.scrollTo({
+                    top: targetTop,
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                });
+                fabBtn.blur();
+            });
+
+            ['mouseenter', 'focusin', 'touchstart'].forEach(eventName => {
+                fabWrap.addEventListener(eventName, refreshSummary, { passive: true });
+            });
+
+            const calculationForm = document.getElementById('calculationForm');
+            if (calculationForm instanceof HTMLElement) {
+                calculationForm.addEventListener('change', scheduleRefreshSummary);
+                calculationForm.addEventListener('input', function(event) {
+                    const target = event?.target;
+                    if (!(target instanceof HTMLElement)) {
+                        return;
+                    }
+                    if (
+                        target.matches('#workFloorDisplay, #workAreaDisplay, #workFieldDisplay') ||
+                        target.matches('[data-field="work_floor"], [data-field="work_area"], [data-field="work_field"]') ||
+                        target.matches('[data-field-display="work_floor"], [data-field-display="work_area"], [data-field-display="work_field"]')
+                    ) {
+                        scheduleRefreshSummary();
+                    }
+                });
+            }
+
+            window.addEventListener('scroll', updateVisibilityAndIcon, { passive: true });
+            window.addEventListener('resize', updateVisibilityAndIcon);
+
+            refreshSummary();
+            updateVisibilityAndIcon();
+
+            return {
+                refresh() {
+                    refreshSummary();
+                    updateVisibilityAndIcon();
+                },
+            };
         }
 
         function findLastAdditionalAreaCardByWorkArea(workFloor = '', workArea = '') {
@@ -8242,8 +10023,11 @@
                 mainWorkTypeHiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
             }
             if (mainWorkTypeDisplayInput instanceof HTMLInputElement) {
-                mainWorkTypeDisplayInput.value =
-                    String(item.title || '').trim() || getBundleFormulaLabelByCode(item.work_type);
+                const workTypeCode = String(item.work_type || '').trim();
+                const itemTitle = String(item.title || '').trim();
+                mainWorkTypeDisplayInput.value = workTypeCode
+                    ? (itemTitle || getBundleFormulaLabelByCode(workTypeCode))
+                    : '';
             }
 
             setMainFieldInputValueById('wallLength', item.wall_length);
@@ -8271,6 +10055,96 @@
             applyMaterialCustomizeFiltersToPanels(mainRoot, item.material_customize_filters || {});
             collapseEmptyCustomizePanels(mainRoot);
             syncMaterialCustomizeFiltersPayload();
+        }
+
+        function applyAdditionalWorkItemFromBundleItem(itemEl, itemData) {
+            if (!(itemEl instanceof HTMLElement)) {
+                return;
+            }
+
+            const item = normalizeBundleItem(itemData || {}, 0);
+            const titleInput = itemEl.querySelector('[data-field="title"]');
+            if (titleInput instanceof HTMLInputElement) {
+                titleInput.value = String(item.title || '');
+            }
+
+            // Keep row_kind / DOM structure as-is to avoid destructive layout changes.
+            ['work_floor', 'work_area', 'work_field', 'work_type'].forEach(key => {
+                setAdditionalFieldValue(itemEl, key, item[key] || '');
+            });
+            [
+                'wall_length',
+                'wall_height',
+                'mortar_thickness',
+                'layer_count',
+                'plaster_sides',
+                'skim_sides',
+                'grout_thickness',
+                'ceramic_length',
+                'ceramic_width',
+                'ceramic_thickness',
+            ].forEach(key => {
+                setAdditionalFieldValue(itemEl, key, item[key] || '');
+            });
+
+            bundleMaterialTypeOrder.forEach(type => {
+                const wrap = itemEl.querySelector(`[data-material-wrap="${type}"]`);
+                if (!(wrap instanceof HTMLElement)) {
+                    return;
+                }
+                if (typeof wrap.__clearBundleMaterialTypeValues === 'function') {
+                    wrap.__clearBundleMaterialTypeValues();
+                }
+                const values = getBundleMaterialTypeValues(item.material_type_filters || {}, type);
+                if (typeof wrap.__setBundleMaterialTypeValues === 'function') {
+                    wrap.__setBundleMaterialTypeValues(values);
+                }
+            });
+
+            clearCustomizeFiltersInRoot(itemEl);
+            applyMaterialCustomizeFiltersToPanels(itemEl, item.material_customize_filters || {});
+            collapseEmptyCustomizePanels(itemEl);
+
+            if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
+                itemEl.__refreshWorkTypeOptions();
+            }
+            applyAdditionalWorkItemVisibility(itemEl);
+        }
+
+        function setAdditionalFloorValueForRowsInScope(scopeEl, floorValue, options = {}) {
+            if (!(scopeEl instanceof HTMLElement)) {
+                return;
+            }
+            const excludeRoot = options.excludeRoot === true;
+            const rows = [];
+            if (!excludeRoot && scopeEl.matches('[data-additional-work-item="true"]')) {
+                rows.push(scopeEl);
+            }
+            scopeEl.querySelectorAll('[data-additional-work-item="true"]').forEach(row => {
+                if (row instanceof HTMLElement) {
+                    rows.push(row);
+                }
+            });
+            rows.forEach(row => setAdditionalFieldValue(row, 'work_floor', floorValue || ''));
+        }
+
+        function swapDirectAdditionalChildRows(hostA, hostB) {
+            if (!(hostA instanceof HTMLElement) || !(hostB instanceof HTMLElement) || hostA === hostB) {
+                return;
+            }
+
+            const rowsA = getDirectAdditionalChildRows(hostA);
+            const rowsB = getDirectAdditionalChildRows(hostB);
+            if (!rowsA.length && !rowsB.length) {
+                return;
+            }
+
+            const fragA = document.createDocumentFragment();
+            const fragB = document.createDocumentFragment();
+            rowsA.forEach(row => fragA.appendChild(row));
+            rowsB.forEach(row => fragB.appendChild(row));
+            hostA.appendChild(fragB);
+            hostB.appendChild(fragA);
         }
 
         function collectAdditionalWorkItems(strict = false) {
@@ -8479,6 +10353,13 @@
                 removeMainItemBtn.hidden = !hasAdditionalRows;
                 removeMainItemBtn.disabled = !hasAdditionalRows;
             }
+
+            if (calcScrollFabApi && typeof calcScrollFabApi.refresh === 'function') {
+                calcScrollFabApi.refresh();
+            }
+            if (calcPageSearchApi && typeof calcPageSearchApi.refresh === 'function') {
+                calcPageSearchApi.refresh();
+            }
         }
 
         function applyAdditionalWorkItemVisibility(itemEl) {
@@ -8595,9 +10476,6 @@
                 if (type === 'ceramic_type') {
                     visible = showMaterialFilters && ['tile_installation', 'plinth_ceramic', 'adhesive_mix', 'plinth_adhesive_mix']
                         .includes(workType);
-                }
-                if (workType === 'grout_tile' && type === 'ceramic') {
-                    visible = false;
                 }
                 toggleMaterialWrap(type, visible);
             });
@@ -9084,13 +10962,130 @@
         }
         bindAutoHideEmptyCustomizePanels();
         collapseEmptyCustomizePanels(document);
+        calcScrollFabApi = initCalculationScrollFab();
+        calcPageSearchApi = initCalculationPageSearch();
 
         // Loading State Handler with Real Progress Simulation
         const form = document.getElementById('calculationForm');
         let loadingInterval = null;
         const calcSessionKey = 'materialCalculationSession';
+        const calcPreviewPendingKey = 'materialCalculationPreviewPending';
         let saveSessionTimer = null;
+        let isRestoringCalculationSessionState = false;
+        let ignoreFormChangeTrackingUntil = 0;
+        let isUntouchedPreviewResumeEligible = false;
+        let hasUserChangedSincePreviewResume = false;
+        let lastFastPreviewCacheExpiredAt = 0;
         const resetButton = document.getElementById('btnResetForm');
+
+        function initStoreSearchModeControls() {
+            const box = document.getElementById('storeSearchModeBox');
+            if (!(box instanceof HTMLElement)) {
+                return;
+            }
+
+            const useStoreFilterHidden = box.querySelector('input[type="hidden"][name="use_store_filter"]');
+            const allowMixedStoreHidden = box.querySelector('input[type="hidden"][name="allow_mixed_store"]');
+            const storeRadiusScopeHidden = document.getElementById('storeRadiusScopeValue');
+            const modeValueHidden = document.getElementById('storeSearchModeValue');
+            const completeWithinCheck = document.getElementById('storeModeCompleteWithinCheck');
+            const completeOutsideCheck = document.getElementById('storeModeCompleteOutsideCheck');
+            const incompleteCheck = document.getElementById('storeModeIncompleteCheck');
+
+            if (
+                !(useStoreFilterHidden instanceof HTMLInputElement) ||
+                !(allowMixedStoreHidden instanceof HTMLInputElement) ||
+                !(storeRadiusScopeHidden instanceof HTMLInputElement) ||
+                !(modeValueHidden instanceof HTMLInputElement) ||
+                !(completeWithinCheck instanceof HTMLInputElement) ||
+                !(completeOutsideCheck instanceof HTMLInputElement) ||
+                !(incompleteCheck instanceof HTMLInputElement)
+            ) {
+                return;
+            }
+
+            const syncState = source => {
+                const checks = [completeWithinCheck, completeOutsideCheck, incompleteCheck];
+                if (source && source.checked) {
+                    checks.forEach(checkEl => {
+                        if (checkEl !== source) {
+                            checkEl.checked = false;
+                        }
+                    });
+                }
+
+                // Keep exactly one mode active by default.
+                if (!checks.some(checkEl => checkEl.checked)) {
+                    completeWithinCheck.checked = true;
+                }
+
+                let activeMode = 'complete_within';
+                if (incompleteCheck.checked) {
+                    activeMode = 'incomplete';
+                } else if (completeOutsideCheck.checked) {
+                    activeMode = 'complete_outside';
+                } else {
+                    activeMode = 'complete_within';
+                }
+
+                if (activeMode === 'incomplete') {
+                    useStoreFilterHidden.value = '1';
+                    allowMixedStoreHidden.value = '1';
+                    storeRadiusScopeHidden.value = 'outside';
+                } else if (activeMode === 'complete_outside') {
+                    useStoreFilterHidden.value = '1';
+                    allowMixedStoreHidden.value = '0';
+                    storeRadiusScopeHidden.value = 'outside';
+                } else {
+                    useStoreFilterHidden.value = '1';
+                    allowMixedStoreHidden.value = '0';
+                    storeRadiusScopeHidden.value = 'within';
+                }
+
+                modeValueHidden.value = activeMode;
+                box.dataset.storeSearchMode = activeMode;
+                box.dataset.storeRadiusScope = storeRadiusScopeHidden.value || 'off';
+                box.dataset.allowMixedStore = allowMixedStoreHidden.value === '1' ? '1' : '0';
+            };
+
+            const syncFromHiddenState = () => {
+                const scope = String(storeRadiusScopeHidden.value || '').trim().toLowerCase();
+                const useStoreFilterEnabled = String(useStoreFilterHidden.value || '0') === '1';
+                const allowMixedEnabled = String(allowMixedStoreHidden.value || '0') === '1';
+                let activeMode = 'complete_within';
+                if (!useStoreFilterEnabled) {
+                    activeMode = 'complete_within';
+                } else if (allowMixedEnabled) {
+                    activeMode = 'incomplete';
+                } else if (scope === 'outside') {
+                    activeMode = 'complete_outside';
+                } else {
+                    activeMode = 'complete_within';
+                }
+
+                completeWithinCheck.checked = activeMode === 'complete_within';
+                completeOutsideCheck.checked = activeMode === 'complete_outside';
+                incompleteCheck.checked = activeMode === 'incomplete';
+                modeValueHidden.value = activeMode;
+
+                syncState(null);
+            };
+
+            [completeWithinCheck, completeOutsideCheck, incompleteCheck].forEach(checkEl => {
+                checkEl.addEventListener('change', (event) => {
+                    syncState(checkEl);
+                    if (event?.isTrusted && !isRestoringCalculationSessionState) {
+                        hasUserChangedSincePreviewResume = true;
+                    }
+                });
+            });
+
+            box.__syncStoreSearchModeControls = syncFromHiddenState;
+            box.__commitStoreSearchModeControls = () => syncState(null);
+            syncFromHiddenState();
+        }
+
+        initStoreSearchModeControls();
 
         if (resetButton) {
             resetButton.addEventListener('click', async function() {
@@ -9102,6 +11097,8 @@
 
                 form.reset();
                 localStorage.removeItem(calcSessionKey);
+                isUntouchedPreviewResumeEligible = false;
+                hasUserChangedSincePreviewResume = false;
 
                 const workTypeDisplay = document.getElementById('workTypeDisplay');
                 const workTypeHidden = document.getElementById('workTypeSelector');
@@ -9130,7 +11127,7 @@
                 }
                 const mainAreaChildrenHost = getMainAreaChildrenHost();
                 if (mainAreaChildrenHost) {
-                    mainAreaChildrenHost.innerHTML = '';
+                    clearDirectAdditionalChildRows(mainAreaChildrenHost);
                 }
                 if (additionalWorkItemsSection) {
                     additionalWorkItemsSection.style.display = 'none';
@@ -9142,6 +11139,7 @@
                     enableBundleModeInput.value = '0';
                 }
                 setMainFormRequired(true);
+                refreshAdditionalTaxonomyActionFooters(mainAreaChildrenHost instanceof HTMLElement ? mainAreaChildrenHost : null);
                 syncBundleFromForms();
 
                 ensureCustomFormVisible();
@@ -9250,6 +11248,237 @@
                 return buildSessionFingerprint(parsed.data) === buildSessionFingerprint(currentPayload);
             } catch (error) {
                 return false;
+            }
+        }
+
+        function buildPreviewShortcutComparablePayload(formEl) {
+            if (!(formEl instanceof HTMLFormElement)) {
+                return null;
+            }
+
+            const payload = {};
+            const formData = new FormData(formEl);
+
+            formData.forEach((value, key) => {
+                if (key === '_token' || key === 'confirm_save') {
+                    return;
+                }
+
+                const normalizedKey = key.endsWith('[]') ? key.slice(0, -2) : key;
+                const normalizedValue = typeof value === 'string' ? value : String(value ?? '');
+
+                if (key.endsWith('[]')) {
+                    if (!Array.isArray(payload[normalizedKey])) {
+                        payload[normalizedKey] = [];
+                    }
+                    payload[normalizedKey].push(normalizedValue);
+                    return;
+                }
+
+                // Match Laravel request behavior for duplicate scalar names:
+                // later values overwrite earlier ones (e.g. hidden fallback + checkbox checked).
+                payload[normalizedKey] = normalizedValue;
+            });
+
+            if (
+                Object.prototype.hasOwnProperty.call(payload, 'mortar_thickness') &&
+                mortarThicknessInput instanceof HTMLInputElement &&
+                mortarThicknessInput.dataset.unit === 'mm'
+            ) {
+                const currentValue = parseFloat(String(payload.mortar_thickness || '').replace(',', '.'));
+                if (!isNaN(currentValue)) {
+                    payload.mortar_thickness = formatThicknessValue(currentValue / 10);
+                }
+            }
+
+            // Exclude client-only session helper state that is not part of the server request payload.
+            delete payload.customize_panel_state;
+
+            ['work_items_payload', 'material_customize_filters_payload'].forEach(jsonKey => {
+                const raw = payload[jsonKey];
+                if (typeof raw !== 'string' || !raw.trim()) {
+                    return;
+                }
+                try {
+                    payload[jsonKey] = JSON.parse(raw);
+                } catch (error) {
+                    // Keep original string if not valid JSON
+                }
+            });
+
+            return payload;
+        }
+
+        function getFastPreviewNavigationUrl(currentPayload, currentSessionPayload) {
+            if (!currentPayload && !currentSessionPayload) {
+                return null;
+            }
+
+            const toFastPreviewComparablePayload = payload => {
+                if (!payload || typeof payload !== 'object') {
+                    return payload;
+                }
+
+                let clonedPayload = null;
+                try {
+                    clonedPayload = JSON.parse(JSON.stringify(payload));
+                } catch (error) {
+                    clonedPayload = { ...payload };
+                }
+
+                if (clonedPayload && typeof clonedPayload === 'object') {
+                    delete clonedPayload.customize_panel_state;
+                    ['work_items_payload', 'material_customize_filters_payload'].forEach(jsonKey => {
+                        const raw = clonedPayload[jsonKey];
+                        if (typeof raw !== 'string' || !raw.trim()) {
+                            return;
+                        }
+                        try {
+                            clonedPayload[jsonKey] = JSON.parse(raw);
+                        } catch (error) {
+                            // keep raw if malformed
+                        }
+                    });
+                }
+
+                return clonedPayload;
+            };
+
+            let parsed = null;
+            try {
+                parsed = JSON.parse(localStorage.getItem('materialCalculationPreview') || 'null');
+            } catch (error) {
+                return null;
+            }
+
+            if (!parsed || typeof parsed !== 'object') {
+                return null;
+            }
+
+            const currentPayloadFingerprint = currentPayload
+                ? buildSessionFingerprint(toFastPreviewComparablePayload(currentPayload))
+                : '';
+            const currentUiSessionFingerprint = currentSessionPayload
+                ? buildSessionFingerprint(currentSessionPayload)
+                : '';
+            const previewUiFingerprint = String(parsed.uiFingerprint || '').trim();
+            if (previewUiFingerprint && currentUiSessionFingerprint) {
+                if (previewUiFingerprint !== currentUiSessionFingerprint) {
+                    return null;
+                }
+            } else {
+            const previewFingerprint = String(parsed.fingerprint || '').trim();
+            if (previewFingerprint) {
+                if (previewFingerprint !== currentPayloadFingerprint) {
+                    return null;
+                }
+            } else {
+                const previewData = parsed.data;
+                if (!previewData || typeof previewData !== 'object') {
+                    return null;
+                }
+                const comparablePreviewData = toFastPreviewComparablePayload(previewData);
+                if (buildSessionFingerprint(comparablePreviewData) !== currentPayloadFingerprint) {
+                    return null;
+                }
+            }
+            }
+
+            const previewUrl = String(parsed.url || '').trim();
+            if (!previewUrl) {
+                return null;
+            }
+
+            const updatedAt = Number(parsed.updatedAt || 0);
+            const maxAgeMs = 1000 * 60 * 60 * 6; // 6 hours (match server preview cache TTL)
+            if (Number.isFinite(updatedAt) && updatedAt > 0 && Date.now() - updatedAt > maxAgeMs) {
+                lastFastPreviewCacheExpiredAt = Date.now();
+                return null;
+            }
+
+            try {
+                const url = new URL(previewUrl, window.location.origin);
+                if (url.origin !== window.location.origin) {
+                    return null;
+                }
+                if (!/\/material-calculations\/preview\//.test(url.pathname)) {
+                    return null;
+                }
+                return url.toString();
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function getUntouchedPreviewResumeNavigationUrl() {
+            if (!isUntouchedPreviewResumeEligible || hasUserChangedSincePreviewResume) {
+                return null;
+            }
+
+            let parsed = null;
+            try {
+                parsed = JSON.parse(localStorage.getItem('materialCalculationPreview') || 'null');
+            } catch (error) {
+                return null;
+            }
+
+            if (!parsed || typeof parsed !== 'object') {
+                return null;
+            }
+
+            const previewUrl = String(parsed.url || '').trim();
+            if (!previewUrl) {
+                return null;
+            }
+
+            const updatedAt = Number(parsed.updatedAt || 0);
+            const maxAgeMs = 1000 * 60 * 60 * 6;
+            if (Number.isFinite(updatedAt) && updatedAt > 0 && Date.now() - updatedAt > maxAgeMs) {
+                lastFastPreviewCacheExpiredAt = Date.now();
+                return null;
+            }
+
+            try {
+                const url = new URL(previewUrl, window.location.origin);
+                if (url.origin !== window.location.origin) {
+                    return null;
+                }
+                if (!/\/material-calculations\/preview\//.test(url.pathname)) {
+                    return null;
+                }
+                return url.toString();
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function storePendingPreviewFingerprint(comparablePayload, currentSessionPayload) {
+            if (
+                (!comparablePayload || typeof comparablePayload !== 'object') &&
+                (!currentSessionPayload || typeof currentSessionPayload !== 'object')
+            ) {
+                return;
+            }
+            let requestFingerprint = '';
+            let uiFingerprint = '';
+            try {
+                if (comparablePayload && typeof comparablePayload === 'object') {
+                    requestFingerprint = buildSessionFingerprint(comparablePayload);
+                }
+                if (currentSessionPayload && typeof currentSessionPayload === 'object') {
+                    uiFingerprint = buildSessionFingerprint(currentSessionPayload);
+                }
+            } catch (error) {
+                return;
+            }
+            try {
+                localStorage.setItem(calcPreviewPendingKey, JSON.stringify({
+                    updatedAt: Date.now(),
+                    fingerprint: requestFingerprint,
+                    uiFingerprint,
+                }));
+            } catch (error) {
+                // noop
             }
         }
 
@@ -9446,7 +11675,7 @@
                 additionalWorkItemsList.innerHTML = '';
                 const mainAreaChildrenHost = getMainAreaChildrenHost();
                 if (mainAreaChildrenHost) {
-                    mainAreaChildrenHost.innerHTML = '';
+                    clearDirectAdditionalChildRows(mainAreaChildrenHost);
                 }
                 const restoredBundleItems = parseBundleItemsFromHidden();
                 if (restoredBundleItems.length > 1) {
@@ -9454,6 +11683,7 @@
                         createAdditionalWorkItemForm(restoredBundleItems[i]);
                     }
                 }
+                refreshAdditionalTaxonomyActionFooters(mainAreaChildrenHost instanceof HTMLElement ? mainAreaChildrenHost : null);
             }
             syncBundleFromForms();
 
@@ -9519,6 +11749,7 @@
         function restoreCalculationSession() {
             if (!form || !shouldRestoreCalculationSession()) return;
             const params = new URLSearchParams(window.location.search);
+            const resumeRequested = params.get('resume') === '1';
             const autoSubmitRequested = params.get('auto_submit') === '1';
             const raw = localStorage.getItem(calcSessionKey);
             if (!raw) return;
@@ -9533,7 +11764,20 @@
 
             const isNormalized = parsed && typeof parsed === 'object' && parsed.normalized === true;
             const state = parsed && typeof parsed === 'object' && parsed.data ? parsed.data : parsed;
-            applyCalculationSession(state);
+            isRestoringCalculationSessionState = true;
+            ignoreFormChangeTrackingUntil = Date.now() + 750;
+            try {
+                applyCalculationSession(state);
+            } finally {
+                setTimeout(() => {
+                    isRestoringCalculationSessionState = false;
+                }, 0);
+            }
+
+            const storeSearchModeBoxEl = document.getElementById('storeSearchModeBox');
+            if (storeSearchModeBoxEl && typeof storeSearchModeBoxEl.__syncStoreSearchModeControls === 'function') {
+                storeSearchModeBoxEl.__syncStoreSearchModeControls();
+            }
 
             if (isNormalized && mortarThicknessInput) {
                 const currentUnit = mortarThicknessInput.dataset.unit || 'cm';
@@ -9551,6 +11795,15 @@
             cleanUrl.searchParams.delete('resume');
             cleanUrl.searchParams.delete('auto_submit');
             window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search);
+
+            let hasPreviewCache = false;
+            try {
+                hasPreviewCache = !!localStorage.getItem('materialCalculationPreview');
+            } catch (error) {
+                hasPreviewCache = false;
+            }
+            isUntouchedPreviewResumeEligible = resumeRequested && hasPreviewCache;
+            hasUserChangedSincePreviewResume = false;
 
             if (autoSubmitRequested) {
                 setTimeout(() => {
@@ -9636,17 +11889,27 @@
         }
 
         if (form) {
-            form.addEventListener('input', function() {
+            form.addEventListener('input', function(event) {
+                if (event?.isTrusted && !isRestoringCalculationSessionState) {
+                    hasUserChangedSincePreviewResume = true;
+                }
                 if (saveSessionTimer) clearTimeout(saveSessionTimer);
                 saveSessionTimer = setTimeout(saveCalculationSession, 250);
             });
 
-            form.addEventListener('change', function() {
+            form.addEventListener('change', function(event) {
+                if (event?.isTrusted && !isRestoringCalculationSessionState) {
+                    hasUserChangedSincePreviewResume = true;
+                }
                 if (saveSessionTimer) clearTimeout(saveSessionTimer);
                 saveSessionTimer = setTimeout(saveCalculationSession, 250);
             });
 
             form.addEventListener('submit', function(e) {
+                const storeSearchModeBoxEl = document.getElementById('storeSearchModeBox');
+                if (storeSearchModeBoxEl && typeof storeSearchModeBoxEl.__commitStoreSearchModeControls === 'function') {
+                    storeSearchModeBoxEl.__commitStoreSearchModeControls();
+                }
                 syncMaterialCustomizeFiltersPayload();
                 const bundleBuild = buildBundleItems(true);
                 if (bundleBuild.error) {
@@ -9724,8 +11987,25 @@
 
                 if (this.checkValidity()) {
                     const currentSession = serializeCalculationSession(form);
-                    const isFastCachePath = currentSession ? isSameAsLastSession(currentSession) : false;
+                    const previewShortcutPayload = buildPreviewShortcutComparablePayload(form);
+                    lastFastPreviewCacheExpiredAt = 0;
+                    const fastPreviewUrl =
+                        getFastPreviewNavigationUrl(previewShortcutPayload, currentSession)
+                        || getUntouchedPreviewResumeNavigationUrl();
+                    const isFastCachePath = !!fastPreviewUrl || (currentSession ? isSameAsLastSession(currentSession) : false);
                     saveCalculationSession(currentSession);
+                    if (fastPreviewUrl) {
+                        e.preventDefault();
+                        isUntouchedPreviewResumeEligible = false;
+                        window.location.href = fastPreviewUrl;
+                        return;
+                    }
+                    if (lastFastPreviewCacheExpiredAt && typeof window.showToast === 'function') {
+                        window.showToast('Cache preview kadaluarsa. Sistem akan menghitung ulang untuk memuat hasil terbaru.', 'warning');
+                    }
+                    if (previewShortcutPayload) {
+                        storePendingPreviewFingerprint(previewShortcutPayload, currentSession);
+                    }
                     if (mortarThicknessInput && mortarThicknessInput.dataset.unit === 'mm') {
                         const mmValue = parseFloat(mortarThicknessInput.value);
                         if (!isNaN(mmValue)) {

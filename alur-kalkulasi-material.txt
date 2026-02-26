@@ -1,0 +1,213 @@
+ALUR KALKULASI MATERIAL (VERSI BAHASA NON-IT, PROSES NYATA)
+
+Tujuan:
+Menjelaskan bagaimana sistem menghitung kebutuhan material dan biaya, mulai dari mencari toko yang punya material, menghitung tiap opsi, sampai menggabungkan beberapa item pekerjaan menjadi 1 hasil besar.
+
+======================================================================
+ALUR UTAMA (SATU PEKERJAAN)
+======================================================================
+
+1. User mengisi data pekerjaan
+   Sistem menerima data seperti:
+   - jenis pekerjaan (misalnya pasang bata, plester, cat, keramik, nat, dll)
+   - ukuran pekerjaan (panjang, tinggi, luas, ketebalan)
+   - filter harga (Preferensi, Populer, Ekonomis, Average, Termahal, Custom)
+   - filter material (jenis/tipe material tertentu)
+   - lokasi proyek (alamat + koordinat) jika mode cari toko aktif
+
+2. Sistem cek data wajib
+   Sistem memastikan data yang diperlukan sudah diisi.
+   Contoh:
+   - Jika mode cari toko aktif, koordinat proyek harus ada
+   - Jika mode Custom dipakai, material tertentu bisa wajib dipilih manual
+
+3. Sistem menentukan material apa saja yang dibutuhkan sesuai jenis pekerjaan
+   Sistem tidak selalu memakai material yang sama.
+   Contoh:
+   - Pekerjaan tertentu butuh bata + semen + pasir
+   - Pekerjaan cat bisa hanya butuh cat
+   - Pekerjaan keramik bisa butuh keramik + semen/nat (tergantung jenis pekerjaan)
+
+4. Sistem masuk ke mode pencarian kombinasi (jika user memilih filter/opsi kombinasi)
+   Jika user meminta hasil perbandingan (misalnya Ekonomis vs Termahal), sistem tidak langsung memberi 1 hasil.
+   Sistem akan membuat banyak kandidat kombinasi material lalu dibandingkan.
+
+5. Jika mode cari toko aktif, sistem mencari toko yang bisa melayani lokasi proyek
+   Sistem:
+   - mengambil daftar lokasi toko
+   - menghitung jarak toko ke proyek
+   - membandingkan jarak dengan radius layanan toko
+   - hanya menyisakan toko yang masih dalam jangkauan layanan
+
+6. Sistem cek ketersediaan material per toko
+   Untuk setiap toko yang lolos jarak:
+   - sistem cek apakah toko punya material yang diperlukan
+   - jika data ketersediaan belum lengkap, sistem coba baca data material dari data toko/lokasi sebagai cadangan
+   - jika ada material wajib yang tidak tersedia, toko tersebut dilewati
+
+7. Opsi mode gabungan toko (jika diaktifkan)
+   Jika "allow mixed store" aktif:
+   - sistem boleh mengambil material dari beberapa toko
+   - sistem menyusun urutan toko terdekat
+   - toko pertama diambil untuk material yang tersedia
+   - lanjut toko berikutnya untuk menutup material yang masih kurang
+   - berhenti jika semua material wajib sudah terpenuhi
+
+8. Sistem membuat kandidat kombinasi material
+   Setelah sistem tahu material apa saja yang tersedia (dari satu toko atau gabungan toko), sistem membuat kandidat kombinasi.
+   Contoh:
+   - Semen A + Pasir X
+   - Semen A + Pasir Y
+   - Semen B + Pasir X
+   dst.
+
+   Jika pekerjaan butuh material lain (cat/keramik/nat), kombinasi juga ikut dibentuk sesuai kebutuhan pekerjaan.
+
+9. Sistem menghitung tiap kandidat dengan rumus pekerjaan
+   Untuk setiap kombinasi kandidat, sistem menjalankan rumus sesuai jenis pekerjaan.
+   Hasil per kandidat berisi:
+   - jumlah kebutuhan material (qty)
+   - harga per material
+   - total biaya per material
+   - grand total (total seluruh material)
+
+10. Sistem mengurutkan hasil sesuai filter harga
+   Sistem menyusun hasil menjadi kelompok seperti:
+   - Preferensi
+   - Populer
+   - Ekonomis
+   - Average
+   - Termahal
+   - Custom (jika diminta)
+
+11. Sistem menghapus duplikasi hasil yang sebenarnya sama
+   Kadang kombinasi yang sama bisa muncul di lebih dari satu label (misalnya masuk Preferensi dan Ekonomis).
+   Sistem tidak menampilkan baris yang sama dua kali.
+   Yang digabung adalah labelnya, bukan dihitung ulang.
+
+12. Sistem simpan hasil preview dan tampilkan ke user
+   Setelah daftar hasil jadi:
+   - sistem menyimpan payload preview sementara
+   - sistem membuka halaman preview hasil kombinasi
+
+
+======================================================================
+ALUR MODE PAKET / BUNDLE (BEBERAPA ITEM PEKERJAAN DIGABUNG)
+======================================================================
+
+Mode paket dipakai saat user menghitung beberapa item pekerjaan sekaligus dan ingin hasil gabungan.
+
+Contoh:
+- Item 1: Dinding area A
+- Item 2: Dinding area B
+- Item 3: Lantai keramik area C
+
+1. Sistem membaca daftar item pekerjaan paket
+   Setiap item punya data sendiri:
+   - jenis pekerjaan
+   - ukuran
+   - filter material (jika ada)
+   - penanda area/lantai/field (jika diisi)
+
+2. Sistem menghitung tiap item satu per satu (pakai mesin yang sama)
+   Untuk setiap item paket:
+   - sistem membuat request per item
+   - sistem menjalankan proses pencarian kombinasi seperti alur utama
+   - sistem menyimpan hasil preview item sementara (intermediate)
+
+3. Sistem menyusun kandidat gabungan berdasarkan label hasil
+   Sistem mencoba membuat hasil paket seperti:
+   - Paket "Preferensi 1" = ambil hasil Preferensi 1 dari setiap item
+   - Paket "Ekonomis 1" = ambil hasil Ekonomis 1 dari setiap item
+
+   Jika suatu label tidak tersedia pada item tertentu:
+   - untuk label tertentu hasil bisa dilewati
+   - untuk label lain bisa dianggap tidak lengkap dan tidak dipakai
+
+4. Sistem membentuk 1 hasil gabungan besar dari item-item terpilih
+   Setelah memilih 1 hasil dari tiap item, sistem menggabungkannya menjadi:
+   - total kebutuhan material gabungan
+   - total biaya gabungan
+   - rincian material gabungan
+   - rincian per item tetap disimpan untuk ditampilkan
+
+5. Sistem menjumlahkan nilai-nilai yang memang bisa dijumlahkan
+   Contoh yang dijumlahkan:
+   - total bata
+   - total semen (sak)
+   - total pasir (m3)
+   - total cat
+   - total keramik
+   - total nat
+   - total harga masing-masing material
+   - grand total
+
+6. Sistem menentukan material mana yang dianggap "material yang sama"
+   Sistem tidak hanya melihat nama material.
+   Sistem membentuk identitas material gabungan dari beberapa data sekaligus, seperti:
+   - jenis material
+   - nama/tipe/brand
+   - detail material
+   - toko
+   - alamat toko
+   - satuan kemasan
+   - harga kemasan
+
+   Jika identitas ini sama, sistem menganggap itu material yang sama.
+
+7. Jika material sama, sistem gabungkan dalam satu baris
+   Yang digabung:
+   - qty
+   - qty perhitungan harga
+   - total harga
+
+   Setelah digabung, harga per unit dihitung ulang dari total gabungan.
+
+8. Jika material berbeda, sistem tetap tampil sebagai baris terpisah
+   Contoh:
+   - Semen A dari Toko 1
+   - Semen A dari Toko 2
+   Meskipun nama sama, kalau toko/alamat/harga berbeda, bisa dianggap berbeda dan tetap dipisah.
+
+9. Sistem membuat 1 preview hasil paket
+   Hasil akhir yang tampil adalah 1 hasil besar yang berisi:
+   - grand total paket
+   - total kebutuhan material gabungan
+   - rincian material yang sudah digabung jika sama
+   - rincian kontribusi tiap item pekerjaan
+
+
+======================================================================
+RINGKASAN ALUR (SINGKAT)
+======================================================================
+
+Input user
+-> Validasi data
+-> Tentukan material wajib sesuai jenis pekerjaan
+-> Cari toko dalam jangkauan (jika mode toko aktif)
+-> Cek ketersediaan material per toko / gabungan toko
+-> Bentuk kandidat kombinasi material
+-> Hitung kebutuhan dan biaya tiap kandidat
+-> Urutkan hasil sesuai filter harga
+-> Gabungkan duplikasi label hasil yang sama
+-> (Mode paket) hitung tiap item lalu gabungkan jadi 1 hasil besar
+-> Tampilkan preview
+
+
+======================================================================
+CATATAN PENTING
+======================================================================
+
+1. Hasil bisa kosong jika:
+   - lokasi proyek tidak valid (saat mode toko aktif)
+   - tidak ada toko dalam radius layanan
+   - toko tidak punya material wajib lengkap
+   - kombinasi terlalu banyak sehingga dihentikan oleh pembatas kompleksitas
+
+2. Mode "gabungan toko terdekat" hanya bekerja jika:
+   - opsi mixed store diaktifkan
+   - koordinat proyek tersedia
+
+3. Mode paket tidak langsung menggabungkan mentah semua data.
+   Sistem tetap menghitung item per item dulu, lalu baru menyusun hasil gabungan yang konsisten.
+

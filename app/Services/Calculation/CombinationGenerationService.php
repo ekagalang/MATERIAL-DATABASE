@@ -9,6 +9,7 @@ use App\Models\Ceramic;
 use App\Models\Nat;
 use App\Models\Sand;
 use App\Repositories\CalculationRepository;
+use App\Services\Calculation\Support\TopKCandidateBuffer;
 use App\Services\FormulaRegistry;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
@@ -35,6 +36,16 @@ class CombinationGenerationService
     protected StoreProximityService $storeProximityService;
 
     protected array $storeMaterialCache = [];
+
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $recentComplexityGuardEvents = [];
+
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $recentComplexityFastModeEvents = [];
 
     // Default limit for combinations per category
     public const DEFAULT_LIMIT = 5;
@@ -85,6 +96,7 @@ class CombinationGenerationService
             'cement' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
             'sand' => ['brand'],
             'cat' => ['brand', 'sub_brand', 'color_code', 'color_name', 'package_unit', 'volume_display', 'package_weight_net'],
+            'ceramic_type' => ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
             'ceramic' => ['brand', 'dimension', 'sub_brand', 'surface', 'code', 'color'],
             'nat' => ['brand', 'sub_brand', 'code', 'color', 'package_unit', 'package_weight_net'],
         ];
@@ -363,6 +375,16 @@ class CombinationGenerationService
             return [];
         }
 
+        // UI sekarang menempatkan Custom pada "Jenis Keramik" (ceramic_type),
+        // tetapi kombinasi menyimpan model material pada key "ceramic".
+        if (
+            !isset($allFilters['ceramic']) &&
+            isset($allFilters['ceramic_type']) &&
+            is_array($allFilters['ceramic_type'])
+        ) {
+            $allFilters['ceramic'] = $allFilters['ceramic_type'];
+        }
+
         $workType = (string) ($requestData['work_type'] ?? 'brick_half');
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
 
@@ -556,6 +578,8 @@ class CombinationGenerationService
      */
     public function calculateCombinations(Request $request, array $constraints = []): array
     {
+        $this->resetComplexityGuardEvents();
+
         $brick = $constraints['brick'] ?? null;
         $fixedCeramic = $constraints['ceramic'] ?? null;
 
@@ -744,6 +768,11 @@ class CombinationGenerationService
         $projectLongitude = $hasProjectCoordinates ? (float) $request->input('project_longitude') : null;
         $allowStoreNameFallback = !$hasProjectCoordinates;
         $allowMixedStore = $request->boolean('allow_mixed_store', false);
+        $storeRadiusScope = strtolower(trim((string) $request->input('store_radius_scope', 'within')));
+        if (!in_array($storeRadiusScope, ['within', 'outside'], true)) {
+            $storeRadiusScope = 'within';
+        }
+        $restrictToStoreRadius = $storeRadiusScope === 'within';
 
         $rankedLocations = $locations->map(function ($location) {
             return [
@@ -753,10 +782,11 @@ class CombinationGenerationService
         });
 
         if ($hasProjectCoordinates) {
-            $rankedLocations = $this->storeProximityService->sortReachableLocations(
+            $rankedLocations = $this->storeProximityService->sortLocationsByDistance(
                 $locations,
                 $projectLatitude,
                 $projectLongitude,
+                $restrictToStoreRadius,
             );
         }
 
@@ -987,7 +1017,7 @@ class CombinationGenerationService
                 foreach ($localResults as $result) {
                     $result['store_label'] = 'Gabungan Toko Terdekat';
                     $result['store_plan'] = $coverage['store_plan'] ?? [];
-                    $result['store_coverage_mode'] = 'nearest_radius_chain';
+                    $result['store_coverage_mode'] = $restrictToStoreRadius ? 'nearest_radius_chain' : 'nearest_store_chain';
                     $result['store_cost_breakdown'] = $this->buildStoreCostBreakdown(
                         $result,
                         $coverage['store_plan'] ?? [],
@@ -1003,6 +1033,20 @@ class CombinationGenerationService
 
         if (empty($allStoreCombinations)) {
             return $this->getStoreBasedCombinationsByStoreName($request, $constraints);
+        }
+
+        if (!$allowMixedStore) {
+            $allStoreCombinations = array_values(array_filter(
+                $allStoreCombinations,
+                static function ($candidate): bool {
+                    if (!is_array($candidate)) {
+                        return false;
+                    }
+                    $mode = (string) ($candidate['store_coverage_mode'] ?? 'single_store');
+
+                    return !in_array($mode, ['nearest_radius_chain', 'nearest_store_chain'], true);
+                },
+            ));
         }
 
         $allStoreCombinations = $this->deduplicateStoreCandidates($allStoreCombinations, $requiredMaterials);
@@ -1569,6 +1613,35 @@ class CombinationGenerationService
             return [];
         }
 
+        $allowMixedStore = (bool) (($requestData['allow_mixed_store'] ?? false) ? true : false);
+        if (!$allowMixedStore) {
+            $candidates = array_values(array_filter($candidates, static function ($candidate): bool {
+                if (!is_array($candidate)) {
+                    return false;
+                }
+                $mode = (string) ($candidate['store_coverage_mode'] ?? 'single_store');
+                if (in_array($mode, ['nearest_radius_chain', 'nearest_store_chain'], true)) {
+                    return false;
+                }
+
+                $storePlan = $candidate['store_plan'] ?? null;
+                if (is_array($storePlan) && count($storePlan) > 1) {
+                    return false;
+                }
+
+                $storeCostBreakdown = $candidate['store_cost_breakdown'] ?? null;
+                if (is_array($storeCostBreakdown) && count($storeCostBreakdown) > 1) {
+                    return false;
+                }
+
+                return true;
+            }));
+        }
+
+        if (empty($candidates)) {
+            return [];
+        }
+
         $requestedFilters = $requestData['price_filters'] ?? ['cheapest'];
         if (!is_array($requestedFilters)) {
             $requestedFilters = [(string) $requestedFilters];
@@ -1594,6 +1667,31 @@ class CombinationGenerationService
         }
 
         $finalResults = [];
+        $storeFilterLimit = 3;
+        $topkStats = [];
+        $topkStart = microtime(true);
+        $costTopKBatch = [];
+        $costTopKBatchFilters = [];
+
+        foreach (['cheapest', 'expensive'] as $costFilter) {
+            if (in_array($costFilter, $requestedFilters, true) && $this->topkBufferAppliesTo($costFilter)) {
+                $costTopKBatchFilters[] = $costFilter;
+            }
+        }
+
+        if (!empty($costTopKBatchFilters)) {
+            $costTopKBatch = $this->applyTopKBufferToStoreCandidatesMulti(
+                $candidates,
+                $costTopKBatchFilters,
+                $storeFilterLimit,
+                $requiredMaterials,
+            );
+            foreach ($costTopKBatch as $filter => $payload) {
+                if (isset($payload['stats']) && is_array($payload['stats'])) {
+                    $topkStats[$filter] = $payload['stats'];
+                }
+            }
+        }
 
         if (in_array('best', $requestedFilters, true)) {
             $preferensi = $this->selectStorePreferensiCandidates($candidates, $requestData, $requiredMaterials);
@@ -1609,7 +1707,12 @@ class CombinationGenerationService
         }
 
         if (in_array('cheapest', $requestedFilters, true)) {
-            $cheapest = $this->selectCheapestStoreCandidates($candidates);
+            if (isset($costTopKBatch['cheapest']) && is_array($costTopKBatch['cheapest'])) {
+                $topk = $costTopKBatch['cheapest'];
+                $cheapest = $topk['candidates'];
+            } else {
+                $cheapest = $this->selectCheapestStoreCandidates($candidates, $storeFilterLimit);
+            }
             $finalResults = array_merge(
                 $finalResults,
                 $this->mapCandidatesToRankedLabels($cheapest, 'Ekonomis', 'cheapest'),
@@ -1617,16 +1720,42 @@ class CombinationGenerationService
         }
 
         if (in_array('medium', $requestedFilters, true)) {
-            $average = $this->selectAverageStoreCandidates($candidates);
+            if ($this->topkBufferAppliesTo('medium')) {
+                $topk = $this->applyTopKBufferToAverageStoreCandidates(
+                    $candidates,
+                    $storeFilterLimit,
+                    $requiredMaterials,
+                );
+                $average = $topk['candidates'];
+                $topkStats['medium'] = $topk['stats'];
+            } else {
+                $average = $this->selectAverageStoreCandidates($candidates, $storeFilterLimit);
+            }
             $finalResults = array_merge($finalResults, $this->mapCandidatesToRankedLabels($average, 'Average', 'medium'));
         }
 
         if (in_array('expensive', $requestedFilters, true)) {
-            $expensive = $this->selectMostExpensiveStoreCandidates($candidates);
+            if (isset($costTopKBatch['expensive']) && is_array($costTopKBatch['expensive'])) {
+                $topk = $costTopKBatch['expensive'];
+                $expensive = $topk['candidates'];
+            } else {
+                $expensive = $this->selectMostExpensiveStoreCandidates($candidates, $storeFilterLimit);
+            }
             $finalResults = array_merge(
                 $finalResults,
                 $this->mapCandidatesToRankedLabels($expensive, 'Termahal', 'expensive'),
             );
+        }
+
+        if (!empty($topkStats) && $this->shouldLogTopkBufferDebug()) {
+            Log::info('Store filtered results TopK buffer stats', [
+                'requested_filters' => $requestedFilters,
+                'candidate_count' => count($candidates),
+                'topk_capacity' => $this->topkBufferCapacity(),
+                'topk_stats' => $topkStats,
+                'elapsed_ms' => (int) round((microtime(true) - $topkStart) * 1000),
+                'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2),
+            ]);
         }
 
         if (!empty($finalResults)) {
@@ -1657,6 +1786,479 @@ class CombinationGenerationService
         }
 
         return $results;
+    }
+
+    protected function topkBufferEnabled(): bool
+    {
+        return (bool) config('materials.topk_buffer_enabled', false);
+    }
+
+    protected function topkBufferCapacity(): int
+    {
+        $value = (int) config('materials.topk_capacity_per_label', 3);
+
+        return max(1, $value);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function topkBufferFilters(): array
+    {
+        $raw = config('materials.topk_buffer_filters', ['cheapest', 'expensive', 'medium']);
+        if (!is_array($raw)) {
+            $raw = [$raw];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            static fn($value) => strtolower(trim((string) $value)),
+            $raw,
+        ), static fn($value) => $value !== '')));
+    }
+
+    protected function topkBufferAppliesTo(string $filterType): bool
+    {
+        if (!$this->topkBufferEnabled()) {
+            return false;
+        }
+
+        return in_array(strtolower(trim($filterType)), $this->topkBufferFilters(), true);
+    }
+
+    protected function shouldLogTopkBufferDebug(): bool
+    {
+        if (!(bool) config('materials.topk_buffer_log_debug', false)) {
+            return false;
+        }
+
+        return app()->environment(['local', 'staging']);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $candidates
+     * @param  array<int, string>  $requiredMaterials
+     * @return array{candidates: array<int, array<string, mixed>>, stats: array<string, mixed>}
+     */
+    protected function applyTopKBufferToStoreCandidates(
+        array $candidates,
+        string $filterType,
+        int $limit = 3,
+        array $requiredMaterials = [],
+    ): array {
+        $policy = $this->getTopKStoreCandidatePolicy($filterType);
+        $capacity = max(1, min($limit, $this->topkBufferCapacity()));
+        $buffer = new TopKCandidateBuffer($capacity, $policy['isBetter'], $policy['sorter']);
+        $evaluated = 0;
+        $prePruned = 0;
+
+        foreach ($candidates as $candidateIndex => $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            $evaluated++;
+            if ($this->shouldPrePruneStoreCandidateForTopK($buffer, $candidate, $filterType, $capacity)) {
+                $prePruned++;
+                continue;
+            }
+
+            $buffer->push($this->toTopKStoreCandidate(
+                $candidate,
+                $filterType,
+                $requiredMaterials,
+                [],
+                is_int($candidateIndex) ? $candidateIndex : null,
+            ));
+        }
+
+        $ranked = $this->expandTopKStoreCandidateRows($buffer->all(), $candidates);
+
+        return [
+            'candidates' => array_slice($ranked, 0, $limit),
+            'stats' => $buffer->stats() + [
+                'filter' => strtolower(trim($filterType)),
+                'evaluated' => $evaluated,
+                'selected' => count($ranked),
+                'pre_pruned' => $prePruned,
+                'scan_mode' => 'single',
+            ],
+        ];
+    }
+
+    /**
+     * Share one candidate scan across multiple cost-based top-k filters.
+     *
+     * @param  array<int, array<string, mixed>>  $candidates
+     * @param  array<int, string>  $filterTypes
+     * @param  array<int, string>  $requiredMaterials
+     * @return array<string, array{candidates: array<int, array<string, mixed>>, stats: array<string, mixed>}>
+     */
+    protected function applyTopKBufferToStoreCandidatesMulti(
+        array $candidates,
+        array $filterTypes,
+        int $limit = 3,
+        array $requiredMaterials = [],
+    ): array {
+        $normalizedFilters = array_values(array_unique(array_filter(array_map(
+            static fn($value) => strtolower(trim((string) $value)),
+            $filterTypes,
+        ), static fn($value) => in_array($value, ['cheapest', 'expensive'], true))));
+
+        if (empty($normalizedFilters)) {
+            return [];
+        }
+
+        if (count($normalizedFilters) === 1) {
+            $filter = $normalizedFilters[0];
+
+            return [
+                $filter => $this->applyTopKBufferToStoreCandidates($candidates, $filter, $limit, $requiredMaterials),
+            ];
+        }
+
+        $capacity = max(1, min($limit, $this->topkBufferCapacity()));
+        $buffers = [];
+        $stats = [];
+        foreach ($normalizedFilters as $filter) {
+            $policy = $this->getTopKStoreCandidatePolicy($filter);
+            $buffers[$filter] = new TopKCandidateBuffer($capacity, $policy['isBetter'], $policy['sorter']);
+            $stats[$filter] = [
+                'filter' => $filter,
+                'evaluated' => 0,
+                'selected' => 0,
+                'pre_pruned' => 0,
+                'scan_mode' => 'multi',
+            ];
+        }
+
+        foreach ($candidates as $candidateIndex => $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            $pushableFilters = [];
+            foreach ($normalizedFilters as $filter) {
+                $stats[$filter]['evaluated']++;
+                if ($this->shouldPrePruneStoreCandidateForTopK($buffers[$filter], $candidate, $filter, $capacity)) {
+                    $stats[$filter]['pre_pruned']++;
+                    continue;
+                }
+
+                $pushableFilters[] = $filter;
+            }
+
+            if (empty($pushableFilters)) {
+                continue;
+            }
+
+            $signature = $this->buildTopKStoreCandidateSignature($candidate, $requiredMaterials);
+            $totalCost = (float) ($candidate['total_cost'] ?? 0);
+
+            foreach ($pushableFilters as $filter) {
+                $buffers[$filter]->push([
+                    'signature' => $signature,
+                    'total_cost' => $totalCost,
+                    'filter_type' => $filter,
+                    'candidate_index' => is_int($candidateIndex) ? $candidateIndex : null,
+                ]);
+            }
+        }
+
+        $results = [];
+        foreach ($normalizedFilters as $filter) {
+            $ranked = $this->expandTopKStoreCandidateRows($buffers[$filter]->all(), $candidates);
+            $stats[$filter]['selected'] = count($ranked);
+
+            $results[$filter] = [
+                'candidates' => array_slice($ranked, 0, $limit),
+                'stats' => $buffers[$filter]->stats() + $stats[$filter],
+            ];
+        }
+
+        return $results;
+    }
+
+    /**
+     * Phase 1 parity-safe medium selector using Top-K buffer mechanics:
+     * preserve legacy "average" row order (ascending cost around median index).
+     *
+     * @param  array<int, array<string, mixed>>  $candidates
+     * @param  array<int, string>  $requiredMaterials
+     * @return array{candidates: array<int, array<string, mixed>>, stats: array<string, mixed>}
+     */
+    protected function applyTopKBufferToAverageStoreCandidates(
+        array $candidates,
+        int $limit = 3,
+        array $requiredMaterials = [],
+    ): array {
+        if (empty($candidates)) {
+            return [
+                'candidates' => [],
+                'stats' => [
+                    'inserted' => 0,
+                    'replaced' => 0,
+                    'discarded' => 0,
+                    'deduped' => 0,
+                    'size' => 0,
+                    'capacity' => max(1, min($limit, $this->topkBufferCapacity())),
+                    'filter' => 'medium',
+                    'evaluated' => 0,
+                    'selected' => 0,
+                    'pre_pruned' => 0,
+                ],
+            ];
+        }
+
+        $sorted = $candidates;
+        usort($sorted, fn($a, $b) => ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0)));
+
+        $total = count($sorted);
+        $medianIndex = (int) floor(($total - 1) / 2);
+
+        $policy = $this->getTopKStoreCandidatePolicy('medium');
+        $capacity = max(1, min($limit, $this->topkBufferCapacity()));
+        $buffer = new TopKCandidateBuffer($capacity, $policy['isBetter'], $policy['sorter']);
+        $evaluated = 0;
+        $prePruned = 0;
+
+        foreach ($sorted as $index => $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            $evaluated++;
+            $distance = abs($index - $medianIndex);
+            if ($this->shouldPrePruneAverageStoreCandidateForTopK($buffer, $distance, $capacity)) {
+                $prePruned++;
+                continue;
+            }
+
+            $buffer->push($this->toTopKStoreCandidate(
+                $candidate,
+                'medium',
+                $requiredMaterials,
+                [
+                    'medium_distance' => $distance,
+                ],
+                is_int($index) ? $index : null,
+            ));
+        }
+
+        $ranked = $this->expandTopKStoreCandidateRows($buffer->all(), $sorted);
+
+        return [
+            'candidates' => array_slice($ranked, 0, $limit),
+            'stats' => $buffer->stats() + [
+                'filter' => 'medium',
+                'evaluated' => $evaluated,
+                'selected' => count($ranked),
+                'pre_pruned' => $prePruned,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $candidate
+     * @param  array<int, string>  $requiredMaterials
+     * @return array<string, mixed>
+     */
+    protected function toTopKStoreCandidate(
+        array $candidate,
+        string $filterType,
+        array $requiredMaterials = [],
+        array $extra = [],
+        ?int $candidateIndex = null,
+    ): array
+    {
+        return $extra + [
+            'signature' => $this->buildTopKStoreCandidateSignature($candidate, $requiredMaterials),
+            'total_cost' => (float) ($candidate['total_cost'] ?? 0),
+            'filter_type' => $filterType,
+            'candidate_index' => $candidateIndex,
+        ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $rows
+     * @param  array<int, array<string, mixed>>  $sourceCandidates
+     * @return array<int, array<string, mixed>>
+     */
+    protected function expandTopKStoreCandidateRows(array $rows, array $sourceCandidates): array
+    {
+        $expanded = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $candidateIndex = $row['candidate_index'] ?? null;
+            if (!is_int($candidateIndex) || !isset($sourceCandidates[$candidateIndex]) || !is_array($sourceCandidates[$candidateIndex])) {
+                continue;
+            }
+
+            $expanded[] = $sourceCandidates[$candidateIndex];
+        }
+
+        return $expanded;
+    }
+
+    /**
+     * @param  array<string, mixed>  $candidate
+     * @param  array<int, string>  $requiredMaterials
+     */
+    protected function buildTopKStoreCandidateSignature(array $candidate, array $requiredMaterials = []): string
+    {
+        $materialIds = $this->extractCandidateMaterialIds($candidate);
+        $normalizedMaterialIds = [];
+        $materialKeys = !empty($requiredMaterials)
+            ? array_values(array_unique(array_filter(array_map(
+                static fn($value) => strtolower(trim((string) $value)),
+                $requiredMaterials,
+            ))))
+            : ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+
+        foreach ($materialKeys as $key) {
+            $normalizedMaterialIds[$key] = (int) ($materialIds[$key] ?? 0);
+        }
+
+        $storePlan = $candidate['store_plan'] ?? null;
+        $storePlanSignature = is_array($storePlan)
+            ? md5(json_encode($storePlan, JSON_UNESCAPED_UNICODE))
+            : md5((string) ($candidate['store_label'] ?? ''));
+
+        $payload = [
+            'materials' => $normalizedMaterialIds,
+            'store_mode' => (string) ($candidate['store_coverage_mode'] ?? ''),
+            'store_plan' => $storePlanSignature,
+        ];
+
+        return sha1(json_encode($payload, JSON_UNESCAPED_UNICODE));
+    }
+
+    /**
+     * @return array{isBetter: callable, sorter: callable}
+     */
+    protected function getTopKStoreCandidatePolicy(string $filterType): array
+    {
+        $normalized = strtolower(trim($filterType));
+
+        if ($normalized === 'expensive') {
+            return [
+                'isBetter' => static fn(array $new, array $old): bool =>
+                    ((float) ($new['total_cost'] ?? 0)) > ((float) ($old['total_cost'] ?? 0)),
+                'sorter' => static function (array $a, array $b): int {
+                    $costCompare = ((float) ($b['total_cost'] ?? 0)) <=> ((float) ($a['total_cost'] ?? 0));
+                    if ($costCompare !== 0) {
+                        return $costCompare;
+                    }
+
+                    return strcmp((string) ($a['signature'] ?? ''), (string) ($b['signature'] ?? ''));
+                },
+            ];
+        }
+
+        if ($normalized === 'medium') {
+            return [
+                'isBetter' => static function (array $new, array $old): bool {
+                    $newDistance = (int) ($new['medium_distance'] ?? PHP_INT_MAX);
+                    $oldDistance = (int) ($old['medium_distance'] ?? PHP_INT_MAX);
+                    if ($newDistance !== $oldDistance) {
+                        return $newDistance < $oldDistance;
+                    }
+
+                    $newCost = (float) ($new['total_cost'] ?? 0);
+                    $oldCost = (float) ($old['total_cost'] ?? 0);
+                    if ($newCost !== $oldCost) {
+                        return $newCost < $oldCost;
+                    }
+
+                    return strcmp((string) ($new['signature'] ?? ''), (string) ($old['signature'] ?? '')) < 0;
+                },
+                // Keep final ordering aligned with legacy average selector output (ascending total cost).
+                'sorter' => static function (array $a, array $b): int {
+                    $costCompare = ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0));
+                    if ($costCompare !== 0) {
+                        return $costCompare;
+                    }
+
+                    return strcmp((string) ($a['signature'] ?? ''), (string) ($b['signature'] ?? ''));
+                },
+            ];
+        }
+
+        return [
+            'isBetter' => static fn(array $new, array $old): bool =>
+                ((float) ($new['total_cost'] ?? 0)) < ((float) ($old['total_cost'] ?? 0)),
+            'sorter' => static function (array $a, array $b): int {
+                $costCompare = ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0));
+                if ($costCompare !== 0) {
+                    return $costCompare;
+                }
+
+                return strcmp((string) ($a['signature'] ?? ''), (string) ($b['signature'] ?? ''));
+            },
+        ];
+    }
+
+    /**
+     * Cheap guard before signature/hash building.
+     * Must stay conservative so it never changes output parity.
+     *
+     * @param  array<string, mixed>  $candidate
+     */
+    protected function shouldPrePruneStoreCandidateForTopK(
+        TopKCandidateBuffer $buffer,
+        array $candidate,
+        string $filterType,
+        ?int $activeCapacity = null,
+    ): bool {
+        $capacity = max(1, (int) ($activeCapacity ?? $this->topkBufferCapacity()));
+        if ($buffer->count() < $capacity) {
+            return false;
+        }
+
+        $worst = $buffer->worst();
+        if (!is_array($worst)) {
+            return false;
+        }
+
+        $candidateCost = (float) ($candidate['total_cost'] ?? 0);
+        $worstCost = (float) ($worst['total_cost'] ?? 0);
+        $normalized = strtolower(trim($filterType));
+
+        if ($normalized === 'cheapest') {
+            // Strictly worse only; equal cost may still win on tie-break/signature.
+            return $candidateCost > $worstCost;
+        }
+
+        if ($normalized === 'expensive') {
+            // Strictly worse only; equal cost may still win on tie-break/signature.
+            return $candidateCost < $worstCost;
+        }
+
+        return false;
+    }
+
+    protected function shouldPrePruneAverageStoreCandidateForTopK(
+        TopKCandidateBuffer $buffer,
+        int $candidateDistance,
+        ?int $activeCapacity = null,
+    ): bool {
+        $capacity = max(1, (int) ($activeCapacity ?? $this->topkBufferCapacity()));
+        if ($buffer->count() < $capacity) {
+            return false;
+        }
+
+        $worst = $buffer->worst();
+        if (!is_array($worst)) {
+            return false;
+        }
+
+        $worstDistance = (int) ($worst['medium_distance'] ?? PHP_INT_MAX);
+
+        // Strictly farther only; equal distance may still win on total_cost/signature tie-break.
+        return $candidateDistance > $worstDistance;
     }
 
     protected function selectCheapestStoreCandidates(array $candidates, int $limit = 3): array
@@ -2472,6 +3074,127 @@ class CombinationGenerationService
             );
         }
 
+        $complexityEstimate = $this->estimateCombinationComplexity(
+            $workType,
+            $requiredMaterials,
+            $cements,
+            $sands,
+            $cats,
+            $ceramics,
+            $nats,
+        );
+        if ($this->shouldLogCombinationComplexityDebug()) {
+            Log::info('Combination complexity estimate', [
+                'work_type' => $workType,
+                'group_label' => $groupLabel,
+                'limit' => $limit,
+                'required_materials' => $requiredMaterials,
+                'estimate' => $complexityEstimate,
+            ]);
+        }
+        $maxEstimatedCombinations = $this->combinationComplexityMaxEstimated();
+        if (
+            $maxEstimatedCombinations > 0 &&
+            is_int($complexityEstimate['estimated_combinations'] ?? null) &&
+            (int) $complexityEstimate['estimated_combinations'] > $maxEstimatedCombinations
+        ) {
+            $fastModeAttempted = false;
+            $fastModeApplied = false;
+            $fastModeMeta = null;
+
+            if ($limit !== null && $limit > 0 && $this->complexityFastModeEnabled()) {
+                $fastModeAttempted = true;
+                $fastModeCap = $this->complexityFastModeMaterialCap();
+                if ($fastModeCap > 0) {
+                    $capped = $this->applyComplexityFastModeCaps(
+                        $cements,
+                        $sands,
+                        $cats,
+                        $ceramics,
+                        $nats,
+                        $fastModeCap,
+                    );
+
+                    $fastModeEstimate = $this->estimateCombinationComplexity(
+                        $workType,
+                        $requiredMaterials,
+                        $capped['cements'],
+                        $capped['sands'],
+                        $capped['cats'],
+                        $capped['ceramics'],
+                        $capped['nats'],
+                    );
+
+                    $fastModeMeta = [
+                        'cap_per_material' => $fastModeCap,
+                        'counts_before' => $complexityEstimate['counts'] ?? [],
+                        'counts_after' => $fastModeEstimate['counts'] ?? [],
+                        'estimate_after' => $fastModeEstimate,
+                    ];
+
+                    $stillTooHigh =
+                        $maxEstimatedCombinations > 0 &&
+                        is_int($fastModeEstimate['estimated_combinations'] ?? null) &&
+                        (int) $fastModeEstimate['estimated_combinations'] > $maxEstimatedCombinations;
+
+                    if (!$stillTooHigh) {
+                        $cements = $capped['cements'];
+                        $sands = $capped['sands'];
+                        $cats = $capped['cats'];
+                        $ceramics = $capped['ceramics'];
+                        $nats = $capped['nats'];
+                        $complexityEstimate = $fastModeEstimate;
+                        $fastModeApplied = true;
+
+                        Log::warning('Combination complexity guard switched to fast mode', [
+                            'work_type' => $workType,
+                            'group_label' => $groupLabel,
+                            'limit' => $limit,
+                            'required_materials' => $requiredMaterials,
+                            'max_estimated_combinations' => $maxEstimatedCombinations,
+                            'fast_mode' => $fastModeMeta,
+                        ]);
+                        $this->recentComplexityFastModeEvents[] = [
+                            'work_type' => $workType,
+                            'group_label' => $groupLabel,
+                            'limit' => $limit,
+                            'required_materials' => $requiredMaterials,
+                            'estimate_before' => $complexityEstimate,
+                            'max_estimated_combinations' => $maxEstimatedCombinations,
+                            'fast_mode' => $fastModeMeta,
+                        ];
+                    }
+                }
+            }
+
+            if ($fastModeApplied) {
+                // Continue calculation with capped iterables.
+            } else {
+            Log::warning('Combination calculation skipped by complexity guard', [
+                'work_type' => $workType,
+                'group_label' => $groupLabel,
+                'limit' => $limit,
+                'required_materials' => $requiredMaterials,
+                'estimate' => $complexityEstimate,
+                'max_estimated_combinations' => $maxEstimatedCombinations,
+                'fast_mode_attempted' => $fastModeAttempted,
+                'fast_mode' => $fastModeMeta,
+            ]);
+            $this->recentComplexityGuardEvents[] = [
+                'work_type' => $workType,
+                'group_label' => $groupLabel,
+                'limit' => $limit,
+                'required_materials' => $requiredMaterials,
+                'estimate' => $complexityEstimate,
+                'max_estimated_combinations' => $maxEstimatedCombinations,
+                'fast_mode_attempted' => $fastModeAttempted,
+                'fast_mode' => $fastModeMeta,
+            ];
+
+            return [];
+            }
+        }
+
         // Determine sorting direction based on group label for optimization
         $sortDesc = $groupLabel === 'Termahal';
 
@@ -2489,6 +3212,21 @@ class CombinationGenerationService
 
         // If limit is set, use bounded buffer to save memory
         if ($limit) {
+            if ($this->topkBufferEnabled()) {
+                $topk = $this->collectTopKGeneratedCombinations($generator, $limit, $sortDesc);
+                if ($this->shouldLogTopkBufferDebug()) {
+                    Log::info('Generator TopK buffer stats', [
+                        'group_label' => $groupLabel,
+                        'work_type' => $workType,
+                        'limit' => $limit,
+                        'sort_desc' => $sortDesc,
+                        'stats' => $topk['stats'],
+                    ]);
+                }
+
+                return $topk['items'];
+            }
+
             $results = [];
             foreach ($generator as $item) {
                 $results[] = $item;
@@ -2522,6 +3260,295 @@ class CombinationGenerationService
         });
 
         return $results;
+    }
+
+    /**
+     * @param  iterable<int, array<string, mixed>>  $generator
+     * @return array{items: array<int, array<string, mixed>>, stats: array<string, mixed>}
+     */
+    protected function collectTopKGeneratedCombinations(iterable $generator, int $limit, bool $sortDesc): array
+    {
+        $capacity = max(1, min($limit, $this->topkBufferCapacity()));
+        $policy = $sortDesc
+            ? [
+                'isBetter' => static fn(array $new, array $old): bool =>
+                    ((float) ($new['total_cost'] ?? 0)) > ((float) ($old['total_cost'] ?? 0)),
+                'sorter' => static function (array $a, array $b): int {
+                    $costCompare = ((float) ($b['total_cost'] ?? 0)) <=> ((float) ($a['total_cost'] ?? 0));
+                    if ($costCompare !== 0) {
+                        return $costCompare;
+                    }
+
+                    return strcmp((string) ($a['signature'] ?? ''), (string) ($b['signature'] ?? ''));
+                },
+            ]
+            : [
+                'isBetter' => static fn(array $new, array $old): bool =>
+                    ((float) ($new['total_cost'] ?? 0)) < ((float) ($old['total_cost'] ?? 0)),
+                'sorter' => static function (array $a, array $b): int {
+                    $costCompare = ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0));
+                    if ($costCompare !== 0) {
+                        return $costCompare;
+                    }
+
+                    return strcmp((string) ($a['signature'] ?? ''), (string) ($b['signature'] ?? ''));
+                },
+            ];
+
+        $buffer = new TopKCandidateBuffer($capacity, $policy['isBetter'], $policy['sorter']);
+        $evaluated = 0;
+        $prePruned = 0;
+        $sequence = 0;
+
+        foreach ($generator as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $evaluated++;
+            if ($this->shouldPrePruneFlatCandidateForTopK($buffer, $item, $sortDesc, $capacity)) {
+                $prePruned++;
+                continue;
+            }
+
+            $buffer->push([
+                'signature' => 'seq:' . $sequence++,
+                'total_cost' => (float) ($item['total_cost'] ?? 0),
+                'item' => $item,
+            ]);
+        }
+
+        $rows = $buffer->all();
+        $items = array_values(array_filter(array_map(
+            static fn(array $row) => is_array($row['item'] ?? null) ? $row['item'] : null,
+            $rows,
+        )));
+
+        return [
+            'items' => array_slice($items, 0, $limit),
+            'stats' => $buffer->stats() + [
+                'evaluated' => $evaluated,
+                'selected' => count($items),
+                'pre_pruned' => $prePruned,
+                'sort_desc' => $sortDesc,
+                'scan_mode' => 'generator_topk',
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $candidate
+     */
+    protected function shouldPrePruneFlatCandidateForTopK(
+        TopKCandidateBuffer $buffer,
+        array $candidate,
+        bool $sortDesc,
+        ?int $activeCapacity = null,
+    ): bool {
+        $capacity = max(1, (int) ($activeCapacity ?? $this->topkBufferCapacity()));
+        if ($buffer->count() < $capacity) {
+            return false;
+        }
+
+        $worst = $buffer->worst();
+        if (!is_array($worst)) {
+            return false;
+        }
+
+        $candidateCost = (float) ($candidate['total_cost'] ?? 0);
+        $worstCost = (float) ($worst['total_cost'] ?? 0);
+
+        return $sortDesc ? ($candidateCost < $worstCost) : ($candidateCost > $worstCost);
+    }
+
+    protected function shouldLogCombinationComplexityDebug(): bool
+    {
+        if (!(bool) config('materials.combination_complexity_log_debug', false)) {
+            return false;
+        }
+
+        return app()->environment(['local', 'staging']);
+    }
+
+    protected function combinationComplexityMaxEstimated(): int
+    {
+        return max(0, (int) config('materials.combination_complexity_max_estimated', 0));
+    }
+
+    protected function complexityFastModeEnabled(): bool
+    {
+        return (bool) config('materials.combination_complexity_fast_mode_enabled', false);
+    }
+
+    protected function complexityFastModeMaterialCap(): int
+    {
+        return max(0, (int) config('materials.combination_complexity_fast_mode_cap_per_material', 2));
+    }
+
+    /**
+     * @param  array<int, string>  $requiredMaterials
+     * @return array<string, mixed>
+     */
+    protected function estimateCombinationComplexity(
+        string $workType,
+        array $requiredMaterials,
+        iterable $cements,
+        iterable $sands,
+        iterable $cats,
+        iterable $ceramics,
+        iterable $nats,
+    ): array {
+        $counts = [
+            'cement' => $this->iterableCardinalityHint($cements),
+            'sand' => $this->iterableCardinalityHint($sands),
+            'cat' => $this->iterableCardinalityHint($cats),
+            'ceramic' => $this->iterableCardinalityHint($ceramics),
+            'nat' => $this->iterableCardinalityHint($nats),
+        ];
+
+        $materialAxes = array_values(array_filter(
+            ['cement', 'sand', 'cat', 'ceramic', 'nat'],
+            static fn($key) => in_array($key, $requiredMaterials, true),
+        ));
+
+        $mode = 'unknown';
+        if (
+            in_array('ceramic', $requiredMaterials, true) &&
+            in_array('nat', $requiredMaterials, true) &&
+            in_array('cement', $requiredMaterials, true) &&
+            in_array('sand', $requiredMaterials, true)
+        ) {
+            $mode = 'ceramic_nat_cement_sand';
+            $materialAxes = ['ceramic', 'nat', 'cement', 'sand'];
+        } elseif (in_array('cat', $requiredMaterials, true)) {
+            $mode = 'cat_only_axis';
+            $materialAxes = ['cat'];
+        } elseif (
+            in_array('ceramic', $requiredMaterials, true) &&
+            in_array('nat', $requiredMaterials, true) &&
+            !in_array('cement', $requiredMaterials, true) &&
+            !in_array('sand', $requiredMaterials, true)
+        ) {
+            $mode = 'ceramic_nat';
+            $materialAxes = ['ceramic', 'nat'];
+        } elseif (
+            in_array('ceramic', $requiredMaterials, true) &&
+            in_array('cement', $requiredMaterials, true) &&
+            !in_array('nat', $requiredMaterials, true) &&
+            !in_array('sand', $requiredMaterials, true)
+        ) {
+            $mode = 'ceramic_cement';
+            $materialAxes = ['ceramic', 'cement'];
+        } elseif (in_array('cement', $requiredMaterials, true) && !in_array('sand', $requiredMaterials, true)) {
+            $mode = 'cement_only';
+            $materialAxes = ['cement'];
+        } elseif (in_array('cement', $requiredMaterials, true) && in_array('sand', $requiredMaterials, true)) {
+            $mode = 'cement_sand';
+            $materialAxes = ['cement', 'sand'];
+        }
+
+        $estimated = 1;
+        foreach ($materialAxes as $axis) {
+            $axisCount = $counts[$axis] ?? null;
+            if (!is_int($axisCount)) {
+                $estimated = null;
+                break;
+            }
+
+            $estimated *= max(0, $axisCount);
+        }
+
+        return [
+            'mode' => $mode,
+            'counts' => $counts,
+            'axes' => $materialAxes,
+            'estimated_combinations' => $estimated,
+            'countable' => $estimated !== null,
+            'work_type' => $workType,
+        ];
+    }
+
+    protected function iterableCardinalityHint(iterable $items): ?int
+    {
+        if (is_array($items)) {
+            return count($items);
+        }
+
+        if ($items instanceof \Countable) {
+            return count($items);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{cements: array<int, mixed>, sands: array<int, mixed>, cats: array<int, mixed>, ceramics: array<int, mixed>, nats: array<int, mixed>}
+     */
+    protected function applyComplexityFastModeCaps(
+        iterable $cements,
+        iterable $sands,
+        iterable $cats,
+        iterable $ceramics,
+        iterable $nats,
+        int $capPerMaterial,
+    ): array {
+        $cap = max(1, $capPerMaterial);
+
+        return [
+            'cements' => $this->takeIterableHead($cements, $cap),
+            'sands' => $this->takeIterableHead($sands, $cap),
+            'cats' => $this->takeIterableHead($cats, $cap),
+            'ceramics' => $this->takeIterableHead($ceramics, $cap),
+            'nats' => $this->takeIterableHead($nats, $cap),
+        ];
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function takeIterableHead(iterable $items, int $limit): array
+    {
+        if ($limit <= 0) {
+            return [];
+        }
+
+        $head = [];
+        foreach ($items as $item) {
+            $head[] = $item;
+            if (count($head) >= $limit) {
+                break;
+            }
+        }
+
+        return $head;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function consumeComplexityGuardEvents(): array
+    {
+        $events = $this->recentComplexityGuardEvents;
+        $this->recentComplexityGuardEvents = [];
+
+        return $events;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function consumeComplexityFastModeEvents(): array
+    {
+        $events = $this->recentComplexityFastModeEvents;
+        $this->recentComplexityFastModeEvents = [];
+
+        return $events;
+    }
+
+    protected function resetComplexityGuardEvents(): void
+    {
+        $this->recentComplexityGuardEvents = [];
+        $this->recentComplexityFastModeEvents = [];
     }
 
     /**

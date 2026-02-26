@@ -5063,6 +5063,8 @@ $paramValue = $isGroutTile
                                             <span class="badge rounded-pill text-bg-light border">Sumber Toko</span>
                                             @if ($storeCoverageMode === 'nearest_radius_chain')
                                                 <span class="badge rounded-pill text-bg-success">Nearest Radius Chain</span>
+                                            @elseif ($storeCoverageMode === 'nearest_store_chain')
+                                                <span class="badge rounded-pill text-bg-warning">Nearest Store Chain</span>
                                             @elseif ($storeCoverageMode)
                                                 <span class="badge rounded-pill text-bg-secondary">{{ $storeCoverageMode }}</span>
                                             @endif
@@ -8565,6 +8567,27 @@ $paramValue = $isGroutTile
             }
 
             const sessionData = @json($requestData ?? request()->except(['_token', 'confirm_save']));
+            const previewPendingKey = 'materialCalculationPreviewPending';
+            let previewFingerprint = '';
+            let previewUiFingerprint = '';
+            try {
+                const pendingRaw = localStorage.getItem(previewPendingKey);
+                const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+                const pendingUpdatedAt = Number(pending?.updatedAt || 0);
+                const pendingFingerprint = String(pending?.fingerprint || '').trim();
+                const pendingUiFingerprint = String(pending?.uiFingerprint || '').trim();
+                if (pendingUpdatedAt > 0 && Date.now() - pendingUpdatedAt <= 1000 * 60 * 15) {
+                    if (pendingFingerprint) {
+                        previewFingerprint = pendingFingerprint;
+                    }
+                    if (pendingUiFingerprint) {
+                        previewUiFingerprint = pendingUiFingerprint;
+                    }
+                }
+                localStorage.removeItem(previewPendingKey);
+            } catch (error) {
+                // noop
+            }
             try {
                 localStorage.setItem('materialCalculationSession', JSON.stringify({
                     updatedAt: Date.now(),
@@ -8574,6 +8597,9 @@ $paramValue = $isGroutTile
                 localStorage.setItem('materialCalculationPreview', JSON.stringify({
                     updatedAt: Date.now(),
                     url: window.location.href,
+                    data: sessionData,
+                    fingerprint: previewFingerprint,
+                    uiFingerprint: previewUiFingerprint,
                 }));
             } catch (error) {
                 console.warn('Failed to store calculation session', error);
