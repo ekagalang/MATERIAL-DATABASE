@@ -58,7 +58,7 @@ class CementController extends Controller
             // Buat cement
             $cement = app(CreateMaterialAction::class)->execute('cement', $data);
 
-            $this->recalculateCementDerivedFields($cement, false);
+            $this->recalculateCementDerivedFields($cement, $request, false);
 
             $cement->save();
 
@@ -151,7 +151,7 @@ class CementController extends Controller
             // Update cement
             app(UpdateMaterialAction::class)->execute($cement, $data);
 
-            $this->recalculateCementDerivedFields($cement, true);
+            $this->recalculateCementDerivedFields($cement, $request, true);
 
             $cement->save();
 
@@ -306,14 +306,20 @@ class CementController extends Controller
         $data['cement_name'] = implode(' ', $parts) ?: 'Semen';
     }
 
-    private function recalculateCementDerivedFields(Cement $cement, bool $resetComparisonPriceIfMissing): void
+    private function recalculateCementDerivedFields(Cement $cement, Request $request, bool $resetComparisonPriceIfMissing): void
     {
-        if (
-            (!$cement->package_weight_net || $cement->package_weight_net <= 0) &&
-            $cement->package_weight_gross &&
-            $cement->package_unit
-        ) {
-            $cement->calculateNetWeight();
+        // If net weight is not explicitly provided, always re-sync net from the submitted
+        // gross weight to avoid stale net values after editing.
+        if (!$request->filled('package_weight_net')) {
+            if ($request->filled('package_weight_gross')) {
+                $cement->package_weight_net = (float) $cement->package_weight_gross;
+
+                if ($cement->package_unit) {
+                    $cement->calculateNetWeight();
+                }
+            } else {
+                $cement->package_weight_net = null;
+            }
         }
 
         if ($cement->package_price && $cement->package_weight_net && $cement->package_weight_net > 0) {

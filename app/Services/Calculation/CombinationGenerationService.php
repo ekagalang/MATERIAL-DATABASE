@@ -8,6 +8,7 @@ use App\Models\Cement;
 use App\Models\Ceramic;
 use App\Models\Nat;
 use App\Models\Sand;
+use App\Models\AppSetting;
 use App\Repositories\CalculationRepository;
 use App\Services\Calculation\Support\TopKCandidateBuffer;
 use App\Services\FormulaRegistry;
@@ -36,6 +37,8 @@ class CombinationGenerationService
     protected StoreProximityService $storeProximityService;
 
     protected array $storeMaterialCache = [];
+
+    protected array $materialTypeCatalogCache = [];
 
     /**
      * @var array<int, array<string, mixed>>
@@ -87,6 +90,142 @@ class CombinationGenerationService
         );
 
         return array_values(array_unique($tokens));
+    }
+
+    protected function getMaterialTypeCatalog(string $materialKey): array
+    {
+        if (array_key_exists($materialKey, $this->materialTypeCatalogCache)) {
+            return $this->materialTypeCatalogCache[$materialKey];
+        }
+
+        $modelClass = match ($materialKey) {
+            'brick' => Brick::class,
+            'cement' => Cement::class,
+            'sand' => Sand::class,
+            'cat' => Cat::class,
+            'nat' => Nat::class,
+            'ceramic_type' => Ceramic::class,
+            default => null,
+        };
+
+        if (!$modelClass) {
+            $this->materialTypeCatalogCache[$materialKey] = [];
+
+            return [];
+        }
+
+        $catalog = $modelClass::query()
+            ->whereNotNull('type')
+            ->where('type', '!=', '')
+            ->distinct()
+            ->pluck('type')
+            ->map(static fn($item) => trim((string) $item))
+            ->filter(static fn($item) => $item !== '')
+            ->values()
+            ->all();
+
+        $this->materialTypeCatalogCache[$materialKey] = $catalog;
+
+        return $catalog;
+    }
+
+    protected function resolveTypeTokenFromCatalog(string $token, array $catalog): ?string
+    {
+        $normalizedToken = $this->normalizeComparableText($token);
+        if ($normalizedToken === '' || empty($catalog)) {
+            return null;
+        }
+
+        foreach ($catalog as $candidate) {
+            if ($this->normalizeComparableText((string) $candidate) === $normalizedToken) {
+                return (string) $candidate;
+            }
+        }
+
+        $looseMatches = [];
+        foreach ($catalog as $candidate) {
+            $candidateText = $this->normalizeComparableText((string) $candidate);
+            if ($candidateText === '') {
+                continue;
+            }
+
+            if (
+                str_contains($normalizedToken, $candidateText) ||
+                str_contains($candidateText, $normalizedToken)
+            ) {
+                $looseMatches[] = (string) $candidate;
+            }
+        }
+
+        if (empty($looseMatches)) {
+            return null;
+        }
+
+        usort($looseMatches, function ($left, $right) {
+            $leftLen = strlen($this->normalizeComparableText((string) $left));
+            $rightLen = strlen($this->normalizeComparableText((string) $right));
+
+            return $rightLen <=> $leftLen;
+        });
+
+        return (string) $looseMatches[0];
+    }
+
+    protected function normalizeMaterialTypeFiltersAgainstCatalog(array $filters): array
+    {
+        if (empty($filters)) {
+            return [];
+        }
+
+        $normalizedFilters = $filters;
+        $catalogBackedKeys = ['brick', 'cement', 'sand', 'cat', 'nat', 'ceramic_type'];
+
+        foreach ($catalogBackedKeys as $key) {
+            if (!array_key_exists($key, $normalizedFilters)) {
+                continue;
+            }
+
+            $requestedTokens = $this->normalizeMaterialTypeFilterValues($normalizedFilters[$key]);
+            if (empty($requestedTokens)) {
+                unset($normalizedFilters[$key]);
+                continue;
+            }
+
+            $catalog = $this->getMaterialTypeCatalog($key);
+            if (empty($catalog)) {
+                continue;
+            }
+
+            $resolvedTokens = [];
+            foreach ($requestedTokens as $token) {
+                $resolved = $this->resolveTypeTokenFromCatalog((string) $token, $catalog);
+                if ($resolved !== null) {
+                    $resolvedTokens[] = $resolved;
+                }
+            }
+
+            $resolvedTokens = array_values(array_unique($resolvedTokens));
+            if (empty($resolvedTokens)) {
+                Log::warning('Material type filter ignored because no catalog match', [
+                    'material' => $key,
+                    'requested' => $requestedTokens,
+                ]);
+                unset($normalizedFilters[$key]);
+                continue;
+            }
+
+            if ($resolvedTokens !== $requestedTokens) {
+                Log::info('Material type filter normalized', [
+                    'material' => $key,
+                    'requested' => $requestedTokens,
+                    'resolved' => $resolvedTokens,
+                ]);
+            }
+
+            $normalizedFilters[$key] = count($resolvedTokens) === 1 ? $resolvedTokens[0] : $resolvedTokens;
+        }
+
+        return $normalizedFilters;
     }
 
     protected function allowedMaterialCustomizeFields(): array
@@ -580,6 +719,11 @@ class CombinationGenerationService
     {
         $this->resetComplexityGuardEvents();
 
+        $normalizedMaterialTypeFilters = $this->normalizeMaterialTypeFiltersAgainstCatalog(
+            (array) ($request->input('material_type_filters') ?? []),
+        );
+        $request->merge(['material_type_filters' => $normalizedMaterialTypeFilters]);
+
         $brick = $constraints['brick'] ?? null;
         $fixedCeramic = $constraints['ceramic'] ?? null;
 
@@ -589,9 +733,6 @@ class CombinationGenerationService
         // Feature: Store-Based Combination (One Stop Shopping)
         $workType = $request->input('work_type') ?? $request->input('work_type_select');
         $useStoreFilter = $request->boolean('use_store_filter', true);
-        if ($workType === 'grout_tile') {
-            $useStoreFilter = false;
-        }
 
         if ($useStoreFilter) {
             $hasProjectCoordinates = is_numeric($request->input('project_latitude')) &&
@@ -766,13 +907,29 @@ class CombinationGenerationService
             is_numeric($request->input('project_longitude'));
         $projectLatitude = $hasProjectCoordinates ? (float) $request->input('project_latitude') : null;
         $projectLongitude = $hasProjectCoordinates ? (float) $request->input('project_longitude') : null;
-        $allowStoreNameFallback = !$hasProjectCoordinates;
+        // Keep fallback by store name enabled as secondary source to support
+        // legacy material rows that don't have store_location_id mapping.
+        $allowStoreNameFallback = true;
         $allowMixedStore = $request->boolean('allow_mixed_store', false);
         $storeRadiusScope = strtolower(trim((string) $request->input('store_radius_scope', 'within')));
         if (!in_array($storeRadiusScope, ['within', 'outside'], true)) {
             $storeRadiusScope = 'within';
         }
-        $restrictToStoreRadius = $storeRadiusScope === 'within';
+        $preferWithinPrimaryRadius = $storeRadiusScope === 'within';
+        $projectRadiusDefaultKm = AppSetting::getFloat('project_store_radius_default_km', 10.0);
+        $projectRadiusFinalDefaultKm = AppSetting::getFloat(
+            'project_store_radius_final_km',
+            max(15.0, $projectRadiusDefaultKm),
+        );
+        $projectRadiusPrimaryKm = is_numeric($request->input('project_store_radius_km'))
+            ? max(0.1, (float) $request->input('project_store_radius_km'))
+            : max(0.1, $projectRadiusDefaultKm);
+        $projectRadiusFinalKm = is_numeric($request->input('project_store_radius_final_km'))
+            ? max(0.1, (float) $request->input('project_store_radius_final_km'))
+            : max($projectRadiusFinalDefaultKm, $projectRadiusPrimaryKm);
+        if ($projectRadiusFinalKm < $projectRadiusPrimaryKm) {
+            $projectRadiusFinalKm = $projectRadiusPrimaryKm;
+        }
 
         $rankedLocations = $locations->map(function ($location) {
             return [
@@ -786,8 +943,32 @@ class CombinationGenerationService
                 $locations,
                 $projectLatitude,
                 $projectLongitude,
-                $restrictToStoreRadius,
+                false,
             );
+
+            // Radius is owned by the project now:
+            // - primary radius: preferred boundary
+            // - final radius: hard cap (must be respected)
+            $rankedLocations = $rankedLocations
+                ->filter(function (array $row) use ($projectRadiusFinalKm): bool {
+                    if (!isset($row['distance_km']) || !is_numeric($row['distance_km'])) {
+                        return false;
+                    }
+
+                    return (float) $row['distance_km'] <= $projectRadiusFinalKm;
+                })
+                ->values();
+
+            if ($storeRadiusScope === 'outside' && !$allowMixedStore) {
+                // Complete Outside Radius: only stores beyond primary radius, but still inside final cap.
+                $rankedLocations = $rankedLocations
+                    ->filter(function (array $row) use ($projectRadiusPrimaryKm): bool {
+                        return isset($row['distance_km']) &&
+                            is_numeric($row['distance_km']) &&
+                            (float) $row['distance_km'] > $projectRadiusPrimaryKm;
+                    })
+                    ->values();
+            }
         }
 
         if ($rankedLocations->isEmpty()) {
@@ -1017,7 +1198,9 @@ class CombinationGenerationService
                 foreach ($localResults as $result) {
                     $result['store_label'] = 'Gabungan Toko Terdekat';
                     $result['store_plan'] = $coverage['store_plan'] ?? [];
-                    $result['store_coverage_mode'] = $restrictToStoreRadius ? 'nearest_radius_chain' : 'nearest_store_chain';
+                    $result['store_coverage_mode'] = $preferWithinPrimaryRadius
+                        ? 'nearest_radius_chain'
+                        : 'nearest_store_chain';
                     $result['store_cost_breakdown'] = $this->buildStoreCostBreakdown(
                         $result,
                         $coverage['store_plan'] ?? [],
@@ -1033,6 +1216,47 @@ class CombinationGenerationService
 
         if (empty($allStoreCombinations)) {
             return $this->getStoreBasedCombinationsByStoreName($request, $constraints);
+        }
+
+        if ($hasProjectCoordinates && !$allowMixedStore && $storeRadiusScope === 'within') {
+            $hasPrimaryRadiusCandidate = collect($allStoreCombinations)->contains(function ($candidate) use (
+                $projectRadiusPrimaryKm,
+            ) {
+                if (!is_array($candidate)) {
+                    return false;
+                }
+                $storePlan = $candidate['store_plan'] ?? null;
+                if (!is_array($storePlan) || empty($storePlan)) {
+                    return false;
+                }
+                $firstStop = $storePlan[0] ?? null;
+                if (!is_array($firstStop) || !is_numeric($firstStop['distance_km'] ?? null)) {
+                    return false;
+                }
+
+                return (float) $firstStop['distance_km'] <= $projectRadiusPrimaryKm;
+            });
+
+            if ($hasPrimaryRadiusCandidate) {
+                $allStoreCombinations = array_values(array_filter(
+                    $allStoreCombinations,
+                    static function ($candidate) use ($projectRadiusPrimaryKm): bool {
+                        if (!is_array($candidate)) {
+                            return false;
+                        }
+                        $storePlan = $candidate['store_plan'] ?? null;
+                        if (!is_array($storePlan) || empty($storePlan)) {
+                            return false;
+                        }
+                        $firstStop = $storePlan[0] ?? null;
+                        if (!is_array($firstStop) || !is_numeric($firstStop['distance_km'] ?? null)) {
+                            return false;
+                        }
+
+                        return (float) $firstStop['distance_km'] <= $projectRadiusPrimaryKm;
+                    },
+                ));
+            }
         }
 
         if (!$allowMixedStore) {

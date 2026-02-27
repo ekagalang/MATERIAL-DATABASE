@@ -229,40 +229,6 @@
                     </div>
                 @endif
 
-                {{-- Sisi Aci (hanya untuk Aci Dinding) --}}
-                @if ($workType === 'skim_coating')
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
-                            style="font-size: 0.75rem;">
-                            <span class="badge bg-info text-white border">SISI ACI</span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1"
-                                style="background-color: #e0f2fe; border-color: #38bdf8;">
-                                {{ $params['skim_sides'] ?? 1 }}</div>
-                            <span class="input-group-text bg-info text-white small px-1"
-                                style="font-size: 0.7rem;">Sisi</span>
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Sisi Plester (hanya untuk Plester Dinding) --}}
-                @if ($workType === 'wall_plastering')
-                    <div style="flex: 0 0 auto; width: 100px;">
-                        <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
-                            style="font-size: 0.75rem;">
-                            <span class="badge bg-success text-white border">SISI PLESTER</span>
-                        </label>
-                        <div class="input-group">
-                            <div class="form-control fw-bold text-center px-1"
-                                style="background-color: #d1fae5; border-color: #34d399;">
-                                {{ $params['plaster_sides'] ?? 1 }}</div>
-                            <span class="input-group-text bg-success text-white small px-1"
-                                style="font-size: 0.7rem;">Sisi</span>
-                        </div>
-                    </div>
-                @endif
-
                 {{-- Lapis Pengecatan --}}
                 @if ($isPainting)
                     <div style="flex: 0 0 auto; width: 120px;">
@@ -954,18 +920,20 @@
                                 'type_field' => 'type',
                                 'brand_field' => 'brand',
                                 'detail_display' => $materialCalculation->cement ? $materialCalculation->cement->color ?? '-' : '-',
-                                'detail_extra' => $materialCalculation->cement ? $formatNum($materialCalculation->cement->package_weight_net) . ' Kg' : '-',
+                                'detail_extra' => $materialCalculation->cement
+                                    ? ((((($materialCalculation->cement->packageUnit->name ?? null) ?: ($materialCalculation->cement->package_unit ?? 'Sak')) ?: 'Sak') . ' (' . $formatNum($materialCalculation->cement->package_weight_net) . ' Kg)'))
+                                    : '-',
                                 'store_field' => 'store',
                                 'address_field' => 'address',
                                 'package_price' => $materialCalculation->cement->package_price ?? 0,
-                                'package_unit' => $materialCalculation->cement->package_unit ?? 'Sak',
+                                'package_unit' => (($materialCalculation->cement->packageUnit->name ?? null) ?: ($materialCalculation->cement->package_unit ?? 'Sak')) ?: 'Sak',
                                 'price_per_unit' => $cementPricePerSak,
-                                'price_unit_label' => $materialCalculation->cement->package_unit ?? 'Sak',
+                                'price_unit_label' => (($materialCalculation->cement->packageUnit->name ?? null) ?: ($materialCalculation->cement->package_unit ?? 'Sak')) ?: 'Sak',
                                 'price_calc_qty' => $materialCalculation->cement_quantity_sak,
                                 'price_calc_unit' => 'Sak',
                                 'total_price' => $materialCalculation->cement_total_cost,
                                 'unit_price' => $cementPricePerSak,
-                                'unit_price_label' => $materialCalculation->cement->package_unit ?? 'Sak',
+                                'unit_price_label' => (($materialCalculation->cement->packageUnit->name ?? null) ?: ($materialCalculation->cement->package_unit ?? 'Sak')) ?: 'Sak',
                             ],
                             'sand' => [
                                 'name' => 'Pasir',

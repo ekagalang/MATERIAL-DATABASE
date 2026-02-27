@@ -24,7 +24,7 @@ class SkimCoatingFormula implements FormulaInterface
 
     public static function getDescription(): string
     {
-        return 'Menghitung Aci Dinding dengan input panjang, tinggi, tebal adukan dan jumlah sisi.';
+        return 'Menghitung Aci Dinding dengan input panjang, tinggi, dan tebal acian.';
     }
 
     public static function getMaterialRequirements(): array
@@ -34,7 +34,7 @@ class SkimCoatingFormula implements FormulaInterface
 
     public function validate(array $params): bool
     {
-        $required = ['wall_length', 'wall_height', 'mortar_thickness', 'skim_sides', 'cement_id'];
+        $required = ['wall_length', 'wall_height', 'mortar_thickness', 'cement_id'];
 
         foreach ($required as $field) {
             if (!isset($params[$field]) || $params[$field] <= 0) {
@@ -62,7 +62,7 @@ class SkimCoatingFormula implements FormulaInterface
         $panjang = $n($params['wall_length']); // m
         $tinggi = $n($params['wall_height']); // m
         $tebalAdukan = $n($params['mortar_thickness']); // cm
-        $sisiAci = $n($params['skim_sides']); // jumlah sisi
+        $sisiAci = 1.0; // sisi tetap
 
         $trace['steps'][] = [
             'step' => 1,
@@ -71,7 +71,6 @@ class SkimCoatingFormula implements FormulaInterface
                 'Panjang Dinding' => $panjang . ' m',
                 'Tinggi Dinding' => $tinggi . ' m',
                 'Tebal Adukan' => $tebalAdukan . ' cm',
-                'Jumlah Sisi Aci' => $sisiAci,
             ],
         ];
 
@@ -178,9 +177,9 @@ class SkimCoatingFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 7,
             'title' => 'Total Luas Acian',
-            'formula' => 'Luas bidang × Jumlah sisi aci',
+            'formula' => 'Luas bidang',
             'calculations' => [
-                'Perhitungan' => NumberHelper::format($luasBidang) . " × $sisiAci",
+                'Perhitungan' => NumberHelper::format($luasBidang),
                 'Hasil' => NumberHelper::format($totalLuasAcian) . ' M2',
             ],
         ];
@@ -258,7 +257,6 @@ class SkimCoatingFormula implements FormulaInterface
             // Additional info
             'total_area' => $totalLuasAcian,
             'area_per_side' => $luasBidang,
-            'skim_sides' => $sisiAci,
         ];
 
         return $trace;

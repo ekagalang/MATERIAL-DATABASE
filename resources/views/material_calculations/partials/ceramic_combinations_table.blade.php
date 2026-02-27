@@ -751,7 +751,7 @@
                                 {{ $hasItem && isset($item['cement']) ? $item['cement']->brand : '-' }}
                             </td>
                             <td class="text-muted small" style="background: {{ $cementBgColor }}; vertical-align: middle; {{ $lastMaterial !== 'cement' ? 'border-right: 2px solid #891313;' : '' }}">
-                                {{ $hasItem && isset($item['cement']) ? (($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg') : '-' }}
+                                {{ $hasItem && isset($item['cement']) ? (($item['cement']->color ?? '-') . ' - ' . ((($item['cement']->packageUnit->name ?? null) ?: ($item['cement']->package_unit ?? 'Sak')) ?: 'Sak') . ' (' . ($item['cement']->package_weight_net + 0) . ' Kg)') : '-' }}
                             </td>
                             @endif
                             @if($hasSand)
@@ -869,18 +869,20 @@
                                     'type_field' => 'type',
                                     'brand_field' => 'brand',
                                     'detail_display' => isset($item['cement']) ? ($item['cement']->color ?? '-') : '-',
-                                    'detail_extra' => isset($item['cement']) ? (($item['cement']->package_weight_net + 0) . ' Kg') : '-',
+                                    'detail_extra' => isset($item['cement'])
+                                        ? ((((($item['cement']->packageUnit->name ?? null) ?: ($item['cement']->package_unit ?? 'Sak')) ?: 'Sak') . ' (' . ($item['cement']->package_weight_net + 0) . ' Kg)'))
+                                        : '-',
                                     'store_field' => 'store',
                                     'address_field' => 'address',
                                     'package_price' => isset($item['cement']) ? ($item['cement']->package_price ?? 0) : 0,
-                                    'package_unit' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
+                                    'package_unit' => isset($item['cement']) ? ((($item['cement']->packageUnit->name ?? null) ?: ($item['cement']->package_unit ?? 'Sak')) ?: 'Sak') : 'Sak',
                                     'price_per_unit' => $cementPricePerSak,
-                                    'price_unit_label' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
+                                    'price_unit_label' => isset($item['cement']) ? ((($item['cement']->packageUnit->name ?? null) ?: ($item['cement']->package_unit ?? 'Sak')) ?: 'Sak') : 'Sak',
                                     'price_calc_qty' => $res['cement_sak'] ?? 0,
                                     'price_calc_unit' => 'Sak',
                                     'total_price' => $res['total_cement_price'] ?? 0,
                                     'unit_price' => $cementPricePerSak,
-                                    'unit_price_label' => isset($item['cement']) ? ($item['cement']->package_unit ?? 'Sak') : 'Sak',
+                                    'unit_price_label' => isset($item['cement']) ? ((($item['cement']->packageUnit->name ?? null) ?: ($item['cement']->package_unit ?? 'Sak')) ?: 'Sak') : 'Sak',
                                 ],
                                 'sand' => [
                                     'name' => 'Pasir',
@@ -1579,5 +1581,3 @@
         </div>
     </div>
 @endif
-
-

@@ -781,9 +781,9 @@
             if (val === 'brick_rollag') {
                 if(layerCountGroup) layerCountGroup.style.display = 'flex'; // dimension-group is flex column or flex
             } else if (val === 'wall_plastering') {
-                if(plasterSidesGroup) plasterSidesGroup.style.display = 'flex';
+                if(plasterSidesGroup) plasterSidesGroup.style.display = 'none';
             } else if (val === 'skim_coating') {
-                if(skimSidesGroup) skimSidesGroup.style.display = 'flex';
+                if(skimSidesGroup) skimSidesGroup.style.display = 'none';
             }
         }
 
@@ -795,4 +795,3 @@
     })();
 </script>
 @endpush
-

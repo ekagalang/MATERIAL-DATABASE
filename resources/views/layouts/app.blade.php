@@ -385,6 +385,13 @@
                             </a>
                         </div>
                         <div class="dropdown-item-parent">
+                            <a href="{{ route('settings.store-search-radius.index') }}"
+                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                            role="button">
+                                Radius Pencarian Toko
+                            </a>
+                        </div>
+                        <div class="dropdown-item-parent">
                             <a href="{{ route('settings.work-floors.index') }}"
                             class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
                             role="button">
@@ -1092,6 +1099,7 @@
                 else if (url.includes('/store-locations/') || (url.includes('/stores/') && url.includes('/locations'))) { materialType = 'store-location'; materialLabel = 'Lokasi Toko'; }
                 else if (url.includes('/stores/')) { materialType = 'store'; materialLabel = 'Toko'; }
                 else if (url.includes('/settings/recommendations')) { materialType = 'recommendations'; materialLabel = 'Setting Rekomendasi'; }
+                else if (url.includes('/settings/store-search-radius')) { materialType = 'settings'; materialLabel = 'Radius Pencarian Toko'; }
 
                 if (url.includes('/create')) action = 'create';
                 else if (url.includes('/edit')) action = 'edit';

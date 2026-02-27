@@ -146,6 +146,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
                 'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
                 'project_place_id' => 'nullable|string|max:255',
+                'project_store_radius_km' => 'nullable|numeric|min:0.1|max:1000',
+                'project_store_radius_final_km' => 'nullable|numeric|min:0.1|max:1000|gte:project_store_radius_km',
                 'use_store_filter' => 'nullable|boolean',
                 'store_radius_scope' => 'nullable|string|in:within,outside',
                 'allow_mixed_store' => 'nullable|boolean',
@@ -903,12 +905,14 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         ];
 
         $bundleCacheSeed = [
-            'bundle_summary_engine_version' => 'single-store-lock-v2',
+            'bundle_summary_engine_version' => 'single-store-lock-v4-store-option-intersection',
             'bundle_name' => $bundleName,
             'price_filters' => $request->input('price_filters', []),
             'use_store_filter' => (bool) $request->boolean('use_store_filter', true),
             'allow_mixed_store' => (bool) $request->boolean('allow_mixed_store', false),
             'store_radius_scope' => (string) $request->input('store_radius_scope', ''),
+            'project_store_radius_km' => $request->input('project_store_radius_km'),
+            'project_store_radius_final_km' => $request->input('project_store_radius_final_km'),
             'work_items' => $bundleItems,
             'project_address' => $request->input('project_address'),
             'project_latitude' => $request->input('project_latitude'),
@@ -971,7 +975,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
         $itemCombinationMaps = [];
         foreach ($bundleItemPayloads as $bundleItemPayload) {
-            $itemCombinationMaps[] = $this->extractBestCombinationMapForPayload($bundleItemPayload, $candidateLabelLookup);
+            $itemCombinationMaps[] = $enforceSingleStoreAcrossBundle
+                ? $this->extractCombinationOptionListsMapForPayload($bundleItemPayload, $candidateLabelLookup)
+                : $this->extractBestCombinationMapForPayload($bundleItemPayload, $candidateLabelLookup);
         }
         $itemCombinationMaps = array_values($itemCombinationMaps);
 
@@ -1122,6 +1128,25 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             array $itemMap,
             string $targetLabel,
         ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix): array {
+            $normalizeRowsForLabel = static function (mixed $value): array {
+                if (!is_array($value)) {
+                    return [];
+                }
+
+                if (isset($value['result']) && is_array($value['result'])) {
+                    return [$value];
+                }
+
+                $rows = [];
+                foreach ($value as $row) {
+                    if (!is_array($row) || !isset($row['result']) || !is_array($row['result'])) {
+                        continue;
+                    }
+                    $rows[] = $row;
+                }
+
+                return $rows;
+            };
             $appendCandidates = static function (array &$bucket, array $rows): void {
                 foreach ($rows as $row) {
                     if (!is_array($row)) {
@@ -1143,23 +1168,23 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $targetRank = $extractLabelRank($targetLabel);
             $ordered = [];
 
-            if (isset($itemMap[$targetLabel]) && is_array($itemMap[$targetLabel])) {
-                $appendCandidates($ordered, [$itemMap[$targetLabel]]);
+            if (isset($itemMap[$targetLabel])) {
+                $appendCandidates($ordered, $normalizeRowsForLabel($itemMap[$targetLabel]));
             }
 
             $prefixCandidates = [];
             foreach ($itemMap as $candidateLabel => $candidateRow) {
-                if (!is_array($candidateRow)) {
-                    continue;
-                }
                 if (strcasecmp($extractLabelPrefix((string) $candidateLabel), $targetPrefix) !== 0) {
                     continue;
                 }
-                $prefixCandidates[] = [
-                    'rank' => $extractLabelRank((string) $candidateLabel),
-                    'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
-                    'candidate' => $candidateRow,
-                ];
+                $labelRows = $normalizeRowsForLabel($candidateRow);
+                foreach ($labelRows as $row) {
+                    $prefixCandidates[] = [
+                        'rank' => $extractLabelRank((string) $candidateLabel),
+                        'grand_total' => (float) ($row['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                        'candidate' => $row,
+                    ];
+                }
             }
             if (!empty($prefixCandidates)) {
                 usort($prefixCandidates, static function ($a, $b) {
@@ -1214,18 +1239,18 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
                 $allowedCandidates = [];
                 foreach ($itemMap as $candidateLabel => $candidateRow) {
-                    if (!is_array($candidateRow)) {
-                        continue;
-                    }
                     $candidatePrefixKey = strtolower($extractLabelPrefix((string) $candidateLabel));
                     if ($candidatePrefixKey === $popularPrefix || !isset($allowedPrefixLookup[$candidatePrefixKey])) {
                         continue;
                     }
-                    $allowedCandidates[] = [
-                        'rank' => $extractLabelRank((string) $candidateLabel),
-                        'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
-                        'candidate' => $candidateRow,
-                    ];
+                    $labelRows = $normalizeRowsForLabel($candidateRow);
+                    foreach ($labelRows as $row) {
+                        $allowedCandidates[] = [
+                            'rank' => $extractLabelRank((string) $candidateLabel),
+                            'grand_total' => (float) ($row['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                            'candidate' => $row,
+                        ];
+                    }
                 }
                 usort($allowedCandidates, static function ($a, $b) {
                     $totalCompare = ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
@@ -1240,18 +1265,18 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
                 $anyCandidates = [];
                 foreach ($itemMap as $candidateLabel => $candidateRow) {
-                    if (!is_array($candidateRow)) {
-                        continue;
-                    }
                     $candidatePrefixKey = strtolower($extractLabelPrefix((string) $candidateLabel));
                     if ($candidatePrefixKey === $popularPrefix) {
                         continue;
                     }
-                    $anyCandidates[] = [
-                        'rank' => $extractLabelRank((string) $candidateLabel),
-                        'grand_total' => (float) ($candidateRow['result']['grand_total'] ?? PHP_FLOAT_MAX),
-                        'candidate' => $candidateRow,
-                    ];
+                    $labelRows = $normalizeRowsForLabel($candidateRow);
+                    foreach ($labelRows as $row) {
+                        $anyCandidates[] = [
+                            'rank' => $extractLabelRank((string) $candidateLabel),
+                            'grand_total' => (float) ($row['result']['grand_total'] ?? PHP_FLOAT_MAX),
+                            'candidate' => $row,
+                        ];
+                    }
                 }
                 usort($anyCandidates, static function ($a, $b) {
                     $totalCompare = ((float) ($a['grand_total'] ?? PHP_FLOAT_MAX)) <=>
@@ -2223,17 +2248,28 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $width = (float) ($model->dimension_width ?? 0);
             $area = $length > 0 && $width > 0 ? ($length / 100) * ($width / 100) : 0;
             $tilesPackages = (float) ($result['tiles_packages'] ?? 0);
+            $piecesPerPackage = (float) ($model->pieces_per_package ?? 0);
+            if ($tilesPackages <= 0 && $qty > 0 && $piecesPerPackage > 0) {
+                $tilesPackages = (float) ceil($qty / $piecesPerPackage);
+            }
             $packagePrice = (float) ($model->price_per_package ?? 0);
             $effectivePricePerUnit = $pricePerUnit > 0 ? $pricePerUnit : ($tilesPackages > 0 ? $totalPrice / $tilesPackages : $packagePrice);
+            $colorText = trim((string) ($model->color ?? ''));
+            $sizeText = $length > 0 && $width > 0 ? $formatNum($length) . 'x' . $formatNum($width) . ' cm' : '';
+            $detailDisplayParts = array_values(array_filter([$colorText, $sizeText], static fn($v) => trim((string) $v) !== ''));
+            $detailDisplay = !empty($detailDisplayParts) ? implode(' - ', $detailDisplayParts) : '-';
+            $detailExtra = 'Dus (' . ($piecesPerPackage > 0 ? $formatNum($piecesPerPackage) : '-') . ' lembar)';
+            $coveragePerPackage = $area > 0 && $piecesPerPackage > 0 ? $area * $piecesPerPackage : $area;
 
             return array_merge($base, [
                 'name' => 'Keramik',
-                'unit' => 'Bh',
+                'check_field' => 'tiles_packages',
+                'qty' => $tilesPackages > 0 ? $tilesPackages : $qty,
+                'unit' => 'Dus',
                 'comparison_unit' => 'M2',
-                'detail_value' => $area > 0 ? $area : 0,
-                'detail_display' => $model->color ?? '-',
-                'detail_extra' =>
-                    $length > 0 && $width > 0 ? $formatNum($length) . 'x' . $formatNum($width) . ' cm' : '-',
+                'detail_value' => $coveragePerPackage > 0 ? $coveragePerPackage : 0,
+                'detail_display' => $detailDisplay,
+                'detail_extra' => $detailExtra,
                 'package_price' => $packagePrice,
                 'package_unit' => 'Dus',
                 'price_per_unit' => $effectivePricePerUnit,
@@ -2423,6 +2459,108 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         return $map;
+    }
+
+    protected function extractCombinationOptionListsMapForPayload(array $payload, ?array $allowedLabels = null): array
+    {
+        $mapsByStore = [];
+        $projects = $payload['projects'] ?? [];
+        if (!is_array($projects)) {
+            return [];
+        }
+
+        $resolveTargetLabels = static function (string $label) use ($allowedLabels): array {
+            $normalized = trim($label);
+            if ($normalized === '') {
+                return [];
+            }
+
+            $targets = [$normalized => true];
+
+            if (str_contains($normalized, '=')) {
+                foreach (preg_split('/\s*=\s*/u', $normalized) ?: [] as $alias) {
+                    $alias = trim((string) $alias);
+                    if ($alias === '') {
+                        continue;
+                    }
+                    $targets[$alias] = true;
+                }
+            }
+
+            if (is_array($allowedLabels)) {
+                $targets = array_intersect_key($targets, $allowedLabels);
+            }
+
+            return array_keys($targets);
+        };
+
+        foreach ($projects as $project) {
+            $combinations = $project['combinations'] ?? [];
+            if (!is_array($combinations)) {
+                continue;
+            }
+
+            foreach ($combinations as $label => $items) {
+                $targetLabels = $resolveTargetLabels((string) $label);
+                if (empty($targetLabels) || !is_array($items)) {
+                    continue;
+                }
+
+                foreach ($items as $candidate) {
+                    if (!is_array($candidate) || empty($candidate['result']) || !is_array($candidate['result'])) {
+                        continue;
+                    }
+
+                    $minimizedCandidate = $this->minimizeBundleCombinationCandidate($candidate);
+                    $grandTotal = (float) ($minimizedCandidate['result']['grand_total'] ?? 0);
+                    $storeKey = $this->extractBundleStoreIdentityKeyFromCombination($minimizedCandidate);
+                    if (!is_string($storeKey) || trim($storeKey) === '') {
+                        // Fallback so non-store-identifiable candidates can still participate as unique options.
+                        $serialized = json_encode($minimizedCandidate, JSON_UNESCAPED_UNICODE);
+                        if (!is_string($serialized)) {
+                            continue;
+                        }
+                        $storeKey = 'candidate:' . sha1($serialized);
+                    }
+
+                    foreach ($targetLabels as $targetLabel) {
+                        if (!isset($mapsByStore[$targetLabel]) || !is_array($mapsByStore[$targetLabel])) {
+                            $mapsByStore[$targetLabel] = [];
+                        }
+                        $existing = $mapsByStore[$targetLabel][$storeKey] ?? null;
+                        $existingTotal = is_array($existing)
+                            ? (float) ($existing['result']['grand_total'] ?? PHP_FLOAT_MAX)
+                            : PHP_FLOAT_MAX;
+                        if ($grandTotal < $existingTotal) {
+                            $mapsByStore[$targetLabel][$storeKey] = $minimizedCandidate;
+                        }
+                    }
+                }
+            }
+        }
+
+        $result = [];
+        foreach ($mapsByStore as $label => $candidatesByStoreKey) {
+            if (!is_array($candidatesByStoreKey) || empty($candidatesByStoreKey)) {
+                continue;
+            }
+            $rows = array_values($candidatesByStoreKey);
+            usort($rows, static function ($a, $b) {
+                $totalA = (float) ($a['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                $totalB = (float) ($b['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                if ($totalA !== $totalB) {
+                    return $totalA <=> $totalB;
+                }
+
+                $labelA = strtolower(trim((string) ($a['store_label'] ?? '')));
+                $labelB = strtolower(trim((string) ($b['store_label'] ?? '')));
+
+                return $labelA <=> $labelB;
+            });
+            $result[(string) $label] = $rows;
+        }
+
+        return $result;
     }
 
     /**
@@ -2656,10 +2794,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'project_address' => 'nullable|string',
             'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
             'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
-                'project_place_id' => 'nullable|string|max:255',
-                'use_store_filter' => 'nullable|boolean',
-                'store_radius_scope' => 'nullable|string|in:within,outside',
-                'allow_mixed_store' => 'nullable|boolean',
+            'project_place_id' => 'nullable|string|max:255',
+            'project_store_radius_km' => 'nullable|numeric|min:0.1|max:1000',
+            'project_store_radius_final_km' => 'nullable|numeric|min:0.1|max:1000|gte:project_store_radius_km',
+            'use_store_filter' => 'nullable|boolean',
+            'store_radius_scope' => 'nullable|string|in:within,outside',
+            'allow_mixed_store' => 'nullable|boolean',
             'wall_length' => 'required|numeric|min:0.01',
             'wall_height' => 'required_unless:work_type,brick_rollag|numeric|min:0.01',
             'mortar_thickness' => 'required|numeric|min:0.01|max:10',

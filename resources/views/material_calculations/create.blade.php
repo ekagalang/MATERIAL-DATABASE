@@ -39,6 +39,8 @@
     if (!in_array($initialStoreRadiusScope, ['within', 'outside'], true)) {
         $initialStoreRadiusScope = $initialUseStoreFilter ? 'within' : '';
     }
+    $projectStoreRadiusDefaultKm = (float) ($projectStoreRadiusDefaultKm ?? 10);
+    $projectStoreRadiusFinalKm = (float) ($projectStoreRadiusFinalKm ?? max(15, $projectStoreRadiusDefaultKm));
     $initialStoreSearchMode = 'complete_within';
     if ($initialAllowMixedStore) {
         $initialStoreSearchMode = 'incomplete';
@@ -47,6 +49,11 @@
     } elseif ($initialUseStoreFilter && $initialStoreRadiusScope === 'within') {
         $initialStoreSearchMode = 'complete_within';
     }
+    $selectedProjectStoreRadiusKm = old('project_store_radius_km', request('project_store_radius_km', $projectStoreRadiusDefaultKm));
+    $selectedProjectStoreRadiusFinalKm = old(
+        'project_store_radius_final_km',
+        request('project_store_radius_final_km', $projectStoreRadiusFinalKm),
+    );
     $materialTypeLabels = [
         'brick' => 'Bata',
         'cement' => 'Semen',
@@ -151,6 +158,17 @@
 
                 <div id="storeSearchModeBox">
                     <label>Mode Pencarian Toko</label>
+                    <input type="hidden"
+                           id="projectStoreRadiusKm"
+                           name="project_store_radius_km"
+                           value="{{ $selectedProjectStoreRadiusKm }}">
+                    <input type="hidden"
+                           id="projectStoreRadiusFinalKm"
+                           name="project_store_radius_final_km"
+                           value="{{ $selectedProjectStoreRadiusFinalKm }}">
+                    <small class="ssm-radius-inline-note d-block mb-2">
+                        Radius pencarian toko mengikuti setting global. Ubah di menu <b>Pengaturan &gt; Radius Pencarian Toko</b>.
+                    </small>
                     <input type="hidden" name="use_store_filter" value="0">
                     <input type="hidden" name="allow_mixed_store" value="0">
                     <input type="hidden" name="store_radius_scope" id="storeRadiusScopeValue" value="{{ $initialStoreRadiusScope }}">
@@ -160,19 +178,19 @@
                         <input type="checkbox" id="storeModeCompleteWithinCheck"
                             {{ $initialStoreSearchMode === 'complete_within' ? 'checked' : '' }}>
                         <label for="storeModeCompleteWithinCheck" class="ssm-label">Dalam Radius</label>
-                        <small class="ssm-desc">Mencari toko dalam radius layanan yang memiliki material lengkap untuk item pekerjaannya.</small>
+                        <small class="ssm-desc">Mencari toko dengan material lengkap di dalam radius proyek.</small>
                     </div>
                     <div class="ssm-row ssm-row-sub">
                         <input type="checkbox" id="storeModeCompleteOutsideCheck"
                             {{ $initialStoreSearchMode === 'complete_outside' ? 'checked' : '' }}>
                         <label for="storeModeCompleteOutsideCheck" class="ssm-label">Luar Radius</label>
-                        <small class="ssm-desc">Sama seperti Lengkap Dalam Radius, tetapi pencarian toko tidak dibatasi radius layanan.</small>
+                        <small class="ssm-desc">Mencari toko dengan material lengkap di luar radius proyek.</small>
                     </div>
                     <div class="ssm-row">
                         <input type="checkbox" id="storeModeIncompleteCheck"
                             {{ $initialStoreSearchMode === 'incomplete' ? 'checked' : '' }}>
                         <label for="storeModeIncompleteCheck" class="ssm-label">Tidak Lengkap</label>
-                        <small class="ssm-desc">Material boleh lintas toko dari yang paling dekat ke proyek hingga yang lebih jauh tanpa batas radius.</small>
+                        <small class="ssm-desc">Material boleh lintas toko dari yang paling dekat ke proyek.</small>
                     </div>
                 </div>
 
@@ -3214,11 +3232,64 @@
         margin: 0 0 2px 0;
     }
 
+    .ssm-radius-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px 10px;
+        margin-bottom: 4px;
+    }
+
+    .ssm-radius-field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .ssm-radius-label {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .ssm-radius-input {
+        width: 100%;
+        min-width: 0;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-size: 13px;
+        line-height: 1.2;
+        background: #fff;
+        color: #0f172a;
+    }
+
+    .ssm-radius-input:focus {
+        outline: none;
+        border-color: #891313;
+        box-shadow: 0 0 0 3px rgba(137, 19, 19, 0.1);
+    }
+
+    .ssm-radius-help {
+        font-size: 11px;
+        line-height: 1.25;
+        color: #64748b;
+        margin: 0;
+    }
+
     .ssm-row {
         display: flex;
         flex-direction: row;
         align-items: center;
         gap: 6px;
+    }
+
+    .ssm-radius-inline-note {
+        font-size: 11px;
+        line-height: 1.35;
+        color: #64748b;
+        padding-left: 2px;
     }
 
     .ssm-group-title {
@@ -3265,6 +3336,12 @@
     .ssm-row-sub input[type="checkbox"]:disabled + .ssm-label,
     .ssm-row-sub input[type="checkbox"]:disabled + .ssm-label + .ssm-desc {
         opacity: 0.55;
+    }
+
+    @media (max-width: 768px) {
+        .ssm-radius-grid {
+            grid-template-columns: 1fr;
+        }
     }
 
     .project-location-map {
@@ -5074,7 +5151,7 @@
                     }
                 } else if (workTypeSelector.value === 'wall_plastering') {
                     layerCountGroup.style.display = 'none';
-                    plasterSidesGroup.style.display = 'flex';
+                    plasterSidesGroup.style.display = 'none';
                     skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
@@ -5091,7 +5168,7 @@
                 } else if (workTypeSelector.value === 'skim_coating') {
                     layerCountGroup.style.display = 'none';
                     plasterSidesGroup.style.display = 'none';
-                    skimSidesGroup.style.display = 'flex';
+                    skimSidesGroup.style.display = 'none';
                     if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
                     if (mortarThicknessGroup) mortarThicknessGroup.style.display = 'flex';
                     setMortarThicknessUnit('mm');
@@ -10369,8 +10446,8 @@
             const isFloorLike = ['floor_screed', 'coating_floor', 'tile_installation', 'grout_tile', 'adhesive_mix']
                 .includes(workType);
             const showLayer = workType === 'brick_rollag' || workType === 'painting';
-            const showPlaster = workType === 'wall_plastering';
-            const showSkim = workType === 'skim_coating';
+            const showPlaster = false;
+            const showSkim = false;
             const showGrout = ['tile_installation', 'grout_tile', 'plinth_ceramic', 'adhesive_mix', 'plinth_adhesive_mix']
                 .includes(workType);
             const showCeramicDim = workType === 'grout_tile';
@@ -10975,6 +11052,7 @@
         let ignoreFormChangeTrackingUntil = 0;
         let isUntouchedPreviewResumeEligible = false;
         let hasUserChangedSincePreviewResume = false;
+        let previewResumeBaselineSessionFingerprint = '';
         let lastFastPreviewCacheExpiredAt = 0;
         const resetButton = document.getElementById('btnResetForm');
 
@@ -11099,6 +11177,7 @@
                 localStorage.removeItem(calcSessionKey);
                 isUntouchedPreviewResumeEligible = false;
                 hasUserChangedSincePreviewResume = false;
+                previewResumeBaselineSessionFingerprint = '';
 
                 const workTypeDisplay = document.getElementById('workTypeDisplay');
                 const workTypeHidden = document.getElementById('workTypeSelector');
@@ -11410,9 +11489,21 @@
             }
         }
 
-        function getUntouchedPreviewResumeNavigationUrl() {
+        function getUntouchedPreviewResumeNavigationUrl(currentSessionPayload = null) {
             if (!isUntouchedPreviewResumeEligible || hasUserChangedSincePreviewResume) {
                 return null;
+            }
+
+            if (currentSessionPayload && previewResumeBaselineSessionFingerprint) {
+                try {
+                    const currentFingerprint = buildSessionFingerprint(currentSessionPayload);
+                    if (currentFingerprint !== previewResumeBaselineSessionFingerprint) {
+                        hasUserChangedSincePreviewResume = true;
+                        return null;
+                    }
+                } catch (error) {
+                    return null;
+                }
             }
 
             let parsed = null;
@@ -11804,6 +11895,15 @@
             }
             isUntouchedPreviewResumeEligible = resumeRequested && hasPreviewCache;
             hasUserChangedSincePreviewResume = false;
+            previewResumeBaselineSessionFingerprint = '';
+            try {
+                const restoredSessionPayload = serializeCalculationSession(form);
+                if (restoredSessionPayload) {
+                    previewResumeBaselineSessionFingerprint = buildSessionFingerprint(restoredSessionPayload);
+                }
+            } catch (error) {
+                previewResumeBaselineSessionFingerprint = '';
+            }
 
             if (autoSubmitRequested) {
                 setTimeout(() => {
@@ -11991,7 +12091,7 @@
                     lastFastPreviewCacheExpiredAt = 0;
                     const fastPreviewUrl =
                         getFastPreviewNavigationUrl(previewShortcutPayload, currentSession)
-                        || getUntouchedPreviewResumeNavigationUrl();
+                        || getUntouchedPreviewResumeNavigationUrl(currentSession);
                     const isFastCachePath = !!fastPreviewUrl || (currentSession ? isSameAsLastSession(currentSession) : false);
                     saveCalculationSession(currentSession);
                     if (fastPreviewUrl) {

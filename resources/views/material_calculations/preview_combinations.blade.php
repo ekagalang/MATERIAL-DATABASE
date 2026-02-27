@@ -1136,6 +1136,29 @@ $paramValue = $isGroutTile
 
                     return '-';
                 };
+                $resolvePackageUnitName = static function ($unitCode, string $materialType = 'cement'): string {
+                    $code = trim((string) ($unitCode ?? ''));
+                    if ($code === '') {
+                        return '';
+                    }
+
+                    static $resolvedMap = [];
+                    $cacheKey = $materialType . '|' . $code;
+                    if (array_key_exists($cacheKey, $resolvedMap)) {
+                        return $resolvedMap[$cacheKey];
+                    }
+
+                    $name = \App\Models\Unit::query()
+                        ->where('code', $code)
+                        ->whereHas('materialTypes', function ($q) use ($materialType) {
+                            $q->where('material_type', $materialType);
+                        })
+                        ->value('name');
+
+                    $resolvedMap[$cacheKey] = trim((string) ($name ?: $code));
+
+                    return $resolvedMap[$cacheKey];
+                };
                 $rekapLegacyFieldMap = [
                     'brick' => ['id' => 'brick_id', 'brand' => 'brick_brand', 'detail' => 'brick_detail'],
                     'cement' => ['id' => 'cement_id', 'brand' => 'cement_brand', 'detail' => 'cement_detail'],
@@ -1202,7 +1225,7 @@ $paramValue = $isGroutTile
                         'signature' => $signature,
                     ];
                 };
-                $extractBundleMaterialVariantsForRekap = function ($item) use ($rekapLegacyFieldMap): array {
+                $extractBundleMaterialVariantsForRekap = function ($item) use ($rekapLegacyFieldMap, $resolvePackageUnitName): array {
                     $variants = [];
                     foreach (array_keys($rekapLegacyFieldMap) as $matKey) {
                         $variants[$matKey] = [];
@@ -1226,6 +1249,18 @@ $paramValue = $isGroutTile
                         $brand = trim((string) ($bundleRow['brand_display'] ?? ($model->brand ?? '')));
                         $detail = trim((string) ($bundleRow['detail_display'] ?? ''));
                         $detailExtra = trim((string) ($bundleRow['detail_extra'] ?? ''));
+                        if ($materialKey === 'cement' && $detailExtra !== '' && $detailExtra !== '-') {
+                            $packageUnit = $resolvePackageUnitName($bundleRow['package_unit'] ?? '', 'cement');
+                            if ($packageUnit === '') {
+                                $packageUnit = 'Sak';
+                            }
+                            if (
+                                stripos($detailExtra, $packageUnit . ' (') !== 0 &&
+                                stripos($detailExtra, 'kg') !== false
+                            ) {
+                                $detailExtra = $packageUnit . ' (' . $detailExtra . ')';
+                            }
+                        }
                         if ($detailExtra !== '' && $detailExtra !== '-') {
                             $detail = $detail === '' || $detail === '-' ? $detailExtra : $detail . ' - ' . $detailExtra;
                         }
@@ -1280,6 +1315,7 @@ $paramValue = $isGroutTile
                     $emptyRekapMaterialVariants,
                     $appendRekapMaterialVariant,
                     $extractBundleMaterialVariantsForRekap,
+                    $resolvePackageUnitName,
                 ) {
                     $res = $item['result'];
                     $comboBrick = $resolveBrickModelForRekap($project, $item);
@@ -1327,10 +1363,19 @@ $paramValue = $isGroutTile
                     }
 
                     if (isset($item['cement'])) {
+                        $cementPackageUnit = $resolvePackageUnitName($item['cement']->package_unit ?? '', 'cement');
+                        if ($cementPackageUnit === '') {
+                            $cementPackageUnit = 'Sak';
+                        }
                         $rekapEntry['cement_id'] = $item['cement']->id;
                         $rekapEntry['cement_brand'] = $item['cement']->brand;
                         $rekapEntry['cement_detail'] =
-                            ($item['cement']->color ?? '-') . ' - ' . ($item['cement']->package_weight_net + 0) . ' Kg';
+                            ($item['cement']->color ?? '-') .
+                            ' - ' .
+                            $cementPackageUnit .
+                            ' (' .
+                            ($item['cement']->package_weight_net + 0) .
+                            ' Kg)';
                         $appendRekapMaterialVariant(
                             $rekapEntry,
                             'cement',
@@ -1496,6 +1541,7 @@ $paramValue = $isGroutTile
                     $formatBrickDetailForRekap,
                     $emptyRekapMaterialVariants,
                     $appendRekapMaterialVariant,
+                    $resolvePackageUnitName,
                 ) {
                     $entry = [
                         'grand_total' => null,
@@ -1520,11 +1566,20 @@ $paramValue = $isGroutTile
 
                     if (!empty($models['cement'])) {
                         $cement = $models['cement'];
+                        $cementPackageUnit = $resolvePackageUnitName($cement->package_unit ?? '', 'cement');
+                        if ($cementPackageUnit === '') {
+                            $cementPackageUnit = 'Sak';
+                        }
                         $hasCement = true;
                         $entry['cement_id'] = $cement->id;
                         $entry['cement_brand'] = $cement->brand;
                         $entry['cement_detail'] =
-                            ($cement->color ?? '-') . ' - ' . ($cement->package_weight_net + 0) . ' Kg';
+                            ($cement->color ?? '-') .
+                            ' - ' .
+                            $cementPackageUnit .
+                            ' (' .
+                            ($cement->package_weight_net + 0) .
+                            ' Kg)';
                         $appendRekapMaterialVariant(
                             $entry,
                             'cement',
@@ -3064,8 +3119,6 @@ $paramValue = $isGroutTile
                             'wall_height',
                             'mortar_thickness',
                             'layer_count',
-                            'plaster_sides',
-                            'skim_sides',
                             'grout_thickness',
                             'ceramic_length',
                             'ceramic_width',
@@ -3077,8 +3130,6 @@ $paramValue = $isGroutTile
                             'wall_height' => 'Tinggi',
                             'mortar_thickness' => 'Tebal Adukan',
                             'layer_count' => 'Tingkat',
-                            'plaster_sides' => 'Sisi Plester',
-                            'skim_sides' => 'Sisi Aci',
                             'grout_thickness' => 'Tebal Nat',
                             'ceramic_length' => 'P. Keramik',
                             'ceramic_width' => 'L. Keramik',
@@ -3090,8 +3141,6 @@ $paramValue = $isGroutTile
                             'wall_height' => 'M',
                             'mortar_thickness' => 'cm',
                             'layer_count' => 'Lapis',
-                            'plaster_sides' => 'Sisi',
-                            'skim_sides' => 'Sisi',
                             'grout_thickness' => 'mm',
                             'ceramic_length' => 'cm',
                             'ceramic_width' => 'cm',
@@ -3105,8 +3154,6 @@ $paramValue = $isGroutTile
                             '__computed_area' => 31,
                             'mortar_thickness' => 40,
                             'layer_count' => 50,
-                            'plaster_sides' => 60,
-                            'skim_sides' => 70,
                             'grout_thickness' => 80,
                             'ceramic_length' => 90,
                             'ceramic_width' => 100,
@@ -3147,12 +3194,6 @@ $paramValue = $isGroutTile
                             }
                             if (in_array($workType, ['brick_rollag', 'painting', 'wall_painting'], true)) {
                                 $fields[] = 'layer_count';
-                            }
-                            if ($workType === 'wall_plastering') {
-                                $fields[] = 'plaster_sides';
-                            }
-                            if ($workType === 'skim_coating') {
-                                $fields[] = 'skim_sides';
                             }
                             if (in_array(
                                 $workType,
@@ -3360,8 +3401,8 @@ $paramValue = $isGroutTile
                                                     $showArea = !empty($itemAreaKey);
                                                     $showMortar = $itemHas('mortar_thickness');
                                                     $showLayerRollag = $itemHas('layer_count') && $itemWorkType === 'brick_rollag';
-                                                    $showPlaster = $itemHas('plaster_sides');
-                                                    $showSkim = $itemHas('skim_sides');
+                                                    $showPlaster = false;
+                                                    $showSkim = false;
                                                     $showLayerPaint = $itemHas('layer_count') && in_array($itemWorkType, ['painting', 'wall_painting'], true);
                                                     $showGrout = $itemHas('grout_thickness');
                                                     $showCerLen = $itemHas('ceramic_length');
@@ -3487,42 +3528,6 @@ $paramValue = $isGroutTile
                                                                             </div>
                                                                             <span class="input-group-text bg-warning small px-1"
                                                                                 style="font-size: 0.7rem;">{{ $itemUnit('layer_count', 'Lapis') }}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                @endif
-
-                                                                @if ($showPlaster)
-                                                                    <div class="bundle-param-field bundle-param-field--sm">
-                                                                        <label
-                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
-                                                                            style="font-size: 0.75rem;">
-                                                                            <span class="badge bg-success text-white border">SISI PLESTER</span>
-                                                                        </label>
-                                                                        <div class="input-group">
-                                                                            <div class="form-control fw-bold text-center px-1"
-                                                                                style="background-color: #d1fae5; border-color: #34d399;">
-                                                                                {{ $itemVal('plaster_sides') }}
-                                                                            </div>
-                                                                            <span class="input-group-text bg-success text-white small px-1"
-                                                                                style="font-size: 0.7rem;">{{ $itemUnit('plaster_sides', 'Sisi') }}</span>
-                                                                        </div>
-                                                                    </div>
-                                                                @endif
-
-                                                                @if ($showSkim)
-                                                                    <div class="bundle-param-field bundle-param-field--sm">
-                                                                        <label
-                                                                            class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
-                                                                            style="font-size: 0.75rem;">
-                                                                            <span class="badge bg-info text-white border">SISI ACI</span>
-                                                                        </label>
-                                                                        <div class="input-group">
-                                                                            <div class="form-control fw-bold text-center px-1"
-                                                                                style="background-color: #e0f2fe; border-color: #38bdf8;">
-                                                                                {{ $itemVal('skim_sides') }}
-                                                                            </div>
-                                                                            <span class="input-group-text bg-info text-white small px-1"
-                                                                                style="font-size: 0.7rem;">{{ $itemUnit('skim_sides', 'Sisi') }}</span>
                                                                         </div>
                                                                     </div>
                                                                 @endif
@@ -3732,40 +3737,6 @@ $paramValue = $isGroutTile
                                             {{ $requestData['layer_count'] ?? 1 }}</div>
                                         <span class="input-group-text bg-warning small px-1"
                                             style="font-size: 0.7rem;">Lapis</span>
-                                    </div>
-                                </div>
-                            @endif
-
-                            {{-- Sisi Aci (hanya untuk Aci Dinding) --}}
-                            @if (isset($requestData['work_type']) && $requestData['work_type'] === 'skim_coating')
-                                <div style="flex: 0 0 auto; width: 100px;">
-                                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
-                                        style="font-size: 0.75rem;">
-                                        <span class="badge bg-info text-white border">SISI ACI</span>
-                                    </label>
-                                    <div class="input-group">
-                                        <div class="form-control fw-bold text-center px-1"
-                                            style="background-color: #e0f2fe; border-color: #38bdf8;">
-                                            {{ $requestData['skim_sides'] ?? 1 }}</div>
-                                        <span class="input-group-text bg-info text-white small px-1"
-                                            style="font-size: 0.7rem;">Sisi</span>
-                                    </div>
-                                </div>
-                            @endif
-
-                            {{-- Sisi Plester (hanya untuk Plester Dinding) --}}
-                            @if (isset($requestData['work_type']) && $requestData['work_type'] === 'wall_plastering')
-                                <div style="flex: 0 0 auto; width: 100px;">
-                                    <label class="fw-bold mb-2 text-uppercase text-secondary d-block text-start"
-                                        style="font-size: 0.75rem;">
-                                        <span class="badge bg-success text-white border">SISI PLESTER</span>
-                                    </label>
-                                    <div class="input-group">
-                                        <div class="form-control fw-bold text-center px-1"
-                                            style="background-color: #d1fae5; border-color: #34d399;">
-                                            {{ $requestData['plaster_sides'] ?? 1 }}</div>
-                                        <span class="input-group-text bg-success text-white small px-1"
-                                            style="font-size: 0.7rem;">Sisi</span>
                                     </div>
                                 </div>
                             @endif
@@ -4595,6 +4566,18 @@ $paramValue = $isGroutTile
                                 $formatRaw = function ($num, $decimals = 6) {
                                     return \App\Helpers\NumberHelper::format($num, $decimals);
                                 };
+                                $cementPackageUnitDisplay = isset($item['cement'])
+                                    ? $resolvePackageUnitName($item['cement']->package_unit ?? '', 'cement')
+                                    : '';
+                                if ($cementPackageUnitDisplay === '') {
+                                    $cementPackageUnitDisplay = 'Sak';
+                                }
+                                $cementPackageUnitCode = isset($item['cement'])
+                                    ? trim((string) ($item['cement']->package_unit ?? ''))
+                                    : '';
+                                if ($cementPackageUnitCode === '') {
+                                    $cementPackageUnitCode = 'Sak';
+                                }
                                 $catDetailDisplayParts = [];
                                 $catDetailExtraParts = [];
                                 $catSubBrand = isset($item['cat'])
@@ -4645,6 +4628,34 @@ $paramValue = $isGroutTile
                                 $catDetailExtra = !empty($catDetailExtraParts)
                                     ? implode(' - ', $catDetailExtraParts)
                                     : '-';
+                                $ceramicColorText = isset($item['ceramic'])
+                                    ? trim((string) ($item['ceramic']->color ?? ''))
+                                    : '';
+                                $ceramicSizeText = isset($item['ceramic']) &&
+                                    ($item['ceramic']->dimension_length ?? null) &&
+                                    ($item['ceramic']->dimension_width ?? null)
+                                    ? $formatNum($item['ceramic']->dimension_length) .
+                                        'x' .
+                                        $formatNum($item['ceramic']->dimension_width) .
+                                        ' cm'
+                                    : '';
+                                $ceramicDisplayParts = array_values(
+                                    array_filter([$ceramicColorText, $ceramicSizeText], static fn($v) => trim((string) $v) !== ''),
+                                );
+                                $ceramicDetailDisplay = !empty($ceramicDisplayParts)
+                                    ? implode(' - ', $ceramicDisplayParts)
+                                    : '-';
+                                $ceramicPiecesPerPackage = isset($item['ceramic'])
+                                    ? (float) ($item['ceramic']->pieces_per_package ?? 0)
+                                    : 0;
+                                $ceramicCoveragePerPackage =
+                                    $ceramicArea > 0 && $ceramicPiecesPerPackage > 0
+                                        ? $ceramicArea * $ceramicPiecesPerPackage
+                                        : $ceramicArea;
+                                $ceramicPackagingDisplay =
+                                    'Dus (' .
+                                    ($ceramicPiecesPerPackage > 0 ? $formatNum($ceramicPiecesPerPackage) : '-') .
+                                    ' lembar)';
 
                                 // ========================================
                                 // DYNAMIC MATERIAL CONFIGURATION
@@ -4699,7 +4710,7 @@ $paramValue = $isGroutTile
                                         'check_field' => 'cement_sak',
                                         'qty' => $res['cement_sak'] ?? 0,
                                         'qty_debug' => 'Kebutuhan semen untuk area ' . $formatNum($areaForCost) . ' M2',
-                                        'unit' => 'Sak',
+                                        'unit' => $cementPackageUnitCode,
                                         'comparison_unit' => 'Kg',
                                         'detail_value' => $cementWeight,
                                         'detail_value_debug' =>
@@ -4711,27 +4722,24 @@ $paramValue = $isGroutTile
                                             ? $item['cement']->color ?? '-'
                                             : '-',
                                         'detail_extra' => isset($item['cement'])
-                                            ? $formatNum($item['cement']->package_weight_net) . ' Kg'
+                                            ? $cementPackageUnitDisplay .
+                                                ' (' .
+                                                $formatNum($item['cement']->package_weight_net) .
+                                                ' Kg)'
                                             : '-',
                                         'store_field' => 'store',
                                         'address_field' => 'address',
                                         'package_price' => isset($item['cement'])
                                             ? $item['cement']->package_price ?? 0
                                             : 0,
-                                        'package_unit' => isset($item['cement'])
-                                            ? $item['cement']->package_unit ?? 'Sak'
-                                            : 'Sak',
+                                        'package_unit' => $cementPackageUnitDisplay,
                                         'price_per_unit' => $cementPricePerSak,
-                                        'price_unit_label' => isset($item['cement'])
-                                            ? $item['cement']->package_unit ?? 'Sak'
-                                            : 'Sak',
+                                        'price_unit_label' => $cementPackageUnitDisplay,
                                         'price_calc_qty' => $res['cement_sak'] ?? 0,
                                         'price_calc_unit' => 'Sak',
                                         'total_price' => $res['total_cement_price'] ?? 0,
                                         'unit_price' => $cementPricePerSak,
-                                        'unit_price_label' => isset($item['cement'])
-                                            ? $item['cement']->package_unit ?? 'Sak'
-                                            : 'Sak',
+                                        'unit_price_label' => $cementPackageUnitDisplay,
                                     ],
                                     'sand' => [
                                         'name' => 'Pasir',
@@ -4812,36 +4820,33 @@ $paramValue = $isGroutTile
                                     ],
                                     'ceramic' => [
                                         'name' => 'Keramik',
-                                        'check_field' => 'total_tiles',
-                                        'qty' => $res['total_tiles'] ?? 0,
+                                        'check_field' => 'tiles_packages',
+                                        'qty' => $tilesPackages,
                                         'qty_debug' =>
-                                            'Kebutuhan keramik untuk area ' . $formatNum($areaForCost) . ' M2',
-                                        'unit' => 'Bh',
+                                            'Kebutuhan kemasan keramik untuk area ' .
+                                            $formatNum($areaForCost) .
+                                            ' M2',
+                                        'unit' => 'Dus',
                                         'comparison_unit' => 'M2',
-                                        'detail_value' => $ceramicArea,
+                                        'detail_value' => $ceramicCoveragePerPackage,
                                         'detail_value_debug' => isset($item['ceramic'])
-                                            ? 'Rumus: (' .
-                                                $formatNum($item['ceramic']->dimension_length) .
-                                                '/100) x (' .
-                                                $formatNum($item['ceramic']->dimension_width) .
-                                                '/100) = ' .
-                                                $formatNum($ceramicArea) .
+                                            ? 'Cakupan per dus: ' .
+                                                $ceramicPackagingDisplay .
+                                                ' = ' .
+                                                $formatNum($ceramicCoveragePerPackage) .
                                                 ' M2'
                                             : '-',
                                         'object' => $item['ceramic'] ?? null,
                                         'type_field' => 'type',
                                         'brand_field' => 'brand',
-                                        'detail_display' => isset($item['ceramic'])
-                                            ? $item['ceramic']->color ?? '-'
-                                            : '-',
-                                        'detail_extra' => isset($item['ceramic'])
-                                            ? $formatNum($item['ceramic']->dimension_length) .
-                                                'x' .
-                                                $formatNum($item['ceramic']->dimension_width) .
-                                                ' cm'
-                                            : '-',
+                                        'detail_display' => $ceramicDetailDisplay,
+                                        'detail_extra' => $ceramicPackagingDisplay,
                                         'detail_extra_debug' => isset($item['ceramic'])
-                                            ? 'Luas: ' . $formatNum($ceramicArea) . ' M2 per keping'
+                                            ? 'Kemasan: ' .
+                                                $ceramicPackagingDisplay .
+                                                ' | Luas: ' .
+                                                $formatNum($ceramicArea) .
+                                                ' M2 per keping'
                                             : '-',
                                         'store_field' => 'store',
                                         'address_field' => 'address',
@@ -5111,6 +5116,23 @@ $paramValue = $isGroutTile
                                     $priceUnitLabel = $mat['price_unit_label'] ?? ($mat['package_unit'] ?? '');
                                     $priceCalcQty = $mat['price_calc_qty'] ?? ($mat['qty'] ?? 0);
                                     $priceCalcUnit = $mat['price_calc_unit'] ?? ($mat['unit'] ?? '');
+                                    $unitDisplay = trim((string) ($mat['unit'] ?? ''));
+                                    if ($materialTypeKey === 'cement') {
+                                        $unitCodeFromObject = is_object($mat['object'] ?? null)
+                                            ? trim((string) (($mat['object']->package_unit ?? '')))
+                                            : '';
+                                        $unitCodeFromRow = trim((string) ($mat['package_unit_code'] ?? ''));
+                                        if ($unitCodeFromRow === '') {
+                                            $unitCodeFromRow = trim((string) ($mat['package_unit'] ?? ''));
+                                        }
+                                        $unitDisplay =
+                                            $unitCodeFromObject !== ''
+                                                ? $unitCodeFromObject
+                                                : ($unitCodeFromRow !== '' ? $unitCodeFromRow : ($unitDisplay !== '' ? $unitDisplay : 'Sak'));
+                                    }
+                                    if ($unitDisplay === '') {
+                                        $unitDisplay = '-';
+                                    }
                                     // Gunakan total hasil formula agar konsisten dengan Trace.
                                     $hargaKomparasi = round((float) ($mat['total_price'] ?? 0), 0);
                                     if (
@@ -5130,18 +5152,31 @@ $paramValue = $isGroutTile
                                         $qtyTitleParts[] = $mat['qty_debug'];
                                     }
                                     $qtyTitleParts[] =
-                                        'Nilai tampil: ' . $formatNum($mat['qty']) . ' ' . ($mat['unit'] ?? '');
+                                        'Nilai tampil: ' . $formatNum($mat['qty']) . ' ' . $unitDisplay;
                                     $qtyTitle = implode(' | ', $qtyTitleParts);
 
                                     $detailTitleParts = [];
+                                    $detailExtraDisplay = trim((string) ($mat['detail_extra'] ?? ''));
+                                    if ($materialTypeKey === 'cement' && $detailExtraDisplay !== '' && $detailExtraDisplay !== '-') {
+                                        $packageUnit = $resolvePackageUnitName($mat['package_unit'] ?? '', 'cement');
+                                        if ($packageUnit === '') {
+                                            $packageUnit = 'Sak';
+                                        }
+                                        if (
+                                            stripos($detailExtraDisplay, $packageUnit . ' (') !== 0 &&
+                                            stripos($detailExtraDisplay, 'kg') !== false
+                                        ) {
+                                            $detailExtraDisplay = $packageUnit . ' (' . $detailExtraDisplay . ')';
+                                        }
+                                    }
                                     if (!empty($mat['detail_value_debug'])) {
                                         $detailTitleParts[] = $mat['detail_value_debug'];
                                     }
                                     if (!empty($mat['detail_extra_debug'])) {
                                         $detailTitleParts[] = $mat['detail_extra_debug'];
                                     }
-                                    if (!empty($mat['detail_extra'])) {
-                                        $detailTitleParts[] = 'Nilai tampil: ' . $mat['detail_extra'];
+                                    if ($detailExtraDisplay !== '' && $detailExtraDisplay !== '-') {
+                                        $detailTitleParts[] = 'Nilai tampil: ' . $detailExtraDisplay;
                                     }
                                     $detailTitle = implode(' | ', $detailTitleParts);
 
@@ -5186,7 +5221,7 @@ $paramValue = $isGroutTile
                                         </div>
                                     </td>
                                     <td class="text-start sticky-col-2" style="border-left: none; border-right: none;">
-                                        {{ $mat['unit'] }}
+                                        {{ $unitDisplay }}
                                     </td>
                                     <td class="fw-bold sticky-col-3" style="border-left: none;">{{ $mat['name'] }}</td>
 
@@ -5201,9 +5236,9 @@ $paramValue = $isGroutTile
                                     <td class="{{ $materialTypeKey === 'cement' || $materialTypeKey === 'sand' || $materialTypeKey === 'brick' ? 'text-start text-nowrap fw-bold' : '' }} {{ $materialTypeKey === 'brick' ? 'preview-scroll-td' : '' }}"
                                         title="{{ $detailTitle }}" style="border-left: none;">
                                         @if ($materialTypeKey === 'brick')
-                                            <div class="preview-scroll-cell">{{ $mat['detail_extra'] ?? '' }}</div>
+                                            <div class="preview-scroll-cell">{{ $detailExtraDisplay }}</div>
                                         @else
-                                            {{ $mat['detail_extra'] ?? '' }}
+                                            {{ $detailExtraDisplay }}
                                         @endif
                                     </td>
                                     <td class="preview-scroll-td preview-store-cell">
@@ -6452,9 +6487,25 @@ $paramValue = $isGroutTile
                                                                                                 }
                                                                                                 $detailDisplay = trim((string) ($detailMat['detail_display'] ?? '-'));
                                                                                                 $detailExtra = trim((string) ($detailMat['detail_extra'] ?? ''));
-                                                                                                $detailText = $detailDisplay !== '' ? $detailDisplay : '-';
-                                                                                                if ($detailExtra !== '' && $detailExtra !== '-') {
-                                                                                                    $detailText .= ' - ' . $detailExtra;
+                                                                                                $detailMaterialKey = trim((string) ($detailMat['material_key'] ?? ''));
+                                                                                                $detailUnitDisplay = trim((string) ($detailMat['unit'] ?? ''));
+                                                                                                if ($detailMaterialKey === 'cement') {
+                                                                                                    $detailUnitCodeFromModel = is_object($detailModel)
+                                                                                                        ? trim((string) (($detailModel->package_unit ?? '')))
+                                                                                                        : '';
+                                                                                                    $detailUnitCodeFromRow = trim((string) ($detailMat['package_unit_code'] ?? ''));
+                                                                                                    if ($detailUnitCodeFromRow === '') {
+                                                                                                        $detailUnitCodeFromRow = trim((string) ($detailMat['package_unit'] ?? ''));
+                                                                                                    }
+                                                                                                    $detailUnitDisplay =
+                                                                                                        $detailUnitCodeFromModel !== ''
+                                                                                                            ? $detailUnitCodeFromModel
+                                                                                                            : ($detailUnitCodeFromRow !== ''
+                                                                                                                ? $detailUnitCodeFromRow
+                                                                                                                : ($detailUnitDisplay !== '' ? $detailUnitDisplay : 'Sak'));
+                                                                                                }
+                                                                                                if ($detailUnitDisplay === '') {
+                                                                                                    $detailUnitDisplay = '-';
                                                                                                 }
                                                                                                 $detailStore = trim(
                                                                                                     (string) ($detailMat['store_display'] ??
@@ -6499,7 +6550,23 @@ $paramValue = $isGroutTile
                                                                                                 if ($detailComparisonUnit === '') {
                                                                                                     $detailComparisonUnit = '-';
                                                                                                 }
-                                                                                                $detailMaterialKey = trim((string) ($detailMat['material_key'] ?? ''));
+                                                                                                if ($detailMaterialKey === 'cement' && $detailExtra !== '' && $detailExtra !== '-') {
+                                                                                                    $detailUnitForText =
+                                                                                                        $resolvePackageUnitName($detailPackageUnit, 'cement');
+                                                                                                    if ($detailUnitForText === '' || $detailUnitForText === '-') {
+                                                                                                        $detailUnitForText = 'Sak';
+                                                                                                    }
+                                                                                                    if (
+                                                                                                        stripos($detailExtra, $detailUnitForText . ' (') !== 0 &&
+                                                                                                        stripos($detailExtra, 'kg') !== false
+                                                                                                    ) {
+                                                                                                        $detailExtra = $detailUnitForText . ' (' . $detailExtra . ')';
+                                                                                                    }
+                                                                                                }
+                                                                                                $detailText = $detailDisplay !== '' ? $detailDisplay : '-';
+                                                                                                if ($detailExtra !== '' && $detailExtra !== '-') {
+                                                                                                    $detailText .= ' - ' . $detailExtra;
+                                                                                                }
                                                                                                 $detailIsSpecial = (bool) ($detailMat['is_special'] ?? false);
                                                                                                 if (!$detailIsSpecial && $detailDisplayTotal === null && $detailTotalPrice <= 0) {
                                                                                                     $detailTotalPrice = round((float) ($detailPricePerUnit * $detailPriceCalcQty), 0);
@@ -6517,7 +6584,7 @@ $paramValue = $isGroutTile
                                                                                                 <td class="text-end">
                                                                                                     @formatResult($detailMat['qty'] ?? 0)
                                                                                                 </td>
-                                                                                                <td>{{ $detailMat['unit'] ?? '-' }}
+                                                                                                <td>{{ $detailUnitDisplay }}
                                                                                                 </td>
                                                                                                 <td>{{ $detailMat['name'] ?? '-' }}
                                                                                                 </td>

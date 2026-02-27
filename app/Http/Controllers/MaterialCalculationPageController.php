@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AppSetting;
 use App\Models\Brick;
 use App\Models\BrickCalculation;
 use App\Models\BrickInstallationType;
@@ -129,6 +130,8 @@ class MaterialCalculationPageController extends MaterialCalculationController
 
         $defaultInstallationType = BrickInstallationType::getDefault();
         $defaultMortarFormula = $this->getPreferredMortarFormula();
+        $projectStoreRadiusDefaultKm = AppSetting::getFloat('project_store_radius_default_km', 10.0);
+        $projectStoreRadiusFinalKm = AppSetting::getFloat('project_store_radius_final_km', 15.0);
 
         // LOGIC BARU: Handle Multi-Select Bricks dari Price Analysis
         // Kita kirim variable $selectedBricks ke View
@@ -170,6 +173,8 @@ class MaterialCalculationPageController extends MaterialCalculationController
                 'ceramicSizes',
                 'defaultInstallationType',
                 'defaultMortarFormula',
+                'projectStoreRadiusDefaultKm',
+                'projectStoreRadiusFinalKm',
                 'selectedBricks',
                 'bestRecommendations',
             ),

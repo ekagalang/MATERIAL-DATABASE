@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Brick;
+use App\Models\AppSetting;
 use App\Models\BrickCalculation;
 use App\Models\BrickInstallationType;
 use App\Models\Cat;
@@ -28,7 +29,7 @@ use Illuminate\Validation\Rule;
 
 class MaterialCalculationController extends Controller
 {
-    protected const CALCULATION_CACHE_KEY_PREFIX = 'material_calc:v3:';
+    protected const CALCULATION_CACHE_KEY_PREFIX = 'material_calc:v4:';
 
     protected CalculationRepository $calculationRepository;
 
@@ -195,6 +196,8 @@ class MaterialCalculationController extends Controller
 
         $defaultInstallationType = BrickInstallationType::getDefault();
         $defaultMortarFormula = $this->getPreferredMortarFormula();
+        $projectStoreRadiusDefaultKm = AppSetting::getFloat('project_store_radius_default_km', 10.0);
+        $projectStoreRadiusFinalKm = AppSetting::getFloat('project_store_radius_final_km', 15.0);
 
         // LOGIC BARU: Handle Multi-Select Bricks dari Price Analysis
         // Kita kirim variable $selectedBricks ke View
@@ -236,6 +239,8 @@ class MaterialCalculationController extends Controller
                 'ceramicSizes',
                 'defaultInstallationType',
                 'defaultMortarFormula',
+                'projectStoreRadiusDefaultKm',
+                'projectStoreRadiusFinalKm',
                 'selectedBricks',
                 'bestRecommendations',
             ),
@@ -292,6 +297,8 @@ class MaterialCalculationController extends Controller
                 'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
                 'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
                 'project_place_id' => 'nullable|string|max:255',
+                'project_store_radius_km' => 'nullable|numeric|min:0.1|max:1000',
+                'project_store_radius_final_km' => 'nullable|numeric|min:0.1|max:1000|gte:project_store_radius_km',
                 'use_store_filter' => 'nullable|boolean',
                 'store_radius_scope' => 'nullable|string|in:within,outside',
                 'allow_mixed_store' => 'nullable|boolean',
@@ -577,7 +584,7 @@ class MaterialCalculationController extends Controller
         $workType = $request->work_type ?? 'brick_half';
         $requiredMaterials = $this->resolveRequiredMaterials($workType);
         $isBrickless = !in_array('brick', $requiredMaterials, true);
-        $useStoreFilter = $request->boolean('use_store_filter', true) && $workType !== 'grout_tile';
+        $useStoreFilter = $request->boolean('use_store_filter', true);
         $hasExplicitBrickSelection =
             !$isBrickless &&
             (($request->has('brick_ids') && !empty($request->brick_ids)) ||
@@ -2276,6 +2283,8 @@ class MaterialCalculationController extends Controller
             'project_latitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-90,90',
             'project_longitude' => 'required_if:use_store_filter,1|nullable|numeric|between:-180,180',
             'project_place_id' => 'nullable|string|max:255',
+            'project_store_radius_km' => 'nullable|numeric|min:0.1|max:1000',
+            'project_store_radius_final_km' => 'nullable|numeric|min:0.1|max:1000|gte:project_store_radius_km',
             'use_store_filter' => 'nullable|boolean',
             'store_radius_scope' => 'nullable|string|in:within,outside',
             'allow_mixed_store' => 'nullable|boolean',

@@ -218,20 +218,6 @@
                     </div>
                 </div>
 
-                <div class="row">
-                    <label>Radius (KM)</label>
-                    <div style="flex: 1; position: relative;">
-                        <input type="number"
-                               name="service_radius_km"
-                               id="service_radius_km"
-                               min="0"
-                               step="0.1"
-                               value="{{ old('service_radius_km', 10) }}"
-                               class="autocomplete-input"
-                               placeholder="contoh: 10">
-                    </div>
-                </div>
-
                 <!-- Spacer to push buttons to bottom -->
                 <div style="flex-grow: 1;"></div>
 

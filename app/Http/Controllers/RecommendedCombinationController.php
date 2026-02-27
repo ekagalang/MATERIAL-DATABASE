@@ -37,10 +37,18 @@ class RecommendedCombinationController extends Controller
 
         // Get available formulas (work types)
         $formulas = FormulaRegistry::all();
-
         return view(
             'settings.recommendations.index',
-            compact('groupedRecommendations', 'bricks', 'cements', 'nats', 'sands', 'cats', 'ceramics', 'formulas'),
+            compact(
+                'groupedRecommendations',
+                'bricks',
+                'cements',
+                'nats',
+                'sands',
+                'cats',
+                'ceramics',
+                'formulas',
+            ),
         );
     }
 

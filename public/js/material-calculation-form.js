@@ -310,6 +310,97 @@ function initMaterialCalculationForm(root, formData) {
             return;
         }
 
+        const primaryRadiusInput =
+            scope.querySelector('#projectStoreRadiusKm') || document.getElementById('projectStoreRadiusKm');
+        const finalRadiusInput =
+            scope.querySelector('#projectStoreRadiusFinalKm') || document.getElementById('projectStoreRadiusFinalKm');
+
+        const bindProjectRadiusPreviewCircles = (pickerInstance) => {
+            if (!pickerInstance?.map || !pickerInstance?.marker || !window.google?.maps?.Circle) {
+                return;
+            }
+
+            const map = pickerInstance.map;
+            const marker = pickerInstance.marker;
+            const primaryCircle =
+                pickerInstance.radiusCircle instanceof google.maps.Circle
+                    ? pickerInstance.radiusCircle
+                    : new google.maps.Circle({
+                          map,
+                          strokeColor: '#2563eb',
+                          strokeOpacity: 0.95,
+                          strokeWeight: 2,
+                          fillColor: '#3b82f6',
+                          fillOpacity: 0.18,
+                          clickable: false,
+                      });
+
+            // Re-assert style in case helper default changes in the future.
+            primaryCircle.setOptions({
+                strokeColor: '#2563eb',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#3b82f6',
+                fillOpacity: 0.08,
+                clickable: false,
+            });
+
+            const finalCircle = new google.maps.Circle({
+                map,
+                strokeColor: '#dc2626',
+                strokeOpacity: 0.78,
+                strokeWeight: 2,
+                fillColor: '#ef4444',
+                fillOpacity: 0.04,
+                clickable: false,
+            });
+
+            const toRadiusMeters = (inputEl) => {
+                const num = Number.parseFloat(inputEl?.value ?? '');
+                if (!Number.isFinite(num) || num <= 0) {
+                    return 0;
+                }
+                return num * 1000;
+            };
+
+            const syncCircles = () => {
+                const pos = marker.getPosition();
+                if (!pos) {
+                    primaryCircle.setVisible(false);
+                    finalCircle.setVisible(false);
+                    return;
+                }
+
+                const primaryMeters = toRadiusMeters(primaryRadiusInput);
+                const finalMeters = Math.max(toRadiusMeters(finalRadiusInput), primaryMeters);
+
+                primaryCircle.setCenter(pos);
+                primaryCircle.setRadius(primaryMeters);
+                primaryCircle.setVisible(primaryMeters > 0);
+
+                finalCircle.setCenter(pos);
+                finalCircle.setRadius(finalMeters);
+                finalCircle.setVisible(finalMeters > 0);
+            };
+
+            if (primaryRadiusInput && !primaryRadiusInput.__projectRadiusCircleBound) {
+                primaryRadiusInput.__projectRadiusCircleBound = true;
+                primaryRadiusInput.addEventListener('input', syncCircles);
+                primaryRadiusInput.addEventListener('change', syncCircles);
+            }
+            if (finalRadiusInput && !finalRadiusInput.__projectRadiusCircleBound) {
+                finalRadiusInput.__projectRadiusCircleBound = true;
+                finalRadiusInput.addEventListener('input', syncCircles);
+                finalRadiusInput.addEventListener('change', syncCircles);
+            }
+            if (!marker.__projectRadiusCircleBound) {
+                marker.__projectRadiusCircleBound = true;
+                marker.addListener('position_changed', syncCircles);
+            }
+
+            syncCircles();
+        };
+
         window.GoogleMapsPicker.initAddressPicker({
             scope,
             apiKey: mapElement.dataset.googleMapsApiKey || '',
@@ -320,9 +411,11 @@ function initMaterialCalculationForm(root, formData) {
             longitudeInput: '#projectLongitude',
             placeIdInput: '#projectPlaceId',
             formattedAddressInput: '#projectAddress',
+            radiusInput: primaryRadiusInput || undefined,
             gestureHandling: 'greedy',
             scrollwheel: true,
         }).then((picker) => {
+            bindProjectRadiusPreviewCircles(picker);
             addStoreMarkersToMap(picker?.map, mapElement);
         }).catch((error) => {
             console.error('Failed to initialize project location map picker:', error);
@@ -1717,4 +1810,3 @@ function initMaterialCalculationForm(root, formData) {
 
     setupCustomMaterialAdvancedFilters();
 }
-

@@ -663,7 +663,7 @@ document.getElementById('formulaSelector').addEventListener('change', function()
             wallHeightInput.disabled = false;
         }
         layerCountGroup.style.display = 'none';
-        plasterSidesGroup.style.display = 'block';
+        plasterSidesGroup.style.display = 'none';
         skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
@@ -682,7 +682,7 @@ document.getElementById('formulaSelector').addEventListener('change', function()
         }
         layerCountGroup.style.display = 'none';
         plasterSidesGroup.style.display = 'none';
-        skimSidesGroup.style.display = 'block';
+        skimSidesGroup.style.display = 'none';
         if (groutThicknessGroup) groutThicknessGroup.style.display = 'none';
         if (ceramicLengthGroup) ceramicLengthGroup.style.display = 'none';
         if (ceramicWidthGroup) ceramicWidthGroup.style.display = 'none';

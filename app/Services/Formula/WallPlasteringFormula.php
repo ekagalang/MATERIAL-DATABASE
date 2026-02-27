@@ -25,7 +25,7 @@ class WallPlasteringFormula implements FormulaInterface
 
     public static function getDescription(): string
     {
-        return 'Menghitung Plester Dinding dengan input panjang, tinggi, tebal adukan dan jumlah sisi.';
+        return 'Menghitung Plester Dinding dengan input panjang, tinggi, dan tebal adukan.';
     }
 
     public static function getMaterialRequirements(): array
@@ -35,7 +35,7 @@ class WallPlasteringFormula implements FormulaInterface
 
     public function validate(array $params): bool
     {
-        $required = ['wall_length', 'wall_height', 'mortar_thickness', 'plaster_sides', 'cement_id', 'sand_id'];
+        $required = ['wall_length', 'wall_height', 'mortar_thickness', 'cement_id', 'sand_id'];
 
         foreach ($required as $field) {
             if (!isset($params[$field]) || $params[$field] <= 0) {
@@ -63,7 +63,7 @@ class WallPlasteringFormula implements FormulaInterface
         $panjang = $n($params['wall_length']); // m
         $tinggi = $n($params['wall_height']); // m
         $tebalAdukan = $n($params['mortar_thickness']); // cm
-        $sisiPlesteran = $n($params['plaster_sides']); // jumlah sisi
+        $sisiPlesteran = 1.0; // sisi tetap
 
         $trace['steps'][] = [
             'step' => 1,
@@ -72,7 +72,6 @@ class WallPlasteringFormula implements FormulaInterface
                 'Panjang Dinding' => $panjang . ' m',
                 'Tinggi Dinding' => $tinggi . ' m',
                 'Tebal Adukan' => $tebalAdukan . ' cm',
-                'Jumlah Sisi Plesteran' => $sisiPlesteran,
             ],
         ];
 
@@ -194,9 +193,9 @@ class WallPlasteringFormula implements FormulaInterface
         $trace['steps'][] = [
             'step' => 7,
             'title' => 'Total Luas Plesteran',
-            'formula' => 'Luas bidang × Jumlah sisi plesteran',
+            'formula' => 'Luas bidang',
             'calculations' => [
-                'Perhitungan' => NumberHelper::format($luasBidang) . " × $sisiPlesteran",
+                'Perhitungan' => NumberHelper::format($luasBidang),
                 'Hasil' => NumberHelper::format($totalLuasPlesteran) . ' M2',
             ],
         ];
@@ -291,7 +290,6 @@ class WallPlasteringFormula implements FormulaInterface
             // Additional info
             'total_area' => $totalLuasPlesteran,
             'area_per_side' => $luasBidang,
-            'plaster_sides' => $sisiPlesteran,
         ];
 
         return $trace;

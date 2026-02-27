@@ -211,3 +211,74 @@ CATATAN PENTING
 3. Mode paket tidak langsung menggabungkan mentah semua data.
    Sistem tetap menghitung item per item dulu, lalu baru menyusun hasil gabungan yang konsisten.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+=================================================================================================================
+KENAPA JIKA BUNDLE ITEM PEKERJAAN DAN MIXED NOT RADIUS HASILNYA TIDAK MENGGUNAKAN MATERIAL YANG SAMA KESELURUHAN
+=================================================================================================================
+
+Ya, analisa Anda tepat. Itu memang normal dengan mode Tidak Lengkap.
+
+  Kenapa bisa beda-beda jenis/toko/harga:
+
+  - Tidak Lengkap di UI memang di-mapping ke lintas toko aktif (allow_mixed_store = 1) dan radius luar (outside)
+      - resources/views/material_calculations/create.blade.php:11109
+  - Saat mode ini aktif, engine boleh membangun kebutuhan material dari beberapa toko terdekat berurutan (chain), bukan
+    1 toko
+      - app/Services/Calculation/CombinationGenerationService.php:1028
+      - app/Services/Calculation/StoreProximityService.php:82
+  - Jadi hasil “campur toko” itu memang by design untuk mode Tidak Lengkap.
+
+  Kenapa jenis material juga bisa beda:
+
+  - Sistem tidak punya constraint “harus pakai 1 jenis/brand yang sama untuk semua item”.
+  - Engine mencari kombinasi terbaik per item berdasarkan:
+      - kebutuhan rumus (dimensi/tebal/luas)
+      - ketersediaan material di toko
+      - harga material yang tersedia
+      - mode filter harga (Ekonomis, Average, Termahal, dll)
+
+  Kenapa harga bisa beda walau item mirip:
+
+  - Karena tiap item dihitung sendiri dulu (punya hasil/ranking masing-masing), lalu baru dirangkum.
+  - Dimensi/luas/tebal berbeda bisa mengubah:
+      - kuantitas kebutuhan
+      - pembulatan kemasan
+      - kombinasi material paling murah
+  - Jadi wajar kalau total/komposisi akhirnya tidak seragam.
+
+  Poin penting:
+
+  - “Harga sama” hampir tidak realistis kalau yang dimaksud total harga, karena kebutuhan tiap item berbeda.
+  - Yang bisa dipaksa sama adalah:
+      - toko yang sama
+      - jenis/brand material yang sama
+      - tier/rank yang sama
+  - Tapi itu perlu aturan baru (constraint baru), bukan behavior default Tidak Lengkap.
+
+  Perbedaan mode secara konsep:
+
+  - Lengkap = cari toko yang bisa memenuhi lengkap (single-store oriented)
+  - Tidak Lengkap = boleh “tambal” kekurangan material dari toko berikutnya (multi-store chain)
+
+  Untuk bundle:
+
+  - Jika mode memungkinkan mixed (Tidak Lengkap), maka agregasi bundle juga bisa tetap beragam antar item.
+  - Kalau Anda ingin bundle lebih konsisten, perlu rule tambahan seperti:
+      1. paksa 1 toko untuk semua item bundle
+      2. paksa brand/type material tertentu konsisten antar item (mis. semua cat sama brand+type)
+      3. paksa satu rank saja untuk seluruh item bundle
+
+  Kalau mau, saya bisa bantu desain rule “konsisten” yang tetap realistis (mis. konsisten untuk cat saja, tapi material
+  lain tetap fleksibel).

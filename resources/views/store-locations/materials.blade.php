@@ -701,14 +701,27 @@ html.materials-booting .page-content {
 .material-tab-btn {
     overflow: visible !important;
     position: relative;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: max-content;
+    padding-right: 12px !important;
 }
 .material-tab-btn.active {
     --tab-border-color: #91C6BC;
 }
+.material-tab-btn .material-tab-label {
+    display: inline-block;
+    white-space: nowrap;
+}
 .material-tab-badge {
-    position: absolute;
-    top: -4px;
-    right: 8px;
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     background: #ef4444;
     color: #ffffff;
     font-size: 10px;
@@ -717,7 +730,6 @@ html.materials-booting .page-content {
     padding: 3px 6px;
     border-radius: 999px;
     box-shadow: 0 4px 10px rgba(239, 68, 68, 0.35);
-    z-index: 20;
     pointer-events: none;
     white-space: nowrap;
 }
@@ -993,7 +1005,7 @@ html.materials-booting .page-content {
                                 data-tab="{{ $material['type'] }}"
                                 data-search-count="{{ $material['count'] }}"
                                 aria-selected="{{ $material['type'] === $activeTab ? 'true' : 'false' }}">
-                            <span>{{ $material['label'] }}</span>
+                            <span class="material-tab-label">{{ $material['label'] }}</span>
                             <span class="material-tab-badge">
                                 @format($material['db_count'] ?? $material['count'])
                             </span>
@@ -2841,4 +2853,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
-

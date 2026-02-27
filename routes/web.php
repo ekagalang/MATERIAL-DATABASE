@@ -13,6 +13,7 @@ use App\Http\Controllers\NatController;
 use App\Http\Controllers\SandController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\StoreController;
+use App\Http\Controllers\StoreSearchRadiusSettingController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkerController;
 use App\Http\Controllers\SkillController;
@@ -328,6 +329,13 @@ Route::prefix('settings/recommendations')
 Route::prefix('settings')
     ->name('settings.')
     ->group(function () {
+        Route::get('/store-search-radius', [StoreSearchRadiusSettingController::class, 'index'])->name(
+            'store-search-radius.index',
+        );
+        Route::post('/store-search-radius', [StoreSearchRadiusSettingController::class, 'store'])->name(
+            'store-search-radius.store',
+        );
+
         Route::get('/work-floors', [WorkFloorController::class, 'index'])->name('work-floors.index');
         Route::post('/work-floors', [WorkFloorController::class, 'store'])->name('work-floors.store');
         Route::put('/work-floors/{workFloor}', [WorkFloorController::class, 'update'])->name('work-floors.update');

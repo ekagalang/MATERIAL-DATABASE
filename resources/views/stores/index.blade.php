@@ -48,7 +48,6 @@
                             'province' => trim((string) ($location->province ?? '')),
                             'latitude' => is_numeric($location->latitude) ? (float) $location->latitude : null,
                             'longitude' => is_numeric($location->longitude) ? (float) $location->longitude : null,
-                            'service_radius_km' => $location->service_radius_km !== null ? (float) $location->service_radius_km : null,
                         ];
                     });
                 })
@@ -521,17 +520,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
 
                 marker.addListener('click', function() {
-                    const radius = Number(point.service_radius_km);
-                    const radiusInfo = Number.isFinite(radius)
-                        ? `<div style="font-size:12px;color:#475569;">Radius layanan: ${radius} km</div>`
-                        : '';
-
                     infoWindow.setContent(`
                         <div style="min-width:220px;line-height:1.45;">
                             <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${escapeHtml(point.store_name || '-')}</div>
                             <div style="font-size:12px;color:#64748b;">${escapeHtml(point.address || '-')}</div>
                             <div style="font-size:12px;color:#64748b;">${escapeHtml(point.city || '-')} ${point.province ? ', ' + escapeHtml(point.province) : ''}</div>
-                            ${radiusInfo}
                         </div>
                     `);
                     infoWindow.open(map, marker);

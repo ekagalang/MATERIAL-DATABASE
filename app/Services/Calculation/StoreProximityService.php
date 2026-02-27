@@ -25,6 +25,7 @@ class StoreProximityService
         float $projectLat,
         float $projectLng,
         bool $withinServiceRadiusOnly = false,
+        ?float $distanceLimitKm = null,
     ): Collection
     {
         $ranked = $locations
@@ -39,23 +40,28 @@ class StoreProximityService
                     (float) $location->longitude,
                 );
 
-                $radiusKm = is_numeric($location->service_radius_km ?? null)
-                    ? max(0.0, (float) $location->service_radius_km)
-                    : INF;
-
                 return [
                     'location' => $location,
                     'distance_km' => $distanceKm,
-                    'service_radius_km' => $radiusKm,
+                    'service_radius_km' => is_numeric($location->service_radius_km ?? null)
+                        ? max(0.0, (float) $location->service_radius_km)
+                        : null,
                 ];
             })
             ->sortBy('distance_km')
             ->values();
 
         if ($withinServiceRadiusOnly) {
+            $limitKm = is_numeric($distanceLimitKm) ? max(0.0, (float) $distanceLimitKm) : null;
+            if ($limitKm === null) {
+                return $ranked;
+            }
             $ranked = $ranked
                 ->filter(function (array $row) {
-                    return $row['distance_km'] <= $row['service_radius_km'];
+                    return isset($row['distance_km']) && is_numeric($row['distance_km']);
+                })
+                ->filter(function (array $row) use ($limitKm) {
+                    return (float) $row['distance_km'] <= $limitKm;
                 })
                 ->values();
         }
@@ -63,9 +69,14 @@ class StoreProximityService
         return $ranked;
     }
 
-    public function sortReachableLocations(Collection $locations, float $projectLat, float $projectLng): Collection
+    public function sortReachableLocations(
+        Collection $locations,
+        float $projectLat,
+        float $projectLng,
+        ?float $projectRadiusKm = null,
+    ): Collection
     {
-        return $this->sortLocationsByDistance($locations, $projectLat, $projectLng, true);
+        return $this->sortLocationsByDistance($locations, $projectLat, $projectLng, true, $projectRadiusKm);
     }
 
     public function buildNearestCoveragePlan(
