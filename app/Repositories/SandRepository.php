@@ -56,6 +56,7 @@ class SandRepository extends BaseRepository
             'dimension_width',
             'dimension_height',
             'package_price',
+            'comparison_price_per_m3',
         ];
 
         // Return empty if field not allowed

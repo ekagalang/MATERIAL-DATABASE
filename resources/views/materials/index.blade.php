@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <style>
 :root {
     --tab-foot-radius: 18px;
+    --tab-action-foot-radius: 13px;
     --tab-active-bg: #91C6BC;
 }
 
@@ -243,8 +244,153 @@ html.materials-booting .page-content {
 .kanggo-img-link.material-letter-blink .kanggo-img {
     animation: material-letter-blink 0.9s ease-in-out 2;
 }
-  .table-container {
+  .material-table-frame {
       position: relative;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100%;
+  }
+  .material-table-frame .table-container {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+  }
+  .material-inline-create-handle {
+      position: absolute;
+      left: 0;
+      top: 44px;
+      transform: translateX(-56%);
+      z-index: 80;
+      width: 30px;
+      height: 30px;
+      border: 1px solid #94a3b8;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #0f172a;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+  }
+  @media (max-width: 900px) {
+      .material-inline-create-handle {
+          left: 8px;
+          top: 8px;
+          transform: none;
+      }
+  }
+  .material-inline-create-handle:hover {
+      background: #f8fafc;
+      border-color: #64748b;
+  }
+  .material-inline-editor-row {
+      --inline-row-bg: #fffbeb;
+  }
+  .material-inline-editor-row td {
+      overflow: hidden;
+  }
+  .material-inline-editor-row[data-inline-mode="create"] td,
+  .material-inline-editor-row[data-inline-mode="edit"] td {
+      background: var(--inline-row-bg) !important;
+  }
+  .material-inline-editor-row[data-inline-mode="create"] .brick-sticky-col,
+  .material-inline-editor-row[data-inline-mode="create"] .cat-sticky-col,
+  .material-inline-editor-row[data-inline-mode="create"] .cement-sticky-col,
+  .material-inline-editor-row[data-inline-mode="create"] .ceramic-sticky-col,
+  .material-inline-editor-row[data-inline-mode="edit"] .brick-sticky-col,
+  .material-inline-editor-row[data-inline-mode="edit"] .cat-sticky-col,
+  .material-inline-editor-row[data-inline-mode="edit"] .cement-sticky-col,
+  .material-inline-editor-row[data-inline-mode="edit"] .ceramic-sticky-col {
+      background: var(--inline-row-bg) !important;
+  }
+  .material-inline-row-no {
+      font-weight: 700;
+      color: #92400e;
+  }
+  .material-inline-input {
+      width: 100%;
+      min-width: 0;
+      height: 24px;
+      padding: 1px 4px;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.2;
+      background: #ffffff;
+      box-sizing: border-box;
+  }
+  .material-inline-editor-row .brick-sticky-col .material-inline-input,
+  .material-inline-editor-row .cat-sticky-col .material-inline-input,
+  .material-inline-editor-row .cement-sticky-col .material-inline-input,
+  .material-inline-editor-row .ceramic-sticky-col .material-inline-input,
+  .material-inline-editor-row .dim-cell .material-inline-input {
+      min-width: 0;
+  }
+  .material-inline-input:focus {
+      outline: none;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+  }
+  .material-inline-select {
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      cursor: pointer;
+      padding-right: 20px;
+      background-image:
+          linear-gradient(45deg, transparent 50%, #64748b 50%),
+          linear-gradient(135deg, #64748b 50%, transparent 50%);
+      background-position:
+          calc(100% - 10px) calc(50% - 2px),
+          calc(100% - 6px) calc(50% - 2px);
+      background-size: 4px 4px, 4px 4px;
+      background-repeat: no-repeat;
+  }
+  .material-inline-select::-ms-expand {
+      display: none;
+  }
+  .inline-autocomplete-list {
+      position: absolute;
+      z-index: 2200;
+      min-width: 140px;
+      max-height: 220px;
+      overflow-y: auto;
+      background: linear-gradient(180deg, #fff8e8 0%, #fffdf6 100%);
+      border: 1px solid #f5d9a8;
+      border-radius: 10px;
+      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18), 0 2px 0 rgba(245, 158, 11, 0.22) inset;
+      backdrop-filter: blur(1px);
+      display: none;
+  }
+  .inline-autocomplete-item {
+      padding: 8px 10px;
+      font-size: 12px;
+      line-height: 1.25;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.16);
+      color: #1f2937;
+      background: transparent;
+      transition: background-color 0.16s ease, color 0.16s ease;
+  }
+  .inline-autocomplete-item:nth-child(odd) {
+      background: rgba(255, 255, 255, 0.52);
+  }
+  .inline-autocomplete-item:nth-child(even) {
+      background: rgba(254, 243, 199, 0.2);
+  }
+  .inline-autocomplete-item:last-child {
+      border-bottom: none;
+  }
+  .inline-autocomplete-item:hover,
+  .inline-autocomplete-item.active {
+      background: linear-gradient(90deg, #fee2e2 0%, #ffedd5 100%);
+      color: #7f1d1d;
+      font-weight: 700;
   }
   /* Single-header styling for Cat & Cement - COMPACT 40px */
   .table-container thead.single-header th {
@@ -513,6 +659,31 @@ html.materials-booting .page-content {
   .btn-group-compact .btn-action.btn-danger {
       color: #b91c1c !important;
   }
+  .btn-group-compact .btn-action.material-inline-photo-trigger {
+      color: #1d4ed8 !important;
+      position: relative;
+  }
+  .btn-group-compact .btn-action.material-inline-photo-trigger::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      right: 4px;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: #dc2626;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.95);
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.16s ease, transform 0.16s ease;
+  }
+  .btn-group-compact .btn-action.material-inline-photo-trigger.is-empty::after {
+      opacity: 1;
+      transform: scale(1);
+  }
+  .btn-group-compact .btn-action.material-inline-photo-trigger.has-file {
+      color: #047857 !important;
+  }
   .btn-group-compact .btn-action i::before {
       -webkit-text-stroke: 0 !important;
   }
@@ -549,6 +720,19 @@ html.materials-booting .page-content {
     background-color: rgba(37, 99, 235, 0.18) !important;
     transition: background-color 0.2s ease;
 }
+/* --- BRICK STICKY --- */
+#section-brick .brick-sticky-col {
+    position: sticky;
+    background: #ffffff;
+    z-index: 3;
+}
+#section-brick thead .brick-sticky-col {
+    z-index: 30;
+}
+#section-brick .brick-sticky-edge {
+    box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
+}
+
 /* --- CERAMIC STICKY --- */
 #section-ceramic .ceramic-sticky-col {
     position: sticky;
@@ -556,7 +740,7 @@ html.materials-booting .page-content {
     z-index: 3;
 }
 #section-ceramic thead .ceramic-sticky-col {
-    z-index: 7;
+    z-index: 30;
 }
 #section-ceramic .ceramic-sticky-edge {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
@@ -569,7 +753,7 @@ html.materials-booting .page-content {
     z-index: 3;
 }
 #section-cat thead .cat-sticky-col {
-    z-index: 7;
+    z-index: 30;
 }
 #section-cat .cat-sticky-edge {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
@@ -582,7 +766,7 @@ html.materials-booting .page-content {
     z-index: 3;
 }
 #section-cement thead .cement-sticky-col {
-    z-index: 7;
+    z-index: 30;
 }
 #section-cement .cement-sticky-edge {
     box-shadow: 2px 0 0 rgba(148, 163, 184, 0.2);
@@ -867,12 +1051,14 @@ html.materials-booting .page-content {
     content: "" !important;
 }
 .material-tab-actions {
-    flex: 0 0 33%;
-    max-width: 33%;
+    flex: 0 0 auto;
+    max-width: none;
+    width: auto;
     display: flex;
     align-items: flex-end;
     justify-content: flex-end;
     margin-left: auto;
+    padding-left: 10px;
     position: relative;
     z-index: 10;
 }
@@ -880,25 +1066,25 @@ html.materials-booting .page-content {
     display: none;
     align-items: center;
     gap: 8px;
-    justify-content: flex-end;
-    width: 100%;
+    justify-content: flex-start;
+    width: auto;
 }
 .material-tab-action.active {
-    display: flex;
+    display: inline-flex;
     --tab-border-color: #91C6BC;
     position: relative;
     background: #91C6BC;
     border: 2px solid #91C6BC;
     border-bottom: none;
-    border-radius: 12px 12px 0 0;
-    padding: 8px 12px 4px;
+    border-radius: 10px 10px 0 0;
+    padding: 6px 10px 3px 14px;
     margin-bottom: -1px;
     z-index: 11;
     overflow: visible !important;
-    min-height: 48px;
+    min-height: 40px;
     box-sizing: border-box;
     align-items: flex-end;
-    transform: translateY(4px);
+    transform: translateY(2px);
 }
 .material-tab-actions {
     overflow: visible !important;
@@ -1020,17 +1206,17 @@ html.materials-booting .page-content {
 .material-tab-action.active::before {
     content: "";
     position: absolute;
-    bottom: 2px;
-    right: calc(100%);
-    width: var(--tab-foot-radius);
-    height: var(--tab-foot-radius);
+    bottom: 1px;
+    right: calc(100% - 1px);
+    width: var(--tab-action-foot-radius);
+    height: var(--tab-action-foot-radius);
     background:
         radial-gradient(
             circle at 0 0,
-            transparent calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) calc(var(--tab-foot-radius) - 2px),
-            var(--tab-border-color) var(--tab-foot-radius),
-            var(--tab-active-bg) var(--tab-foot-radius)
+            transparent calc(var(--tab-action-foot-radius) - 2px),
+            var(--tab-border-color) calc(var(--tab-action-foot-radius) - 2px),
+            var(--tab-border-color) var(--tab-action-foot-radius),
+            var(--tab-active-bg) var(--tab-action-foot-radius)
         );
     background-position: bottom right;
     pointer-events: none;
@@ -1044,19 +1230,22 @@ html.materials-booting .page-content {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
     margin: 0;
 }
 .material-tab-action > .btn {
     flex: 0 0 auto;
 }
-.material-tab-action > a.open-modal {
+.material-tab-action > a.open-modal,
+.material-tab-action > a.open-inline-create {
     margin-right: 8px;
 }
 .material-search-input {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex: 0 1 260px;
+    width: 260px;
+    max-width: 260px;
+    min-width: 180px;
     position: relative;
     padding: 0;
 }
@@ -1094,6 +1283,12 @@ html.materials-booting .page-content {
     .material-tab-header .material-tabs,
     .material-search-input {
       position: relative;
+  }
+  .material-search-input {
+      flex-basis: 220px;
+      width: 220px;
+      max-width: 220px;
+      min-width: 150px;
   }
   .material-search-input input {
       padding-right: 36px;
@@ -1150,14 +1345,16 @@ html.materials-booting .page-content {
       display: flex;
       flex-direction: column;
       flex: 1;
-      overflow: hidden;
+      overflow: visible;
+      min-height: 0;
   }
 
   .material-tab-card {
       display: flex;
       flex-direction: column;
       flex: 1;
-      overflow: hidden;
+      overflow: visible;
+      min-height: 0;
   }
 </style>
 
@@ -1244,10 +1441,18 @@ html.materials-booting .page-content {
                                 </a>
                             @endif
                         </form>
-                        <a href="{{ route($material['type'] . 's.create') }}"
+                        {{-- <a href="{{ route($material['type'] . 's.create') }}"
                            class="btn btn-glossy open-modal">
                             <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
-                        </a>
+                        </a> --}}
+                        {{-- <a href="{{ route($material['type'] . 's.create') }}"
+                           class="btn btn-glossy open-inline-create"
+                           data-inline-type="{{ $material['type'] }}"
+                           data-inline-url="{{ route($material['type'] . 's.create') }}"
+                           data-inline-store-url="{{ route($material['type'] . 's.store') }}"
+                           data-inline-label="{{ $material['label'] }}">
+                            <i class="bi bi-plus-lg"></i> Tambah {{ $material['label'] }}
+                        </a> --}}
                     </div>
                 @endforeach
             </div>
@@ -1997,6 +2202,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeBtn = modal ? modal.querySelector('.floating-modal-close') : null;
     const backdrop = modal ? modal.querySelector('.floating-modal-backdrop') : null;
 
+    async function showProjectConfirm(options) {
+        if (typeof window.showConfirm === 'function') {
+            return window.showConfirm(options);
+        }
+
+        if (typeof window.showToast === 'function') {
+            window.showToast('Komponen konfirmasi tidak tersedia. Muat ulang halaman.', 'error');
+        }
+        return false;
+    }
+
     function interceptFormSubmit() {
         if (!modalBody) {
             console.error('[Modal] modalBody not found');
@@ -2031,31 +2247,22 @@ document.addEventListener('DOMContentLoaded', function() {
             // Prevent duplicate event listeners
             if (!form.__submitIntercepted) {
                 form.__submitIntercepted = true;
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
                     const methodInput = form.querySelector('input[name="_method"]');
                     const isUpdate = methodInput && (methodInput.value === 'PUT' || methodInput.value === 'PATCH');
 
                     if (isUpdate) {
                         e.preventDefault();
-                        // Use async confirmation
-                        if (typeof window.showConfirm === 'function') {
-                            window.showConfirm({
-                                title: 'Simpan Perubahan?',
-                                message: 'Apakah Anda yakin ingin menyimpan perubahan data ini?',
-                                confirmText: 'Simpan',
-                                cancelText: 'Batal',
-                                type: 'primary'
-                            }).then(confirmed => {
-                                if (confirmed) {
-                                    showLoadingState(form);
-                                    HTMLFormElement.prototype.submit.call(form);
-                                }
-                            });
-                        } else {
-                            if (confirm('Simpan perubahan data ini?')) {
-                                showLoadingState(form);
-                                HTMLFormElement.prototype.submit.call(form);
-                            }
+                        const confirmed = await showProjectConfirm({
+                            title: 'Simpan Perubahan?',
+                            message: 'Apakah Anda yakin ingin menyimpan perubahan data ini?',
+                            confirmText: 'Simpan',
+                            cancelText: 'Batal',
+                            type: 'primary'
+                        });
+                        if (confirmed) {
+                            showLoadingState(form);
+                            HTMLFormElement.prototype.submit.call(form);
                         }
                         return;
                     }
@@ -2142,7 +2349,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Helper function to load material-specific form script
-    function loadMaterialFormScript(materialType, modalBodyEl) {
+    function loadMaterialFormScript(materialType, modalBodyEl, options = {}) {
+        const attachModalSubmit = options.attachModalSubmit !== false;
         const scriptProperty = `${materialType}FormScriptLoaded`;
         const initFunctionName = `init${materialType.charAt(0).toUpperCase() + materialType.slice(1)}Form`;
         console.log('[Modal] Loading script for:', materialType, 'Init function:', initFunctionName);
@@ -2167,7 +2375,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         console.error('[Modal] Init function not found:', initFunctionName);
                     }
                     loadStoreAutocomplete(modalBodyEl);
-                    interceptFormSubmit();
+                    if (attachModalSubmit) {
+                        interceptFormSubmit();
+                    }
                 }, 100);
             };
             script.onerror = (e) => {
@@ -2189,10 +2399,937 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error('[Modal] Init function not found:', initFunctionName);
                 }
                 loadStoreAutocomplete(modalBodyEl);
-                interceptFormSubmit();
+                if (attachModalSubmit) {
+                    interceptFormSubmit();
+                }
             }, 100);
         }
     }
+
+    const inlineEditorState = {
+        row: null,
+        panel: null,
+    };
+
+    function getInlineEditorPanel(materialType) {
+        const normalized = normalizeMaterialTab(materialType);
+        if (!normalized) return null;
+        return document.querySelector(`.material-tab-panel[data-tab="${normalized}"]`);
+    }
+
+    function getInlineEditorRow(panel) {
+        if (!panel) return null;
+        return panel.querySelector('tbody > tr.material-inline-editor-row[data-inline-row]');
+    }
+
+    function getInlineEditorForm(panel) {
+        if (!panel) return null;
+        return panel.querySelector('form[data-inline-form]');
+    }
+
+    function readInlineSourceValue(sourceRow, fieldName) {
+        if (!sourceRow || !fieldName) return '';
+        const attrName = `data-inline-field-${fieldName.replace(/_/g, '-')}`;
+        return sourceRow.getAttribute(attrName) ?? '';
+    }
+
+    const INLINE_INTEGER_PRICE_FIELDS = new Set([
+        'price_per_piece',
+        'package_price',
+        'purchase_price',
+        'price_per_package',
+        'comparison_price_per_m3',
+        'comparison_price_per_kg',
+        'comparison_price_per_m2',
+    ]);
+
+    function normalizeInlineInputValue(fieldName, rawValue) {
+        const value = rawValue ?? '';
+        if (!fieldName || !INLINE_INTEGER_PRICE_FIELDS.has(fieldName)) {
+            return value;
+        }
+
+        const parsed = parseInlineNumeric(value);
+        if (!Number.isFinite(parsed)) {
+            return value;
+        }
+
+        return formatInlineNumeric(parsed, 0);
+    }
+
+    function normalizeInlineNumericDisplayValue(rawValue) {
+        const value = (rawValue ?? '').toString().trim();
+        if (!value) return value;
+
+        const compact = value.replace(/\s+/g, '');
+        if (!/^-?\d+(?:[.,]\d+)?$/.test(compact)) {
+            return value;
+        }
+
+        const parsed = parseInlineNumeric(value);
+        if (!Number.isFinite(parsed)) {
+            return value;
+        }
+
+        return formatInlineNumeric(parsed, 6);
+    }
+
+    function normalizeInlineAutocompleteValue(fieldName, rawValue) {
+        const priceNormalized = normalizeInlineInputValue(fieldName, rawValue);
+        if (priceNormalized !== (rawValue ?? '')) {
+            return priceNormalized;
+        }
+        return normalizeInlineNumericDisplayValue(rawValue);
+    }
+
+    function resetInlineRowFields(row) {
+        if (!row) return;
+        row.dataset.inlineLastEditedPrice = '';
+        row.querySelectorAll('[data-inline-field]').forEach(field => {
+            if (field.tagName === 'SELECT') {
+                field.selectedIndex = 0;
+                return;
+            }
+            field.value = '';
+        });
+        syncInlinePhotoButtonState(row);
+    }
+
+    function populateInlineRowFromSource(row, sourceRow) {
+        if (!row || !sourceRow) return;
+        row.querySelectorAll('[data-inline-field]').forEach(field => {
+            const fieldName = field.getAttribute('data-inline-field');
+            if (!fieldName) return;
+            const sourceValue = readInlineSourceValue(sourceRow, fieldName);
+            field.value = normalizeInlineInputValue(fieldName, sourceValue);
+        });
+    }
+
+    function syncNatNameField(row) {
+        if (!row) return;
+        const natNameInput = row.querySelector('[data-inline-field="nat_name"]');
+        const typeInput = row.querySelector('[data-inline-field="type"]');
+        if (!natNameInput || !typeInput) return;
+        natNameInput.value = typeInput.value || '';
+    }
+
+    function captureInlineRowValues(row) {
+        if (!row) return {};
+        const snapshot = {};
+        row.querySelectorAll('[data-inline-field]').forEach((field) => {
+            const fieldName = field.getAttribute('data-inline-field');
+            if (!fieldName) return;
+            const rawValue = field.type === 'checkbox'
+                ? (field.checked ? '1' : '0')
+                : (field.value ?? '');
+            snapshot[fieldName] = String(rawValue).trim();
+        });
+        return snapshot;
+    }
+
+    function markInlineRowInitialValues(row, mode) {
+        if (!row) return;
+        row.dataset.inlineMode = mode || '';
+        row.__inlineInitialValues = captureInlineRowValues(row);
+    }
+
+    function hasInlineCreateChanges(row) {
+        if (!row || row.dataset.inlineMode !== 'create') return false;
+        const initialValues = row.__inlineInitialValues || {};
+        const currentValues = captureInlineRowValues(row);
+        const keys = new Set([...Object.keys(initialValues), ...Object.keys(currentValues)]);
+
+        for (const key of keys) {
+            if ((initialValues[key] ?? '') !== (currentValues[key] ?? '')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function syncInlinePhotoButtonState(row) {
+        if (!row) return;
+        const trigger = row.querySelector('[data-inline-photo-trigger]');
+        const input = row.querySelector('[data-inline-photo-input]');
+        if (!trigger || !input) return;
+
+        const hasFile = Boolean(input.files && input.files.length > 0);
+        trigger.classList.toggle('has-file', hasFile);
+        trigger.classList.toggle('is-empty', !hasFile);
+        if (hasFile) {
+            const fileName = input.files[0]?.name || '1 file';
+            trigger.setAttribute('title', `Foto: ${fileName}`);
+            return;
+        }
+        trigger.setAttribute('title', 'Upload foto');
+    }
+
+    function bindInlinePhotoPicker(row) {
+        if (!row || row.__inlinePhotoPickerBound) return;
+        row.__inlinePhotoPickerBound = true;
+
+        const trigger = row.querySelector('[data-inline-photo-trigger]');
+        const input = row.querySelector('[data-inline-photo-input]');
+        if (!trigger || !input) return;
+
+        trigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            input.click();
+        });
+
+        input.addEventListener('change', function() {
+            syncInlinePhotoButtonState(row);
+        });
+
+        syncInlinePhotoButtonState(row);
+    }
+
+    function configureInlineForm(form, actionUrl, isEdit) {
+        if (!form || !actionUrl) return;
+        form.action = actionUrl;
+        const methodInput = form.querySelector('[data-inline-method]');
+        if (methodInput) {
+            methodInput.value = 'PUT';
+            methodInput.disabled = !isEdit;
+        }
+        const redirectInput = form.querySelector('input[name="_redirect_url"]');
+        if (redirectInput) {
+            redirectInput.value = window.location.href;
+        }
+    }
+
+    async function closeInlineEditor() {
+        if (!inlineEditorState.row) return true;
+
+        const row = inlineEditorState.row;
+        if (hasInlineCreateChanges(row)) {
+            const confirmed = await showProjectConfirm({
+                title: 'Batalkan Create?',
+                message: 'Form create sudah berisi. Yakin ingin membatalkan input ini?',
+                confirmText: 'Ya, Batalkan',
+                cancelText: 'Kembali',
+                type: 'warning'
+            });
+            if (!confirmed) return false;
+        }
+
+        row.hidden = true;
+        resetInlineRowFields(row);
+        syncNatNameField(row);
+        row.dataset.inlineMode = '';
+        row.__inlineInitialValues = null;
+
+        const tbody = row.closest('tbody');
+        if (tbody) {
+            updateRowNumbers(tbody);
+        }
+
+        inlineEditorState.row = null;
+        inlineEditorState.panel = null;
+        return true;
+    }
+
+    function bindInlineCloseButtons(row) {
+        if (!row) return;
+        row.querySelectorAll('[data-inline-close], .btn-cancel').forEach(btn => {
+            if (btn.__inlineCloseBound) return;
+            btn.__inlineCloseBound = true;
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                await closeInlineEditor();
+            });
+        });
+    }
+
+    function bindInlineForm(form, row) {
+        if (!form) return;
+
+        if (!form.__inlineSubmitBound) {
+            form.__inlineSubmitBound = true;
+            form.addEventListener('submit', async function(e) {
+                const methodInput = form.querySelector('[data-inline-method]');
+                const isUpdate = methodInput && !methodInput.disabled;
+
+                recalculateInlineComputedFields(row);
+                syncNatNameField(row);
+
+                e.preventDefault();
+                const confirmed = await showProjectConfirm({
+                    title: isUpdate ? 'Simpan Perubahan?' : 'Simpan Data Baru?',
+                    message: isUpdate
+                        ? 'Apakah Anda yakin ingin menyimpan perubahan data ini?'
+                        : 'Apakah Anda yakin ingin menyimpan data material baru ini?',
+                    confirmText: 'Simpan',
+                    cancelText: 'Batal',
+                    type: 'primary'
+                });
+                if (!confirmed) return;
+                showLoadingState(form);
+                row.__inlineInitialValues = captureInlineRowValues(row);
+                row.dataset.inlineMode = '';
+                HTMLFormElement.prototype.submit.call(form);
+            });
+        }
+
+        const typeInput = row.querySelector('[data-inline-field="type"]');
+        if (typeInput && !typeInput.__inlineNatSyncBound) {
+            typeInput.__inlineNatSyncBound = true;
+            typeInput.addEventListener('input', () => syncNatNameField(row));
+            typeInput.addEventListener('change', () => syncNatNameField(row));
+        }
+
+        bindInlineCloseButtons(row);
+    }
+
+    const INLINE_AUTOCOMPLETE_TYPES = Object.freeze({
+        brick: 'bricks',
+        cat: 'cats',
+        cement: 'cements',
+        nat: 'nats',
+        sand: 'sands',
+        ceramic: 'ceramics',
+    });
+    const INLINE_AUTOCOMPLETE_SKIP_FIELDS = new Set(['nat_name', 'volume_unit']);
+    const inlineAutocompleteTimers = new WeakMap();
+
+    function resolveInlineAutocompleteResource(materialType) {
+        const raw = String(materialType || '').trim().toLowerCase();
+        if (INLINE_AUTOCOMPLETE_TYPES[raw]) {
+            return INLINE_AUTOCOMPLETE_TYPES[raw];
+        }
+        const normalized = normalizeMaterialTab(raw);
+        return INLINE_AUTOCOMPLETE_TYPES[normalized] || '';
+    }
+
+    const inlineAutocompletePanels = new Set();
+
+    function ensureInlineInputId(input, resource, field) {
+        if (input.id) return input.id;
+        const safeResource = String(resource || 'material').replace(/[^a-z0-9_-]/gi, '');
+        const safeField = String(field || 'field').replace(/[^a-z0-9_-]/gi, '');
+        const randomSuffix = Math.random().toString(36).slice(2, 8);
+        input.id = `inline-${safeResource}-${safeField}-${randomSuffix}`;
+        return input.id;
+    }
+
+    function positionInlineAutocompleteList(input, list) {
+        if (!input || !list) return;
+        const rect = input.getBoundingClientRect();
+        list.style.left = `${window.scrollX + rect.left}px`;
+        list.style.top = `${window.scrollY + rect.bottom + 2}px`;
+        list.style.width = `${Math.max(rect.width, 160)}px`;
+    }
+
+    function hideInlineAutocompleteList(list) {
+        if (!list) return;
+        list.querySelectorAll('.inline-autocomplete-item.active').forEach(item => item.classList.remove('active'));
+        list.dataset.activeIndex = '-1';
+        list.style.display = 'none';
+        list.classList.remove('open');
+    }
+
+    function showInlineAutocompleteList(input, list) {
+        if (!input || !list) return;
+        positionInlineAutocompleteList(input, list);
+        list.style.display = 'block';
+        list.classList.add('open');
+    }
+
+    function getInlineAutocompleteList(input, resource, field) {
+        const inputId = ensureInlineInputId(input, resource, field);
+        const listId = `${inputId}-list`;
+        let list = document.getElementById(listId);
+        if (!list) {
+            list = document.createElement('div');
+            list.id = listId;
+            list.className = 'inline-autocomplete-list';
+            list.dataset.ownerInputId = inputId;
+            document.body.appendChild(list);
+            inlineAutocompletePanels.add(list);
+        }
+        return list;
+    }
+
+    function getInlineAutocompleteItems(list) {
+        if (!list) return [];
+        return Array.from(list.querySelectorAll('.inline-autocomplete-item'));
+    }
+
+    function setInlineAutocompleteActiveIndex(list, nextIndex) {
+        if (!list) return -1;
+        const items = getInlineAutocompleteItems(list);
+        if (!items.length) {
+            list.dataset.activeIndex = '-1';
+            return -1;
+        }
+
+        const boundedIndex = Math.max(0, Math.min(nextIndex, items.length - 1));
+        items.forEach((item, idx) => item.classList.toggle('active', idx === boundedIndex));
+        list.dataset.activeIndex = String(boundedIndex);
+        const activeItem = items[boundedIndex];
+        if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+            activeItem.scrollIntoView({ block: 'nearest' });
+        }
+        return boundedIndex;
+    }
+
+    function moveInlineAutocompleteActive(list, direction) {
+        const items = getInlineAutocompleteItems(list);
+        if (!items.length) return -1;
+        const currentIndex = Number.parseInt(list.dataset.activeIndex || '-1', 10);
+        let nextIndex = Number.isFinite(currentIndex) ? currentIndex + direction : 0;
+
+        if (nextIndex < 0) {
+            nextIndex = items.length - 1;
+        } else if (nextIndex >= items.length) {
+            nextIndex = 0;
+        }
+
+        return setInlineAutocompleteActiveIndex(list, nextIndex);
+    }
+
+    function applyInlineAutocompleteSelection(input, list, value) {
+        if (!input || !list) return;
+        const fieldName = input.getAttribute('data-inline-field') || '';
+        const normalizedInputValue = normalizeInlineAutocompleteValue(fieldName, value);
+        const normalizedSelected = (normalizedInputValue ?? '').toString().trim().toLowerCase();
+        if (!normalizedSelected) return;
+        input.__inlineAutocompleteLockedValue = normalizedSelected;
+        input.__inlineAutocompleteLockedUntil = Date.now() + 700;
+        input.value = normalizedInputValue;
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        hideInlineAutocompleteList(list);
+    }
+
+    function selectInlineAutocompleteActive(input, list) {
+        if (!input || !list) return false;
+        const items = getInlineAutocompleteItems(list);
+        if (!items.length) return false;
+        const currentIndex = Number.parseInt(list.dataset.activeIndex || '-1', 10);
+        const pickedIndex = Number.isFinite(currentIndex) && currentIndex >= 0 ? currentIndex : 0;
+        const pickedItem = items[pickedIndex];
+        if (!pickedItem) return false;
+        const value = pickedItem.dataset.value || pickedItem.textContent || '';
+        applyInlineAutocompleteSelection(input, list, value);
+        return true;
+    }
+
+    function fillInlineAutocompleteList(list, input, items) {
+        if (!list || !input) return;
+        list.innerHTML = '';
+        list.dataset.activeIndex = '-1';
+        const fieldName = input.getAttribute('data-inline-field') || '';
+        const currentValue = normalizeInlineAutocompleteValue(fieldName, input.value)
+            .toString()
+            .trim()
+            .toLowerCase();
+        const values = Array.from(new Set((Array.isArray(items) ? items : [])
+            .map(item => normalizeInlineAutocompleteValue(fieldName, (item ?? '').toString().trim()))
+            .filter(Boolean)))
+            .filter(value => value.toLowerCase() !== currentValue);
+        if (!values.length) {
+            hideInlineAutocompleteList(list);
+            return;
+        }
+
+        values.forEach((value, index) => {
+            const optionEl = document.createElement('div');
+            optionEl.className = 'inline-autocomplete-item';
+            optionEl.textContent = value;
+            optionEl.dataset.value = value;
+            optionEl.dataset.index = String(index);
+            optionEl.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+            });
+            optionEl.addEventListener('mouseenter', function() {
+                setInlineAutocompleteActiveIndex(list, index);
+            });
+            optionEl.addEventListener('click', function() {
+                applyInlineAutocompleteSelection(input, list, value);
+            });
+            list.appendChild(optionEl);
+        });
+
+        showInlineAutocompleteList(input, list);
+    }
+
+    function buildInlineAutocompleteUrl(resource, field, term, row) {
+        const encodedTerm = encodeURIComponent(term || '');
+        const limit = 20;
+        const isCementOrNat = resource === 'cements' || resource === 'nats';
+        const kindsParam = isCementOrNat ? '&kinds=cement,nat' : '';
+
+        if (field === 'store') {
+            return `/api/stores/all-stores?search=${encodedTerm}&limit=${limit}`;
+        }
+
+        if (field === 'address') {
+            const storeInput = row.querySelector('[data-inline-field="store"]');
+            const storeName = (storeInput?.value || '').trim();
+            if (!storeName) return '';
+            return `/api/stores/addresses-by-store?store=${encodeURIComponent(storeName)}&search=${encodedTerm}&limit=${limit}`;
+        }
+
+        return `/api/${resource}/field-values/${field}?search=${encodedTerm}&limit=${limit}${kindsParam}`;
+    }
+
+    function getInlineStaticSuggestions(input, term) {
+        const raw = input?.getAttribute('data-inline-static-values') || '';
+        if (!raw) return [];
+        const normalizedTerm = (term || '').toString().trim().toLowerCase();
+        const values = raw
+            .split('|')
+            .map(v => v.trim())
+            .filter(Boolean);
+        if (!normalizedTerm) return values;
+        return values.filter(v => v.toLowerCase().includes(normalizedTerm));
+    }
+
+    async function fetchInlineAutocompleteSuggestions(input, row) {
+        const field = input.getAttribute('data-inline-field');
+        if (!field || INLINE_AUTOCOMPLETE_SKIP_FIELDS.has(field)) return;
+
+        const resource = resolveInlineAutocompleteResource(row.getAttribute('data-inline-resource'));
+        if (!resource) return;
+
+        const term = (input.value || '').trim();
+
+        const list = getInlineAutocompleteList(input, resource, field);
+        const staticSuggestions = getInlineStaticSuggestions(input, term);
+        if (staticSuggestions.length) {
+            fillInlineAutocompleteList(list, input, staticSuggestions);
+            return;
+        }
+
+        if (input.hasAttribute('data-inline-static-values')) {
+            fillInlineAutocompleteList(list, input, []);
+            return;
+        }
+
+        const url = buildInlineAutocompleteUrl(resource, field, term, row);
+        if (!url) {
+            fillInlineAutocompleteList(list, input, []);
+            return;
+        }
+
+        try {
+            const response = await fetch(url, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            const result = await response.json();
+            fillInlineAutocompleteList(list, input, result);
+        } catch (error) {
+            console.error('Inline autocomplete error:', error);
+            fillInlineAutocompleteList(list, input, []);
+        }
+    }
+
+    async function autoFillAddressIfSingle(row) {
+        const storeInput = row.querySelector('[data-inline-field="store"]');
+        const addressInput = row.querySelector('[data-inline-field="address"]');
+        if (!storeInput || !addressInput) return;
+
+        const storeName = (storeInput.value || '').trim();
+        if (!storeName) return;
+
+        try {
+            const response = await fetch(
+                `/api/stores/addresses-by-store?store=${encodeURIComponent(storeName)}&limit=20`,
+                { headers: { 'X-Requested-With': 'XMLHttpRequest' } }
+            );
+            const addresses = await response.json();
+            if (Array.isArray(addresses) && addresses.length === 1) {
+                addressInput.value = addresses[0];
+                addressInput.dispatchEvent(new Event('input', { bubbles: true }));
+                addressInput.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        } catch (error) {
+            console.error('Inline address autofill error:', error);
+        }
+    }
+
+    function parseInlineNumeric(value) {
+        if (value === null || value === undefined) return NaN;
+        let str = String(value).trim();
+        if (!str) return NaN;
+        str = str.replace(/[\s\u00A0]/g, '');
+        const hasComma = str.includes(',');
+        const hasDot = str.includes('.');
+        if (hasComma && hasDot) {
+            if (str.lastIndexOf(',') > str.lastIndexOf('.')) {
+                str = str.replace(/\./g, '').replace(/,/g, '.');
+            } else {
+                str = str.replace(/,/g, '');
+            }
+        } else if (hasComma) {
+            str = str.replace(/,/g, '.');
+        }
+        str = str.replace(/[^0-9.-]/g, '');
+        const parsed = Number(str);
+        return Number.isFinite(parsed) ? parsed : NaN;
+    }
+
+    function formatInlineNumeric(value, decimals = 4) {
+        if (!Number.isFinite(value)) return '';
+        if (decimals <= 0) return String(Math.round(value));
+        const fixed = Number(value).toFixed(decimals);
+        return fixed.replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
+    }
+
+    function getInlineField(row, fieldName) {
+        return row?.querySelector(`[data-inline-field="${fieldName}"]`) || null;
+    }
+
+    function setInlineFieldNumeric(row, fieldName, value, decimals = 4) {
+        const field = getInlineField(row, fieldName);
+        if (!field) return;
+        field.value = Number.isFinite(value) ? formatInlineNumeric(value, decimals) : '';
+    }
+
+    function getInlineFieldNumeric(row, fieldName) {
+        const field = getInlineField(row, fieldName);
+        if (!field) return NaN;
+        return parseInlineNumeric(field.value);
+    }
+
+    function bindInlineComputedFields(row) {
+        if (!row || row.__inlineComputedBound) return;
+        row.__inlineComputedBound = true;
+
+        const priceFields = new Set(['price_per_piece', 'package_price', 'purchase_price', 'price_per_package']);
+        const comparisonFields = new Set(['comparison_price_per_m3', 'comparison_price_per_kg', 'comparison_price_per_m2']);
+
+        const recalculate = () => recalculateInlineComputedFields(row);
+
+        row.querySelectorAll('.material-inline-input[data-inline-field]').forEach(input => {
+            const fieldName = input.getAttribute('data-inline-field') || '';
+            const markEdited = () => {
+                if (priceFields.has(fieldName)) {
+                    row.dataset.inlineLastEditedPrice = 'price';
+                } else if (comparisonFields.has(fieldName)) {
+                    row.dataset.inlineLastEditedPrice = 'comparison';
+                }
+            };
+            input.addEventListener('input', () => {
+                markEdited();
+                recalculate();
+            });
+            input.addEventListener('change', () => {
+                markEdited();
+                recalculate();
+            });
+        });
+
+        recalculate();
+    }
+
+    function recalculateInlineComputedFields(row) {
+        if (!row) return;
+        const resource = resolveInlineAutocompleteResource(row.getAttribute('data-inline-resource'));
+        const lastEditedPrice = row.dataset.inlineLastEditedPrice || 'price';
+
+        if (resource === 'bricks') {
+            const l = getInlineFieldNumeric(row, 'dimension_length');
+            const w = getInlineFieldNumeric(row, 'dimension_width');
+            const h = getInlineFieldNumeric(row, 'dimension_height');
+            if (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0) {
+                const volumeM3 = (l * w * h) / 1000000;
+                setInlineFieldNumeric(row, 'package_volume', volumeM3, 6);
+            }
+            const volume = getInlineFieldNumeric(row, 'package_volume');
+            const price = getInlineFieldNumeric(row, 'price_per_piece');
+            const comparison = getInlineFieldNumeric(row, 'comparison_price_per_m3');
+            const packageTypeRaw = String(getInlineField(row, 'package_type')?.value || '').trim().toLowerCase();
+            const isKubik = packageTypeRaw === 'kubik';
+            const packageCountEl = row.querySelector('[data-inline-brick-package-count]');
+            const packageUnitEl = row.querySelector('[data-inline-brick-package-unit]');
+            const purchaseUnitEl = row.querySelector('[data-inline-brick-price-unit]');
+
+            let packageCount = null;
+            if (isKubik) {
+                if (Number.isFinite(volume) && volume > 0) {
+                    packageCount = Math.floor(1 / volume);
+                }
+            } else {
+                packageCount = 1;
+            }
+
+            if (packageCountEl) {
+                if (Number.isFinite(packageCount) && packageCount >= 0) {
+                    packageCountEl.textContent = `( ${formatInlineNumeric(packageCount, 0)}`;
+                } else {
+                    packageCountEl.textContent = '( -';
+                }
+            }
+            if (packageUnitEl) {
+                packageUnitEl.textContent = 'Bh )';
+            }
+            if (purchaseUnitEl) {
+                purchaseUnitEl.textContent = isKubik ? '/ M3' : '/ Bh';
+            }
+
+            if (Number.isFinite(volume) && volume > 0) {
+                if (lastEditedPrice === 'comparison' && Number.isFinite(comparison)) {
+                    setInlineFieldNumeric(row, 'price_per_piece', comparison * volume, 0);
+                } else if (Number.isFinite(price)) {
+                    setInlineFieldNumeric(row, 'comparison_price_per_m3', price / volume, 0);
+                }
+            }
+            return;
+        }
+
+        if (resource === 'sands') {
+            const l = getInlineFieldNumeric(row, 'dimension_length');
+            const w = getInlineFieldNumeric(row, 'dimension_width');
+            const h = getInlineFieldNumeric(row, 'dimension_height');
+            if (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(h) && l > 0 && w > 0 && h > 0) {
+                const volumeM3 = l * w * h;
+                setInlineFieldNumeric(row, 'package_volume', volumeM3, 6);
+            }
+            const volume = getInlineFieldNumeric(row, 'package_volume');
+            const price = getInlineFieldNumeric(row, 'package_price');
+            const comparison = getInlineFieldNumeric(row, 'comparison_price_per_m3');
+            if (Number.isFinite(volume) && volume > 0) {
+                if (lastEditedPrice === 'comparison' && Number.isFinite(comparison)) {
+                    setInlineFieldNumeric(row, 'package_price', comparison * volume, 0);
+                } else if (Number.isFinite(price)) {
+                    setInlineFieldNumeric(row, 'comparison_price_per_m3', price / volume, 0);
+                }
+            }
+            return;
+        }
+
+        if (resource === 'ceramics') {
+            const l = getInlineFieldNumeric(row, 'dimension_length');
+            const w = getInlineFieldNumeric(row, 'dimension_width');
+            const pieces = getInlineFieldNumeric(row, 'pieces_per_package');
+            if (Number.isFinite(l) && Number.isFinite(w) && Number.isFinite(pieces) && l > 0 && w > 0 && pieces > 0) {
+                const coverage = ((l * w) / 10000) * pieces;
+                setInlineFieldNumeric(row, 'coverage_per_package', coverage, 4);
+            }
+            const coverage = getInlineFieldNumeric(row, 'coverage_per_package');
+            const price = getInlineFieldNumeric(row, 'price_per_package');
+            const comparison = getInlineFieldNumeric(row, 'comparison_price_per_m2');
+            if (Number.isFinite(coverage) && coverage > 0) {
+                if (lastEditedPrice === 'comparison' && Number.isFinite(comparison)) {
+                    setInlineFieldNumeric(row, 'price_per_package', comparison * coverage, 0);
+                } else if (Number.isFinite(price)) {
+                    setInlineFieldNumeric(row, 'comparison_price_per_m2', price / coverage, 0);
+                }
+            }
+            return;
+        }
+
+        if (resource === 'cats') {
+            const weight = getInlineFieldNumeric(row, 'package_weight_net');
+            const price = getInlineFieldNumeric(row, 'purchase_price');
+            const comparison = getInlineFieldNumeric(row, 'comparison_price_per_kg');
+            if (Number.isFinite(weight) && weight > 0) {
+                if (lastEditedPrice === 'comparison' && Number.isFinite(comparison)) {
+                    setInlineFieldNumeric(row, 'purchase_price', comparison * weight, 0);
+                } else if (Number.isFinite(price)) {
+                    setInlineFieldNumeric(row, 'comparison_price_per_kg', price / weight, 0);
+                }
+            }
+            return;
+        }
+
+        if (resource === 'cements' || resource === 'nats') {
+            const weight = getInlineFieldNumeric(row, 'package_weight_net');
+            const price = getInlineFieldNumeric(row, 'package_price');
+            const comparison = getInlineFieldNumeric(row, 'comparison_price_per_kg');
+            if (Number.isFinite(weight) && weight > 0) {
+                if (lastEditedPrice === 'comparison' && Number.isFinite(comparison)) {
+                    setInlineFieldNumeric(row, 'package_price', comparison * weight, 0);
+                } else if (Number.isFinite(price)) {
+                    setInlineFieldNumeric(row, 'comparison_price_per_kg', price / weight, 0);
+                }
+            }
+        }
+    }
+
+    function bindInlineAutocomplete(row, endpointMaterialType) {
+        if (!row) return;
+        const resourceType = endpointMaterialType || row.getAttribute('data-material-tab') || '';
+        row.setAttribute('data-inline-resource', resourceType);
+
+        row.querySelectorAll('.material-inline-input[data-inline-field]').forEach(input => {
+            if (input.__inlineAutocompleteBound) return;
+            input.__inlineAutocompleteBound = true;
+            const fieldName = input.getAttribute('data-inline-field') || '';
+
+            const schedule = () => {
+                const normalizedCurrent = (input.value || '').toString().trim().toLowerCase();
+                if (
+                    input.__inlineAutocompleteLockedValue === normalizedCurrent &&
+                    Date.now() < (input.__inlineAutocompleteLockedUntil || 0)
+                ) {
+                    return;
+                }
+                const existingTimer = inlineAutocompleteTimers.get(input);
+                if (existingTimer) clearTimeout(existingTimer);
+                const timer = window.setTimeout(() => {
+                    fetchInlineAutocompleteSuggestions(input, row);
+                }, 220);
+                inlineAutocompleteTimers.set(input, timer);
+            };
+
+            if (!INLINE_AUTOCOMPLETE_SKIP_FIELDS.has(fieldName)) {
+                input.addEventListener('input', schedule);
+                input.addEventListener('focus', schedule);
+                input.addEventListener('change', schedule);
+                input.addEventListener('keydown', (event) => {
+                    const list = getInlineAutocompleteList(input, resourceType, fieldName);
+                    const isOpen = list.classList.contains('open') && list.style.display !== 'none';
+
+                    if (event.key === 'ArrowDown') {
+                        event.preventDefault();
+                        if (!isOpen) {
+                            schedule();
+                            return;
+                        }
+                        moveInlineAutocompleteActive(list, 1);
+                        return;
+                    }
+
+                    if (event.key === 'ArrowUp') {
+                        if (!isOpen) return;
+                        event.preventDefault();
+                        moveInlineAutocompleteActive(list, -1);
+                        return;
+                    }
+
+                    if (event.key === 'Enter') {
+                        if (!isOpen) return;
+                        const selected = selectInlineAutocompleteActive(input, list);
+                        if (selected) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        return;
+                    }
+
+                    if (event.key === 'Escape') {
+                        if (!isOpen) return;
+                        event.preventDefault();
+                        hideInlineAutocompleteList(list);
+                    }
+                });
+                input.addEventListener('blur', () => {
+                    const list = getInlineAutocompleteList(input, resourceType, fieldName);
+                    window.setTimeout(() => hideInlineAutocompleteList(list), 120);
+                });
+            }
+
+            if (fieldName === 'store') {
+                input.addEventListener('change', () => autoFillAddressIfSingle(row));
+            }
+        });
+
+        bindInlineComputedFields(row);
+    }
+
+    document.addEventListener('click', function(e) {
+        inlineAutocompletePanels.forEach((list) => {
+            const ownerInputId = list.dataset.ownerInputId || '';
+            const ownerInput = ownerInputId ? document.getElementById(ownerInputId) : null;
+            if (ownerInput && (ownerInput === e.target || ownerInput.contains(e.target))) {
+                return;
+            }
+            if (list.contains(e.target)) {
+                return;
+            }
+            hideInlineAutocompleteList(list);
+        });
+    });
+
+    window.addEventListener('resize', function() {
+        inlineAutocompletePanels.forEach((list) => {
+            if (list.style.display === 'none') return;
+            const ownerInputId = list.dataset.ownerInputId || '';
+            const ownerInput = ownerInputId ? document.getElementById(ownerInputId) : null;
+            if (!ownerInput) {
+                hideInlineAutocompleteList(list);
+                return;
+            }
+            positionInlineAutocompleteList(ownerInput, list);
+        });
+    });
+
+    async function openInlineEditor(triggerEl) {
+        const inlineUrl = triggerEl?.dataset?.inlineUrl || triggerEl?.getAttribute('href');
+        const inlineStoreUrl = triggerEl?.dataset?.inlineStoreUrl || '';
+        if (!inlineUrl) return;
+
+        const sourceRow = triggerEl.closest('tr[data-material-id]');
+        const sourceMaterialType = sourceRow ? sourceRow.getAttribute('data-material-tab') : '';
+        const materialType = normalizeMaterialTab(triggerEl.dataset.inlineType || sourceMaterialType);
+        const action = triggerEl.classList.contains('open-inline-edit')
+            ? 'edit'
+            : 'create';
+
+        if (materialType) {
+            setActiveTab(materialType);
+        }
+
+        const panel = getInlineEditorPanel(materialType);
+        const inlineRow = getInlineEditorRow(panel);
+        const inlineForm = getInlineEditorForm(panel);
+        if (!panel || !inlineRow || !inlineForm) return;
+
+        if (inlineEditorState.row && inlineEditorState.row !== inlineRow) {
+            const closed = await closeInlineEditor();
+            if (!closed) return;
+        }
+
+        const tbody = inlineRow.closest('tbody');
+        if (tbody && tbody.firstElementChild !== inlineRow) {
+            tbody.insertBefore(inlineRow, tbody.firstElementChild);
+        }
+
+        resetInlineRowFields(inlineRow);
+
+        if (action === 'edit' && sourceRow) {
+            populateInlineRowFromSource(inlineRow, sourceRow);
+            const updateUrl = sourceRow.getAttribute('data-inline-update-url') || inlineUrl;
+            configureInlineForm(inlineForm, updateUrl, true);
+        } else {
+            const createUrl = inlineStoreUrl || inlineForm.getAttribute('action') || inlineUrl;
+            configureInlineForm(inlineForm, createUrl, false);
+        }
+
+        syncNatNameField(inlineRow);
+
+        inlineEditorState.row = inlineRow;
+        inlineEditorState.panel = panel;
+
+        const endpointMaterialType = action === 'edit' && sourceRow
+            ? (sourceRow.getAttribute('data-inline-material-type') || materialType)
+            : materialType;
+        bindInlineAutocomplete(inlineRow, endpointMaterialType);
+        recalculateInlineComputedFields(inlineRow);
+        markInlineRowInitialValues(inlineRow, action);
+
+        inlineRow.hidden = false;
+        if (typeof applyAllStickyOffsets === 'function') {
+            window.requestAnimationFrame(() => applyAllStickyOffsets());
+        }
+        if (tbody) {
+            updateRowNumbers(tbody);
+        }
+        scrollRowIntoContainer(inlineRow, 'smooth');
+        bindInlineForm(inlineForm, inlineRow);
+        bindInlinePhotoPicker(inlineRow);
+        syncInlinePhotoButtonState(inlineRow);
+    }
+
+    document.body.addEventListener('click', function(e) {
+        const trigger = e.target.closest('.open-inline-create, .open-inline-edit');
+        if (!trigger) return;
+        e.preventDefault();
+        openInlineEditor(trigger);
+    });
 
     if (modal && modalBody && modalTitle && closeBtn && backdrop) {
         let isFormDirty = false;
@@ -2272,18 +3409,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function closeModal() {
         if (isFormDirty) {
-            let confirmed = true;
-            if (typeof window.showConfirm === 'function') {
-                confirmed = await window.showConfirm({
-                    title: 'Batalkan Perubahan?',
-                    message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
-                    confirmText: 'Ya, Tutup',
-                    cancelText: 'Kembali',
-                    type: 'warning'
-                });
-            } else {
-                confirmed = window.confirm('Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?');
-            }
+            const confirmed = await showProjectConfirm({
+                title: 'Batalkan Perubahan?',
+                message: 'Anda memiliki perubahan yang belum disimpan. Yakin ingin menutup?',
+                confirmText: 'Ya, Tutup',
+                cancelText: 'Kembali',
+                type: 'warning'
+            });
             if (!confirmed) return;
         }
 
@@ -2928,6 +4060,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const tbody = table.tBodies[0];
             if (!tbody) return;
             Array.from(tbody.rows).forEach(row => {
+                if (row.classList.contains('material-inline-editor-row')) return;
                 Array.from(row.cells).forEach(cell => {
                     if (cell.cellIndex === 0 || cell.classList.contains('action-cell')) return;
                     highlightSearchMatchesInCell(cell, normalizedSearchQuery, escapedQuery);
@@ -2936,9 +4069,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function getSearchableBodyRows(tbody) {
+        if (!tbody) return [];
+        return Array.from(tbody.rows).filter(row => !row.classList.contains('material-inline-editor-row'));
+    }
+
     function updateRowNumbers(tbody) {
         if (!tbody) return;
-        Array.from(tbody.rows).forEach((row, index) => {
+        getSearchableBodyRows(tbody).forEach((row, index) => {
             const firstCell = row.cells[0];
             if (firstCell) {
                 firstCell.textContent = index + 1;
@@ -2950,7 +4088,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!table || !queryLower) return;
         const tbody = table.tBodies[0];
         if (!tbody) return;
-        const rows = Array.from(tbody.rows);
+        const rows = getSearchableBodyRows(tbody);
         const rankedRows = rows.map((row, index) => {
             let firstMatchIndex = Number.POSITIVE_INFINITY;
             const cells = Array.from(row.cells);
@@ -3033,7 +4171,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!table || !queryLower) return null;
         const tbody = table.tBodies[0];
         if (!tbody) return null;
-        const rows = Array.from(tbody.rows);
+        const rows = getSearchableBodyRows(tbody);
         for (const row of rows) {
             const cells = Array.from(row.cells);
             for (let colIndex = colStart; colIndex <= colEnd; colIndex += 1) {
@@ -3050,8 +4188,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function isSearchableColumnRange(table, colStart, colEnd) {
         const tbody = table.tBodies[0];
-        if (!tbody || !tbody.rows.length) return false;
-        const sampleCells = Array.from(tbody.rows[0].cells);
+        if (!tbody) return false;
+        const rows = getSearchableBodyRows(tbody);
+        if (!rows.length) return false;
+        const sampleCells = Array.from(rows[0].cells);
         for (let colIndex = colStart; colIndex <= colEnd; colIndex += 1) {
             const cell = sampleCells[colIndex];
             if (!cell) continue;
@@ -3144,6 +4284,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         };
+
+        // Apply to Brick
+        applyToSection('section-brick', 'brick-sticky-col');
 
         // Apply to Ceramic (existing)
         applyToSection('section-ceramic', 'ceramic-sticky-col');

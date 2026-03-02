@@ -234,6 +234,7 @@ class NatRepository extends BaseRepository
             'price_unit' => 'price_unit',
             'package_weight_gross' => 'package_weight_gross',
             'package_price' => 'package_price',
+            'comparison_price_per_kg' => 'comparison_price_per_kg',
         ];
     }
 }

@@ -29,9 +29,169 @@
 
         // Retrieve dynamic Formula Name
         $params = $materialCalculation->calculation_params ?? [];
-        $workType = $params['work_type'] ?? 'brick_half';
+        $isBundleCalculation = (bool) ($params['is_bundle'] ?? false);
+        $bundleName = trim((string) ($params['bundle_name'] ?? ''));
+        if ($bundleName === '') {
+            $bundleName = 'Paket Pekerjaan';
+        }
+
+        $decodeArrayPayload = static function (mixed $value): array {
+            if (is_array($value)) {
+                return $value;
+            }
+            if (!is_string($value) || trim($value) === '') {
+                return [];
+            }
+
+            $decoded = json_decode($value, true);
+            if (!is_array($decoded)) {
+                $decoded = json_decode(html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8'), true);
+            }
+
+            return is_array($decoded) ? $decoded : [];
+        };
+
+        $rawBundleItems = $decodeArrayPayload($params['bundle_items'] ?? []);
+        if (empty($rawBundleItems)) {
+            $rawBundleItems = $decodeArrayPayload($params['work_items_payload'] ?? []);
+        }
+
+        $bundleSelectedResult = $decodeArrayPayload($params['bundle_selected_result'] ?? []);
+        $resultBundleItems = is_array($bundleSelectedResult['bundle_items'] ?? null)
+            ? array_values(array_filter($bundleSelectedResult['bundle_items'], static fn($item) => is_array($item)))
+            : [];
+        if (empty($resultBundleItems) && !empty($rawBundleItems)) {
+            $resultBundleItems = is_array($rawBundleItems)
+                ? array_values(array_filter($rawBundleItems, static fn($item) => is_array($item)))
+                : [];
+        }
+
+        $resolveTaxonomyValue = static function (mixed $value): string {
+            if (is_array($value)) {
+                foreach ($value as $entry) {
+                    $text = trim((string) $entry);
+                    if ($text !== '') {
+                        return $text;
+                    }
+                }
+
+                return '';
+            }
+
+            return trim((string) $value);
+        };
+        $bundleDisplayItems = [];
+        foreach ($rawBundleItems as $bundleIndex => $bundleItemRaw) {
+            if (!is_array($bundleItemRaw)) {
+                continue;
+            }
+
+            $resultItem = is_array($resultBundleItems[$bundleIndex] ?? null) ? $resultBundleItems[$bundleIndex] : [];
+            $workTypeCode = trim((string) ($bundleItemRaw['work_type'] ?? ($resultItem['work_type'] ?? '')));
+            if ($workTypeCode === '') {
+                continue;
+            }
+
+            $formulaMeta = \App\Services\FormulaRegistry::find($workTypeCode);
+            $workTypeName = trim(
+                (string) ($bundleItemRaw['work_type_name'] ?? ($resultItem['work_type_name'] ?? ($formulaMeta['name'] ?? ''))),
+            );
+            if ($workTypeName === '') {
+                $workTypeName = ucwords(str_replace('_', ' ', $workTypeCode));
+            }
+
+            $title = trim((string) ($bundleItemRaw['title'] ?? ($resultItem['title'] ?? '')));
+            if ($title === '') {
+                $title = 'Item Pekerjaan ' . ($bundleIndex + 1);
+            }
+
+            $rowKind = strtolower(trim((string) ($bundleItemRaw['row_kind'] ?? ($resultItem['row_kind'] ?? 'item'))));
+            if (!in_array($rowKind, ['area', 'field', 'item'], true)) {
+                $rowKind = 'item';
+            }
+
+            $lengthItem = \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['wall_length'] ?? null);
+            $heightItem = \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['wall_height'] ?? null);
+            $areaItem = \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['area'] ?? null);
+            $isRollagItem = $workTypeCode === 'brick_rollag';
+            $isPlinthCeramicItem = $workTypeCode === 'plinth_ceramic';
+            if (
+                ($areaItem === null || $areaItem <= 0) &&
+                !$isRollagItem &&
+                $lengthItem !== null &&
+                $heightItem !== null &&
+                $lengthItem > 0 &&
+                $heightItem > 0
+            ) {
+                $areaItem = $isPlinthCeramicItem ? $lengthItem * ($heightItem / 100) : $lengthItem * $heightItem;
+            }
+            if ($areaItem !== null && $areaItem <= 0) {
+                $areaItem = null;
+            }
+
+            $grandTotalItem = (float) ($bundleItemRaw['grand_total'] ?? ($resultItem['grand_total'] ?? 0));
+            $workFloorItem = trim((string) ($bundleItemRaw['work_floor'] ?? ''));
+            if ($workFloorItem === '') {
+                $workFloorItem = $resolveTaxonomyValue($bundleItemRaw['work_floors'] ?? '');
+            }
+            if ($workFloorItem === '') {
+                $workFloorItem = trim((string) ($resultItem['work_floor'] ?? ''));
+            }
+
+            $workAreaItem = trim((string) ($bundleItemRaw['work_area'] ?? ''));
+            if ($workAreaItem === '') {
+                $workAreaItem = $resolveTaxonomyValue($bundleItemRaw['work_areas'] ?? '');
+            }
+            if ($workAreaItem === '') {
+                $workAreaItem = trim((string) ($resultItem['work_area'] ?? ''));
+            }
+
+            $workFieldItem = trim((string) ($bundleItemRaw['work_field'] ?? ''));
+            if ($workFieldItem === '') {
+                $workFieldItem = $resolveTaxonomyValue($bundleItemRaw['work_fields'] ?? '');
+            }
+            if ($workFieldItem === '') {
+                $workFieldItem = trim((string) ($resultItem['work_field'] ?? ''));
+            }
+
+            $heightItemLabel = in_array(
+                $workTypeCode,
+                ['tile_installation', 'grout_tile', 'floor_screed', 'coating_floor'],
+                true,
+            )
+                ? 'LEBAR'
+                : 'TINGGI';
+
+            $bundleDisplayItems[] = [
+                'title' => $title,
+                'work_type' => $workTypeCode,
+                'work_type_name' => $workTypeName,
+                'row_kind' => $rowKind,
+                'work_floor' => $workFloorItem,
+                'work_area' => $workAreaItem,
+                'work_field' => $workFieldItem,
+                'length' => $lengthItem,
+                'height' => $heightItem,
+                'height_label' => $heightItemLabel,
+                'height_unit' => $isPlinthCeramicItem ? 'cm' : 'm',
+                'area' => $areaItem,
+                'mortar_thickness' => \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['mortar_thickness'] ?? null),
+                'layer_count' => \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['layer_count'] ?? null),
+                'grout_thickness' => \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['grout_thickness'] ?? null),
+                'ceramic_length' => \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['ceramic_length'] ?? null),
+                'ceramic_width' => \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['ceramic_width'] ?? null),
+                'ceramic_thickness' => \App\Helpers\NumberHelper::parseNullable($bundleItemRaw['ceramic_thickness'] ?? null),
+                'is_rollag' => $isRollagItem,
+                'grand_total' => $grandTotalItem,
+            ];
+        }
+        $bundleItemCount = count($bundleDisplayItems);
+
+        $workType = $params['work_type'] ?? ($bundleDisplayItems[0]['work_type'] ?? 'brick_half');
         $formulaInstance = \App\Services\FormulaRegistry::instance($workType);
-        $formulaName = $formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding';
+        $formulaName = $isBundleCalculation
+            ? $bundleName
+            : ($formulaInstance ? $formulaInstance::getName() : 'Pekerjaan Dinding');
 
         $brickType = $materialCalculation->brick ? $materialCalculation->brick->type : 'Merah';
         $isPainting = in_array($workType, ['painting', 'wall_painting'], true);
@@ -125,6 +285,14 @@
     @endif
 
     {{-- Header Info: Item Pekerjaan Details Card --}}
+    @if ($isBundleCalculation && $bundleItemCount > 0)
+        @include('material_calculations.partials.show_log_bundle_dropdown', [
+            'bundleDisplayItems' => $bundleDisplayItems,
+            'rawBundleItems' => $rawBundleItems,
+            'formulaName' => $formulaName,
+            'materialCalculation' => $materialCalculation,
+        ])
+    @else
     <div class="container mb-3">
         <div class="card p-3 shadow-sm border-0 preview-params-sticky"
             style="background-color: #fdfdfd; border-radius: 12px;">
@@ -320,6 +488,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <div class="container">
     <div class="card" style="background: #ffffff; padding: 0; border-radius: 16px; margin: 0 auto; max-width: 100%; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06); border: 1px solid rgba(226, 232, 240, 0.6); overflow: hidden;">
@@ -364,6 +533,312 @@
                     color: #1e293b !important;
                     -webkit-text-stroke: 0 !important;
                     text-shadow: none !important;
+                }
+
+                .show-log-scope .preview-param-row {
+                    justify-content: flex-start;
+                    min-width: 0;
+                }
+
+                .show-log-scope .preview-param-row.preview-param-row-with-dropdown {
+                    overflow: visible;
+                }
+
+                .show-log-scope .preview-param-items-dropdown {
+                    position: relative;
+                    z-index: 95;
+                }
+
+                .show-log-scope .preview-param-items-dropdown .dropdown-menu {
+                    z-index: 1305;
+                    overflow-x: hidden;
+                    --bundle-col-work: minmax(240px, 1fr);
+                    --bundle-col-size: minmax(260px, 1fr);
+                    --bundle-col-support: minmax(260px, 1fr);
+                }
+
+                .show-log-scope .preview-param-items-dropdown .bundle-param-dropdown-menu {
+                    width: 100%;
+                    min-width: 100%;
+                    max-width: min(100%, calc(100vw - 24px));
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline {
+                    z-index: auto;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .dropdown-menu {
+                    position: static !important;
+                    inset: auto !important;
+                    transform: none !important;
+                    float: none !important;
+                    margin-top: 0.5rem !important;
+                    width: 100% !important;
+                    min-width: 100% !important;
+                    max-width: 100% !important;
+                    max-height: none !important;
+                    overflow-y: visible !important;
+                    overflow-x: hidden;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-dropdown-menu {
+                    padding: 0 !important;
+                    box-shadow: none !important;
+                    border: 0 !important;
+                    background: transparent !important;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-item-card {
+                    margin-bottom: 0.35rem;
+                    padding: 0.22rem 0.35rem !important;
+                    border-radius: 7px;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-item-card:last-child {
+                    margin-bottom: 0;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-item-layout {
+                    gap: 0.4rem 0.55rem;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-section label {
+                    font-size: 0.6rem !important;
+                    margin-bottom: 0.2rem !important;
+                    letter-spacing: 0.25px;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-section-fields {
+                    gap: 0.25rem 0.3rem;
+                    min-height: 28px;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-field--sm {
+                    width: 74px;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-field--md {
+                    width: 88px;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-field--ceramic {
+                    width: 84px;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-section-fields .badge {
+                    font-size: 0.5rem !important;
+                    padding: 0.08rem 0.24rem !important;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .bundle-param-worktype-value {
+                    margin-top: 15px;
+                    font-size: 0.7rem;
+                    min-height: 26px;
+                    padding: 0.16rem 0.34rem;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .form-control {
+                    font-size: 0.7rem;
+                    min-height: 26px;
+                    padding: 0.12rem 0.28rem !important;
+                    line-height: 1.2;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .input-group-text {
+                    font-size: 0.56rem !important;
+                    padding: 0.1rem 0.24rem !important;
+                    min-height: 26px;
+                    line-height: 1.1;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .dropdown-toggle {
+                    font-size: 0.72rem;
+                    padding: 0.3rem 0.56rem;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle {
+                    color: #4b5563 !important;
+                    text-decoration: none !important;
+                    border: 0 !important;
+                    border-bottom: 0 !important;
+                    background: transparent !important;
+                    box-shadow: none !important;
+                    font-size: 0.68rem;
+                    letter-spacing: 0.35px;
+                    padding: 0 !important;
+                    display: inline-flex;
+                    align-items: center;
+                    cursor: pointer;
+                    appearance: none;
+                    -webkit-appearance: none;
+                    line-height: 1.1;
+                    pointer-events: auto !important;
+                    outline: none !important;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle::after {
+                    margin-left: 0.35rem;
+                    vertical-align: middle;
+                    border-top-color: #6b7280;
+                }
+
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle:hover,
+                .show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline .preview-param-label-toggle:focus {
+                    color: #111827 !important;
+                    text-decoration: none;
+                }
+
+                .show-log-scope .bundle-param-item-card {
+                    background: #ffffff;
+                    border-radius: 10px;
+                    border: 1px solid #e5e7eb;
+                }
+
+                .show-log-scope .bundle-param-item-layout {
+                    display: grid;
+                    grid-template-columns: var(--bundle-col-work) var(--bundle-col-size) var(--bundle-col-support);
+                    gap: 0.85rem 1rem;
+                    align-items: start;
+                    width: 100%;
+                    min-width: 0;
+                }
+
+                .show-log-scope .bundle-param-section {
+                    min-width: 0;
+                    overflow: hidden;
+                }
+
+                .show-log-scope .bundle-param-section-fields {
+                    display: flex;
+                    flex-wrap: nowrap;
+                    gap: 0.5rem 0.6rem;
+                    align-items: flex-end;
+                    justify-content: flex-start;
+                    width: 100%;
+                    min-height: 46px;
+                    overflow: hidden;
+                }
+
+                .show-log-scope .bundle-param-field {
+                    flex: 0 0 auto;
+                }
+
+                .show-log-scope .bundle-param-field--sm {
+                    width: 100px;
+                }
+
+                .show-log-scope .bundle-param-field--md {
+                    width: 120px;
+                }
+
+                .show-log-scope .bundle-param-field--ceramic {
+                    width: 110px;
+                }
+
+                .show-log-scope .bundle-param-section-fields .badge {
+                    font-size: 0.62rem;
+                    padding: 0.2rem 0.45rem;
+                    letter-spacing: 0.2px;
+                }
+
+                .show-log-scope .bundle-param-empty {
+                    min-width: 96px;
+                    min-height: 36px;
+                    padding: 0 0.75rem;
+                    border: 1px dashed #d1d5db;
+                    border-radius: 0.4rem;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #f8fafc;
+                    color: #9ca3af !important;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                }
+
+                .show-log-scope .bundle-param-worktype-value {
+                    width: 100%;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                @media (max-width: 1199.98px) {
+                    .show-log-scope .bundle-param-item-layout {
+                        min-width: 100%;
+                    }
+                }
+
+                @media (max-width: 991.98px) {
+                    .show-log-scope .bundle-param-item-layout {
+                        grid-template-columns: 1fr;
+                    }
+                }
+
+                .show-log-scope .preview-params-sticky.preview-params-sticky--bundle {
+                    padding: 0.5rem 0.85rem !important;
+                }
+
+                .show-log-scope .preview-params-sticky.preview-params-sticky--bundle .preview-param-row {
+                    gap: 0.45rem !important;
+                }
+
+                .show-log-scope .preview-params-sticky.preview-params-sticky--bundle .preview-param-items-dropdown-inline > .mb-2 {
+                    margin-bottom: 0 !important;
+                }
+
+                .show-log-scope .preview-params-sticky.preview-params-sticky--bundle.preview-params-sticky--bundle-open {
+                    padding: 0.72rem 0.9rem !important;
+                }
+
+                .show-log-scope .preview-params-sticky.preview-params-sticky--bundle.preview-params-sticky--bundle-open .preview-param-items-dropdown-inline > .mb-2 {
+                    margin-bottom: 0.2rem !important;
+                }
+
+                .show-log-scope .preview-params-sticky .preview-param-row label {
+                    font-size: 0.6rem !important;
+                    margin-bottom: 0.2rem !important;
+                    line-height: 1.1;
+                }
+
+                .show-log-scope .preview-params-sticky .preview-param-row .badge {
+                    font-size: 0.5rem !important;
+                    padding: 0.08rem 0.24rem !important;
+                }
+
+                .show-log-scope .preview-params-sticky .preview-param-row .form-control {
+                    min-height: 26px;
+                    font-size: 0.7rem;
+                    padding: 0.12rem 0.28rem !important;
+                    line-height: 1.1;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .show-log-scope .preview-params-sticky .preview-param-row .form-control.text-center {
+                    justify-content: center;
+                }
+
+                .show-log-scope .preview-params-sticky .preview-param-row .input-group-text {
+                    min-height: 26px;
+                    font-size: 0.56rem !important;
+                    padding: 0.1rem 0.24rem !important;
+                    line-height: 1.1;
+                    display: inline-flex;
+                    align-items: center;
+                }
+
+                .show-log-scope .bundle-param-section-fields .badge.bg-danger,
+                .show-log-scope .bundle-param-section-fields .badge.bg-primary,
+                .show-log-scope .bundle-param-section-fields .badge.bg-info,
+                .show-log-scope .bundle-param-section-fields .badge.bg-warning,
+                .show-log-scope .bundle-param-section-fields .badge.text-white,
+                .show-log-scope .bundle-param-section-fields .text-white {
+                    color: #ffffff !important;
+                }
+
+                .show-log-scope .bundle-param-section-fields .badge.bg-light {
+                    color: #475569 !important;
                 }
 
                 /* Match preview detail table styling */
@@ -1373,7 +1848,52 @@
             setTimeout(updateScrollIndicators, 60);
         }
 
+        function bindBundleParamDropdowns() {
+            const wrappers = document.querySelectorAll(
+                '.show-log-scope .preview-param-items-dropdown.preview-param-items-dropdown-inline',
+            );
+
+            wrappers.forEach(function (wrapper) {
+                const toggleBtn = wrapper.querySelector('[data-param-dropdown-toggle="true"]');
+                const menu = wrapper.querySelector('.bundle-param-dropdown-menu');
+                if (!toggleBtn || !menu || toggleBtn.__bundleDropdownBound) return;
+
+                const stickyCard = wrapper.closest('.preview-params-sticky--bundle');
+                const setOpen = function (open) {
+                    menu.classList.toggle('show', open);
+                    wrapper.classList.toggle('show', open);
+                    toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    if (stickyCard) {
+                        stickyCard.classList.toggle('preview-params-sticky--bundle-open', open);
+                    }
+                };
+
+                setOpen(false);
+                toggleBtn.__bundleDropdownBound = true;
+
+                toggleBtn.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const isOpen = menu.classList.contains('show');
+                    setOpen(!isOpen);
+                });
+
+                document.addEventListener('click', function (event) {
+                    if (!wrapper.contains(event.target)) {
+                        setOpen(false);
+                    }
+                });
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape') {
+                        setOpen(false);
+                    }
+                });
+            });
+        }
+
         refreshIndicators();
+        bindBundleParamDropdowns();
         window.addEventListener('resize', refreshIndicators);
     });
 </script>

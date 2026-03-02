@@ -63,6 +63,7 @@ class CatRepository extends BaseRepository
             'store',
             'address',
             'purchase_price',
+            'comparison_price_per_kg',
         ];
 
         // Return empty if field not allowed

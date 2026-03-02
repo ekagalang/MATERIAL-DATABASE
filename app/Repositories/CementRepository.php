@@ -64,6 +64,7 @@ class CementRepository extends BaseRepository
             'dimension_height',
             'package_weight_gross',
             'package_price',
+            'comparison_price_per_kg',
         ];
 
         // Return empty if field not allowed

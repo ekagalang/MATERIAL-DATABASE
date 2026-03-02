@@ -19,6 +19,7 @@ class MaterialLookupSpec
             'dimension_width',
             'dimension_height',
             'price_per_piece',
+            'comparison_price_per_m3',
         ],
         'cement' => [
             'cement_name',
@@ -32,6 +33,7 @@ class MaterialLookupSpec
             'price_unit',
             'package_weight_gross',
             'package_price',
+            'comparison_price_per_kg',
         ],
         'sand' => [
             'type',
@@ -43,6 +45,7 @@ class MaterialLookupSpec
             'dimension_width',
             'dimension_height',
             'package_price',
+            'comparison_price_per_m3',
         ],
         'cat' => [
             'cat_name',
@@ -61,6 +64,7 @@ class MaterialLookupSpec
             'address',
             'price_unit',
             'purchase_price',
+            'comparison_price_per_kg',
         ],
         'ceramic' => [
             'type',
@@ -98,6 +102,7 @@ class MaterialLookupSpec
             'price_unit' => 'price_unit',
             'package_weight_gross' => 'package_weight_gross',
             'package_price' => 'package_price',
+            'comparison_price_per_kg' => 'comparison_price_per_kg',
         ],
     ];
 

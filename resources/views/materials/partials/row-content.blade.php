@@ -20,8 +20,8 @@
     <td class="{{ $stickyClass }}" @if($rowAnchorId) id="{{ $rowAnchorId }}" @endif style="text-align: center; width: 40px; min-width: 40px;">
         {{ $rowNumber }}
     </td>
-    <td style="text-align: left;">{{ $item->type ?? '-' }}</td>
-    <td class="material-brand-cell" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
+    <td class="brick-sticky-col col-type" style="text-align: left;">{{ $item->type ?? '-' }}</td>
+    <td class="material-brand-cell brick-sticky-col col-brand brick-sticky-edge" style="text-align: center;">{{ $item->brand ?? '-' }}</td>
     <td style="text-align: center;">{{ $item->form ?? '-' }}</td>
     <td class="dim-cell border-right-none" style="text-align: center; font-size: 12px; width: 40px; padding: 0 2px;">
         @if(!is_null($item->dimension_length))

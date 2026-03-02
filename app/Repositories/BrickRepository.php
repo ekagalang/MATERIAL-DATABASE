@@ -81,6 +81,7 @@ class BrickRepository extends BaseRepository
             'dimension_width',
             'dimension_height',
             'price_per_piece',
+            'comparison_price_per_m3',
         ];
 
         // Return empty if field not allowed

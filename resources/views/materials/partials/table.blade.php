@@ -476,7 +476,20 @@
             font-weight: 700 !important;
         }
     </style>
-    <div class="table-container text-nowrap material-table-loaded">
+    @php
+        $inlineFormId = 'material-inline-form-' . $material['type'];
+    @endphp
+    <div class="material-table-frame" data-inline-panel="{{ $material['type'] }}">
+        <button type="button"
+            class="material-inline-create-handle open-inline-create"
+            data-inline-type="{{ $material['type'] }}"
+            data-inline-url="{{ route($material['type'] . 's.create') }}"
+            data-inline-store-url="{{ route($material['type'] . 's.store') }}"
+            data-inline-label="{{ $material['label'] }}"
+            title="Tambah {{ $material['label'] }}">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+        <div class="table-container text-nowrap material-table-loaded">
         <table>
             <thead class="{{ in_array($material['type'], ['brick','sand','ceramic']) ? 'has-dim-sub' : 'single-header' }}">
                 @php
@@ -594,8 +607,8 @@
                     @endphp
                         @if($material['type'] == 'brick')
                             <tr class="dim-group-row">
-                                <th rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
-                                <th class="sortable" rowspan="2" style="text-align: left;">
+                                <th class="brick-sticky-col col-no" rowspan="2" style="text-align: center; width: 40px; min-width: 40px;">No</th>
+                                <th class="sortable brick-sticky-col col-type" rowspan="2" style="text-align: left;">
                                     <a href="{{ getMaterialSortUrl('type', request('sort_by'), request('sort_direction'), $sortIsStoreLocation, $sortStore, $sortLocation) }}"
                                         style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                         <span>{{ $brickSortable['type'] }}</span>
@@ -606,7 +619,7 @@
                                         @endif
                                     </a>
                                 </th>
-                                <th class="sortable" rowspan="2" style="text-align: center;">
+                                <th class="sortable brick-sticky-col col-brand brick-sticky-edge" rowspan="2" style="text-align: center;">
                                     <a href="{{ getMaterialSortUrl('brand', request('sort_by'), request('sort_direction'), $sortIsStoreLocation, $sortStore, $sortLocation) }}"
                                         style="color: inherit; text-decoration: none; display: flex; align-items: flex-start; justify-content: center; gap: 6px;">
                                         <span>{{ $brickSortable['brand'] }}</span>
@@ -1294,6 +1307,14 @@
                             $seenAnchors = [];
                         @endphp
                     <tbody>
+                        <tr class="material-inline-editor-row" data-inline-row hidden>
+                            @include('materials.partials.inline-editor-cells', [
+                                'material' => $material,
+                                'showStoreInfo' => $showStoreInfo,
+                                'inlineFormId' => $inlineFormId,
+                                'inlinePackageUnits' => $inlinePackageUnits ?? [],
+                            ])
+                        </tr>
                         @foreach($orderedGroups as $letter => $items)
                             @foreach($items as $item)
                             @php
@@ -1332,23 +1353,52 @@
                                 
                                 $stickyClass = '';
                                 if($material['type'] == 'ceramic') $stickyClass = 'ceramic-sticky-col col-no';
+                                elseif($material['type'] == 'brick') $stickyClass = 'brick-sticky-col col-no';
                                 elseif($material['type'] == 'cat') $stickyClass = 'cat-sticky-col col-no';
                                 elseif(in_array($material['type'], ['cement', 'nat'])) $stickyClass = 'cement-sticky-col';
                                 $rowMaterialType = $item->row_material_type ?? (($item->material_kind ?? null) === 'nat' ? 'nat' : $material['type']);
                             @endphp
-                    <tr data-material-tab="{{ $material['type'] }}" data-material-id="{{ $item->id }}" data-material-kind="{{ $item->type ?? $item->nat_name ?? '' }}" data-material-search="{{ $searchValue }}" data-material-brand-letter="{{ $rowLetter }}">
-                        {{--  ... ROW CONTENT ... --}}
-                        {{--  I will include the row content here but simplified for brevity as it is huge and repetitive in the original file. 
-                              Wait, I need to copy the FULL content to be correct. 
-                              I will copy the exact row logic from the original file.
-                        --}}
+                    <tr data-material-tab="{{ $material['type'] }}"
+                        data-material-id="{{ $item->id }}"
+                        data-material-kind="{{ $item->type ?? $item->nat_name ?? '' }}"
+                        data-material-search="{{ $searchValue }}"
+                        data-material-brand-letter="{{ $rowLetter }}"
+                        data-inline-update-url="{{ route($rowMaterialType . 's.update', $item->id) }}"
+                        data-inline-material-type="{{ $rowMaterialType }}"
+                        data-inline-field-type="{{ $item->type ?? '' }}"
+                        data-inline-field-nat-name="{{ $item->nat_name ?? '' }}"
+                        data-inline-field-brand="{{ $item->brand ?? '' }}"
+                        data-inline-field-sub-brand="{{ $item->sub_brand ?? '' }}"
+                        data-inline-field-form="{{ $item->form ?? '' }}"
+                        data-inline-field-code="{{ $item->code ?? '' }}"
+                        data-inline-field-color="{{ $item->color ?? '' }}"
+                        data-inline-field-color-code="{{ $item->color_code ?? '' }}"
+                        data-inline-field-color-name="{{ $item->color_name ?? '' }}"
+                        data-inline-field-surface="{{ $item->surface ?? '' }}"
+                        data-inline-field-package-type="{{ $item->package_type ?? '' }}"
+                        data-inline-field-package-unit="{{ $item->package_unit ?? '' }}"
+                        data-inline-field-packaging="{{ $item->packaging ?? '' }}"
+                        data-inline-field-dimension-length="{{ $item->dimension_length ?? '' }}"
+                        data-inline-field-dimension-width="{{ $item->dimension_width ?? '' }}"
+                        data-inline-field-dimension-height="{{ $item->dimension_height ?? '' }}"
+                        data-inline-field-dimension-thickness="{{ $item->dimension_thickness ?? '' }}"
+                        data-inline-field-package-volume="{{ $item->package_volume ?? '' }}"
+                        data-inline-field-package-weight-gross="{{ $item->package_weight_gross ?? '' }}"
+                        data-inline-field-package-weight-net="{{ $item->package_weight_net ?? '' }}"
+                        data-inline-field-volume="{{ $item->volume ?? '' }}"
+                        data-inline-field-volume-unit="{{ $item->volume_unit ?? '' }}"
+                        data-inline-field-pieces-per-package="{{ $item->pieces_per_package ?? '' }}"
+                        data-inline-field-coverage-per-package="{{ $item->coverage_per_package ?? '' }}"
+                        data-inline-field-store="{{ $item->store ?? '' }}"
+                        data-inline-field-address="{{ $item->address ?? '' }}"
+                        data-inline-field-price-per-piece="{{ $item->price_per_piece ?? '' }}"
+                        data-inline-field-package-price="{{ $item->package_price ?? '' }}"
+                        data-inline-field-purchase-price="{{ $item->purchase_price ?? '' }}"
+                        data-inline-field-price-per-package="{{ $item->price_per_package ?? '' }}"
+                        data-inline-field-comparison-price-per-m3="{{ $item->comparison_price_per_m3 ?? '' }}"
+                        data-inline-field-comparison-price-per-kg="{{ $item->comparison_price_per_kg ?? '' }}"
+                        data-inline-field-comparison-price-per-m2="{{ $item->comparison_price_per_m2 ?? '' }}">
                         @include('materials.partials.row-content', ['material' => $material, 'item' => $item, 'rowNumber' => $rowNumber, 'stickyClass' => $stickyClass, 'rowAnchorId' => $rowAnchorId])
-                        {{--  Wait, extracting row content to another partial might be better given the size. 
-                              But I can put it inline. 
-                              For now, I will assume the row content is pasted here. 
-                              I'll use the 'replace' tool on index.blade.php so I don't need to rewrite the whole file manually.
-                              But creating the partial requires the content. 
-                        --}}
                         
                         @if($showActions)
                         <td class="text-center action-cell">
@@ -1356,7 +1406,13 @@
                                 <a href="{{ route($rowMaterialType . 's.show', $item->id) }}" class="btn btn-primary-glossy btn-action open-modal" title="Detail">
                                     <i class="bi bi-eye"></i>
                                 </a>
-                                <a href="{{ route($rowMaterialType . 's.edit', $item->id) }}" class="btn btn-warning btn-action open-modal" title="Edit">
+                                {{-- <a href="{{ route($rowMaterialType . 's.edit', $item->id) }}" class="btn btn-warning btn-action open-modal" title="Edit"> --}}
+                                <a href="{{ route($rowMaterialType . 's.edit', $item->id) }}"
+                                    class="btn btn-warning btn-action open-inline-edit"
+                                    data-inline-type="{{ $rowMaterialType }}"
+                                    data-inline-url="{{ route($rowMaterialType . 's.edit', $item->id) }}"
+                                    data-inline-label="{{ $material['label'] }}"
+                                    title="Edit">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
                                 <button type="button"
@@ -1375,6 +1431,13 @@
                 </tbody>
             </table>
         </div>
+        <form id="{{ $inlineFormId }}" data-inline-form method="POST" action="{{ route($material['type'] . 's.store') }}" enctype="multipart/form-data" style="display: none;">
+            @csrf
+            <input type="hidden" name="_method" value="PUT" data-inline-method>
+            <input type="hidden" name="_redirect_url" value="{{ request()->fullUrl() }}">
+            <input type="hidden" name="_redirect_to_materials" value="1">
+        </form>
+    </div>
 
         <div class="material-footer-sticky">
 

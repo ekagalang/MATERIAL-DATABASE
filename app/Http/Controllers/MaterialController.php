@@ -9,6 +9,7 @@ use App\Models\Ceramic;
 use App\Models\MaterialSetting;
 use App\Models\Nat;
 use App\Models\Sand;
+use App\Models\Unit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -62,7 +63,9 @@ class MaterialController extends Controller
             ];
         }
 
-        return view('materials.index', compact('materials', 'allSettings', 'grandTotal'));
+        $inlinePackageUnits = $this->getInlinePackageUnits();
+
+        return view('materials.index', compact('materials', 'allSettings', 'grandTotal', 'inlinePackageUnits'));
     }
 
     public function fetchTab(Request $request, $type)
@@ -99,7 +102,43 @@ class MaterialController extends Controller
             'is_loaded' => true,
         ];
 
-        return view('materials.partials.table', compact('material', 'grandTotal'));
+        $inlinePackageUnits = $this->getInlinePackageUnits();
+
+        return view('materials.partials.table', compact('material', 'grandTotal', 'inlinePackageUnits'));
+    }
+
+    private function getInlinePackageUnits(): array
+    {
+        $loadUnits = static function (string $materialType): Collection {
+            return Unit::forMaterial($materialType)
+                ->orderBy('code')
+                ->get(['code', 'name', 'package_weight'])
+                ->map(function (Unit $unit): array {
+                    return [
+                        'code' => (string) $unit->code,
+                        'name' => (string) ($unit->name ?? ''),
+                        'package_weight' => $unit->package_weight,
+                    ];
+                })
+                ->values();
+        };
+
+        $catUnits = $loadUnits('cat');
+        $cementUnits = $loadUnits('cement');
+        $natUnits = $loadUnits('nat');
+        $sandUnits = $loadUnits('sand');
+
+        $mergedCementUnits = $cementUnits
+            ->concat($natUnits)
+            ->unique('code')
+            ->values();
+
+        return [
+            'cat' => $catUnits,
+            'cement' => $mergedCementUnits,
+            'nat' => $natUnits,
+            'sand' => $sandUnits,
+        ];
     }
 
     private function normalizeDisplayMaterialType(string $type): string
