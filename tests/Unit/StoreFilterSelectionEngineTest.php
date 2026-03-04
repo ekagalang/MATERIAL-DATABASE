@@ -262,3 +262,78 @@ test('store filter engine all filter expands and remains compatible with topk mo
 
     config()->set('materials.topk_buffer_enabled', false);
 });
+
+test('store filter engine bundle variant mode keeps extra candidate pool per rank label', function () {
+    $repository = new CalculationRepository();
+    $selection = new MaterialSelectionService($repository);
+    $proximity = new StoreProximityService();
+
+    $service = new class($repository, $selection, $proximity) extends CombinationGenerationService
+    {
+        public function exposeBuildStoreFilteredResults(array $candidates, array $requestData, array $requiredMaterials): array
+        {
+            return $this->buildStoreFilteredResults($candidates, $requestData, $requiredMaterials);
+        }
+    };
+
+    $candidates = [
+        makeStoreCandidate(100000, 1, 10, 100, 'Store A'),
+        makeStoreCandidate(110000, 2, 11, 101, 'Store A'),
+        makeStoreCandidate(120000, 3, 12, 102, 'Store A'),
+        makeStoreCandidate(130000, 4, 13, 103, 'Store A'),
+        makeStoreCandidate(140000, 5, 14, 104, 'Store A'),
+        makeStoreCandidate(150000, 6, 15, 105, 'Store A'),
+    ];
+
+    config()->set('materials.topk_buffer_enabled', false);
+    $result = $service->exposeBuildStoreFilteredResults($candidates, [
+        'work_type' => 'brick_half',
+        'price_filters' => ['cheapest'],
+        'bundle_variant_mode' => true,
+        'bundle_store_variant_limit' => 6,
+    ], ['brick', 'cement', 'sand']);
+
+    expect(isset($result['Ekonomis 1']))->toBeTrue();
+    expect(count($result['Ekonomis 1']))->toBeGreaterThan(1);
+    expect(isset($result['Ekonomis 2']))->toBeTrue();
+    expect(count($result['Ekonomis 2']))->toBeGreaterThan(1);
+});
+
+test('store filter engine bundle variant mode is not capped by topk capacity 3', function () {
+    $repository = new CalculationRepository();
+    $selection = new MaterialSelectionService($repository);
+    $proximity = new StoreProximityService();
+
+    $service = new class($repository, $selection, $proximity) extends CombinationGenerationService
+    {
+        public function exposeBuildStoreFilteredResults(array $candidates, array $requestData, array $requiredMaterials): array
+        {
+            return $this->buildStoreFilteredResults($candidates, $requestData, $requiredMaterials);
+        }
+    };
+
+    $candidates = [
+        makeStoreCandidate(100000, 1, 10, 100, 'Store A'),
+        makeStoreCandidate(110000, 2, 11, 101, 'Store B'),
+        makeStoreCandidate(120000, 3, 12, 102, 'Store C'),
+        makeStoreCandidate(130000, 4, 13, 103, 'Store D'),
+        makeStoreCandidate(140000, 5, 14, 104, 'Store E'),
+        makeStoreCandidate(150000, 6, 15, 105, 'Store F'),
+    ];
+
+    config()->set('materials.topk_buffer_enabled', true);
+    config()->set('materials.topk_buffer_filters', ['cheapest', 'medium', 'expensive']);
+    config()->set('materials.topk_capacity_per_label', 3);
+
+    $result = $service->exposeBuildStoreFilteredResults($candidates, [
+        'work_type' => 'brick_half',
+        'price_filters' => ['cheapest'],
+        'bundle_variant_mode' => true,
+        'bundle_store_variant_limit' => 6,
+    ], ['brick', 'cement', 'sand']);
+
+    expect(isset($result['Ekonomis 1']))->toBeTrue();
+    expect(count($result['Ekonomis 1']))->toBeGreaterThan(3);
+
+    config()->set('materials.topk_buffer_enabled', false);
+});

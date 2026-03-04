@@ -911,6 +911,14 @@ class CombinationGenerationService
         // legacy material rows that don't have store_location_id mapping.
         $allowStoreNameFallback = true;
         $allowMixedStore = $request->boolean('allow_mixed_store', false);
+        $bundleVariantMode = $request->boolean('bundle_variant_mode', false);
+        $bundleStoreVariantLimit = max(
+            3,
+            min(20, (int) $request->input('bundle_store_variant_limit', 8)),
+        );
+        $bundleLocalCombinationLimit = $bundleVariantMode
+            ? max(20, min(60, $bundleStoreVariantLimit * 2))
+            : 10;
         $storeRadiusScope = strtolower(trim((string) $request->input('store_radius_scope', 'within')));
         if (!in_array($storeRadiusScope, ['within', 'outside'], true)) {
             $storeRadiusScope = 'within';
@@ -946,29 +954,37 @@ class CombinationGenerationService
                 false,
             );
 
-            // Radius is owned by the project now:
-            // - primary radius: preferred boundary
-            // - final radius: hard cap (must be respected)
-            $rankedLocations = $rankedLocations
-                ->filter(function (array $row) use ($projectRadiusFinalKm): bool {
-                    if (!isset($row['distance_km']) || !is_numeric($row['distance_km'])) {
-                        return false;
-                    }
+            // Radius cap only applies to complete/single-store mode.
+            // In mixed/incomplete mode we must keep nearest-first search across all stores
+            // until missing materials are covered.
+            if (!$allowMixedStore) {
+                // Radius is owned by the project now:
+                // - primary radius: preferred boundary
+                // - final radius: hard cap (must be respected)
+                $rankedLocations = $rankedLocations
+                    ->filter(function (array $row) use ($projectRadiusFinalKm): bool {
+                        if (!isset($row['distance_km']) || !is_numeric($row['distance_km'])) {
+                            return false;
+                        }
 
-                    return (float) $row['distance_km'] <= $projectRadiusFinalKm;
-                })
-                ->values();
+                        return (float) $row['distance_km'] <= $projectRadiusFinalKm;
+                    })
+                    ->values();
+            }
 
-            if ($storeRadiusScope === 'outside' && !$allowMixedStore) {
-                // Complete Outside Radius: only stores beyond primary radius, but still inside final cap.
+            if ($storeRadiusScope === 'within' && !$allowMixedStore) {
+                // Complete Within Radius: only stores inside primary radius.
                 $rankedLocations = $rankedLocations
                     ->filter(function (array $row) use ($projectRadiusPrimaryKm): bool {
                         return isset($row['distance_km']) &&
                             is_numeric($row['distance_km']) &&
-                            (float) $row['distance_km'] > $projectRadiusPrimaryKm;
+                            (float) $row['distance_km'] <= $projectRadiusPrimaryKm;
                     })
                     ->values();
             }
+
+            // Complete Outside Radius now uses project center up to final radius
+            // (same origin as primary radius, without ring exclusion).
         }
 
         if ($rankedLocations->isEmpty()) {
@@ -1104,7 +1120,7 @@ class CombinationGenerationService
                 $storeMaterials['ceramic'],
                 $storeMaterials['nat'],
                 'Store: ' . $location->store->name,
-                10,
+                $bundleLocalCombinationLimit,
             );
 
             if (empty($localResults)) {
@@ -1141,6 +1157,62 @@ class CombinationGenerationService
                     $allStoreCombinations[] = $result;
                 }
             } else {
+                if ($bundleVariantMode) {
+                    $selectedLocalVariants = [];
+                    $seenLocalSignatures = [];
+                    foreach ($localResults as $variantIndex => $localResult) {
+                        if (!is_array($localResult)) {
+                            continue;
+                        }
+                        $variantIds = [
+                            'brick' => in_array('brick', $requiredMaterials, true)
+                                ? (int) (($localResult['brick']->id ?? $selectedBrickForLocation?->id) ?? 0)
+                                : 0,
+                            'cement' => in_array('cement', $requiredMaterials, true)
+                                ? (int) ($localResult['cement']->id ?? 0)
+                                : 0,
+                            'sand' => in_array('sand', $requiredMaterials, true)
+                                ? (int) ($localResult['sand']->id ?? 0)
+                                : 0,
+                            'cat' => in_array('cat', $requiredMaterials, true)
+                                ? (int) ($localResult['cat']->id ?? 0)
+                                : 0,
+                            'ceramic' => in_array('ceramic', $requiredMaterials, true)
+                                ? (int) ($localResult['ceramic']->id ?? 0)
+                                : 0,
+                            'nat' => in_array('nat', $requiredMaterials, true)
+                                ? (int) ($localResult['nat']->id ?? 0)
+                                : 0,
+                        ];
+                        $variantSignature = $this->buildMaterialSignature($variantIds, $requiredMaterials);
+                        if ($variantSignature !== '' && isset($seenLocalSignatures[$variantSignature])) {
+                            continue;
+                        }
+                        if ($variantSignature !== '') {
+                            $seenLocalSignatures[$variantSignature] = true;
+                        }
+
+                        $variant = $localResult;
+                        $variant['store_label'] = $variantIndex === 0
+                            ? $storeLabelBase . ' [Hemat]'
+                            : $storeLabelBase . ' [Varian ' . ($variantIndex + 1) . ']';
+                        $variant['store_location'] = $location;
+                        $variant['store_plan'] = $singleStorePlan;
+                        $variant['store_coverage_mode'] = 'single_store';
+                        $variant['store_cost_breakdown'] = $this->buildStoreCostBreakdown($variant, $singleStorePlan);
+                        $selectedLocalVariants[] = $variant;
+
+                        if (count($selectedLocalVariants) >= $bundleStoreVariantLimit) {
+                            break;
+                        }
+                    }
+
+                    foreach ($selectedLocalVariants as $variantRow) {
+                        $allStoreCombinations[] = $variantRow;
+                    }
+                    continue;
+                }
+
                 // 1. CHEAPEST Champion
                 $cheapest = $localResults[0];
                 $cheapest['store_label'] = $storeLabelBase . ' [Hemat]';
@@ -1187,7 +1259,7 @@ class CombinationGenerationService
                     $selectedMaterials['ceramic'] ?? collect(),
                     $selectedMaterials['nat'] ?? collect(),
                     'Store: Gabungan Toko Terdekat',
-                    10,
+                    $bundleLocalCombinationLimit,
                 );
 
                 $localResults = $this->injectStoreBrickIntoResults(
@@ -1890,16 +1962,25 @@ class CombinationGenerationService
             );
         }
 
+        $bundleVariantMode = (bool) ($requestData['bundle_variant_mode'] ?? false);
+        $bundleVariantPoolLimit = max(
+            3,
+            min(20, (int) ($requestData['bundle_store_variant_limit'] ?? 8)),
+        );
+        $useTopKStoreLabelSelection = !$bundleVariantMode;
+
         $finalResults = [];
-        $storeFilterLimit = 3;
+        $storeFilterLimit = $bundleVariantMode ? $bundleVariantPoolLimit : 3;
         $topkStats = [];
         $topkStart = microtime(true);
         $costTopKBatch = [];
         $costTopKBatchFilters = [];
 
-        foreach (['cheapest', 'expensive'] as $costFilter) {
-            if (in_array($costFilter, $requestedFilters, true) && $this->topkBufferAppliesTo($costFilter)) {
-                $costTopKBatchFilters[] = $costFilter;
+        if ($useTopKStoreLabelSelection) {
+            foreach (['cheapest', 'expensive'] as $costFilter) {
+                if (in_array($costFilter, $requestedFilters, true) && $this->topkBufferAppliesTo($costFilter)) {
+                    $costTopKBatchFilters[] = $costFilter;
+                }
             }
         }
 
@@ -1921,17 +2002,36 @@ class CombinationGenerationService
             $preferensi = $this->selectStorePreferensiCandidates($candidates, $requestData, $requiredMaterials);
             $finalResults = array_merge(
                 $finalResults,
-                $this->mapCandidatesToRankedLabels($preferensi, 'Preferensi', 'best'),
+                $this->mapCandidatesToRankedLabels(
+                    $preferensi,
+                    'Preferensi',
+                    'best',
+                    3,
+                    false,
+                ),
             );
         }
 
         if (in_array('common', $requestedFilters, true)) {
             $popular = $this->selectStorePopularCandidates($candidates, $requestData, $requiredMaterials);
-            $finalResults = array_merge($finalResults, $this->mapCandidatesToRankedLabels($popular, 'Populer', 'common'));
+            $finalResults = array_merge(
+                $finalResults,
+                $this->mapCandidatesToRankedLabels(
+                    $popular,
+                    'Populer',
+                    'common',
+                    3,
+                    false,
+                ),
+            );
         }
 
         if (in_array('cheapest', $requestedFilters, true)) {
-            if (isset($costTopKBatch['cheapest']) && is_array($costTopKBatch['cheapest'])) {
+            if (
+                $useTopKStoreLabelSelection &&
+                isset($costTopKBatch['cheapest']) &&
+                is_array($costTopKBatch['cheapest'])
+            ) {
                 $topk = $costTopKBatch['cheapest'];
                 $cheapest = $topk['candidates'];
             } else {
@@ -1939,12 +2039,19 @@ class CombinationGenerationService
             }
             $finalResults = array_merge(
                 $finalResults,
-                $this->mapCandidatesToRankedLabels($cheapest, 'Ekonomis', 'cheapest'),
+                $this->mapCandidatesToRankedLabels(
+                    $cheapest,
+                    'Ekonomis',
+                    'cheapest',
+                    3,
+                    $bundleVariantMode,
+                    $bundleVariantPoolLimit,
+                ),
             );
         }
 
         if (in_array('medium', $requestedFilters, true)) {
-            if ($this->topkBufferAppliesTo('medium')) {
+            if ($useTopKStoreLabelSelection && $this->topkBufferAppliesTo('medium')) {
                 $topk = $this->applyTopKBufferToAverageStoreCandidates(
                     $candidates,
                     $storeFilterLimit,
@@ -1955,11 +2062,25 @@ class CombinationGenerationService
             } else {
                 $average = $this->selectAverageStoreCandidates($candidates, $storeFilterLimit);
             }
-            $finalResults = array_merge($finalResults, $this->mapCandidatesToRankedLabels($average, 'Average', 'medium'));
+            $finalResults = array_merge(
+                $finalResults,
+                $this->mapCandidatesToRankedLabels(
+                    $average,
+                    'Average',
+                    'medium',
+                    3,
+                    $bundleVariantMode,
+                    $bundleVariantPoolLimit,
+                ),
+            );
         }
 
         if (in_array('expensive', $requestedFilters, true)) {
-            if (isset($costTopKBatch['expensive']) && is_array($costTopKBatch['expensive'])) {
+            if (
+                $useTopKStoreLabelSelection &&
+                isset($costTopKBatch['expensive']) &&
+                is_array($costTopKBatch['expensive'])
+            ) {
                 $topk = $costTopKBatch['expensive'];
                 $expensive = $topk['candidates'];
             } else {
@@ -1967,7 +2088,14 @@ class CombinationGenerationService
             }
             $finalResults = array_merge(
                 $finalResults,
-                $this->mapCandidatesToRankedLabels($expensive, 'Termahal', 'expensive'),
+                $this->mapCandidatesToRankedLabels(
+                    $expensive,
+                    'Termahal',
+                    'expensive',
+                    3,
+                    $bundleVariantMode,
+                    $bundleVariantPoolLimit,
+                ),
             );
         }
 
@@ -1989,7 +2117,14 @@ class CombinationGenerationService
         // Fallback defensif: tetap berikan hasil ekonomis jika filter tidak dikenali.
         $fallback = $this->selectCheapestStoreCandidates($candidates);
 
-        return $this->mapCandidatesToRankedLabels($fallback, 'Ekonomis', 'cheapest');
+        return $this->mapCandidatesToRankedLabels(
+            $fallback,
+            'Ekonomis',
+            'cheapest',
+            3,
+            $bundleVariantMode,
+            $bundleVariantPoolLimit,
+        );
     }
 
     protected function mapCandidatesToRankedLabels(
@@ -1997,16 +2132,41 @@ class CombinationGenerationService
         string $prefix,
         string $filterType,
         int $limit = 3,
+        bool $bundleVariantMode = false,
+        int $bundleVariantPoolLimit = 3,
     ): array {
         $results = [];
-        $rank = 1;
+        $limit = max(1, $limit);
 
-        foreach (array_slice($candidates, 0, $limit) as $candidate) {
+        if (!$bundleVariantMode) {
+            $rank = 1;
+            foreach (array_slice($candidates, 0, $limit) as $candidate) {
+                $label = $prefix . ' ' . $rank;
+                $candidate['filter_label'] = $label;
+                $candidate['filter_type'] = $filterType;
+                $results[$label] = [$candidate];
+                $rank++;
+            }
+
+            return $results;
+        }
+
+        $poolLimit = max($limit, min(50, $bundleVariantPoolLimit));
+        for ($rank = 1; $rank <= $limit; $rank++) {
             $label = $prefix . ' ' . $rank;
-            $candidate['filter_label'] = $label;
-            $candidate['filter_type'] = $filterType;
-            $results[$label] = [$candidate];
-            $rank++;
+            $start = max(0, $rank - 1);
+            $rows = [];
+            foreach (array_slice($candidates, $start, $poolLimit) as $candidate) {
+                if (!is_array($candidate)) {
+                    continue;
+                }
+                $candidate['filter_label'] = $label;
+                $candidate['filter_type'] = $filterType;
+                $rows[] = $candidate;
+            }
+            if (!empty($rows)) {
+                $results[$label] = $rows;
+            }
         }
 
         return $results;
@@ -3437,7 +3597,14 @@ class CombinationGenerationService
         // If limit is set, use bounded buffer to save memory
         if ($limit) {
             if ($this->topkBufferEnabled()) {
-                $topk = $this->collectTopKGeneratedCombinations($generator, $limit, $sortDesc);
+                $isBundleVariantMode = (bool) ($request['bundle_variant_mode'] ?? false);
+                $topkCapacityOverride = $isBundleVariantMode ? $limit : null;
+                $topk = $this->collectTopKGeneratedCombinations(
+                    $generator,
+                    $limit,
+                    $sortDesc,
+                    $topkCapacityOverride,
+                );
                 if ($this->shouldLogTopkBufferDebug()) {
                     Log::info('Generator TopK buffer stats', [
                         'group_label' => $groupLabel,
@@ -3490,9 +3657,17 @@ class CombinationGenerationService
      * @param  iterable<int, array<string, mixed>>  $generator
      * @return array{items: array<int, array<string, mixed>>, stats: array<string, mixed>}
      */
-    protected function collectTopKGeneratedCombinations(iterable $generator, int $limit, bool $sortDesc): array
+    protected function collectTopKGeneratedCombinations(
+        iterable $generator,
+        int $limit,
+        bool $sortDesc,
+        ?int $capacityOverride = null,
+    ): array
     {
         $capacity = max(1, min($limit, $this->topkBufferCapacity()));
+        if (is_int($capacityOverride) && $capacityOverride > 0) {
+            $capacity = max($capacity, min($limit, $capacityOverride));
+        }
         $policy = $sortDesc
             ? [
                 'isBetter' => static fn(array $new, array $old): bool =>

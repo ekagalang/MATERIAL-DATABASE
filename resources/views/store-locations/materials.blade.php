@@ -1531,9 +1531,9 @@ document.addEventListener('DOMContentLoaded', function() {
         allTabButtons.forEach(btn => {
             const tabType = btn.getAttribute('data-tab');
             if (checkedMaterials.includes(tabType)) {
-                btn.style.display = 'inline-flex';
+                btn.style.setProperty('display', 'inline-flex', 'important');
             } else {
-                btn.style.display = 'none';
+                btn.style.setProperty('display', 'none', 'important');
             }
         });
 

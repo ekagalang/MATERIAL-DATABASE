@@ -5,6 +5,15 @@
  */
 
 document.addEventListener('DOMContentLoaded', function() {
+    function isExpressionEnabledInput(input) {
+        if (!(input instanceof HTMLInputElement)) return false;
+        const attr = String(input.getAttribute('data-allow-expression') || '').trim();
+        return attr === '1' || attr.toLowerCase() === 'true';
+    }
+
+    function hasArithmeticOperator(value) {
+        return /[+\-*/xX×÷:()]/.test(String(value || ''));
+    }
 
     function parseDecimal(value) {
         if (value === null || value === undefined) return NaN;
@@ -64,6 +73,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function sanitizePaste(e) {
         const input = e.target;
+        if (isExpressionEnabledInput(input)) {
+            return;
+        }
         
         // Target hanya input yang relevan:
         // 1. type="number"
@@ -139,6 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const inputs = form.querySelectorAll('input');
         inputs.forEach((input) => {
             if (input.disabled) return;
+            if (isExpressionEnabledInput(input)) return;
 
             const id = input.id || '';
             const name = input.name || '';
@@ -151,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!isNumericField) return;
             if (!input.value) return;
+            if (hasArithmeticOperator(input.value)) return;
 
             const parsed = parseDecimal(input.value);
             if (isNaN(parsed)) return;

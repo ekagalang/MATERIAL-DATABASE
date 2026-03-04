@@ -163,6 +163,16 @@
                 let previewFingerprint = '';
                 let previewUiFingerprint = '';
                 try {
+                    const cachedSessionRaw = localStorage.getItem('materialCalculationSession');
+                    const cachedSession = cachedSessionRaw ? JSON.parse(cachedSessionRaw) : null;
+                    const cachedExpressionState = cachedSession?.data?.dimension_expression_state;
+                    if (cachedExpressionState && typeof cachedExpressionState === 'object') {
+                        sessionPayload.dimension_expression_state = cachedExpressionState;
+                    }
+                } catch (error) {
+                    // noop
+                }
+                try {
                     const pendingRaw = localStorage.getItem(previewPendingKey);
                     const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
                     const pendingUpdatedAt = Number(pending?.updatedAt || 0);

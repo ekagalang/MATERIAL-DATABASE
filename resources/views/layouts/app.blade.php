@@ -1615,12 +1615,19 @@
 
         // Global Validation for Dimension and Weight Inputs
         document.addEventListener('DOMContentLoaded', function() {
+            function isExpressionEnabledField(target) {
+                if (!(target instanceof HTMLInputElement)) return false;
+                const flag = String(target.getAttribute('data-allow-expression') || '').trim().toLowerCase();
+                return flag === '1' || flag === 'true';
+            }
+
             // Event delegation to handle both static and dynamic (modal) forms
             document.body.addEventListener('keydown', function(e) {
                 const target = e.target;
                 
                 // Only targeting input elements
                 if (target.tagName !== 'INPUT') return;
+                if (isExpressionEnabledField(target)) return;
 
                 // Identify target fields: type="number" OR fields with specific keywords in ID/Name
                 // Keywords: dimension, weight, berat, panjang, lebar, tinggi, volume, price, harga
@@ -1674,6 +1681,7 @@
                 if (e.defaultPrevented) return;
                 const target = e.target;
                 if (target.tagName !== 'INPUT') return;
+                if (isExpressionEnabledField(target)) return;
 
                 const isNumericField = target.type === 'number' ||
                                        target.inputMode === 'numeric' ||

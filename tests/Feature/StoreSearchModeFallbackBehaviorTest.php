@@ -223,3 +223,94 @@ test('mixed store mode uses brick from covered in-radius store instead of origin
     expect($result['Ekonomis 1'][0]['store_coverage_mode'] ?? null)->toBe('nearest_radius_chain');
     expect($result['Ekonomis 1'][0]['brick']->id ?? null)->toBe($localBrick->id);
 });
+
+test('mixed store mode keeps searching nearest stores outside radius until missing materials are covered', function () {
+    $storeNear = Store::create(['name' => 'Toko Near']);
+    $storeFar = Store::create(['name' => 'Toko Far']);
+
+    $nearLocation = StoreLocation::create([
+        'store_id' => $storeNear->id,
+        'city' => 'Near',
+        'latitude' => -6.2000,
+        'longitude' => 106.8000,
+        'service_radius_km' => 10,
+    ]);
+
+    $farLocation = StoreLocation::create([
+        'store_id' => $storeFar->id,
+        'city' => 'Far',
+        'latitude' => -6.2300,
+        'longitude' => 106.8000,
+        'service_radius_km' => 10,
+    ]);
+
+    Cement::factory()->create([
+        'store' => $storeNear->name,
+        'store_location_id' => $nearLocation->id,
+    ]);
+
+    Sand::factory()->create([
+        'store' => $storeFar->name,
+        'store_location_id' => $farLocation->id,
+    ]);
+
+    $repository = new CalculationRepository();
+    $materialSelection = new MaterialSelectionService($repository);
+    $storeProximity = new StoreProximityService();
+
+    $service = new class($repository, $materialSelection, $storeProximity) extends CombinationGenerationService
+    {
+        public function calculateCombinationsFromMaterials(
+            Brick $brick,
+            array $request,
+            iterable $cements,
+            iterable $sands,
+            ?iterable $cats = null,
+            ?iterable $ceramics = null,
+            ?iterable $nats = null,
+            string $groupLabel = 'Kombinasi',
+            ?int $limit = null,
+        ): array {
+            if (collect($cements)->isEmpty() || collect($sands)->isEmpty()) {
+                return [];
+            }
+
+            return [[
+                'result' => [
+                    'grand_total' => 90000,
+                    'total_cement_price' => 50000,
+                    'total_sand_price' => 40000,
+                ],
+                'total_cost' => 90000,
+                'filter_type' => $groupLabel,
+            ]];
+        }
+    };
+
+    $request = new Request([
+        'work_type' => 'wall_plastering',
+        'use_store_filter' => 1,
+        'allow_mixed_store' => 1,
+        'store_radius_scope' => 'within',
+        // Radius sengaja kecil agar toko jauh berada di luar radius.
+        'project_store_radius_km' => 0.5,
+        'project_store_radius_final_km' => 0.5,
+        'project_latitude' => -6.1980,
+        'project_longitude' => 106.8000,
+        'wall_length' => 3,
+        'wall_height' => 3,
+        'mortar_thickness' => 1,
+        'installation_type_id' => 1,
+        'mortar_formula_id' => 1,
+    ]);
+
+    $result = $service->calculateCombinations($request, []);
+
+    expect($result)->not->toBeEmpty();
+    expect($result['Ekonomis 1'][0]['store_coverage_mode'] ?? null)->toBe('nearest_radius_chain');
+    $storePlan = $result['Ekonomis 1'][0]['store_plan'] ?? [];
+    expect(is_array($storePlan))->toBeTrue();
+    expect(count($storePlan))->toBe(2);
+    expect(($storePlan[0]['store_location_id'] ?? null))->toBe($nearLocation->id);
+    expect(($storePlan[1]['store_location_id'] ?? null))->toBe($farLocation->id);
+});

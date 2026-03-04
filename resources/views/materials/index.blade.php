@@ -308,6 +308,9 @@ html.materials-booting .page-content {
   .material-inline-editor-row[data-inline-mode="edit"] .ceramic-sticky-col {
       background: var(--inline-row-bg) !important;
   }
+  .material-inline-source-row-hidden {
+      display: none !important;
+  }
   .material-inline-row-no {
       font-weight: 700;
       color: #92400e;
@@ -2022,9 +2025,9 @@ document.addEventListener('DOMContentLoaded', function() {
         allTabButtons.forEach(btn => {
             const tabType = btn.getAttribute('data-tab');
             if (checkedMaterials.includes(tabType)) {
-                btn.style.display = 'inline-flex';
+                btn.style.setProperty('display', 'inline-flex', 'important');
             } else {
-                btn.style.display = 'none';
+                btn.style.setProperty('display', 'none', 'important');
             }
         });
 
@@ -2409,6 +2412,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const inlineEditorState = {
         row: null,
         panel: null,
+        sourceRow: null,
     };
 
     function getInlineEditorPanel(materialType) {
@@ -2449,12 +2453,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return value;
         }
 
-        const parsed = parseInlineNumeric(value);
+        const parsed = parseInlinePriceInteger(value);
         if (!Number.isFinite(parsed)) {
             return value;
         }
 
-        return formatInlineNumeric(parsed, 0);
+        return formatInlineGroupedInteger(parsed);
     }
 
     function normalizeInlineNumericDisplayValue(rawValue) {
@@ -2472,6 +2476,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         return formatInlineNumeric(parsed, 6);
+    }
+
+    function formatInlineGroupedInteger(value) {
+        if (!Number.isFinite(value)) return '';
+        const rounded = Math.round(value);
+        return new Intl.NumberFormat('id-ID', {
+            maximumFractionDigits: 0,
+            useGrouping: true
+        }).format(rounded);
+    }
+
+    function normalizeInlinePriceFieldInput(input) {
+        if (!input) return;
+        const fieldName = input.getAttribute('data-inline-field') || '';
+        if (!INLINE_INTEGER_PRICE_FIELDS.has(fieldName)) return;
+
+        const rawValue = (input.value ?? '').toString().trim();
+        if (!rawValue) {
+            input.value = '';
+            return;
+        }
+
+        const parsed = parseInlinePriceInteger(rawValue);
+        if (!Number.isFinite(parsed)) return;
+        input.value = formatInlineGroupedInteger(parsed);
+    }
+
+    function normalizeInlinePriceFieldsForSubmit(row) {
+        if (!row) return;
+        row.querySelectorAll('[data-inline-field]').forEach((field) => {
+            const fieldName = field.getAttribute('data-inline-field') || '';
+            if (!INLINE_INTEGER_PRICE_FIELDS.has(fieldName)) return;
+            const parsed = parseInlinePriceInteger(field.value);
+            field.value = Number.isFinite(parsed) ? formatInlineNumeric(parsed, 0) : '';
+        });
+    }
+
+    function parseInlinePriceInteger(rawValue) {
+        if (rawValue === null || rawValue === undefined) return NaN;
+        const raw = String(rawValue).trim();
+        if (!raw) return NaN;
+
+        const negative = raw.startsWith('-');
+        const digits = raw.replace(/\D/g, '');
+        if (!digits) return NaN;
+
+        const parsed = Number(`${negative ? '-' : ''}${digits}`);
+        return Number.isFinite(parsed) ? parsed : NaN;
     }
 
     function normalizeInlineAutocompleteValue(fieldName, rawValue) {
@@ -2599,6 +2651,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function hideInlineSourceRow(sourceRow) {
+        if (!sourceRow) return;
+        sourceRow.classList.add('material-inline-source-row-hidden');
+    }
+
+    function showInlineSourceRow(sourceRow) {
+        if (!sourceRow) return;
+        sourceRow.classList.remove('material-inline-source-row-hidden');
+    }
+
     async function closeInlineEditor() {
         if (!inlineEditorState.row) return true;
 
@@ -2619,6 +2681,7 @@ document.addEventListener('DOMContentLoaded', function() {
         syncNatNameField(row);
         row.dataset.inlineMode = '';
         row.__inlineInitialValues = null;
+        showInlineSourceRow(inlineEditorState.sourceRow);
 
         const tbody = row.closest('tbody');
         if (tbody) {
@@ -2627,6 +2690,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         inlineEditorState.row = null;
         inlineEditorState.panel = null;
+        inlineEditorState.sourceRow = null;
         return true;
     }
 
@@ -2666,6 +2730,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 if (!confirmed) return;
                 showLoadingState(form);
+                normalizeInlinePriceFieldsForSubmit(row);
                 row.__inlineInitialValues = captureInlineRowValues(row);
                 row.dataset.inlineMode = '';
                 HTMLFormElement.prototype.submit.call(form);
@@ -2963,7 +3028,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 str = str.replace(/,/g, '');
             }
         } else if (hasComma) {
-            str = str.replace(/,/g, '.');
+            if (/^-?\d{1,3}(,\d{3})+$/.test(str)) {
+                str = str.replace(/,/g, '');
+            } else {
+                str = str.replace(/,/g, '.');
+            }
+        } else if (hasDot) {
+            if (/^-?\d{1,3}(\.\d{3})+$/.test(str)) {
+                str = str.replace(/\./g, '');
+            }
         }
         str = str.replace(/[^0-9.-]/g, '');
         const parsed = Number(str);
@@ -2984,7 +3057,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function setInlineFieldNumeric(row, fieldName, value, decimals = 4) {
         const field = getInlineField(row, fieldName);
         if (!field) return;
-        field.value = Number.isFinite(value) ? formatInlineNumeric(value, decimals) : '';
+        field.value = Number.isFinite(value)
+            ? normalizeInlineInputValue(fieldName, formatInlineNumeric(value, decimals))
+            : '';
     }
 
     function getInlineFieldNumeric(row, fieldName) {
@@ -3012,10 +3087,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
             input.addEventListener('input', () => {
+                normalizeInlinePriceFieldInput(input);
                 markEdited();
                 recalculate();
             });
             input.addEventListener('change', () => {
+                normalizeInlinePriceFieldInput(input);
                 markEdited();
                 recalculate();
             });
@@ -3282,10 +3359,19 @@ document.addEventListener('DOMContentLoaded', function() {
             const closed = await closeInlineEditor();
             if (!closed) return;
         }
+        if (inlineEditorState.sourceRow && inlineEditorState.sourceRow !== sourceRow) {
+            showInlineSourceRow(inlineEditorState.sourceRow);
+        }
 
         const tbody = inlineRow.closest('tbody');
-        if (tbody && tbody.firstElementChild !== inlineRow) {
-            tbody.insertBefore(inlineRow, tbody.firstElementChild);
+        if (tbody) {
+            if (action === 'edit' && sourceRow && sourceRow.parentElement === tbody) {
+                // Keep editor near the row being edited instead of jumping to top.
+                tbody.insertBefore(inlineRow, sourceRow);
+                hideInlineSourceRow(sourceRow);
+            } else if (tbody.firstElementChild !== inlineRow) {
+                tbody.insertBefore(inlineRow, tbody.firstElementChild);
+            }
         }
 
         resetInlineRowFields(inlineRow);
@@ -3303,6 +3389,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         inlineEditorState.row = inlineRow;
         inlineEditorState.panel = panel;
+        inlineEditorState.sourceRow = action === 'edit' ? sourceRow : null;
 
         const endpointMaterialType = action === 'edit' && sourceRow
             ? (sourceRow.getAttribute('data-inline-material-type') || materialType)

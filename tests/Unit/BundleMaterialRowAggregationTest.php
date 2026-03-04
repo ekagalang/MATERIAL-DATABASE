@@ -115,3 +115,48 @@ test('bundle material rows merge only when material attributes are identical', f
         ->and((float) $cementRows[0]['qty'])->toBe(3.0)
         ->and((float) $cementRows[0]['total_price'])->toBe(180000.0);
 });
+
+test('bundle material rows in single-store mode display store from selected store plan', function () {
+    $repo = Mockery::mock(CalculationRepository::class);
+    $service = Mockery::mock(CombinationGenerationService::class);
+
+    $controller = new class($repo, $service) extends MaterialCalculationExecutionController
+    {
+        public function __construct(CalculationRepository $repo, CombinationGenerationService $service)
+        {
+            parent::__construct($repo, $service);
+        }
+
+        public function exposeBuildBundleMaterialRows(array $combinations): array
+        {
+            return $this->buildBundleMaterialRows($combinations);
+        }
+    };
+
+    $combinations = [
+        [
+            'result' => [
+                'cement_sak' => 1,
+                'total_cement_price' => 60000,
+                'cement_price_per_sak' => 60000,
+            ],
+            'store_label' => 'Toko One Stop (Kota A) [Hemat]',
+            'store_plan' => [
+                [
+                    'store_location_id' => 901,
+                    'store_name' => 'Toko One Stop',
+                    'city' => 'Kota A',
+                ],
+            ],
+            'cement' => makeBundleCementModel('PCC', 'A', 'Toko Lama', 'Alamat Lama', 60000),
+        ],
+    ];
+
+    $rows = $controller->exposeBuildBundleMaterialRows($combinations);
+    $cementRows = array_values(
+        array_filter($rows, static fn($row) => ($row['material_key'] ?? null) === 'cement'),
+    );
+
+    expect($cementRows)->toHaveCount(1)
+        ->and((string) ($cementRows[0]['store_display'] ?? ''))->toBe('Toko One Stop (Kota A)');
+});

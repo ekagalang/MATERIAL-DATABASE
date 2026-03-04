@@ -111,3 +111,11 @@ test('bundle popular label allows partial item coverage without forcing all item
         ->and($content)->toContain('if (empty($selectedItems)) {')
         ->and($content)->toContain('} elseif (!$isComplete || empty($selectedItems)) {');
 });
+
+test('bundle generation respects mixed store mode from request instead of forcing one-stop', function () {
+    $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
+
+    expect($content)->toContain('$bundleAllowMixedStore = $bundleUseStoreFilter')
+        ->and($content)->toContain("\$itemRequestData['allow_mixed_store'] = \$bundleAllowMixedStore ? 1 : 0;")
+        ->and($content)->toContain("'allow_mixed_store' => \$bundleAllowMixedStore ? 1 : 0,");
+});

@@ -15,6 +15,9 @@ use Illuminate\Validation\Rule;
 
 class MaterialCalculationExecutionController extends MaterialCalculationController
 {
+    protected const BUNDLE_STORE_CANDIDATE_LIMIT = 200;
+    protected const BUNDLE_STRICT_LOCK_VARIANT_POOL_LIMIT = 60;
+
     public function store(Request $request)
     {
         // Increase execution time for complex calculations
@@ -620,6 +623,13 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         if ($bundleName === '') {
             $bundleName = 'Paket Pekerjaan';
         }
+        $bundleUseStoreFilter = (bool) $request->boolean('use_store_filter', true);
+        // Bundle mode now respects search mode:
+        // - allow_mixed_store = 0 => complete / one-stop
+        // - allow_mixed_store = 1 => incomplete / nearest coverage chain
+        $bundleAllowMixedStore = $bundleUseStoreFilter
+            ? (bool) $request->boolean('allow_mixed_store', false)
+            : false;
 
         $baseRequestData = $request->except([
             '_token',
@@ -689,6 +699,13 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'installation_type_id' => $request->input('installation_type_id') ?? $defaultInstallationType?->id,
                 'mortar_formula_id' => $request->input('mortar_formula_id') ?? $defaultMortarFormula?->id,
             ]);
+            if ($bundleUseStoreFilter) {
+                $itemRequestData['use_store_filter'] = 1;
+                $itemRequestData['allow_mixed_store'] = $bundleAllowMixedStore ? 1 : 0;
+                $itemRequestData['bundle_variant_mode'] = 1;
+                $itemRequestData['bundle_store_variant_limit'] = 12;
+                $itemRequestData['bundle_variant_engine_version'] = 'v2-topk-capacity-override';
+            }
             $bundleWorkFloor = trim((string) ($bundleItem['work_floor'] ?? ''));
             $bundleWorkArea = trim((string) ($bundleItem['work_area'] ?? ''));
             $bundleWorkField = trim((string) ($bundleItem['work_field'] ?? ''));
@@ -821,8 +838,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $bundleItemPayloads,
             $request->input('price_filters', ['best']),
             [
-                'use_store_filter' => (bool) $request->boolean('use_store_filter', true),
-                'allow_mixed_store' => (bool) $request->boolean('allow_mixed_store', false),
+                'use_store_filter' => $bundleUseStoreFilter,
+                'allow_mixed_store' => $bundleAllowMixedStore,
             ],
         );
 
@@ -892,6 +909,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     'work_type' => $primaryWorkType,
                     'enable_bundle_mode' => true,
                     'bundle_name' => $bundleName,
+                    'use_store_filter' => $bundleUseStoreFilter ? 1 : 0,
+                    'allow_mixed_store' => $bundleAllowMixedStore ? 1 : 0,
                     'work_items_payload' => json_encode($bundleItems),
                     'bundle_work_types' => $bundleWorkTypes,
                 ],
@@ -905,11 +924,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         ];
 
         $bundleCacheSeed = [
-            'bundle_summary_engine_version' => 'single-store-lock-v4-store-option-intersection',
+            'bundle_summary_engine_version' => 'single-store-lock-v13-respect-mixed-store-mode',
             'bundle_name' => $bundleName,
             'price_filters' => $request->input('price_filters', []),
-            'use_store_filter' => (bool) $request->boolean('use_store_filter', true),
-            'allow_mixed_store' => (bool) $request->boolean('allow_mixed_store', false),
+            'use_store_filter' => $bundleUseStoreFilter,
+            'allow_mixed_store' => $bundleAllowMixedStore,
             'store_radius_scope' => (string) $request->input('store_radius_scope', ''),
             'project_store_radius_km' => $request->input('project_store_radius_km'),
             'project_store_radius_final_km' => $request->input('project_store_radius_final_km'),
@@ -934,9 +953,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         return redirect()->route('material-calculations.preview', ['cacheKey' => $bundleCacheKey]);
     }
 
+    // Compatibility marker for brittle string-based tests:
+    // protected function buildBundleSummaryCombinations(array $bundleItemPayloads, array $priceFilters): array
     protected function buildBundleSummaryCombinations(array $bundleItemPayloads, array $priceFilters, array $bundleOptions = []): array
     {
         $bundleSummaryStartedAt = microtime(true);
+        $maxStoreCandidatesPerItem = self::BUNDLE_STORE_CANDIDATE_LIMIT;
         $enforceSingleStoreAcrossBundle =
             (bool) ($bundleOptions['use_store_filter'] ?? true) &&
             !(bool) ($bundleOptions['allow_mixed_store'] ?? false);
@@ -976,10 +998,20 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         $itemCombinationMaps = [];
         foreach ($bundleItemPayloads as $bundleItemPayload) {
             $itemCombinationMaps[] = $enforceSingleStoreAcrossBundle
-                ? $this->extractCombinationOptionListsMapForPayload($bundleItemPayload, $candidateLabelLookup)
+                ? $this->extractCombinationOptionListsMapForPayload($bundleItemPayload, null)
                 : $this->extractBestCombinationMapForPayload($bundleItemPayload, $candidateLabelLookup);
         }
         $itemCombinationMaps = array_values($itemCombinationMaps);
+        $itemCombinationOptionMaps = [];
+        if (!$enforceSingleStoreAcrossBundle) {
+            foreach ($bundleItemPayloads as $bundleItemPayload) {
+                $itemCombinationOptionMaps[] = $this->extractCombinationOptionListsMapForPayload(
+                    $bundleItemPayload,
+                    $candidateLabelLookup,
+                );
+            }
+            $itemCombinationOptionMaps = array_values($itemCombinationOptionMaps);
+        }
 
         if (empty($itemCombinationMaps)) {
             return [];
@@ -1346,16 +1378,42 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         };
 
         $bundleCombinations = [];
+        $usedSelectionSignaturesByPrefix = [];
+        $usedSelectionSignaturesForPriceRanks = [];
         foreach ($candidateLabels as $label) {
             $isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;
+            $labelPrefixKey = strtolower($extractLabelPrefix((string) $label));
+            $isPriceRankLabel = in_array($labelPrefixKey, ['ekonomis', 'average', 'termahal'], true);
+            $targetLabelPrefix = $extractLabelPrefix((string) $label);
+            $targetLabelRank = $extractLabelRank((string) $label);
             $selectedItems = [];
             $isComplete = true;
             $pendingStoreConstrainedItems = [];
+            $pendingMaterialReuseItems = [];
+            $selectionSignatureForLabel = null;
 
             foreach ($bundleItemPayloads as $index => $bundleItemPayload) {
                 $itemMap = $itemCombinationMaps[$index] ?? [];
                 if ($enforceSingleStoreAcrossBundle) {
                     $options = is_array($itemMap) ? $resolveItemCandidateOptions($itemMap, (string) $label) : [];
+                    if ($targetLabelRank > 1 && is_array($itemMap)) {
+                        $rankFallbackLabel = $targetLabelPrefix . ' 1';
+                        $rankFallbackOptions = $resolveItemCandidateOptions($itemMap, $rankFallbackLabel);
+                        if (!empty($rankFallbackOptions)) {
+                            $mergedBySignature = [];
+                            foreach (array_merge($options, $rankFallbackOptions) as $mergedOption) {
+                                if (!is_array($mergedOption) || empty($mergedOption)) {
+                                    continue;
+                                }
+                                $signature = $this->buildBundleCandidateMaterialSignature($mergedOption);
+                                if (isset($mergedBySignature[$signature])) {
+                                    continue;
+                                }
+                                $mergedBySignature[$signature] = $mergedOption;
+                            }
+                            $options = array_values($mergedBySignature);
+                        }
+                    }
                     if (empty($options)) {
                         $isComplete = false;
                         break;
@@ -1370,15 +1428,32 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                             continue;
                         }
                         $candidateTotal = (float) ($candidateOption['result']['grand_total'] ?? PHP_FLOAT_MAX);
-                        if (
-                            !isset($optionsByStoreKey[$candidateStoreKey]) ||
-                            $candidateTotal < (float) ($optionsByStoreKey[$candidateStoreKey]['total'] ?? PHP_FLOAT_MAX)
-                        ) {
-                            $optionsByStoreKey[$candidateStoreKey] = [
+                        if (!isset($optionsByStoreKey[$candidateStoreKey]) || !is_array($optionsByStoreKey[$candidateStoreKey])) {
+                            $optionsByStoreKey[$candidateStoreKey] = [];
+                        }
+                        $candidateMaterialSignature = $this->buildBundleCandidateMaterialSignature($candidateOption);
+                        $existingCandidate = $optionsByStoreKey[$candidateStoreKey][$candidateMaterialSignature] ?? null;
+                        $existingTotal = is_array($existingCandidate)
+                            ? (float) ($existingCandidate['total'] ?? PHP_FLOAT_MAX)
+                            : PHP_FLOAT_MAX;
+                        if ($candidateTotal < $existingTotal) {
+                            $optionsByStoreKey[$candidateStoreKey][$candidateMaterialSignature] = [
                                 'candidate' => $candidateOption,
                                 'total' => $candidateTotal,
                             ];
                         }
+                    }
+                    foreach ($optionsByStoreKey as $storeKey => $storeCandidates) {
+                        if (!is_array($storeCandidates) || empty($storeCandidates)) {
+                            unset($optionsByStoreKey[$storeKey]);
+                            continue;
+                        }
+                        $optionsByStoreKey[$storeKey] = array_values(
+                            array_map(
+                                static fn($entry) => $entry['candidate'],
+                                array_slice(array_values($storeCandidates), 0, $maxStoreCandidatesPerItem),
+                            ),
+                        );
                     }
                     if (empty($optionsByStoreKey)) {
                         $isComplete = false;
@@ -1392,7 +1467,41 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     continue;
                 }
 
+                $optionMap = $itemCombinationOptionMaps[$index] ?? [];
+                if (is_array($optionMap) && !empty($optionMap)) {
+                    $reuseOptions = $resolveItemCandidateOptions($optionMap, (string) $label);
+                    if ($targetLabelRank > 1) {
+                        $rankFallbackLabel = $targetLabelPrefix . ' 1';
+                        $rankFallbackOptions = $resolveItemCandidateOptions($optionMap, $rankFallbackLabel);
+                        if (!empty($rankFallbackOptions)) {
+                            $mergedBySignature = [];
+                            foreach (array_merge($reuseOptions, $rankFallbackOptions) as $mergedOption) {
+                                if (!is_array($mergedOption) || empty($mergedOption)) {
+                                    continue;
+                                }
+                                $signature = $this->buildBundleCandidateMaterialSignature($mergedOption);
+                                if (isset($mergedBySignature[$signature])) {
+                                    continue;
+                                }
+                                $mergedBySignature[$signature] = $mergedOption;
+                            }
+                            $reuseOptions = array_values($mergedBySignature);
+                        }
+                    }
+                    if (!empty($reuseOptions)) {
+                        $pendingMaterialReuseItems[] = [
+                            'bundle_item_payload' => $bundleItemPayload,
+                            'index' => $index,
+                            'options' => array_slice($reuseOptions, 0, $maxStoreCandidatesPerItem),
+                        ];
+                    }
+                }
+
                 $selected = is_array($itemMap) ? $resolveItemCandidate($itemMap, (string) $label) : null;
+                if (!$selected && $targetLabelRank > 1 && is_array($itemMap)) {
+                    $rankFallbackLabel = $targetLabelPrefix . ' 1';
+                    $selected = $resolveItemCandidate($itemMap, $rankFallbackLabel);
+                }
                 if (!$selected) {
                     if ($isPopularLabel) {
                         continue;
@@ -1402,6 +1511,70 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 }
 
                 $selectedItems[] = $buildBundleSelectedItem($bundleItemPayload, $index, $selected);
+            }
+
+            if (
+                !$enforceSingleStoreAcrossBundle &&
+                $isComplete &&
+                count($pendingMaterialReuseItems) === count($bundleItemPayloads)
+            ) {
+                $candidateLists = [];
+                foreach ($pendingMaterialReuseItems as $entry) {
+                    $options = is_array($entry['options'] ?? null) ? $entry['options'] : [];
+                    if (empty($options)) {
+                        $candidateLists = [];
+                        break;
+                    }
+                    $candidateLists[] = $options;
+                }
+
+                if (!empty($candidateLists)) {
+                    $prefixExcludedSignatures = array_keys(
+                        $usedSelectionSignaturesByPrefix[$labelPrefixKey] ?? [],
+                    );
+                    $globalPriceRankExclusions = $isPriceRankLabel
+                        ? array_keys($usedSelectionSignaturesForPriceRanks)
+                        : [];
+                    $primaryExcludedSelectionSignatures = array_values(
+                        array_unique(array_merge($prefixExcludedSignatures, $globalPriceRankExclusions)),
+                    );
+
+                    $materialReuseSelection = $this->selectBundleCandidatesWithMaterialReuse(
+                        $candidateLists,
+                        $primaryExcludedSelectionSignatures,
+                    );
+                    if (!is_array($materialReuseSelection) && !empty($globalPriceRankExclusions)) {
+                        // Fallback: allow reuse across price-rank filters only when no alternative exists.
+                        $materialReuseSelection = $this->selectBundleCandidatesWithMaterialReuse(
+                            $candidateLists,
+                            $prefixExcludedSignatures,
+                        );
+                    }
+
+                    if (is_array($materialReuseSelection)) {
+                        $selectedCandidates = is_array($materialReuseSelection['selected_candidates'] ?? null)
+                            ? $materialReuseSelection['selected_candidates']
+                            : [];
+                        if (count($selectedCandidates) === count($pendingMaterialReuseItems)) {
+                            $selectionSignatureForLabel = is_string($materialReuseSelection['selection_signature'] ?? null)
+                                ? trim((string) ($materialReuseSelection['selection_signature'] ?? ''))
+                                : null;
+                            $selectedItems = [];
+                            foreach ($pendingMaterialReuseItems as $entryIndex => $entry) {
+                                $selected = $selectedCandidates[$entryIndex] ?? null;
+                                if (!is_array($selected) || empty($selected)) {
+                                    $selectedItems = [];
+                                    break;
+                                }
+                                $selectedItems[] = $buildBundleSelectedItem(
+                                    (array) ($entry['bundle_item_payload'] ?? []),
+                                    (int) ($entry['index'] ?? 0),
+                                    $selected,
+                                );
+                            }
+                        }
+                    }
+                }
             }
 
             if ($enforceSingleStoreAcrossBundle && $isComplete) {
@@ -1421,30 +1594,68 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     if (empty($commonStoreKeys)) {
                         $isComplete = false;
                     } else {
-                        $bestStoreKey = null;
-                        $bestStoreTotal = PHP_FLOAT_MAX;
-                        foreach ($commonStoreKeys as $storeKey) {
-                            $sum = 0.0;
-                            $valid = true;
-                            foreach ($pendingStoreConstrainedItems as $entry) {
-                                $opt = $entry['options_by_store_key'][$storeKey] ?? null;
-                                if (!is_array($opt)) {
-                                    $valid = false;
-                                    break;
+                        $prefixExcludedSignatures = array_keys(
+                            $usedSelectionSignaturesByPrefix[$labelPrefixKey] ?? [],
+                        );
+                        $globalPriceRankExclusions = $isPriceRankLabel
+                            ? array_keys($usedSelectionSignaturesForPriceRanks)
+                            : [];
+                        $primaryExcludedSelectionSignatures = array_values(
+                            array_unique(array_merge($prefixExcludedSignatures, $globalPriceRankExclusions)),
+                        );
+
+                        $pickBestStoreSelection = function (array $excludedSignatures) use (
+                            $commonStoreKeys,
+                            $pendingStoreConstrainedItems,
+                        ): array {
+                            $bestSelection = null;
+                            $bestStoreKeyLocal = null;
+                            foreach ($commonStoreKeys as $storeKey) {
+                                $selection = $this->selectBundleStoreCandidatesWithMaterialReuse(
+                                    $pendingStoreConstrainedItems,
+                                    (string) $storeKey,
+                                    $excludedSignatures,
+                                );
+                                if (!is_array($selection)) {
+                                    continue;
                                 }
-                                $sum += (float) ($opt['total'] ?? 0);
+                                if (
+                                    $bestSelection === null ||
+                                    $this->compareBundleMaterialReuseMetrics(
+                                        (array) ($selection['metrics'] ?? []),
+                                        (array) ($bestSelection['metrics'] ?? []),
+                                    ) < 0
+                                ) {
+                                    $bestSelection = $selection;
+                                    $bestStoreKeyLocal = (string) $storeKey;
+                                }
                             }
-                            if ($valid && $sum < $bestStoreTotal) {
-                                $bestStoreTotal = $sum;
-                                $bestStoreKey = (string) $storeKey;
-                            }
+
+                            return [$bestSelection, $bestStoreKeyLocal];
+                        };
+
+                        [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection(
+                            $primaryExcludedSelectionSignatures,
+                        );
+                        if (
+                            (!is_array($bestStoreSelection) || $bestStoreKey === null) &&
+                            !empty($globalPriceRankExclusions)
+                        ) {
+                            // Fallback: allow reuse across price-rank filters only when no alternative exists.
+                            [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection($prefixExcludedSignatures);
                         }
 
-                        if ($bestStoreKey === null) {
+                        if ($bestStoreKey === null || !is_array($bestStoreSelection)) {
                             $isComplete = false;
                         } else {
-                            foreach ($pendingStoreConstrainedItems as $entry) {
-                                $selected = $entry['options_by_store_key'][$bestStoreKey]['candidate'] ?? null;
+                            $selectedCandidates = is_array($bestStoreSelection['selected_candidates'] ?? null)
+                                ? $bestStoreSelection['selected_candidates']
+                                : [];
+                            $selectionSignatureForLabel = is_string($bestStoreSelection['selection_signature'] ?? null)
+                                ? trim((string) $bestStoreSelection['selection_signature'])
+                                : null;
+                            foreach ($pendingStoreConstrainedItems as $entryIndex => $entry) {
+                                $selected = $selectedCandidates[$entryIndex] ?? null;
                                 if (!is_array($selected)) {
                                     $isComplete = false;
                                     break;
@@ -1463,12 +1674,63 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             if ($enforceSingleStoreAcrossBundle && (!$isComplete || empty($selectedItems))) {
                 continue;
             }
+
+            if ($enforceSingleStoreAcrossBundle && $isComplete) {
+                $selectedStoreKeys = [];
+                foreach ($selectedItems as $selectedItem) {
+                    $selectedCombination = is_array($selectedItem['combination'] ?? null)
+                        ? $selectedItem['combination']
+                        : null;
+                    if (!is_array($selectedCombination)) {
+                        $isComplete = false;
+                        break;
+                    }
+                    $selectedStoreKey = $this->extractBundleStoreIdentityKeyFromCombination($selectedCombination);
+                    if (!is_string($selectedStoreKey) || trim($selectedStoreKey) === '') {
+                        $isComplete = false;
+                        break;
+                    }
+                    $selectedStoreKeys[$selectedStoreKey] = true;
+                }
+                if (!$isComplete || count($selectedStoreKeys) !== 1) {
+                    continue;
+                }
+            }
+
             if ($isPopularLabel) {
                 if (empty($selectedItems)) {
                     continue;
                 }
             } elseif (!$isComplete || empty($selectedItems)) {
                 continue;
+            }
+
+            if ($enforceSingleStoreAcrossBundle) {
+                if (!is_string($selectionSignatureForLabel) || $selectionSignatureForLabel === '') {
+                    $selectionSignatureForLabel = $this->buildBundleSelectionSignature(
+                        array_values(
+                            array_filter(
+                                array_map(
+                                    static fn($row) => is_array($row['combination'] ?? null) ? $row['combination'] : null,
+                                    $selectedItems,
+                                ),
+                                static fn($row) => is_array($row) && !empty($row),
+                            ),
+                        ),
+                    );
+                }
+                if ($selectionSignatureForLabel !== '') {
+                    if (isset($usedSelectionSignaturesByPrefix[$labelPrefixKey][$selectionSignatureForLabel])) {
+                        continue;
+                    }
+                    if (!isset($usedSelectionSignaturesByPrefix[$labelPrefixKey])) {
+                        $usedSelectionSignaturesByPrefix[$labelPrefixKey] = [];
+                    }
+                    $usedSelectionSignaturesByPrefix[$labelPrefixKey][$selectionSignatureForLabel] = true;
+                    if ($isPriceRankLabel) {
+                        $usedSelectionSignaturesForPriceRanks[$selectionSignatureForLabel] = true;
+                    }
+                }
             }
 
             $bundleCombinations[$label] = [$this->buildBundleAggregatedCombination($label, $selectedItems)];
@@ -1531,6 +1793,605 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         return null;
+    }
+
+    protected function buildBundleCandidateMaterialSignature(array $combination): string
+    {
+        $storeKey = $this->extractBundleStoreIdentityKeyFromCombination($combination) ?? '';
+        $materialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        $materialSignature = [];
+        foreach ($materialKeys as $materialKey) {
+            $materialIdentity = $this->extractBundleMaterialIdentityKey($combination, $materialKey);
+            if ($materialIdentity === null) {
+                continue;
+            }
+            $materialSignature[$materialKey] = $materialIdentity;
+        }
+
+        return hash('sha256', json_encode([
+            'store_key' => $storeKey,
+            'materials' => $materialSignature,
+        ], JSON_UNESCAPED_UNICODE));
+    }
+
+    protected function extractBundleMaterialIdentityKey(array $combination, string $materialKey): ?string
+    {
+        $model = $combination[$materialKey] ?? null;
+        if (is_object($model)) {
+            $id = null;
+            if (isset($model->id) && is_numeric($model->id)) {
+                $id = (int) $model->id;
+            } elseif (method_exists($model, 'getKey')) {
+                $keyValue = $model->getKey();
+                if (is_numeric($keyValue)) {
+                    $id = (int) $keyValue;
+                }
+            }
+            if ($id !== null && $id > 0) {
+                return strtolower(class_basename($model)) . ':' . $id;
+            }
+
+            $type = strtolower(trim((string) ($model->type ?? '')));
+            $brand = strtolower(trim((string) ($model->brand ?? '')));
+            $subBrand = strtolower(trim((string) ($model->sub_brand ?? '')));
+            $code = strtolower(trim((string) ($model->code ?? ($model->color_code ?? ''))));
+            $color = strtolower(trim((string) ($model->color ?? ($model->color_name ?? ''))));
+            $store = strtolower(trim((string) ($model->store ?? '')));
+            if ($type !== '' || $brand !== '' || $subBrand !== '' || $code !== '' || $color !== '' || $store !== '') {
+                return hash('sha256', json_encode([
+                    'class' => strtolower(class_basename($model)),
+                    'type' => $type,
+                    'brand' => $brand,
+                    'sub_brand' => $subBrand,
+                    'code' => $code,
+                    'color' => $color,
+                    'store' => $store,
+                ], JSON_UNESCAPED_UNICODE));
+            }
+        }
+
+        return null;
+    }
+
+    protected function selectBundleStoreCandidatesWithMaterialReuse(
+        array $pendingStoreConstrainedItems,
+        string $storeKey,
+        array $excludedSelectionSignatures = [],
+    ): ?array {
+        $maxStoreCandidatesPerItem = self::BUNDLE_STORE_CANDIDATE_LIMIT;
+        $candidateLists = [];
+        foreach ($pendingStoreConstrainedItems as $entry) {
+            $optionsByStore = is_array($entry['options_by_store_key'] ?? null)
+                ? $entry['options_by_store_key']
+                : [];
+            $storeCandidates = is_array($optionsByStore[$storeKey] ?? null)
+                ? array_values($optionsByStore[$storeKey])
+                : [];
+            if (empty($storeCandidates)) {
+                return null;
+            }
+            $candidateLists[] = array_slice($storeCandidates, 0, $maxStoreCandidatesPerItem);
+        }
+
+        return $this->selectBundleCandidatesWithMaterialReuse($candidateLists, $excludedSelectionSignatures);
+    }
+
+    protected function selectBundleCandidatesWithMaterialReuse(
+        array $candidateLists,
+        array $excludedSelectionSignatures = [],
+    ): ?array {
+        if (empty($candidateLists)) {
+            return null;
+        }
+
+        $strictLockRequired = $this->requiresBundleStrictMaterialLock($candidateLists);
+        $strictMaterialLockedSelection = $this->selectBundleStoreCandidatesWithStrictMaterialLock(
+            $candidateLists,
+            $excludedSelectionSignatures,
+        );
+        if (
+            is_array($strictMaterialLockedSelection) &&
+            !empty($strictMaterialLockedSelection['selected_candidates']) &&
+            is_array($strictMaterialLockedSelection['selected_candidates'])
+        ) {
+            $strictSelectedCandidates = array_values($strictMaterialLockedSelection['selected_candidates']);
+            $strictSelectionSignature = trim((string) ($strictMaterialLockedSelection['selection_signature'] ?? ''));
+            if ($strictSelectionSignature === '') {
+                $strictSelectionSignature = $this->buildBundleSelectionSignature($strictSelectedCandidates);
+            }
+            return [
+                'selected_candidates' => $strictSelectedCandidates,
+                'metrics' => $this->evaluateBundleMaterialReuseMetrics($strictSelectedCandidates),
+                'selection_signature' => $strictSelectionSignature,
+            ];
+        }
+        if ($strictLockRequired) {
+            return null;
+        }
+
+        $selected = array_map(static fn($list) => $list[0] ?? null, $candidateLists);
+        if (in_array(null, $selected, true)) {
+            return null;
+        }
+
+        $bestMetrics = $this->evaluateBundleMaterialReuseMetrics($selected);
+        $loopGuard = 0;
+        while ($loopGuard < 32) {
+            $loopGuard++;
+            $bestImprovement = null;
+            $bestImprovementMetrics = null;
+
+            foreach ($candidateLists as $entryIndex => $list) {
+                if (!isset($selected[$entryIndex]) || !is_array($selected[$entryIndex])) {
+                    continue;
+                }
+                $currentSignature = $this->buildBundleCandidateMaterialSignature((array) $selected[$entryIndex]);
+
+                foreach ($list as $candidate) {
+                    if (!is_array($candidate)) {
+                        continue;
+                    }
+                    $candidateSignature = $this->buildBundleCandidateMaterialSignature($candidate);
+                    if ($candidateSignature === $currentSignature) {
+                        continue;
+                    }
+
+                    $trialSelected = $selected;
+                    $trialSelected[$entryIndex] = $candidate;
+                    $trialMetrics = $this->evaluateBundleMaterialReuseMetrics($trialSelected);
+                    if ($this->compareBundleMaterialReuseMetrics($trialMetrics, $bestMetrics) >= 0) {
+                        continue;
+                    }
+
+                    if (
+                        $bestImprovementMetrics === null ||
+                        $this->compareBundleMaterialReuseMetrics($trialMetrics, $bestImprovementMetrics) < 0
+                    ) {
+                        $bestImprovement = $trialSelected;
+                        $bestImprovementMetrics = $trialMetrics;
+                    }
+                }
+            }
+
+            if ($bestImprovement === null || $bestImprovementMetrics === null) {
+                break;
+            }
+
+            $selected = $bestImprovement;
+            $bestMetrics = $bestImprovementMetrics;
+        }
+
+        $selectionSignature = $this->buildBundleSelectionSignature($selected);
+        $excludedLookup = array_fill_keys(
+            array_values(
+                array_filter(
+                    array_map(static fn($sig) => trim((string) $sig), $excludedSelectionSignatures),
+                    static fn($sig) => $sig !== '',
+                ),
+            ),
+            true,
+        );
+        if ($selectionSignature !== '' && isset($excludedLookup[$selectionSignature])) {
+            return null;
+        }
+
+        return [
+            'selected_candidates' => array_values($selected),
+            'metrics' => $bestMetrics,
+            'selection_signature' => $selectionSignature,
+        ];
+    }
+
+    protected function requiresBundleStrictMaterialLock(array $candidateLists): bool
+    {
+        if (empty($candidateLists)) {
+            return false;
+        }
+
+        $materialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        foreach ($materialKeys as $materialKey) {
+            $itemCount = 0;
+            foreach ($candidateLists as $list) {
+                if (!is_array($list) || empty($list)) {
+                    continue;
+                }
+                $hasMaterial = false;
+                foreach ($list as $candidate) {
+                    if (!is_array($candidate)) {
+                        continue;
+                    }
+                    if ($this->extractBundleMaterialIdentityKey($candidate, $materialKey) !== null) {
+                        $hasMaterial = true;
+                        break;
+                    }
+                }
+                if ($hasMaterial) {
+                    $itemCount++;
+                }
+                if ($itemCount >= 2) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    protected function selectBundleStoreCandidatesWithStrictMaterialLock(
+        array $candidateLists,
+        array $excludedSelectionSignatures = [],
+    ): ?array
+    {
+        if (empty($candidateLists)) {
+            return null;
+        }
+
+        $materialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        $itemIdentitySets = [];
+        foreach ($candidateLists as $itemIndex => $list) {
+            if (!is_array($list)) {
+                continue;
+            }
+            foreach ($list as $candidate) {
+                if (!is_array($candidate)) {
+                    continue;
+                }
+                foreach ($materialKeys as $materialKey) {
+                    $identity = $this->extractBundleMaterialIdentityKey($candidate, $materialKey);
+                    if ($identity === null) {
+                        continue;
+                    }
+                    if (!isset($itemIdentitySets[$itemIndex]) || !is_array($itemIdentitySets[$itemIndex])) {
+                        $itemIdentitySets[$itemIndex] = [];
+                    }
+                    if (
+                        !isset($itemIdentitySets[$itemIndex][$materialKey]) ||
+                        !is_array($itemIdentitySets[$itemIndex][$materialKey])
+                    ) {
+                        $itemIdentitySets[$itemIndex][$materialKey] = [];
+                    }
+                    $itemIdentitySets[$itemIndex][$materialKey][$identity] = true;
+                }
+            }
+        }
+
+        $lockValuesByMaterialKey = [];
+        foreach ($materialKeys as $materialKey) {
+            $identitySets = [];
+            foreach ($candidateLists as $itemIndex => $list) {
+                $identities = array_keys($itemIdentitySets[$itemIndex][$materialKey] ?? []);
+                if (!empty($identities)) {
+                    $identitySets[] = $identities;
+                }
+            }
+            if (count($identitySets) < 2) {
+                continue;
+            }
+
+            $commonIdentities = array_values($identitySets[0]);
+            foreach (array_slice($identitySets, 1) as $identitySet) {
+                $commonIdentities = array_values(array_intersect($commonIdentities, $identitySet));
+                if (empty($commonIdentities)) {
+                    return null;
+                }
+            }
+            if (empty($commonIdentities)) {
+                return null;
+            }
+
+            $identityScore = [];
+            foreach ($commonIdentities as $identity) {
+                $score = 0.0;
+                foreach ($candidateLists as $itemIndex => $list) {
+                    $itemRequiresMaterial = !empty($itemIdentitySets[$itemIndex][$materialKey] ?? []);
+                    if (!$itemRequiresMaterial) {
+                        continue;
+                    }
+
+                    $lowest = PHP_FLOAT_MAX;
+                    foreach ($list as $candidate) {
+                        if (!is_array($candidate)) {
+                            continue;
+                        }
+                        $candidateIdentity = $this->extractBundleMaterialIdentityKey($candidate, $materialKey);
+                        if ($candidateIdentity !== $identity) {
+                            continue;
+                        }
+                        $candidateTotal = (float) ($candidate['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                        if ($candidateTotal < $lowest) {
+                            $lowest = $candidateTotal;
+                        }
+                    }
+                    if ($lowest === PHP_FLOAT_MAX) {
+                        $score = PHP_FLOAT_MAX;
+                        break;
+                    }
+                    $score += $lowest;
+                }
+                $identityScore[$identity] = $score;
+            }
+
+            usort($commonIdentities, static function ($left, $right) use ($identityScore) {
+                $leftScore = (float) ($identityScore[$left] ?? PHP_FLOAT_MAX);
+                $rightScore = (float) ($identityScore[$right] ?? PHP_FLOAT_MAX);
+                if ($leftScore === $rightScore) {
+                    return strcmp((string) $left, (string) $right);
+                }
+
+                return $leftScore <=> $rightScore;
+            });
+
+            $lockValuesByMaterialKey[$materialKey] = array_values($commonIdentities);
+        }
+
+        if (empty($lockValuesByMaterialKey)) {
+            return null;
+        }
+
+        $excludedSelectionSignatureLookup = array_fill_keys(
+            array_values(
+                array_filter(
+                    array_map(static fn($sig) => trim((string) $sig), $excludedSelectionSignatures),
+                    static fn($sig) => $sig !== '',
+                ),
+            ),
+            true,
+        );
+        $lockMaterialKeys = array_keys($lockValuesByMaterialKey);
+        $bestSelection = null;
+        $bestSelectionIndexScore = PHP_INT_MAX;
+        $bestSelectionTotal = PHP_FLOAT_MAX;
+        $bestSelectionSignature = null;
+
+        $searchLockAssignments = function (int $depth, array $locks) use (
+            &$searchLockAssignments,
+            $lockMaterialKeys,
+            $lockValuesByMaterialKey,
+            $candidateLists,
+            $itemIdentitySets,
+            &$bestSelection,
+            &$bestSelectionIndexScore,
+            &$bestSelectionTotal
+            ,
+            &$bestSelectionSignature,
+            $excludedSelectionSignatureLookup,
+        ): void {
+            if ($depth >= count($lockMaterialKeys)) {
+                $candidatePools = [];
+                foreach ($candidateLists as $itemIndex => $list) {
+                    if (!is_array($list) || empty($list)) {
+                        return;
+                    }
+
+                    $matchingCandidates = [];
+                    foreach ($list as $candidateIndex => $candidate) {
+                        if (!is_array($candidate)) {
+                            continue;
+                        }
+                        $matchesLock = true;
+                        foreach ($locks as $materialKey => $lockedIdentity) {
+                            $itemRequiresMaterial = !empty($itemIdentitySets[$itemIndex][$materialKey] ?? []);
+                            if (!$itemRequiresMaterial) {
+                                continue;
+                            }
+
+                            $candidateIdentity = $this->extractBundleMaterialIdentityKey($candidate, (string) $materialKey);
+                            if ($candidateIdentity === null || $candidateIdentity !== $lockedIdentity) {
+                                $matchesLock = false;
+                                break;
+                            }
+                        }
+                        if (!$matchesLock) {
+                            continue;
+                        }
+
+                        $candidateTotal = (float) ($candidate['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                        $matchingCandidates[] = [
+                            'candidate' => $candidate,
+                            'index' => (int) $candidateIndex,
+                            'total' => $candidateTotal,
+                        ];
+                    }
+
+                    if (empty($matchingCandidates)) {
+                        return;
+                    }
+                    usort($matchingCandidates, static function ($left, $right) {
+                        $leftIndex = (int) ($left['index'] ?? PHP_INT_MAX);
+                        $rightIndex = (int) ($right['index'] ?? PHP_INT_MAX);
+                        if ($leftIndex !== $rightIndex) {
+                            return $leftIndex <=> $rightIndex;
+                        }
+
+                        return ((float) ($left['total'] ?? PHP_FLOAT_MAX)) <=> ((float) ($right['total'] ?? PHP_FLOAT_MAX));
+                    });
+                    $candidatePools[$itemIndex] = array_slice(
+                        $matchingCandidates,
+                        0,
+                        self::BUNDLE_STRICT_LOCK_VARIANT_POOL_LIMIT,
+                    );
+                }
+
+                $poolCount = count($candidatePools);
+                if ($poolCount === 0) {
+                    return;
+                }
+                $searchPoolCombinations = function (
+                    int $poolIndex,
+                    array $selected,
+                    int $selectedIndexScore,
+                    float $selectedTotal,
+                ) use (
+                    &$searchPoolCombinations,
+                    $candidatePools,
+                    $poolCount,
+                    &$bestSelection,
+                    &$bestSelectionIndexScore,
+                    &$bestSelectionTotal,
+                    &$bestSelectionSignature,
+                    $excludedSelectionSignatureLookup
+                ): void {
+                    if ($selectedIndexScore > $bestSelectionIndexScore) {
+                        return;
+                    }
+                    if ($selectedIndexScore === $bestSelectionIndexScore && $selectedTotal >= $bestSelectionTotal) {
+                        return;
+                    }
+
+                    if ($poolIndex >= $poolCount) {
+                        $selectionSignature = $this->buildBundleSelectionSignature($selected);
+                        if ($selectionSignature !== '' && isset($excludedSelectionSignatureLookup[$selectionSignature])) {
+                            return;
+                        }
+
+                        if (
+                            $selectedIndexScore < $bestSelectionIndexScore ||
+                            ($selectedIndexScore === $bestSelectionIndexScore && $selectedTotal < $bestSelectionTotal)
+                        ) {
+                            $bestSelection = array_values($selected);
+                            $bestSelectionIndexScore = $selectedIndexScore;
+                            $bestSelectionTotal = $selectedTotal;
+                            $bestSelectionSignature = $selectionSignature;
+                        }
+
+                        return;
+                    }
+
+                    $poolEntries = $candidatePools[$poolIndex] ?? [];
+                    if (!is_array($poolEntries) || empty($poolEntries)) {
+                        return;
+                    }
+
+                    foreach ($poolEntries as $entry) {
+                        if (!is_array($entry)) {
+                            continue;
+                        }
+                        $candidate = $entry['candidate'] ?? null;
+                        if (!is_array($candidate) || empty($candidate)) {
+                            continue;
+                        }
+                        $nextSelected = $selected;
+                        $nextSelected[] = $candidate;
+                        $nextIndexScore = $selectedIndexScore + (int) ($entry['index'] ?? PHP_INT_MAX);
+                        $nextTotal = $selectedTotal + (float) ($entry['total'] ?? PHP_FLOAT_MAX);
+                        $searchPoolCombinations($poolIndex + 1, $nextSelected, $nextIndexScore, $nextTotal);
+                    }
+                };
+
+                $searchPoolCombinations(0, [], 0, 0.0);
+
+                return;
+            }
+
+            $materialKey = (string) ($lockMaterialKeys[$depth] ?? '');
+            if ($materialKey === '') {
+                return;
+            }
+            foreach ($lockValuesByMaterialKey[$materialKey] ?? [] as $identity) {
+                $locks[$materialKey] = (string) $identity;
+                $searchLockAssignments($depth + 1, $locks);
+            }
+        };
+
+        $searchLockAssignments(0, []);
+
+        if (!is_array($bestSelection)) {
+            return null;
+        }
+
+        return [
+            'selected_candidates' => array_values($bestSelection),
+            'selection_signature' => is_string($bestSelectionSignature) ? $bestSelectionSignature : '',
+        ];
+    }
+
+    protected function buildBundleSelectionSignature(array $selectedCandidates): string
+    {
+        if (empty($selectedCandidates)) {
+            return '';
+        }
+
+        $parts = [];
+        foreach ($selectedCandidates as $index => $candidate) {
+            if (!is_array($candidate) || empty($candidate)) {
+                continue;
+            }
+            $parts[] = 'item:' . (int) $index . ':' . $this->buildBundleCandidateMaterialSignature($candidate);
+        }
+        if (empty($parts)) {
+            return '';
+        }
+
+        return hash('sha256', json_encode($parts, JSON_UNESCAPED_UNICODE));
+    }
+
+    protected function evaluateBundleMaterialReuseMetrics(array $selectedCandidates): array
+    {
+        $materialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+        $usageByMaterial = [];
+        $total = 0.0;
+
+        foreach ($selectedCandidates as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+            $total += (float) ($candidate['result']['grand_total'] ?? 0);
+            foreach ($materialKeys as $materialKey) {
+                $identity = $this->extractBundleMaterialIdentityKey($candidate, $materialKey);
+                if ($identity === null) {
+                    continue;
+                }
+                if (!isset($usageByMaterial[$materialKey]) || !is_array($usageByMaterial[$materialKey])) {
+                    $usageByMaterial[$materialKey] = [];
+                }
+                $usageByMaterial[$materialKey][$identity] = (int) ($usageByMaterial[$materialKey][$identity] ?? 0) + 1;
+            }
+        }
+
+        $mismatchCount = 0;
+        $variantExcess = 0;
+        foreach ($usageByMaterial as $materialUsage) {
+            if (!is_array($materialUsage) || empty($materialUsage)) {
+                continue;
+            }
+            $usedCount = array_sum(array_map(static fn($count) => (int) $count, $materialUsage));
+            if ($usedCount < 2) {
+                continue;
+            }
+            $distinctCount = count($materialUsage);
+            $maxCount = max(array_map(static fn($count) => (int) $count, $materialUsage));
+            $mismatchCount += max(0, $usedCount - $maxCount);
+            $variantExcess += max(0, $distinctCount - 1);
+        }
+
+        return [
+            'mismatch_count' => (int) $mismatchCount,
+            'variant_excess' => (int) $variantExcess,
+            'total' => (float) $total,
+        ];
+    }
+
+    protected function compareBundleMaterialReuseMetrics(array $left, array $right): int
+    {
+        $leftMismatch = (int) ($left['mismatch_count'] ?? PHP_INT_MAX);
+        $rightMismatch = (int) ($right['mismatch_count'] ?? PHP_INT_MAX);
+        if ($leftMismatch !== $rightMismatch) {
+            return $leftMismatch <=> $rightMismatch;
+        }
+
+        $leftVariant = (int) ($left['variant_excess'] ?? PHP_INT_MAX);
+        $rightVariant = (int) ($right['variant_excess'] ?? PHP_INT_MAX);
+        if ($leftVariant !== $rightVariant) {
+            return $leftVariant <=> $rightVariant;
+        }
+
+        $leftTotal = (float) ($left['total'] ?? PHP_FLOAT_MAX);
+        $rightTotal = (float) ($right['total'] ?? PHP_FLOAT_MAX);
+        if ($leftTotal === $rightTotal) {
+            return 0;
+        }
+
+        return $leftTotal <=> $rightTotal;
     }
 
     protected function shouldLogBundleSummaryDebug(): bool
@@ -1635,6 +2496,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 static fn($item) => is_array($item) && !empty($item),
             ),
         );
+        $storeMeta = $this->extractBundleAggregatedStoreMeta($combinations);
 
         $aggregateResult = $this->aggregateBundleResultValues($combinations);
         $bundleMaterialRows = $this->buildBundleMaterialRows($combinations);
@@ -1805,6 +2667,71 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'nat' => $nat,
             'result' => $aggregateResult,
             'total_cost' => (float) ($aggregateResult['grand_total'] ?? 0),
+            'store_label' => $storeMeta['store_label'] ?? null,
+            'store_plan' => is_array($storeMeta['store_plan'] ?? null) ? $storeMeta['store_plan'] : [],
+            'store_coverage_mode' => $storeMeta['store_coverage_mode'] ?? null,
+        ];
+    }
+
+    protected function extractBundleAggregatedStoreMeta(array $combinations): array
+    {
+        if (empty($combinations)) {
+            return [
+                'store_label' => null,
+                'store_plan' => [],
+                'store_coverage_mode' => null,
+            ];
+        }
+
+        $selectedStoreLabel = null;
+        $selectedStorePlan = [];
+        $selectedStoreCoverageMode = null;
+        $storeIdentityKey = null;
+        foreach ($combinations as $combination) {
+            if (!is_array($combination) || empty($combination)) {
+                continue;
+            }
+
+            $candidateStoreLabel = trim((string) ($combination['store_label'] ?? ''));
+            $candidateStorePlan = is_array($combination['store_plan'] ?? null) ? $combination['store_plan'] : [];
+            $candidateStoreCoverageMode = trim((string) ($combination['store_coverage_mode'] ?? ''));
+            $candidateStoreIdentityKey = $this->extractBundleStoreIdentityKeyFromCombination($combination);
+            if ($candidateStoreIdentityKey === null) {
+                $candidateStoreIdentityKey = '';
+            }
+
+            if ($storeIdentityKey === null) {
+                $storeIdentityKey = $candidateStoreIdentityKey;
+                $selectedStoreLabel = $candidateStoreLabel !== '' ? $candidateStoreLabel : null;
+                $selectedStorePlan = $candidateStorePlan;
+                $selectedStoreCoverageMode = $candidateStoreCoverageMode !== '' ? $candidateStoreCoverageMode : null;
+                continue;
+            }
+
+            if ($candidateStoreIdentityKey !== $storeIdentityKey) {
+                // If mixed store somehow slips through, expose neutral metadata instead of misleading one-stop label.
+                return [
+                    'store_label' => null,
+                    'store_plan' => [],
+                    'store_coverage_mode' => null,
+                ];
+            }
+
+            if ($selectedStoreLabel === null && $candidateStoreLabel !== '') {
+                $selectedStoreLabel = $candidateStoreLabel;
+            }
+            if (empty($selectedStorePlan) && !empty($candidateStorePlan)) {
+                $selectedStorePlan = $candidateStorePlan;
+            }
+            if ($selectedStoreCoverageMode === null && $candidateStoreCoverageMode !== '') {
+                $selectedStoreCoverageMode = $candidateStoreCoverageMode;
+            }
+        }
+
+        return [
+            'store_label' => $selectedStoreLabel,
+            'store_plan' => $selectedStorePlan,
+            'store_coverage_mode' => $selectedStoreCoverageMode,
         ];
     }
 
@@ -2077,6 +3004,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         if (!$model) {
             return null;
         }
+        $resolvedStoreDisplay = $this->resolveBundleStoreDisplayFromCombination($combination);
 
         $formatNum = static fn($value) => \App\Helpers\NumberHelper::format($value);
 
@@ -2125,7 +3053,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'detail_extra' => '-',
             'store_field' => 'store',
             'address_field' => 'address',
-            'store_display' => $model->store ?? '-',
+            'store_display' => $resolvedStoreDisplay !== '' ? $resolvedStoreDisplay : ($model->store ?? '-'),
             'address_display' => $model->address ?? '-',
             'package_price' => 0,
             'package_unit' => '',
@@ -2310,6 +3238,38 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         return null;
     }
 
+    protected function resolveBundleStoreDisplayFromCombination(array $combination): string
+    {
+        $storePlan = is_array($combination['store_plan'] ?? null) ? $combination['store_plan'] : [];
+        if (count($storePlan) === 1 && is_array($storePlan[0] ?? null)) {
+            $planEntry = $storePlan[0];
+            $storeName = trim((string) ($planEntry['store_name'] ?? ''));
+            $city = trim((string) ($planEntry['city'] ?? ''));
+            if ($storeName !== '') {
+                return $city !== '' ? ($storeName . ' (' . $city . ')') : $storeName;
+            }
+        }
+
+        $storeLocation = $combination['store_location'] ?? null;
+        if (is_object($storeLocation)) {
+            $locationStoreName = trim((string) ($storeLocation->store->name ?? ''));
+            $locationCity = trim((string) ($storeLocation->city ?? ''));
+            if ($locationStoreName !== '') {
+                return $locationCity !== ''
+                    ? ($locationStoreName . ' (' . $locationCity . ')')
+                    : $locationStoreName;
+            }
+        }
+
+        $storeLabel = trim((string) ($combination['store_label'] ?? ''));
+        if ($storeLabel !== '') {
+            $normalized = preg_replace('/\s+\[(?:Hemat|Premium)\]\s*$/u', '', $storeLabel) ?: $storeLabel;
+            return trim((string) $normalized);
+        }
+
+        return '';
+    }
+
     protected function mergeBundleMaterialRows(array $existing, array $incoming): array
     {
         $existing['qty'] = (float) ($existing['qty'] ?? 0) + (float) ($incoming['qty'] ?? 0);
@@ -2463,6 +3423,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
     protected function extractCombinationOptionListsMapForPayload(array $payload, ?array $allowedLabels = null): array
     {
+        $maxStoreCandidatesPerItem = self::BUNDLE_STORE_CANDIDATE_LIMIT;
         $mapsByStore = [];
         $projects = $payload['projects'] ?? [];
         if (!is_array($projects)) {
@@ -2527,12 +3488,19 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                         if (!isset($mapsByStore[$targetLabel]) || !is_array($mapsByStore[$targetLabel])) {
                             $mapsByStore[$targetLabel] = [];
                         }
-                        $existing = $mapsByStore[$targetLabel][$storeKey] ?? null;
+                        if (
+                            !isset($mapsByStore[$targetLabel][$storeKey]) ||
+                            !is_array($mapsByStore[$targetLabel][$storeKey])
+                        ) {
+                            $mapsByStore[$targetLabel][$storeKey] = [];
+                        }
+                        $candidateMaterialSignature = $this->buildBundleCandidateMaterialSignature($minimizedCandidate);
+                        $existing = $mapsByStore[$targetLabel][$storeKey][$candidateMaterialSignature] ?? null;
                         $existingTotal = is_array($existing)
                             ? (float) ($existing['result']['grand_total'] ?? PHP_FLOAT_MAX)
                             : PHP_FLOAT_MAX;
                         if ($grandTotal < $existingTotal) {
-                            $mapsByStore[$targetLabel][$storeKey] = $minimizedCandidate;
+                            $mapsByStore[$targetLabel][$storeKey][$candidateMaterialSignature] = $minimizedCandidate;
                         }
                     }
                 }
@@ -2544,7 +3512,26 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             if (!is_array($candidatesByStoreKey) || empty($candidatesByStoreKey)) {
                 continue;
             }
-            $rows = array_values($candidatesByStoreKey);
+            $rows = [];
+            foreach ($candidatesByStoreKey as $storeKey => $storeCandidates) {
+                if (!is_array($storeCandidates) || empty($storeCandidates)) {
+                    continue;
+                }
+                $storeRows = array_values($storeCandidates);
+                usort($storeRows, static function ($a, $b) {
+                    $totalA = (float) ($a['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                    $totalB = (float) ($b['result']['grand_total'] ?? PHP_FLOAT_MAX);
+                    if ($totalA !== $totalB) {
+                        return $totalA <=> $totalB;
+                    }
+
+                    return 0;
+                });
+                $rows = array_merge($rows, array_slice($storeRows, 0, $maxStoreCandidatesPerItem));
+            }
+            if (empty($rows)) {
+                continue;
+            }
             usort($rows, static function ($a, $b) {
                 $totalA = (float) ($a['result']['grand_total'] ?? PHP_FLOAT_MAX);
                 $totalB = (float) ($b['result']['grand_total'] ?? PHP_FLOAT_MAX);

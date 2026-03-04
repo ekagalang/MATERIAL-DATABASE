@@ -178,25 +178,19 @@
                         <input type="checkbox" id="storeModeCompleteWithinCheck"
                             {{ $initialStoreSearchMode === 'complete_within' ? 'checked' : '' }}>
                         <label for="storeModeCompleteWithinCheck" class="ssm-label">Dalam Radius</label>
-                        <small class="ssm-desc" id="storeModeCompleteWithinDesc">
-                            Mencari toko dengan material lengkap didalam radius {{ $selectedProjectStoreRadiusKm }} proyek.
-                        </small>
+                        <small class="ssm-desc">Mencari toko dengan material lengkap di dalam radius proyek.</small>
                     </div>
                     <div class="ssm-row ssm-row-sub">
                         <input type="checkbox" id="storeModeCompleteOutsideCheck"
                             {{ $initialStoreSearchMode === 'complete_outside' ? 'checked' : '' }}>
                         <label for="storeModeCompleteOutsideCheck" class="ssm-label">Luar Radius</label>
-                        <small class="ssm-desc" id="storeModeCompleteOutsideDesc">
-                            Mencari toko dengan material lengkap didalam radius {{ $selectedProjectStoreRadiusFinalKm }} proyek.
-                        </small>
+                        <small class="ssm-desc">Mencari toko dengan material lengkap di luar radius proyek.</small>
                     </div>
                     <div class="ssm-row">
                         <input type="checkbox" id="storeModeIncompleteCheck"
                             {{ $initialStoreSearchMode === 'incomplete' ? 'checked' : '' }}>
                         <label for="storeModeIncompleteCheck" class="ssm-label">Tidak Lengkap</label>
-                        <small class="ssm-desc" id="storeModeIncompleteDesc">
-                            Mencari material sedapatnya dari toko terdekat.
-                        </small>
+                        <small class="ssm-desc">Material boleh lintas toko dari yang paling dekat ke proyek.</small>
                     </div>
                 </div>
 
@@ -663,20 +657,18 @@
                             <div class="dimension-item">
                                 <label>Panjang</label>
                                 <div class="input-with-unit">
-                                    <input type="text" inputmode="text" name="wall_length" id="wallLength" data-allow-expression="1" step="0.01" min="0.01"
+                                    <input type="text" inputmode="decimal" name="wall_length" id="wallLength" step="0.01" min="0.01"
                                         value="{{ old('wall_length', request('wall_length')) }}" required>
                                     <span class="unit">M</span>
-                                    <span class="dimension-expression-hint" data-expression-hint hidden></span>
                                 </div>
                             </div>
 
                             <div class="dimension-item" id="wallHeightGroup">
                                 <label id="wallHeightLabel">Tinggi</label>
                                 <div class="input-with-unit">
-                                    <input type="text" inputmode="text" name="wall_height" id="wallHeight" data-allow-expression="1" step="0.01" min="0.01"
+                                    <input type="text" inputmode="decimal" name="wall_height" id="wallHeight" step="0.01" min="0.01"
                                         value="{{ old('wall_height', request('wall_height')) }}" required>
                                     <span class="unit">M</span>
-                                    <span class="dimension-expression-hint" data-expression-hint hidden></span>
                                 </div>
                             </div>
 
@@ -1152,21 +1144,14 @@
     }
 
     .calc-inline-search-input {
-        border: 0 !important;
-        outline: none !important;
-        box-shadow: none !important;
+        border: 0;
+        outline: none;
         min-width: 0;
         flex: 1 1 auto;
         font-size: 11px;
         color: #0f172a;
         background: transparent;
         line-height: 1.15;
-    }
-
-    .calc-inline-search-input:focus {
-        border: 0 !important;
-        outline: none !important;
-        box-shadow: none !important;
     }
 
     .calc-inline-search-input::placeholder {
@@ -1296,68 +1281,56 @@
 
     .calc-taxonomy-scroll-card {
         min-width: 0;
-        position: relative;
-        border-radius: 12px;
-        padding: 10px;
-        border: 1px solid var(--taxonomy-accent-border);
-        background:
-            radial-gradient(120% 140% at 0% 0%, var(--taxonomy-accent-soft) 0%, rgba(255, 255, 255, 0) 62%),
-            linear-gradient(180deg, var(--taxonomy-accent-soft) 0%, #ffffff 72%);
+        border-radius: 10px;
+        padding: 8px 9px;
+        border: 1px solid #dbe3ee;
+        background: #ffffff;
         box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-        transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
         display: flex;
         align-items: center;
         justify-content: flex-start;
-        gap: 8px;
+        gap: 6px;
     }
 
     .calc-taxonomy-scroll-card.is-floor {
-        --taxonomy-accent-soft: #fef2f2;
-        --taxonomy-accent-border: #fecaca;
-        --taxonomy-accent-label: #991b1b;
+        border-color: #fecaca;
+        background: linear-gradient(180deg, #fef2f2 0%, #ffffff 74%);
     }
 
     .calc-taxonomy-scroll-card.is-area {
-        --taxonomy-accent-soft: #fefce8;
-        --taxonomy-accent-border: #fde68a;
-        --taxonomy-accent-label: #92400e;
+        border-color: #fde68a;
+        background: linear-gradient(180deg, #fefce8 0%, #ffffff 74%);
     }
 
     .calc-taxonomy-scroll-card.is-field {
-        --taxonomy-accent-soft: #f0fdf4;
-        --taxonomy-accent-border: #bbf7d0;
-        --taxonomy-accent-label: #166534;
+        border-color: #bbf7d0;
+        background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 74%);
     }
 
     .calc-taxonomy-scroll-label {
-        display: inline-flex;
-        align-items: center;
-        justify-content: flex-start;
-        flex: 0 0 72px;
-        width: 72px;
-        margin-bottom: 0;
-        padding-top: 0;
-        white-space: nowrap;
-        font-size: inherit;
+        font-size: 10px;
         font-weight: 700;
-        color: var(--taxonomy-accent-label);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: #64748b;
+        flex: 0 0 auto;
+    }
+
+    .calc-taxonomy-scroll-label::after {
+        content: ':';
+        margin-left: 2px;
     }
 
     .calc-taxonomy-scroll-value {
         min-width: 0;
-        flex: 1 1 auto;
-        border: 1px solid #cbd5e1;
-        border-radius: 4px;
-        background: #ffffff;
-        min-height: 38px;
-        padding: 8px 12px;
-        font-size: 13px;
-        font-weight: 500;
+        font-size: 12px;
+        font-weight: 700;
         line-height: 1.2;
-        color: #334155;
+        color: #1e293b;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        flex: 1 1 auto;
     }
 
     .calc-scroll-fab {
@@ -1691,10 +1664,9 @@
         /* Samakan start parameter dengan start input "Item Pekerjaan" setelah label bernomor dibuat lebih lebar */
         --work-item-parameter-indent: 149px;
         --work-item-parameter-indent-mobile: 10px;
-        --work-item-inline-indent: 65px;
+        --work-item-inline-indent: 114px;
         --work-item-inline-indent-mobile: 8px;
         --work-parameter-gap: 8px;
-        --work-parameter-split-column-gap: 120px;
     }
 
     #calculationForm .taxonomy-tree-main {
@@ -2068,7 +2040,6 @@
 
         .main-taxonomy-actions-row,
         .additional-taxonomy-actions-row {
-            display: grid;
             grid-template-columns: 1fr;
         }
 
@@ -2250,16 +2221,6 @@
         padding-top: 0 !important;
     }
 
-    .dimension-expression-hint {
-        margin-left: 8px;
-        margin-right: 8px;
-        font-size: 11px;
-        line-height: 1.2;
-        color: #64748b;
-        white-space: nowrap;
-        font-style: italic;
-    }
-
     .work-type-add-btn {
         width: 40px;
         border: 1px solid #cbd5e1;
@@ -2402,9 +2363,9 @@
     }
 
     .main-taxonomy-actions-row {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         align-items: center;
-        justify-content: flex-start;
         gap: 6px 10px;
         margin-top: 10px;
         margin-bottom: 2px;
@@ -2425,21 +2386,22 @@
     }
 
     .main-taxonomy-actions-row > #addItemFromMainBtn {
-        order: 1;
-        justify-self: auto;
-        margin-right: auto;
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: start;
         transform: translateX(var(--work-item-inline-indent));
     }
 
     .main-taxonomy-actions-row > #addAreaFromMainBtn {
-        order: 2;
-        justify-self: auto;
-        margin-left: 0;
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: start;
     }
 
     .main-taxonomy-actions-row > #addFieldFromMainBtn {
-        order: 3;
-        justify-self: auto;
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: start;
     }
 
     .taxonomy-level-btn {
@@ -2524,8 +2486,7 @@
     }
 
     #addAreaFromMainBtn,
-    .additional-taxonomy-actions-row > [data-action="add-area"],
-    .additional-taxonomy-inline-actions > [data-action="add-area"] {
+    .additional-taxonomy-actions-row > [data-action="add-area"] {
         background: linear-gradient(180deg, #fefce8 0%, #fef3c7 100%);
         border-color: #fcd34d;
         color: #92400e;
@@ -2533,8 +2494,7 @@
     }
 
     #addAreaFromMainBtn:hover,
-    .additional-taxonomy-actions-row > [data-action="add-area"]:hover,
-    .additional-taxonomy-inline-actions > [data-action="add-area"]:hover {
+    .additional-taxonomy-actions-row > [data-action="add-area"]:hover {
         background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
         border-color: #eab308;
         color: #78350f;
@@ -2542,8 +2502,7 @@
     }
 
     #addFieldFromMainBtn,
-    .additional-taxonomy-actions-row > [data-action="add-field"],
-    .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body > [data-action="add-field"] {
+    .additional-taxonomy-actions-row > [data-action="add-field"] {
         background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
         border-color: #86efac;
         color: #166534;
@@ -2551,8 +2510,7 @@
     }
 
     #addFieldFromMainBtn:hover,
-    .additional-taxonomy-actions-row > [data-action="add-field"]:hover,
-    .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body > [data-action="add-field"]:hover {
+    .additional-taxonomy-actions-row > [data-action="add-field"]:hover {
         background: linear-gradient(180deg, #dcfce7 0%, #bbf7d0 100%);
         border-color: #22c55e;
         color: #14532d;
@@ -2604,7 +2562,7 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
-        gap: var(--work-parameter-gap) var(--work-parameter-split-column-gap);
+        gap: 8px 14px;
     }
 
     #calculationForm #inputFormContainer .work-type-form > .dimensions-container-vertical {
@@ -2765,14 +2723,6 @@
         grid-template-columns: minmax(0, 1fr) auto;
     }
 
-    .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body.has-inline-add-field {
-        grid-template-columns: minmax(0, 1fr) auto auto;
-    }
-
-    .additional-taxonomy-cell.has-inline-action {
-        grid-template-columns: auto minmax(0, 1fr) auto;
-    }
-
     .additional-taxonomy-cell-label {
         font-size: 14px;
         font-weight: 600;
@@ -2796,42 +2746,10 @@
         grid-column: 1;
     }
 
-    .additional-taxonomy-cell.has-inline-action .additional-taxonomy-cell-body {
-        grid-column: 2;
-    }
-
     .additional-taxonomy-cell-body .taxonomy-level-btn {
         margin: 0;
         align-self: end;
         white-space: nowrap;
-    }
-
-    .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body > [data-action="add-field"] {
-        min-height: 36px;
-        margin: 0;
-        align-self: center;
-    }
-
-    .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body.has-inline-add-field > [data-action="add-field"] {
-        grid-column: 2;
-    }
-
-    .additional-taxonomy-inline-actions {
-        grid-column: 3;
-        margin: 0;
-        align-self: center;
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .additional-taxonomy-inline-actions .taxonomy-level-btn {
-        margin: 0;
-        align-self: center;
-        white-space: nowrap;
-    }
-
-    .additional-taxonomy-cell.has-inline-action .additional-taxonomy-inline-actions .taxonomy-level-btn {
-        align-self: center;
     }
 
     .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body .taxonomy-toggle-item-btn {
@@ -2839,10 +2757,6 @@
         min-height: 36px;
         padding-left: 9px;
         padding-right: 9px;
-    }
-
-    .additional-taxonomy-cell[data-taxonomy-cell="field"] .additional-taxonomy-cell-body.has-inline-add-field .taxonomy-toggle-item-btn {
-        grid-column: 3;
     }
 
     /* Inherited cells are hidden entirely — value kept in hidden input */
@@ -3022,7 +2936,7 @@
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         align-items: start;
-        gap: var(--work-parameter-gap) var(--work-parameter-split-column-gap);
+        gap: 8px 14px;
         width: 100%;
         min-width: 0;
     }
@@ -3144,9 +3058,8 @@
 
     .material-type-filter-item {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
-        align-items: start;
-        gap: 0 8px;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: 38px auto;
         margin-bottom: 4px !important;
     }
 
@@ -3154,23 +3067,14 @@
         grid-column: 1;
         grid-row: 1;
         display: flex;
-        align-items: flex-start;
-        align-self: start;
-        padding-top: 6px !important;
+        align-items: center;
+        padding-top: 0 !important;
         margin-bottom: 0;
     }
 
     .material-type-filter-item > .material-type-filter-body {
         grid-column: 2;
-        grid-row: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .material-type-filter-item > .material-type-rows {
-        grid-column: 2;
-        grid-row: 1;
+        grid-row: 1 / -1;
     }
 
     .material-type-filter-item.has-extra-rows {
@@ -3236,17 +3140,9 @@
         margin-bottom: 0;
     }
 
-    .material-type-customize-panel .form-group {
-        align-items: flex-start;
-    }
-
     .customize-panel .form-group > label {
         font-size: 12px;
-        margin-bottom: 0;
-    }
-
-    .material-type-customize-panel .form-group > label {
-        margin-top: 5px;
+        margin-bottom: 3px;
     }
 
     .material-type-customize-panel .input-wrapper {
@@ -3616,22 +3512,6 @@
         color: #6c757d; /* Kode warna abu-abu */
     }
 
-    /* Samakan warna teks form: label abu-abu, nilai input hitam */
-    #calculationForm label {
-        color: #6b7280 !important;
-    }
-
-    #calculationForm input,
-    #calculationForm select,
-    #calculationForm textarea {
-        color: #111827 !important;
-        -webkit-text-fill-color: #111827 !important;
-    }
-
-    #calculationForm select option {
-        color: #111827;
-    }
-
     @media (max-width: 768px) {
         #calculationForm .taxonomy-node-children {
             margin-left: 8px;
@@ -3801,7 +3681,6 @@
             });
         }
         const materialTypeLabels = @json($materialTypeLabels);
-        window.__materialCalcDelegateBundleSync = true;
         if (typeof initMaterialCalculationForm === 'function') {
             try {
                 initMaterialCalculationForm(document, payload);
@@ -3998,7 +3877,6 @@
 
                 baseHidden.name = inputName;
                 const effectiveSortFn = typeof sortFn === 'function' ? sortFn : sortAlphabetic;
-                const shouldAutoScrollBottomOnOpen = kind === 'floor';
                 let currentOptions = effectiveSortFn(uniqueFilterTokens(initialOptions));
                 let isSyncing = false;
                 let isSorting = false;
@@ -4152,11 +4030,6 @@
                         });
 
                         listEl.style.display = 'block';
-                        if (shouldAutoScrollBottomOnOpen && !normalizeOption(term)) {
-                            requestAnimationFrame(() => {
-                                listEl.scrollTop = listEl.scrollHeight;
-                            });
-                        }
                     };
 
                     const findExactOption = term => {
@@ -4548,8 +4421,6 @@
             return options;
         }
 
-        let bundleRowPanelSyncSeq = 0;
-
         function initMultiMaterialTypeFilters(formPayload) {
             const optionsByType = buildMaterialTypeOptionMap(formPayload);
             const itemElements = document.querySelectorAll('.material-type-filter-item[data-material-type]');
@@ -4692,15 +4563,14 @@
                     };
 
                     const applySelection = optionValue => {
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
                         const finalValue = String(optionValue || '').trim();
                         displayEl.value = finalValue;
                         if (hiddenEl.value !== finalValue) {
                             hiddenEl.value = finalValue;
                             hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        } else {
+                            syncRows();
                         }
-                        syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
                         closeList();
                     };
 
@@ -4738,9 +4608,7 @@
 
                     rowState.closeList = closeList;
                     rowState.renderList = renderList;
-                    rowState.__lastSharedTypeValue = String(hiddenEl.value || '').trim();
                     rowEl.__materialTypeRowState = rowState;
-                    linkBundleRowWithCustomizePanel(rowEl, type);
 
                     displayEl.addEventListener('focus', function() {
                         if (displayEl.readOnly || displayEl.disabled) return;
@@ -4750,7 +4618,6 @@
 
                     displayEl.addEventListener('input', function() {
                         if (displayEl.readOnly || displayEl.disabled) return;
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
                         const term = this.value || '';
                         renderList(term);
 
@@ -4758,9 +4625,9 @@
                             if (hiddenEl.value) {
                                 hiddenEl.value = '';
                                 hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            } else {
+                                syncRows();
                             }
-                            syncRows();
-                            syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
                             return;
                         }
 
@@ -4769,13 +4636,15 @@
                             if (hiddenEl.value !== exactMatch) {
                                 hiddenEl.value = exactMatch;
                                 hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            } else {
+                                syncRows();
                             }
                         } else if (hiddenEl.value) {
                             hiddenEl.value = '';
                             hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        } else {
+                            syncRows();
                         }
-                        syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
                     });
 
                     displayEl.addEventListener('keydown', function(event) {
@@ -5332,493 +5201,6 @@
 
         function formatThicknessValue(value) {
             return formatFixedPlain(value, 2);
-        }
-
-        const dimensionExpressionFieldKeys = new Set(['wall_length', 'wall_height']);
-
-        function getDimensionExpressionFieldKey(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement)) {
-                return '';
-            }
-            if (inputEl.id === 'wallLength') {
-                return 'wall_length';
-            }
-            if (inputEl.id === 'wallHeight') {
-                return 'wall_height';
-            }
-            const fieldKey = String(inputEl.getAttribute('data-field') || inputEl.name || '').trim().toLowerCase();
-            return dimensionExpressionFieldKeys.has(fieldKey) ? fieldKey : '';
-        }
-
-        function isDimensionExpressionInput(inputEl) {
-            return Boolean(getDimensionExpressionFieldKey(inputEl));
-        }
-
-        function hasArithmeticOperator(rawValue) {
-            return /[+\-*/xX×÷:]/.test(String(rawValue || ''));
-        }
-
-        function sanitizeDimensionExpression(rawValue) {
-            return String(rawValue || '')
-                .trim()
-                .replace(/\s+/g, '')
-                .replace(/,/g, '.')
-                .replace(/[xX×]/g, '*')
-                .replace(/[÷:]/g, '/');
-        }
-
-        function formatDimensionExpressionPreview(rawValue) {
-            return String(rawValue || '')
-                .trim()
-                .replace(/[xX×*]/g, ' x ')
-                .replace(/[÷:/]/g, ' / ')
-                .replace(/\+/g, ' + ')
-                .replace(/-/g, ' - ')
-                .replace(/\s+/g, ' ')
-                .replace(/\(\s+/g, '(')
-                .replace(/\s+\)/g, ')')
-                .trim();
-        }
-
-        function tokenizeDimensionExpression(expression) {
-            const tokens = [];
-            let index = 0;
-            while (index < expression.length) {
-                const char = expression[index];
-                if ('+-*/()'.includes(char)) {
-                    tokens.push({ type: 'op', value: char });
-                    index += 1;
-                    continue;
-                }
-                if (/[0-9.]/.test(char)) {
-                    let number = '';
-                    let dotCount = 0;
-                    while (index < expression.length && /[0-9.]/.test(expression[index])) {
-                        if (expression[index] === '.') {
-                            dotCount += 1;
-                        }
-                        number += expression[index];
-                        index += 1;
-                    }
-                    if (dotCount > 1 || !/^\d+(\.\d+)?$/.test(number)) {
-                        return null;
-                    }
-                    tokens.push({ type: 'number', value: Number(number) });
-                    continue;
-                }
-                return null;
-            }
-            return tokens;
-        }
-
-        function parseDimensionExpression(rawValue) {
-            const normalized = sanitizeDimensionExpression(rawValue);
-            if (!normalized) {
-                return { ok: false, error: 'empty' };
-            }
-            if (!/^[0-9+\-*/().]+$/.test(normalized)) {
-                return { ok: false, error: 'invalid_chars' };
-            }
-            const tokens = tokenizeDimensionExpression(normalized);
-            if (!Array.isArray(tokens)) {
-                return { ok: false, error: 'invalid_tokens' };
-            }
-            let cursor = 0;
-
-            const parseExpression = () => {
-                let value = parseTerm();
-                while (cursor < tokens.length && ['+', '-'].includes(tokens[cursor].value)) {
-                    const operator = tokens[cursor].value;
-                    cursor += 1;
-                    const right = parseTerm();
-                    value = operator === '+' ? value + right : value - right;
-                }
-                return value;
-            };
-
-            const parseTerm = () => {
-                let value = parseFactor();
-                while (cursor < tokens.length && ['*', '/'].includes(tokens[cursor].value)) {
-                    const operator = tokens[cursor].value;
-                    cursor += 1;
-                    const right = parseFactor();
-                    if (operator === '/') {
-                        if (right === 0) {
-                            throw new Error('division_by_zero');
-                        }
-                        value /= right;
-                    } else {
-                        value *= right;
-                    }
-                }
-                return value;
-            };
-
-            const parseFactor = () => {
-                const token = tokens[cursor];
-                if (!token) {
-                    throw new Error('unexpected_end');
-                }
-                if (token.type === 'op' && token.value === '(') {
-                    cursor += 1;
-                    const value = parseExpression();
-                    const closeToken = tokens[cursor];
-                    if (!closeToken || closeToken.type !== 'op' || closeToken.value !== ')') {
-                        throw new Error('missing_closing_paren');
-                    }
-                    cursor += 1;
-                    return value;
-                }
-                if (token.type === 'op' && (token.value === '+' || token.value === '-')) {
-                    cursor += 1;
-                    const value = parseFactor();
-                    return token.value === '-' ? -value : value;
-                }
-                if (token.type === 'number') {
-                    cursor += 1;
-                    return token.value;
-                }
-                throw new Error('unexpected_token');
-            };
-
-            try {
-                const result = parseExpression();
-                if (cursor !== tokens.length || !Number.isFinite(result)) {
-                    return { ok: false, error: 'parse_incomplete' };
-                }
-                return { ok: true, value: result, normalized };
-            } catch (error) {
-                return { ok: false, error: String(error?.message || 'parse_error') };
-            }
-        }
-
-        function formatDimensionNumericValue(value, decimals = 6) {
-            const parsed = Number(value);
-            if (!Number.isFinite(parsed)) return '';
-            return parsed
-                .toFixed(decimals)
-                .replace(/(\.\d*?[1-9])0+$/, '$1')
-                .replace(/\.0+$/, '');
-        }
-
-        function getDimensionExpressionHint(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement)) {
-                return null;
-            }
-            const wrap = inputEl.closest('.input-with-unit');
-            if (!(wrap instanceof HTMLElement)) {
-                return null;
-            }
-            const hint = wrap.querySelector('[data-expression-hint]');
-            return hint instanceof HTMLElement ? hint : null;
-        }
-
-        function showDimensionExpressionHint(inputEl, expressionText) {
-            const hintEl = getDimensionExpressionHint(inputEl);
-            if (!(hintEl instanceof HTMLElement)) {
-                return;
-            }
-            const cleaned = String(expressionText || '').trim();
-            if (!cleaned) {
-                hideDimensionExpressionHint(inputEl);
-                return;
-            }
-            hintEl.textContent = `(= ${cleaned})`;
-            hintEl.hidden = false;
-        }
-
-        function hideDimensionExpressionHint(inputEl) {
-            const hintEl = getDimensionExpressionHint(inputEl);
-            if (!(hintEl instanceof HTMLElement)) {
-                return;
-            }
-            hintEl.hidden = true;
-            hintEl.textContent = '';
-        }
-
-        function evaluateDimensionInputRawValue(rawValue) {
-            const raw = String(rawValue || '').trim();
-            if (!raw) {
-                return { ok: true, empty: true, value: '', expression: '' };
-            }
-
-            if (hasArithmeticOperator(raw)) {
-                const parsedExpression = parseDimensionExpression(raw);
-                if (!parsedExpression.ok) {
-                    return { ok: false, error: parsedExpression.error || 'invalid_expression' };
-                }
-                return {
-                    ok: true,
-                    empty: false,
-                    value: formatDimensionNumericValue(parsedExpression.value),
-                    expression: formatDimensionExpressionPreview(raw),
-                };
-            }
-
-            const numeric = Number(raw.replace(',', '.'));
-            if (!Number.isFinite(numeric)) {
-                return { ok: false, error: 'invalid_number' };
-            }
-
-            return {
-                ok: true,
-                empty: false,
-                value: formatDimensionNumericValue(numeric),
-                expression: '',
-            };
-        }
-
-        function evaluateDimensionExpressionInput(inputEl, options = {}) {
-            if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
-                return { ok: true, skipped: true };
-            }
-            const commitValue = options.commitValue === true;
-            const strictMode = options.strictMode === true;
-            const evaluated = evaluateDimensionInputRawValue(inputEl.value);
-
-            if (!evaluated.ok) {
-                if (strictMode) {
-                    return { ok: false, error: evaluated.error || 'invalid_expression', inputEl };
-                }
-                return { ok: true, unresolved: true };
-            }
-
-            if (evaluated.empty) {
-                inputEl.dataset.dimensionExpressionRaw = '';
-                inputEl.dataset.dimensionExpressionValue = '';
-                hideDimensionExpressionHint(inputEl);
-                return { ok: true, empty: true, value: '' };
-            }
-
-            const previousExpression = String(inputEl.dataset.dimensionExpressionRaw || '').trim();
-            const previousExpressionValue = String(inputEl.dataset.dimensionExpressionValue || '').trim();
-
-            if (evaluated.expression) {
-                inputEl.dataset.dimensionExpressionRaw = evaluated.expression;
-                inputEl.dataset.dimensionExpressionValue = evaluated.value;
-                showDimensionExpressionHint(inputEl, evaluated.expression);
-            } else {
-                const keepPreviousHint = previousExpression
-                    && previousExpressionValue
-                    && evaluated.value === previousExpressionValue;
-                if (keepPreviousHint) {
-                    inputEl.dataset.dimensionExpressionRaw = previousExpression;
-                    inputEl.dataset.dimensionExpressionValue = previousExpressionValue;
-                    showDimensionExpressionHint(inputEl, previousExpression);
-                } else {
-                    inputEl.dataset.dimensionExpressionRaw = '';
-                    inputEl.dataset.dimensionExpressionValue = '';
-                    hideDimensionExpressionHint(inputEl);
-                }
-            }
-
-            if (commitValue) {
-                inputEl.value = evaluated.value;
-            }
-
-            return { ok: true, value: evaluated.value, expression: evaluated.expression };
-        }
-
-        function bindDimensionExpressionInput(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
-                return;
-            }
-            if (inputEl.__dimensionExpressionBound) {
-                return;
-            }
-            inputEl.__dimensionExpressionBound = true;
-
-            const commitEvaluation = (strictMode = false) => {
-                if (inputEl.__dimensionExpressionSyncing) {
-                    return { ok: true };
-                }
-                inputEl.__dimensionExpressionSyncing = true;
-                try {
-                    return evaluateDimensionExpressionInput(inputEl, { commitValue: true, strictMode });
-                } finally {
-                    inputEl.__dimensionExpressionSyncing = false;
-                }
-            };
-
-            const evaluateWithoutCommit = (strictMode = false) => {
-                if (inputEl.__dimensionExpressionSyncing) {
-                    return { ok: true };
-                }
-                inputEl.__dimensionExpressionSyncing = true;
-                try {
-                    return evaluateDimensionExpressionInput(inputEl, { commitValue: false, strictMode });
-                } finally {
-                    inputEl.__dimensionExpressionSyncing = false;
-                }
-            };
-
-            inputEl.addEventListener('input', function() {
-                if (inputEl.__dimensionExpressionSyncing) {
-                    return;
-                }
-                evaluateWithoutCommit(false);
-            });
-
-            inputEl.addEventListener('change', function() {
-                commitEvaluation(false);
-            });
-
-            inputEl.addEventListener('blur', function() {
-                commitEvaluation(false);
-            });
-
-            inputEl.addEventListener('keydown', function(event) {
-                if (event.key !== 'Enter') {
-                    return;
-                }
-                const result = commitEvaluation(true);
-                if (!result.ok) {
-                    event.preventDefault();
-                }
-            });
-
-            evaluateWithoutCommit(false);
-        }
-
-        function bindDimensionExpressionInputs(scope = document) {
-            if (!(scope instanceof HTMLElement) && scope !== document) {
-                return;
-            }
-            const root = scope === document ? document : scope;
-            root.querySelectorAll('input[type="text"], input:not([type])').forEach(inputEl => {
-                if (inputEl instanceof HTMLInputElement) {
-                    bindDimensionExpressionInput(inputEl);
-                }
-            });
-        }
-
-        function normalizeDimensionExpressionInputsForSubmit(scope = document, options = {}) {
-            if (!(scope instanceof HTMLElement) && scope !== document) {
-                return { ok: true };
-            }
-            const root = scope === document ? document : scope;
-            const commitValue = options.commitValue === true;
-            const candidateInputs = Array.from(root.querySelectorAll('input[type="text"], input:not([type])'))
-                .filter(inputEl => inputEl instanceof HTMLInputElement && isDimensionExpressionInput(inputEl));
-            const normalizedValues = [];
-
-            for (const inputEl of candidateInputs) {
-                if (inputEl.disabled) {
-                    continue;
-                }
-                const result = evaluateDimensionExpressionInput(inputEl, { commitValue, strictMode: true });
-                if (!result.ok) {
-                    const fieldName = getDimensionExpressionFieldKey(inputEl) === 'wall_height'
-                        ? 'Tinggi/Lebar'
-                        : 'Panjang';
-                    return {
-                        ok: false,
-                        message: `Format ${fieldName} tidak valid. Gunakan angka atau ekspresi seperti 6,2 x 2.`,
-                        focusEl: inputEl,
-                    };
-                }
-                normalizedValues.push({ inputEl, value: String(result.value || '') });
-            }
-            return { ok: true, values: normalizedValues };
-        }
-
-        function collectDimensionExpressionState() {
-            const mainState = {};
-            const mainLengthExpression = String(mainWallLengthInput?.dataset?.dimensionExpressionRaw || '').trim();
-            const mainHeightExpression = String(mainWallHeightInput?.dataset?.dimensionExpressionRaw || '').trim();
-            if (mainLengthExpression) {
-                mainState.wall_length = mainLengthExpression;
-            }
-            if (mainHeightExpression) {
-                mainState.wall_height = mainHeightExpression;
-            }
-
-            const additionalState = {};
-            const additionalRows = getAllAdditionalWorkRows();
-            additionalRows.forEach((rowEl, index) => {
-                if (!(rowEl instanceof HTMLElement)) {
-                    return;
-                }
-                const rowState = {};
-                const lengthInput = rowEl.querySelector('[data-field="wall_length"]');
-                const heightInput = rowEl.querySelector('[data-field="wall_height"]');
-                const rowLengthExpression = String(lengthInput?.dataset?.dimensionExpressionRaw || '').trim();
-                const rowHeightExpression = String(heightInput?.dataset?.dimensionExpressionRaw || '').trim();
-                if (rowLengthExpression) {
-                    rowState.wall_length = rowLengthExpression;
-                }
-                if (rowHeightExpression) {
-                    rowState.wall_height = rowHeightExpression;
-                }
-                if (Object.keys(rowState).length > 0) {
-                    additionalState[String(index)] = rowState;
-                }
-            });
-
-            if (!Object.keys(mainState).length && !Object.keys(additionalState).length) {
-                return null;
-            }
-
-            return {
-                main: mainState,
-                additional: additionalState,
-            };
-        }
-
-        function applyDimensionExpressionState(state) {
-            const expressionState = state && typeof state === 'object' ? state : {};
-            const mainState = expressionState.main && typeof expressionState.main === 'object'
-                ? expressionState.main
-                : {};
-            const additionalState = expressionState.additional && typeof expressionState.additional === 'object'
-                ? expressionState.additional
-                : {};
-
-            const applyExpressionToInput = (inputEl, expressionRaw) => {
-                if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
-                    return;
-                }
-                const expression = String(expressionRaw || '').trim();
-                if (!expression) {
-                    inputEl.dataset.dimensionExpressionRaw = '';
-                    inputEl.dataset.dimensionExpressionValue = '';
-                    hideDimensionExpressionHint(inputEl);
-                    return;
-                }
-                inputEl.dataset.dimensionExpressionRaw = expression;
-                inputEl.dataset.dimensionExpressionValue = String(inputEl.value || '').trim();
-                showDimensionExpressionHint(inputEl, expression);
-            };
-
-            applyExpressionToInput(mainWallLengthInput, mainState.wall_length || '');
-            applyExpressionToInput(mainWallHeightInput, mainState.wall_height || '');
-
-            const additionalRows = getAllAdditionalWorkRows();
-            additionalRows.forEach((rowEl, index) => {
-                if (!(rowEl instanceof HTMLElement)) {
-                    return;
-                }
-                const rowState = additionalState[String(index)] && typeof additionalState[String(index)] === 'object'
-                    ? additionalState[String(index)]
-                    : {};
-                const lengthInput = rowEl.querySelector('[data-field="wall_length"]');
-                const heightInput = rowEl.querySelector('[data-field="wall_height"]');
-                applyExpressionToInput(lengthInput, rowState.wall_length || '');
-                applyExpressionToInput(heightInput, rowState.wall_height || '');
-            });
-        }
-
-        function getStoredDimensionExpressionState() {
-            try {
-                const expressionStateRaw = localStorage.getItem(calcExpressionStateKey);
-                const expressionStateParsed = expressionStateRaw ? JSON.parse(expressionStateRaw) : null;
-                const expressionStateData = expressionStateParsed && typeof expressionStateParsed === 'object'
-                    ? expressionStateParsed.data
-                    : null;
-                return expressionStateData && typeof expressionStateData === 'object' ? expressionStateData : null;
-            } catch (error) {
-                return null;
-            }
         }
 
         function setMortarThicknessUnit(unit) {
@@ -6526,2120 +5908,6 @@
         const bundleMaterialTypeOptions = buildMaterialTypeOptionMap(payload);
         let bundleAdditionalAutocompleteSeq = 0;
         let bundleCustomizePanelSeq = 0;
-        const bundleDuplicateMaterialNoticeCache = new Set();
-        let bundleSharedMaterialTypeSyncLock = false;
-        let bundleSharedMaterialCustomizeSyncLock = false;
-        let bundleForceRealtimeSyncLock = false;
-        let bundleSharedCustomizeReconcileLock = false;
-        let bundleSharedCustomizeSyncRafId = null;
-        let bundleSharedCustomizeSyncTimerId = null;
-        let bundlePayloadSyncQueued = false;
-        const bundleSharedCustomizeRealtimeState = new Map();
-
-        function normalizeBundleMaterialNoticeToken(value) {
-            return String(value ?? '').trim().toLowerCase();
-        }
-
-        function resolveBundleMaterialWrapByPanel(panelEl, explicitType = '') {
-            if (!(panelEl instanceof HTMLElement)) {
-                return null;
-            }
-            const type = String(explicitType || panelEl.dataset.customizePanel || '').trim();
-            const directWrap = panelEl.closest(`[data-material-wrap="${type}"]`);
-            if (directWrap instanceof HTMLElement) {
-                return directWrap;
-            }
-            const typedWrap = panelEl.closest(`.material-type-filter-item[data-material-type="${type}"]`);
-            if (typedWrap instanceof HTMLElement) {
-                return typedWrap;
-            }
-            return panelEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-        }
-
-        function collectBundleMaterialTokensFromWrap(wrapEl, materialType) {
-            if (!(wrapEl instanceof HTMLElement)) {
-                return [];
-            }
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return [];
-            }
-            const tokens = new Set();
-            wrapEl.querySelectorAll(`.material-type-row[data-material-type="${type}"]`).forEach(rowEl => {
-                if (!(rowEl instanceof HTMLElement)) {
-                    return;
-                }
-                const hiddenEl = rowEl.querySelector('input[data-material-type-hidden="1"]');
-                const displayEl = rowEl.querySelector('.autocomplete-input[data-material-display="1"], .autocomplete-input');
-                [hiddenEl?.value || '', displayEl?.value || ''].forEach(rawValue => {
-                    String(rawValue || '')
-                        .split('|')
-                        .map(token => normalizeBundleMaterialNoticeToken(token))
-                        .filter(Boolean)
-                        .forEach(token => tokens.add(token));
-                });
-            });
-            return Array.from(tokens);
-        }
-
-        function queueBundlePayloadSync() {
-            if (bundlePayloadSyncQueued) {
-                return;
-            }
-            bundlePayloadSyncQueued = true;
-            Promise.resolve().then(() => {
-                bundlePayloadSyncQueued = false;
-                if (typeof syncBundleFromForms === 'function') {
-                    syncBundleFromForms();
-                }
-            });
-        }
-
-        function rebuildBundleSharedCustomizeRealtimeState() {
-            bundleSharedCustomizeRealtimeState.clear();
-            Array.from(bundleCustomizeSupportedTypes || []).forEach(rawType => {
-                const type = String(rawType || '').trim();
-                if (!type) {
-                    return;
-                }
-                const wraps = collectBundleMaterialWrapsByType(type);
-                wraps.forEach(wrapEl => {
-                    if (!(wrapEl instanceof HTMLElement)) {
-                        return;
-                    }
-                    const panelEl = wrapEl.querySelector(`.customize-panel[data-customize-panel="${type}"]`);
-                    if (!(panelEl instanceof HTMLElement) || isBundleCustomizePanelDetached(panelEl)) {
-                        return;
-                    }
-                    const panelValues = collectBundleCustomizePanelValues(panelEl, type);
-                    const normalizedValues = {};
-                    Object.entries(panelValues).forEach(([fieldKey, rawValue]) => {
-                        const key = String(fieldKey || '').trim();
-                        const value = String(rawValue || '').trim();
-                        if (!key || !value) {
-                            return;
-                        }
-                        normalizedValues[key] = value;
-                    });
-                    if (Object.keys(normalizedValues).length === 0) {
-                        return;
-                    }
-                    const tokens = collectBundleMaterialTokensFromWrap(wrapEl, type);
-                    if (!tokens.length) {
-                        return;
-                    }
-                    tokens.forEach(rawToken => {
-                        const tokenState = getBundleSharedCustomizeRealtimeTokenState(type, rawToken, true);
-                        if (!tokenState || typeof tokenState !== 'object') {
-                            return;
-                        }
-                        Object.entries(normalizedValues).forEach(([fieldKey, value]) => {
-                            if (!Object.prototype.hasOwnProperty.call(tokenState, fieldKey)) {
-                                tokenState[fieldKey] = value;
-                            }
-                        });
-                    });
-                });
-            });
-        }
-
-        function collectBundleMaterialWrapsByType(materialType) {
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return [];
-            }
-            const wrapSet = new Set();
-            document.querySelectorAll(`[data-material-wrap="${type}"]`).forEach(wrapEl => {
-                if (wrapEl instanceof HTMLElement) {
-                    wrapSet.add(wrapEl);
-                }
-            });
-            document.querySelectorAll(`.material-type-filter-item[data-material-type="${type}"]`).forEach(wrapEl => {
-                if (wrapEl instanceof HTMLElement) {
-                    wrapSet.add(wrapEl);
-                }
-            });
-            return Array.from(wrapSet);
-        }
-
-        function getBundleSharedCustomizeRealtimeTokenState(materialType, token, create = false) {
-            const type = String(materialType || '').trim();
-            const normalizedToken = normalizeBundleMaterialNoticeToken(token);
-            if (!type || !normalizedToken) {
-                return null;
-            }
-            const stateKey = `${type}::${normalizedToken}`;
-            if (!bundleSharedCustomizeRealtimeState.has(stateKey)) {
-                if (!create) {
-                    return null;
-                }
-                bundleSharedCustomizeRealtimeState.set(stateKey, {});
-            }
-            return bundleSharedCustomizeRealtimeState.get(stateKey) || null;
-        }
-
-        function mergeBundleSharedCustomizeRealtimeValues(materialType, tokens) {
-            const merged = {};
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return merged;
-            }
-            uniqueFilterTokens(Array.isArray(tokens) ? tokens : [tokens]).forEach(rawToken => {
-                const tokenState = getBundleSharedCustomizeRealtimeTokenState(type, rawToken, false);
-                if (!tokenState || typeof tokenState !== 'object') {
-                    return;
-                }
-                Object.entries(tokenState).forEach(([fieldKey, rawValue]) => {
-                    const normalizedFieldKey = String(fieldKey || '').trim();
-                    const normalizedValue = String(rawValue || '').trim();
-                    if (!normalizedFieldKey || !normalizedValue) {
-                        return;
-                    }
-                    if (!Object.prototype.hasOwnProperty.call(merged, normalizedFieldKey)) {
-                        merged[normalizedFieldKey] = normalizedValue;
-                    }
-                });
-            });
-            return merged;
-        }
-
-        function syncBundleSharedCustomizeRealtimeToWrap(materialType, wrapEl) {
-            const type = String(materialType || '').trim();
-            if (!type || !(wrapEl instanceof HTMLElement)) {
-                return false;
-            }
-            const panelEl = wrapEl.querySelector(`.customize-panel[data-customize-panel="${type}"]`);
-            if (!(panelEl instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-            const tokens = collectBundleMaterialTokensFromWrap(wrapEl, type);
-            if (!tokens.length) {
-                return false;
-            }
-            const valuesToApply = mergeBundleSharedCustomizeRealtimeValues(type, tokens);
-            if (Object.keys(valuesToApply).length === 0) {
-                return false;
-            }
-            return applyBundleCustomizePanelValues(panelEl, type, valuesToApply, false);
-        }
-
-        function forceSyncBundleCustomizeFromSelect(targetSelect) {
-            if (bundleForceRealtimeSyncLock) {
-                return false;
-            }
-            if (!(targetSelect instanceof HTMLSelectElement)) {
-                return false;
-            }
-            if (!targetSelect.matches('select[data-customize-filter][data-filter-key]')) {
-                return false;
-            }
-
-            const panelEl = targetSelect.closest('.customize-panel[data-customize-panel]');
-            if (!(panelEl instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-            const type = String(panelEl.dataset.customizePanel || '').trim();
-            const fieldKey = String(targetSelect.dataset.filterKey || '').trim();
-            const nextValue = String(targetSelect.value || '').trim();
-            if (!type || !fieldKey || !nextValue) {
-                return false;
-            }
-
-            let sourceWrap = resolveBundleMaterialWrapByPanel(panelEl, type);
-            if (!(sourceWrap instanceof HTMLElement)) {
-                const sourceRowEl = resolveBundleSourceRowFromPanel(panelEl, type);
-                if (sourceRowEl instanceof HTMLElement) {
-                    sourceWrap =
-                        sourceRowEl.closest(`[data-material-wrap="${type}"]`) ||
-                        sourceRowEl.closest(`.material-type-filter-item[data-material-type="${type}"]`) ||
-                        sourceRowEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-                }
-            }
-            if (!(sourceWrap instanceof HTMLElement)) {
-                return false;
-            }
-            const sourceTokenSet = new Set(
-                collectBundleMaterialTokensFromWrap(sourceWrap, type)
-                    .map(token => normalizeBundleMaterialNoticeToken(token))
-                    .filter(Boolean),
-            );
-            if (!sourceTokenSet.size) {
-                return false;
-            }
-
-            const hasCommonToken = targetTokens => {
-                if (!Array.isArray(targetTokens) || targetTokens.length === 0) {
-                    return false;
-                }
-                return targetTokens.some(token => sourceTokenSet.has(normalizeBundleMaterialNoticeToken(token)));
-            };
-
-            const setSelectValue = selectEl => {
-                if (!(selectEl instanceof HTMLSelectElement)) {
-                    return false;
-                }
-                const hasOption = Array.from(selectEl.options).some(option => {
-                    return String(option.value || '').trim() === nextValue;
-                });
-                if (!hasOption) {
-                    const fallbackOption = document.createElement('option');
-                    fallbackOption.value = nextValue;
-                    fallbackOption.textContent = nextValue;
-                    selectEl.appendChild(fallbackOption);
-                }
-                if (String(selectEl.value || '').trim() === nextValue) {
-                    syncBundleCustomizeSelectDisplay(selectEl);
-                    return false;
-                }
-                selectEl.value = nextValue;
-                selectEl.dataset.bundleSynced = '1';
-                syncBundleCustomizeSelectDisplay(selectEl);
-                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-                return true;
-            };
-
-            let hasAnyChanged = false;
-            bundleForceRealtimeSyncLock = true;
-            try {
-                document
-                    .querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`)
-                    .forEach(candidatePanel => {
-                        if (!(candidatePanel instanceof HTMLElement) || candidatePanel === panelEl) {
-                            return;
-                        }
-                        if (isBundleCustomizePanelDetached(candidatePanel)) {
-                            return;
-                        }
-                        const targetWrap = resolveBundleMaterialWrapByPanel(candidatePanel, type);
-                        if (!(targetWrap instanceof HTMLElement)) {
-                            return;
-                        }
-                        const targetTokens = collectBundleMaterialTokensFromWrap(targetWrap, type);
-                        if (!hasCommonToken(targetTokens)) {
-                            return;
-                        }
-                        const targetField = candidatePanel.querySelector(
-                            `select[data-customize-filter="${type}"][data-filter-key="${fieldKey}"]`,
-                        );
-                        const changed = setSelectValue(targetField);
-                        if (changed) {
-                            hasAnyChanged = true;
-                            syncBundleCustomizePanelToggleState(candidatePanel);
-                            if (candidatePanel.hidden) {
-                                candidatePanel.hidden = false;
-                            }
-                        }
-                    });
-            } finally {
-                bundleForceRealtimeSyncLock = false;
-            }
-
-            syncAllBundleCustomizePanelToggleStates(type);
-
-            return hasAnyChanged;
-        }
-
-        function enforceBundleSharedCustomizeRealtime(materialType = '') {
-            let hasAnyChanged = false;
-            const normalizedType = String(materialType || '').trim();
-            const types = normalizedType
-                ? [normalizedType]
-                : Array.from(bundleCustomizeSupportedTypes || []);
-
-            types.forEach(type => {
-                const key = String(type || '').trim();
-                if (!key) {
-                    return;
-                }
-                const wraps = collectBundleMaterialWrapsByType(key);
-                wraps.forEach(wrapEl => {
-                    const changed = syncBundleSharedCustomizeRealtimeToWrap(key, wrapEl);
-                    if (changed) {
-                        hasAnyChanged = true;
-                    }
-                });
-            });
-
-            return hasAnyChanged;
-        }
-
-        function syncBundleSharedCustomizeRealtimeAcrossWraps(panelEl, specificFieldKey, specificFieldValue = '') {
-            if (bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-            if (!(panelEl instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-            const type = String(panelEl.dataset.customizePanel || '').trim();
-            const fieldKey = String(specificFieldKey || '').trim();
-            const nextValue = String(specificFieldValue || '').trim();
-            if (!type || !fieldKey || !nextValue) {
-                return false;
-            }
-
-            const sourceWrap = resolveBundleMaterialWrapByPanel(panelEl, type);
-            if (!(sourceWrap instanceof HTMLElement)) {
-                return false;
-            }
-            const sourceTokens = collectBundleMaterialTokensFromWrap(sourceWrap, type);
-            if (!sourceTokens.length) {
-                return false;
-            }
-
-            sourceTokens.forEach(token => {
-                const tokenState = getBundleSharedCustomizeRealtimeTokenState(type, token, true);
-                if (tokenState && typeof tokenState === 'object') {
-                    tokenState[fieldKey] = nextValue;
-                }
-            });
-
-            let hasAnyChanged = false;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                const sourceTokenSet = new Set(sourceTokens.map(token => normalizeBundleMaterialNoticeToken(token)));
-                collectBundleMaterialWrapsByType(type).forEach(targetWrap => {
-                    if (!(targetWrap instanceof HTMLElement)) {
-                        return;
-                    }
-                    const targetTokens = collectBundleMaterialTokensFromWrap(targetWrap, type);
-                    if (!targetTokens.length) {
-                        return;
-                    }
-                    const hasIntersection = targetTokens.some(token => {
-                        return sourceTokenSet.has(normalizeBundleMaterialNoticeToken(token));
-                    });
-                    if (!hasIntersection) {
-                        return;
-                    }
-                    const targetPanel = targetWrap.querySelector(`.customize-panel[data-customize-panel="${type}"]`);
-                    if (!(targetPanel instanceof HTMLElement) || targetPanel === panelEl) {
-                        return;
-                    }
-                    if (isBundleCustomizePanelDetached(targetPanel)) {
-                        return;
-                    }
-                    const changed = applyBundleCustomizePanelValues(
-                        targetPanel,
-                        type,
-                        { [fieldKey]: nextValue },
-                        false,
-                    );
-                    if (changed) {
-                        hasAnyChanged = true;
-                    }
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-            }
-            return hasAnyChanged;
-        }
-
-        function propagateBundleSharedCustomizeFromCurrentPanels() {
-            if (bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-
-            let hasAnyChanged = false;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                bundleCustomizeSupportedTypes.forEach(type => {
-                    const normalizedType = String(type || '').trim();
-                    if (!normalizedType) {
-                        return;
-                    }
-                    const wraps = collectBundleMaterialWrapsByType(normalizedType);
-                    if (!wraps.length) {
-                        return;
-                    }
-
-                    const tokenValueMap = new Map();
-                    wraps.forEach(wrapEl => {
-                        if (!(wrapEl instanceof HTMLElement)) {
-                            return;
-                        }
-                        const panelEl = wrapEl.querySelector(
-                            `.customize-panel[data-customize-panel="${normalizedType}"]`,
-                        );
-                        if (!(panelEl instanceof HTMLElement)) {
-                            return;
-                        }
-                        if (isBundleCustomizePanelDetached(panelEl)) {
-                            return;
-                        }
-                        const tokens = collectBundleMaterialTokensFromWrap(wrapEl, normalizedType);
-                        if (!tokens.length) {
-                            return;
-                        }
-                        const panelValues = collectBundleCustomizePanelValues(panelEl, normalizedType);
-                        const normalizedValues = {};
-                        Object.entries(panelValues).forEach(([fieldKey, rawValue]) => {
-                            const key = String(fieldKey || '').trim();
-                            const value = String(rawValue || '').trim();
-                            if (!key || !value) {
-                                return;
-                            }
-                            normalizedValues[key] = value;
-                        });
-                        if (Object.keys(normalizedValues).length === 0) {
-                            return;
-                        }
-
-                        tokens.forEach(rawToken => {
-                            const token = normalizeBundleMaterialNoticeToken(rawToken);
-                            if (!token) {
-                                return;
-                            }
-                            if (!tokenValueMap.has(token)) {
-                                tokenValueMap.set(token, {});
-                            }
-                            const bucket = tokenValueMap.get(token) || {};
-                            Object.entries(normalizedValues).forEach(([fieldKey, value]) => {
-                                if (!Object.prototype.hasOwnProperty.call(bucket, fieldKey)) {
-                                    bucket[fieldKey] = value;
-                                }
-                            });
-                            tokenValueMap.set(token, bucket);
-                        });
-                    });
-
-                    if (!tokenValueMap.size) {
-                        return;
-                    }
-
-                    wraps.forEach(wrapEl => {
-                        if (!(wrapEl instanceof HTMLElement)) {
-                            return;
-                        }
-                        const panelEl = wrapEl.querySelector(
-                            `.customize-panel[data-customize-panel="${normalizedType}"]`,
-                        );
-                        if (!(panelEl instanceof HTMLElement)) {
-                            return;
-                        }
-                        if (isBundleCustomizePanelDetached(panelEl)) {
-                            return;
-                        }
-                        const tokens = collectBundleMaterialTokensFromWrap(wrapEl, normalizedType)
-                            .map(token => normalizeBundleMaterialNoticeToken(token))
-                            .filter(Boolean);
-                        if (!tokens.length) {
-                            return;
-                        }
-
-                        const valuesToApply = {};
-                        tokens.forEach(token => {
-                            const tokenValues = tokenValueMap.get(token);
-                            if (!tokenValues || typeof tokenValues !== 'object') {
-                                return;
-                            }
-                            Object.entries(tokenValues).forEach(([fieldKey, rawValue]) => {
-                                const key = String(fieldKey || '').trim();
-                                const value = String(rawValue || '').trim();
-                                if (!key || !value) {
-                                    return;
-                                }
-                                if (!Object.prototype.hasOwnProperty.call(valuesToApply, key)) {
-                                    valuesToApply[key] = value;
-                                }
-                            });
-                        });
-                        if (Object.keys(valuesToApply).length === 0) {
-                            return;
-                        }
-
-                        const changed = applyBundleCustomizePanelValues(
-                            panelEl,
-                            normalizedType,
-                            valuesToApply,
-                            false,
-                        );
-                        if (changed) {
-                            hasAnyChanged = true;
-                        }
-                    });
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-            }
-
-            return hasAnyChanged;
-        }
-
-        function linkBundleRowWithCustomizePanel(rowEl, explicitType = '') {
-            if (!(rowEl instanceof HTMLElement)) {
-                return;
-            }
-            const type = String(explicitType || rowEl.dataset.materialType || '').trim();
-            if (!type) {
-                return;
-            }
-
-            const toggleBtn = rowEl.querySelector(`[data-customize-toggle="${type}"]`);
-            if (!(toggleBtn instanceof HTMLElement)) {
-                return;
-            }
-
-            let rowSyncId = String(rowEl.dataset.bundleRowSyncId || '').trim();
-            if (!rowSyncId) {
-                rowSyncId = `bundle-row-sync-${++bundleRowPanelSyncSeq}`;
-                rowEl.dataset.bundleRowSyncId = rowSyncId;
-            }
-
-            const panelId = String(toggleBtn.dataset.customizePanelId || '').trim();
-            if (!panelId) {
-                return;
-            }
-
-            const owner =
-                rowEl.closest('[data-additional-work-item="true"]') ||
-                rowEl.closest('#inputFormContainer') ||
-                rowEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]') ||
-                document;
-            const panelCandidates = Array.from(
-                owner.querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`),
-            ).filter(panelEl => String(panelEl?.id || '').trim() === panelId);
-
-            if (panelCandidates.length === 1 && panelCandidates[0] instanceof HTMLElement) {
-                panelCandidates[0].dataset.bundleRowSyncId = rowSyncId;
-                return;
-            }
-
-            const globalCandidates = Array.from(
-                document.querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`),
-            ).filter(panelEl => String(panelEl?.id || '').trim() === panelId);
-            if (globalCandidates.length === 1 && globalCandidates[0] instanceof HTMLElement) {
-                globalCandidates[0].dataset.bundleRowSyncId = rowSyncId;
-            }
-        }
-
-        function ensureBundleRowPanelSyncLinks(rootEl = document) {
-            const scope = rootEl === document || rootEl instanceof HTMLElement ? rootEl : document;
-            scope.querySelectorAll('[data-material-wrap], .material-type-filter-item[data-material-type]').forEach(wrap => {
-                if (!(wrap instanceof HTMLElement)) {
-                    return;
-                }
-
-                wrap.querySelectorAll('.material-type-row[data-material-type]').forEach(rowEl => {
-                    if (!(rowEl instanceof HTMLElement)) {
-                        return;
-                    }
-                    const type = String(rowEl.dataset.materialType || '').trim();
-                    if (!type) {
-                        return;
-                    }
-                    linkBundleRowWithCustomizePanel(rowEl, type);
-                });
-            });
-        }
-
-        function getBundleMaterialNoticeOwnerKey(rowEl) {
-            if (!(rowEl instanceof HTMLElement)) {
-                return '';
-            }
-            const additionalItemEl = rowEl.closest('[data-additional-work-item="true"]');
-            if (additionalItemEl instanceof HTMLElement) {
-                const index = getAllAdditionalWorkRows().indexOf(additionalItemEl);
-                return index >= 0 ? `additional-${index + 1}` : 'additional';
-            }
-            const mainRoot = document.getElementById('inputFormContainer');
-            if (mainRoot && mainRoot.contains(rowEl)) {
-                return 'main';
-            }
-            return '';
-        }
-
-        function collectBundleRowsByMaterialTypeValue(materialType, normalizedValue) {
-            const type = String(materialType || '').trim();
-            const valueNorm = normalizeBundleMaterialNoticeToken(normalizedValue);
-            if (!type || !valueNorm) {
-                return [];
-            }
-
-            return collectBundleMaterialRowStatesByType(type)
-                .filter(state => normalizeBundleMaterialNoticeToken(state?.hiddenEl?.value || '') === valueNorm)
-                .map(state => state.rowEl)
-                .filter(rowEl => rowEl instanceof HTMLElement);
-        }
-
-        function notifySharedBundleMaterialType(materialType, rawValue) {
-            const type = String(materialType || '').trim();
-            const value = String(rawValue || '').trim();
-            const normalizedValue = normalizeBundleMaterialNoticeToken(value);
-            if (!type || !normalizedValue) {
-                return;
-            }
-
-            const matchingRows = collectBundleRowsByMaterialTypeValue(type, normalizedValue);
-            if (!matchingRows.length) {
-                return;
-            }
-
-            const owners = Array.from(
-                new Set(
-                    matchingRows
-                        .map(getBundleMaterialNoticeOwnerKey)
-                        .filter(Boolean),
-                ),
-            ).sort();
-            if (owners.length < 2) {
-                return;
-            }
-
-            const signature = `${type}|${normalizedValue}|${owners.join(',')}`;
-            if (bundleDuplicateMaterialNoticeCache.has(signature)) {
-                return;
-            }
-            bundleDuplicateMaterialNoticeCache.add(signature);
-
-            const typeLabel = String(bundleMaterialTypeLabels?.[type] || type).trim();
-            const message =
-                `Jenis ${typeLabel} "${value}" dipakai di ${owners.length} item pekerjaan. ` +
-                'Sistem bundle akan pakai material yang sama, dan custom per item tetap bisa diubah.';
-
-            if (typeof window.showToast === 'function') {
-                window.showToast(message, 'warning');
-                return;
-            }
-            window.alert(message);
-        }
-
-        function getBundleMaterialRowState(rowEl) {
-            if (!(rowEl instanceof HTMLElement)) {
-                return null;
-            }
-            const state = rowEl.__materialTypeRowState || rowEl.__bundleMaterialRowState || {};
-            if (state.hiddenEl instanceof HTMLInputElement && state.displayEl instanceof HTMLInputElement) {
-                return state;
-            }
-
-            const hiddenEl = rowEl.querySelector('input[data-material-type-hidden="1"]');
-            const displayEl = rowEl.querySelector('.autocomplete-input[data-material-display="1"], .autocomplete-input');
-            if (!(hiddenEl instanceof HTMLInputElement) || !(displayEl instanceof HTMLInputElement)) {
-                return null;
-            }
-            return {
-                rowEl,
-                hiddenEl,
-                displayEl,
-                listEl: null,
-            };
-        }
-
-        function collectBundleMaterialRowStatesByType(materialType) {
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return [];
-            }
-
-            const states = [];
-            const seenRows = new Set();
-            const formRoot = document.getElementById('calculationForm') || document;
-            formRoot.querySelectorAll(`.material-type-row[data-material-type="${type}"]`).forEach(rowEl => {
-                if (!(rowEl instanceof HTMLElement) || seenRows.has(rowEl)) {
-                    return;
-                }
-                seenRows.add(rowEl);
-
-                const state = getBundleMaterialRowState(rowEl);
-                if (!state) {
-                    return;
-                }
-                states.push(state);
-            });
-
-            return states;
-        }
-
-        function setBundleMaterialRowStateValue(rowState, value) {
-            if (!rowState || !(rowState.hiddenEl instanceof HTMLInputElement) || !(rowState.displayEl instanceof HTMLInputElement)) {
-                return;
-            }
-            const nextValue = String(value || '').trim();
-            if (String(rowState.hiddenEl.value || '').trim() === nextValue &&
-                String(rowState.displayEl.value || '').trim() === nextValue) {
-                rowState.__lastSharedTypeValue = nextValue;
-                return;
-            }
-            rowState.hiddenEl.value = nextValue;
-            rowState.displayEl.value = nextValue;
-            rowState.__lastSharedTypeValue = nextValue;
-            rowState.hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-
-        function syncSharedBundleMaterialTypeAcrossItems(materialType, sourceRowState, previousRawValue) {
-            if (bundleSharedMaterialTypeSyncLock) {
-                return;
-            }
-            if (!sourceRowState || !(sourceRowState.rowEl instanceof HTMLElement) || !(sourceRowState.hiddenEl instanceof HTMLInputElement)) {
-                return;
-            }
-
-            const type = String(materialType || '').trim();
-            const previousValueNorm = normalizeBundleMaterialNoticeToken(previousRawValue);
-            const currentValue = String(sourceRowState.hiddenEl.value || '').trim();
-            const currentValueNorm = normalizeBundleMaterialNoticeToken(currentValue);
-
-            sourceRowState.__lastSharedTypeValue = currentValue;
-            if (!type || !previousValueNorm || previousValueNorm === currentValueNorm) {
-                if (currentValue) {
-                    syncSharedBundleMaterialCustomizeAcrossItems(type, sourceRowState.rowEl);
-                    notifySharedBundleMaterialType(type, currentValue);
-                }
-                return;
-            }
-
-            const sourceOwner = getBundleMaterialNoticeOwnerKey(sourceRowState.rowEl);
-            const targetStates = collectBundleMaterialRowStatesByType(type).filter(state => {
-                if (!state || state === sourceRowState || !(state.hiddenEl instanceof HTMLInputElement)) {
-                    return false;
-                }
-                const targetValueNorm = normalizeBundleMaterialNoticeToken(state.hiddenEl.value);
-                return targetValueNorm === previousValueNorm;
-            });
-
-            if (!targetStates.length) {
-                if (currentValue) {
-                    notifySharedBundleMaterialType(type, currentValue);
-                }
-                return;
-            }
-
-            bundleSharedMaterialTypeSyncLock = true;
-            try {
-                targetStates.forEach(state => {
-                    setBundleMaterialRowStateValue(state, currentValue);
-                });
-            } finally {
-                bundleSharedMaterialTypeSyncLock = false;
-            }
-
-            if (typeof syncBundleFromForms === 'function') {
-                syncBundleFromForms();
-            }
-            if (currentValue) {
-                syncSharedBundleMaterialCustomizeAcrossItems(type, sourceRowState.rowEl);
-            }
-            if (currentValue) {
-                notifySharedBundleMaterialType(type, currentValue);
-            }
-        }
-
-        function resolveBundleCustomizePanelByRow(materialType, rowEl) {
-            if (!(rowEl instanceof HTMLElement)) {
-                return null;
-            }
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return null;
-            }
-
-            ensureBundleRowPanelSyncLinks(
-                rowEl.closest('[data-additional-work-item="true"]') ||
-                    rowEl.closest('#inputFormContainer') ||
-                    document,
-            );
-
-            const rowSyncId = String(rowEl.dataset.bundleRowSyncId || '').trim();
-            if (rowSyncId) {
-                const panelBySyncId = Array.from(
-                    document.querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`),
-                ).find(panelEl => String(panelEl?.dataset?.bundleRowSyncId || '').trim() === rowSyncId);
-                if (panelBySyncId instanceof HTMLElement) {
-                    return panelBySyncId;
-                }
-            }
-
-            const toggleBtn = rowEl.querySelector(`[data-customize-toggle="${type}"]`);
-            if (toggleBtn instanceof HTMLElement) {
-                const panelId = String(toggleBtn.dataset.customizePanelId || '').trim();
-                if (panelId) {
-                    const rowOwner =
-                        rowEl.closest('[data-additional-work-item="true"]') ||
-                        rowEl.closest('#inputFormContainer');
-                    if (rowOwner instanceof HTMLElement) {
-                        const panelInOwner = rowOwner.querySelector(
-                            `.customize-panel[data-customize-panel="${type}"][id="${panelId}"]`,
-                        );
-                        if (panelInOwner instanceof HTMLElement) {
-                            return panelInOwner;
-                        }
-                    }
-                    const panelByIdCandidates = Array.from(
-                        document.querySelectorAll(`.customize-panel[data-customize-panel="${type}"][id="${panelId}"]`),
-                    );
-                    if (panelByIdCandidates.length === 1 && panelByIdCandidates[0] instanceof HTMLElement) {
-                        return panelByIdCandidates[0];
-                    }
-                    const panelById = document.getElementById(panelId);
-                    if (panelById instanceof HTMLElement) {
-                        return panelById;
-                    }
-                }
-            }
-
-            const wrap = rowEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-            if (wrap instanceof HTMLElement) {
-                const panel = wrap.querySelector(`.customize-panel[data-customize-panel="${type}"]`);
-                if (panel instanceof HTMLElement) {
-                    return panel;
-                }
-            }
-
-            return null;
-        }
-
-        function collectBundleCustomizePanelValues(panelEl, materialType) {
-            const values = {};
-            if (!(panelEl instanceof HTMLElement)) {
-                return values;
-            }
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return values;
-            }
-            panelEl.querySelectorAll(`select[data-customize-filter="${type}"][data-filter-key]`).forEach(selectEl => {
-                if (!(selectEl instanceof HTMLSelectElement)) {
-                    return;
-                }
-                const filterKey = String(selectEl.dataset.filterKey || '').trim();
-                if (!filterKey) {
-                    return;
-                }
-                values[filterKey] = String(selectEl.value || '').trim();
-            });
-            return values;
-        }
-
-        function isBundleCustomizePanelDetached(panelEl) {
-            return panelEl instanceof HTMLElement && String(panelEl.dataset.bundleCustomizeDetached || '') === '1';
-        }
-
-        function setBundleCustomizePanelDetached(panelEl, detached = true) {
-            if (!(panelEl instanceof HTMLElement)) {
-                return;
-            }
-            if (detached) {
-                panelEl.dataset.bundleCustomizeDetached = '1';
-            } else {
-                delete panelEl.dataset.bundleCustomizeDetached;
-            }
-        }
-
-        function resetBundleCustomizeDetachedIfEmpty(panelEl) {
-            if (!(panelEl instanceof HTMLElement)) {
-                return;
-            }
-            const materialType = String(panelEl.dataset.customizePanel || '').trim();
-            if (!materialType) {
-                return;
-            }
-            const values = collectBundleCustomizePanelValues(panelEl, materialType);
-            const hasActiveFilter = Object.values(values).some(value => String(value || '').trim() !== '');
-            if (!hasActiveFilter) {
-                setBundleCustomizePanelDetached(panelEl, false);
-            }
-        }
-
-        function resolveSharedBundleCustomizeFieldValue(panelEl, fieldKey) {
-            if (!(panelEl instanceof HTMLElement)) {
-                return '';
-            }
-            const type = String(panelEl.dataset.customizePanel || '').trim();
-            const normalizedFieldKey = String(fieldKey || '').trim();
-            if (!type || !normalizedFieldKey) {
-                return '';
-            }
-            const sourceWrap = resolveBundleMaterialWrapByPanel(panelEl, type);
-            if (!(sourceWrap instanceof HTMLElement)) {
-                return '';
-            }
-            const sourceTokenSet = new Set(
-                collectBundleMaterialTokensFromWrap(sourceWrap, type)
-                    .map(token => normalizeBundleMaterialNoticeToken(token))
-                    .filter(Boolean),
-            );
-            if (!sourceTokenSet.size) {
-                return '';
-            }
-
-            const wraps = collectBundleMaterialWrapsByType(type);
-            for (const wrapEl of wraps) {
-                if (!(wrapEl instanceof HTMLElement) || wrapEl === sourceWrap) {
-                    continue;
-                }
-                const panelCandidate = wrapEl.querySelector(`.customize-panel[data-customize-panel="${type}"]`);
-                if (!(panelCandidate instanceof HTMLElement) || isBundleCustomizePanelDetached(panelCandidate)) {
-                    continue;
-                }
-                const tokens = collectBundleMaterialTokensFromWrap(wrapEl, type);
-                const intersects = tokens.some(token =>
-                    sourceTokenSet.has(normalizeBundleMaterialNoticeToken(token)),
-                );
-                if (!intersects) {
-                    continue;
-                }
-                const selectEl = panelCandidate.querySelector(
-                    `select[data-customize-filter="${type}"][data-filter-key="${normalizedFieldKey}"]`,
-                );
-                if (!(selectEl instanceof HTMLSelectElement)) {
-                    continue;
-                }
-                const value = String(selectEl.value || '').trim();
-                if (value) {
-                    return value;
-                }
-            }
-            return '';
-        }
-
-        function tryReattachDetachedBundleCustomizePanel(panelEl, fieldKey, fieldValue) {
-            if (!(panelEl instanceof HTMLElement) || !isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-            const currentValue = String(fieldValue || '').trim();
-            if (!currentValue) {
-                resetBundleCustomizeDetachedIfEmpty(panelEl);
-                return !isBundleCustomizePanelDetached(panelEl);
-            }
-            const peerValue = resolveSharedBundleCustomizeFieldValue(panelEl, fieldKey);
-            if (peerValue && peerValue === currentValue) {
-                setBundleCustomizePanelDetached(panelEl, false);
-                return true;
-            }
-            return false;
-        }
-
-        function syncBundleCustomizePanelToggleState(panelEl) {
-            if (!(panelEl instanceof HTMLElement)) {
-                return;
-            }
-            const panelId = String(panelEl.id || '').trim();
-            const materialType = String(panelEl.dataset.customizePanel || '').trim();
-            if (!panelId || !materialType) {
-                return;
-            }
-            const values = collectBundleCustomizePanelValues(panelEl, materialType);
-            const hasActiveFilter = Object.values(values).some(value => String(value || '').trim() !== '');
-            document.querySelectorAll(`[data-customize-panel-id="${panelId}"]`).forEach(btn => {
-                if (btn instanceof HTMLElement) {
-                    btn.classList.toggle('is-active', hasActiveFilter);
-                    btn.textContent = 'Custom';
-                }
-            });
-        }
-
-        function syncAllBundleCustomizePanelToggleStates(materialType = '') {
-            const type = String(materialType || '').trim();
-            const selector = type
-                ? `.customize-panel[data-customize-panel="${type}"]`
-                : '.customize-panel[data-customize-panel]';
-            document.querySelectorAll(selector).forEach(panelEl => {
-                if (panelEl instanceof HTMLElement) {
-                    syncBundleCustomizePanelToggleState(panelEl);
-                }
-            });
-        }
-
-        function syncBundleCustomizeSelectDisplay(selectEl) {
-            if (!(selectEl instanceof HTMLSelectElement)) {
-                return;
-            }
-            if (selectEl.__customizeAutocompleteUi?.syncDisplayFromSelect) {
-                selectEl.__customizeAutocompleteUi.syncDisplayFromSelect();
-                return;
-            }
-            const inputWrapper = selectEl.closest('.input-wrapper');
-            if (!(inputWrapper instanceof HTMLElement)) {
-                return;
-            }
-            const displayEl = inputWrapper.querySelector(
-                '.customize-filter-autocomplete .customize-filter-display, .customize-filter-display',
-            );
-            if (!(displayEl instanceof HTMLInputElement)) {
-                return;
-            }
-            const selectedOption = selectEl.options[selectEl.selectedIndex];
-            displayEl.value = selectedOption && selectedOption.value ? String(selectedOption.textContent || '') : '';
-            const firstOption = selectEl.options[0];
-            displayEl.placeholder = String(firstOption?.textContent || '-- Semua --');
-        }
-
-        function applyBundleCustomizePanelValues(panelEl, materialType, values, dispatchChange = false) {
-            if (!(panelEl instanceof HTMLElement) || !values || typeof values !== 'object') {
-                return false;
-            }
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return false;
-            }
-            let hasChanged = false;
-            panelEl.querySelectorAll(`select[data-customize-filter="${type}"][data-filter-key]`).forEach(selectEl => {
-                if (!(selectEl instanceof HTMLSelectElement)) {
-                    return;
-                }
-                const filterKey = String(selectEl.dataset.filterKey || '').trim();
-                if (!filterKey || !Object.prototype.hasOwnProperty.call(values, filterKey)) {
-                    return;
-                }
-                const nextValue = String(values[filterKey] || '').trim();
-                if (String(selectEl.value || '').trim() === nextValue) {
-                    syncBundleCustomizeSelectDisplay(selectEl);
-                    return;
-                }
-                if (nextValue) {
-                    const hasOption = Array.from(selectEl.options).some(option => String(option.value || '').trim() === nextValue);
-                    if (!hasOption) {
-                        const fallbackOption = document.createElement('option');
-                        fallbackOption.value = nextValue;
-                        fallbackOption.textContent = nextValue;
-                        selectEl.appendChild(fallbackOption);
-                    }
-                }
-                selectEl.value = nextValue;
-                selectEl.dataset.bundleSynced = '1';
-                syncBundleCustomizeSelectDisplay(selectEl);
-                if (dispatchChange) {
-                    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                hasChanged = true;
-            });
-            syncBundleCustomizePanelToggleState(panelEl);
-            return hasChanged;
-        }
-
-        function resolveBundleSourceRowFromPanel(panelEl, materialType) {
-            if (!(panelEl instanceof HTMLElement)) {
-                return null;
-            }
-            const type = String(materialType || '').trim();
-            ensureBundleRowPanelSyncLinks(
-                panelEl.closest('[data-additional-work-item="true"]') ||
-                    panelEl.closest('#inputFormContainer') ||
-                    document,
-            );
-
-            const panelSyncId = String(panelEl.dataset.bundleRowSyncId || '').trim();
-            if (panelSyncId) {
-                const rowBySyncId = document.querySelector(`.material-type-row[data-bundle-row-sync-id="${panelSyncId}"]`);
-                if (rowBySyncId instanceof HTMLElement) {
-                    return rowBySyncId;
-                }
-            }
-
-            const panelId = String(panelEl.id || '').trim();
-            if (panelId) {
-                const siblingCandidates = [panelEl.previousElementSibling, panelEl.nextElementSibling];
-                for (const siblingEl of siblingCandidates) {
-                    if (!(siblingEl instanceof HTMLElement) || !siblingEl.matches('.material-type-row')) {
-                        continue;
-                    }
-                    const siblingToggleBtn = siblingEl.querySelector(`[data-customize-panel-id="${panelId}"]`);
-                    if (siblingToggleBtn instanceof HTMLElement) {
-                        return siblingEl;
-                    }
-                }
-
-                const panelOwner =
-                    panelEl.closest('[data-additional-work-item="true"]') ||
-                    panelEl.closest('#inputFormContainer') ||
-                    panelEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-                if (panelOwner instanceof HTMLElement) {
-                    const toggleBtnInOwner = panelOwner.querySelector(`[data-customize-panel-id="${panelId}"]`);
-                    const rowByOwnerToggle = toggleBtnInOwner?.closest('.material-type-row') || null;
-                    if (rowByOwnerToggle instanceof HTMLElement) {
-                        return rowByOwnerToggle;
-                    }
-                }
-
-                const toggleBtnCandidates = Array.from(document.querySelectorAll(`[data-customize-panel-id="${panelId}"]`));
-                if (toggleBtnCandidates.length === 1) {
-                    const rowByToggle = toggleBtnCandidates[0].closest('.material-type-row');
-                    if (rowByToggle instanceof HTMLElement) {
-                        return rowByToggle;
-                    }
-                }
-            }
-            const wrap = panelEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-            if (wrap instanceof HTMLElement) {
-                const rowInWrap = wrap.querySelector(
-                    type ? `.material-type-row[data-material-type="${type}"]` : '.material-type-row',
-                );
-                if (rowInWrap instanceof HTMLElement) {
-                    return rowInWrap;
-                }
-            }
-            return null;
-        }
-
-        function syncBundleSharedCustomizeFieldFromPanel(panelEl, specificFieldKey, specificFieldValue = '') {
-            if (bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-            if (!(panelEl instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-
-            const type = String(panelEl.dataset.customizePanel || '').trim();
-            const fieldKey = String(specificFieldKey || '').trim();
-            if (!type || !fieldKey) {
-                return false;
-            }
-
-            const resolvePanelWrap = candidatePanelEl => {
-                if (!(candidatePanelEl instanceof HTMLElement)) {
-                    return null;
-                }
-                const directWrap = candidatePanelEl.closest(`[data-material-wrap="${type}"]`);
-                if (directWrap instanceof HTMLElement) {
-                    return directWrap;
-                }
-                const typedWrap = candidatePanelEl.closest(`.material-type-filter-item[data-material-type="${type}"]`);
-                if (typedWrap instanceof HTMLElement) {
-                    return typedWrap;
-                }
-                return candidatePanelEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-            };
-
-            const collectNormValuesFromWrap = wrapEl => {
-                if (!(wrapEl instanceof HTMLElement)) {
-                    return [];
-                }
-                return Array.from(
-                    wrapEl.querySelectorAll(`.material-type-row[data-material-type="${type}"] input[data-material-type-hidden="1"]`),
-                )
-                    .map(hiddenEl => normalizeBundleMaterialNoticeToken(hiddenEl?.value || ''))
-                    .filter(Boolean)
-                    .filter((value, index, arr) => arr.indexOf(value) === index);
-            };
-
-            const sourceWrap = resolvePanelWrap(panelEl);
-            const sourceNormValues = collectNormValuesFromWrap(sourceWrap);
-            if (!sourceNormValues.length) {
-                return false;
-            }
-
-            const sourceSelect = panelEl.querySelector(
-                `select[data-customize-filter="${type}"][data-filter-key="${fieldKey}"]`,
-            );
-            const nextValue = String(
-                specificFieldValue !== '' ? specificFieldValue : sourceSelect?.value || '',
-            ).trim();
-            if (!nextValue) {
-                // "Tidak Pilih" should only clear this panel, not broadcast blank values.
-                return false;
-            }
-
-            const wraps = [];
-            const seenWraps = new Set();
-            const wrapSelectors = [
-                `[data-material-wrap="${type}"]`,
-                `.material-type-filter-item[data-material-type="${type}"]`,
-            ];
-            wrapSelectors.forEach(selector => {
-                document.querySelectorAll(selector).forEach(wrapEl => {
-                    if (!(wrapEl instanceof HTMLElement) || seenWraps.has(wrapEl)) {
-                        return;
-                    }
-                    seenWraps.add(wrapEl);
-                    wraps.push(wrapEl);
-                });
-            });
-
-            const targetPanels = wraps
-                .filter(wrapEl => !(sourceWrap instanceof HTMLElement) || wrapEl !== sourceWrap)
-                .filter(wrapEl => {
-                    const candidateNormValues = collectNormValuesFromWrap(wrapEl);
-                    return sourceNormValues.some(value => candidateNormValues.includes(value));
-                })
-                .map(wrapEl => wrapEl.querySelector(`.customize-panel[data-customize-panel="${type}"]`))
-                .filter(panelCandidate => {
-                    return panelCandidate instanceof HTMLElement &&
-                        panelCandidate !== panelEl &&
-                        !isBundleCustomizePanelDetached(panelCandidate);
-                });
-
-            if (!targetPanels.length) {
-                const fallbackPanels = Array.from(
-                    document.querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`),
-                ).filter(candidatePanel => {
-                    if (!(candidatePanel instanceof HTMLElement) || candidatePanel === panelEl) {
-                        return false;
-                    }
-                    if (isBundleCustomizePanelDetached(candidatePanel)) {
-                        return false;
-                    }
-                    const candidateWrap = resolvePanelWrap(candidatePanel);
-                    const candidateNormValues = collectNormValuesFromWrap(candidateWrap);
-                    return sourceNormValues.some(value => candidateNormValues.includes(value));
-                });
-                if (!fallbackPanels.length) {
-                    return false;
-                }
-                targetPanels.push(...fallbackPanels);
-            }
-
-            let hasAnyChanged = false;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                targetPanels.forEach(targetPanel => {
-                    const targetSelect = targetPanel.querySelector(
-                        `select[data-customize-filter="${type}"][data-filter-key="${fieldKey}"]`,
-                    );
-                    if (!(targetSelect instanceof HTMLSelectElement)) {
-                        return;
-                    }
-
-                    if (nextValue) {
-                        const hasOption = Array.from(targetSelect.options).some(option => {
-                            return String(option.value || '').trim() === nextValue;
-                        });
-                        if (!hasOption) {
-                            const fallbackOption = document.createElement('option');
-                            fallbackOption.value = nextValue;
-                            fallbackOption.textContent = nextValue;
-                            targetSelect.appendChild(fallbackOption);
-                        }
-                    }
-
-                    if (String(targetSelect.value || '').trim() === nextValue) {
-                        syncBundleCustomizeSelectDisplay(targetSelect);
-                        return;
-                    }
-
-                    targetSelect.value = nextValue;
-                    targetSelect.dataset.bundleSynced = '1';
-                    syncBundleCustomizeSelectDisplay(targetSelect);
-                    hasAnyChanged = true;
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-            }
-
-            if (hasAnyChanged && typeof syncBundleFromForms === 'function') {
-                syncBundleFromForms();
-            }
-            return hasAnyChanged;
-        }
-
-        function syncBundleSharedCustomizeFieldByItemScope(panelEl, specificFieldKey, specificFieldValue = '') {
-            if (bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-            if (!(panelEl instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-
-            const type = String(panelEl.dataset.customizePanel || '').trim();
-            const fieldKey = String(specificFieldKey || '').trim();
-            const nextValue = String(specificFieldValue || '').trim();
-            if (!type || !fieldKey || !nextValue) {
-                return false;
-            }
-
-            const mainRoot = document.getElementById('inputFormContainer');
-            if (!(mainRoot instanceof HTMLElement)) {
-                return false;
-            }
-
-            const additionalRows = getAllAdditionalWorkRows().filter(rowEl => rowEl instanceof HTMLElement);
-            const scopeEntries = [
-                {
-                    scopeEl: mainRoot,
-                    collectItemData: () => collectMainWorkItemDraft(),
-                },
-                ...additionalRows.map((rowEl, index) => ({
-                    scopeEl: rowEl,
-                    collectItemData: () => collectAdditionalWorkItemData(rowEl, index + 1),
-                })),
-            ];
-
-            const sourceScope = panelEl.closest('[data-additional-work-item="true"]') || mainRoot;
-            if (!(sourceScope instanceof HTMLElement)) {
-                return false;
-            }
-            const sourceEntry = scopeEntries.find(entry => entry.scopeEl === sourceScope);
-            if (!sourceEntry) {
-                return false;
-            }
-
-            const normalizeTokens = rawTokens => {
-                return uniqueFilterTokens(Array.isArray(rawTokens) ? rawTokens : [rawTokens])
-                    .map(token => normalizeBundleMaterialNoticeToken(token))
-                    .filter(Boolean);
-            };
-
-            const sourceItemData = sourceEntry.collectItemData();
-            const sourceNormValues = normalizeTokens(
-                getBundleMaterialTypeValues(sourceItemData?.material_type_filters || {}, type),
-            );
-            if (!sourceNormValues.length) {
-                return false;
-            }
-
-            const hasIntersection = (valuesA, valuesB) => {
-                return valuesA.some(value => valuesB.includes(value));
-            };
-
-            const applyFieldValueToPanel = targetPanel => {
-                if (!(targetPanel instanceof HTMLElement)) {
-                    return false;
-                }
-                if (isBundleCustomizePanelDetached(targetPanel)) {
-                    return false;
-                }
-                const targetSelect = targetPanel.querySelector(
-                    `select[data-customize-filter="${type}"][data-filter-key="${fieldKey}"]`,
-                );
-                if (!(targetSelect instanceof HTMLSelectElement)) {
-                    return false;
-                }
-
-                const hasOption = Array.from(targetSelect.options).some(option => {
-                    return String(option.value || '').trim() === nextValue;
-                });
-                if (!hasOption) {
-                    const fallbackOption = document.createElement('option');
-                    fallbackOption.value = nextValue;
-                    fallbackOption.textContent = nextValue;
-                    targetSelect.appendChild(fallbackOption);
-                }
-
-                if (String(targetSelect.value || '').trim() === nextValue) {
-                    syncBundleCustomizeSelectDisplay(targetSelect);
-                    return false;
-                }
-
-                targetSelect.value = nextValue;
-                targetSelect.dataset.bundleSynced = '1';
-                syncBundleCustomizeSelectDisplay(targetSelect);
-                return true;
-            };
-
-            let hasAnyChanged = false;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                scopeEntries.forEach(entry => {
-                    const scopeEl = entry.scopeEl;
-                    if (!(scopeEl instanceof HTMLElement) || scopeEl === sourceScope) {
-                        return;
-                    }
-
-                    const targetItemData = entry.collectItemData();
-                    const targetNormValues = normalizeTokens(
-                        getBundleMaterialTypeValues(targetItemData?.material_type_filters || {}, type),
-                    );
-                    if (!targetNormValues.length || !hasIntersection(sourceNormValues, targetNormValues)) {
-                        return;
-                    }
-
-                    const panelCandidates = Array.from(
-                        scopeEl.querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`),
-                    ).filter(targetPanel => {
-                        if (!(targetPanel instanceof HTMLElement)) {
-                            return false;
-                        }
-                        const ownerAdditional = targetPanel.closest('[data-additional-work-item="true"]');
-                        if (scopeEl.matches('[data-additional-work-item="true"]')) {
-                            return ownerAdditional === scopeEl;
-                        }
-                        return !(ownerAdditional instanceof HTMLElement);
-                    });
-
-                    panelCandidates.forEach(targetPanel => {
-                        const changed = applyFieldValueToPanel(targetPanel);
-                        if (changed) {
-                            hasAnyChanged = true;
-                        }
-                    });
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-            }
-
-            if (hasAnyChanged && typeof syncBundleFromForms === 'function') {
-                syncBundleFromForms();
-            }
-            return hasAnyChanged;
-        }
-
-        function syncBundleSharedCustomizeFieldByRowState(panelEl, specificFieldKey, specificFieldValue = '') {
-            if (bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-            if (!(panelEl instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(panelEl)) {
-                return false;
-            }
-
-            const type = String(panelEl.dataset.customizePanel || '').trim();
-            const fieldKey = String(specificFieldKey || '').trim();
-            const nextValue = String(specificFieldValue || '').trim();
-            if (!type || !fieldKey || !nextValue) {
-                return false;
-            }
-
-            const sourceRowEl = resolveBundleSourceRowFromPanel(panelEl, type);
-            const sourceState = getBundleMaterialRowState(sourceRowEl);
-            if (!sourceState || !(sourceState.rowEl instanceof HTMLElement)) {
-                return false;
-            }
-
-            const sourceWrap = sourceState.rowEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-            if (!(sourceWrap instanceof HTMLElement)) {
-                return false;
-            }
-
-            const sourceNormValues = Array.from(
-                sourceWrap.querySelectorAll(`.material-type-row[data-material-type="${type}"] input[data-material-type-hidden="1"]`),
-            )
-                .map(hiddenEl => normalizeBundleMaterialNoticeToken(hiddenEl?.value || ''))
-                .filter(Boolean)
-                .filter((value, index, arr) => arr.indexOf(value) === index);
-            if (!sourceNormValues.length) {
-                return false;
-            }
-
-            const targetStates = collectBundleMaterialRowStatesByType(type).filter(state => {
-                if (!state || !(state.rowEl instanceof HTMLElement) || state.rowEl === sourceState.rowEl) {
-                    return false;
-                }
-                const rowValue = normalizeBundleMaterialNoticeToken(state.hiddenEl?.value || state.displayEl?.value || '');
-                return rowValue && sourceNormValues.includes(rowValue);
-            });
-            if (!targetStates.length) {
-                return false;
-            }
-
-            let hasAnyChanged = false;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                targetStates.forEach(state => {
-                    const targetPanel = resolveBundleCustomizePanelByRow(type, state.rowEl);
-                    if (!(targetPanel instanceof HTMLElement)) {
-                        return;
-                    }
-                    if (isBundleCustomizePanelDetached(targetPanel)) {
-                        return;
-                    }
-                    const targetSelect = targetPanel.querySelector(
-                        `select[data-customize-filter="${type}"][data-filter-key="${fieldKey}"]`,
-                    );
-                    if (!(targetSelect instanceof HTMLSelectElement)) {
-                        return;
-                    }
-
-                    const hasOption = Array.from(targetSelect.options).some(option => {
-                        return String(option.value || '').trim() === nextValue;
-                    });
-                    if (!hasOption) {
-                        const fallbackOption = document.createElement('option');
-                        fallbackOption.value = nextValue;
-                        fallbackOption.textContent = nextValue;
-                        targetSelect.appendChild(fallbackOption);
-                    }
-
-                    if (String(targetSelect.value || '').trim() === nextValue) {
-                        syncBundleCustomizeSelectDisplay(targetSelect);
-                        return;
-                    }
-
-                    targetSelect.value = nextValue;
-                    targetSelect.dataset.bundleSynced = '1';
-                    syncBundleCustomizeSelectDisplay(targetSelect);
-                    hasAnyChanged = true;
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-            }
-
-            if (hasAnyChanged && typeof syncBundleFromForms === 'function') {
-                syncBundleFromForms();
-            }
-            return hasAnyChanged;
-        }
-
-        function reconcileBundleSharedCustomizeSelections() {
-            if (bundleSharedCustomizeReconcileLock || bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-
-            const collectNormValuesFromWrapByType = (wrapEl, type) => {
-                if (!(wrapEl instanceof HTMLElement) || !type) {
-                    return [];
-                }
-                return Array.from(
-                    wrapEl.querySelectorAll(`.material-type-row[data-material-type="${type}"] input[data-material-type-hidden="1"]`),
-                )
-                    .map(hiddenEl => normalizeBundleMaterialNoticeToken(hiddenEl?.value || ''))
-                    .filter(Boolean)
-                    .filter((value, index, arr) => arr.indexOf(value) === index);
-            };
-
-            let hasAnyChanged = false;
-            bundleSharedCustomizeReconcileLock = true;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                bundleCustomizeSupportedTypes.forEach(type => {
-                    const wraps = [];
-                    const seenWraps = new Set();
-                    [
-                        `[data-material-wrap="${type}"]`,
-                        `.material-type-filter-item[data-material-type="${type}"]`,
-                    ].forEach(selector => {
-                        document.querySelectorAll(selector).forEach(wrapEl => {
-                            if (!(wrapEl instanceof HTMLElement) || seenWraps.has(wrapEl)) {
-                                return;
-                            }
-                            seenWraps.add(wrapEl);
-                            wraps.push(wrapEl);
-                        });
-                    });
-
-                    const entries = wraps
-                        .map(wrapEl => {
-                            const panelEl = wrapEl.querySelector(`.customize-panel[data-customize-panel="${type}"]`);
-                            if (!(panelEl instanceof HTMLElement)) {
-                                return null;
-                            }
-                            if (isBundleCustomizePanelDetached(panelEl)) {
-                                return null;
-                            }
-                            const normValues = collectNormValuesFromWrapByType(wrapEl, type);
-                            if (!normValues.length) {
-                                return null;
-                            }
-                            return {
-                                wrapEl,
-                                panelEl,
-                                normValues,
-                                values: collectBundleCustomizePanelValues(panelEl, type),
-                            };
-                        })
-                        .filter(Boolean);
-                    if (entries.length < 2) {
-                        return;
-                    }
-
-                    const groups = new Map();
-                    entries.forEach(entry => {
-                        entry.normValues.forEach(normValue => {
-                            if (!groups.has(normValue)) {
-                                groups.set(normValue, []);
-                            }
-                            groups.get(normValue).push(entry);
-                        });
-                    });
-
-                    groups.forEach(groupEntries => {
-                        if (!Array.isArray(groupEntries) || groupEntries.length < 2) {
-                            return;
-                        }
-
-                        const mergedValues = {};
-                        groupEntries.forEach(entry => {
-                            Object.entries(entry.values || {}).forEach(([fieldKey, rawValue]) => {
-                                const normalizedKey = String(fieldKey || '').trim();
-                                const normalizedValue = String(rawValue || '').trim();
-                                if (!normalizedKey || !normalizedValue) {
-                                    return;
-                                }
-                                if (!Object.prototype.hasOwnProperty.call(mergedValues, normalizedKey)) {
-                                    mergedValues[normalizedKey] = normalizedValue;
-                                }
-                            });
-                        });
-                        if (Object.keys(mergedValues).length === 0) {
-                            return;
-                        }
-
-                        groupEntries.forEach(entry => {
-                            const changed = applyBundleCustomizePanelValues(entry.panelEl, type, mergedValues, false);
-                            if (changed) {
-                                hasAnyChanged = true;
-                            }
-                        });
-                    });
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-                bundleSharedCustomizeReconcileLock = false;
-            }
-
-            return hasAnyChanged;
-        }
-
-        function scheduleBundleSharedCustomizeSync(panelEl, fieldKey, fieldValue) {
-            if (!(panelEl instanceof HTMLElement)) {
-                return;
-            }
-            const normalizedFieldKey = String(fieldKey || '').trim();
-            const normalizedFieldValue = String(fieldValue || '').trim();
-            if (!normalizedFieldKey || !normalizedFieldValue) {
-                return;
-            }
-
-            if (bundleSharedCustomizeSyncRafId) {
-                cancelAnimationFrame(bundleSharedCustomizeSyncRafId);
-                bundleSharedCustomizeSyncRafId = null;
-            }
-            if (bundleSharedCustomizeSyncTimerId) {
-                clearTimeout(bundleSharedCustomizeSyncTimerId);
-                bundleSharedCustomizeSyncTimerId = null;
-            }
-
-            const executeSync = () => {
-                bundleSharedCustomizeSyncRafId = null;
-                bundleSharedCustomizeSyncTimerId = null;
-
-                if (!document.body.contains(panelEl)) {
-                    return;
-                }
-
-                let changed = false;
-                changed = syncBundleSharedCustomizeFieldByRowState(panelEl, normalizedFieldKey, normalizedFieldValue) || changed;
-                changed = syncBundleSharedCustomizeFieldByItemScope(panelEl, normalizedFieldKey, normalizedFieldValue) || changed;
-                changed = syncBundleSharedCustomizeFieldFromPanel(panelEl, normalizedFieldKey, normalizedFieldValue) || changed;
-
-                if (changed && typeof syncBundleFromForms === 'function') {
-                    syncBundleFromForms();
-                }
-            };
-
-            bundleSharedCustomizeSyncRafId = requestAnimationFrame(() => {
-                bundleSharedCustomizeSyncTimerId = setTimeout(executeSync, 0);
-            });
-        }
-
-        function syncSharedBundleMaterialCustomizeAcrossItems(
-            materialType,
-            sourceRowEl = null,
-            specificFieldKey = '',
-            specificFieldValue = '',
-            sourcePanelEl = null,
-        ) {
-            if (bundleSharedMaterialCustomizeSyncLock) {
-                return false;
-            }
-
-            const type = String(materialType || '').trim();
-            if (!type) {
-                return false;
-            }
-
-            const normalizedSpecificFieldKey = String(specificFieldKey || '').trim();
-            const normalizedSpecificFieldValue = String(specificFieldValue || '').trim();
-
-            let sourceState = getBundleMaterialRowState(sourceRowEl);
-            if (
-                !sourceState &&
-                sourcePanelEl instanceof HTMLElement
-            ) {
-                const panelMatchedState = collectBundleMaterialRowStatesByType(type).find(state => {
-                    if (!state || !(state.rowEl instanceof HTMLElement)) {
-                        return false;
-                    }
-                    const matchedPanel = resolveBundleCustomizePanelByRow(type, state.rowEl);
-                    return matchedPanel === sourcePanelEl;
-                });
-                if (panelMatchedState) {
-                    sourceState = panelMatchedState;
-                }
-            }
-            if (!sourceState && sourcePanelEl instanceof HTMLElement) {
-                const sourceRowByPanel = resolveBundleSourceRowFromPanel(sourcePanelEl, type);
-                if (sourceRowByPanel instanceof HTMLElement) {
-                    sourceState = getBundleMaterialRowState(sourceRowByPanel);
-                }
-            }
-
-            const sourceRowResolvedEl = sourceState?.rowEl instanceof HTMLElement ? sourceState.rowEl : null;
-            if (!sourceState || !(sourceState.hiddenEl instanceof HTMLInputElement)) {
-                return false;
-            }
-
-            let sourceRawValue = String(sourceState.hiddenEl.value || sourceState.displayEl?.value || '').trim();
-            if (!sourceRawValue && sourcePanelEl instanceof HTMLElement) {
-                const sourceWrap = sourcePanelEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-                if (sourceWrap instanceof HTMLElement) {
-                    const hiddenInWrap = sourceWrap.querySelector(`.material-type-row[data-material-type="${type}"] input[data-material-type-hidden="1"]`);
-                    if (hiddenInWrap instanceof HTMLInputElement) {
-                        sourceRawValue = String(hiddenInWrap.value || '').trim();
-                    }
-                }
-            }
-            const sourceValueNorm = normalizeBundleMaterialNoticeToken(sourceRawValue);
-            if (!sourceValueNorm) {
-                return false;
-            }
-
-            const sourcePanel = sourcePanelEl instanceof HTMLElement
-                ? sourcePanelEl
-                : resolveBundleCustomizePanelByRow(type, sourceState.rowEl);
-            if (!(sourcePanel instanceof HTMLElement)) {
-                return false;
-            }
-            if (isBundleCustomizePanelDetached(sourcePanel)) {
-                return false;
-            }
-            const sourceValues = collectBundleCustomizePanelValues(sourcePanel, type);
-
-            const targetStates = collectBundleMaterialRowStatesByType(type).filter(state => {
-                if (!state || state === sourceState || !(state.hiddenEl instanceof HTMLInputElement)) {
-                    return false;
-                }
-                if (sourceRowResolvedEl && state.rowEl === sourceRowResolvedEl) {
-                    return false;
-                }
-                const targetRawValue = String(state.hiddenEl.value || state.displayEl?.value || '').trim();
-                return normalizeBundleMaterialNoticeToken(targetRawValue) === sourceValueNorm;
-            });
-            if (!targetStates.length) {
-                return false;
-            }
-
-            const valuesToSync = {};
-            if (normalizedSpecificFieldKey) {
-                const field = normalizedSpecificFieldKey;
-                const fallbackValue = Object.prototype.hasOwnProperty.call(sourceValues, field)
-                    ? String(sourceValues[field] || '').trim()
-                    : '';
-                valuesToSync[field] = normalizedSpecificFieldValue !== '' ? normalizedSpecificFieldValue : fallbackValue;
-            } else {
-                Object.assign(valuesToSync, sourceValues);
-            }
-            if (Object.keys(valuesToSync).length === 0) {
-                return false;
-            }
-
-            let hasAnyChanged = false;
-            bundleSharedMaterialCustomizeSyncLock = true;
-            try {
-                targetStates.forEach(state => {
-                    const targetPanel = resolveBundleCustomizePanelByRow(type, state.rowEl);
-                    if (!(targetPanel instanceof HTMLElement)) {
-                        return;
-                    }
-                    if (isBundleCustomizePanelDetached(targetPanel)) {
-                        return;
-                    }
-                    const changed = applyBundleCustomizePanelValues(targetPanel, type, valuesToSync, true);
-                    if (changed) {
-                        hasAnyChanged = true;
-                    }
-                });
-            } finally {
-                bundleSharedMaterialCustomizeSyncLock = false;
-            }
-
-            if (hasAnyChanged && typeof syncBundleFromForms === 'function') {
-                syncBundleFromForms();
-            }
-            return hasAnyChanged;
-        }
-
-        function bindBundleSharedCustomizeSyncListener() {
-            if (document.__bundleSharedCustomizeSyncBound) {
-                return;
-            }
-            document.__bundleSharedCustomizeSyncBound = true;
-
-            window.__syncBundleSharedCustomizeFromSelect = function(targetSelect) {
-                if (!(targetSelect instanceof HTMLSelectElement)) {
-                    return;
-                }
-                if (!targetSelect.matches('select[data-customize-filter][data-filter-key]')) {
-                    return;
-                }
-                if (bundleForceRealtimeSyncLock) {
-                    return;
-                }
-                if (bundleSharedMaterialCustomizeSyncLock) {
-                    return;
-                }
-
-                const panelEl = targetSelect.closest('.customize-panel[data-customize-panel]');
-                if (!(panelEl instanceof HTMLElement)) {
-                    return;
-                }
-                if (isBundleCustomizePanelDetached(panelEl)) {
-                    if (typeof syncBundleFromForms === 'function') {
-                        syncBundleFromForms();
-                    }
-                    queueBundlePayloadSync();
-                    return;
-                }
-
-                const materialType = String(panelEl.dataset.customizePanel || '').trim();
-                if (!materialType) {
-                    return;
-                }
-
-                const fieldKey = String(targetSelect.dataset.filterKey || '').trim();
-                const fieldValue = String(targetSelect.value || '').trim();
-                if (fieldValue) {
-                    scheduleBundleSharedCustomizeSync(panelEl, fieldKey, fieldValue);
-                    const forcedNow = forceSyncBundleCustomizeFromSelect(targetSelect);
-                    if (forcedNow && typeof syncBundleFromForms === 'function') {
-                        syncBundleFromForms();
-                    }
-                }
-                if (fieldValue === '') {
-                    if (typeof syncBundleFromForms === 'function') {
-                        syncBundleFromForms();
-                    }
-                    return;
-                }
-
-                const runSyncPass = () => {
-                    let hasAnyChanged = false;
-                    hasAnyChanged =
-                        syncBundleSharedCustomizeRealtimeAcrossWraps(panelEl, fieldKey, fieldValue) ||
-                        hasAnyChanged;
-                    hasAnyChanged =
-                        syncBundleSharedCustomizeFieldByRowState(panelEl, fieldKey, fieldValue) || hasAnyChanged;
-                    hasAnyChanged =
-                        syncBundleSharedCustomizeFieldByItemScope(panelEl, fieldKey, fieldValue) || hasAnyChanged;
-                    hasAnyChanged =
-                        syncBundleSharedCustomizeFieldFromPanel(panelEl, fieldKey, fieldValue) || hasAnyChanged;
-                    const sourceRowEl = resolveBundleSourceRowFromPanel(panelEl, materialType);
-                    hasAnyChanged =
-                        syncSharedBundleMaterialCustomizeAcrossItems(
-                            materialType,
-                            sourceRowEl instanceof HTMLElement ? sourceRowEl : null,
-                            fieldKey,
-                            fieldValue,
-                            panelEl,
-                        ) || hasAnyChanged;
-                    hasAnyChanged = enforceBundleSharedCustomizeRealtime(materialType) || hasAnyChanged;
-                    return hasAnyChanged;
-                };
-
-                const syncedNow = runSyncPass();
-                if (typeof syncBundleFromForms === 'function') {
-                    syncBundleFromForms();
-                }
-                queueBundlePayloadSync();
-                if (syncedNow) {
-                    return;
-                }
-
-                let retryCount = 0;
-                const retrySync = () => {
-                    retryCount += 1;
-                    if (!document.body.contains(panelEl)) {
-                        return;
-                    }
-                    const syncedRetry = runSyncPass();
-                    if (syncedRetry && typeof syncBundleFromForms === 'function') {
-                        syncBundleFromForms();
-                    }
-                    queueBundlePayloadSync();
-                    if (!syncedRetry && retryCount < 2) {
-                        setTimeout(retrySync, 80);
-                    }
-                };
-                requestAnimationFrame(() => {
-                    setTimeout(retrySync, 0);
-                });
-            };
-            window.__forceBundleCustomizeRealtime = forceSyncBundleCustomizeFromSelect;
-
-            document.addEventListener('change', function(event) {
-                const target = event?.target;
-                if (!(target instanceof HTMLSelectElement)) {
-                    return;
-                }
-                if (!target.matches('select[data-customize-filter][data-filter-key]')) {
-                    return;
-                }
-                const panelEl = target.closest('.customize-panel[data-customize-panel]');
-                if (panelEl instanceof HTMLElement) {
-                    const isProgrammaticSync = bundleForceRealtimeSyncLock || bundleSharedMaterialCustomizeSyncLock;
-                    if (!isProgrammaticSync) {
-                        const wasSyncedFromBundle = String(target.dataset.bundleSynced || '') === '1';
-                        delete target.dataset.bundleSynced;
-                        if (wasSyncedFromBundle) {
-                            setBundleCustomizePanelDetached(panelEl, true);
-                        }
-                        const fieldKey = String(target.dataset.filterKey || '').trim();
-                        const fieldValue = String(target.value || '').trim();
-                        tryReattachDetachedBundleCustomizePanel(panelEl, fieldKey, fieldValue);
-                        resetBundleCustomizeDetachedIfEmpty(panelEl);
-                    }
-                    syncBundleCustomizePanelToggleState(panelEl);
-                    if (isBundleCustomizePanelDetached(panelEl)) {
-                        if (typeof syncBundleFromForms === 'function') {
-                            syncBundleFromForms();
-                        }
-                        queueBundlePayloadSync();
-                        return;
-                    }
-                }
-                window.__syncBundleSharedCustomizeFromSelect(target);
-            });
-
-            document.addEventListener('change', function(event) {
-                const target = event?.target;
-                if (!(target instanceof HTMLInputElement)) {
-                    return;
-                }
-                if (!target.matches('input[data-material-type-hidden="1"]')) {
-                    return;
-                }
-                const rowEl = target.closest('.material-type-row[data-material-type]');
-                if (!(rowEl instanceof HTMLElement)) {
-                    return;
-                }
-                const type = String(rowEl.dataset.materialType || '').trim();
-                if (!type) {
-                    return;
-                }
-                const wrapEl =
-                    rowEl.closest(`[data-material-wrap="${type}"]`) ||
-                    rowEl.closest(`.material-type-filter-item[data-material-type="${type}"]`) ||
-                    rowEl.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-                const panelEl =
-                    wrapEl instanceof HTMLElement
-                        ? wrapEl.querySelector(`.customize-panel[data-customize-panel="${type}"]`)
-                        : null;
-                if (panelEl instanceof HTMLElement) {
-                    // Material type change indicates this row can rejoin shared-sync scope.
-                    setBundleCustomizePanelDetached(panelEl, false);
-                    panelEl
-                        .querySelectorAll(`select[data-customize-filter="${type}"][data-filter-key]`)
-                        .forEach(selectEl => {
-                            if (selectEl instanceof HTMLSelectElement) {
-                                delete selectEl.dataset.bundleSynced;
-                            }
-                        });
-                }
-                rebuildBundleSharedCustomizeRealtimeState();
-                let changed = syncBundleSharedCustomizeRealtimeToWrap(type, wrapEl);
-                changed = enforceBundleSharedCustomizeRealtime(type) || changed;
-                if (changed && typeof syncBundleFromForms === 'function') {
-                    syncBundleFromForms();
-                }
-                queueBundlePayloadSync();
-            });
-
-            document.addEventListener('click', function(event) {
-                const target = event?.target;
-                if (!(target instanceof HTMLElement)) {
-                    return;
-                }
-                const toggleBtn = target.closest('[data-customize-toggle]');
-                if (toggleBtn instanceof HTMLElement) {
-                    const materialType = String(toggleBtn.dataset.customizeToggle || '').trim();
-                    if (materialType) {
-                        requestAnimationFrame(() => {
-                            setTimeout(() => {
-                                const panelId = String(toggleBtn.dataset.customizePanelId || '').trim();
-                                let wrapEl =
-                                    toggleBtn.closest(`[data-material-wrap="${materialType}"]`) ||
-                                    toggleBtn.closest(`.material-type-filter-item[data-material-type="${materialType}"]`) ||
-                                    toggleBtn.closest('[data-material-wrap], .material-type-filter-item[data-material-type]');
-                                if (!(wrapEl instanceof HTMLElement) && panelId) {
-                                    const panelEl = document.getElementById(panelId);
-                                    if (panelEl instanceof HTMLElement) {
-                                        wrapEl = resolveBundleMaterialWrapByPanel(panelEl, materialType);
-                                    }
-                                }
-                                const changed = wrapEl instanceof HTMLElement
-                                    ? syncBundleSharedCustomizeRealtimeToWrap(materialType, wrapEl)
-                                    : enforceBundleSharedCustomizeRealtime(materialType);
-                                if (changed && typeof syncBundleFromForms === 'function') {
-                                    syncBundleFromForms();
-                                }
-                            }, 0);
-                        });
-                    }
-                }
-                if (!target.closest('.autocomplete-item')) {
-                    return;
-                }
-
-                const panelEl = target.closest('.customize-panel[data-customize-panel]');
-                if (!(panelEl instanceof HTMLElement)) {
-                    return;
-                }
-
-                const materialType = String(panelEl.dataset.customizePanel || '').trim();
-                if (!materialType) {
-                    return;
-                }
-                // No-op: selection sync is handled by `change` event and direct hook.
-            });
-        }
-
-        bindBundleSharedCustomizeSyncListener();
-
-        function bindBundleSharedCustomizeRealtimeObserver() {
-            if (document.__bundleSharedCustomizeRealtimeObserverBound) {
-                return;
-            }
-            document.__bundleSharedCustomizeRealtimeObserverBound = true;
-
-            let rafId = null;
-            const scheduleEnforce = () => {
-                if (rafId) {
-                    return;
-                }
-                rafId = requestAnimationFrame(() => {
-                    rafId = null;
-                    const changed = enforceBundleSharedCustomizeRealtime();
-                    if (changed && typeof syncBundleFromForms === 'function') {
-                        syncBundleFromForms();
-                    }
-                });
-            };
-
-            const observer = new MutationObserver(mutations => {
-                let shouldSync = false;
-                mutations.forEach(mutation => {
-                    if (shouldSync) {
-                        return;
-                    }
-                    mutation.addedNodes.forEach(node => {
-                        if (shouldSync || !(node instanceof HTMLElement)) {
-                            return;
-                        }
-                        if (
-                            node.matches?.('[data-material-wrap], .material-type-filter-item[data-material-type], .customize-panel[data-customize-panel]') ||
-                            node.querySelector?.('[data-material-wrap], .material-type-filter-item[data-material-type], .customize-panel[data-customize-panel]')
-                        ) {
-                            shouldSync = true;
-                        }
-                    });
-                });
-                if (shouldSync) {
-                    scheduleEnforce();
-                }
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-            });
-        }
-
-        bindBundleSharedCustomizeRealtimeObserver();
 
         function escapeHtml(raw) {
             return String(raw ?? '')
@@ -9456,7 +6724,7 @@
                     .replace(/[^a-z0-9]+/gi, '')
                     .trim();
 
-            const setupAutocomplete = ({ displayInput, hiddenInput, listEl, getOptions, onChanged, openToBottomOnEmpty = false }) => {
+            const setupAutocomplete = ({ displayInput, hiddenInput, listEl, getOptions, onChanged }) => {
                 const closeList = () => {
                     listEl.style.display = 'none';
                 };
@@ -9504,11 +6772,6 @@
                     });
 
                     listEl.style.display = 'block';
-                    if (openToBottomOnEmpty && !normalize(term)) {
-                        requestAnimationFrame(() => {
-                            listEl.scrollTop = listEl.scrollHeight;
-                        });
-                    }
                 };
 
                 const findExactMatch = term => {
@@ -9581,7 +6844,6 @@
                 hiddenInput: floorHiddenInput,
                 listEl: floorListEl,
                 getOptions: () => sortFloors(uniqueFilterTokens([...workFloorOptionValues, floorHiddenInput.value])),
-                openToBottomOnEmpty: true,
                 onChanged: () => {
                     if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
                         itemEl.__refreshWorkTypeOptions();
@@ -9823,6 +7085,7 @@
             }
 
             const normalizeOption = value => String(value ?? '').trim().toLowerCase();
+            let additionalCustomizePanelSequence = 0;
 
             bundleMaterialTypeOrder.forEach(type => {
                 const wrap = itemEl.querySelector(`[data-material-wrap="${type}"]`);
@@ -9934,18 +7197,11 @@
                     };
 
                     const applySelection = optionValue => {
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
                         const finalValue = String(optionValue || '').trim();
                         displayEl.value = finalValue;
-                        if (hiddenEl.value !== finalValue) {
-                            hiddenEl.value = finalValue;
-                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                        } else {
-                            hiddenEl.value = finalValue;
-                        }
+                        hiddenEl.value = finalValue;
                         closeList();
                         syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
                     };
 
                     const renderList = (term = '') => {
@@ -9981,9 +7237,7 @@
 
                     rowState.closeList = closeList;
                     rowState.renderList = renderList;
-                    rowState.__lastSharedTypeValue = String(hiddenEl.value || '').trim();
                     rowEl.__bundleMaterialRowState = rowState;
-                    linkBundleRowWithCustomizePanel(rowEl, type);
 
                     displayEl.addEventListener('focus', function() {
                         if (displayEl.readOnly || displayEl.disabled) return;
@@ -9992,40 +7246,22 @@
 
                     displayEl.addEventListener('input', function() {
                         if (displayEl.readOnly || displayEl.disabled) return;
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
                         const term = this.value || '';
                         renderList(term);
 
                         if (!term.trim()) {
-                            if (hiddenEl.value !== '') {
-                                hiddenEl.value = '';
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else {
-                                hiddenEl.value = '';
-                            }
+                            hiddenEl.value = '';
                             syncRows();
-                            syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
                             return;
                         }
 
                         const exactMatch = findExactAvailableOption(term);
                         if (exactMatch) {
-                            if (hiddenEl.value !== exactMatch) {
-                                hiddenEl.value = exactMatch;
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else {
-                                hiddenEl.value = exactMatch;
-                            }
+                            hiddenEl.value = exactMatch;
                         } else {
-                            if (hiddenEl.value !== '') {
-                                hiddenEl.value = '';
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else {
-                                hiddenEl.value = '';
-                            }
+                            hiddenEl.value = '';
                         }
                         syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
                     });
 
                     displayEl.addEventListener('keydown', function(event) {
@@ -10113,8 +7349,7 @@
 
                         const templatePanel = wrap.querySelector(`[data-customize-panel="${type}"]`);
                         if (templatePanel) {
-                            const panelSeq = ++bundleCustomizePanelSeq;
-                            const panelId = `bundleCustomizePanel-${type}-extra-${panelSeq}`;
+                            const panelId = `bundleCustomizePanel-${type}-extra-${++additionalCustomizePanelSequence}`;
                             rowCustomizePanelEl = templatePanel.cloneNode(true);
                             rowCustomizePanelEl.hidden = true;
                             rowCustomizePanelEl.id = panelId;
@@ -10126,7 +7361,7 @@
                                 selectEl.tabIndex = 0;
                                 delete selectEl.dataset.customizeAutocompleteBound;
                                 if (selectEl.id) {
-                                    selectEl.id = `${selectEl.id}-extra-${panelSeq}-${index}`;
+                                    selectEl.id = `${selectEl.id}-extra-${additionalCustomizePanelSequence}-${index}`;
                                 }
                             });
                             customizeBtn.dataset.customizePanelId = panelId;
@@ -10363,17 +7598,15 @@
                         <div class="dimension-item" data-wrap="wall_length">
                             <label>Panjang</label>
                             <div class="input-with-unit">
-                                <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}">
+                                <input type="text" inputmode="decimal" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}">
                                 <span class="unit">M</span>
-                                <span class="dimension-expression-hint" data-expression-hint hidden></span>
                             </div>
                         </div>
                         <div class="dimension-item" data-wrap="wall_height">
                             <label data-wall-height-label>Tinggi</label>
                             <div class="input-with-unit">
-                                <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}">
+                                <input type="text" inputmode="decimal" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}">
                                 <span class="unit">M</span>
-                                <span class="dimension-expression-hint" data-expression-hint hidden></span>
                             </div>
                         </div>
                         <div class="dimension-item" data-wrap="mortar_thickness">
@@ -10473,7 +7706,6 @@
             } else {
                 target.parent.appendChild(wrapper);
             }
-            bindDimensionExpressionInputs(wrapper);
 
             setAdditionalWorkItemRowKind(wrapper, item.row_kind);
             refreshAdditionalTaxonomyActionFooters(wrapper);
@@ -10599,49 +7831,8 @@
             if (!(host instanceof HTMLElement)) {
                 return null;
             }
+
             const mainAreaHost = getMainAreaChildrenHost();
-            const areaGroup =
-                host.querySelector('.work-area-group.taxonomy-inline-group') instanceof HTMLElement
-                    ? host.querySelector('.work-area-group.taxonomy-inline-group')
-                    : null;
-            const fieldGroup =
-                host.querySelector('.work-field-group.taxonomy-inline-group') instanceof HTMLElement
-                    ? host.querySelector('.work-field-group.taxonomy-inline-group')
-                    : null;
-
-            const ensureActionsHost = groupEl => {
-                if (!(groupEl instanceof HTMLElement)) {
-                    return null;
-                }
-                let actionsEl = getDirectChildMatching(groupEl, '.taxonomy-level-actions');
-                if (!(actionsEl instanceof HTMLElement)) {
-                    actionsEl = document.createElement('div');
-                    actionsEl.className = 'taxonomy-level-actions';
-                    groupEl.appendChild(actionsEl);
-                }
-                return actionsEl;
-            };
-
-            const areaActionsHost = ensureActionsHost(areaGroup);
-            const fieldActionsHost = ensureActionsHost(fieldGroup);
-
-            const addAreaBtn = document.getElementById('addAreaFromMainBtn');
-            if (addAreaBtn instanceof HTMLElement && areaActionsHost instanceof HTMLElement) {
-                if (addAreaBtn.parentElement !== areaActionsHost) {
-                    areaActionsHost.appendChild(addAreaBtn);
-                }
-            }
-
-            const addFieldBtn = document.getElementById('addFieldFromMainBtn');
-            if (addFieldBtn instanceof HTMLElement && fieldActionsHost instanceof HTMLElement) {
-                if (addFieldBtn.parentElement !== fieldActionsHost) {
-                    fieldActionsHost.appendChild(addFieldBtn);
-                }
-                const toggleMainBtn = fieldActionsHost.querySelector('#toggleMainFieldItemVisibilityBtn');
-                if (toggleMainBtn instanceof HTMLElement && addFieldBtn !== toggleMainBtn.previousElementSibling) {
-                    fieldActionsHost.insertBefore(addFieldBtn, toggleMainBtn);
-                }
-            }
 
             let footer =
                 getDirectChildMatching(host, '.main-taxonomy-actions-row') ||
@@ -10652,12 +7843,42 @@
                 host.appendChild(footer);
             }
 
-            const addItemBtn = document.getElementById('addItemFromMainBtn');
-            if (addItemBtn instanceof HTMLElement && footer instanceof HTMLElement) {
-                if (addItemBtn.parentElement !== footer) {
-                    footer.appendChild(addItemBtn);
+            [
+                document.getElementById('addAreaFromMainBtn'),
+                document.getElementById('addFieldFromMainBtn'),
+                document.getElementById('addItemFromMainBtn'),
+            ].forEach(btn => {
+                if (!(btn instanceof HTMLElement)) {
+                    return;
                 }
-            }
+                const legacyWrapper =
+                    btn.parentElement instanceof HTMLElement && btn.parentElement.matches('.taxonomy-level-actions')
+                        ? btn.parentElement
+                        : null;
+                if (btn.parentElement !== footer) {
+                    footer.appendChild(btn);
+                }
+                if (legacyWrapper && legacyWrapper !== footer && legacyWrapper.childElementCount === 0) {
+                    legacyWrapper.remove();
+                }
+            });
+
+            // Clean up duplicate empty main footers left behind after repeated relocations.
+            [host, mainAreaHost].forEach(container => {
+                if (!(container instanceof HTMLElement)) {
+                    return;
+                }
+                Array.from(container.children).forEach(child => {
+                    if (
+                        child instanceof HTMLElement &&
+                        child !== footer &&
+                        child.matches('.main-taxonomy-actions-row') &&
+                        child.childElementCount === 0
+                    ) {
+                        child.remove();
+                    }
+                });
+            });
 
             if (mainAreaHost instanceof HTMLElement) {
                 const mainAreaRows = getDirectAdditionalChildRows(mainAreaHost);
@@ -10677,22 +7898,6 @@
             } else if (footer.parentElement !== host || host.lastElementChild !== footer) {
                 host.appendChild(footer);
             }
-
-            [host, mainAreaHost].forEach(container => {
-                if (!(container instanceof HTMLElement)) {
-                    return;
-                }
-                Array.from(container.children).forEach(child => {
-                    if (
-                        child instanceof HTMLElement &&
-                        child !== footer &&
-                        child.matches('.main-taxonomy-actions-row') &&
-                        child.childElementCount === 0
-                    ) {
-                        child.remove();
-                    }
-                });
-            });
 
             return footer;
         }
@@ -10722,87 +7927,18 @@
                 footer.className = 'additional-taxonomy-actions-row';
             }
 
-            const resolveCell = cellKey => {
-                const cell = itemEl.querySelector(`.additional-taxonomy-cell[data-taxonomy-cell="${cellKey}"]`);
-                return cell instanceof HTMLElement ? cell : null;
-            };
-            const areaCell = resolveCell('area');
-            const fieldCell = resolveCell('field');
-            const fieldCellBody =
-                fieldCell instanceof HTMLElement
-                    ? fieldCell.querySelector('.additional-taxonomy-cell-body')
-                    : null;
-
-            const ensureInlineActionsHost = cellEl => {
-                if (!(cellEl instanceof HTMLElement)) {
-                    return null;
-                }
-                let hostEl = getDirectChildMatching(cellEl, '.additional-taxonomy-inline-actions');
-                if (!(hostEl instanceof HTMLElement)) {
-                    hostEl = document.createElement('div');
-                    hostEl.className = 'taxonomy-level-actions additional-taxonomy-inline-actions';
-                    cellEl.appendChild(hostEl);
-                }
-                return hostEl;
-            };
-            const areaInlineActionsHost = ensureInlineActionsHost(areaCell);
-
-            const moveButtonToHost = (action, hostEl) => {
-                const btn = itemEl.querySelector(`[data-action="${action}"]`);
-                if (!(btn instanceof HTMLElement)) {
-                    return null;
-                }
-                if (hostEl instanceof HTMLElement) {
-                    if (btn.parentElement !== hostEl) {
-                        hostEl.appendChild(btn);
-                    }
-                } else if (btn.parentElement !== footer) {
+            [
+                ['floor', 'add-area'],
+                ['area', 'add-field'],
+                ['field', 'add-item'],
+            ].forEach(([cellKey, action]) => {
+                const btn = itemEl.querySelector(
+                    `.additional-taxonomy-cell[data-taxonomy-cell="${cellKey}"] [data-action="${action}"]`,
+                );
+                if (btn instanceof HTMLElement && btn.parentElement !== footer) {
                     footer.appendChild(btn);
                 }
-                return btn;
-            };
-
-            const addAreaBtn = moveButtonToHost('add-area', areaInlineActionsHost);
-            const addFieldBtn = moveButtonToHost('add-field', fieldCellBody);
-            if (addFieldBtn instanceof HTMLElement && fieldCellBody instanceof HTMLElement) {
-                const toggleBtn = fieldCellBody.querySelector('[data-action="toggle-item-visibility"]');
-                if (toggleBtn instanceof HTMLElement && addFieldBtn !== toggleBtn.previousElementSibling) {
-                    fieldCellBody.insertBefore(addFieldBtn, toggleBtn);
-                }
-            }
-            const addItemBtn = itemEl.querySelector('[data-action="add-item"]');
-            if (addItemBtn instanceof HTMLElement && addItemBtn.parentElement !== footer) {
-                footer.appendChild(addItemBtn);
-            }
-
-            [addAreaBtn, addFieldBtn].forEach(btn => {
-                if (!(btn instanceof HTMLElement)) {
-                    return;
-                }
-                btn.classList.add('is-inline-taxonomy-action');
             });
-            if (addFieldBtn instanceof HTMLElement) {
-                addFieldBtn.classList.add('is-inline-add-field');
-            }
-            if (addItemBtn instanceof HTMLElement) {
-                addItemBtn.classList.remove('is-inline-taxonomy-action');
-            }
-
-            [areaCell].forEach(cell => {
-                if (!(cell instanceof HTMLElement)) {
-                    return;
-                }
-                cell.classList.toggle(
-                    'has-inline-action',
-                    !!cell.querySelector('.additional-taxonomy-inline-actions .taxonomy-level-btn'),
-                );
-            });
-            if (fieldCellBody instanceof HTMLElement) {
-                fieldCellBody.classList.toggle(
-                    'has-inline-add-field',
-                    !!fieldCellBody.querySelector('[data-action="add-field"]'),
-                );
-            }
 
             // Item rows hide all taxonomy action buttons. Keep the footer on the row grid
             // (not inside child hosts) so nested hosts stay truly empty and collapse spacing.
@@ -12392,13 +9528,11 @@
             }
 
             const emptyToken = '-';
-            let stepItems = [];
+            const levelOrder = { floor: 0, area: 1, field: 2 };
+            let anchorItems = [];
             let animationFrameId = null;
             let hasAnyTrackerValue = false;
-            let lockedStepIndex = -1;
-            let lastThresholdTop = 0;
             const calcFormEl = document.getElementById('calculationForm');
-            const STEP_SWITCH_MARGIN_PX = 24;
 
             const readPxCssVar = (hostEl, propertyName, fallback = 0) => {
                 if (!(hostEl instanceof HTMLElement) || !propertyName) {
@@ -12439,82 +9573,81 @@
                 return style.display !== 'none' && style.visibility !== 'hidden';
             };
 
-            const getMainAnchorElement = () => {
+            const getMainAnchorElement = kind => {
                 if (!(mainTaxonomyGroupCard instanceof HTMLElement)) {
                     return null;
                 }
-                const node = mainTaxonomyGroupCard.querySelector('.taxonomy-card-floor');
+                const selector =
+                    kind === 'floor'
+                        ? '.taxonomy-card-floor'
+                        : kind === 'area'
+                          ? '.taxonomy-card-area'
+                          : '.taxonomy-card-field';
+                const node = mainTaxonomyGroupCard.querySelector(selector);
                 return node instanceof HTMLElement ? node : null;
             };
 
-            const getAdditionalRowAnchorElement = row => {
+            const getAdditionalAnchorElement = (row, kind) => {
                 if (!(row instanceof HTMLElement)) {
                     return null;
                 }
-                const cells = row.querySelectorAll('.additional-taxonomy-cell[data-taxonomy-cell]:not(.is-inherited)');
-                for (const cell of cells) {
-                    if (cell instanceof HTMLElement && isTrackableElement(cell)) {
-                        return cell;
-                    }
+                const cell = row.querySelector(`.additional-taxonomy-cell[data-taxonomy-cell="${kind}"]:not(.is-inherited)`);
+                if (cell instanceof HTMLElement) {
+                    return cell;
+                }
+                const display = row.querySelector(`[data-field-display="work_${kind}"]`);
+                if (display instanceof HTMLElement) {
+                    return display;
                 }
                 return row;
             };
 
-            const buildNextContext = (previous, rawFloor, rawArea, rawField) => {
-                const priorFloor = String(previous?.floor || '').trim();
-                const priorArea = String(previous?.area || '').trim();
-                const priorField = String(previous?.field || '').trim();
-                const nextFloorRaw = String(rawFloor || '').trim();
-                const nextAreaRaw = String(rawArea || '').trim();
-                const nextFieldRaw = String(rawField || '').trim();
-
-                const nextFloor = nextFloorRaw || priorFloor;
-                const nextArea = nextAreaRaw || (nextFloorRaw ? '' : priorArea);
-                const nextField = nextFieldRaw || (nextAreaRaw || nextFloorRaw ? '' : priorField);
-
-                return {
-                    floor: nextFloor,
-                    area: nextArea,
-                    field: nextField,
-                };
+            const pushAnchor = (kind, value, targetEl) => {
+                const normalizedKind = String(kind || '').trim();
+                const normalizedValue = String(value || '').trim();
+                if (!normalizedKind || !normalizedValue) {
+                    return;
+                }
+                if (!(targetEl instanceof HTMLElement)) {
+                    return;
+                }
+                anchorItems.push({
+                    kind: normalizedKind,
+                    value: normalizedValue,
+                    el: targetEl,
+                });
             };
 
-            const rebuildSteps = () => {
-                stepItems = [];
+            const rebuildAnchors = () => {
+                anchorItems = [];
 
-                let context = buildNextContext(
-                    { floor: '', area: '', field: '' },
-                    getMainTaxonomyValue('floor'),
-                    getMainTaxonomyValue('area'),
-                    getMainTaxonomyValue('field'),
-                );
-                const mainAnchorEl = getMainAnchorElement();
-                if ((context.floor || context.area || context.field) && mainAnchorEl instanceof HTMLElement) {
-                    stepItems.push({
-                        ...context,
-                        el: mainAnchorEl,
-                    });
-                }
+                pushAnchor('floor', getMainTaxonomyValue('floor'), getMainAnchorElement('floor'));
+                pushAnchor('area', getMainTaxonomyValue('area'), getMainAnchorElement('area'));
+                pushAnchor('field', getMainTaxonomyValue('field'), getMainAnchorElement('field'));
 
                 getAllAdditionalWorkRows().forEach(row => {
-                    const nextContext = buildNextContext(
-                        context,
-                        getAdditionalFieldValue(row, 'work_floor'),
-                        getAdditionalFieldValue(row, 'work_area'),
-                        getAdditionalFieldValue(row, 'work_field'),
-                    );
-                    context = nextContext;
-                    const rowAnchorEl = getAdditionalRowAnchorElement(row);
-                    if (!(rowAnchorEl instanceof HTMLElement)) {
-                        return;
+                    pushAnchor('floor', getAdditionalFieldValue(row, 'work_floor'), getAdditionalAnchorElement(row, 'floor'));
+                    pushAnchor('area', getAdditionalFieldValue(row, 'work_area'), getAdditionalAnchorElement(row, 'area'));
+                    pushAnchor('field', getAdditionalFieldValue(row, 'work_field'), getAdditionalAnchorElement(row, 'field'));
+                });
+
+                anchorItems.sort((left, right) => {
+                    if (left.el === right.el) {
+                        return (levelOrder[left.kind] ?? 99) - (levelOrder[right.kind] ?? 99);
                     }
-                    if (!(nextContext.floor || nextContext.area || nextContext.field)) {
-                        return;
+                    const relation = left.el.compareDocumentPosition(right.el);
+                    if (relation & Node.DOCUMENT_POSITION_FOLLOWING) {
+                        return -1;
                     }
-                    stepItems.push({
-                        ...nextContext,
-                        el: rowAnchorEl,
-                    });
+                    if (relation & Node.DOCUMENT_POSITION_PRECEDING) {
+                        return 1;
+                    }
+                    const leftTop = getAbsoluteTop(left.el);
+                    const rightTop = getAbsoluteTop(right.el);
+                    if (leftTop === rightTop) {
+                        return (levelOrder[left.kind] ?? 99) - (levelOrder[right.kind] ?? 99);
+                    }
+                    return leftTop - rightTop;
                 });
             };
 
@@ -12552,57 +9685,50 @@
                 let activeFloor = '';
                 let activeArea = '';
                 let activeField = '';
-                const orderedSteps = stepItems
-                    .filter(step => step && step.el instanceof HTMLElement && isTrackableElement(step.el))
-                    .map(step => ({
-                        ...step,
-                        __top: getAbsoluteTop(step.el),
-                    }))
-                    .sort((left, right) => left.__top - right.__top);
+                let hasResolvedContext = false;
 
-                if (!orderedSteps.length) {
-                    lockedStepIndex = -1;
-                } else {
-                    if (lockedStepIndex < 0 || lockedStepIndex >= orderedSteps.length) {
-                        const initialIndex = orderedSteps.findIndex(step => step.__top > thresholdTop);
-                        lockedStepIndex = initialIndex <= 0 ? 0 : initialIndex - 1;
+                anchorItems.forEach(anchor => {
+                    if (!isTrackableElement(anchor.el)) {
+                        return;
                     }
+                    const absoluteTop = getAbsoluteTop(anchor.el);
+                    if (absoluteTop > thresholdTop) {
+                        return;
+                    }
+                    if (anchor.kind === 'floor') {
+                        activeFloor = anchor.value;
+                        activeArea = '';
+                        activeField = '';
+                        hasResolvedContext = true;
+                        return;
+                    }
+                    if (anchor.kind === 'area') {
+                        activeArea = anchor.value;
+                        activeField = '';
+                        hasResolvedContext = true;
+                        return;
+                    }
+                    if (anchor.kind === 'field') {
+                        activeField = anchor.value;
+                        hasResolvedContext = true;
+                    }
+                });
 
-                    const scrollingDown = thresholdTop >= lastThresholdTop;
-                    if (scrollingDown) {
-                        while (
-                            lockedStepIndex + 1 < orderedSteps.length &&
-                            thresholdTop >= orderedSteps[lockedStepIndex + 1].__top + STEP_SWITCH_MARGIN_PX
-                        ) {
-                            lockedStepIndex += 1;
-                        }
-                    } else {
-                        while (
-                            lockedStepIndex > 0 &&
-                            thresholdTop < orderedSteps[lockedStepIndex].__top - STEP_SWITCH_MARGIN_PX
-                        ) {
-                            lockedStepIndex -= 1;
-                        }
-                    }
-
-                    if (lockedStepIndex < 0) {
-                        lockedStepIndex = 0;
-                    } else if (lockedStepIndex >= orderedSteps.length) {
-                        lockedStepIndex = orderedSteps.length - 1;
-                    }
+                if (!hasResolvedContext && !activeFloor) {
+                    const firstFloor = anchorItems.find(anchor => anchor.kind === 'floor' && anchor.value);
+                    activeFloor = firstFloor ? firstFloor.value : '';
                 }
-
-                const activeStep =
-                    lockedStepIndex >= 0 && lockedStepIndex < orderedSteps.length ? orderedSteps[lockedStepIndex] : null;
-                if (activeStep && typeof activeStep === 'object') {
-                    activeFloor = String(activeStep.floor || '').trim();
-                    activeArea = String(activeStep.area || '').trim();
-                    activeField = String(activeStep.field || '').trim();
+                if (!hasResolvedContext && !activeArea) {
+                    const firstArea = anchorItems.find(anchor => anchor.kind === 'area' && anchor.value);
+                    activeArea = firstArea ? firstArea.value : '';
+                }
+                if (!hasResolvedContext && !activeField) {
+                    const firstField = anchorItems.find(anchor => anchor.kind === 'field' && anchor.value);
+                    activeField = firstField ? firstField.value : '';
                 }
 
                 setTrackerValues(activeFloor, activeArea, activeField);
                 syncTrackerVisibility();
-                lastThresholdTop = thresholdTop;
             };
 
             const scheduleRender = () => {
@@ -12616,7 +9742,7 @@
             };
 
             const refresh = () => {
-                rebuildSteps();
+                rebuildAnchors();
                 computeAndRender();
             };
 
@@ -13433,7 +10559,6 @@
             }
 
             const item = normalizeBundleItem(itemData || {}, 0);
-            const isAciType = ['skim_coating', 'coating_floor'].includes(String(item.work_type || '').trim());
             const titleInput = itemEl.querySelector('[data-field="title"]');
             if (titleInput instanceof HTMLInputElement) {
                 titleInput.value = String(item.title || '');
@@ -13457,15 +10582,6 @@
             ].forEach(key => {
                 setAdditionalFieldValue(itemEl, key, item[key] || '');
             });
-
-            const mortarInput = itemEl.querySelector('[data-field="mortar_thickness"]');
-            if (mortarInput instanceof HTMLInputElement) {
-                // Preserve unit context before visibility/auto-conversion logic runs.
-                mortarInput.dataset.unit = isAciType ? 'mm' : 'cm';
-                if (String(item.mortar_thickness || '').trim() !== '') {
-                    mortarInput.dataset.mode = isAciType ? 'acian' : 'adukan';
-                }
-            }
 
             bundleMaterialTypeOrder.forEach(type => {
                 const wrap = itemEl.querySelector(`[data-material-wrap="${type}"]`);
@@ -13701,11 +10817,6 @@
         }
 
         function syncBundleFromForms() {
-            rebuildBundleSharedCustomizeRealtimeState();
-            enforceBundleSharedCustomizeRealtime();
-            reconcileBundleSharedCustomizeSelections();
-            propagateBundleSharedCustomizeFromCurrentPanels();
-            syncAllBundleCustomizePanelToggleStates();
             const result = buildBundleItems(false);
             const items = result.items || [];
             syncMaterialCustomizeFiltersPayload();
@@ -13749,7 +10860,6 @@
                 calcPageSearchApi.refresh();
             }
         }
-        window.__syncBundleFromForms = syncBundleFromForms;
 
         function applyAdditionalWorkItemVisibility(itemEl) {
             const workType = getAdditionalFieldValue(itemEl, 'work_type');
@@ -13788,12 +10898,7 @@
 
             const setMortarUnit = unit => {
                 if (!mortarInput || !mortarUnit) return;
-                let currentUnit = String(mortarInput.dataset.unit || '').trim().toLowerCase();
-                if (currentUnit !== 'cm' && currentUnit !== 'mm') {
-                    // Restored rows can miss this marker; infer a safe baseline from current mode/type.
-                    currentUnit = mortarInput.dataset.mode === 'acian' || isAci ? 'mm' : 'cm';
-                    mortarInput.dataset.unit = currentUnit;
-                }
+                const currentUnit = mortarInput.dataset.unit || 'cm';
                 if (unit !== currentUnit) {
                     const currentValue = parseFloat(String(mortarInput.value || '').replace(',', '.'));
                     if (!isNaN(currentValue)) {
@@ -14347,7 +11452,6 @@
                 createAdditionalWorkItemForm(restoredBundleItems[i]);
             }
         }
-        bindDimensionExpressionInputs(document);
         syncBundleFromForms();
         if (initialMaterialCustomizeFiltersPayloadRaw) {
             const initialMainCustomizeFilters = parseObjectPayload(initialMaterialCustomizeFiltersPayloadRaw);
@@ -14365,7 +11469,6 @@
         const form = document.getElementById('calculationForm');
         let loadingInterval = null;
         const calcSessionKey = 'materialCalculationSession';
-        const calcExpressionStateKey = 'materialCalculationExpressionState';
         const calcPreviewPendingKey = 'materialCalculationPreviewPending';
         let saveSessionTimer = null;
         let isRestoringCalculationSessionState = false;
@@ -14374,7 +11477,6 @@
         let hasUserChangedSincePreviewResume = false;
         let previewResumeBaselineSessionFingerprint = '';
         let lastFastPreviewCacheExpiredAt = 0;
-        let skipSessionSaveOnBeforeUnload = false;
         const resetButton = document.getElementById('btnResetForm');
 
         function initStoreSearchModeControls() {
@@ -14387,14 +11489,9 @@
             const allowMixedStoreHidden = box.querySelector('input[type="hidden"][name="allow_mixed_store"]');
             const storeRadiusScopeHidden = document.getElementById('storeRadiusScopeValue');
             const modeValueHidden = document.getElementById('storeSearchModeValue');
-            const primaryRadiusInput = document.getElementById('projectStoreRadiusKm');
-            const finalRadiusInput = document.getElementById('projectStoreRadiusFinalKm');
             const completeWithinCheck = document.getElementById('storeModeCompleteWithinCheck');
             const completeOutsideCheck = document.getElementById('storeModeCompleteOutsideCheck');
             const incompleteCheck = document.getElementById('storeModeIncompleteCheck');
-            const completeWithinDesc = document.getElementById('storeModeCompleteWithinDesc');
-            const completeOutsideDesc = document.getElementById('storeModeCompleteOutsideDesc');
-            const incompleteDesc = document.getElementById('storeModeIncompleteDesc');
 
             if (
                 !(useStoreFilterHidden instanceof HTMLInputElement) ||
@@ -14407,32 +11504,6 @@
             ) {
                 return;
             }
-
-            const formatRadiusLabel = (rawValue, fallbackText = '-') => {
-                const parsed = Number.parseFloat(String(rawValue ?? '').replace(',', '.').trim());
-                if (!Number.isFinite(parsed) || parsed <= 0) {
-                    return fallbackText;
-                }
-                const normalized = Number.isInteger(parsed)
-                    ? String(parsed)
-                    : String(parsed).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
-                return `${normalized} km`;
-            };
-
-            const syncDescriptions = () => {
-                const primaryLabel = formatRadiusLabel(primaryRadiusInput?.value ?? '');
-                const finalLabel = formatRadiusLabel(finalRadiusInput?.value ?? '');
-
-                if (completeWithinDesc instanceof HTMLElement) {
-                    completeWithinDesc.textContent = `Mencari toko dengan material lengkap didalam radius ${primaryLabel} proyek.`;
-                }
-                if (completeOutsideDesc instanceof HTMLElement) {
-                    completeOutsideDesc.textContent = `Mencari toko dengan material lengkap didalam radius ${finalLabel} proyek.`;
-                }
-                if (incompleteDesc instanceof HTMLElement) {
-                    incompleteDesc.textContent = 'Mencari material sedapatnya dari toko terdekat.';
-                }
-            };
 
             const syncState = source => {
                 const checks = [completeWithinCheck, completeOutsideCheck, incompleteCheck];
@@ -14510,18 +11581,9 @@
                 });
             });
 
-            [primaryRadiusInput, finalRadiusInput].forEach(inputEl => {
-                if (!(inputEl instanceof HTMLInputElement)) {
-                    return;
-                }
-                inputEl.addEventListener('input', syncDescriptions);
-                inputEl.addEventListener('change', syncDescriptions);
-            });
-
             box.__syncStoreSearchModeControls = syncFromHiddenState;
             box.__commitStoreSearchModeControls = () => syncState(null);
             syncFromHiddenState();
-            syncDescriptions();
         }
 
         initStoreSearchModeControls();
@@ -14534,25 +11596,11 @@
                     return;
                 }
 
-                ignoreFormChangeTrackingUntil = Date.now() + 1000;
-                if (saveSessionTimer) {
-                    clearTimeout(saveSessionTimer);
-                    saveSessionTimer = null;
-                }
-                skipSessionSaveOnBeforeUnload = true;
                 form.reset();
                 localStorage.removeItem(calcSessionKey);
-                localStorage.removeItem(calcExpressionStateKey);
-                localStorage.removeItem(calcPreviewPendingKey);
-                localStorage.removeItem('materialCalculationPreview');
                 isUntouchedPreviewResumeEligible = false;
                 hasUserChangedSincePreviewResume = false;
                 previewResumeBaselineSessionFingerprint = '';
-
-                const cleanResetUrl = new URL(window.location.href);
-                cleanResetUrl.search = '';
-                cleanResetUrl.hash = '';
-                window.history.replaceState({}, '', cleanResetUrl.pathname);
 
                 const workTypeDisplay = document.getElementById('workTypeDisplay');
                 const workTypeHidden = document.getElementById('workTypeSelector');
@@ -14563,14 +11611,6 @@
                 if (workTypeHidden) {
                     workTypeHidden.value = '';
                     workTypeHidden.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                if (workTaxonomyFilterApi && typeof workTaxonomyFilterApi.setValues === 'function') {
-                    workTaxonomyFilterApi.setValues('floor', []);
-                    workTaxonomyFilterApi.setValues('area', []);
-                    workTaxonomyFilterApi.setValues('field', []);
-                    if (typeof workTaxonomyFilterApi.refresh === 'function') {
-                        workTaxonomyFilterApi.refresh();
-                    }
                 }
                 const materialTypeInputs = document.querySelectorAll('[name^="material_type_filters["]');
                 materialTypeInputs.forEach(input => {
@@ -14663,11 +11703,6 @@
             if (Object.keys(customizePanelState).length > 0) {
                 data.customize_panel_state = customizePanelState;
             }
-
-            const dimensionExpressionState = collectDimensionExpressionState();
-            if (dimensionExpressionState && typeof dimensionExpressionState === 'object') {
-                data.dimension_expression_state = dimensionExpressionState;
-            }
             return data;
         }
 
@@ -14683,19 +11718,6 @@
                 }));
             } catch (error) {
                 console.warn('Failed to save calculation session', error);
-            }
-
-            try {
-                const expressionState = collectDimensionExpressionState();
-                localStorage.setItem(
-                    calcExpressionStateKey,
-                    JSON.stringify({
-                        updatedAt: Date.now(),
-                        data: expressionState && typeof expressionState === 'object' ? expressionState : {},
-                    }),
-                );
-            } catch (error) {
-                console.warn('Failed to save dimension expression state', error);
             }
         }
 
@@ -14760,28 +11782,10 @@
                 payload[normalizedKey] = normalizedValue;
             });
 
-            if (mortarThicknessInput instanceof HTMLInputElement) {
-                const currentUnit = String(mortarThicknessInput.dataset.unit || '').trim().toLowerCase();
-                payload.mortar_thickness_unit = currentUnit === 'mm' ? 'mm' : 'cm';
-            }
-
             if (
                 Object.prototype.hasOwnProperty.call(payload, 'mortar_thickness') &&
-                (() => {
-                    const selectedWorkType = String(
-                        payload.work_type_select ||
-                            payload.work_type ||
-                            (workTypeSelector instanceof HTMLInputElement ? workTypeSelector.value : ''),
-                    )
-                        .trim()
-                        .toLowerCase();
-                    const expectsMm = ['skim_coating', 'coating_floor'].includes(selectedWorkType);
-                    const currentUnit =
-                        mortarThicknessInput instanceof HTMLInputElement
-                            ? String(mortarThicknessInput.dataset.unit || '').trim().toLowerCase()
-                            : '';
-                    return currentUnit === 'mm' || expectsMm;
-                })()
+                mortarThicknessInput instanceof HTMLInputElement &&
+                mortarThicknessInput.dataset.unit === 'mm'
             ) {
                 const currentValue = parseFloat(String(payload.mortar_thickness || '').replace(',', '.'));
                 if (!isNaN(currentValue)) {
@@ -14791,7 +11795,6 @@
 
             // Exclude client-only session helper state that is not part of the server request payload.
             delete payload.customize_panel_state;
-            delete payload.dimension_expression_state;
 
             ['work_items_payload', 'material_customize_filters_payload'].forEach(jsonKey => {
                 const raw = payload[jsonKey];
@@ -14827,7 +11830,6 @@
 
                 if (clonedPayload && typeof clonedPayload === 'object') {
                     delete clonedPayload.customize_panel_state;
-                    delete clonedPayload.dimension_expression_state;
                     ['work_items_payload', 'material_customize_filters_payload'].forEach(jsonKey => {
                         const raw = clonedPayload[jsonKey];
                         if (typeof raw !== 'string' || !raw.trim()) {
@@ -15044,11 +12046,9 @@
             const workTypeInput = form.querySelector('#workTypeSelector');
             const workTypeValue = state.work_type_select || state.work_type || '';
             const expectsMm = ['skim_coating', 'coating_floor'].includes(workTypeValue);
-            const sessionMortarUnit = String(state.mortar_thickness_unit || '').trim().toLowerCase();
             let pendingMortarThickness = null;
             let pendingCustomizePanelState = null;
             let pendingMaterialCustomizeFilters = null;
-            let pendingDimensionExpressionState = null;
             if (workTypeInput && workTypeValue) {
                 workTypeInput.value = workTypeValue;
                 workTypeInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -15062,10 +12062,6 @@
                 if (key === 'work_type_select' || key === 'work_type') return;
                 if (key === 'customize_panel_state') {
                     pendingCustomizePanelState = value;
-                    return;
-                }
-                if (key === 'dimension_expression_state' && value && typeof value === 'object') {
-                    pendingDimensionExpressionState = value;
                     return;
                 }
                 if (key === 'material_customize_filters' && value && typeof value === 'object') {
@@ -15179,29 +12175,11 @@
             });
 
             if (expectsMm && pendingMortarThickness !== null && mortarThicknessInput) {
-                const rawValue = Array.isArray(pendingMortarThickness)
+                const cmValue = Array.isArray(pendingMortarThickness)
                     ? parseFloat(pendingMortarThickness[0])
                     : parseFloat(pendingMortarThickness);
-                if (!isNaN(rawValue)) {
-                    let restoredMmValue = rawValue;
-                    if (sessionMortarUnit === 'cm') {
-                        restoredMmValue = rawValue * 10;
-                    } else if (sessionMortarUnit === 'mm') {
-                        restoredMmValue = rawValue;
-                    } else {
-                        // Legacy migration: older sessions didn't store unit.
-                        // Canonical cm value for acian is usually <= 1 (e.g. 0.3 for 3 mm).
-                        // Values above that are likely already mm (or stale x10 chains).
-                        if (rawValue <= 1) {
-                            restoredMmValue = rawValue * 10;
-                        } else {
-                            restoredMmValue = rawValue;
-                            while (restoredMmValue > 10) {
-                                restoredMmValue /= 10;
-                            }
-                        }
-                    }
-                    mortarThicknessInput.value = formatThicknessValue(restoredMmValue);
+                if (!isNaN(cmValue)) {
+                    mortarThicknessInput.value = formatThicknessValue(cmValue * 10);
                     mortarThicknessInput.dispatchEvent(new Event('change', { bubbles: true }));
                     mortarThicknessInput.dispatchEvent(new Event('input', { bubbles: true }));
                 }
@@ -15279,14 +12257,6 @@
                 });
             }
 
-            if (!(pendingDimensionExpressionState && typeof pendingDimensionExpressionState === 'object')) {
-                pendingDimensionExpressionState = getStoredDimensionExpressionState();
-            }
-
-            if (pendingDimensionExpressionState && typeof pendingDimensionExpressionState === 'object') {
-                applyDimensionExpressionState(pendingDimensionExpressionState);
-            }
-
             collapseEmptyCustomizePanels(document);
         }
 
@@ -15303,7 +12273,6 @@
                 parsed = JSON.parse(raw);
             } catch (error) {
                 localStorage.removeItem(calcSessionKey);
-                localStorage.removeItem(calcExpressionStateKey);
                 return;
             }
 
@@ -15319,16 +12288,21 @@
                 }, 0);
             }
 
-            setTimeout(() => {
-                const fallbackExpressionState = getStoredDimensionExpressionState();
-                if (fallbackExpressionState) {
-                    applyDimensionExpressionState(fallbackExpressionState);
-                }
-            }, 80);
-
             const storeSearchModeBoxEl = document.getElementById('storeSearchModeBox');
             if (storeSearchModeBoxEl && typeof storeSearchModeBoxEl.__syncStoreSearchModeControls === 'function') {
                 storeSearchModeBoxEl.__syncStoreSearchModeControls();
+            }
+
+            if (isNormalized && mortarThicknessInput) {
+                const currentUnit = mortarThicknessInput.dataset.unit || 'cm';
+                if (currentUnit === 'mm' && state && state.mortar_thickness !== undefined && state.mortar_thickness !== null && state.mortar_thickness !== '') {
+                    const cmValue = parseFloat(state.mortar_thickness);
+                    if (!isNaN(cmValue)) {
+                        mortarThicknessInput.value = formatThicknessValue(cmValue * 10);
+                        mortarThicknessInput.dispatchEvent(new Event('input', { bubbles: true }));
+                        mortarThicknessInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }
             }
 
             const cleanUrl = new URL(window.location.href);
@@ -15439,43 +12413,22 @@
 
         if (form) {
             form.addEventListener('input', function(event) {
-                if (event?.isTrusted && !isRestoringCalculationSessionState && Date.now() >= ignoreFormChangeTrackingUntil) {
+                if (event?.isTrusted && !isRestoringCalculationSessionState) {
                     hasUserChangedSincePreviewResume = true;
-                    skipSessionSaveOnBeforeUnload = false;
-                }
-                if (isRestoringCalculationSessionState || Date.now() < ignoreFormChangeTrackingUntil) {
-                    return;
                 }
                 if (saveSessionTimer) clearTimeout(saveSessionTimer);
                 saveSessionTimer = setTimeout(saveCalculationSession, 250);
             });
 
             form.addEventListener('change', function(event) {
-                if (event?.isTrusted && !isRestoringCalculationSessionState && Date.now() >= ignoreFormChangeTrackingUntil) {
+                if (event?.isTrusted && !isRestoringCalculationSessionState) {
                     hasUserChangedSincePreviewResume = true;
-                    skipSessionSaveOnBeforeUnload = false;
-                }
-                if (isRestoringCalculationSessionState || Date.now() < ignoreFormChangeTrackingUntil) {
-                    return;
                 }
                 if (saveSessionTimer) clearTimeout(saveSessionTimer);
                 saveSessionTimer = setTimeout(saveCalculationSession, 250);
             });
 
             form.addEventListener('submit', function(e) {
-                const expressionNormalization = normalizeDimensionExpressionInputsForSubmit(form, { commitValue: false });
-                if (!expressionNormalization.ok) {
-                    e.preventDefault();
-                    if (typeof window.showToast === 'function') {
-                        window.showToast(expressionNormalization.message, 'error');
-                    } else {
-                        alert(expressionNormalization.message);
-                    }
-                    if (expressionNormalization.focusEl && typeof expressionNormalization.focusEl.focus === 'function') {
-                        expressionNormalization.focusEl.focus();
-                    }
-                    return;
-                }
                 const storeSearchModeBoxEl = document.getElementById('storeSearchModeBox');
                 if (storeSearchModeBoxEl && typeof storeSearchModeBoxEl.__commitStoreSearchModeControls === 'function') {
                     storeSearchModeBoxEl.__commitStoreSearchModeControls();
@@ -15540,51 +12493,22 @@
                     return;
                 }
 
+                if (isBundleModeEnabled) {
+                    setMainFormRequired(false);
+                    if (workItemsPayloadInput) {
+                        workItemsPayloadInput.value = JSON.stringify(bundleItems);
+                    }
+                    if (enableBundleModeInput) {
+                        enableBundleModeInput.value = '1';
+                    }
+                } else if (workItemsPayloadInput) {
+                    workItemsPayloadInput.value = '';
+                    if (enableBundleModeInput) {
+                        enableBundleModeInput.value = '0';
+                    }
+                }
+
                 if (this.checkValidity()) {
-                    const committedExpressionNormalization = normalizeDimensionExpressionInputsForSubmit(form, { commitValue: true });
-                    if (!committedExpressionNormalization.ok) {
-                        e.preventDefault();
-                        if (typeof window.showToast === 'function') {
-                            window.showToast(committedExpressionNormalization.message, 'error');
-                        } else {
-                            alert(committedExpressionNormalization.message);
-                        }
-                        if (committedExpressionNormalization.focusEl && typeof committedExpressionNormalization.focusEl.focus === 'function') {
-                            committedExpressionNormalization.focusEl.focus();
-                        }
-                        return;
-                    }
-
-                    const normalizedBundleBuild = buildBundleItems(true);
-                    if (normalizedBundleBuild.error) {
-                        e.preventDefault();
-                        if (typeof window.showToast === 'function') {
-                            window.showToast(normalizedBundleBuild.error.message, 'error');
-                        } else {
-                            alert(normalizedBundleBuild.error.message);
-                        }
-                        if (normalizedBundleBuild.error.focusEl && typeof normalizedBundleBuild.error.focusEl.focus === 'function') {
-                            normalizedBundleBuild.error.focusEl.focus();
-                        }
-                        return;
-                    }
-                    const normalizedBundleItems = normalizedBundleBuild.items || [];
-                    const normalizedBundleModeEnabled = normalizedBundleItems.length >= 2;
-                    if (normalizedBundleModeEnabled) {
-                        setMainFormRequired(false);
-                        if (workItemsPayloadInput) {
-                            workItemsPayloadInput.value = JSON.stringify(normalizedBundleItems);
-                        }
-                        if (enableBundleModeInput) {
-                            enableBundleModeInput.value = '1';
-                        }
-                    } else if (workItemsPayloadInput) {
-                        workItemsPayloadInput.value = '';
-                        if (enableBundleModeInput) {
-                            enableBundleModeInput.value = '0';
-                        }
-                    }
-
                     const currentSession = serializeCalculationSession(form);
                     const previewShortcutPayload = buildPreviewShortcutComparablePayload(form);
                     lastFastPreviewCacheExpiredAt = 0;
@@ -15714,9 +12638,7 @@
         // VISUAL TRICK: Force 100% when browser starts navigation (server responded)
         window.addEventListener('beforeunload', function() {
             // Persist latest values so browser refresh keeps dynamic filters as well.
-            if (!skipSessionSaveOnBeforeUnload) {
-                saveCalculationSession();
-            }
+            saveCalculationSession();
 
             const overlay = document.getElementById('loadingOverlay');
             if (overlay && overlay.style.display !== 'none') {

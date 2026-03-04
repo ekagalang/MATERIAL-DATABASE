@@ -18,9 +18,14 @@ function makeCombinationServiceForTopKCollectorTests(): CombinationGenerationSer
             return 3;
         }
 
-        public function exposeCollectTopKGeneratedCombinations(iterable $generator, int $limit, bool $sortDesc): array
+        public function exposeCollectTopKGeneratedCombinations(
+            iterable $generator,
+            int $limit,
+            bool $sortDesc,
+            ?int $capacityOverride = null,
+        ): array
         {
-            return $this->collectTopKGeneratedCombinations($generator, $limit, $sortDesc);
+            return $this->collectTopKGeneratedCombinations($generator, $limit, $sortDesc, $capacityOverride);
         }
     };
 }
@@ -61,3 +66,20 @@ test('generator topk collector keeps most expensive items in descending order', 
     expect($result['stats']['selected'])->toBe(3);
 });
 
+test('generator topk collector can use capacity override above default cap', function () {
+    $service = makeCombinationServiceForTopKCollectorTests();
+
+    $generator = (function () {
+        yield ['total_cost' => 100];
+        yield ['total_cost' => 200];
+        yield ['total_cost' => 300];
+        yield ['total_cost' => 400];
+        yield ['total_cost' => 500];
+        yield ['total_cost' => 600];
+    })();
+
+    $result = $service->exposeCollectTopKGeneratedCombinations($generator, 5, false, 5);
+
+    expect(array_column($result['items'], 'total_cost'))->toBe([100, 200, 300, 400, 500]);
+    expect($result['stats']['selected'])->toBe(5);
+});

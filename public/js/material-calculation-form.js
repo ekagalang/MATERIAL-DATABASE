@@ -69,73 +69,205 @@ function initMaterialCalculationForm(root, formData) {
     }
 
     function createStoreMarkerIcon(mapElement) {
-        const iconUrl = mapElement?.dataset?.storeMarkerIcon || '/images/store-marker.svg';
-        return {
-            url: iconUrl,
-            scaledSize: new google.maps.Size(30, 30),
-            anchor: new google.maps.Point(15, 30),
-        };
+    const iconUrl = mapElement?.dataset?.storeMarkerIcon || '/images/store-marker.svg';
+    return {
+        url: iconUrl,
+        scaledSize: new google.maps.Size(30, 30),
+        anchor: new google.maps.Point(15, 30),
+    };
+}
+
+function ensureStoreMarkerLabelStyle() {
+    if (document.getElementById('calc-store-marker-label-style')) {
+        return;
     }
 
-    function addStoreMarkersToMap(map, mapElement) {
-        if (!map || !window.google?.maps || map.__storeMarkersBound) {
-            return;
+    const style = document.createElement('style');
+    style.id = 'calc-store-marker-label-style';
+    style.textContent = `
+        .calc-store-marker-label-overlay {
+            position: absolute;
+            transform: translate3d(18px, -31px, 0);
+            pointer-events: none;
+            will-change: transform, left, top;
+        }
+        .calc-store-marker-label {
+            display: inline-block;
+            color: #0f172a;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.15;
+            white-space: nowrap;
+            letter-spacing: 0.05px;
+            text-shadow:
+                -1px -1px 0 #ffffff,
+                1px -1px 0 #ffffff,
+                -1px 1px 0 #ffffff,
+                1px 1px 0 #ffffff,
+                0 0 2px rgba(255, 255, 255, 0.95),
+                0 1px 2px rgba(15, 23, 42, 0.2);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function buildStoreMarkerLabelText(name) {
+    const text = String(name || '').trim();
+    if (!text) {
+        return 'Toko';
+    }
+    if (text.length <= 26) {
+        return text;
+    }
+    return `${text.slice(0, 25)}...`;
+}
+
+function createStoreNameOverlay(map, position, storeName, minZoom = 12) {
+    if (
+        !map ||
+        !window.google?.maps ||
+        typeof window.google.maps.OverlayView !== 'function'
+    ) {
+        return null;
+    }
+
+    const latLng = new google.maps.LatLng(position.lat, position.lng);
+    const labelText = buildStoreMarkerLabelText(storeName);
+
+    class StoreNameOverlay extends google.maps.OverlayView {
+        constructor() {
+            super();
+            this.containerEl = null;
         }
 
-        map.__storeMarkersBound = true;
-        if (!storeLocationsData.length) {
-            return;
-        }
+        onAdd() {
+            const container = document.createElement('div');
+            container.className = 'calc-store-marker-label-overlay';
 
-        const infoWindow = new google.maps.InfoWindow();
-        const icon = createStoreMarkerIcon(mapElement);
-        const bounds = new google.maps.LatLngBounds();
-        const projectLatInput = scope.querySelector('#projectLatitude') || document.getElementById('projectLatitude');
-        const projectLngInput = scope.querySelector('#projectLongitude') || document.getElementById('projectLongitude');
-        const projectLatRaw = (projectLatInput?.value ?? '').toString().trim();
-        const projectLngRaw = (projectLngInput?.value ?? '').toString().trim();
-        const hasProjectLocation =
-            projectLatRaw !== '' &&
-            projectLngRaw !== '' &&
-            Number.isFinite(Number(projectLatRaw)) &&
-            Number.isFinite(Number(projectLngRaw));
+            const label = document.createElement('span');
+            label.className = 'calc-store-marker-label';
+            label.textContent = labelText;
+            container.appendChild(label);
 
-        const markers = storeLocationsData.map(function (location) {
-            const position = { lat: location.latitude, lng: location.longitude };
-            bounds.extend(position);
-
-            const marker = new google.maps.Marker({
-                map,
-                position,
-                title: location.storeName,
-                icon,
-                zIndex: 10,
-            });
-
-            marker.addListener('click', function () {
-                infoWindow.setContent(buildStoreInfoContent(location));
-                infoWindow.open(map, marker);
-            });
-
-            return marker;
-        });
-
-        map.__storeMarkers = markers;
-
-        if (!hasProjectLocation && markers.length > 0) {
-            map.fitBounds(bounds, 70);
-            const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', function () {
-                if (map.getZoom() > 14) {
-                    map.setZoom(14);
-                }
-            });
-            if (listener) {
-                map.__storeBoundsListener = listener;
+            this.containerEl = container;
+            const panes = this.getPanes();
+            if (panes?.overlayLayer) {
+                panes.overlayLayer.appendChild(container);
             }
         }
+
+        draw() {
+            if (!this.containerEl) {
+                return;
+            }
+            const currentZoom = typeof map.getZoom === 'function' ? Number(map.getZoom()) : NaN;
+            const hiddenByZoom = Number.isFinite(currentZoom) && currentZoom < minZoom;
+            this.containerEl.style.display = hiddenByZoom ? 'none' : 'block';
+            if (hiddenByZoom) {
+                return;
+            }
+            const projection = this.getProjection();
+            if (!projection) {
+                return;
+            }
+            const pixel = projection.fromLatLngToDivPixel(latLng);
+            if (!pixel) {
+                return;
+            }
+            this.containerEl.style.left = `${Math.round(pixel.x)}px`;
+            this.containerEl.style.top = `${Math.round(pixel.y)}px`;
+        }
+
+        onRemove() {
+            if (this.containerEl?.parentNode) {
+                this.containerEl.parentNode.removeChild(this.containerEl);
+            }
+            this.containerEl = null;
+        }
     }
 
-    function truncateNumber(value, decimals = 2) {
+    const overlay = new StoreNameOverlay();
+    overlay.setMap(map);
+    return overlay;
+}
+
+function addStoreMarkersToMap(map, mapElement) {
+    if (!map || !window.google?.maps || map.__storeMarkersBound) {
+        return;
+    }
+
+    map.__storeMarkersBound = true;
+    if (!storeLocationsData.length) {
+        return;
+    }
+
+    const infoWindow = new google.maps.InfoWindow();
+    const icon = createStoreMarkerIcon(mapElement);
+    ensureStoreMarkerLabelStyle();
+    const parsedLabelMinZoom = Number(mapElement?.dataset?.storeLabelMinZoom);
+    const storeLabelMinZoom = Number.isFinite(parsedLabelMinZoom) ? parsedLabelMinZoom : 12;
+    const bounds = new google.maps.LatLngBounds();
+    const projectLatInput = scope.querySelector('#projectLatitude') || document.getElementById('projectLatitude');
+    const projectLngInput = scope.querySelector('#projectLongitude') || document.getElementById('projectLongitude');
+    const projectLatRaw = (projectLatInput?.value ?? '').toString().trim();
+    const projectLngRaw = (projectLngInput?.value ?? '').toString().trim();
+    const hasProjectLocation =
+        projectLatRaw !== '' &&
+        projectLngRaw !== '' &&
+        Number.isFinite(Number(projectLatRaw)) &&
+        Number.isFinite(Number(projectLngRaw));
+
+    const markerNameOverlays = [];
+    const markers = storeLocationsData.map(function (location) {
+        const position = { lat: location.latitude, lng: location.longitude };
+        bounds.extend(position);
+
+        const marker = new google.maps.Marker({
+            map,
+            position,
+            title: location.storeName,
+            icon,
+            zIndex: 10,
+        });
+
+        const nameOverlay = createStoreNameOverlay(map, position, location.storeName, storeLabelMinZoom);
+        if (nameOverlay) {
+            markerNameOverlays.push(nameOverlay);
+        }
+
+        marker.addListener('click', function () {
+            infoWindow.setContent(buildStoreInfoContent(location));
+            infoWindow.open(map, marker);
+        });
+
+        return marker;
+    });
+
+    map.__storeMarkers = markers;
+    map.__storeMarkerNameOverlays = markerNameOverlays;
+    if (markerNameOverlays.length > 0 && typeof map.addListener === 'function') {
+        map.addListener('zoom_changed', function () {
+            markerNameOverlays.forEach(function (overlay) {
+                if (overlay && typeof overlay.draw === 'function') {
+                    overlay.draw();
+                }
+            });
+        });
+    }
+
+    if (!hasProjectLocation && markers.length > 0) {
+        map.fitBounds(bounds, 70);
+        const listener = google.maps.event.addListenerOnce(map, 'bounds_changed', function () {
+            if (map.getZoom() > 14) {
+                map.setZoom(14);
+            }
+        });
+        if (listener) {
+            map.__storeBoundsListener = listener;
+        }
+    }
+}
+function truncateNumber(value, decimals = 2) {
         const num = Number(value);
         if (!isFinite(num)) return NaN;
         const factor = 10 ** decimals;
@@ -988,6 +1120,8 @@ function initMaterialCalculationForm(root, formData) {
         const uniqueSorted = values => Array.from(new Set(values.filter(Boolean).map(value => String(value).trim())))
             .sort((a, b) => String(a).localeCompare(String(b), 'id-ID', { sensitivity: 'base', numeric: true }));
         let customizeUiSequence = 0;
+        const delegateBundleSyncToPage = typeof window !== 'undefined'
+            && window.__materialCalcDelegateBundleSync === true;
 
         const toPlainNumber = value => {
             const num = Number(value);
@@ -1318,6 +1452,112 @@ function initMaterialCalculationForm(root, formData) {
                     displayEl.placeholder = String(firstOption?.textContent || '-- Semua --');
                 };
 
+                const getPanelScopeContainer = panelEl => {
+                    if (!(panelEl instanceof HTMLElement)) {
+                        return null;
+                    }
+                    return (
+                        panelEl.closest('[data-additional-work-item="true"]') ||
+                        panelEl.closest('#inputFormContainer') ||
+                        document.getElementById('inputFormContainer') ||
+                        document
+                    );
+                };
+
+                const collectMaterialTypeTokensInScope = scopeEl => {
+                    if (!scopeEl || !materialKey) {
+                        return [];
+                    }
+                    const selector = [
+                        `input[name="material_type_filters[${materialKey}]"]`,
+                        `input[name="material_type_filters_extra[${materialKey}][]"]`,
+                        `input[data-field="material_type_${materialKey}"][data-material-type-hidden="1"]`,
+                        `.material-type-row[data-material-type="${materialKey}"] input[data-material-type-hidden="1"]`,
+                    ].join(', ');
+                    const tokenSet = new Set();
+                    Array.from(scopeEl.querySelectorAll(selector)).forEach(inputEl => {
+                        String(inputEl?.value || '')
+                            .split('|')
+                            .map(part => String(part || '').trim().toLowerCase())
+                            .filter(Boolean)
+                            .forEach(token => tokenSet.add(token));
+                    });
+                    return Array.from(tokenSet);
+                };
+
+                const hasCommonMaterialToken = (leftTokens, rightTokens) => {
+                    if (!Array.isArray(leftTokens) || !Array.isArray(rightTokens) || leftTokens.length === 0 || rightTokens.length === 0) {
+                        return false;
+                    }
+                    return leftTokens.some(token => rightTokens.includes(token));
+                };
+
+                const mirrorCustomizeValueAcrossBundle = nextValue => {
+                    const normalizedValue = String(nextValue || '').trim();
+                    if (!normalizedValue) {
+                        return;
+                    }
+                    const fieldKey = String(selectEl.dataset.filterKey || '').trim();
+                    if (!fieldKey) {
+                        return;
+                    }
+
+                    const sourcePanel = selectEl.closest('.customize-panel[data-customize-panel]');
+                    if (!(sourcePanel instanceof HTMLElement)) {
+                        return;
+                    }
+                    const sourceScope = getPanelScopeContainer(sourcePanel);
+                    if (!sourceScope) {
+                        return;
+                    }
+                    const sourceTokens = collectMaterialTypeTokensInScope(sourceScope);
+                    if (!sourceTokens.length) {
+                        return;
+                    }
+
+                    let hasAnyChanged = false;
+                    const panelSelector = `.customize-panel[data-customize-panel="${materialKey}"]`;
+                    Array.from(document.querySelectorAll(panelSelector)).forEach(panelEl => {
+                        if (!(panelEl instanceof HTMLElement) || panelEl === sourcePanel) {
+                            return;
+                        }
+                        const targetScope = getPanelScopeContainer(panelEl);
+                        const targetTokens = collectMaterialTypeTokensInScope(targetScope);
+                        if (!hasCommonMaterialToken(sourceTokens, targetTokens)) {
+                            return;
+                        }
+                        const targetSelect = panelEl.querySelector(
+                            `select[data-customize-filter="${materialKey}"][data-filter-key="${fieldKey}"]`,
+                        );
+                        if (!(targetSelect instanceof HTMLSelectElement)) {
+                            return;
+                        }
+
+                        const hasOption = Array.from(targetSelect.options).some(option => {
+                            return String(option.value || '').trim() === normalizedValue;
+                        });
+                        if (!hasOption) {
+                            const optionEl = document.createElement('option');
+                            optionEl.value = normalizedValue;
+                            optionEl.textContent = normalizedValue;
+                            targetSelect.appendChild(optionEl);
+                        }
+                        if (String(targetSelect.value || '').trim() === normalizedValue) {
+                            return;
+                        }
+
+                        targetSelect.value = normalizedValue;
+                        if (targetSelect.__customizeAutocompleteUi?.syncDisplayFromSelect) {
+                            targetSelect.__customizeAutocompleteUi.syncDisplayFromSelect();
+                        }
+                        hasAnyChanged = true;
+                    });
+
+                    if (hasAnyChanged && typeof window.__syncBundleFromForms === 'function') {
+                        window.__syncBundleFromForms();
+                    }
+                };
+
                 const applyValue = value => {
                     const nextValue = String(value || '').trim();
                     if (selectEl.value !== nextValue) {
@@ -1325,6 +1565,48 @@ function initMaterialCalculationForm(root, formData) {
                         selectEl.dispatchEvent(new Event('change', { bubbles: true }));
                     } else {
                         syncDisplayFromSelect();
+                        if (delegateBundleSyncToPage) {
+                            selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                    if (delegateBundleSyncToPage) {
+                        if (typeof window.__forceBundleCustomizeRealtime === 'function') {
+                            window.__forceBundleCustomizeRealtime(selectEl);
+                        }
+                        if (typeof window.__syncBundleSharedCustomizeFromSelect === 'function') {
+                            window.__syncBundleSharedCustomizeFromSelect(selectEl);
+                        }
+                        if (typeof window.__syncBundleFromForms === 'function') {
+                            window.__syncBundleFromForms();
+                        }
+                        if (typeof window.queueMicrotask === 'function') {
+                            queueMicrotask(() => {
+                                if (typeof window.__syncBundleFromForms === 'function') {
+                                    window.__syncBundleFromForms();
+                                }
+                            });
+                        }
+                        if (typeof window.__syncBundleSharedCustomizeFromSelect === 'function') {
+                            requestAnimationFrame(() => {
+                                setTimeout(() => {
+                                    if (typeof window.__forceBundleCustomizeRealtime === 'function') {
+                                        window.__forceBundleCustomizeRealtime(selectEl);
+                                    }
+                                    window.__syncBundleSharedCustomizeFromSelect(selectEl);
+                                    if (typeof window.__syncBundleFromForms === 'function') {
+                                        window.__syncBundleFromForms();
+                                    }
+                                }, 0);
+                            });
+                        }
+                    } else {
+                        mirrorCustomizeValueAcrossBundle(nextValue);
+                        if (typeof window.__syncBundleSharedCustomizeFromSelect === 'function') {
+                            window.__syncBundleSharedCustomizeFromSelect(selectEl);
+                        }
+                        if (typeof window.__syncBundleFromForms === 'function') {
+                            window.__syncBundleFromForms();
+                        }
                     }
                     closeList();
                 };
@@ -1359,7 +1641,8 @@ function initMaterialCalculationForm(root, formData) {
                 };
 
                 displayEl.addEventListener('focus', function() {
-                    renderList(displayEl.value || '');
+                    // Re-open with full options so user can change previous selection easily.
+                    renderList('');
                 });
 
                 displayEl.addEventListener('input', function() {
@@ -1592,7 +1875,11 @@ function initMaterialCalculationForm(root, formData) {
                 });
 
                 if (existingValue && !values.includes(existingValue)) {
-                    selectEl.value = '';
+                    const fallbackOption = document.createElement('option');
+                    fallbackOption.value = existingValue;
+                    fallbackOption.textContent = existingValue;
+                    fallbackOption.selected = true;
+                    selectEl.appendChild(fallbackOption);
                 }
 
                 if (selectEl.__customizeAutocompleteUi?.syncDisplayFromSelect) {
@@ -1737,6 +2024,66 @@ function initMaterialCalculationForm(root, formData) {
                 return state;
             };
 
+            const ensureAllPanelsInitialized = () => {
+                getAllPanels().forEach(panelEl => {
+                    if (!(panelEl instanceof HTMLElement)) {
+                        return;
+                    }
+                    ensurePanelState(panelEl);
+                });
+            };
+
+            ensureAllPanelsInitialized();
+
+            const observerRegistryKey = '__customizePanelInitObserverKeys';
+            if (!(document[observerRegistryKey] instanceof Set)) {
+                document[observerRegistryKey] = new Set();
+            }
+            const observerRegistry = document[observerRegistryKey];
+            if (!observerRegistry.has(materialKey) && document.body instanceof HTMLElement) {
+                observerRegistry.add(materialKey);
+                let rafId = null;
+                const scheduleInit = () => {
+                    if (rafId) {
+                        return;
+                    }
+                    rafId = requestAnimationFrame(() => {
+                        rafId = null;
+                        ensureAllPanelsInitialized();
+                    });
+                };
+
+                const observer = new MutationObserver(mutations => {
+                    let shouldInit = false;
+                    mutations.forEach(mutation => {
+                        if (shouldInit) {
+                            return;
+                        }
+                        mutation.addedNodes.forEach(node => {
+                            if (shouldInit || !(node instanceof HTMLElement)) {
+                                return;
+                            }
+                            if (
+                                node.matches?.(`.customize-panel[data-customize-panel="${materialKey}"]`) ||
+                                node.querySelector?.(`.customize-panel[data-customize-panel="${materialKey}"]`) ||
+                                node.matches?.(`select[data-customize-filter="${materialKey}"]`) ||
+                                node.querySelector?.(`select[data-customize-filter="${materialKey}"]`)
+                            ) {
+                                shouldInit = true;
+                            }
+                        });
+                    });
+                    if (shouldInit) {
+                        scheduleInit();
+                    }
+                });
+
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                });
+            }
+
             if (materialTypeKeys.length > 0) {
                 document.addEventListener('change', function(event) {
                     const target = event?.target;
@@ -1788,9 +2135,14 @@ function initMaterialCalculationForm(root, formData) {
                 panelState.contextRow = nextContextRow instanceof HTMLElement ? nextContextRow : null;
 
                 if (hasContextChanged) {
-                    panelState.fieldSelects.forEach(selectEl => {
-                        selectEl.value = '';
+                    const hasExistingSelection = panelState.fieldSelects.some(selectEl => {
+                        return String(selectEl.value || '').trim() !== '';
                     });
+                    if (!hasExistingSelection) {
+                        panelState.fieldSelects.forEach(selectEl => {
+                            selectEl.value = '';
+                        });
+                    }
                 }
 
                 panel.hidden = false;

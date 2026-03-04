@@ -2492,10 +2492,22 @@ $paramValue = $isGroutTile
                 $priceRankFilters = ['Ekonomis', 'Average', 'Termahal'];
                 $needsPriceRanks = count(array_intersect($filterCategories, $priceRankFilters)) > 0;
                 if ($needsPriceRanks) {
-                    $buildCombinationSignature = function ($project, $item) {
+                    foreach ($priceRankFilters as $priceFilter) {
+                        for ($rankNumber = 1; $rankNumber <= 3; $rankNumber++) {
+                            $rankKey = $priceFilter . ' ' . $rankNumber;
+                            unset($globalRekapData[$rankKey], $detailCombinationMap[$rankKey]);
+                        }
+                    }
+
+                    $signatureMaterialKeys = array_values(
+                        array_intersect(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'], $requiredMaterials),
+                    );
+                    if (empty($signatureMaterialKeys)) {
+                        $signatureMaterialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+                    }
+                    $buildCombinationSignature = function ($project, $item) use ($signatureMaterialKeys) {
                         $parts = [];
-                        $matKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
-                        foreach ($matKeys as $matKey) {
+                        foreach ($signatureMaterialKeys as $matKey) {
                             $matObj = $item[$matKey] ?? null;
                             if ($matObj === null && $matKey === 'brick') {
                                 $matObj = $project['brick'] ?? null;
@@ -2526,7 +2538,7 @@ $paramValue = $isGroutTile
                             $popularCombinationSignatures[$signature] = true;
                         }
                     }
-                    $allPriceCandidates = [];
+                    $allPriceCandidateBySignature = [];
                     foreach ($projects as $project) {
                         foreach ($project['combinations'] as $label => $items) {
                             $labelPrefix = trim((string) preg_replace('/\s+\d+.*$/u', '', (string) $label));
@@ -2538,15 +2550,31 @@ $paramValue = $isGroutTile
                                 if ($candidateSignature !== '' && isset($popularCombinationSignatures[$candidateSignature])) {
                                     continue;
                                 }
-                                $allPriceCandidates[] = [
+                                $candidateRow = [
                                     'project' => $project,
                                     'item' => $item,
                                     'label' => $label,
                                     'grand_total' => (float) ($item['result']['grand_total'] ?? 0),
                                 ];
+                                if (
+                                    !isset($allPriceCandidateBySignature[$candidateSignature]) ||
+                                    $candidateRow['grand_total'] <
+                                        ($allPriceCandidateBySignature[$candidateSignature]['grand_total'] ?? PHP_FLOAT_MAX) ||
+                                    (
+                                        $candidateRow['grand_total'] ===
+                                            ($allPriceCandidateBySignature[$candidateSignature]['grand_total'] ?? null) &&
+                                        strcmp(
+                                            (string) $candidateRow['label'],
+                                            (string) ($allPriceCandidateBySignature[$candidateSignature]['label'] ?? ''),
+                                        ) < 0
+                                    )
+                                ) {
+                                    $allPriceCandidateBySignature[$candidateSignature] = $candidateRow;
+                                }
                             }
                         }
                     }
+                    $allPriceCandidates = array_values($allPriceCandidateBySignature);
 
                     usort($allPriceCandidates, function ($a, $b) {
                         if ($a['grand_total'] === $b['grand_total']) {
@@ -7757,6 +7785,13 @@ $paramValue = $isGroutTile
             $allPriceRows = [];
             $bestRows = [];
             $hasAllPriceBrick = false;
+            $allPriceSeenSignatures = [];
+            $allPriceSignatureMaterialKeys = array_values(
+                array_intersect(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'], $requiredMaterials ?? []),
+            );
+            if (empty($allPriceSignatureMaterialKeys)) {
+                $allPriceSignatureMaterialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
+            }
             foreach ($projects as $project) {
                 foreach ($project['combinations'] as $label => $items) {
                     foreach ($items as $item) {
@@ -7785,6 +7820,31 @@ $paramValue = $isGroutTile
                         $catInfo = isset($item['cat']) ? $item['cat']->brand ?? '' : null;
                         $ceramicInfo = isset($item['ceramic']) ? $item['ceramic']->brand ?? '' : null;
                         $natInfo = isset($item['nat']) ? $item['nat']->brand ?? '' : null;
+
+                        $signatureParts = [];
+                        $signatureMaterialMap = [
+                            'brick' => $rowBrick,
+                            'cement' => $item['cement'] ?? null,
+                            'sand' => $item['sand'] ?? null,
+                            'cat' => $item['cat'] ?? null,
+                            'ceramic' => $item['ceramic'] ?? null,
+                            'nat' => $item['nat'] ?? null,
+                        ];
+                        foreach ($allPriceSignatureMaterialKeys as $materialKey) {
+                            $materialModel = $signatureMaterialMap[$materialKey] ?? null;
+                            $materialId = 0;
+                            if (is_object($materialModel) && is_numeric($materialModel->id ?? null)) {
+                                $materialId = (int) $materialModel->id;
+                            } elseif (is_array($materialModel) && is_numeric($materialModel['id'] ?? null)) {
+                                $materialId = (int) ($materialModel['id'] ?? 0);
+                            }
+                            $signatureParts[] = $materialKey . ':' . $materialId;
+                        }
+                        $allPriceSignature = implode('|', $signatureParts);
+                        if (isset($allPriceSeenSignatures[$allPriceSignature])) {
+                            continue;
+                        }
+                        $allPriceSeenSignatures[$allPriceSignature] = true;
 
                         $rowBase = [
                             'label' => $label,
@@ -8165,6 +8225,16 @@ $paramValue = $isGroutTile
 
             const sessionPayload = @json($requestData ?? []);
             if (sessionPayload && Object.keys(sessionPayload).length) {
+                try {
+                    const cachedSessionRaw = localStorage.getItem('materialCalculationSession');
+                    const cachedSession = cachedSessionRaw ? JSON.parse(cachedSessionRaw) : null;
+                    const cachedExpressionState = cachedSession?.data?.dimension_expression_state;
+                    if (cachedExpressionState && typeof cachedExpressionState === 'object') {
+                        sessionPayload.dimension_expression_state = cachedExpressionState;
+                    }
+                } catch (error) {
+                    // noop
+                }
                 try {
                     localStorage.setItem('materialCalculationSession', JSON.stringify({
                         updatedAt: Date.now(),
@@ -8637,6 +8707,16 @@ $paramValue = $isGroutTile
             const previewPendingKey = 'materialCalculationPreviewPending';
             let previewFingerprint = '';
             let previewUiFingerprint = '';
+            try {
+                const cachedSessionRaw = localStorage.getItem('materialCalculationSession');
+                const cachedSession = cachedSessionRaw ? JSON.parse(cachedSessionRaw) : null;
+                const cachedExpressionState = cachedSession?.data?.dimension_expression_state;
+                if (cachedExpressionState && typeof cachedExpressionState === 'object' && sessionData && typeof sessionData === 'object') {
+                    sessionData.dimension_expression_state = cachedExpressionState;
+                }
+            } catch (error) {
+                // noop
+            }
             try {
                 const pendingRaw = localStorage.getItem(previewPendingKey);
                 const pending = pendingRaw ? JSON.parse(pendingRaw) : null;
