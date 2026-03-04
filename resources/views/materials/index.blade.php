@@ -1480,7 +1480,7 @@ html.materials-booting .page-content {
         @endforeach
     @else
         <div class="empty-state">
-            <div class="empty-state-icon">ðŸ“¦</div>
+            <div class="empty-state-icon"></div>
             <p>Tidak Ada Material yang Ditampilkan</p>
             <p style="font-size: 14px; color: #94a3b8;">Pilih material yang ingin ditampilkan dari dropdown <strong>"Filter"</strong> di atas.</p>
         </div>

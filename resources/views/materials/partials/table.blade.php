@@ -480,15 +480,17 @@
         $inlineFormId = 'material-inline-form-' . $material['type'];
     @endphp
     <div class="material-table-frame" data-inline-panel="{{ $material['type'] }}">
-        <button type="button"
-            class="material-inline-create-handle open-inline-create"
-            data-inline-type="{{ $material['type'] }}"
-            data-inline-url="{{ route($material['type'] . 's.create') }}"
-            data-inline-store-url="{{ route($material['type'] . 's.store') }}"
-            data-inline-label="{{ $material['label'] }}"
-            title="Tambah {{ $material['label'] }}">
-            <i class="bi bi-plus-lg"></i>
-        </button>
+        @if($showActions)
+            <button type="button"
+                class="material-inline-create-handle open-inline-create"
+                data-inline-type="{{ $material['type'] }}"
+                data-inline-url="{{ route($material['type'] . 's.create') }}"
+                data-inline-store-url="{{ route($material['type'] . 's.store') }}"
+                data-inline-label="{{ $material['label'] }}"
+                title="Tambah {{ $material['label'] }}">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        @endif
         <div class="table-container text-nowrap material-table-loaded">
         <table>
             <thead class="{{ in_array($material['type'], ['brick','sand','ceramic']) ? 'has-dim-sub' : 'single-header' }}">

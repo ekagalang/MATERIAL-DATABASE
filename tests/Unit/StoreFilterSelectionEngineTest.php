@@ -1,9 +1,11 @@
 <?php
 
+use App\Models\Brick;
 use App\Repositories\CalculationRepository;
 use App\Services\Calculation\CombinationGenerationService;
 use App\Services\Calculation\MaterialSelectionService;
 use App\Services\Calculation\StoreProximityService;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -64,6 +66,67 @@ test('store filter engine maps selected price filters to matching labels only', 
         ->not->toContain('Populer 1');
 });
 
+test('store filter engine does not emit preferensi labels when admin best recommendation is missing', function () {
+    $repository = Mockery::mock(CalculationRepository::class);
+    $repository->shouldReceive('getRecommendedCombinations')
+        ->once()
+        ->with('tile_installation')
+        ->andReturn(new EloquentCollection());
+
+    $selection = new MaterialSelectionService($repository);
+    $proximity = new StoreProximityService();
+
+    $service = new class($repository, $selection, $proximity) extends CombinationGenerationService
+    {
+        public function exposeBuildStoreFilteredResults(array $candidates, array $requestData, array $requiredMaterials): array
+        {
+            return $this->buildStoreFilteredResults($candidates, $requestData, $requiredMaterials);
+        }
+    };
+
+    $candidates = [
+        makeStoreCandidate(120000, 1, 10, 100, 'Store A', [
+            'ceramic' => (object) ['id' => 200],
+            'nat' => (object) ['id' => 300],
+        ]),
+    ];
+
+    $result = $service->exposeBuildStoreFilteredResults($candidates, [
+        'work_type' => 'tile_installation',
+        'price_filters' => ['best'],
+    ], ['cement', 'sand', 'ceramic', 'nat']);
+
+    expect($result)->toBe([]);
+});
+
+test('getBestCombinations returns empty for brickless work when admin best recommendation is missing', function () {
+    $repository = Mockery::mock(CalculationRepository::class);
+    $repository->shouldReceive('getRecommendedCombinations')
+        ->once()
+        ->with('tile_installation')
+        ->andReturn(new EloquentCollection());
+
+    $selection = new MaterialSelectionService($repository);
+    $proximity = new StoreProximityService();
+
+    $service = new class($repository, $selection, $proximity) extends CombinationGenerationService
+    {
+        public function exposeGetBestCombinations(Brick $brick, array $request): array
+        {
+            return $this->getBestCombinations($brick, $request);
+        }
+    };
+
+    $brick = new Brick();
+    $brick->id = 1;
+
+    $result = $service->exposeGetBestCombinations($brick, [
+        'work_type' => 'tile_installation',
+    ]);
+
+    expect($result)->toBe([]);
+});
+
 test('store filter engine can emit preferensi and populer labels when those filters are requested', function () {
     $repository = new CalculationRepository();
     $selection = new MaterialSelectionService($repository);
@@ -109,6 +172,87 @@ test('store filter engine can emit preferensi and populer labels when those filt
         ->toContain('Preferensi 1')
         ->toContain('Populer 1')
         ->not->toContain('Ekonomis 1');
+});
+
+test('store filter engine keeps preferensi via closest recommendation match when strict id match is unavailable', function () {
+    $repository = Mockery::mock(CalculationRepository::class);
+    $repository->shouldReceive('getRecommendedCombinations')
+        ->once()
+        ->with('brick_half')
+        ->andReturn(new EloquentCollection([
+            (object) [
+                'type' => 'best',
+                'brick_id' => 99,
+                'cement_id' => 10,
+                'sand_id' => 100,
+            ],
+        ]));
+
+    $selection = new MaterialSelectionService($repository);
+    $proximity = new StoreProximityService();
+
+    $service = new class($repository, $selection, $proximity) extends CombinationGenerationService
+    {
+        public function exposeBuildStoreFilteredResults(array $candidates, array $requestData, array $requiredMaterials): array
+        {
+            return $this->buildStoreFilteredResults($candidates, $requestData, $requiredMaterials);
+        }
+    };
+
+    $candidates = [
+        makeStoreCandidate(120000, 1, 10, 100, 'Store A'),
+        makeStoreCandidate(121000, 2, 11, 101, 'Store B'),
+    ];
+
+    $result = $service->exposeBuildStoreFilteredResults($candidates, [
+        'work_type' => 'brick_half',
+        'price_filters' => ['best'],
+    ], ['brick', 'cement', 'sand']);
+
+    expect(array_keys($result))->toContain('Preferensi 1')
+        ->and((int) ($result['Preferensi 1'][0]['cement']->id ?? 0))->toBe(10)
+        ->and((int) ($result['Preferensi 1'][0]['sand']->id ?? 0))->toBe(100);
+});
+
+test('store filter engine keeps preferensi via cheapest fallback when recommendation exists but no ids overlap', function () {
+    $repository = Mockery::mock(CalculationRepository::class);
+    $repository->shouldReceive('getRecommendedCombinations')
+        ->once()
+        ->with('brick_half')
+        ->andReturn(new EloquentCollection([
+            (object) [
+                'type' => 'best',
+                'brick_id' => 999,
+                'cement_id' => 999,
+                'sand_id' => 999,
+            ],
+        ]));
+
+    $selection = new MaterialSelectionService($repository);
+    $proximity = new StoreProximityService();
+
+    $service = new class($repository, $selection, $proximity) extends CombinationGenerationService
+    {
+        public function exposeBuildStoreFilteredResults(array $candidates, array $requestData, array $requiredMaterials): array
+        {
+            return $this->buildStoreFilteredResults($candidates, $requestData, $requiredMaterials);
+        }
+    };
+
+    $candidates = [
+        makeStoreCandidate(121000, 2, 11, 101, 'Store B'),
+        makeStoreCandidate(120000, 1, 10, 100, 'Store A'),
+    ];
+
+    $result = $service->exposeBuildStoreFilteredResults($candidates, [
+        'work_type' => 'brick_half',
+        'price_filters' => ['best'],
+    ], ['brick', 'cement', 'sand']);
+
+    expect(array_keys($result))->toContain('Preferensi 1')
+        ->and((float) ($result['Preferensi 1'][0]['total_cost'] ?? 0))->toBe(120000.0)
+        ->and((int) ($result['Preferensi 1'][0]['cement']->id ?? 0))->toBe(10)
+        ->and((int) ($result['Preferensi 1'][0]['sand']->id ?? 0))->toBe(100);
 });
 
 test('store filter engine topk mode keeps cost-based labels parity with legacy selectors', function () {

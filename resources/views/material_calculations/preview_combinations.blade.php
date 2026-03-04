@@ -2545,6 +2545,9 @@ $paramValue = $isGroutTile
                             if (strcasecmp($labelPrefix, 'Populer') === 0) {
                                 continue;
                             }
+                            if (strcasecmp($labelPrefix, 'Preferensi') === 0) {
+                                continue;
+                            }
                             foreach ($items as $item) {
                                 $candidateSignature = $buildCombinationSignature($project, $item);
                                 if ($candidateSignature !== '' && isset($popularCombinationSignatures[$candidateSignature])) {
@@ -4088,7 +4091,8 @@ $paramValue = $isGroutTile
                                             $catBgColor = $catColorMap[$key] ?? '#ffffff';
                                             $natBgColor = $natColorMap[$key] ?? '#ffffff';
                                             $ceramicBgColor = $ceramicColorMap[$key] ?? '#ffffff';
-                                            $isPopulerRow = str_contains($filterType, 'Populer');
+                                            $isPopulerBadgeRow = str_contains($filterType, 'Populer');
+                                            $isPopulerRow = $isPopulerBadgeRow || str_contains($filterType, 'Preferensi');
                                             $materialBgByKey = [
                                                 'brick' => $brickBgColor,
                                                 'cement' => $cementBgColor,
@@ -4213,7 +4217,7 @@ $paramValue = $isGroutTile
                                                     <td style="background: {{ $materialBg }}; vertical-align: middle;">
                                                         @if (isset($globalRekapData[$key]))
                                                             {{ $brandText }}
-                                                            @if ($variantIndex === 0 && $isPopulerRow && $materialPercent)
+                                                            @if ($variantIndex === 0 && $isPopulerBadgeRow && $materialPercent)
                                                                 <span class="badge rounded-pill bg-primary text-white"
                                                                     style="font-size: 0.7rem; color: white !important;">{{ $materialPercent }}%</span>
                                                             @endif
@@ -4276,35 +4280,36 @@ $paramValue = $isGroutTile
                                 true,
                             );
                             $isGroutTileDetailWork = $workTypeForDetail === 'grout_tile';
-                            $requiredMaterialsDetail = \App\Services\FormulaRegistry::materialsFor($workTypeForDetail ?? '');
-                            if (empty($requiredMaterialsDetail)) {
-                                $requiredMaterialsDetail = ['brick', 'cement', 'sand'];
-                            }
                             $defaultProjectBrick = $projects[0]['brick'] ?? null;
-                            $hasCompleteMaterialsForCombo = function ($item, $brick) use ($requiredMaterialsDetail, $isBricklessDetailWork, $isGroutTileDetailWork) {
-                                foreach ($requiredMaterialsDetail as $matType) {
-                                    if ($matType === 'brick') {
-                                        if ($isBricklessDetailWork) {
+                            $hasCompleteVisibleRekapMaterialsForDetailLabel = function (?array $entry) use (
+                                $activeRekapMaterialKeys,
+                                $getRekapVariantsForDisplay,
+                            ): bool {
+                                if (!is_array($entry)) {
+                                    return false;
+                                }
+                                foreach ($activeRekapMaterialKeys as $materialKey) {
+                                    $variants = $getRekapVariantsForDisplay($entry, $materialKey);
+                                    $hasRealVariant = false;
+                                    foreach ($variants as $variant) {
+                                        if (!is_array($variant)) {
                                             continue;
                                         }
-                                        if (empty($brick)) {
-                                            return false;
+                                        $variantBrand = trim((string) ($variant['brand'] ?? ''));
+                                        $variantDetail = trim((string) ($variant['detail'] ?? ''));
+                                        if (
+                                            ($variantBrand !== '' && $variantBrand !== '-') ||
+                                            ($variantDetail !== '' && $variantDetail !== '-')
+                                        ) {
+                                            $hasRealVariant = true;
+                                            break;
                                         }
-                                        continue;
                                     }
-                                    if ($matType === 'ceramic' && $isGroutTileDetailWork) {
-                                        if (empty($item['ceramic'])) {
-                                            return false;
-                                        }
-                                        continue;
-                                    }
-                                    if (empty($item[$matType])) {
+                                    if (!$hasRealVariant) {
                                         return false;
                                     }
                                 }
-                                if (empty($item['result']) || !array_key_exists('grand_total', $item['result']) || $item['result']['grand_total'] === null) {
-                                    return false;
-                                }
+
                                 return true;
                             };
 
@@ -4312,6 +4317,15 @@ $paramValue = $isGroutTile
                                 foreach ($getDisplayKeys($filterType) as $key) {
                                     // Check if this filter exists in global recap
                                     if (isset($globalRekapData[$key])) {
+                                        $requiresCompleteDetailMaterials =
+                                            str_starts_with($key, 'Populer') || str_starts_with($key, 'Preferensi');
+                                        $detailLabelHasCompleteMaterials = !$requiresCompleteDetailMaterials ||
+                                            $hasCompleteVisibleRekapMaterialsForDetailLabel(
+                                                is_array($globalRekapData[$key]) ? $globalRekapData[$key] : null,
+                                            );
+                                        if (!$detailLabelHasCompleteMaterials) {
+                                            continue;
+                                        }
                                         $resolvedDetailEntry = null;
                                         if (
                                             isset($detailCombinationMap[$key]) &&
@@ -4354,19 +4368,17 @@ $paramValue = $isGroutTile
                                                 !empty($populerDetailMap[$key]['item'])
                                             ) {
                                                 $fallbackEntry = $populerDetailMap[$key];
-                                                $fallbackBrick =
-                                                    $fallbackEntry['item']['brick'] ??
-                                                    $fallbackEntry['project']['brick'] ??
-                                                    $fallbackEntry['brick'] ??
-                                                    $defaultProjectBrick;
+                                                    $fallbackBrick =
+                                                        $fallbackEntry['item']['brick'] ??
+                                                        $fallbackEntry['project']['brick'] ??
+                                                        $fallbackEntry['brick'] ??
+                                                        $defaultProjectBrick;
 
-                                                if ($hasCompleteMaterialsForCombo($fallbackEntry['item'], $fallbackBrick)) {
-                                                    $allFilteredCombinations[] = [
-                                                        'label' => $key,
-                                                        'item' => $fallbackEntry['item'],
-                                                        'brick' => $fallbackBrick,
-                                                    ];
-                                                }
+                                                $allFilteredCombinations[] = [
+                                                    'label' => $key,
+                                                    'item' => $fallbackEntry['item'],
+                                                    'brick' => $fallbackBrick,
+                                                ];
                                             }
                                             continue;
                                         }
@@ -7786,12 +7798,47 @@ $paramValue = $isGroutTile
             $bestRows = [];
             $hasAllPriceBrick = false;
             $allPriceSeenSignatures = [];
+            $activeRekapMaterialKeys = is_array($activeRekapMaterialKeys ?? null) ? $activeRekapMaterialKeys : [];
+            $rekapMaterialColumns = is_array($rekapMaterialColumns ?? null) ? $rekapMaterialColumns : [];
+            $globalRekapData = is_array($globalRekapData ?? null) ? $globalRekapData : [];
             $allPriceSignatureMaterialKeys = array_values(
                 array_intersect(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'], $requiredMaterials ?? []),
             );
             if (empty($allPriceSignatureMaterialKeys)) {
                 $allPriceSignatureMaterialKeys = ['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'];
             }
+            $isRekapMaterialCompleteForGrandTotal = static function (array $row) use (
+                $activeRekapMaterialKeys,
+                $rekapMaterialColumns,
+            ): bool {
+                foreach ($activeRekapMaterialKeys ?? [] as $materialKey) {
+                    $materialVariants = is_array($row['material_variants'][$materialKey] ?? null)
+                        ? $row['material_variants'][$materialKey]
+                        : [];
+                    $hasRealVariant = false;
+                    foreach ($materialVariants as $variant) {
+                        if (!is_array($variant)) {
+                            continue;
+                        }
+                        $variantBrand = trim((string) ($variant['brand'] ?? ''));
+                        $variantDetail = trim((string) ($variant['detail'] ?? ''));
+                        if (($variantBrand !== '' && $variantBrand !== '-') || ($variantDetail !== '' && $variantDetail !== '-')) {
+                            $hasRealVariant = true;
+                            break;
+                        }
+                    }
+                    if ($hasRealVariant) {
+                        continue;
+                    }
+                    $idField = $rekapMaterialColumns[$materialKey]['id_field'] ?? null;
+                    $materialId = is_string($idField) && $idField !== '' ? ($row[$idField] ?? null) : null;
+                    if (empty($materialId)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            };
             foreach ($projects as $project) {
                 foreach ($project['combinations'] as $label => $items) {
                     foreach ($items as $item) {
@@ -7865,7 +7912,16 @@ $paramValue = $isGroutTile
                             }
                         }
                         if ($bestLabel) {
-                            $bestRows[] = $rowBase + ['display_label' => $bestLabel];
+                            $bestGrandTotal = $rowBase['grand_total'] ?? null;
+                            $bestRekapRow = is_array($globalRekapData[$bestLabel] ?? null)
+                                ? $globalRekapData[$bestLabel]
+                                : null;
+                            if (is_array($bestRekapRow) && !$isRekapMaterialCompleteForGrandTotal($bestRekapRow)) {
+                                $bestGrandTotal = null;
+                            }
+                            $bestRows[] = ($rowBase + ['display_label' => $bestLabel]) + [
+                                'grand_total' => $bestGrandTotal,
+                            ];
                         }
                         $allPriceRows[] = $rowBase;
                     }
@@ -7877,32 +7933,7 @@ $paramValue = $isGroutTile
                     if (str_starts_with($label, 'Populer')) {
                         $commonGrandTotal = array_key_exists('grand_total', $row) ? $row['grand_total'] : null;
                         $commonMaterialComplete = true;
-                        foreach ($activeRekapMaterialKeys ?? [] as $materialKey) {
-                            $materialVariants = is_array($row['material_variants'][$materialKey] ?? null)
-                                ? $row['material_variants'][$materialKey]
-                                : [];
-                            $hasRealVariant = false;
-                            foreach ($materialVariants as $variant) {
-                                if (!is_array($variant)) {
-                                    continue;
-                                }
-                                $variantBrand = trim((string) ($variant['brand'] ?? ''));
-                                $variantDetail = trim((string) ($variant['detail'] ?? ''));
-                                if (($variantBrand !== '' && $variantBrand !== '-') || ($variantDetail !== '' && $variantDetail !== '-')) {
-                                    $hasRealVariant = true;
-                                    break;
-                                }
-                            }
-                            if ($hasRealVariant) {
-                                continue;
-                            }
-                            $idField = $rekapMaterialColumns[$materialKey]['id_field'] ?? null;
-                            $materialId = is_string($idField) && $idField !== '' ? ($row[$idField] ?? null) : null;
-                            if (empty($materialId)) {
-                                $commonMaterialComplete = false;
-                                break;
-                            }
-                        }
+                        $commonMaterialComplete = $isRekapMaterialCompleteForGrandTotal($row);
                         if (!$commonMaterialComplete) {
                             $commonGrandTotal = null;
                         }

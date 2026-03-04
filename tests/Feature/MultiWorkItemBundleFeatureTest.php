@@ -43,6 +43,15 @@ test('create view provides plus button on work type input for multi work item mo
         ->and($content)->toContain('tombol "+" di ujung dropdown item pekerjaan');
 });
 
+test('create view enables preferensi filter when any bundle work item has recommendation', function () {
+    $content = File::get(resource_path('views/material_calculations/create.blade.php'));
+
+    expect($content)->toContain("document.querySelectorAll('#additionalWorkItemsList [data-field=\"work_type\"]')")
+        ->and($content)->toContain('if (shouldIncludeBest()) {')
+        ->and($content)->toContain('filterBest.checked = shouldIncludeBest();')
+        ->and($content)->toContain('availableBestRecommendations.includes(workType)');
+});
+
 test('shared preview combinations view preserves calculation session and returns with resume mode', function () {
     $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
 
@@ -74,6 +83,15 @@ test('popular grand total is hidden when required materials are incomplete', fun
         ->and($content)->toContain('$commonGrandTotal = array_key_exists(\'grand_total\', $row) ? $row[\'grand_total\'] : null;');
 });
 
+test('detail table skips preferensi and populer rows when active rekap materials are incomplete', function () {
+    $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
+
+    expect($content)->toContain('$hasCompleteVisibleRekapMaterialsForDetailLabel = function (?array $entry)')
+        ->and($content)->toContain('$detailLabelHasCompleteMaterials = !$requiresCompleteDetailMaterials ||')
+        ->and($content)->toContain('if (!$detailLabelHasCompleteMaterials) {')
+        ->and($content)->toContain('continue;');
+});
+
 test('rekap variants collapse duplicate brand detail rows and skip dash-only placeholders', function () {
     $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
 
@@ -96,8 +114,9 @@ test('bundle popular label does not fallback to cheapest candidate when popular 
     $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
 
     expect($content)->toContain('$popularPrefix')
-        ->and($content)->toContain('Do not fallback Popular rows to cheapest/other categories.')
-        ->and($content)->toContain('if (strtolower($targetPrefix) === $popularPrefix)')
+        ->and($content)->toContain('$preferensiPrefix')
+        ->and($content)->toContain('Do not fallback Popular/Preferensi rows to other categories.')
+        ->and($content)->toContain('if (in_array(strtolower($targetPrefix), [$popularPrefix, $preferensiPrefix], true))')
         ->and($content)->toContain('if ($allowedPrefixKey === $popularPrefix)')
         ->and($content)->toContain('if ($candidatePrefixKey === $popularPrefix)')
         ->and($content)->toContain('return null;');
@@ -107,7 +126,8 @@ test('bundle popular label allows partial item coverage without forcing all item
     $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
 
     expect($content)->toContain('$isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;')
-        ->and($content)->toContain('if ($isPopularLabel) {')
+        ->and($content)->toContain('$isPreferenceLabel = strtolower($extractLabelPrefix((string) $label)) === $preferensiPrefix;')
+        ->and($content)->toContain('if ($isPopularLabel || $isPreferenceLabel) {')
         ->and($content)->toContain('if (empty($selectedItems)) {')
         ->and($content)->toContain('} elseif (!$isComplete || empty($selectedItems)) {');
 });

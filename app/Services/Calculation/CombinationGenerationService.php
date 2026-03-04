@@ -2114,7 +2114,13 @@ class CombinationGenerationService
             return $finalResults;
         }
 
-        // Fallback defensif: tetap berikan hasil ekonomis jika filter tidak dikenali.
+        $knownFilters = ['best', 'common', 'cheapest', 'medium', 'expensive'];
+        $hasKnownRequestedFilter = !empty(array_intersect($requestedFilters, $knownFilters));
+        if ($hasKnownRequestedFilter) {
+            return [];
+        }
+
+        // Fallback defensif: berikan hasil ekonomis hanya jika request filter tidak dikenali.
         $fallback = $this->selectCheapestStoreCandidates($candidates);
 
         return $this->mapCandidatesToRankedLabels(
@@ -2746,7 +2752,7 @@ class CombinationGenerationService
         $recommendations = $this->repository->getRecommendedCombinations($workType)->where('type', 'best');
 
         if ($recommendations->isEmpty()) {
-            return $this->selectCheapestStoreCandidates($candidates, $limit);
+            return [];
         }
 
         $selected = [];
@@ -2766,13 +2772,110 @@ class CombinationGenerationService
         }
 
         if (empty($selected)) {
-            return $this->selectCheapestStoreCandidates($candidates, $limit);
+            // Relaxed fallback when recommendation exists but strict ID match is not present
+            // in pre-built store candidates (common in mixed-store chain mode).
+            $relaxed = [];
+            foreach ($recommendations as $recommendation) {
+                $scored = [];
+                foreach ($candidates as $candidate) {
+                    $score = $this->scoreCandidateAgainstRecommendation($candidate, $recommendation, $requiredMaterials);
+                    if (($score['matched'] ?? 0) <= 0 || ($score['compared'] ?? 0) <= 0) {
+                        continue;
+                    }
+                    $candidate['_pref_match_score'] = $score;
+                    $scored[] = $candidate;
+                }
+
+                if (empty($scored)) {
+                    continue;
+                }
+
+                usort($scored, function ($a, $b) {
+                    $scoreA = (array) ($a['_pref_match_score'] ?? []);
+                    $scoreB = (array) ($b['_pref_match_score'] ?? []);
+
+                    $matchedA = (int) ($scoreA['matched'] ?? 0);
+                    $matchedB = (int) ($scoreB['matched'] ?? 0);
+                    if ($matchedA !== $matchedB) {
+                        return $matchedB <=> $matchedA;
+                    }
+
+                    $coverageA = (float) (($scoreA['coverage'] ?? 0.0));
+                    $coverageB = (float) (($scoreB['coverage'] ?? 0.0));
+                    if (abs($coverageA - $coverageB) > 0.000001) {
+                        return $coverageB <=> $coverageA;
+                    }
+
+                    return ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0));
+                });
+
+                $relaxed[] = $scored[0];
+            }
+
+            if (empty($relaxed)) {
+                // Keep Preferensi visible when admin recommendation exists but no ID-overlap candidate is available
+                // in the active store pool (e.g. outside-radius chain). We still do NOT fallback when recommendation is missing.
+                $selected = $this->selectCheapestStoreCandidates($candidates, $limit);
+            } else {
+                $selected = $relaxed;
+            }
         }
 
         $unique = $this->deduplicateStoreCandidates($selected, $requiredMaterials);
         usort($unique, fn($a, $b) => ((float) ($a['total_cost'] ?? 0)) <=> ((float) ($b['total_cost'] ?? 0)));
 
         return array_slice($unique, 0, $limit);
+    }
+
+    /**
+     * Score candidate closeness to recommendation.
+     * Used only as relaxed fallback when strict best matching is unavailable.
+     *
+     * @return array{matched:int, compared:int, coverage:float}
+     */
+    protected function scoreCandidateAgainstRecommendation(
+        array $candidate,
+        $recommendation,
+        array $requiredMaterials,
+    ): array {
+        $fieldMap = [
+            'brick' => 'brick_id',
+            'cement' => 'cement_id',
+            'sand' => 'sand_id',
+            'cat' => 'cat_id',
+            'ceramic' => 'ceramic_id',
+            'nat' => 'nat_id',
+        ];
+
+        $candidateIds = $this->extractCandidateMaterialIds($candidate);
+        $matched = 0;
+        $compared = 0;
+
+        foreach ($requiredMaterials as $materialType) {
+            $field = $fieldMap[$materialType] ?? null;
+            if (!$field) {
+                continue;
+            }
+
+            $recommendedId = (int) ($recommendation->{$field} ?? 0);
+            if ($recommendedId <= 0) {
+                continue;
+            }
+
+            $candidateId = (int) ($candidateIds[$materialType] ?? 0);
+            $compared++;
+            if ($candidateId === $recommendedId) {
+                $matched++;
+            }
+        }
+
+        $coverage = $compared > 0 ? ($matched / $compared) : 0.0;
+
+        return [
+            'matched' => $matched,
+            'compared' => $compared,
+            'coverage' => $coverage,
+        ];
     }
 
     protected function candidateMatchesRecommendation(
@@ -4346,26 +4449,9 @@ class CombinationGenerationService
         }
 
         if ($isBrickless) {
-            Log::info('No admin recommendations for brickless work. Falling back to cheapest.');
-            if ($workType === 'grout_tile') {
-                $medium = $this->getMediumCombinations($brick, $request);
-                $medium = array_slice($medium, 0, 3);
+            Log::info('No admin recommendations for brickless work. Returning empty preferensi combinations.');
 
-                return array_map(function ($combo) {
-                    $combo['source_filter'] = 'best';
-
-                    return $combo;
-                }, $medium);
-            }
-
-            $cheapest = $this->getCheapestCombinations($brick, $request);
-            $cheapest = array_slice($cheapest, 0, 3);
-
-            return array_map(function ($combo) {
-                $combo['source_filter'] = 'best';
-
-                return $combo;
-            }, $cheapest);
+            return [];
         }
 
         Log::info('No admin recommendations found.');

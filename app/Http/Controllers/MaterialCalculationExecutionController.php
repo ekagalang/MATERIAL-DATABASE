@@ -1016,10 +1016,17 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         if (empty($itemCombinationMaps)) {
             return [];
         }
+        $hasAnyItemCandidates = false;
         foreach ($itemCombinationMaps as $itemMap) {
-            if (!is_array($itemMap) || empty($itemMap)) {
+            if (!is_array($itemMap)) {
                 return [];
             }
+            if (!empty($itemMap)) {
+                $hasAnyItemCandidates = true;
+            }
+        }
+        if (!$hasAnyItemCandidates) {
+            return [];
         }
 
         $extractLabelPrefix = static function (string $label): string {
@@ -1042,10 +1049,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             ),
         );
         $popularPrefix = strtolower((string) ($labelPrefixes['common'] ?? 'Populer'));
+        $preferensiPrefix = strtolower((string) ($labelPrefixes['best'] ?? 'Preferensi'));
         $resolveItemCandidate = static function (
             array $itemMap,
             string $targetLabel,
-        ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix): ?array {
+        ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix, $preferensiPrefix): ?array {
             if (isset($itemMap[$targetLabel]) && is_array($itemMap[$targetLabel])) {
                 return $itemMap[$targetLabel];
             }
@@ -1081,8 +1089,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 return $prefixCandidates[$targetIndex]['candidate'] ?? null;
             }
 
-            // Do not fallback Popular rows to cheapest/other categories.
-            if (strtolower($targetPrefix) === $popularPrefix) {
+            // Do not fallback Popular/Preferensi rows to other categories.
+            if (in_array(strtolower($targetPrefix), [$popularPrefix, $preferensiPrefix], true)) {
                 return null;
             }
 
@@ -1159,7 +1167,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         $resolveItemCandidateOptions = static function (
             array $itemMap,
             string $targetLabel,
-        ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix): array {
+        ) use ($extractLabelPrefix, $extractLabelRank, $allowedPrefixes, $popularPrefix, $preferensiPrefix): array {
             $normalizeRowsForLabel = static function (mixed $value): array {
                 if (!is_array($value)) {
                     return [];
@@ -1259,7 +1267,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 $appendCandidates($ordered, array_map(static fn($entry) => $entry['candidate'], $rankOrdered));
             }
 
-            if (strtolower($targetPrefix) !== $popularPrefix) {
+            if (!in_array(strtolower($targetPrefix), [$popularPrefix, $preferensiPrefix], true)) {
                 $allowedPrefixLookup = [];
                 foreach ($allowedPrefixes as $allowedPrefix) {
                     $allowedPrefixKey = strtolower(trim((string) $allowedPrefix));
@@ -1382,6 +1390,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         $usedSelectionSignaturesForPriceRanks = [];
         foreach ($candidateLabels as $label) {
             $isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;
+            $isPreferenceLabel = strtolower($extractLabelPrefix((string) $label)) === $preferensiPrefix;
             $labelPrefixKey = strtolower($extractLabelPrefix((string) $label));
             $isPriceRankLabel = in_array($labelPrefixKey, ['ekonomis', 'average', 'termahal'], true);
             $targetLabelPrefix = $extractLabelPrefix((string) $label);
@@ -1503,7 +1512,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     $selected = $resolveItemCandidate($itemMap, $rankFallbackLabel);
                 }
                 if (!$selected) {
-                    if ($isPopularLabel) {
+                    if ($isPopularLabel || $isPreferenceLabel) {
                         continue;
                     }
                     $isComplete = false;
@@ -1697,7 +1706,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 }
             }
 
-            if ($isPopularLabel) {
+            if ($isPopularLabel || $isPreferenceLabel) {
                 if (empty($selectedItems)) {
                     continue;
                 }

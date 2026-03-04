@@ -5220,10 +5220,30 @@
 
         // Function to handle "Semua" checkbox
         function shouldIncludeBest() {
-            const selectedWorkType = workTypeSelector ? workTypeSelector.value : null;
-            return selectedWorkType && Array.isArray(availableBestRecommendations)
-                ? availableBestRecommendations.includes(selectedWorkType)
-                : false;
+            if (!Array.isArray(availableBestRecommendations) || availableBestRecommendations.length === 0) {
+                return false;
+            }
+
+            const selectedTypes = new Set();
+            const mainWorkType = String(document.getElementById('workTypeSelector')?.value || '').trim();
+            if (mainWorkType !== '') {
+                selectedTypes.add(mainWorkType);
+            }
+
+            document.querySelectorAll('#additionalWorkItemsList [data-field="work_type"]').forEach(input => {
+                const value = String(input?.value || '').trim();
+                if (value !== '') {
+                    selectedTypes.add(value);
+                }
+            });
+
+            for (const workType of selectedTypes) {
+                if (availableBestRecommendations.includes(workType)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         function handleAllCheckbox() {
@@ -6160,7 +6180,7 @@
                 // Update "Preferensi" filter state based on availability
                 const filterBest = document.getElementById('filter_best');
                 if (filterBest) {
-                    if (availableBestRecommendations.includes(selectedWorkType)) {
+                    if (shouldIncludeBest()) {
                         filterBest.checked = true;
                     } else {
                         filterBest.checked = false;
@@ -13737,6 +13757,12 @@
                 const hasAdditionalRows = getAllAdditionalWorkRows().length > 0;
                 removeMainItemBtn.hidden = !hasAdditionalRows;
                 removeMainItemBtn.disabled = !hasAdditionalRows;
+            }
+
+            const filterBest = document.getElementById('filter_best');
+            if (filterBest) {
+                filterBest.checked = shouldIncludeBest();
+                handleOtherCheckboxes();
             }
 
             if (calcScrollFabApi && typeof calcScrollFabApi.refresh === 'function') {

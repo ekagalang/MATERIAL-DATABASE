@@ -1097,7 +1097,7 @@ html.materials-booting .page-content {
                 @endforeach
             @else
                 <div class="empty-state">
-                    <div class="empty-state-icon">ðŸ“¦</div>
+                    <div class="empty-state-icon"></div>
                     <p>Tidak ada data material.</p>
                     <p style="font-size: 14px; color: #94a3b8;">Belum ada material yang ditambahkan ke lokasi ini.</p>
                 </div>
