@@ -3384,7 +3384,7 @@
         display: flex;
         align-items: flex-start;
         align-self: start;
-        padding-top: 6px !important;
+        padding-top: 10px !important;
         margin-bottom: 0;
     }
 
