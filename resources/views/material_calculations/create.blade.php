@@ -476,10 +476,22 @@
                     <div class="calc-taxonomy-scroll-card is-area">
                         <span class="calc-taxonomy-scroll-label">Area</span>
                         <span class="calc-taxonomy-scroll-value" data-scroll-active-area>-</span>
+                        <button type="button"
+                                class="taxonomy-level-btn calc-taxonomy-scroll-action is-area-action"
+                                data-scroll-action="add-area"
+                                title="Tambah Area">
+                            + Area
+                        </button>
                     </div>
                     <div class="calc-taxonomy-scroll-card is-field">
                         <span class="calc-taxonomy-scroll-label">Bidang</span>
                         <span class="calc-taxonomy-scroll-value" data-scroll-active-field>-</span>
+                        <button type="button"
+                                class="taxonomy-level-btn calc-taxonomy-scroll-action is-field-action"
+                                data-scroll-action="add-field"
+                                title="Tambah Bidang">
+                            + Bidang
+                        </button>
                     </div>
                 </div>
                 <div class="taxonomy-tree-main taxonomy-group-card taxonomy-main-horizontal">
@@ -652,31 +664,38 @@
                                                     value="{{ old('work_items_payload') }}">
                                                 <input type="hidden" id="materialCustomizeFiltersPayload" name="material_customize_filters_payload"
                                                     value="{{ old('material_customize_filters_payload') }}">
+                                                <div class="dimension-area-summary worktype-inline-summary" id="mainDimensionAreaSummary">
+                                                    <div class="dimension-area-summary-value" id="mainDimensionAreaValue">-</div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div id="inputFormContainer">
+                                        <div id="inputFormContainer" style="margin-bottom: 15px;">
                     <div id="brickForm" class="work-type-form">
 
                         {{-- DIMENSI - VERTICAL LAYOUT --}}
                         <div class="dimensions-container-vertical">
-                            <div class="dimension-item">
-                                <label>Panjang</label>
-                                <div class="input-with-unit">
-                                    <input type="text" inputmode="text" name="wall_length" id="wallLength" data-allow-expression="1" step="0.01" min="0.01"
-                                        value="{{ old('wall_length', request('wall_length')) }}" required>
-                                    <span class="unit">M</span>
-                                    <span class="dimension-expression-hint" data-expression-hint hidden></span>
-                                </div>
-                            </div>
+                            <div class="dimension-area-layout" id="mainDimensionAreaLayout">
+                                <div class="dimension-area-inputs">
+                                    <div class="dimension-item">
+                                        <label>Panjang</label>
+                                        <div class="input-with-unit">
+                                            <input type="text" inputmode="text" name="wall_length" id="wallLength" data-allow-expression="1" step="0.01" min="0.01"
+                                                value="{{ old('wall_length', request('wall_length')) }}" required>
+                                            <span class="unit">M</span>
+                                            <span class="dimension-expression-hint" data-expression-hint hidden></span>
+                                        </div>
+                                    </div>
 
-                            <div class="dimension-item" id="wallHeightGroup">
-                                <label id="wallHeightLabel">Tinggi</label>
-                                <div class="input-with-unit">
-                                    <input type="text" inputmode="text" name="wall_height" id="wallHeight" data-allow-expression="1" step="0.01" min="0.01"
-                                        value="{{ old('wall_height', request('wall_height')) }}" required>
-                                    <span class="unit">M</span>
-                                    <span class="dimension-expression-hint" data-expression-hint hidden></span>
+                                    <div class="dimension-item" id="wallHeightGroup">
+                                        <label id="wallHeightLabel">Tinggi</label>
+                                        <div class="input-with-unit">
+                                            <input type="text" inputmode="text" name="wall_height" id="wallHeight" data-allow-expression="1" step="0.01" min="0.01"
+                                                value="{{ old('wall_height', request('wall_height')) }}" required>
+                                            <span class="unit">M</span>
+                                            <span class="dimension-expression-hint" data-expression-hint hidden></span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -751,7 +770,8 @@
                             </div>
                         </div>
 
-                        <div class="material-type-filter-group" id="materialTypeFilterGroup" style="display: none;">
+                        <div class="work-type-right-col">
+                            <div class="material-type-filter-group" id="materialTypeFilterGroup" style="display: none;">
                             @foreach($materialTypeLabels as $materialKey => $materialLabel)
                                 @php
                                     $selectedTypeValue = $selectedMaterialTypeFilters[$materialKey] ?? '';
@@ -958,6 +978,7 @@
                                     </div>
                                 </div>
                             @endforeach
+                        </div>
                         </div>
                     </div>
                                     </div>
@@ -1360,6 +1381,48 @@
         text-overflow: ellipsis;
     }
 
+    .calc-taxonomy-scroll-action {
+        flex: 0 0 auto;
+        min-height: 38px;
+        padding: 0 12px;
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .calc-taxonomy-scroll-action.is-area-action {
+        background: linear-gradient(180deg, #fefce8 0%, #fef3c7 100%);
+        border-color: #fcd34d;
+        color: #92400e;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 2px rgba(234, 179, 8, 0.08) inset;
+    }
+
+    .calc-taxonomy-scroll-action.is-area-action:hover:not(:disabled) {
+        background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+        border-color: #eab308;
+        color: #78350f;
+        box-shadow: 0 3px 10px rgba(234, 179, 8, 0.14);
+    }
+
+    .calc-taxonomy-scroll-action.is-field-action {
+        background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+        border-color: #86efac;
+        color: #166534;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 0 0 2px rgba(22, 163, 74, 0.08) inset;
+    }
+
+    .calc-taxonomy-scroll-action.is-field-action:hover:not(:disabled) {
+        background: linear-gradient(180deg, #dcfce7 0%, #bbf7d0 100%);
+        border-color: #22c55e;
+        color: #14532d;
+        box-shadow: 0 3px 10px rgba(22, 163, 74, 0.14);
+    }
+
+    .calc-taxonomy-scroll-action:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+
     .calc-scroll-fab {
         position: fixed;
         right: 18px;
@@ -1637,6 +1700,12 @@
             padding: 7px 8px;
         }
 
+        .calc-taxonomy-scroll-action {
+            min-height: 34px;
+            padding: 0 10px;
+            font-size: 11px;
+        }
+
         .calc-scroll-fab {
             right: 12px;
             bottom: 12px;
@@ -1691,10 +1760,10 @@
         /* Samakan start parameter dengan start input "Item Pekerjaan" setelah label bernomor dibuat lebih lebar */
         --work-item-parameter-indent: 149px;
         --work-item-parameter-indent-mobile: 10px;
-        --work-item-inline-indent: 65px;
+        --work-item-inline-indent: 0px;
         --work-item-inline-indent-mobile: 8px;
         --work-parameter-gap: 8px;
-        --work-parameter-split-column-gap: 120px;
+        --work-parameter-split-column-gap: 125px;
     }
 
     #calculationForm .taxonomy-tree-main {
@@ -2182,6 +2251,49 @@
         width: 136px !important;
     }
 
+    #calculationForm .work-type-group.taxonomy-inline-item > .input-wrapper,
+    .additional-worktype-group.taxonomy-inline-item .input-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    #calculationForm .work-type-group.taxonomy-inline-item > .input-wrapper > .work-type-autocomplete,
+    .additional-worktype-group.taxonomy-inline-item .input-wrapper > .work-type-autocomplete {
+        flex: 0 1 50%;
+        max-width: 45%;
+        min-width: 0;
+    }
+
+    .worktype-inline-summary {
+        display: inline-flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        width: fit-content;
+        min-width: 0;
+        max-width: 100%;
+        padding: 4px 10px;
+        gap: 0;
+        align-self: center;
+    }
+
+    .worktype-inline-summary .dimension-area-summary-title {
+        font-size: 11px;
+    }
+
+    .worktype-inline-summary .dimension-area-summary-formula {
+        font-size: 11px;
+    }
+
+    .worktype-inline-summary .dimension-area-summary-value {
+        font-size: 14px;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
     #calculationForm .work-floor-group,
     #calculationForm .work-area-group,
     #calculationForm .work-field-group {
@@ -2592,7 +2704,8 @@
     }
 
     #calculationForm #inputFormContainer .dimensions-container-vertical,
-    #calculationForm #inputFormContainer .material-type-filter-group {
+    #calculationForm #inputFormContainer .material-type-filter-group,
+    #calculationForm #inputFormContainer .work-type-right-col {
         width: 100%;
         max-width: 100%;
         min-width: 0;
@@ -2615,7 +2728,7 @@
         gap: var(--work-parameter-gap);
     }
 
-    #calculationForm #inputFormContainer .work-type-form > .material-type-filter-group {
+    #calculationForm #inputFormContainer .work-type-form > .work-type-right-col {
         grid-column: 2;
         margin-top: 0;
         align-self: start;
@@ -2624,9 +2737,66 @@
         gap: var(--work-parameter-gap);
     }
 
+    #calculationForm #inputFormContainer .work-type-form > .work-type-right-col > .material-type-filter-group {
+        margin-top: 0;
+        align-self: start;
+        display: flex;
+        flex-direction: column;
+        gap: var(--work-parameter-gap);
+    }
+
     #calculationForm #inputFormContainer .work-type-form > .dimensions-container-vertical > .dimension-item,
-    #calculationForm #inputFormContainer .work-type-form > .material-type-filter-group > .material-type-filter-item {
+    #calculationForm #inputFormContainer .work-type-form > .work-type-right-col > .material-type-filter-group > .material-type-filter-item {
         margin: 0 !important;
+    }
+
+    .dimension-area-layout {
+        display: block;
+    }
+
+    .dimension-area-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: var(--work-parameter-gap);
+        min-width: 0;
+    }
+
+    .dimension-area-inputs > .dimension-item {
+        margin: 0 !important;
+    }
+
+    .dimension-area-summary {
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .dimension-area-summary-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #334155;
+        line-height: 1.2;
+    }
+
+    .dimension-area-summary-formula {
+        font-size: 12px;
+        color: #475569;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dimension-area-summary-value {
+        font-size: 18px;
+        font-weight: 800;
+        color: #1e3a8a;
+        line-height: 1.2;
     }
 
     .additional-work-items-section {
@@ -3042,6 +3212,10 @@
         margin: 0 !important;
     }
 
+    .additional-dimensions-container .dimension-area-layout {
+        margin-bottom: 0;
+    }
+
     .additional-parameter-material-col {
         display: flex;
         flex-direction: column;
@@ -3050,11 +3224,27 @@
 
     .additional-parameter-material-col .additional-material-inline {
         margin-top: 0;
-        gap: var(--work-parameter-gap);
+        gap: 0;
     }
 
     .additional-parameter-material-col .additional-material-inline > .material-type-filter-item {
         margin: 0 !important;
+    }
+
+    .additional-parameter-material-col .additional-material-inline > .material-type-filter-item + .material-type-filter-item {
+    }
+
+    .additional-dimensions-container .additional-material-filter-item {
+        margin: 0 !important;
+    }
+
+    .additional-dimensions-container .additional-material-filter-item > label {
+        padding-top: 0 !important;
+        align-items: center;
+    }
+
+    .additional-dimensions-container .additional-material-filter-item > .material-type-rows {
+        margin: 0;
     }
 
     .additional-work-item .dimensions-container-vertical {
@@ -3067,17 +3257,43 @@
 
     /* Normalisasi gap parameter item utama + tambahan agar konsisten */
     #calculationForm #inputFormContainer .work-type-form > .dimensions-container-vertical > .dimension-item,
-    #calculationForm #inputFormContainer .work-type-form > .material-type-filter-group > .material-type-filter-item,
+    #calculationForm #inputFormContainer .work-type-form > .work-type-right-col > .material-type-filter-group > .material-type-filter-item,
     .additional-dimensions-container .additional-parameter-size-col > .dimension-item,
     .additional-dimensions-container .additional-parameter-material-col .material-type-filter-item {
         margin: 0 !important;
     }
 
     #calculationForm #inputFormContainer .work-type-form > .dimensions-container-vertical,
-    #calculationForm #inputFormContainer .work-type-form > .material-type-filter-group,
+    #calculationForm #inputFormContainer .work-type-form > .work-type-right-col,
     .additional-dimensions-container .additional-parameter-size-col,
     .additional-dimensions-container .additional-parameter-material-col .additional-material-inline {
         gap: var(--work-parameter-gap) !important;
+    }
+
+    /* Samakan ritme vertikal form parameter Ukuran vs Jenis Material (hindari gap dobel). */
+    #calculationForm #inputFormContainer .material-type-filter-item > .material-type-filter-body,
+    .additional-dimensions-container .material-type-filter-item > .material-type-filter-body {
+        gap: 0;
+    }
+
+    #calculationForm #inputFormContainer .material-type-filter-item .customize-panel,
+    .additional-dimensions-container .material-type-filter-item .customize-panel {
+        margin-bottom: 0;
+    }
+
+    #calculationForm #inputFormContainer .material-type-extra-rows[data-material-type],
+    .additional-dimensions-container .material-type-extra-rows[data-material-type] {
+        gap: var(--work-parameter-gap);
+    }
+
+    #calculationForm #inputFormContainer .material-type-extra-rows[data-material-type]:not(:empty),
+    .additional-dimensions-container .material-type-extra-rows[data-material-type]:not(:empty) {
+        margin-top: var(--work-parameter-gap);
+    }
+
+    /* Additional item: samakan ritme vertikal kolom material dengan kolom ukuran secara ketat. */
+    .additional-dimensions-container .additional-parameter-material-col .additional-material-inline {
+        gap: 0 !important;
     }
 
     .material-type-row.no-actions .work-type-input {
@@ -3405,11 +3621,11 @@
     }
 
     .material-type-customize-panel {
-        margin-top: 8px;
     }
 
     .material-type-customize-panel .customize-grid {
         grid-template-columns: 1fr;
+        margin-top: 5px;
     }
 
     .material-type-row:focus-within .work-type-input:focus-within {
@@ -3455,6 +3671,12 @@
         flex: 1 1 auto;
         min-width: 0;
         width: 100%;
+    }
+
+    .project-location-group.location-required-error .project-location-input-wrapper .autocomplete-input {
+        border-color: #dc2626 !important;
+        box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+        background-color: #fff7f7 !important;
     }
 
     #storeSearchModeBox {
@@ -3687,6 +3909,25 @@
             width: 112px !important;
         }
 
+        #calculationForm .work-type-group.taxonomy-inline-item > .input-wrapper,
+        .additional-worktype-group.taxonomy-inline-item .input-wrapper {
+            flex-wrap: wrap;
+        }
+
+        #calculationForm .work-type-group.taxonomy-inline-item > .input-wrapper > .work-type-autocomplete,
+        .additional-worktype-group.taxonomy-inline-item .input-wrapper > .work-type-autocomplete {
+            flex: 1 1 100%;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .worktype-inline-summary {
+            flex: 0 0 auto;
+            width: fit-content;
+            max-width: 100%;
+            min-width: 0;
+        }
+
         #calculationForm .right-column {
             --work-item-parameter-indent-mobile: 28px;
         }
@@ -3725,7 +3966,7 @@
         }
 
         #calculationForm #inputFormContainer .work-type-form > .dimensions-container-vertical,
-        #calculationForm #inputFormContainer .work-type-form > .material-type-filter-group {
+        #calculationForm #inputFormContainer .work-type-form > .work-type-right-col {
             grid-column: auto;
         }
 
@@ -5269,6 +5510,7 @@
                     });
                 }
             }
+
         }
 
         // Function to uncheck "Semua" if any other checkbox is unchecked
@@ -5588,6 +5830,121 @@
             };
         }
 
+        function parseDimensionNumericFromInput(inputEl) {
+            if (!(inputEl instanceof HTMLInputElement)) {
+                return { ok: false };
+            }
+            const evaluated = evaluateDimensionInputRawValue(inputEl.value);
+            if (!evaluated.ok || evaluated.empty) {
+                return { ok: false };
+            }
+            const numeric = Number(String(evaluated.value || '').replace(',', '.'));
+            if (!Number.isFinite(numeric)) {
+                return { ok: false };
+            }
+            return { ok: true, value: numeric, text: formatDimensionNumericValue(numeric, 3) };
+        }
+
+        function isDimensionInputCurrentlyVisible(inputEl) {
+            if (!(inputEl instanceof HTMLInputElement)) {
+                return false;
+            }
+            if (inputEl.disabled) {
+                return false;
+            }
+            const wrapEl = inputEl.closest('.dimension-item');
+            if (!(wrapEl instanceof HTMLElement)) {
+                return true;
+            }
+            return getComputedStyle(wrapEl).display !== 'none';
+        }
+
+        function resolveDimensionAreaSummaryContainer(layoutEl) {
+            if (!(layoutEl instanceof HTMLElement)) {
+                return null;
+            }
+
+            const additionalRow = layoutEl.closest('.additional-work-item[data-additional-work-item="true"]');
+            if (additionalRow instanceof HTMLElement) {
+                const additionalSummary = additionalRow.querySelector(
+                    '.additional-worktype-group [data-dimension-area-summary]',
+                );
+                return additionalSummary instanceof HTMLElement ? additionalSummary : null;
+            }
+
+            if (layoutEl.id === 'mainDimensionAreaLayout') {
+                const mainInlineSummary = document.getElementById('mainDimensionAreaSummary');
+                return mainInlineSummary instanceof HTMLElement ? mainInlineSummary : null;
+            }
+
+            const mainWorkTypeForm = layoutEl.closest('.work-type-form');
+            if (mainWorkTypeForm instanceof HTMLElement) {
+                const mainSummary = mainWorkTypeForm.querySelector('#mainDimensionAreaSummary');
+                return mainSummary instanceof HTMLElement ? mainSummary : null;
+            }
+
+            const fallback = layoutEl.querySelector('#mainDimensionAreaSummary, [data-dimension-area-summary]');
+            return fallback instanceof HTMLElement ? fallback : null;
+        }
+
+        function setDimensionAreaSummary(summaryEl, formulaText = '-', valueText = '-') {
+            if (!(summaryEl instanceof HTMLElement)) {
+                return;
+            }
+            const formulaEl = summaryEl.querySelector('#mainDimensionAreaFormula, [data-dimension-area-formula]');
+            const valueEl = summaryEl.querySelector('#mainDimensionAreaValue, [data-dimension-area-value]');
+            const cleanedValue = String(valueText || '-').trim();
+            const displayValue = cleanedValue && cleanedValue !== '-' ? `${cleanedValue} M2` : '-';
+            if (formulaEl instanceof HTMLElement) {
+                formulaEl.textContent = String(formulaText || '-');
+            }
+            if (valueEl instanceof HTMLElement) {
+                valueEl.textContent = displayValue;
+            }
+        }
+
+        function updateDimensionAreaSummary(layoutEl) {
+            if (!(layoutEl instanceof HTMLElement)) {
+                return;
+            }
+            const summaryEl = resolveDimensionAreaSummaryContainer(layoutEl);
+            if (!(summaryEl instanceof HTMLElement)) {
+                return;
+            }
+
+            const lengthInput = layoutEl.querySelector('#wallLength, [data-field="wall_length"]');
+            const heightInput = layoutEl.querySelector('#wallHeight, [data-field="wall_height"]');
+
+            if (!(lengthInput instanceof HTMLInputElement) || !(heightInput instanceof HTMLInputElement)) {
+                setDimensionAreaSummary(summaryEl, '-', '-');
+                return;
+            }
+
+            if (!isDimensionInputCurrentlyVisible(heightInput)) {
+                setDimensionAreaSummary(summaryEl, '-', '-');
+                return;
+            }
+
+            const lengthValue = parseDimensionNumericFromInput(lengthInput);
+            const heightValue = parseDimensionNumericFromInput(heightInput);
+
+            if (!lengthValue.ok || !heightValue.ok) {
+                setDimensionAreaSummary(summaryEl, '-', '-');
+                return;
+            }
+
+            const areaValue = lengthValue.value * heightValue.value;
+            const areaText = formatDimensionNumericValue(areaValue, 3);
+            setDimensionAreaSummary(summaryEl, `${lengthValue.text} x ${heightValue.text}`, areaText);
+        }
+
+        function refreshDimensionAreaSummaries() {
+            updateDimensionAreaSummary(document.getElementById('mainDimensionAreaLayout'));
+            document
+                .querySelectorAll('.additional-dimension-area-layout[data-dimension-area-layout]')
+                .forEach(layoutEl => updateDimensionAreaSummary(layoutEl));
+        }
+
         function evaluateDimensionExpressionInput(inputEl, options = {}) {
             if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
                 return { ok: true, skipped: true };
@@ -5677,14 +6034,17 @@
                     return;
                 }
                 evaluateWithoutCommit(false);
+                refreshDimensionAreaSummaries();
             });
 
             inputEl.addEventListener('change', function() {
                 commitEvaluation(false);
+                refreshDimensionAreaSummaries();
             });
 
             inputEl.addEventListener('blur', function() {
                 commitEvaluation(false);
+                refreshDimensionAreaSummaries();
             });
 
             inputEl.addEventListener('keydown', function(event) {
@@ -5695,9 +6055,11 @@
                 if (!result.ok) {
                     event.preventDefault();
                 }
+                refreshDimensionAreaSummaries();
             });
 
             evaluateWithoutCommit(false);
+            refreshDimensionAreaSummaries();
         }
 
         function bindDimensionExpressionInputs(scope = document) {
@@ -6168,6 +6530,8 @@
                     }
                 }
             }
+
+            refreshDimensionAreaSummaries();
         }
 
         // Handle work type changes - simplified version
@@ -9441,6 +9805,7 @@
             if (!itemEl) {
                 return;
             }
+            let enableDuplicateAutoMerge = false;
 
             const floorDisplayInput = itemEl.querySelector('[data-field-display="work_floor"]');
             const floorHiddenInput = itemEl.querySelector('[data-field="work_floor"]');
@@ -9593,6 +9958,9 @@
                     setValue(value) {
                         applyRawValue(value);
                     },
+                    openList() {
+                        renderList(String(displayInput.value || ''));
+                    },
                 };
             };
 
@@ -9607,6 +9975,9 @@
                         itemEl.__refreshWorkTypeOptions();
                     }
                     markFloorSortPending();
+                    if (enableDuplicateAutoMerge) {
+                        autoMergeDuplicateAdditionalTaxonomyRow(itemEl, 'work_floor');
+                    }
                 },
             });
 
@@ -9618,6 +9989,9 @@
                 onChanged: () => {
                     if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
                         itemEl.__refreshWorkTypeOptions();
+                    }
+                    if (enableDuplicateAutoMerge) {
+                        autoMergeDuplicateAdditionalTaxonomyRow(itemEl, 'work_area');
                     }
                 },
             });
@@ -9631,6 +10005,9 @@
                 onChanged: () => {
                     if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
                         itemEl.__refreshWorkTypeOptions();
+                    }
+                    if (enableDuplicateAutoMerge) {
+                        autoMergeDuplicateAdditionalTaxonomyRow(itemEl, 'work_field');
                     }
                 },
             });
@@ -9647,6 +10024,11 @@
             if (initialField) {
                 fieldAutocomplete.setValue(initialField);
             }
+            enableDuplicateAutoMerge = true;
+
+            floorDisplayInput.__openAdditionalTaxonomyList = () => floorAutocomplete.openList();
+            areaDisplayInput.__openAdditionalTaxonomyList = () => areaAutocomplete.openList();
+            fieldDisplayInput.__openAdditionalTaxonomyList = () => fieldAutocomplete.openList();
         }
 
         function initAdditionalWorkTypeAutocomplete(itemEl, initial = {}) {
@@ -10375,25 +10757,32 @@
                                 <div class="autocomplete-list" data-field-list="work_type" id="additionalWorkType-list-${++bundleAdditionalAutocompleteSeq}"></div>
                             </div>
                             <input type="hidden" data-field="work_type" value="${escapeHtml(item.work_type)}">
+                            <div class="dimension-area-summary worktype-inline-summary" data-dimension-area-summary>
+                                <div class="dimension-area-summary-value" data-dimension-area-value>-</div>
+                            </div>
                         </div>
                     </div>
                     <div class="dimensions-container-vertical additional-dimensions-container">
                         <div class="additional-parameter-split">
                         <div class="additional-parameter-size-col">
-                        <div class="dimension-item" data-wrap="wall_length">
-                            <label>Panjang</label>
-                            <div class="input-with-unit">
-                                <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}">
-                                <span class="unit">M</span>
-                                <span class="dimension-expression-hint" data-expression-hint hidden></span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="wall_height">
-                            <label data-wall-height-label>Tinggi</label>
-                            <div class="input-with-unit">
-                                <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}">
-                                <span class="unit">M</span>
-                                <span class="dimension-expression-hint" data-expression-hint hidden></span>
+                        <div class="dimension-area-layout additional-dimension-area-layout" data-dimension-area-layout>
+                            <div class="dimension-area-inputs">
+                                <div class="dimension-item" data-wrap="wall_length">
+                                    <label>Panjang</label>
+                                    <div class="input-with-unit">
+                                        <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}">
+                                        <span class="unit">M</span>
+                                        <span class="dimension-expression-hint" data-expression-hint hidden></span>
+                                    </div>
+                                </div>
+                                <div class="dimension-item" data-wrap="wall_height">
+                                    <label data-wall-height-label>Tinggi</label>
+                                    <div class="input-with-unit">
+                                        <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}">
+                                        <span class="unit">M</span>
+                                        <span class="dimension-expression-hint" data-expression-hint hidden></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="dimension-item" data-wrap="mortar_thickness">
@@ -10510,7 +10899,8 @@
             syncBundleFromForms();
 
             const hasInitialWorkType = String(item.work_type || '').trim() !== '';
-            if (!hasInitialWorkType) {
+            const shouldAutoFocusWorkType = normalizeBundleRowKind(item.row_kind) === 'item';
+            if (shouldAutoFocusWorkType && !hasInitialWorkType) {
                 const workTypeDisplay = wrapper.querySelector('[data-field-display="work_type"]');
                 if (workTypeDisplay) {
                     setTimeout(() => {
@@ -11208,6 +11598,31 @@
                 return null;
             }
 
+            const openAutocompleteListForInput = inputEl => {
+                if (!(inputEl instanceof HTMLElement)) {
+                    return;
+                }
+                if (typeof inputEl.__openAdditionalTaxonomyList === 'function') {
+                    inputEl.__openAdditionalTaxonomyList();
+                    return;
+                }
+                if (typeof inputEl.__openAdditionalWorkTypeList === 'function') {
+                    inputEl.__openAdditionalWorkTypeList();
+                }
+            };
+            const scheduleFocusAndOpenAutocompleteInput = inputEl => {
+                if (!(inputEl instanceof HTMLElement)) {
+                    return;
+                }
+                setTimeout(() => {
+                    if (!inputEl.isConnected) {
+                        return;
+                    }
+                    inputEl.focus();
+                    openAutocompleteListForInput(inputEl);
+                }, 0);
+            };
+
             const selectorMap = {
                 work_floor: '[data-field-display="work_floor"]',
                 work_area: '[data-field-display="work_area"]',
@@ -11217,10 +11632,7 @@
             const focusSelector = selectorMap[focusField] || selectorMap.work_type;
             const focusInput = newForm.querySelector(focusSelector);
             if (focusInput) {
-                focusInput.focus();
-                if (typeof focusInput.__openAdditionalWorkTypeList === 'function') {
-                    focusInput.__openAdditionalWorkTypeList();
-                }
+                scheduleFocusAndOpenAutocompleteInput(focusInput);
             }
             return newForm;
         }
@@ -11232,10 +11644,17 @@
                 alert(message);
             }
             if (focusEl && typeof focusEl.focus === 'function') {
-                focusEl.focus();
-                if (typeof focusEl.__openAdditionalWorkTypeList === 'function') {
-                    focusEl.__openAdditionalWorkTypeList();
-                }
+                setTimeout(() => {
+                    if (!(focusEl instanceof HTMLElement) || !focusEl.isConnected) {
+                        return;
+                    }
+                    focusEl.focus();
+                    if (typeof focusEl.__openAdditionalTaxonomyList === 'function') {
+                        focusEl.__openAdditionalTaxonomyList();
+                    } else if (typeof focusEl.__openAdditionalWorkTypeList === 'function') {
+                        focusEl.__openAdditionalWorkTypeList();
+                    }
+                }, 0);
             }
         }
 
@@ -11718,6 +12137,240 @@
 
         function normalizeTaxonomyValue(value) {
             return String(value || '').trim().toLowerCase();
+        }
+
+        function getAdditionalRowTaxonomySnapshot(rowEl) {
+            if (!(rowEl instanceof HTMLElement)) {
+                return null;
+            }
+
+            return {
+                rowEl,
+                rowKind: normalizeBundleRowKind(
+                    rowEl.getAttribute('data-row-kind') || getAdditionalFieldValue(rowEl, 'row_kind') || 'area',
+                ),
+                workFloor: normalizeTaxonomyValue(getAdditionalFieldValue(rowEl, 'work_floor')),
+                workArea: normalizeTaxonomyValue(getAdditionalFieldValue(rowEl, 'work_area')),
+                workField: normalizeTaxonomyValue(getAdditionalFieldValue(rowEl, 'work_field')),
+            };
+        }
+
+        function findDuplicateAdditionalTaxonomyTarget(sourceSnapshot, changedField) {
+            if (!sourceSnapshot || !sourceSnapshot.rowEl || !changedField) {
+                return null;
+            }
+
+            const sourceRow = sourceSnapshot.rowEl;
+            const allRows = getAllAdditionalWorkRows().filter(row =>
+                row instanceof HTMLElement &&
+                row !== sourceRow &&
+                !sourceRow.contains(row),
+            );
+            if (!allRows.length) {
+                return null;
+            }
+
+            const sourceFloor = sourceSnapshot.workFloor;
+            const sourceArea = sourceSnapshot.workArea;
+            const sourceField = sourceSnapshot.workField;
+
+            const matchesTaxonomy = candidate => {
+                if (!candidate) {
+                    return false;
+                }
+
+                if (changedField === 'work_floor') {
+                    return !!sourceFloor && candidate.workFloor === sourceFloor;
+                }
+
+                if (changedField === 'work_area') {
+                    if (!sourceArea) {
+                        return false;
+                    }
+                    if (sourceFloor && candidate.workFloor !== sourceFloor) {
+                        return false;
+                    }
+                    return candidate.workArea === sourceArea;
+                }
+
+                if (changedField === 'work_field') {
+                    if (!sourceField) {
+                        return false;
+                    }
+                    if (sourceFloor && candidate.workFloor !== sourceFloor) {
+                        return false;
+                    }
+                    if (sourceArea && candidate.workArea !== sourceArea) {
+                        return false;
+                    }
+                    return candidate.workField === sourceField;
+                }
+
+                return false;
+            };
+
+            const preferredKinds =
+                changedField === 'work_field'
+                    ? ['field', 'area', 'item']
+                    : ['area', 'field', 'item'];
+
+            for (const preferredKind of preferredKinds) {
+                for (const row of allRows) {
+                    const candidate = getAdditionalRowTaxonomySnapshot(row);
+                    if (!candidate || candidate.rowKind !== preferredKind) {
+                        continue;
+                    }
+                    if (matchesTaxonomy(candidate)) {
+                        return candidate.rowEl;
+                    }
+                }
+            }
+
+            for (const row of allRows) {
+                const candidate = getAdditionalRowTaxonomySnapshot(row);
+                if (matchesTaxonomy(candidate)) {
+                    return candidate.rowEl;
+                }
+            }
+
+            return null;
+        }
+
+        function isDuplicateWithMainTaxonomy(sourceSnapshot, changedField) {
+            if (!sourceSnapshot || !changedField) {
+                return false;
+            }
+
+            const mainFloor = normalizeTaxonomyValue(getMainTaxonomyValue('floor'));
+            const mainArea = normalizeTaxonomyValue(getMainTaxonomyValue('area'));
+            const mainField = normalizeTaxonomyValue(getMainTaxonomyValue('field'));
+
+            if (changedField === 'work_floor') {
+                return !!sourceSnapshot.workFloor && sourceSnapshot.workFloor === mainFloor;
+            }
+
+            if (changedField === 'work_area') {
+                if (!sourceSnapshot.workArea) {
+                    return false;
+                }
+                if (sourceSnapshot.workFloor && sourceSnapshot.workFloor !== mainFloor) {
+                    return false;
+                }
+                return sourceSnapshot.workArea === mainArea;
+            }
+
+            if (changedField === 'work_field') {
+                if (!sourceSnapshot.workField) {
+                    return false;
+                }
+                if (sourceSnapshot.workFloor && sourceSnapshot.workFloor !== mainFloor) {
+                    return false;
+                }
+                if (sourceSnapshot.workArea && sourceSnapshot.workArea !== mainArea) {
+                    return false;
+                }
+                return sourceSnapshot.workField === mainField;
+            }
+
+            return false;
+        }
+
+        function focusTaxonomyTarget(target, changedField) {
+            const focusSelectorMap = {
+                work_floor: '[data-field-display="work_floor"]',
+                work_area: '[data-field-display="work_area"]',
+                work_field: '[data-field-display="work_field"]',
+            };
+            const mainFocusMap = {
+                work_floor: 'workFloorDisplay',
+                work_area: 'workAreaDisplay',
+                work_field: 'workFieldDisplay',
+            };
+
+            const focusInput =
+                target instanceof HTMLElement
+                    ? target.querySelector(focusSelectorMap[changedField] || focusSelectorMap.work_floor)
+                    : document.getElementById(mainFocusMap[changedField] || mainFocusMap.work_floor);
+
+            if (!(focusInput instanceof HTMLElement)) {
+                return;
+            }
+
+            setTimeout(() => {
+                if (!(focusInput instanceof HTMLElement) || !focusInput.isConnected) {
+                    return;
+                }
+                focusInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                focusInput.focus();
+                if (typeof focusInput.__openAdditionalTaxonomyList === 'function') {
+                    focusInput.__openAdditionalTaxonomyList();
+                }
+            }, 0);
+        }
+
+        function canAutoRemoveDuplicateRow(itemEl) {
+            if (!(itemEl instanceof HTMLElement)) {
+                return false;
+            }
+
+            const workType = String(getAdditionalFieldValue(itemEl, 'work_type') || '').trim();
+            if (workType !== '') {
+                return false;
+            }
+
+            const areaChildrenHost = getDirectAdditionalRowHost(itemEl, '[data-area-children]');
+            const floorChildrenHost = getDirectAdditionalRowHost(itemEl, '[data-floor-children]');
+            const hasAreaChildren = getDirectAdditionalChildRows(areaChildrenHost).length > 0;
+            const hasFloorChildren = getDirectAdditionalChildRows(floorChildrenHost).length > 0;
+
+            return !hasAreaChildren && !hasFloorChildren;
+        }
+
+        function autoMergeDuplicateAdditionalTaxonomyRow(itemEl, changedField) {
+            if (!(itemEl instanceof HTMLElement) || !itemEl.isConnected) {
+                return;
+            }
+
+            const rowKind = normalizeBundleRowKind(
+                itemEl.getAttribute('data-row-kind') || getAdditionalFieldValue(itemEl, 'row_kind') || 'area',
+            );
+            if (rowKind === 'item') {
+                return;
+            }
+
+            if (!['work_floor', 'work_area', 'work_field'].includes(changedField)) {
+                return;
+            }
+
+            const sourceSnapshot = getAdditionalRowTaxonomySnapshot(itemEl);
+            if (!sourceSnapshot) {
+                return;
+            }
+
+            const duplicateAdditionalTarget = findDuplicateAdditionalTaxonomyTarget(sourceSnapshot, changedField);
+            const duplicateMainTarget = !duplicateAdditionalTarget && isDuplicateWithMainTaxonomy(sourceSnapshot, changedField);
+            if (!duplicateAdditionalTarget && !duplicateMainTarget) {
+                return;
+            }
+
+            if (!canAutoRemoveDuplicateRow(itemEl)) {
+                return;
+            }
+
+            const parentBeforeRemoval = itemEl.parentElement instanceof HTMLElement ? itemEl.parentElement : null;
+            itemEl.remove();
+            refreshAdditionalTaxonomyActionFooters(parentBeforeRemoval);
+            refreshAdditionalWorkItemHeader();
+            syncBundleFromForms();
+
+            if (duplicateAdditionalTarget instanceof HTMLElement) {
+                focusTaxonomyTarget(duplicateAdditionalTarget, changedField);
+                return;
+            }
+
+            if (duplicateMainTarget) {
+                focusTaxonomyTarget(null, changedField);
+            }
         }
 
         function findLastAdditionalRowByTaxonomy(workFloor = '', workArea = '', workField = '', matchField = true) {
@@ -12401,6 +13054,8 @@
             const floorValueEl = trackerWrap.querySelector('[data-scroll-active-floor]');
             const areaValueEl = trackerWrap.querySelector('[data-scroll-active-area]');
             const fieldValueEl = trackerWrap.querySelector('[data-scroll-active-field]');
+            const addAreaMirrorBtn = trackerWrap.querySelector('[data-scroll-action="add-area"]');
+            const addFieldMirrorBtn = trackerWrap.querySelector('[data-scroll-action="add-field"]');
             if (
                 !(floorValueEl instanceof HTMLElement) ||
                 !(areaValueEl instanceof HTMLElement) ||
@@ -12417,6 +13072,7 @@
             let hasAnyTrackerValue = false;
             let lockedStepIndex = -1;
             let lastThresholdTop = 0;
+            let activeTrackerContext = { floor: '', area: '', field: '' };
             const calcFormEl = document.getElementById('calculationForm');
             const STEP_SWITCH_MARGIN_PX = 24;
 
@@ -12438,6 +13094,203 @@
             const getStickySearchHeight = () => {
                 return readPxCssVar(calcFormEl, '--calc-search-sticky-height', 0);
             };
+
+            const syncMirrorActionButtonState = (mirrorBtn, sourceButtonId, contextAllowed = true) => {
+                if (!(mirrorBtn instanceof HTMLButtonElement)) {
+                    return;
+                }
+                const sourceBtn = document.getElementById(sourceButtonId);
+                if (!(sourceBtn instanceof HTMLButtonElement)) {
+                    mirrorBtn.hidden = true;
+                    mirrorBtn.disabled = true;
+                    return;
+                }
+                mirrorBtn.hidden = false;
+                mirrorBtn.disabled = !!sourceBtn.disabled || !contextAllowed;
+            };
+
+            const findLastAreaRowByFloorContext = workFloor => {
+                const targetFloor = normalizeTaxonomyValue(workFloor);
+                if (!targetFloor) {
+                    return null;
+                }
+
+                let floorRootMatch = null;
+                let anyAreaMatch = null;
+                getAllAdditionalWorkRows().forEach(row => {
+                    const rowKind = normalizeBundleRowKind(
+                        row.getAttribute('data-row-kind') || getAdditionalFieldValue(row, 'row_kind') || 'area',
+                    );
+                    if (rowKind !== 'area') {
+                        return;
+                    }
+                    const rowFloor = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_floor'));
+                    if (rowFloor !== targetFloor) {
+                        return;
+                    }
+                    anyAreaMatch = row;
+                    const rowArea = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_area'));
+                    if (!rowArea) {
+                        floorRootMatch = row;
+                    }
+                });
+
+                return floorRootMatch || anyAreaMatch;
+            };
+
+            const findLastAreaRowByFloorAndAreaContext = (workFloor, workArea) => {
+                const targetFloor = normalizeTaxonomyValue(workFloor);
+                const targetArea = normalizeTaxonomyValue(workArea);
+                if (!targetArea) {
+                    return null;
+                }
+
+                let matched = null;
+                getAllAdditionalWorkRows().forEach(row => {
+                    const rowKind = normalizeBundleRowKind(
+                        row.getAttribute('data-row-kind') || getAdditionalFieldValue(row, 'row_kind') || 'area',
+                    );
+                    if (rowKind !== 'area') {
+                        return;
+                    }
+                    const rowFloor = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_floor'));
+                    const rowArea = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_area'));
+                    if (targetFloor && rowFloor !== targetFloor) {
+                        return;
+                    }
+                    if (rowArea !== targetArea) {
+                        return;
+                    }
+                    matched = row;
+                });
+                return matched;
+            };
+
+            const addAreaFromTrackerContext = () => {
+                const contextFloor = String(activeTrackerContext.floor || '').trim();
+                if (!contextFloor) {
+                    showTaxonomyActionError(
+                        'Isi Lantai terlebih dahulu sebelum menambah Area.',
+                        document.getElementById('workFloorDisplay'),
+                    );
+                    return;
+                }
+
+                const mainFloor = normalizeTaxonomyValue(getMainTaxonomyValue('floor'));
+                const contextFloorNorm = normalizeTaxonomyValue(contextFloor);
+                if (contextFloorNorm && contextFloorNorm === mainFloor) {
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_floor: contextFloor,
+                            work_area: '',
+                            work_field: '',
+                            work_type: '',
+                            row_kind: 'area',
+                        },
+                        null,
+                        'work_area',
+                        { rowKind: 'area', targetMainArea: true },
+                    );
+                    return;
+                }
+
+                const targetFloorHost = findLastAreaRowByFloorContext(contextFloor);
+                createAndFocusAdditionalWorkItem(
+                    {
+                        work_floor: contextFloor,
+                        work_area: '',
+                        work_field: '',
+                        work_type: '',
+                        row_kind: 'area',
+                    },
+                    null,
+                    'work_area',
+                    targetFloorHost instanceof HTMLElement
+                        ? { rowKind: 'area', targetFloorHost }
+                        : { rowKind: 'area' },
+                );
+            };
+
+            const addFieldFromTrackerContext = () => {
+                const contextFloor = String(activeTrackerContext.floor || '').trim();
+                const contextArea = String(activeTrackerContext.area || '').trim();
+                if (!contextFloor) {
+                    showTaxonomyActionError(
+                        'Isi Lantai terlebih dahulu sebelum menambah Bidang.',
+                        document.getElementById('workFloorDisplay'),
+                    );
+                    return;
+                }
+                if (!contextArea) {
+                    showTaxonomyActionError(
+                        'Isi Area terlebih dahulu sebelum menambah Bidang.',
+                        document.getElementById('workAreaDisplay'),
+                    );
+                    return;
+                }
+
+                const targetAreaRow = findLastAreaRowByFloorAndAreaContext(contextFloor, contextArea);
+                if (targetAreaRow instanceof HTMLElement) {
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_floor: contextFloor,
+                            work_area: contextArea,
+                            work_field: '',
+                            work_type: '',
+                            row_kind: 'field',
+                        },
+                        null,
+                        'work_field',
+                        { rowKind: 'field', targetAreaHost: targetAreaRow },
+                    );
+                    return;
+                }
+
+                const mainFloorNorm = normalizeTaxonomyValue(getMainTaxonomyValue('floor'));
+                const mainAreaNorm = normalizeTaxonomyValue(getMainTaxonomyValue('area'));
+                const contextFloorNorm = normalizeTaxonomyValue(contextFloor);
+                const contextAreaNorm = normalizeTaxonomyValue(contextArea);
+                if (contextFloorNorm && contextFloorNorm === mainFloorNorm && contextAreaNorm === mainAreaNorm) {
+                    const afterTarget = findLastAdditionalRowByTaxonomy(contextFloor, contextArea, '', false);
+                    const mainAreaHost = getMainAreaChildrenHost();
+                    const firstMainAreaRow =
+                        mainAreaHost instanceof HTMLElement
+                            ? Array.from(mainAreaHost.children).find(el =>
+                                  el instanceof HTMLElement && el.matches('[data-additional-work-item="true"]'),
+                              ) || null
+                            : null;
+                    createAndFocusAdditionalWorkItem(
+                        {
+                            work_floor: contextFloor,
+                            work_area: contextArea,
+                            work_field: '',
+                            work_type: '',
+                            row_kind: 'field',
+                        },
+                        afterTarget,
+                        'work_field',
+                        { rowKind: 'field', beforeElement: afterTarget ? null : firstMainAreaRow, targetMainArea: true },
+                    );
+                    return;
+                }
+
+                showTaxonomyActionError(
+                    'Area aktif tidak ditemukan. Pilih Area yang benar lalu coba tambah Bidang lagi.',
+                    document.getElementById('workAreaDisplay'),
+                );
+            };
+
+            if (addAreaMirrorBtn instanceof HTMLButtonElement) {
+                addAreaMirrorBtn.addEventListener('click', function() {
+                    addAreaFromTrackerContext();
+                });
+            }
+
+            if (addFieldMirrorBtn instanceof HTMLButtonElement) {
+                addFieldMirrorBtn.addEventListener('click', function() {
+                    addFieldFromTrackerContext();
+                });
+            }
 
             const getAbsoluteTop = el => {
                 const rect = el.getBoundingClientRect();
@@ -12619,9 +13472,16 @@
                     activeArea = String(activeStep.area || '').trim();
                     activeField = String(activeStep.field || '').trim();
                 }
+                activeTrackerContext = {
+                    floor: activeFloor,
+                    area: activeArea,
+                    field: activeField,
+                };
 
                 setTrackerValues(activeFloor, activeArea, activeField);
                 syncTrackerVisibility();
+                syncMirrorActionButtonState(addAreaMirrorBtn, 'addAreaFromMainBtn', !!activeFloor);
+                syncMirrorActionButtonState(addFieldMirrorBtn, 'addFieldFromMainBtn', !!activeFloor && !!activeArea);
                 lastThresholdTop = thresholdTop;
             };
 
@@ -13721,6 +14581,7 @@
         }
 
         function syncBundleFromForms() {
+            refreshDimensionAreaSummaries();
             rebuildBundleSharedCustomizeRealtimeState();
             enforceBundleSharedCustomizeRealtime();
             reconcileBundleSharedCustomizeSelections();
@@ -13876,6 +14737,7 @@
                 if (mortarInput) {
                     mortarInput.dataset.mode = 'adukan';
                 }
+                refreshDimensionAreaSummaries();
                 return;
             }
 
@@ -13956,6 +14818,8 @@
                     wallHeightLabel.textContent = 'Lebar';
                 }
             }
+
+            refreshDimensionAreaSummaries();
         }
 
         function attachAdditionalWorkItemEvents(itemEl) {
@@ -14303,7 +15167,13 @@
                 }
 
                 createAndFocusAdditionalWorkItem(
-                    { work_floor: '', work_area: '', work_field: '', work_type: '', row_kind: 'area' },
+                    {
+                        work_floor: '',
+                        work_area: '',
+                        work_field: '',
+                        work_type: '',
+                        row_kind: 'area',
+                    },
                     null,
                     'work_floor',
                     { rowKind: 'area' },
@@ -14402,6 +15272,92 @@
         let lastFastPreviewCacheExpiredAt = 0;
         let skipSessionSaveOnBeforeUnload = false;
         const resetButton = document.getElementById('btnResetForm');
+        const projectLocationGroupEl = document.querySelector('.project-location-group');
+        const projectLocationSearchInput = document.getElementById('projectLocationSearch');
+        const projectAddressInput = document.getElementById('projectAddress');
+
+        const getNormalizedProjectAddressValue = () => {
+            const hiddenAddress = projectAddressInput instanceof HTMLInputElement
+                ? projectAddressInput.value.trim()
+                : '';
+            const visibleAddress = projectLocationSearchInput instanceof HTMLInputElement
+                ? projectLocationSearchInput.value.trim()
+                : '';
+
+            if (hiddenAddress !== '') {
+                return hiddenAddress;
+            }
+
+            if (visibleAddress !== '' && projectAddressInput instanceof HTMLInputElement) {
+                projectAddressInput.value = visibleAddress;
+                return visibleAddress;
+            }
+
+            return '';
+        };
+
+        const clearProjectLocationValidationState = () => {
+            if (projectLocationGroupEl instanceof HTMLElement) {
+                projectLocationGroupEl.classList.remove('location-required-error');
+            }
+            if (projectLocationSearchInput instanceof HTMLInputElement) {
+                projectLocationSearchInput.removeAttribute('aria-invalid');
+            }
+        };
+
+        const markProjectLocationAsRequiredError = () => {
+            if (projectLocationGroupEl instanceof HTMLElement) {
+                projectLocationGroupEl.classList.add('location-required-error');
+                projectLocationGroupEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            if (projectLocationSearchInput instanceof HTMLInputElement) {
+                projectLocationSearchInput.setAttribute('aria-invalid', 'true');
+                projectLocationSearchInput.focus();
+            }
+        };
+
+        const validateProjectLocationBeforeSubmit = () => {
+            const normalizedAddress = getNormalizedProjectAddressValue();
+            if (normalizedAddress !== '') {
+                clearProjectLocationValidationState();
+                return true;
+            }
+
+            markProjectLocationAsRequiredError();
+            const message = 'Harap isi alamat proyek terlebih dahulu sebelum menghitung.';
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, 'error');
+            } else {
+                alert(message);
+            }
+
+            return false;
+        };
+
+        if (projectLocationSearchInput instanceof HTMLInputElement) {
+            projectLocationSearchInput.addEventListener('input', () => {
+                if (projectLocationSearchInput.value.trim() !== '') {
+                    clearProjectLocationValidationState();
+                }
+            });
+            projectLocationSearchInput.addEventListener('change', () => {
+                if (projectLocationSearchInput.value.trim() !== '') {
+                    clearProjectLocationValidationState();
+                }
+            });
+        }
+
+        if (projectAddressInput instanceof HTMLInputElement) {
+            projectAddressInput.addEventListener('change', () => {
+                if (projectAddressInput.value.trim() !== '') {
+                    clearProjectLocationValidationState();
+                }
+            });
+        }
+
+        if (getNormalizedProjectAddressValue() !== '') {
+            clearProjectLocationValidationState();
+        }
 
         function initStoreSearchModeControls() {
             const box = document.getElementById('storeSearchModeBox');
@@ -15489,6 +16445,11 @@
             });
 
             form.addEventListener('submit', function(e) {
+                if (!validateProjectLocationBeforeSubmit()) {
+                    e.preventDefault();
+                    return;
+                }
+
                 const expressionNormalization = normalizeDimensionExpressionInputsForSubmit(form, { commitValue: false });
                 if (!expressionNormalization.ok) {
                     e.preventDefault();
