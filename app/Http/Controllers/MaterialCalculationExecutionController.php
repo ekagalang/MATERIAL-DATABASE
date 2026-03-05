@@ -924,7 +924,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         ];
 
         $bundleCacheSeed = [
-            'bundle_summary_engine_version' => 'single-store-lock-v13-respect-mixed-store-mode',
+            'bundle_summary_engine_version' => 'single-store-lock-v14-diverse-store-ranks',
             'bundle_name' => $bundleName,
             'price_filters' => $request->input('price_filters', []),
             'use_store_filter' => $bundleUseStoreFilter,
@@ -1388,6 +1388,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         $bundleCombinations = [];
         $usedSelectionSignaturesByPrefix = [];
         $usedSelectionSignaturesForPriceRanks = [];
+        $usedStoreKeysByPrefix = [];
         foreach ($candidateLabels as $label) {
             $isPopularLabel = strtolower($extractLabelPrefix((string) $label)) === $popularPrefix;
             $isPreferenceLabel = strtolower($extractLabelPrefix((string) $label)) === $preferensiPrefix;
@@ -1400,6 +1401,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $pendingStoreConstrainedItems = [];
             $pendingMaterialReuseItems = [];
             $selectionSignatureForLabel = null;
+            $selectedStoreKeyForLabel = null;
 
             foreach ($bundleItemPayloads as $index => $bundleItemPayload) {
                 $itemMap = $itemCombinationMaps[$index] ?? [];
@@ -1612,18 +1614,40 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                         $primaryExcludedSelectionSignatures = array_values(
                             array_unique(array_merge($prefixExcludedSignatures, $globalPriceRankExclusions)),
                         );
+                        $preferredStoreKeys = $commonStoreKeys;
+                        if ($isPriceRankLabel) {
+                            $usedStoreKeysForPrefix = is_array($usedStoreKeysByPrefix[$labelPrefixKey] ?? null)
+                                ? $usedStoreKeysByPrefix[$labelPrefixKey]
+                                : [];
+                            if (!empty($usedStoreKeysForPrefix)) {
+                                $unusedStoreKeys = array_values(
+                                    array_filter(
+                                        $commonStoreKeys,
+                                        static fn($storeKey) => !isset($usedStoreKeysForPrefix[(string) $storeKey]),
+                                    ),
+                                );
+                                if (!empty($unusedStoreKeys)) {
+                                    $preferredStoreKeys = $unusedStoreKeys;
+                                }
+                            }
+                        }
 
-                        $pickBestStoreSelection = function (array $excludedSignatures) use (
-                            $commonStoreKeys,
+                        $allowRelaxedStoreSelection = $isPriceRankLabel && $targetLabelRank > 1;
+                        $pickBestStoreSelection = function (
+                            array $storeKeys,
+                            array $excludedSignatures,
+                            bool $allowRelaxedSelection = false,
+                        ) use (
                             $pendingStoreConstrainedItems,
                         ): array {
                             $bestSelection = null;
                             $bestStoreKeyLocal = null;
-                            foreach ($commonStoreKeys as $storeKey) {
+                            foreach ($storeKeys as $storeKey) {
                                 $selection = $this->selectBundleStoreCandidatesWithMaterialReuse(
                                     $pendingStoreConstrainedItems,
                                     (string) $storeKey,
                                     $excludedSignatures,
+                                    $allowRelaxedSelection,
                                 );
                                 if (!is_array($selection)) {
                                     continue;
@@ -1644,14 +1668,41 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                         };
 
                         [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection(
+                            $preferredStoreKeys,
                             $primaryExcludedSelectionSignatures,
+                            $allowRelaxedStoreSelection,
                         );
                         if (
                             (!is_array($bestStoreSelection) || $bestStoreKey === null) &&
                             !empty($globalPriceRankExclusions)
                         ) {
                             // Fallback: allow reuse across price-rank filters only when no alternative exists.
-                            [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection($prefixExcludedSignatures);
+                            [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection(
+                                $preferredStoreKeys,
+                                $prefixExcludedSignatures,
+                                $allowRelaxedStoreSelection,
+                            );
+                        }
+                        if (
+                            (!is_array($bestStoreSelection) || $bestStoreKey === null) &&
+                            count($preferredStoreKeys) !== count($commonStoreKeys)
+                        ) {
+                            [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection(
+                                $commonStoreKeys,
+                                $primaryExcludedSelectionSignatures,
+                                $allowRelaxedStoreSelection,
+                            );
+                            if (
+                                (!is_array($bestStoreSelection) || $bestStoreKey === null) &&
+                                !empty($globalPriceRankExclusions)
+                            ) {
+                                // Fallback: allow reuse across price-rank filters only when no alternative exists.
+                                [$bestStoreSelection, $bestStoreKey] = $pickBestStoreSelection(
+                                    $commonStoreKeys,
+                                    $prefixExcludedSignatures,
+                                    $allowRelaxedStoreSelection,
+                                );
+                            }
                         }
 
                         if ($bestStoreKey === null || !is_array($bestStoreSelection)) {
@@ -1704,6 +1755,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 if (!$isComplete || count($selectedStoreKeys) !== 1) {
                     continue;
                 }
+                $selectedStoreKeyForLabel = array_key_first($selectedStoreKeys);
             }
 
             if ($isPopularLabel || $isPreferenceLabel) {
@@ -1739,6 +1791,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                     if ($isPriceRankLabel) {
                         $usedSelectionSignaturesForPriceRanks[$selectionSignatureForLabel] = true;
                     }
+                }
+                if ($isPriceRankLabel && is_string($selectedStoreKeyForLabel) && $selectedStoreKeyForLabel !== '') {
+                    if (!isset($usedStoreKeysByPrefix[$labelPrefixKey])) {
+                        $usedStoreKeysByPrefix[$labelPrefixKey] = [];
+                    }
+                    $usedStoreKeysByPrefix[$labelPrefixKey][$selectedStoreKeyForLabel] = true;
                 }
             }
 
@@ -1866,6 +1924,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         array $pendingStoreConstrainedItems,
         string $storeKey,
         array $excludedSelectionSignatures = [],
+        bool $allowRelaxedWhenStrictMissing = false,
     ): ?array {
         $maxStoreCandidatesPerItem = self::BUNDLE_STORE_CANDIDATE_LIMIT;
         $candidateLists = [];
@@ -1882,12 +1941,17 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $candidateLists[] = array_slice($storeCandidates, 0, $maxStoreCandidatesPerItem);
         }
 
-        return $this->selectBundleCandidatesWithMaterialReuse($candidateLists, $excludedSelectionSignatures);
+        return $this->selectBundleCandidatesWithMaterialReuse(
+            $candidateLists,
+            $excludedSelectionSignatures,
+            $allowRelaxedWhenStrictMissing,
+        );
     }
 
     protected function selectBundleCandidatesWithMaterialReuse(
         array $candidateLists,
         array $excludedSelectionSignatures = [],
+        bool $allowRelaxedWhenStrictMissing = false,
     ): ?array {
         if (empty($candidateLists)) {
             return null;
@@ -1915,7 +1979,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             ];
         }
         if ($strictLockRequired) {
-            return null;
+            if (!$allowRelaxedWhenStrictMissing) {
+                return null;
+            }
         }
 
         $selected = array_map(static fn($list) => $list[0] ?? null, $candidateLists);

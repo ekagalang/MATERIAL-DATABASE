@@ -241,6 +241,21 @@ test('bundle popular label allows partial item coverage without forcing all item
         ->toContain('} elseif (!$isComplete || empty($selectedItems)) {');
 });
 
+test('bundle preview keeps preferensi and populer rank labels without view-side renumbering', function () {
+    $content = File::get(resource_path('views/material_calculations/preview_combinations.blade.php'));
+
+    expect($content)
+        ->toContain('$isBundlePreviewMode = !empty($is_bundle ?? false) || !empty($requestData[\'enable_bundle_mode\'] ?? false);')
+        ->and($content)
+        ->toContain('if ($isBundlePreviewMode) {')
+        ->and($content)
+        ->toContain('$newKey = $key;')
+        ->and($content)
+        ->toContain('if ($filterType === \'Populer\') {')
+        ->and($content)
+        ->toContain('$populerDetailMap[$newKey] = $selectedCombination;');
+});
+
 test('bundle generation respects mixed store mode from request instead of forcing one-stop', function () {
     $content = File::get(app_path('Http/Controllers/MaterialCalculationExecutionController.php'));
 

@@ -4,6 +4,8 @@ use App\Http\Controllers\MaterialCalculationExecutionController;
 use App\Repositories\CalculationRepository;
 use App\Services\Calculation\CombinationGenerationService;
 
+uses(Tests\TestCase::class);
+
 function makeBundleControllerForStoreLockTests(): MaterialCalculationExecutionController
 {
     $repo = Mockery::mock(CalculationRepository::class);
@@ -33,19 +35,33 @@ function makeBundleControllerForStoreLockTests(): MaterialCalculationExecutionCo
             return $this->evaluateBundleMaterialReuseMetrics($selectedCandidates);
         }
 
+        public function exposeBuildBundleSummaryCombinations(
+            array $bundleItemPayloads,
+            array $priceFilters,
+            array $bundleOptions = [],
+        ): array {
+            return $this->buildBundleSummaryCombinations($bundleItemPayloads, $priceFilters, $bundleOptions);
+        }
+
     };
 }
 
-function bundleStoreLockCandidate(int $grandTotal, ?int $cementId = null, ?int $sandId = null): array
+function bundleStoreLockCandidate(
+    int $grandTotal,
+    ?int $cementId = null,
+    ?int $sandId = null,
+    int $storeLocationId = 101,
+    string $storeName = 'Toko A',
+): array
 {
     return [
         'result' => ['grand_total' => $grandTotal],
-        'store_label' => 'Toko A',
+        'store_label' => $storeName,
         'store_plan' => [
-            ['store_location_id' => 101, 'store_name' => 'Toko A'],
+            ['store_location_id' => $storeLocationId, 'store_name' => $storeName],
         ],
-        'cement' => $cementId ? (object) ['id' => $cementId, 'brand' => 'C-' . $cementId, 'store' => 'Toko A'] : null,
-        'sand' => $sandId ? (object) ['id' => $sandId, 'brand' => 'S-' . $sandId, 'store' => 'Toko A'] : null,
+        'cement' => $cementId ? (object) ['id' => $cementId, 'brand' => 'C-' . $cementId, 'store' => $storeName] : null,
+        'sand' => $sandId ? (object) ['id' => $sandId, 'brand' => 'S-' . $sandId, 'store' => $storeName] : null,
     ];
 }
 
@@ -232,4 +248,128 @@ test('single-store bundle selection can pick next variant with same shared mater
 
     $secondSelected = is_array($secondSelection['selected_candidates'] ?? null) ? $secondSelection['selected_candidates'] : [];
     expect((int) (($secondSelected[0]['cat']->id ?? 0)))->toBe(32);
+});
+
+test('single-store bundle can use different one-stop store across price ranks in same prefix', function () {
+    $controller = makeBundleControllerForStoreLockTests();
+
+    $itemPayloads = [
+        [
+            'title' => 'Item 1',
+            'work_type' => 'wall_plastering',
+            'requestData' => ['work_type' => 'wall_plastering'],
+            'projects' => [
+                [
+                    'combinations' => [
+                        'Ekonomis 1' => [
+                            bundleStoreLockCandidate(100, 11, 21, 101, 'Toko A'),
+                            bundleStoreLockCandidate(120, 31, 41, 202, 'Toko B'),
+                        ],
+                        'Ekonomis 2' => [
+                            bundleStoreLockCandidate(130, 12, 22, 101, 'Toko A'),
+                            bundleStoreLockCandidate(160, 32, 42, 202, 'Toko B'),
+                        ],
+                    ],
+                ],
+            ],
+        ],
+        [
+            'title' => 'Item 2',
+            'work_type' => 'wall_plastering',
+            'requestData' => ['work_type' => 'wall_plastering'],
+            'projects' => [
+                [
+                    'combinations' => [
+                        'Ekonomis 1' => [
+                            bundleStoreLockCandidate(101, 11, 21, 101, 'Toko A'),
+                            bundleStoreLockCandidate(121, 31, 41, 202, 'Toko B'),
+                        ],
+                        'Ekonomis 2' => [
+                            bundleStoreLockCandidate(131, 12, 22, 101, 'Toko A'),
+                            bundleStoreLockCandidate(161, 32, 42, 202, 'Toko B'),
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $bundleCombinations = $controller->exposeBuildBundleSummaryCombinations(
+        $itemPayloads,
+        ['cheapest'],
+        [
+            'use_store_filter' => true,
+            'allow_mixed_store' => false,
+        ],
+    );
+
+    $ekonomis1 = $bundleCombinations['Ekonomis 1'][0] ?? null;
+    $ekonomis2 = $bundleCombinations['Ekonomis 2'][0] ?? null;
+
+    expect($ekonomis1)->toBeArray()
+        ->and($ekonomis2)->toBeArray()
+        ->and((string) ($ekonomis1['store_label'] ?? ''))->toBe('Toko A')
+        ->and((string) ($ekonomis2['store_label'] ?? ''))->toBe('Toko B');
+});
+
+test('single-store bundle rank fallback can pick alternate store when strict lock unavailable on higher rank', function () {
+    $controller = makeBundleControllerForStoreLockTests();
+
+    $itemPayloads = [
+        [
+            'title' => 'Item 1',
+            'work_type' => 'wall_plastering',
+            'requestData' => ['work_type' => 'wall_plastering'],
+            'projects' => [
+                [
+                    'combinations' => [
+                        'Ekonomis 1' => [
+                            bundleStoreLockCandidate(100, 11, 21, 101, 'Toko A'),
+                            bundleStoreLockCandidate(120, 31, 41, 202, 'Toko B'),
+                        ],
+                        'Ekonomis 2' => [
+                            bundleStoreLockCandidate(130, 12, 22, 101, 'Toko A'),
+                            bundleStoreLockCandidate(150, 31, 41, 202, 'Toko B'),
+                        ],
+                    ],
+                ],
+            ],
+        ],
+        [
+            'title' => 'Item 2',
+            'work_type' => 'wall_plastering',
+            'requestData' => ['work_type' => 'wall_plastering'],
+            'projects' => [
+                [
+                    'combinations' => [
+                        'Ekonomis 1' => [
+                            bundleStoreLockCandidate(101, 11, 21, 101, 'Toko A'),
+                            bundleStoreLockCandidate(121, 32, 42, 202, 'Toko B'),
+                        ],
+                        'Ekonomis 2' => [
+                            bundleStoreLockCandidate(131, 12, 22, 101, 'Toko A'),
+                            bundleStoreLockCandidate(151, 33, 43, 202, 'Toko B'),
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ];
+
+    $bundleCombinations = $controller->exposeBuildBundleSummaryCombinations(
+        $itemPayloads,
+        ['cheapest'],
+        [
+            'use_store_filter' => true,
+            'allow_mixed_store' => false,
+        ],
+    );
+
+    $ekonomis1 = $bundleCombinations['Ekonomis 1'][0] ?? null;
+    $ekonomis2 = $bundleCombinations['Ekonomis 2'][0] ?? null;
+
+    expect($ekonomis1)->toBeArray()
+        ->and($ekonomis2)->toBeArray()
+        ->and((string) ($ekonomis1['store_label'] ?? ''))->toBe('Toko A')
+        ->and((string) ($ekonomis2['store_label'] ?? ''))->toBe('Toko B');
 });

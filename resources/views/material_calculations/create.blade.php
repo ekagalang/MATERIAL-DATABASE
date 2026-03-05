@@ -1916,8 +1916,14 @@
         --taxonomy-accent-label: #166534;
     }
 
-    #calculationForm .taxonomy-card-item {
-        border-left: 4px solid #10b981;
+    #calculationForm .taxonomy-card-item,
+    .additional-work-item .additional-worktype-group {
+        --taxonomy-accent: #2563eb;
+        --taxonomy-accent-soft: #eff6ff;
+        --taxonomy-accent-border: #bfdbfe;
+        --taxonomy-accent-glow: rgba(37, 99, 235, 0.18);
+        --taxonomy-accent-label: #1d4ed8;
+        border-left: 4px solid var(--taxonomy-accent);
     }
 
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-floor,
@@ -1930,9 +1936,11 @@
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-floor,
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-area,
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-field,
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-item,
     .additional-work-item .additional-work-floor-group,
     .additional-work-item .additional-work-area-group,
-    .additional-work-item .additional-work-field-group {
+    .additional-work-item .additional-work-field-group,
+    .additional-work-item .additional-worktype-group {
         position: relative;
         background:
             radial-gradient(120% 140% at 0% 0%, var(--taxonomy-accent-soft) 0%, rgba(255, 255, 255, 0) 62%),
@@ -1947,9 +1955,11 @@
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-floor:focus-within,
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-area:focus-within,
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-field:focus-within,
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-item:focus-within,
     .additional-work-item .additional-work-floor-group:focus-within,
     .additional-work-item .additional-work-area-group:focus-within,
     .additional-work-item .additional-work-field-group:focus-within,
+    .additional-work-item .additional-worktype-group:focus-within,
     .additional-work-item .additional-taxonomy-cell:focus-within {
         border-color: var(--taxonomy-accent);
         box-shadow: 0 0 0 3px var(--taxonomy-accent-glow), 0 6px 18px rgba(15, 23, 42, 0.06);
@@ -1958,9 +1968,11 @@
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-floor > label,
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-area > label,
     #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-field > label,
+    #calculationForm .taxonomy-tree-main.taxonomy-group-card .taxonomy-card-item > label,
     .additional-work-item .additional-work-floor-group > label,
     .additional-work-item .additional-work-area-group > label,
-    .additional-work-item .additional-work-field-group > label {
+    .additional-work-item .additional-work-field-group > label,
+    .additional-work-item .additional-worktype-group > label {
         color: var(--taxonomy-accent-label);
         margin-bottom: 8px;
     }
@@ -2120,7 +2132,7 @@
     #calculationForm .taxonomy-tree-main.taxonomy-group-card.taxonomy-main-horizontal .work-type-group.taxonomy-card-item {
         margin-top: 2px;
         margin-bottom: var(--work-parameter-gap);
-        padding-left: var(--work-item-inline-indent);
+        padding-left: 10px;
         box-sizing: border-box;
     }
 
@@ -2167,7 +2179,7 @@
         }
 
         #calculationForm .taxonomy-tree-main.taxonomy-group-card.taxonomy-main-horizontal .work-type-group.taxonomy-card-item {
-            padding-left: var(--work-item-inline-indent-mobile);
+            padding-left: 10px;
         }
 
         #calculationForm .taxonomy-main-horizontal .work-floor-group,

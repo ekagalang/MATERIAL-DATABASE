@@ -282,3 +282,49 @@ Ya, analisa Anda tepat. Itu memang normal dengan mode Tidak Lengkap.
 
   Kalau mau, saya bisa bantu desain rule “konsisten” yang tetap realistis (mis. konsisten untuk cat saja, tapi material
   lain tetap fleksibel).
+
+
+
+
+
+
+
+
+
+
+  ===========================================================================================
+  KENAPA PREFRENSI DAN POPULER TIDAK MUNCUL SAAT MODE LENGKAP
+  ===========================================================================================
+  Iya, itu konsisten dengan logic yang sekarang. Penyebabnya ini:
+
+  1. Mode Lengkap (Dalam/Luar Radius) itu set:
+
+  - use_store_filter=1
+  - allow_mixed_store=0 (one-stop/satu toko)
+  - scope within atau outside
+    Lihat mapping UI: create.blade.php:15455
+
+  2. Saat allow_mixed_store=0, engine jadi sangat ketat:
+
+  - hanya kandidat single-store
+  - mode chain (nearest_radius_chain / nearest_store_chain) dibuang
+  - kalau kandidat store kosong, tidak fallback ke non-store/global
+    Lihat: CombinationGenerationService.php:763, CombinationGenerationService.php:1912
+
+  3. Di kondisi ketat itu:
+
+  - Preferensi kosong kalau rekomendasi admin tidak ketemu kandidat aktif di pool toko saat itu (atau rekomendasinya
+    memang tidak ada untuk item tersebut).
+    Lihat: CombinationGenerationService.php:2752
+  - Populer kosong kalau signature material kandidat aktif tidak match histori yang dirangking.
+    Lihat: CombinationGenerationService.php:2710
+
+  4. Di bundle, mode Lengkap juga mengaktifkan rule single-store across bundle (lebih ketat lagi), jadi label
+     Preferensi/Populer makin gampang hilang.
+     Lihat: MaterialCalculationExecutionController.php:963
+  5. Mode Tidak Lengkap (allow_mixed_store=1) pool kandidat jauh lebih luas (boleh gabungan toko), jadi Preferensi/
+     Populer lebih sering muncul.
+
+  Jadi bukan karena patch terakhir tabel, tapi karena aturan seleksi kandidat di mode Lengkap memang ketat. Jika kamu
+  mau, next saya bisa ubah behavior supaya di mode Lengkap tetap tampil baris Preferensi/Populer dengan fallback yang
+  terkontrol.

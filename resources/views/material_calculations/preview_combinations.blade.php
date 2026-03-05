@@ -2265,10 +2265,54 @@ $paramValue = $isGroutTile
 
                 // Second pass: Select and renumber combinations for each filter type
                 // Track sequential numbering per filter type
+                $isBundlePreviewMode = !empty($is_bundle ?? false) || !empty($requestData['enable_bundle_mode'] ?? false);
                 $filterTypeNumbers = [];
 
                 foreach ($allCombinations as $key => $combinations) {
                     $filterType = preg_replace('/\s+\d+.*$/', '', $key);
+
+                    if ($isBundlePreviewMode) {
+                        $selectedCombination = null;
+
+                        foreach ($combinations as $combo) {
+                            $currentTotal = $combo['item']['result']['grand_total'] ?? null;
+
+                            if (!$selectedCombination) {
+                                $selectedCombination = $combo;
+                                continue;
+                            }
+
+                            $selectedTotal = $selectedCombination['item']['result']['grand_total'] ?? null;
+
+                            if ($filterType === 'Termahal') {
+                                if ($currentTotal !== null && ($selectedTotal === null || $currentTotal > $selectedTotal)) {
+                                    $selectedCombination = $combo;
+                                }
+                            } else {
+                                if ($currentTotal !== null && ($selectedTotal === null || $currentTotal < $selectedTotal)) {
+                                    $selectedCombination = $combo;
+                                }
+                            }
+                        }
+
+                        if ($selectedCombination) {
+                            $newKey = $key;
+                            $project = $selectedCombination['project'];
+                            $item = $selectedCombination['item'];
+
+                            if ($filterType === 'Populer') {
+                                $populerDetailMap[$newKey] = $selectedCombination;
+                            }
+
+                            $globalRekapData[$newKey] = $buildRekapEntry($project, $item, $newKey);
+                            $detailCombinationMap[$newKey] = [
+                                'project' => $project,
+                                'item' => $item,
+                            ];
+                        }
+
+                        continue;
+                    }
 
                     // Initialize counter for this filter type if not exists
                     if (!isset($filterTypeNumbers[$filterType])) {

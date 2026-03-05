@@ -2027,7 +2027,9 @@ class CombinationGenerationService
         }
 
         if (in_array('cheapest', $requestedFilters, true)) {
-            if (
+            if ($bundleVariantMode && !$allowMixedStore) {
+                $cheapest = $this->selectStoreDiverseCandidatesByCost($candidates, $storeFilterLimit, false);
+            } elseif (
                 $useTopKStoreLabelSelection &&
                 isset($costTopKBatch['cheapest']) &&
                 is_array($costTopKBatch['cheapest'])
@@ -2051,7 +2053,14 @@ class CombinationGenerationService
         }
 
         if (in_array('medium', $requestedFilters, true)) {
-            if ($useTopKStoreLabelSelection && $this->topkBufferAppliesTo('medium')) {
+            if ($bundleVariantMode && !$allowMixedStore) {
+                $averagePool = $this->selectStoreDiverseCandidatesByCost(
+                    $candidates,
+                    max($storeFilterLimit, min(count($candidates), $storeFilterLimit * 4)),
+                    false,
+                );
+                $average = $this->selectAverageStoreCandidates($averagePool, $storeFilterLimit);
+            } elseif ($useTopKStoreLabelSelection && $this->topkBufferAppliesTo('medium')) {
                 $topk = $this->applyTopKBufferToAverageStoreCandidates(
                     $candidates,
                     $storeFilterLimit,
@@ -2076,7 +2085,9 @@ class CombinationGenerationService
         }
 
         if (in_array('expensive', $requestedFilters, true)) {
-            if (
+            if ($bundleVariantMode && !$allowMixedStore) {
+                $expensive = $this->selectStoreDiverseCandidatesByCost($candidates, $storeFilterLimit, true);
+            } elseif (
                 $useTopKStoreLabelSelection &&
                 isset($costTopKBatch['expensive']) &&
                 is_array($costTopKBatch['expensive'])
@@ -2700,6 +2711,97 @@ class CombinationGenerationService
         return array_values(array_map(fn($index) => $candidates[$index], array_slice($indices, 0, $limit)));
     }
 
+    protected function selectStoreDiverseCandidatesByCost(
+        array $candidates,
+        int $limit = 3,
+        bool $descending = false,
+    ): array {
+        $limit = max(1, $limit);
+        if (empty($candidates)) {
+            return [];
+        }
+
+        $groupedByStore = [];
+        foreach ($candidates as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+            $storeKey = $this->extractStoreCandidateIdentityKey($candidate);
+            if (!isset($groupedByStore[$storeKey]) || !is_array($groupedByStore[$storeKey])) {
+                $groupedByStore[$storeKey] = [];
+            }
+            $groupedByStore[$storeKey][] = $candidate;
+        }
+        if (empty($groupedByStore)) {
+            return [];
+        }
+
+        $costSort = static function ($a, $b) use ($descending): int {
+            $costA = (float) ($a['total_cost'] ?? 0);
+            $costB = (float) ($b['total_cost'] ?? 0);
+            if ($costA === $costB) {
+                return strcmp((string) ($a['store_label'] ?? ''), (string) ($b['store_label'] ?? ''));
+            }
+
+            return $descending ? ($costB <=> $costA) : ($costA <=> $costB);
+        };
+
+        foreach ($groupedByStore as $storeKey => $rows) {
+            if (!is_array($rows) || empty($rows)) {
+                unset($groupedByStore[$storeKey]);
+                continue;
+            }
+            usort($rows, $costSort);
+            $groupedByStore[$storeKey] = array_values($rows);
+        }
+        if (empty($groupedByStore)) {
+            return [];
+        }
+
+        uasort($groupedByStore, static function (array $leftRows, array $rightRows) use ($descending): int {
+            $left = (float) (($leftRows[0]['total_cost'] ?? 0));
+            $right = (float) (($rightRows[0]['total_cost'] ?? 0));
+            if ($left === $right) {
+                return 0;
+            }
+
+            return $descending ? ($right <=> $left) : ($left <=> $right);
+        });
+
+        $selected = [];
+        $hasRemaining = true;
+        while (count($selected) < $limit && $hasRemaining) {
+            $hasRemaining = false;
+            foreach ($groupedByStore as $storeKey => $rows) {
+                if (!is_array($rows) || empty($rows)) {
+                    continue;
+                }
+                $selected[] = array_shift($rows);
+                $groupedByStore[$storeKey] = $rows;
+                $hasRemaining = true;
+                if (count($selected) >= $limit) {
+                    break;
+                }
+            }
+        }
+
+        if (count($selected) < $limit) {
+            $remaining = [];
+            foreach ($groupedByStore as $rows) {
+                if (!is_array($rows) || empty($rows)) {
+                    continue;
+                }
+                $remaining = array_merge($remaining, $rows);
+            }
+            if (!empty($remaining)) {
+                usort($remaining, $costSort);
+                $selected = array_merge($selected, array_slice($remaining, 0, $limit - count($selected)));
+            }
+        }
+
+        return array_values(array_slice($selected, 0, $limit));
+    }
+
     protected function selectStorePopularCandidates(
         array $candidates,
         array $requestData,
@@ -2927,8 +3029,9 @@ class CombinationGenerationService
             $ids = $this->extractCandidateMaterialIds($candidate);
             $signature = $this->buildMaterialSignature($ids, $requiredMaterials);
             $mode = (string) ($candidate['store_coverage_mode'] ?? 'single_store');
+            $storeKey = $this->extractStoreCandidateIdentityKey($candidate);
             $cost = round((float) ($candidate['total_cost'] ?? 0), 2);
-            $key = $signature . '|mode:' . $mode . '|cost:' . $cost;
+            $key = $signature . '|mode:' . $mode . '|store:' . $storeKey . '|cost:' . $cost;
 
             if (isset($seen[$key])) {
                 continue;
@@ -2938,6 +3041,38 @@ class CombinationGenerationService
         }
 
         return $unique;
+    }
+
+    protected function extractStoreCandidateIdentityKey(array $candidate): string
+    {
+        $storePlan = $candidate['store_plan'] ?? null;
+        if (is_array($storePlan) && !empty($storePlan)) {
+            $firstStop = $storePlan[0] ?? null;
+            if (is_array($firstStop)) {
+                $storeLocationId = isset($firstStop['store_location_id']) ? (int) $firstStop['store_location_id'] : 0;
+                if ($storeLocationId > 0) {
+                    return 'store_location:' . $storeLocationId;
+                }
+                $storeName = trim((string) ($firstStop['store_name'] ?? ''));
+                $storeCity = trim((string) ($firstStop['city'] ?? ''));
+                if ($storeName !== '') {
+                    return 'store_name:' . strtolower($storeName . '|' . $storeCity);
+                }
+            }
+        }
+
+        $storeLocation = $candidate['store_location'] ?? null;
+        if (is_object($storeLocation) && isset($storeLocation->id) && (int) $storeLocation->id > 0) {
+            return 'store_location:' . (int) $storeLocation->id;
+        }
+
+        $storeLabel = trim((string) ($candidate['store_label'] ?? ''));
+        $storeLabel = trim((string) (preg_replace('/\s+\[(?:Hemat|Premium|Varian(?:\s+\d+)?)\]\s*$/u', '', $storeLabel) ?: $storeLabel));
+        if ($storeLabel !== '') {
+            return 'store_label:' . strtolower($storeLabel);
+        }
+
+        return 'store:unknown';
     }
 
     protected function extractCandidateMaterialIds(array $candidate): array
