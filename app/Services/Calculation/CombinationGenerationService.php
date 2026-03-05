@@ -64,6 +64,27 @@ class CombinationGenerationService
         $this->storeProximityService = $storeProximityService;
     }
 
+    protected function resolveStoreLocationAddress(\App\Models\StoreLocation $location): ?string
+    {
+        $formatted = trim((string) ($location->formatted_address ?? ''));
+        if ($formatted !== '') {
+            return $formatted;
+        }
+
+        $parts = array_filter([
+            trim((string) ($location->address ?? '')),
+            trim((string) ($location->district ?? '')),
+            trim((string) ($location->city ?? '')),
+            trim((string) ($location->province ?? '')),
+        ], static fn($part) => $part !== '');
+
+        if (!empty($parts)) {
+            return implode(', ', $parts);
+        }
+
+        return null;
+    }
+
     protected function normalizeMaterialTypeFilterValues($value): array
     {
         if (is_array($value)) {
@@ -1141,6 +1162,7 @@ class CombinationGenerationService
                 'store_location_id' => $location->id ?? null,
                 'store_name' => $location->store->name ?? 'Unknown',
                 'city' => $location->city ?? null,
+                'address' => $this->resolveStoreLocationAddress($location),
                 'distance_km' => $distanceKm !== null ? round($distanceKm, 3) : null,
                 'service_radius_km' => $location->service_radius_km ?? null,
                 'provided_materials' => $requiredMaterials,
@@ -1250,6 +1272,7 @@ class CombinationGenerationService
             if ($coverage['is_complete'] ?? false) {
                 $coverageBrick = $coverage['selected_brick'] ?? null;
                 $selectedMaterials = $this->capStoreMaterials($coverage['selected_materials'], $workType);
+                $mixedStoreLabel = $this->buildMixedStoreCoverageLabel($coverage['store_plan'] ?? []);
                 $localResults = $this->calculateCombinationsFromMaterials(
                     $coverageBrick instanceof Brick ? $coverageBrick : ($brick ?? new Brick()),
                     $request->all(),
@@ -1258,7 +1281,7 @@ class CombinationGenerationService
                     $selectedMaterials['cat'] ?? collect(),
                     $selectedMaterials['ceramic'] ?? collect(),
                     $selectedMaterials['nat'] ?? collect(),
-                    'Store: Gabungan Toko Terdekat',
+                    'Store: ' . $mixedStoreLabel,
                     $bundleLocalCombinationLimit,
                 );
 
@@ -1268,7 +1291,7 @@ class CombinationGenerationService
                 );
 
                 foreach ($localResults as $result) {
-                    $result['store_label'] = 'Gabungan Toko Terdekat';
+                    $result['store_label'] = $mixedStoreLabel;
                     $result['store_plan'] = $coverage['store_plan'] ?? [];
                     $result['store_coverage_mode'] = $preferWithinPrimaryRadius
                         ? 'nearest_radius_chain'
@@ -1348,6 +1371,39 @@ class CombinationGenerationService
         $allStoreCombinations = $this->deduplicateStoreCandidates($allStoreCombinations, $requiredMaterials);
 
         return $this->buildStoreFilteredResults($allStoreCombinations, $request->all(), $requiredMaterials);
+    }
+
+    protected function buildMixedStoreCoverageLabel(array $storePlan): string
+    {
+        $segments = [];
+        $seen = [];
+
+        foreach ($storePlan as $stop) {
+            if (!is_array($stop)) {
+                continue;
+            }
+
+            $storeName = trim((string) ($stop['store_name'] ?? ''));
+            if ($storeName === '') {
+                continue;
+            }
+            $city = trim((string) ($stop['city'] ?? ''));
+            $segment = $city !== '' ? $storeName . ' (' . $city . ')' : $storeName;
+            $segmentKey = strtolower($segment);
+            if (isset($seen[$segmentKey])) {
+                continue;
+            }
+            $seen[$segmentKey] = true;
+            $segments[] = $segment;
+        }
+
+        if (empty($segments)) {
+            return 'Toko';
+        }
+
+        // Keep store_label as a single concrete store name.
+        // Detailed multi-store chain is rendered from store_plan.
+        return $segments[0];
     }
 
     protected function extractStoreMaterialsFromAvailability(
@@ -1577,6 +1633,7 @@ class CombinationGenerationService
             $breakdown[$index] = [
                 'store_location_id' => $entry['store_location_id'] ?? null,
                 'store_name' => $entry['store_name'] ?? ('Toko ' . ($index + 1)),
+                'address' => $entry['address'] ?? null,
                 'distance_km' => $entry['distance_km'] ?? null,
                 'provided_materials' => $entry['provided_materials'] ?? [],
                 'estimated_cost' => 0.0,
@@ -3055,8 +3112,9 @@ class CombinationGenerationService
                 }
                 $storeName = trim((string) ($firstStop['store_name'] ?? ''));
                 $storeCity = trim((string) ($firstStop['city'] ?? ''));
+                $storeAddress = trim((string) ($firstStop['address'] ?? ''));
                 if ($storeName !== '') {
-                    return 'store_name:' . strtolower($storeName . '|' . $storeCity);
+                    return 'store_name:' . strtolower($storeName . '|' . $storeCity . '|' . $storeAddress);
                 }
             }
         }

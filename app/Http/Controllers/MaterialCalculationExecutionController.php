@@ -1540,6 +1540,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 }
 
                 if (!empty($candidateLists)) {
+                    $strictLockRequiredForLabel = $this->requiresBundleStrictMaterialLock($candidateLists);
                     $prefixExcludedSignatures = array_keys(
                         $usedSelectionSignaturesByPrefix[$labelPrefixKey] ?? [],
                     );
@@ -1584,6 +1585,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                                 );
                             }
                         }
+                    } elseif ($strictLockRequiredForLabel && $isPriceRankLabel) {
+                        // Do not fallback to per-item defaults for price ranks when strict shared-material
+                        // lock is required but no non-duplicate strict variant exists.
+                        $isComplete = false;
+                        $selectedItems = [];
                     }
                 }
             }
@@ -1766,38 +1772,36 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 continue;
             }
 
-            if ($enforceSingleStoreAcrossBundle) {
-                if (!is_string($selectionSignatureForLabel) || $selectionSignatureForLabel === '') {
-                    $selectionSignatureForLabel = $this->buildBundleSelectionSignature(
-                        array_values(
-                            array_filter(
-                                array_map(
-                                    static fn($row) => is_array($row['combination'] ?? null) ? $row['combination'] : null,
-                                    $selectedItems,
-                                ),
-                                static fn($row) => is_array($row) && !empty($row),
+            if (!is_string($selectionSignatureForLabel) || $selectionSignatureForLabel === '') {
+                $selectionSignatureForLabel = $this->buildBundleSelectionSignature(
+                    array_values(
+                        array_filter(
+                            array_map(
+                                static fn($row) => is_array($row['combination'] ?? null) ? $row['combination'] : null,
+                                $selectedItems,
                             ),
+                            static fn($row) => is_array($row) && !empty($row),
                         ),
-                    );
+                    ),
+                );
+            }
+            if ($selectionSignatureForLabel !== '') {
+                if (isset($usedSelectionSignaturesByPrefix[$labelPrefixKey][$selectionSignatureForLabel])) {
+                    continue;
                 }
-                if ($selectionSignatureForLabel !== '') {
-                    if (isset($usedSelectionSignaturesByPrefix[$labelPrefixKey][$selectionSignatureForLabel])) {
-                        continue;
-                    }
-                    if (!isset($usedSelectionSignaturesByPrefix[$labelPrefixKey])) {
-                        $usedSelectionSignaturesByPrefix[$labelPrefixKey] = [];
-                    }
-                    $usedSelectionSignaturesByPrefix[$labelPrefixKey][$selectionSignatureForLabel] = true;
-                    if ($isPriceRankLabel) {
-                        $usedSelectionSignaturesForPriceRanks[$selectionSignatureForLabel] = true;
-                    }
+                if (!isset($usedSelectionSignaturesByPrefix[$labelPrefixKey])) {
+                    $usedSelectionSignaturesByPrefix[$labelPrefixKey] = [];
                 }
-                if ($isPriceRankLabel && is_string($selectedStoreKeyForLabel) && $selectedStoreKeyForLabel !== '') {
-                    if (!isset($usedStoreKeysByPrefix[$labelPrefixKey])) {
-                        $usedStoreKeysByPrefix[$labelPrefixKey] = [];
-                    }
-                    $usedStoreKeysByPrefix[$labelPrefixKey][$selectedStoreKeyForLabel] = true;
+                $usedSelectionSignaturesByPrefix[$labelPrefixKey][$selectionSignatureForLabel] = true;
+                if ($isPriceRankLabel) {
+                    $usedSelectionSignaturesForPriceRanks[$selectionSignatureForLabel] = true;
                 }
+            }
+            if ($enforceSingleStoreAcrossBundle && $isPriceRankLabel && is_string($selectedStoreKeyForLabel) && $selectedStoreKeyForLabel !== '') {
+                if (!isset($usedStoreKeysByPrefix[$labelPrefixKey])) {
+                    $usedStoreKeysByPrefix[$labelPrefixKey] = [];
+                }
+                $usedStoreKeysByPrefix[$labelPrefixKey][$selectedStoreKeyForLabel] = true;
             }
 
             $bundleCombinations[$label] = [$this->buildBundleAggregatedCombination($label, $selectedItems)];
@@ -1839,8 +1843,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 }
                 $storeName = trim((string) ($entry['store_name'] ?? ''));
                 $storeCity = trim((string) ($entry['city'] ?? ''));
+                $storeAddress = trim((string) ($entry['address'] ?? ''));
                 if ($storeName !== '') {
-                    return 'store_name:' . strtolower($storeName . '|' . $storeCity);
+                    return 'store_name:' . strtolower($storeName . '|' . $storeCity . '|' . $storeAddress);
                 }
             }
         }
@@ -2147,11 +2152,14 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             foreach (array_slice($identitySets, 1) as $identitySet) {
                 $commonIdentities = array_values(array_intersect($commonIdentities, $identitySet));
                 if (empty($commonIdentities)) {
-                    return null;
+                    // Partial lock: keep locking other materials that still have a global intersection.
+                    // Without this, one non-intersecting material would cancel all locks
+                    // and mixed-store selection falls back to per-item cheapest rows.
+                    continue 2;
                 }
             }
             if (empty($commonIdentities)) {
-                return null;
+                continue;
             }
 
             $identityScore = [];
@@ -2762,6 +2770,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         $selectedStorePlan = [];
         $selectedStoreCoverageMode = null;
         $storeIdentityKey = null;
+        $hasChainMode = false;
+        $mergedChainStorePlan = [];
+        $mergedChainStoreLookup = [];
         foreach ($combinations as $combination) {
             if (!is_array($combination) || empty($combination)) {
                 continue;
@@ -2773,6 +2784,39 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $candidateStoreIdentityKey = $this->extractBundleStoreIdentityKeyFromCombination($combination);
             if ($candidateStoreIdentityKey === null) {
                 $candidateStoreIdentityKey = '';
+            }
+            $isChainMode = in_array($candidateStoreCoverageMode, ['nearest_radius_chain', 'nearest_store_chain'], true) ||
+                (is_array($candidateStorePlan) && count($candidateStorePlan) > 1);
+
+            if ($isChainMode) {
+                $hasChainMode = true;
+                foreach ($candidateStorePlan as $chainEntry) {
+                    if (!is_array($chainEntry)) {
+                        continue;
+                    }
+                    $chainStoreLocationId = isset($chainEntry['store_location_id']) ? (int) $chainEntry['store_location_id'] : 0;
+                    $chainStoreName = trim((string) ($chainEntry['store_name'] ?? ''));
+                    $chainStoreCity = trim((string) ($chainEntry['city'] ?? ''));
+                    $chainStoreAddress = trim((string) ($chainEntry['address'] ?? ''));
+                    $chainStoreKey = $chainStoreLocationId > 0
+                        ? 'store_location:' . $chainStoreLocationId
+                        : ('store_name:' . strtolower($chainStoreName . '|' . $chainStoreCity . '|' . $chainStoreAddress));
+                    if (
+                        $chainStoreKey === 'store_name:||' ||
+                        isset($mergedChainStoreLookup[$chainStoreKey])
+                    ) {
+                        continue;
+                    }
+                    $mergedChainStoreLookup[$chainStoreKey] = true;
+                    $mergedChainStorePlan[] = $chainEntry;
+                }
+                if ($selectedStoreCoverageMode === null && $candidateStoreCoverageMode !== '') {
+                    $selectedStoreCoverageMode = $candidateStoreCoverageMode;
+                }
+                if ($selectedStoreLabel === null && $candidateStoreLabel !== '') {
+                    $selectedStoreLabel = $candidateStoreLabel;
+                }
+                continue;
             }
 
             if ($storeIdentityKey === null) {
@@ -2801,6 +2845,32 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             if ($selectedStoreCoverageMode === null && $candidateStoreCoverageMode !== '') {
                 $selectedStoreCoverageMode = $candidateStoreCoverageMode;
             }
+        }
+
+        if ($hasChainMode) {
+            if (empty($mergedChainStorePlan)) {
+                return [
+                    'store_label' => $selectedStoreLabel,
+                    'store_plan' => [],
+                    'store_coverage_mode' => $selectedStoreCoverageMode,
+                ];
+            }
+
+            $firstStore = $mergedChainStorePlan[0] ?? null;
+            $firstStoreName = is_array($firstStore) ? trim((string) ($firstStore['store_name'] ?? '')) : '';
+            $firstStoreCity = is_array($firstStore) ? trim((string) ($firstStore['city'] ?? '')) : '';
+            $resolvedStoreLabel = $selectedStoreLabel;
+            if ($firstStoreName !== '') {
+                $resolvedStoreLabel = $firstStoreCity !== ''
+                    ? ($firstStoreName . ' (' . $firstStoreCity . ')')
+                    : $firstStoreName;
+            }
+
+            return [
+                'store_label' => $resolvedStoreLabel,
+                'store_plan' => $mergedChainStorePlan,
+                'store_coverage_mode' => $selectedStoreCoverageMode,
+            ];
         }
 
         return [
@@ -3079,7 +3149,9 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         if (!$model) {
             return null;
         }
-        $resolvedStoreDisplay = $this->resolveBundleStoreDisplayFromCombination($combination);
+        $resolvedStoreSource = $this->resolveBundleMaterialSourceFromCombination($combination, $materialKey);
+        $resolvedStoreDisplay = trim((string) ($resolvedStoreSource['store_display'] ?? ''));
+        $resolvedAddressDisplay = trim((string) ($resolvedStoreSource['address_display'] ?? ''));
 
         $formatNum = static fn($value) => \App\Helpers\NumberHelper::format($value);
 
@@ -3129,7 +3201,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'store_field' => 'store',
             'address_field' => 'address',
             'store_display' => $resolvedStoreDisplay !== '' ? $resolvedStoreDisplay : ($model->store ?? '-'),
-            'address_display' => $model->address ?? '-',
+            'address_display' => $resolvedAddressDisplay !== '' ? $resolvedAddressDisplay : ($model->address ?? '-'),
             'package_price' => 0,
             'package_unit' => '',
             'price_per_unit' => $pricePerUnit,
@@ -3311,6 +3383,71 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         }
 
         return null;
+    }
+
+    protected function resolveBundleMaterialSourceFromCombination(array $combination, string $materialKey): array
+    {
+        $storePlan = is_array($combination['store_plan'] ?? null) ? $combination['store_plan'] : [];
+        $storeCoverageMode = trim((string) ($combination['store_coverage_mode'] ?? ''));
+        $isChainMode = count($storePlan) > 1 || in_array($storeCoverageMode, ['nearest_radius_chain', 'nearest_store_chain'], true);
+        if (empty($storePlan)) {
+            return [
+                'store_display' => $this->resolveBundleStoreDisplayFromCombination($combination),
+                'address_display' => '',
+            ];
+        }
+
+        $pickedEntry = null;
+        foreach ($storePlan as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $providedMaterials = is_array($entry['provided_materials'] ?? null) ? $entry['provided_materials'] : [];
+            if (in_array($materialKey, $providedMaterials, true)) {
+                $pickedEntry = $entry;
+                break;
+            }
+        }
+        if ($pickedEntry === null) {
+            $firstEntry = $storePlan[0] ?? null;
+            if (is_array($firstEntry)) {
+                $pickedEntry = $firstEntry;
+            }
+        }
+        if (!is_array($pickedEntry)) {
+            return [
+                'store_display' => $this->resolveBundleStoreDisplayFromCombination($combination),
+                'address_display' => '',
+            ];
+        }
+
+        $storeLocationId = isset($pickedEntry['store_location_id']) ? (int) ($pickedEntry['store_location_id'] ?? 0) : 0;
+        $storeName = trim((string) ($pickedEntry['store_name'] ?? ''));
+        $storeCity = trim((string) ($pickedEntry['city'] ?? ''));
+        $storeAddress = trim((string) ($pickedEntry['address'] ?? ''));
+
+        $storeDisplay = $storeName;
+        if ($storeDisplay !== '' && $storeCity !== '') {
+            $storeDisplay .= ' (' . $storeCity . ')';
+        }
+        if ($storeDisplay === '') {
+            $storeDisplay = $this->resolveBundleStoreDisplayFromCombination($combination);
+        }
+        if ($storeDisplay === '' && $storeLocationId > 0) {
+            $storeDisplay = 'Lokasi #' . $storeLocationId;
+        } elseif ($isChainMode && $storeDisplay !== '' && $storeAddress === '' && $storeLocationId > 0) {
+            $storeDisplay .= ' [Lokasi #' . $storeLocationId . ']';
+        }
+
+        $addressDisplay = $storeAddress;
+        if ($isChainMode && $addressDisplay === '' && $storeLocationId > 0) {
+            $addressDisplay = 'Lokasi #' . $storeLocationId;
+        }
+
+        return [
+            'store_display' => $storeDisplay,
+            'address_display' => $addressDisplay,
+        ];
     }
 
     protected function resolveBundleStoreDisplayFromCombination(array $combination): string

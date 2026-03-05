@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\DB;
  */
 class RecommendationRepository
 {
+    public const MAX_RECOMMENDATIONS_PER_WORK_TYPE = 3;
+
     /**
      * Get all recommendations grouped by work_type
      *
@@ -26,8 +28,11 @@ class RecommendationRepository
         return RecommendedCombination::where('type', 'best')
             ->with(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'])
             ->orderBy('work_type')
+            ->orderBy('sort_order')
+            ->orderBy('id')
             ->get()
-            ->groupBy('work_type');
+            ->groupBy('work_type')
+            ->map(fn($rows) => $rows->take(self::MAX_RECOMMENDATIONS_PER_WORK_TYPE)->values());
     }
 
     /**
@@ -64,11 +69,15 @@ class RecommendationRepository
 
             // 2. Prepare data to insert
             $dataToInsert = [];
+            $insertedCountByWorkType = [];
 
             foreach ($recommendations as $rec) {
-                $workType = $rec['work_type'] ?? null;
+                $workType = trim((string) ($rec['work_type'] ?? ''));
                 $requiredMaterials = $workType ? FormulaRegistry::materialsFor($workType) : [];
                 $requiredMaterials = array_values(array_diff($requiredMaterials, ['brick']));
+                if ($workType === 'grout_tile') {
+                    $requiredMaterials = array_values(array_diff($requiredMaterials, ['ceramic']));
+                }
 
                 if (!$workType || empty($requiredMaterials)) {
                     continue;
@@ -94,6 +103,12 @@ class RecommendationRepository
                 if ($missingRequired) {
                     continue;
                 }
+                if (
+                    (int) ($insertedCountByWorkType[$workType] ?? 0) >=
+                    self::MAX_RECOMMENDATIONS_PER_WORK_TYPE
+                ) {
+                    continue;
+                }
 
                 $dataToInsert[] = [
                     'work_type' => $workType,
@@ -107,6 +122,7 @@ class RecommendationRepository
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
+                $insertedCountByWorkType[$workType] = (int) ($insertedCountByWorkType[$workType] ?? 0) + 1;
             }
 
             // 3. Insert new recommendations

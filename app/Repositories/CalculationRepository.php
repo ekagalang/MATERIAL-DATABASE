@@ -21,6 +21,8 @@ use Illuminate\Support\Collection;
  */
 class CalculationRepository
 {
+    public const MAX_BEST_RECOMMENDATIONS_PER_WORK_TYPE = 3;
+
     /**
      * Get all materials for calculation form
      *
@@ -129,6 +131,8 @@ class CalculationRepository
         return RecommendedCombination::where('work_type', $workType)
             ->where('is_active', true)
             ->orderBy('sort_order')
+            ->orderBy('id')
+            ->limit(self::MAX_BEST_RECOMMENDATIONS_PER_WORK_TYPE)
             ->get();
     }
 
@@ -139,7 +143,11 @@ class CalculationRepository
      */
     public function getRecommendedBrickIds(string $type, ?string $workType = null): Collection
     {
-        $query = RecommendedCombination::where('type', $type)->where('is_active', true);
+        $query = RecommendedCombination::where('type', $type)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->limit(self::MAX_BEST_RECOMMENDATIONS_PER_WORK_TYPE);
 
         if ($workType) {
             $query->where('work_type', $workType);

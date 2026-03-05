@@ -147,6 +147,7 @@ class MaterialCalculationPageController extends MaterialCalculationController
 
         // Check availability of 'best' recommendations per work type
         $bestRecommendations = RecommendedCombination::where('type', 'best')
+            ->where('is_active', true)
             ->select('work_type')
             ->distinct()
             ->pluck('work_type')

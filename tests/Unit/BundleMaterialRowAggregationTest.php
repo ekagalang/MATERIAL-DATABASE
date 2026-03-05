@@ -160,3 +160,80 @@ test('bundle material rows in single-store mode display store from selected stor
     expect($cementRows)->toHaveCount(1)
         ->and((string) ($cementRows[0]['store_display'] ?? ''))->toBe('Toko One Stop (Kota A)');
 });
+
+test('bundle material rows in mixed-store mode map each material to its source store plan entry', function () {
+    $repo = Mockery::mock(CalculationRepository::class);
+    $service = Mockery::mock(CombinationGenerationService::class);
+
+    $controller = new class($repo, $service) extends MaterialCalculationExecutionController
+    {
+        public function __construct(CalculationRepository $repo, CombinationGenerationService $service)
+        {
+            parent::__construct($repo, $service);
+        }
+
+        public function exposeBuildBundleMaterialRows(array $combinations): array
+        {
+            return $this->buildBundleMaterialRows($combinations);
+        }
+    };
+
+    $combinations = [
+        [
+            'result' => [
+                'cement_sak' => 1,
+                'total_cement_price' => 60000,
+                'cement_price_per_sak' => 60000,
+                'sand_m3' => 1,
+                'total_sand_price' => 70000,
+                'sand_price_per_m3' => 70000,
+            ],
+            'store_label' => 'Toko A',
+            'store_coverage_mode' => 'nearest_store_chain',
+            'store_plan' => [
+                [
+                    'store_location_id' => 1001,
+                    'store_name' => 'Toko A',
+                    'city' => 'Kota A',
+                    'address' => 'Alamat A',
+                    'provided_materials' => ['cement'],
+                ],
+                [
+                    'store_location_id' => 1002,
+                    'store_name' => 'Toko A',
+                    'city' => 'Kota A',
+                    'address' => 'Alamat B',
+                    'provided_materials' => ['sand'],
+                ],
+            ],
+            'cement' => makeBundleCementModel('PCC', 'A', 'Store Model Sama', 'Alamat Model Sama', 60000),
+            'sand' => (object) [
+                'type' => 'Pasang',
+                'brand' => 'S-A',
+                'store' => 'Store Model Sama',
+                'address' => 'Alamat Model Sama',
+                'package_unit' => 'Karung',
+                'package_volume' => 0.02,
+                'package_price' => 70000,
+                'comparison_price_per_m3' => 70000,
+            ],
+        ],
+    ];
+
+    $rows = $controller->exposeBuildBundleMaterialRows($combinations);
+    $rowsByMaterial = [];
+    foreach ($rows as $row) {
+        if (!is_array($row)) {
+            continue;
+        }
+        $key = (string) ($row['material_key'] ?? '');
+        if ($key !== '') {
+            $rowsByMaterial[$key] = $row;
+        }
+    }
+
+    expect((string) (($rowsByMaterial['cement']['store_display'] ?? '')))->toBe('Toko A (Kota A)')
+        ->and((string) (($rowsByMaterial['cement']['address_display'] ?? '')))->toBe('Alamat A')
+        ->and((string) (($rowsByMaterial['sand']['store_display'] ?? '')))->toBe('Toko A (Kota A)')
+        ->and((string) (($rowsByMaterial['sand']['address_display'] ?? '')))->toBe('Alamat B');
+});

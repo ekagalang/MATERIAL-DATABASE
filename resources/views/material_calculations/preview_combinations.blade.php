@@ -5150,13 +5150,6 @@ $paramValue = $isGroutTile
                                     <td colspan="21" style="background: #f8fafc; padding: 8px 12px 10px 12px; border-top: 0;">
                                         <div class="d-flex flex-wrap align-items-center gap-2">
                                             <span class="badge rounded-pill text-bg-light border">Sumber Toko</span>
-                                            @if ($storeCoverageMode === 'nearest_radius_chain')
-                                                <span class="badge rounded-pill text-bg-success">Nearest Radius Chain</span>
-                                            @elseif ($storeCoverageMode === 'nearest_store_chain')
-                                                <span class="badge rounded-pill text-bg-warning">Nearest Store Chain</span>
-                                            @elseif ($storeCoverageMode)
-                                                <span class="badge rounded-pill text-bg-secondary">{{ $storeCoverageMode }}</span>
-                                            @endif
                                             @foreach ($storePlan as $storePlanEntry)
                                                 @php
                                                     $providedMaterials = $storePlanEntry['provided_materials'] ?? [];
@@ -5173,17 +5166,6 @@ $paramValue = $isGroutTile
                                                 </span>
                                             @endforeach
                                         </div>
-                                        @if (!empty($storeCostBreakdown))
-                                            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
-                                                <span class="badge rounded-pill text-bg-light border">Biaya per Toko</span>
-                                                @foreach ($storeCostBreakdown as $costEntry)
-                                                    <span class="badge rounded-pill border text-dark bg-white">
-                                                        {{ $costEntry['store_name'] ?? 'Toko' }}:
-                                                        Rp {{ \App\Helpers\NumberHelper::formatFixed((float) ($costEntry['estimated_cost'] ?? 0), 0) }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        @endif
                                     </td>
                                 </tr>
                             @endif
@@ -7906,6 +7888,42 @@ $paramValue = $isGroutTile
 
                         // Extract Details
                         $storeInfo = $item['store_label'] ?? null;
+                        $storePlan = is_array($item['store_plan'] ?? null) ? $item['store_plan'] : [];
+                        $storeNames = [];
+                        $storeNameKeys = [];
+                        foreach ($storePlan as $storePlanEntry) {
+                            if (!is_array($storePlanEntry)) {
+                                continue;
+                            }
+                            $storeLocationId = isset($storePlanEntry['store_location_id'])
+                                ? (int) ($storePlanEntry['store_location_id'] ?? 0)
+                                : 0;
+                            $storeName = trim((string) ($storePlanEntry['store_name'] ?? ''));
+                            if ($storeName === '') {
+                                continue;
+                            }
+                            $storeCity = trim((string) ($storePlanEntry['city'] ?? ''));
+                            $storeAddress = trim((string) ($storePlanEntry['address'] ?? ''));
+                            $storeLabelBase = $storeCity !== '' ? $storeName . ' (' . $storeCity . ')' : $storeName;
+                            if ($storeAddress !== '') {
+                                $storeLabel = $storeLabelBase . ' - ' . $storeAddress;
+                            } elseif ($storeLocationId > 0) {
+                                $storeLabel = $storeLabelBase . ' - Lokasi #' . $storeLocationId;
+                            } else {
+                                $storeLabel = $storeLabelBase;
+                            }
+                            $storeKey = $storeLocationId > 0
+                                ? ('store_location:' . $storeLocationId)
+                                : strtolower($storeName . '|' . $storeCity . '|' . $storeAddress);
+                            if (isset($storeNameKeys[$storeKey])) {
+                                continue;
+                            }
+                            $storeNameKeys[$storeKey] = true;
+                            $storeNames[] = $storeLabel;
+                        }
+                        if (empty($storeNames) && !empty($storeInfo)) {
+                            $storeNames[] = trim((string) $storeInfo);
+                        }
                         $cementInfo = isset($item['cement']) ? $item['cement']->brand ?? '' : null;
                         $sandInfo = isset($item['sand']) ? $item['sand']->brand ?? '' : null;
                         $catInfo = isset($item['cat']) ? $item['cat']->brand ?? '' : null;
@@ -7942,6 +7960,7 @@ $paramValue = $isGroutTile
                             'brick' => $brickLabel,
                             'grand_total' => $grandTotal,
                             'store' => $storeInfo,
+                            'store_names' => $storeNames,
                             'cement' => $cementInfo,
                             'sand' => $sandInfo,
                             'cat' => $catInfo,
@@ -8175,11 +8194,17 @@ $paramValue = $isGroutTile
                                                     <td>{{ $row['brick'] ?: '-' }}</td>
                                                 @endif
                                                 <td>
-                                                    @if (!empty($row['store']))
+                                                    @if (!empty($row['store_names']) && is_array($row['store_names']))
                                                         <div class="mb-1 text-primary fw-bold"
                                                             style="font-size: 0.75rem;">
-                                                            <i
-                                                                class="bi bi-shop me-1"></i>{{ Str::before($row['store'], ' (') }}
+                                                            @foreach ($row['store_names'] as $storeName)
+                                                                <span class="d-block">
+                                                                    @if ($loop->first)
+                                                                        <i class="bi bi-shop me-1"></i>
+                                                                    @endif
+                                                                    {{ $storeName }}
+                                                                </span>
+                                                            @endforeach
                                                         </div>
                                                     @endif
                                                     <div class="text-secondary lh-sm" style="font-size: 0.7rem;">

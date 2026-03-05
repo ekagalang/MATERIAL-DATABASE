@@ -213,6 +213,7 @@ class MaterialCalculationController extends Controller
 
         // Check availability of 'best' recommendations per work type
         $bestRecommendations = RecommendedCombination::where('type', 'best')
+            ->where('is_active', true)
             ->select('work_type')
             ->distinct()
             ->pluck('work_type')
@@ -630,6 +631,7 @@ class MaterialCalculationController extends Controller
                 // 1. Filter Preferensi (Best)
                 if (in_array('best', $priceFilters, true)) {
                     $recommendedBrickIds = RecommendedCombination::where('type', 'best')
+                        ->where('is_active', true)
                         ->where('work_type', $workType)
                         ->pluck('brick_id')
                         ->unique()
@@ -1258,7 +1260,10 @@ class MaterialCalculationController extends Controller
             // For 'best' filter, use RecommendedCombination
             if ($filter === 'best') {
                 $workType = $request->work_type ?? 'tile_installation';
-                $recommendations = RecommendedCombination::where('work_type', $workType)->where('type', 'best')->get();
+                $recommendations = RecommendedCombination::where('work_type', $workType)
+                    ->where('type', 'best')
+                    ->where('is_active', true)
+                    ->get();
 
                 $bestCombos = [];
 
@@ -2383,4 +2388,3 @@ class MaterialCalculationController extends Controller
         }
     }
 }
-

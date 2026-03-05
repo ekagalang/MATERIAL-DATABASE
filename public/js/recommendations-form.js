@@ -44,6 +44,7 @@
         }
 
         console.log('[Recommendations] Starting initialization...');
+        const maxRecommendationsPerWorkType = 3;
 
         // Immediately hide content with inline style to prevent any flicker
         const originalDisplay = scope.style.display;
@@ -189,6 +190,20 @@
                 });
             };
 
+            const updateAddButtonState = (workType) => {
+                const tabContainer = scope.querySelector(`.recommendation-tabs[data-work-type="${workType}"]`);
+                if (!tabContainer) return;
+                const addBtn = tabContainer.querySelector('.recommendation-add-btn');
+                if (!addBtn) return;
+                const tabCount = tabContainer.querySelectorAll('.recommendation-tab-btn').length;
+                const atLimit = tabCount >= maxRecommendationsPerWorkType;
+                addBtn.disabled = atLimit;
+                addBtn.classList.toggle('disabled', atLimit);
+                addBtn.title = atLimit
+                    ? `Maksimal ${maxRecommendationsPerWorkType} rekomendasi per item pekerjaan`
+                    : 'Tambah Rekomendasi';
+            };
+
             scope.addEventListener('click', function(e) {
                 const target = e.target;
                 const tabBtn = target.closest('.recommendation-tab-btn');
@@ -208,6 +223,10 @@
                     if (!tabContainer || !panelContainer || !rowTemplate) return;
 
                     const newIndex = tabContainer.querySelectorAll('.recommendation-tab-btn').length;
+                    if (newIndex >= maxRecommendationsPerWorkType) {
+                        updateAddButtonState(workType);
+                        return;
+                    }
                     const newTabId = `${workType}-rec-${newIndex}`;
 
                     const newTabBtn = document.createElement('button');
@@ -233,6 +252,7 @@
 
                     initializeRow(clone);
                     switchTab(newTabId, workType);
+                    updateAddButtonState(workType);
                     return;
                 }
 
@@ -246,6 +266,7 @@
                         const tabBtn = scope.querySelector(`.recommendation-tab-btn[data-tab="${tabId}"]`);
                         if (tabBtn) tabBtn.remove();
                         panel.remove();
+                        updateAddButtonState(workType);
 
                         const firstBtn = scope.querySelector(`.recommendation-tab-btn[data-work-type="${workType}"]`);
                         if (firstBtn) switchTab(firstBtn.dataset.tab, workType);
@@ -416,6 +437,13 @@
                     switchTab(firstTab.dataset.tab, firstTab.dataset.workType);
                 }
             }
+
+            scope.querySelectorAll('.recommendation-tabs[data-work-type]').forEach(tabContainer => {
+                const workType = tabContainer.dataset.workType;
+                if (workType) {
+                    updateAddButtonState(workType);
+                }
+            });
 
             // Smoothly show content after everything is initialized
             scope.style.transition = 'opacity 0.2s ease-in, visibility 0s';

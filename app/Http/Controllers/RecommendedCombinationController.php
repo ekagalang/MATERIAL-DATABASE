@@ -9,23 +9,29 @@ use App\Models\Ceramic;
 use App\Models\Nat;
 use App\Models\RecommendedCombination;
 use App\Models\Sand;
+use App\Repositories\RecommendationRepository;
 use App\Services\FormulaRegistry;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class RecommendedCombinationController extends Controller
 {
+    public function __construct(private RecommendationRepository $repository) {}
+
     public function index()
     {
         // Get existing recommendations grouped by work_type with eager loaded relationships
         $recommendations = RecommendedCombination::with(['brick', 'cement', 'sand', 'cat', 'ceramic', 'nat'])
             ->where('type', 'best')
             ->orderBy('work_type')
+            ->orderBy('sort_order')
+            ->orderBy('id')
             ->get();
 
         // Group recommendations by work_type
-        $groupedRecommendations = $recommendations->groupBy('work_type');
+        $groupedRecommendations = $recommendations
+            ->groupBy('work_type')
+            ->map(fn($rows) => $rows->take(RecommendationRepository::MAX_RECOMMENDATIONS_PER_WORK_TYPE)->values());
 
         // Get options for dropdowns
         $bricks = Brick::orderBy('brand')->get();
@@ -74,73 +80,11 @@ class RecommendedCombinationController extends Controller
         ]);
 
         try {
-            DB::beginTransaction();
-
-            // 1. Delete all existing 'best' recommendations
-            // This ensures that removed rows in the UI are removed from the DB
-            RecommendedCombination::where('type', 'best')->delete();
-
-            // 2. Insert new ones
-            $dataToInsert = [];
-
             $submittedRecommendations = $request->recommendations ?? [];
-
-            foreach ($submittedRecommendations as $rec) {
-                $workType = $rec['work_type'] ?? null;
-                $requiredMaterials = $workType ? FormulaRegistry::materialsFor($workType) : [];
-                $requiredMaterials = array_values(array_diff($requiredMaterials, ['brick']));
-                if ($workType === 'grout_tile') {
-                    $requiredMaterials = array_values(array_diff($requiredMaterials, ['ceramic']));
-                }
-
-                if (!$workType || empty($requiredMaterials)) {
-                    continue;
-                }
-
-                $missingRequired = false;
-                foreach ($requiredMaterials as $material) {
-                    $key = $material . '_id';
-                    if ($material === 'nat') {
-                        if (empty($rec['nat_id'])) {
-                            $missingRequired = true;
-                            break;
-                        }
-                        continue;
-                    }
-
-                    if (empty($rec[$key])) {
-                        $missingRequired = true;
-                        break;
-                    }
-                }
-
-                if ($missingRequired) {
-                    continue;
-                }
-
-                $dataToInsert[] = [
-                    'work_type' => $workType,
-                    'brick_id' => $rec['brick_id'] ?? null,
-                    'cement_id' => $rec['cement_id'] ?? null,
-                    'sand_id' => $rec['sand_id'] ?? null,
-                    'cat_id' => $rec['cat_id'] ?? null,
-                    'ceramic_id' => $rec['ceramic_id'] ?? null,
-                    'nat_id' => $rec['nat_id'] ?? null,
-                    'type' => 'best',
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-
-            if (!empty($dataToInsert)) {
-                RecommendedCombination::insert($dataToInsert);
-            }
-
-            DB::commit();
+            $this->repository->bulkUpdateRecommendations($submittedRecommendations);
 
             return redirect()->back()->with('success', 'Daftar rekomendasi berhasil diperbarui.');
         } catch (\Exception $e) {
-            DB::rollBack();
             return redirect()
                 ->back()
                 ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());

@@ -6,6 +6,31 @@ use Illuminate\Support\Collection;
 
 class StoreProximityService
 {
+    protected function resolveLocationAddress($location): ?string
+    {
+        if (!$location) {
+            return null;
+        }
+
+        $formatted = trim((string) ($location->formatted_address ?? ''));
+        if ($formatted !== '') {
+            return $formatted;
+        }
+
+        $parts = array_filter([
+            trim((string) ($location->address ?? '')),
+            trim((string) ($location->district ?? '')),
+            trim((string) ($location->city ?? '')),
+            trim((string) ($location->province ?? '')),
+        ], static fn($part) => $part !== '');
+
+        if (!empty($parts)) {
+            return implode(', ', $parts);
+        }
+
+        return null;
+    }
+
     public function haversineKm(float $lat1, float $lng1, float $lat2, float $lng2): float
     {
         $earthRadiusKm = 6371.0;
@@ -138,6 +163,7 @@ class StoreProximityService
                     'store_location_id' => $location->id ?? null,
                     'store_name' => $location->store->name ?? 'Unknown',
                     'city' => $location->city ?? null,
+                    'address' => $this->resolveLocationAddress($location),
                     'distance_km' => round($distanceKm, 3),
                     'service_radius_km' => $location->service_radius_km ?? null,
                     'provided_materials' => array_values(array_unique($provided)),
