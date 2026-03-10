@@ -9,6 +9,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(RefreshDatabase::class);
 
 test('api bulk update accepts grout_tile recommendation without ceramic id', function () {
+    $this->actingAsUserWithPermissions(['recommendations.manage']);
     $nat = Nat::factory()->create();
 
     $response = $this->postJson('/api/v1/recommendations/bulk-update', [
@@ -34,6 +35,7 @@ test('api bulk update accepts grout_tile recommendation without ceramic id', fun
 });
 
 test('material calculation create only exposes active best recommendations', function () {
+    $this->actingAsUserWithPermissions(['calculations.manage']);
     RecommendedCombination::query()->create([
         'work_type' => 'brick_half',
         'type' => 'best',
@@ -62,6 +64,7 @@ test('material calculation create only exposes active best recommendations', fun
 });
 
 test('api bulk update stores maximum three recommendations per work type', function () {
+    $this->actingAsUserWithPermissions(['recommendations.manage']);
     $payload = [
         'recommendations' => [],
     ];

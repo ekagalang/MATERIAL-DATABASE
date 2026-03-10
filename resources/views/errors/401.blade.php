@@ -107,8 +107,8 @@
         /* Stop Sign for 401/403 */
         .stop-sign {
             position: absolute;
-            top: 50px;
-            right: 180px;
+            top: 5px;
+            right: 205px;
             width: 120px;
             height: 120px;
             background: #ef4444;
@@ -121,15 +121,15 @@
             font-weight: 900;
             font-size: 30px;
             z-index: 20;
-            transform: rotate(15deg);
+            transform: rotate(-15deg);
             box-shadow: 5px 5px 15px rgba(0,0,0,0.3);
             animation: pulseSign 2s infinite;
         }
         
         @keyframes pulseSign {
-            0% { transform: rotate(15deg) scale(1); }
-            50% { transform: rotate(15deg) scale(1.1); }
-            100% { transform: rotate(15deg) scale(1); }
+            0% { transform: rotate(-15deg) scale(1); }
+            50% { transform: rotate(-15deg) scale(1.1); }
+            100% { transform: rotate(-15deg) scale(1); }
         }
 
         .worker {
@@ -149,7 +149,7 @@
         .vest-stripe { position: absolute; background: #cbd5e1; height: 20px; width: 100%; }
         .vs-v { width: 25px; height: 100%; top: 0; } .vs-v-1 { left: 25px; } .vs-v-2 { right: 25px; } .vs-h { bottom: 30px; }
         .shirt-collar { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 50px; height: 30px; background: #1e293b; border-radius: 0 0 25px 25px; }
-        .head-group { position: absolute; top: 60px; left: 65px; width: 90px; height: 100px; transform-origin: bottom center; animation: headTilt 4s ease-in-out infinite; z-index: 5; }
+        .head-group { position: absolute; top: 32px; left: 56px; width: 90px; height: 100px; transform-origin: bottom center; animation: headTilt 4s ease-in-out infinite; z-index: 5; }
         @keyframes headTilt { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-5deg); } 75% { transform: rotate(5deg); } }
         .neck { position: absolute; bottom: -10px; left: 25px; width: 40px; height: 30px; background: #f1dca7; border-radius: 0 0 10px 10px; }
         .face { position: absolute; top: 20px; width: 70px; height: 70px; left: 10px; background: #f1dca7; border-radius: 15px; }
@@ -162,7 +162,7 @@
         .hand-right { position: absolute; bottom: -10px; left: 0; width: 35px; height: 35px; background: #f1dca7; border-radius: 50%; }
         
         /* Left arm raised (Stop gesture) */
-        .arm-left { top: 140px; left: 40px; height: 80px; transform-origin: top center; transform: rotate(-150deg); z-index: 6; }
+        .arm-left { top: 155px; left: 25px; height: 80px; transform-origin: top center; transform: rotate(-200deg); z-index: 6; }
         .forearm-left { position: absolute; bottom: -40px; left: 0; width: 35px; height: 50px; background: #f1dca7; border-radius: 10px; transform-origin: top center; transform: rotate(0deg); } 
         /* Hand palm open */
         .hand-palm { position: absolute; bottom: -30px; left: -5px; width: 45px; height: 45px; background: #f1dca7; border-radius: 10px; }

@@ -28,8 +28,8 @@
         .leg-left { left: 55px; } .leg-right { right: 75px; }
         .boot { position: absolute; bottom: 0; width: 50px; height: 25px; background: #3f2c22; border-radius: 10px 10px 0 0; border-bottom: 5px solid #1c1917; z-index: 5; }
         .boot-left { left: 50px; } .boot-right { right: 70px; }
-        .head-group { position: absolute; top: 75px; left: 75px; width: 80px; height: 90px; transform-origin: bottom center; z-index: 10; animation: headShake 5s infinite; }
-        .neck { position: absolute; bottom: -15px; left: 25px; width: 30px; height: 25px; background: #f1dca7; border-radius: 10px; }
+        .head-group { position: absolute; top: 65px; left: 60px; width: 80px; height: 90px; transform-origin: bottom center; z-index: 10; animation: headShake 5s infinite; }
+        .neck { position: absolute; bottom: 0px; left: 25px; width: 30px; height: 25px; background: #f1dca7; border-radius: 10px; }
         .face { position: absolute; top: 0; width: 70px; height: 75px; left: 5px; background: #f1dca7; border-radius: 20px; }
         .helmet { position: absolute; top: -20px; left: -5px; width: 90px; height: 45px; background: #fbbf24; border-radius: 50px 50px 10px 10px; border-bottom: 5px solid #d97706; }
         .arm { position: absolute; width: 30px; height: 100px; background: #1e293b; border-radius: 15px; transform-origin: 15px 15px; }

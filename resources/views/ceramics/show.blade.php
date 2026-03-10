@@ -1,5 +1,5 @@
 <div class="card">
-    <div style="display: flex; gap: 32px;">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 0.9fr); gap: 32px; align-items: start;">
         <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
             <div style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
@@ -292,7 +292,8 @@
         </div>
 
         <!-- Kolom Kanan - Foto Produk -->
-        <div style="flex: 0 0 360px; max-width: 360px;">
+        <div style="display: grid;">
+        <div style="width: 100%;">
             @php
                 $photoUrl = $ceramic->photo ? Storage::url($ceramic->photo) : null;
             @endphp
@@ -345,6 +346,8 @@
                 </div>
             </div>
             @endif
+            </div>
+            @include('materials.partials.change-history', ['materialEntity' => $ceramic])
         </div>
     </div>
 </div>

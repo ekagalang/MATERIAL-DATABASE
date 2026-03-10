@@ -32,9 +32,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transform: rotate(-15deg);
-            top: 200px;
-            left: -10%;
+            transform: rotate(0deg);
+            top: 300px;
+            left: 0%;
             z-index: 20;
             box-shadow: 0 5px 10px rgba(0,0,0,0.3);
             border-top: 2px solid #000;
@@ -61,7 +61,7 @@
         .vest-stripe { position: absolute; background: #cbd5e1; height: 20px; width: 100%; }
         .vs-v { width: 25px; height: 100%; top: 0; } .vs-v-1 { left: 25px; } .vs-v-2 { right: 25px; } .vs-h { bottom: 30px; }
         .shirt-collar { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 50px; height: 30px; background: #1e293b; border-radius: 0 0 25px 25px; }
-        .head-group { position: absolute; top: 60px; left: 65px; width: 90px; height: 100px; transform-origin: bottom center; z-index: 5; }
+        .head-group { position: absolute; top: 33px; left: 57px; width: 90px; height: 100px; transform-origin: bottom center; z-index: 5; }
         .neck { position: absolute; bottom: -10px; left: 25px; width: 40px; height: 30px; background: #f1dca7; border-radius: 0 0 10px 10px; }
         .face { position: absolute; top: 20px; width: 70px; height: 70px; left: 10px; background: #f1dca7; border-radius: 15px; }
         .helmet { position: absolute; top: 0; width: 90px; height: 45px; background: #fbbf24; border-radius: 50px 50px 10px 10px; border-bottom: 5px solid #d97706; z-index: 10; }
@@ -69,8 +69,8 @@
         .arm { position: absolute; width: 35px; height: 100px; background: #1e293b; border-radius: 20px; }
 
         /* Arms crossed (Defensive/Blocking) */
-        .arm-right { top: 140px; right: 40px; height: 90px; transform: rotate(-45deg); z-index: 6; }
-        .arm-left { top: 140px; left: 40px; height: 90px; transform: rotate(45deg); z-index: 6; }
+        .arm-right { top: 130px; right: -9px; height: 90px; transform: rotate(-45deg); z-index: 6; }
+        .arm-left { top: 130px; left: -5px; height: 90px; transform: rotate(45deg); z-index: 6; }
         .hand { position: absolute; bottom: -10px; width: 35px; height: 35px; background: #f1dca7; border-radius: 50%; }
     </style>
 </head>

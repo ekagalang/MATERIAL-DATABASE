@@ -14,7 +14,7 @@
         }
         $packageQtyUnitLabel = 'Bh )';
     @endphp
-    <div style="display: flex; gap: 32px;">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 0.9fr); gap: 32px; align-items: start;">
         <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
             <div style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
@@ -251,8 +251,9 @@
         </div>
 
         <!-- Kolom Kanan - Foto Produk -->
+        <div style="display: grid;">
         @if($brick->photo_url)
-        <div style="flex: 0 0 360px; max-width: 360px;">
+        <div style="width: 100%;">
             <div style="border: 2px solid #f1f5f9; 
                         border-radius: 16px; 
                         padding: 8px; 
@@ -283,7 +284,7 @@
             </div>
         </div>
         @else
-        <div style="flex: 0 0 360px; max-width: 360px;">
+        <div style="width: 100%;">
             <div style="border: 2px dashed #e2e8f0; 
                         border-radius: 16px; 
                         padding: 8px; 
@@ -303,6 +304,8 @@
             </div>
         </div>
         @endif
+            @include('materials.partials.change-history', ['materialEntity' => $brick])
+        </div>
     </div>
 </div>
 

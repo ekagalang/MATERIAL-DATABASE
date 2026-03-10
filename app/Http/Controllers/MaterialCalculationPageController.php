@@ -56,7 +56,13 @@ class MaterialCalculationPageController extends MaterialCalculationController
             }
         }
 
-        return redirect()->route('material-calculations.create');
+        $user = auth()->user();
+
+        if ($user && ($user->can('calculations.manage') || $user->can('projects.manage'))) {
+            return redirect()->route('material-calculations.create');
+        }
+
+        return redirect()->route('material-calculations.log');
     }
 
     public function create(Request $request)

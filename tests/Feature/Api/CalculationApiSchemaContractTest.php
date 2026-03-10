@@ -2,13 +2,13 @@
 
 namespace Tests\Feature\Api;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class CalculationApiSchemaContractTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     private function requireCalculationTable(): void
     {
@@ -19,6 +19,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_index_returns_expected_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.view']);
         $this->requireCalculationTable();
 
         $response = $this->getJson('/api/v1/calculations');
@@ -32,6 +33,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_show_returns_not_found_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.view']);
         $this->requireCalculationTable();
 
         $response = $this->getJson('/api/v1/calculations/999999999');
@@ -41,6 +43,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_update_returns_not_found_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.manage']);
         $this->requireCalculationTable();
 
         $response = $this->putJson('/api/v1/calculations/999999999', []);
@@ -50,6 +53,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_destroy_returns_not_found_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.manage']);
         $this->requireCalculationTable();
 
         $response = $this->deleteJson('/api/v1/calculations/999999999');
@@ -59,6 +63,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_calculate_returns_validation_error_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.manage']);
         $response = $this->postJson('/api/v1/calculations/calculate', []);
 
         $response->assertStatus(422)->assertJsonPath('success', false)->assertJsonPath('message', 'Validation error')
@@ -67,6 +72,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_preview_returns_validation_error_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.manage']);
         $response = $this->postJson('/api/v1/calculations/preview', []);
 
         $response->assertStatus(422)->assertJsonPath('success', false)->assertJsonPath('message', 'Validation error')
@@ -75,6 +81,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_compare_returns_validation_error_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.manage']);
         $response = $this->postJson('/api/v1/calculations/compare', []);
 
         $response->assertStatus(422)->assertJsonPath('success', false)->assertJsonPath('message', 'Validation error')
@@ -83,6 +90,7 @@ class CalculationApiSchemaContractTest extends TestCase
 
     public function test_trace_returns_validation_error_contract_shape(): void
     {
+        $this->actingAsUserWithPermissions(['calculations.manage']);
         $response = $this->postJson('/api/v1/calculations/trace', []);
 
         $response->assertStatus(422)->assertJsonPath('success', false)->assertJsonPath('message', 'Validation error')

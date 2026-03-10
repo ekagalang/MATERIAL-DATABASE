@@ -48,6 +48,7 @@
                             'province' => trim((string) ($location->province ?? '')),
                             'latitude' => is_numeric($location->latitude) ? (float) $location->latitude : null,
                             'longitude' => is_numeric($location->longitude) ? (float) $location->longitude : null,
+                            'service_radius_km' => is_numeric($location->service_radius_km) ? (float) $location->service_radius_km : null,
                         ];
                     });
                 })
@@ -65,6 +66,7 @@
                     <div id="storesIndexLocationsMap"
                         class="stores-index-map"
                         data-google-maps-api-key="{{ config('services.google.maps_api_key') }}"
+                        data-store-label-min-zoom="12"
                         data-store-marker-icon="{{ asset('images/store-marker.svg') }}"></div>
                 @else
                     <div class="alert alert-light border mb-0 py-2 px-3 small text-muted">
@@ -469,6 +471,46 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    const ensureStoreMarkerLabelStyle = function() {
+        if (document.getElementById('stores-index-marker-label-style')) {
+            return;
+        }
+
+        const style = document.createElement('style');
+        style.id = 'stores-index-marker-label-style';
+        style.textContent = `
+            .stores-index-marker-label-overlay {
+                position: absolute;
+                transform: translate3d(18px, -31px, 0);
+                pointer-events: none;
+                will-change: transform, left, top;
+            }
+            .stores-index-marker-label {
+                display: inline-block;
+                color: #0f172a;
+                font-size: 12px;
+                font-weight: 600;
+                line-height: 1.15;
+                white-space: nowrap;
+                letter-spacing: 0.05px;
+                text-shadow:
+                    -1px -1px 0 #ffffff,
+                    1px -1px 0 #ffffff,
+                    -1px 1px 0 #ffffff,
+                    1px 1px 0 #ffffff,
+                    0 0 2px rgba(255, 255, 255, 0.95),
+                    0 1px 2px rgba(15, 23, 42, 0.2);
+            }
+        `;
+        document.head.appendChild(style);
+    };
+
+    const buildStoreMarkerLabelText = function(name) {
+        const text = String(name || '').trim();
+        if (!text) return 'Toko';
+        return text.length <= 26 ? text : `${text.slice(0, 25)}...`;
+    };
+
     const createStoreIcon = function() {
         const iconUrl = mapEl.dataset.storeMarkerIcon || '/images/store-marker.svg';
         return {
@@ -487,9 +529,89 @@ document.addEventListener('DOMContentLoaded', function() {
             .replace(/'/g, '&#39;');
     };
 
+    const buildStoreInfoContent = function(point) {
+        const addressText = point.address ? escapeHtml(point.address) : '-';
+        const cityProvinceText = [point.city, point.province].filter(Boolean).map(escapeHtml).join(', ');
+        const radiusText = Number.isFinite(Number(point.service_radius_km))
+            ? `<div style="font-size:12px;color:#475569;">Radius layanan: ${escapeHtml(point.service_radius_km)} km</div>`
+            : '';
+
+        return `
+            <div style="min-width:220px;line-height:1.45;">
+                <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${escapeHtml(point.store_name || '-')}</div>
+                <div style="font-size:12px;color:#64748b;">${addressText}</div>
+                ${cityProvinceText ? `<div style="font-size:12px;color:#64748b;">${cityProvinceText}</div>` : ''}
+                ${radiusText}
+            </div>
+        `;
+    };
+
+    const createStoreNameOverlay = function(map, position, storeName, minZoom) {
+        if (!window.google?.maps || typeof window.google.maps.OverlayView !== 'function') {
+            return null;
+        }
+
+        const latLng = new google.maps.LatLng(position.lat, position.lng);
+        const labelText = buildStoreMarkerLabelText(storeName);
+
+        class StoreNameOverlay extends google.maps.OverlayView {
+            constructor() {
+                super();
+                this.containerEl = null;
+            }
+
+            onAdd() {
+                const container = document.createElement('div');
+                container.className = 'stores-index-marker-label-overlay';
+
+                const label = document.createElement('span');
+                label.className = 'stores-index-marker-label';
+                label.textContent = labelText;
+                container.appendChild(label);
+
+                this.containerEl = container;
+                const panes = this.getPanes();
+                if (panes?.overlayLayer) {
+                    panes.overlayLayer.appendChild(container);
+                }
+            }
+
+            draw() {
+                if (!this.containerEl) return;
+
+                const currentZoom = typeof map.getZoom === 'function' ? Number(map.getZoom()) : NaN;
+                const hiddenByZoom = Number.isFinite(currentZoom) && currentZoom < minZoom;
+                this.containerEl.style.display = hiddenByZoom ? 'none' : 'block';
+                if (hiddenByZoom) return;
+
+                const projection = this.getProjection();
+                if (!projection) return;
+
+                const pixel = projection.fromLatLngToDivPixel(latLng);
+                if (!pixel) return;
+
+                this.containerEl.style.left = `${Math.round(pixel.x)}px`;
+                this.containerEl.style.top = `${Math.round(pixel.y)}px`;
+            }
+
+            onRemove() {
+                if (this.containerEl?.parentNode) {
+                    this.containerEl.parentNode.removeChild(this.containerEl);
+                }
+                this.containerEl = null;
+            }
+        }
+
+        const overlay = new StoreNameOverlay();
+        overlay.setMap(map);
+        return overlay;
+    };
+
     window.GoogleMapsPicker.loadApi(apiKey)
         .then(function() {
             if (!window.google?.maps) return;
+
+            ensureStoreMarkerLabelStyle();
 
             const map = new google.maps.Map(mapEl, {
                 center: { lat: Number(points[0].latitude), lng: Number(points[0].longitude) },
@@ -498,11 +620,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 streetViewControl: false,
                 fullscreenControl: false,
                 gestureHandling: 'greedy',
+                scrollwheel: true,
             });
 
             const bounds = new google.maps.LatLngBounds();
             const infoWindow = new google.maps.InfoWindow();
             const icon = createStoreIcon();
+            const markerNameOverlays = [];
+            const parsedLabelMinZoom = Number(mapEl.dataset.storeLabelMinZoom);
+            const storeLabelMinZoom = Number.isFinite(parsedLabelMinZoom) ? parsedLabelMinZoom : 12;
+            const activeRadiusCircle = new google.maps.Circle({
+                map,
+                radius: 0,
+                strokeColor: '#2563eb',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: '#3b82f6',
+                fillOpacity: 0.08,
+                clickable: false,
+                visible: false,
+            });
 
             points.forEach(function(point) {
                 const lat = Number(point.latitude);
@@ -517,25 +654,54 @@ document.addEventListener('DOMContentLoaded', function() {
                     position,
                     title: point.store_name || 'Toko',
                     icon,
+                    zIndex: 10,
                 });
 
+                const nameOverlay = createStoreNameOverlay(map, position, point.store_name, storeLabelMinZoom);
+                if (nameOverlay) {
+                    markerNameOverlays.push(nameOverlay);
+                }
+
                 marker.addListener('click', function() {
-                    infoWindow.setContent(`
-                        <div style="min-width:220px;line-height:1.45;">
-                            <div style="font-weight:700;color:#0f172a;margin-bottom:4px;">${escapeHtml(point.store_name || '-')}</div>
-                            <div style="font-size:12px;color:#64748b;">${escapeHtml(point.address || '-')}</div>
-                            <div style="font-size:12px;color:#64748b;">${escapeHtml(point.city || '-')} ${point.province ? ', ' + escapeHtml(point.province) : ''}</div>
-                        </div>
-                    `);
+                    infoWindow.setContent(buildStoreInfoContent(point));
                     infoWindow.open(map, marker);
+
+                    const radiusKm = Number(point.service_radius_km);
+                    if (Number.isFinite(radiusKm) && radiusKm > 0) {
+                        activeRadiusCircle.setCenter(position);
+                        activeRadiusCircle.setRadius(radiusKm * 1000);
+                        activeRadiusCircle.setVisible(true);
+                    } else {
+                        activeRadiusCircle.setVisible(false);
+                    }
                 });
+            });
+
+            if (markerNameOverlays.length > 0 && typeof map.addListener === 'function') {
+                map.addListener('zoom_changed', function() {
+                    markerNameOverlays.forEach(function(overlay) {
+                        if (overlay && typeof overlay.draw === 'function') {
+                            overlay.draw();
+                        }
+                    });
+                });
+            }
+
+            map.addListener('click', function() {
+                infoWindow.close();
+                activeRadiusCircle.setVisible(false);
             });
 
             if (points.length === 1) {
                 map.setCenter(bounds.getCenter());
                 map.setZoom(14);
             } else {
-                map.fitBounds(bounds, 60);
+                map.fitBounds(bounds, 70);
+                google.maps.event.addListenerOnce(map, 'bounds_changed', function() {
+                    if (map.getZoom() > 14) {
+                        map.setZoom(14);
+                    }
+                });
             }
         })
         .catch(function(error) {

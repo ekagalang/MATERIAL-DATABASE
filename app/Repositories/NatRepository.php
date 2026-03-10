@@ -76,7 +76,9 @@ class NatRepository extends BaseRepository
             $query->where($column, 'like', "%{$search}%");
         }
 
-        return $query->select($column)->groupBy($column)->orderBy($column)->limit($limit)->pluck($column);
+        $values = $query->select($column)->groupBy($column)->orderBy($column)->limit($limit)->pluck($column);
+
+        return \App\Support\Material\MaterialAutocompleteValueFormatter::formatValues('nat', $field, $values);
     }
 
     public function getAllStores(?string $search = null, int $limit = 20, string $materialType = 'nat'): Collection

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMaterialChangeHistory;
 use App\Models\Concerns\SyncsStoreLocationSnapshot;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,6 +16,7 @@ use App\Helpers\MaterialTypeDetector;
 class Sand extends Model
 {
     use HasFactory;
+    use HasMaterialChangeHistory;
     use SyncsStoreLocationSnapshot;
 
     protected $table = 'sands';

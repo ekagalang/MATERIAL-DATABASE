@@ -3,13 +3,13 @@
 namespace Tests\Feature\Api;
 
 use App\Models\Nat;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 class NatApiTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -24,6 +24,7 @@ class NatApiTest extends TestCase
 
     public function test_can_list_nats(): void
     {
+        $this->actingAsUserWithPermissions(['materials.view']);
         Nat::create([
             'nat_name' => 'Nat A',
             'brand' => 'Brand A',
@@ -43,6 +44,7 @@ class NatApiTest extends TestCase
 
     public function test_can_create_nat(): void
     {
+        $this->actingAsUserWithPermissions(['materials.manage']);
         $response = $this->postJson('/api/v1/nats', [
             'type' => 'Nat Tile',
             'brand' => 'Alpha',
@@ -68,6 +70,7 @@ class NatApiTest extends TestCase
 
     public function test_can_update_nat(): void
     {
+        $this->actingAsUserWithPermissions(['materials.manage']);
         $nat = Nat::create([
             'nat_name' => 'Nat Lama',
             'brand' => 'Brand Lama',
@@ -94,6 +97,7 @@ class NatApiTest extends TestCase
 
     public function test_can_delete_nat(): void
     {
+        $this->actingAsUserWithPermissions(['materials.manage']);
         $nat = Nat::create([
             'nat_name' => 'Nat Hapus',
             'brand' => 'To Delete',

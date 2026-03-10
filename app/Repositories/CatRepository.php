@@ -84,7 +84,9 @@ class CatRepository extends BaseRepository
             $query->where($field, 'like', "%{$search}%");
         }
 
-        return $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
+        $values = $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
+
+        return \App\Support\Material\MaterialAutocompleteValueFormatter::formatValues('cat', $field, $values);
     }
 
     public function getAllStores(?string $search = null, int $limit = 20, string $materialType = 'cat'): Collection

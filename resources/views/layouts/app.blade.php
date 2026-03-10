@@ -8,6 +8,7 @@
         $topbarTitle = $explicitTitle !== '' ? $explicitTitle : 'Database Material';
         $routeTitleMap = [
             'dashboard' => 'Dashboard',
+            'profile.*' => 'Profile',
             'material-calculations.*' => 'Proyek',
             'material-calculator.*' => 'Proyek',
             'materials.*' => 'Database Material',
@@ -73,6 +74,174 @@
         textarea {
             will-change: contents;
         }
+
+        .topbar-account {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .topbar-account-dropdown .dropdown-toggle::after {
+            display: none;
+        }
+
+        .topbar-account-trigger {
+            min-height: 44px;
+            padding: 6px 8px 6px 12px;
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, 0.08);
+            transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+        }
+
+        .topbar-account-trigger:hover,
+        .topbar-account-trigger:focus {
+            transform: translateY(-1px);
+            border-color: rgba(137, 19, 19, 0.22);
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+        }
+
+        .topbar-account-meta {
+            display: grid;
+            gap: 1px;
+            text-align: right;
+        }
+
+        .topbar-account-name {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 13px;
+            line-height: 1.1;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #891313 0%, #e10009 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            white-space: nowrap;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topbar-role {
+            font-size: 10px;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            white-space: nowrap;
+        }
+
+        .topbar-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #891313 0%, #e10009 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 900;
+            box-shadow: 0 10px 20px rgba(137, 19, 19, 0.18);
+            flex-shrink: 0;
+        }
+
+        .topbar-chevron {
+            color: #94a3b8;
+            font-size: 11px;
+            transition: transform .16s ease;
+        }
+
+        .topbar-account-dropdown .dropdown-toggle[aria-expanded="true"] .topbar-chevron {
+            transform: rotate(180deg);
+        }
+
+        .topbar-account-menu {
+            width: min(280px, calc(100vw - 32px));
+            margin-top: 10px !important;
+            border: 1px solid rgba(226, 232, 240, 0.95);
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 20px 42px rgba(15, 23, 42, 0.16);
+        }
+
+        .topbar-menu-head {
+            padding: 10px 12px 12px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(255, 243, 240, 0.92) 0%, rgba(248, 250, 252, 0.95) 100%);
+            border: 1px solid rgba(244, 196, 191, 0.8);
+            margin-bottom: 8px;
+        }
+
+        .topbar-menu-name {
+            font-size: 0.92rem;
+            line-height: 1.15;
+            font-weight: 800;
+            color: #172033;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .topbar-menu-email {
+            font-size: 0.74rem;
+            color: #6b7280;
+            margin: 4px 0 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .topbar-menu-role {
+            display: inline-flex;
+            align-items: center;
+            margin-top: 8px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: #fff;
+            border: 1px solid rgba(226, 232, 240, 0.9);
+            color: #891313;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .topbar-account-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #172033;
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .topbar-account-menu .dropdown-item:hover,
+        .topbar-account-menu .dropdown-item:focus {
+            background: #f8fafc;
+        }
+
+        .topbar-account-menu .dropdown-item.text-danger {
+            color: #b91c1c !important;
+        }
+
+        .topbar-account-menu .dropdown-divider {
+            margin: 8px 2px;
+            border-color: rgba(226, 232, 240, 0.9);
+        }
+
+        .topbar-logout-button {
+            width: 100%;
+            border: none;
+            background: transparent;
+            text-align: left;
+        }
     </style>
 
     {{-- Page Ready Script - Run ASAP --}}
@@ -96,85 +265,129 @@
         </button>
         <div class="topbar-title"><i class="bi bi-caret-right-fill"></i> {{ $topbarTitle }} @yield('topbar-badge')</div>
         <div class="topbar-account">
-            <span class="topbar-role">Admin</span>
-            <span class="topbar-avatar" aria-hidden="true">
-                <i class="bi bi-person-fill"></i>
-            </span>
+            @auth
+                @php
+                    $activeUser = auth()->user();
+                    $activeRole = $activeUser->getRoleNames()->first() ?? 'user';
+                @endphp
+                <div class="dropdown topbar-account-dropdown">
+                    <button
+                        class="btn topbar-account-trigger dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        <div class="topbar-account-meta">
+                            <span class="topbar-account-name">{{ $activeUser->name }}</span>
+                            <span class="topbar-role">{{ \Illuminate\Support\Str::headline($activeRole) }}</span>
+                        </div>
+                        <span class="topbar-avatar" aria-hidden="true" title="{{ $activeUser->name }}">
+                            {{ strtoupper(substr($activeUser->name, 0, 1)) }}
+                        </span>
+                        <i class="bi bi-chevron-down topbar-chevron"></i>
+                    </button>
+
+                    <div class="dropdown-menu dropdown-menu-end topbar-account-menu">
+                        <div class="topbar-menu-head">
+                            <p class="topbar-menu-name">{{ $activeUser->name }}</p>
+                            <p class="topbar-menu-email">{{ $activeUser->email }}</p>
+                            <span class="topbar-menu-role">{{ \Illuminate\Support\Str::headline($activeRole) }}</span>
+                        </div>
+
+                        <a class="dropdown-item" href="{{ route('profile.show') }}">
+                            <i class="bi bi-person-badge"></i>
+                            <span>Profile</span>
+                        </a>
+
+                        <div class="dropdown-divider"></div>
+
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger topbar-logout-button">
+                                <i class="bi bi-box-arrow-right"></i>
+                                <span>Logout</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            @endauth
         </div>
     </div>
     <div class="nav-overlay" id="navOverlay"></div>
     <aside class="sidebar-nav" id="sidebarNav">
         <div class="nav">
-            <a href="{{ url('/') }}" class="{{ request()->is('/') || request()->routeIs('material-calculator.dashboard') || request()->routeIs('material-calculations.*') ? 'active' : '' }}">
-                <i class="bi bi-houses"></i></i> Dashboard
-            </a>
-            
-            <!-- Material Dropdown (Modified for Return & Hover) -->
-            <div class="nav-dropdown-wrapper material-wrapper">
-                <a href="{{ route('materials.index') }}" class="nav-link-btn {{ request()->routeIs('materials.*') || request()->routeIs('bricks.*') || request()->routeIs('cements.*') || request()->routeIs('nats.*') || request()->routeIs('sands.*') || request()->routeIs('cats.*') ? 'active' : '' }}" id="materialNavLink">
-                    <i class="bi bi-box-seam"></i> Material <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+            @can('dashboard.view')
+                <a href="{{ url('/') }}" class="{{ request()->is('/') || request()->routeIs('material-calculator.dashboard') || request()->routeIs('material-calculations.*') ? 'active' : '' }}">
+                    <i class="bi bi-houses"></i></i> Dashboard
                 </a>
-                
-                <div class="nav-dropdown-menu" id="materialDropdownMenu">
-                    <div class="nav-dropdown-content">
-                        <!-- Menu Item: Lihat / Filter (Secondary) -->
-                        <div class="dropdown-item-parent">
-                            <div class="dropdown-item-trigger" tabindex="0" role="button">
-                                Lihat Material
-                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
-                            </div>
-                            
-                            <!-- Nested Sub-Menu: Filter -->
-                            <div class="dropdown-sub-menu">
-                                <div class="dropdown-header">Pilih Material</div>
-                                <div class="work-type-autocomplete nav-material-autocomplete">
-                                    <div class="work-type-input nav-material-input">
-                                        <input type="text" id="navMaterialSearchInput" class="autocomplete-input" placeholder="Cari jenis material..." autocomplete="off" aria-label="Cari jenis material">
-                                    </div>
-                                    <div class="autocomplete-list" id="navMaterialSearchList"></div>
-                                </div>
-                                <div class="dropdown-grid">
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
-                                    <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
-                                </div>
-                                <div class="nav-material-actions">
-                                    <button type="button" id="applyMaterialFilter" class="btn btn-primary-glossy btn-sm nav-material-apply">Terapkan Filter</button>
-                                    <button type="button" id="resetMaterialFilterNav" class="btn btn-outline-danger btn-sm nav-material-reset">Reset</button>
-                                </div>
-                            </div>
-                        </div>
+            @endcan
 
-                        <!-- Menu Item: Tambah Data (Prioritized) -->
-                        <div class="dropdown-item-parent">
-                            <div class="dropdown-item-trigger" tabindex="0" role="button">
-                                Tambah Material
-                                <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+            @canany(['materials.view', 'materials.manage'])
+                <!-- Material Dropdown (Modified for Return & Hover) -->
+                <div class="nav-dropdown-wrapper material-wrapper">
+                    <a href="{{ route('materials.index') }}" class="nav-link-btn {{ request()->routeIs('materials.*') || request()->routeIs('bricks.*') || request()->routeIs('cements.*') || request()->routeIs('nats.*') || request()->routeIs('sands.*') || request()->routeIs('cats.*') ? 'active' : '' }}" id="materialNavLink">
+                        <i class="bi bi-box-seam"></i> Material <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+                    </a>
+
+                    <div class="nav-dropdown-menu" id="materialDropdownMenu">
+                        <div class="nav-dropdown-content">
+                            <div class="dropdown-item-parent">
+                                <div class="dropdown-item-trigger" tabindex="0" role="button">
+                                    Lihat Material
+                                    <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
+                                </div>
+
+                                <div class="dropdown-sub-menu">
+                                    <div class="dropdown-header">Pilih Material</div>
+                                    <div class="work-type-autocomplete nav-material-autocomplete">
+                                        <div class="work-type-input nav-material-input">
+                                            <input type="text" id="navMaterialSearchInput" class="autocomplete-input" placeholder="Cari jenis material..." autocomplete="off" aria-label="Cari jenis material">
+                                        </div>
+                                        <div class="autocomplete-list" id="navMaterialSearchList"></div>
+                                    </div>
+                                    <div class="dropdown-grid">
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="brick"> Bata</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cat"> Cat</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="ceramic"> Keramik</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="sand"> Pasir</label>
+                                        <label class="dropdown-item checkbox-item"><input type="checkbox" class="nav-material-toggle" data-material="cement"> Semen</label>
+                                    </div>
+                                    <div class="nav-material-actions">
+                                        <button type="button" id="applyMaterialFilter" class="btn btn-primary-glossy btn-sm nav-material-apply">Terapkan Filter</button>
+                                        <button type="button" id="resetMaterialFilterNav" class="btn btn-outline-danger btn-sm nav-material-reset">Reset</button>
+                                    </div>
+                                </div>
                             </div>
 
-                            <!-- Nested Sub-Menu: Add Buttons -->
-                            <div class="dropdown-sub-menu">
-                                <div class="dropdown-header">Pilih Material</div>
-                                <div class="work-type-autocomplete nav-material-autocomplete">
-                                    <div class="work-type-input nav-material-input">
-                                        <input type="text" id="navAddMaterialSearchInput" class="autocomplete-input" placeholder="Cari jenis untuk tambah..." autocomplete="off" aria-label="Cari jenis untuk tambah">
+                            @can('materials.manage')
+                                <div class="dropdown-item-parent">
+                                    <div class="dropdown-item-trigger" tabindex="0" role="button">
+                                        Tambah Material
+                                        <i class="bi bi-caret-right-fill ms-auto" style="font-size: 10px; opacity: 0.6;"></i>
                                     </div>
-                                    <div class="autocomplete-list" id="navAddMaterialSearchList"></div>
+
+                                    <div class="dropdown-sub-menu">
+                                        <div class="dropdown-header">Pilih Material</div>
+                                        <div class="work-type-autocomplete nav-material-autocomplete">
+                                            <div class="work-type-input nav-material-input">
+                                                <input type="text" id="navAddMaterialSearchInput" class="autocomplete-input" placeholder="Cari jenis untuk tambah..." autocomplete="off" aria-label="Cari jenis untuk tambah">
+                                            </div>
+                                            <div class="autocomplete-list" id="navAddMaterialSearchList"></div>
+                                        </div>
+                                        <div class="dropdown-grid">
+                                            <a href="{{ route('bricks.create') }}" class="dropdown-item global-open-modal">Bata</a>
+                                            <a href="{{ route('cats.create') }}" class="dropdown-item global-open-modal">Cat</a>
+                                            <a href="{{ route('ceramics.create') }}" class="dropdown-item global-open-modal">Keramik</a>
+                                            <a href="{{ route('sands.create') }}" class="dropdown-item global-open-modal">Pasir</a>
+                                            <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="dropdown-grid">
-                                    <a href="{{ route('bricks.create') }}" class="dropdown-item global-open-modal">Bata</a>
-                                    <a href="{{ route('cats.create') }}" class="dropdown-item global-open-modal">Cat</a>
-                                    <a href="{{ route('ceramics.create') }}" class="dropdown-item global-open-modal">Keramik</a>
-                                    <a href="{{ route('sands.create') }}" class="dropdown-item global-open-modal">Pasir</a>
-                                    <a href="{{ route('cements.create') }}" class="dropdown-item global-open-modal">Semen</a>
-                                </div>
-                            </div>
+                            @endcan
                         </div>
                     </div>
                 </div>
-            </div>
+            @endcanany
 
             <style>
                 /* Hover Logic for Navbar Dropdowns */
@@ -314,107 +527,142 @@
                 });
             </script>
 
-            <a href="{{ route('stores.index') }}" class="{{ request()->routeIs('stores.*') ? 'active' : '' }}">
-                <i class="bi bi-shop"></i> Toko
-            </a>
+            @canany(['stores.view', 'stores.manage'])
+                <a href="{{ route('stores.index') }}" class="{{ request()->routeIs('stores.*') ? 'active' : '' }}">
+                    <i class="bi bi-shop"></i> Toko
+                </a>
+            @endcanany
 
-            <!-- Item Pekerjaan Dropdown -->
-            <div class="nav-dropdown-wrapper work-item-wrapper">
-                <button type="button" class="nav-link-btn {{ request()->routeIs('work-items.*') ? 'active' : '' }}" id="workItemDropdownToggle">
-                    <i class="bi bi-building-gear"></i> Proyek <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
-                </button>
+            @canany(['work-items.view', 'work-items.manage', 'calculations.view', 'calculations.manage', 'projects.view', 'projects.manage'])
+                <div class="nav-dropdown-wrapper work-item-wrapper">
+                    <button type="button" class="nav-link-btn {{ request()->routeIs('work-items.*') || request()->routeIs('material-calculations.*') ? 'active' : '' }}" id="workItemDropdownToggle">
+                        <i class="bi bi-building-gear"></i> Proyek <i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+                    </button>
 
-                <div class="nav-dropdown-menu" id="workItemDropdownMenu">
-                    <div class="nav-dropdown-content">
-                        <!-- Menu Item 1 -->
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('work-items.index') }}"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Lihat Daftar Item Pekerjaan
-                            </a>
-                        </div>
+                    <div class="nav-dropdown-menu" id="workItemDropdownMenu">
+                        <div class="nav-dropdown-content">
+                            @canany(['work-items.view', 'work-items.manage', 'projects.view', 'projects.manage'])
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('work-items.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Lihat Daftar Item Pekerjaan
+                                    </a>
+                                </div>
+                            @endcanany
 
-                        <!-- Menu Item 2 -->
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('material-calculations.create') }}" id="calcNavLink"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Hitung Item Pekerjaan Proyek
-                            </a>
-                        </div>
+                            @canany(['calculations.manage', 'projects.manage'])
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('material-calculations.create') }}" id="calcNavLink"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Hitung Item Pekerjaan Proyek
+                                    </a>
+                                </div>
 
-                        <!-- Menu Item 3 -->
-                        <div class="dropdown-item-parent">
-                            <a href="https://docs.google.com/spreadsheets/d/1tsEQ3a4duHw2AROxsbHaz41n3EiwoFQEpqmWc5XdMP4/edit?usp=sharing" target="_blank"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Tambah Item Pekerjaan
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
-                <i class="bi bi-people"></i> Tukang
-            </a>
-
-            <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
-                <i class="bi bi-tools"></i> Keahlian
-            </a>
-
-            <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
-                <i class="bi bi-rulers"></i> Satuan
-            </a>
-
-            <!-- Settings Dropdown -->
-            <div class="nav-dropdown-wrapper settings-wrapper" style="margin-left: auto;">
-                <button type="button" class="nav-link-btn {{ request()->routeIs('settings.*') ? 'active' : '' }}" id="settingsDropdownToggle">
-                    <i class="bi bi-gear"></i> Pengaturan<i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
-                </button>
-
-                <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
-                    <div class="nav-dropdown-content">
-                        <!-- Menu Item: Preferensi Preferensi -->
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('settings.recommendations.index') }}"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Manajemen Filter Preferensi
-                            </a>
-                        </div>
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('settings.store-search-radius.index') }}"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Radius Pencarian Toko
-                            </a>
-                        </div>
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('settings.work-floors.index') }}"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Manajemen Lantai
-                            </a>
-                        </div>
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('settings.work-areas.index') }}"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Manajemen Area
-                            </a>
-                        </div>
-                        <div class="dropdown-item-parent">
-                            <a href="{{ route('settings.work-fields.index') }}"
-                            class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
-                            role="button">
-                                Manajemen Bidang
-                            </a>
+                                <div class="dropdown-item-parent">
+                                    <a href="https://docs.google.com/spreadsheets/d/1tsEQ3a4duHw2AROxsbHaz41n3EiwoFQEpqmWc5XdMP4/edit?usp=sharing" target="_blank"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Tambah Item Pekerjaan
+                                    </a>
+                                </div>
+                            @endcanany
                         </div>
                     </div>
                 </div>
-            </div>
+            @endcanany
+
+            @can('workers.view')
+                <a href="{{ route('workers.index') }}" class="{{ request()->routeIs('workers.*') ? 'active' : '' }}">
+                    <i class="bi bi-people"></i> Tukang
+                </a>
+            @endcan
+
+            @can('skills.view')
+                <a href="{{ route('skills.index') }}" class="{{ request()->routeIs('skills.*') ? 'active' : '' }}">
+                    <i class="bi bi-tools"></i> Keahlian
+                </a>
+            @endcan
+
+            @canany(['units.view', 'units.manage'])
+                <a href="{{ route('units.index') }}" class="{{ request()->routeIs('units.*') ? 'active' : '' }}">
+                    <i class="bi bi-rulers"></i> Satuan
+                </a>
+            @endcanany
+
+            @canany(['recommendations.manage', 'work-taxonomy.manage', 'store-search-radius.manage', 'settings.manage', 'roles.manage', 'users.manage'])
+                <!-- Settings Dropdown -->
+                <div class="nav-dropdown-wrapper settings-wrapper" style="margin-left: auto;">
+                    <button type="button" class="nav-link-btn {{ request()->routeIs('settings.*') ? 'active' : '' }}" id="settingsDropdownToggle">
+                        <i class="bi bi-gear"></i> Pengaturan<i class="bi bi-caret-right-fill nav-caret" style="font-size: 10px; opacity: 0.7;"></i>
+                    </button>
+
+                    <div class="nav-dropdown-menu" id="settingsDropdownMenu" style="left: auto; right: 0;">
+                        <div class="nav-dropdown-content">
+                            @canany(['recommendations.manage', 'settings.manage'])
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.recommendations.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Manajemen Filter Preferensi
+                                    </a>
+                                </div>
+                            @endcanany
+                            @canany(['store-search-radius.manage', 'settings.manage'])
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.store-search-radius.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Radius Pencarian Toko
+                                    </a>
+                                </div>
+                            @endcanany
+                            @canany(['work-taxonomy.manage', 'settings.manage'])
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.work-floors.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Manajemen Lantai
+                                    </a>
+                                </div>
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.work-areas.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Manajemen Area
+                                    </a>
+                                </div>
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.work-fields.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Manajemen Bidang
+                                    </a>
+                                </div>
+                            @endcanany
+                            @can('roles.manage')
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.roles.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Manajemen Role
+                                    </a>
+                                </div>
+                            @endcan
+                            @can('users.manage')
+                                <div class="dropdown-item-parent">
+                                    <a href="{{ route('settings.users.index') }}"
+                                    class="dropdown-item-trigger d-flex align-items-center text-decoration-none"
+                                    role="button">
+                                        Manajemen User
+                                    </a>
+                                </div>
+                            @endcan
+                        </div>
+                    </div>
+                </div>
+            @endcanany
         </div>
     </aside>
 
@@ -464,7 +712,7 @@
             </div>
             <div class="floating-modal-body" id="globalModalBody">
                 <div style="text-align: center; padding: 60px; color: #94a3b8;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                    <div style="font-size: 48px; margin-bottom: 16px;">?</div>
                     <div style="font-weight: 500;">Loading...</div>
                 </div>
             </div>
@@ -564,6 +812,24 @@
                     dropdownToggle.setAttribute('aria-expanded', 'false');
                 };
 
+                const scrollFocusedItemIntoView = (target) => {
+                    if (!(target instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    const scrollContainer = target.closest('.dropdown-sub-menu .dropdown-grid, .nav-dropdown-content');
+                    if (!(scrollContainer instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    requestAnimationFrame(() => {
+                        target.scrollIntoView({
+                            block: 'nearest',
+                            inline: 'nearest',
+                        });
+                    });
+                };
+
                 // Register this dropdown in the global set
                 activeDropdowns.add({
                     toggleId: toggleId,
@@ -608,12 +874,22 @@
                         if (e.key === 'ArrowDown') {
                             e.preventDefault();
                             const nextParent = parentItems[index + 1];
-                            if (nextParent) nextParent.querySelector('.dropdown-item-trigger').focus();
+                            if (nextParent) {
+                                const nextTrigger = nextParent.querySelector('.dropdown-item-trigger');
+                                if (nextTrigger) {
+                                    nextTrigger.focus();
+                                    scrollFocusedItemIntoView(nextTrigger);
+                                }
+                            }
                         } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
                             const prevParent = parentItems[index - 1];
                             if (prevParent) {
-                                prevParent.querySelector('.dropdown-item-trigger').focus();
+                                const prevTrigger = prevParent.querySelector('.dropdown-item-trigger');
+                                if (prevTrigger) {
+                                    prevTrigger.focus();
+                                    scrollFocusedItemIntoView(prevTrigger);
+                                }
                             } else {
                                 dropdownToggle.focus();
                                 closeDropdown();
@@ -621,7 +897,10 @@
                         } else if (e.key === 'ArrowRight' || e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
                             const firstChild = parent.querySelector('.dropdown-sub-menu input, .dropdown-sub-menu a, .dropdown-sub-menu button');
-                            if (firstChild) firstChild.focus();
+                            if (firstChild) {
+                                firstChild.focus();
+                                scrollFocusedItemIntoView(firstChild);
+                            }
                         } else if (e.key === 'Escape' || e.key === 'ArrowLeft') {
                             e.preventDefault();
                             closeDropdown();
@@ -638,7 +917,10 @@
                         if (e.key === 'ArrowLeft' || e.key === 'Escape') {
                             e.preventDefault();
                             const parentTrigger = item.closest('.dropdown-item-parent').querySelector('.dropdown-item-trigger');
-                            if (parentTrigger) parentTrigger.focus();
+                            if (parentTrigger) {
+                                parentTrigger.focus();
+                                scrollFocusedItemIntoView(parentTrigger);
+                            }
                         } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                             // Navigate to next item IF it is in the same submenu
                             e.preventDefault();
@@ -646,6 +928,7 @@
                             const nextItem = allSubmenuItems[index + 1];
                             if (nextItem && nextItem.closest('.dropdown-sub-menu') === currentSubmenu) {
                                 nextItem.focus();
+                                scrollFocusedItemIntoView(nextItem);
                             }
                         } else if (e.key === 'ArrowUp') {
                             e.preventDefault();
@@ -653,12 +936,17 @@
                             const prevItem = allSubmenuItems[index - 1];
                             if (prevItem && prevItem.closest('.dropdown-sub-menu') === currentSubmenu) {
                                 prevItem.focus();
+                                scrollFocusedItemIntoView(prevItem);
                             }
                         } else if (e.key === 'Enter' && item.tagName === 'INPUT' && item.type === 'checkbox') {
                              // Allow default behavior for checkboxes (toggle)
                              // No preventDefault() here
                         }
                     });
+                });
+
+                dropdownMenu.addEventListener('focusin', function(event) {
+                    scrollFocusedItemIntoView(event.target);
                 });
             }
             }
@@ -1438,7 +1726,7 @@
                 document.body.style.overflow = '';
                 document.body.classList.remove('global-modal-open');
                 setTimeout(() => {
-                    globalModalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">⏳</div><div style="font-weight: 500;">Loading...</div></div>';
+                    globalModalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">?</div><div style="font-weight: 500;">Loading...</div></div>';
                     isGlobalFormDirty = false;
                 }, 300);
             }

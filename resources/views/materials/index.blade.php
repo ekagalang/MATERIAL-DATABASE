@@ -1080,7 +1080,7 @@ html.materials-booting .page-content {
     border: 2px solid #91C6BC;
     border-bottom: none;
     border-radius: 10px 10px 0 0;
-    padding: 6px 10px 3px 14px;
+    padding: 10px 20px 2px 10px;
     margin-bottom: -1px;
     z-index: 11;
     overflow: visible !important;
@@ -3421,6 +3421,73 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modal && modalBody && modalTitle && closeBtn && backdrop) {
         let isFormDirty = false;
 
+        function initMaterialHistoryNavigators(root = document) {
+            root.querySelectorAll('[data-history-stage]').forEach(stage => {
+                if (stage.dataset.historyBound === 'true') {
+                    return;
+                }
+
+                const slides = Array.from(stage.querySelectorAll('[data-history-slide]'));
+                const navs = Array.from(stage.querySelectorAll('[data-history-nav]'));
+                let activeIndex = slides.findIndex(slide => !slide.hasAttribute('hidden'));
+
+                if (activeIndex < 0) {
+                    activeIndex = 0;
+                }
+
+                const sync = () => {
+                    slides.forEach((slide, index) => {
+                        if (index === activeIndex) {
+                            slide.removeAttribute('hidden');
+                        } else {
+                            slide.setAttribute('hidden', 'hidden');
+                        }
+                    });
+
+                    navs.forEach(nav => {
+                        const prevButton = nav.querySelector('[data-history-prev]');
+                        const nextButton = nav.querySelector('[data-history-next]');
+
+                        if (prevButton) {
+                            prevButton.disabled = activeIndex === slides.length - 1;
+                            prevButton.style.opacity = activeIndex === slides.length - 1 ? '0.45' : '1';
+                            prevButton.style.cursor = activeIndex === slides.length - 1 ? 'not-allowed' : 'pointer';
+                        }
+
+                        if (nextButton) {
+                            nextButton.disabled = activeIndex === 0;
+                            nextButton.style.opacity = activeIndex === 0 ? '0.45' : '1';
+                            nextButton.style.cursor = activeIndex === 0 ? 'not-allowed' : 'pointer';
+                        }
+                    });
+                };
+
+                navs.forEach(nav => {
+                    const prevButton = nav.querySelector('[data-history-prev]');
+                    const nextButton = nav.querySelector('[data-history-next]');
+
+                    if (prevButton) {
+                        prevButton.addEventListener('click', () => {
+                            if (activeIndex >= slides.length - 1) return;
+                            activeIndex += 1;
+                            sync();
+                        });
+                    }
+
+                    if (nextButton) {
+                        nextButton.addEventListener('click', () => {
+                            if (activeIndex === 0) return;
+                            activeIndex -= 1;
+                            sync();
+                        });
+                    }
+                });
+
+                stage.dataset.historyBound = 'true';
+                sync();
+            });
+        }
+
         // Use event delegation for open-modal links to handle dynamically loaded content
         document.body.addEventListener('click', function(e) {
             const link = e.target.closest('.open-modal');
@@ -3472,6 +3539,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 modalBody.innerHTML = content ? content.outerHTML : html;
+                initMaterialHistoryNavigators(modalBody);
 
                 // Track dirty state
                 const loadedForm = modalBody.querySelector('form');

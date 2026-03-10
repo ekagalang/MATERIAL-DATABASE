@@ -53,6 +53,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'api_diagnostics_enabled' => env('APP_API_DIAGNOSTICS_ENABLED', env('APP_ENV', 'production') !== 'production'),
+    'web_diagnostics_enabled' => env('APP_WEB_DIAGNOSTICS_ENABLED', env('APP_ENV', 'production') !== 'production'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

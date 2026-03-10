@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMaterialChangeHistory;
 use App\Models\Concerns\SyncsStoreLocationSnapshot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,6 +15,7 @@ use App\Helpers\MaterialTypeDetector;
 class Cat extends Model
 {
     use HasFactory;
+    use HasMaterialChangeHistory;
     use SyncsStoreLocationSnapshot;
 
     protected $fillable = [

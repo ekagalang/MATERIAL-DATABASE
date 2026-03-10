@@ -118,6 +118,55 @@ class MaterialLookupSpec
         'ceramic' => ['brand', 'store', 'type', 'packaging'],
     ];
 
+    /**
+     * @var array<string, array<string, int>>
+     */
+    private const AUTOCOMPLETE_DECIMALS = [
+        'brick' => [
+            'dimension_length' => 11,
+            'dimension_width' => 11,
+            'dimension_height' => 11,
+            'price_per_piece' => 0,
+            'comparison_price_per_m3' => 0,
+        ],
+        'cement' => [
+            'dimension_length' => 11,
+            'dimension_width' => 11,
+            'dimension_height' => 11,
+            'package_weight_gross' => 11,
+            'package_price' => 0,
+            'comparison_price_per_kg' => 0,
+        ],
+        'sand' => [
+            'package_weight_gross' => 11,
+            'dimension_length' => 11,
+            'dimension_width' => 11,
+            'dimension_height' => 11,
+            'package_price' => 0,
+            'comparison_price_per_m3' => 0,
+        ],
+        'cat' => [
+            'volume' => 11,
+            'package_weight_gross' => 11,
+            'package_weight_net' => 11,
+            'purchase_price' => 0,
+            'comparison_price_per_kg' => 0,
+        ],
+        'nat' => [
+            'package_weight_gross' => 11,
+            'package_price' => 0,
+            'comparison_price_per_kg' => 0,
+        ],
+        'ceramic' => [
+            'pieces_per_package' => 0,
+            'dimension_length' => 11,
+            'dimension_width' => 11,
+            'dimension_thickness' => 11,
+            'price_per_package' => 0,
+            'comparison_price_per_m2' => 0,
+        ],
+    ];
+
     public static function allowedFields(string $materialType): array
     {
         return self::ALLOWED_FIELDS[$materialType] ?? [];
@@ -131,5 +180,10 @@ class MaterialLookupSpec
     public static function apiFilterKeys(string $materialType): array
     {
         return self::API_FILTER_KEYS[$materialType] ?? [];
+    }
+
+    public static function autocompleteDecimals(string $materialType, string $field): ?int
+    {
+        return self::AUTOCOMPLETE_DECIMALS[$materialType][$field] ?? null;
     }
 }

@@ -31,6 +31,17 @@ class AppSetting extends Model
         return (float) $value;
     }
 
+    public static function getBool(string $key, bool $default = false): bool
+    {
+        $value = static::getValue($key, $default ? '1' : '0');
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        return in_array((string) $value, ['1', 'true', 'on', 'yes'], true);
+    }
+
     public static function putValue(string $key, mixed $value): void
     {
         static::query()->updateOrCreate(

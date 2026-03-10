@@ -249,6 +249,7 @@ class NatController extends Controller
         }
 
         $values = $query->select($column)->groupBy($column)->orderBy($column)->limit($limit)->pluck($column);
+        $values = \App\Support\Material\MaterialAutocompleteValueFormatter::formatValues('nat', $field, $values);
 
         return response()->json($values);
     }

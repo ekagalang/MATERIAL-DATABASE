@@ -2,11 +2,28 @@
 
 use App\Models\Cement;
 use App\Models\Nat;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 
+function createAutocompleteKindsUser(): User
+{
+    $permission = Permission::findOrCreate('materials.view', 'web');
+    $role = Role::findOrCreate('autocomplete-kinds-tester', 'web');
+    $role->givePermissionTo($permission);
+
+    $user = User::factory()->create();
+    $user->assignRole($role);
+
+    return $user;
+}
+
 test('cement autocomplete endpoint can return combined cement and nat values via kinds filter', function () {
+    $user = createAutocompleteKindsUser();
+
     Cement::factory()->create([
         'type' => 'SemenTypeAutocomplete',
         'brand' => 'Brand Semen A',
@@ -17,7 +34,7 @@ test('cement autocomplete endpoint can return combined cement and nat values via
         'brand' => 'Brand Nat A',
     ]);
 
-    $response = $this->getJson(route('cements.field-values', [
+    $response = $this->actingAs($user)->getJson(route('cements.field-values', [
         'field' => 'type',
         'kinds' => 'cement,nat',
     ]));
@@ -28,6 +45,8 @@ test('cement autocomplete endpoint can return combined cement and nat values via
 });
 
 test('nat autocomplete endpoint can return combined nat and cement values via kinds filter', function () {
+    $user = createAutocompleteKindsUser();
+
     Cement::factory()->create([
         'type' => 'SemenTypeAutocomplete2',
         'brand' => 'Brand Semen B',
@@ -38,7 +57,7 @@ test('nat autocomplete endpoint can return combined nat and cement values via ki
         'brand' => 'Brand Nat B',
     ]);
 
-    $response = $this->getJson(route('nats.field-values', [
+    $response = $this->actingAs($user)->getJson(route('nats.field-values', [
         'field' => 'type',
         'kinds' => 'cement,nat',
     ]));

@@ -680,7 +680,7 @@ html.materials-booting .page-content {
     border: 2px solid #91C6BC;
     border-bottom: none;
     border-radius: 12px 12px 0 0;
-    padding: 8px 12px 4px;
+    padding: 10px 20px 2px 10px;
     margin-bottom: -1px;
     z-index: 6;
     overflow: visible !important;

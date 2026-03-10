@@ -5,8 +5,13 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Exceptions\UnauthorizedException;
+use Spatie\Permission\Middleware\PermissionMiddleware;
+use Spatie\Permission\Middleware\RoleMiddleware;
+use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,6 +21,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->statefulApi();
+
+        $middleware->alias([
+            'role' => RoleMiddleware::class,
+            'permission' => PermissionMiddleware::class,
+            'role_or_permission' => RoleOrPermissionMiddleware::class,
+        ]);
+
         // Enable query logging in development
         $middleware->append(\App\Http\Middleware\LogDatabaseQueries::class);
     })
@@ -47,6 +60,26 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => 'Resource not found',
                     ],
                     404,
+                );
+            }
+
+            if ($e instanceof UnauthorizedException) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Forbidden',
+                    ],
+                    403,
+                );
+            }
+
+            if ($e instanceof TooManyRequestsHttpException) {
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Too many requests',
+                    ],
+                    429,
                 );
             }
 

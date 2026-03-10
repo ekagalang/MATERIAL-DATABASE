@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMaterialChangeHistory;
 use App\Models\Concerns\SyncsStoreLocationSnapshot;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ use Illuminate\Support\Str;
 class Ceramic extends Model
 {
     use HasFactory;
+    use HasMaterialChangeHistory;
     use SyncsStoreLocationSnapshot;
 
     protected $fillable = [

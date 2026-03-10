@@ -100,6 +100,12 @@
 </div>
 
 <div id="calcCreateSearchScope">
+    <div
+        id="materialCalculationVueBridge"
+        class="d-none"
+        aria-hidden="true"
+        data-vue-bridge="material-calculation-create"
+        data-form-selector="#calculationForm"></div>
 <div class="calc-header-row">
     <h3 class="calc-style mb-0"><i class="bi bi-calculator text-primary"></i> Hitung Item Pekerjaan Proyek</h3>
 </div>
@@ -173,29 +179,37 @@
                     <input type="hidden" name="allow_mixed_store" value="0">
                     <input type="hidden" name="store_radius_scope" id="storeRadiusScopeValue" value="{{ $initialStoreRadiusScope }}">
                     <input type="hidden" id="storeSearchModeValue" value="{{ $initialStoreSearchMode }}">
-                    <div class="ssm-group-title">Lengkap</div>
-                    <div class="ssm-row ssm-row-sub">
-                        <input type="checkbox" id="storeModeCompleteWithinCheck"
-                            {{ $initialStoreSearchMode === 'complete_within' ? 'checked' : '' }}>
-                        <label for="storeModeCompleteWithinCheck" class="ssm-label">Dalam Radius</label>
-                        <small class="ssm-desc" id="storeModeCompleteWithinDesc">
-                            Mencari toko dengan material lengkap didalam radius {{ $selectedProjectStoreRadiusKm }} proyek.
-                        </small>
-                    </div>
-                    <div class="ssm-row ssm-row-sub">
-                        <input type="checkbox" id="storeModeCompleteOutsideCheck"
-                            {{ $initialStoreSearchMode === 'complete_outside' ? 'checked' : '' }}>
-                        <label for="storeModeCompleteOutsideCheck" class="ssm-label">Luar Radius</label>
-                        <small class="ssm-desc" id="storeModeCompleteOutsideDesc">
-                            Mencari toko dengan material lengkap didalam radius {{ $selectedProjectStoreRadiusFinalKm }} proyek.
-                        </small>
+                    <div class="ssm-complete-layout">
+                        <div class="ssm-row ssm-row-group">
+                            <input type="checkbox" id="storeModeCompleteGroupCheck"
+                                {{ in_array($initialStoreSearchMode, ['complete_within', 'complete_outside'], true) ? 'checked' : '' }}>
+                            <label for="storeModeCompleteGroupCheck" class="ssm-label">Lengkap</label>
+                        </div>
+                        <div class="ssm-complete-children">
+                            <div class="ssm-row ssm-row-sub">
+                                <input type="checkbox" id="storeModeCompleteWithinCheck"
+                                    {{ $initialStoreSearchMode === 'complete_within' ? 'checked' : '' }}>
+                                <label for="storeModeCompleteWithinCheck" class="ssm-label">Dalam Radius 1</label>
+                                <small class="ssm-desc" id="storeModeCompleteWithinDesc">
+                                    : Mencari Toko Dengan Material Lengkap Dalam Radius {{ $selectedProjectStoreRadiusKm }} dari Proyek.
+                                </small>
+                            </div>
+                            <div class="ssm-row ssm-row-sub">
+                                <input type="checkbox" id="storeModeCompleteOutsideCheck"
+                                    {{ $initialStoreSearchMode === 'complete_outside' ? 'checked' : '' }}>
+                                <label for="storeModeCompleteOutsideCheck" class="ssm-label">Sampai Radius 2</label>
+                                <small class="ssm-desc" id="storeModeCompleteOutsideDesc">
+                                    : Mencari Toko Dengan Material Lengkap Sampai Radius {{ $selectedProjectStoreRadiusFinalKm }} dari Proyek.
+                                </small>
+                            </div>
+                        </div>
                     </div>
                     <div class="ssm-row">
                         <input type="checkbox" id="storeModeIncompleteCheck"
                             {{ $initialStoreSearchMode === 'incomplete' ? 'checked' : '' }}>
                         <label for="storeModeIncompleteCheck" class="ssm-label">Tidak Lengkap</label>
                         <small class="ssm-desc" id="storeModeIncompleteDesc">
-                            Mencari material sedapatnya dari toko terdekat.
+                            : Mencari Material Sedapatnya Secara Bertahap Mulai Dari Toko Terdekat Sampai Lengkap
                         </small>
                     </div>
                 </div>
@@ -435,7 +449,12 @@
                         </div>
                     </div>
             </div>
-                <div class="calc-header-row calc-left-search-row">
+            </div> {{-- /.left-column --}}
+
+            {{-- RIGHT GRID SLOT: FILTER BY --}}
+            <div class="filter-right-column">
+                <div id="filterByRightColumn"></div>
+                <div class="calc-header-row">
                     <div class="calc-inline-search" id="calcInlineSearch" role="search" aria-label="Cari teks pada halaman perhitungan">
                         <div class="calc-inline-search-inputwrap">
                             <i class="bi bi-search calc-inline-search-icon" aria-hidden="true"></i>
@@ -459,11 +478,6 @@
                         </div>
                     </div>
                 </div>
-            </div> {{-- /.left-column --}}
-
-            {{-- RIGHT GRID SLOT: FILTER BY --}}
-            <div class="filter-right-column">
-                <div id="filterByRightColumn"></div>
             </div>
 
             {{-- RIGHT COLUMN: FILTERS --}}
@@ -1030,7 +1044,7 @@
                 <button type="button" id="btnResetForm" class="btn-cancel" style="padding: 5px 20px;">
                     <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
                 </button>
-                <button type="submit" class="btn btn-submit">
+                <button type="submit" class="btn-save" id="btnCalculate" style="padding: 5px 20px;">
                     <i class="bi bi-search"></i> Hitung
                 </button>
             </div>
@@ -1065,7 +1079,14 @@
             grid-column: 2;
             grid-row: 1;
             min-width: 0;
-            align-self: start;
+            align-self: stretch;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #calculationForm .two-column-layout > .filter-right-column > .calc-header-row {
+            margin-top: auto;
+            margin-bottom: 0;
         }
 
         #calculationForm .two-column-layout > .right-column {
@@ -1108,6 +1129,7 @@
         flex: 1 1 auto;
         justify-content: flex-end;
         margin-left: auto;
+        margin-bottom: 15px;
         align-self: flex-start;
         padding: 0;
         border-radius: 0;
@@ -2835,7 +2857,7 @@
         gap: 12px;
     }
 
-    /* Base: flat — no individual card per item */
+    /* Base: flat ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â no individual card per item */
     .additional-work-item {
         background: transparent;
         border: 0;
@@ -2844,7 +2866,7 @@
         margin-left: 0 !important;
     }
 
-    /* Top-level floor group card — same visual language as the main taxonomy card */
+    /* Top-level floor group card ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â same visual language as the main taxonomy card */
     .additional-work-item.is-floor-group {
         background: #ffffff;
         border: 1px solid #dbe3ee;
@@ -3027,7 +3049,7 @@
         grid-column: 3;
     }
 
-    /* Inherited cells are hidden entirely — value kept in hidden input */
+    /* Inherited cells are hidden entirely ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â value kept in hidden input */
     .additional-taxonomy-cell.is-inherited {
         visibility: hidden;
         pointer-events: none;
@@ -3758,6 +3780,20 @@
         gap: 6px;
     }
 
+    .ssm-complete-layout {
+        display: grid;
+        grid-template-columns: minmax(100px, max-content) minmax(0, 1fr);
+        gap: 4px 14px;
+        align-items: start;
+    }
+
+    .ssm-complete-children {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
     .ssm-radius-inline-note {
         font-size: 11px;
         line-height: 1.35;
@@ -3772,11 +3808,14 @@
         font-weight: 700;
         color: #475569;
         letter-spacing: 0.01em;
-        text-transform: uppercase;
     }
 
     .ssm-row-sub {
         padding-left: 18px;
+    }
+
+    .ssm-complete-children .ssm-row-sub {
+        padding-left: 0;
     }
 
     .ssm-row input[type="checkbox"] {
@@ -3787,7 +3826,7 @@
 
     .ssm-label {
         flex: 0 0 auto;
-        min-width: 138px;
+        min-width: 80px;
         margin: 0;
         font-weight: 600;
         font-size: 13px;
@@ -3814,6 +3853,15 @@
     @media (max-width: 768px) {
         .ssm-radius-grid {
             grid-template-columns: 1fr;
+        }
+
+        .ssm-complete-layout {
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .ssm-complete-children .ssm-row-sub {
+            padding-left: 18px;
         }
     }
 
@@ -4040,6 +4088,33 @@
 <script>
     const availableBestRecommendations = @json($bestRecommendations ?? []);
 </script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" defer></script>
+<script src="{{ asset('js/vue/material-calculation-create-bridge.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-bridge.js')) }}" defer></script>
+<script src="{{ asset('js/vue/material-calculation-create-search-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-search-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-taxonomy-tracker-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-taxonomy-tracker-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-scroll-fab-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-scroll-fab-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-store-mode-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-store-mode-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-ceramic-type-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-ceramic-type-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-filter-selection-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-filter-selection-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-work-taxonomy-filter-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-work-taxonomy-filter-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-multi-material-type-filter-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-multi-material-type-filter-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-dimension-expression-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-dimension-expression-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-taxonomy-autocomplete-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-taxonomy-autocomplete-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-worktype-autocomplete-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-worktype-autocomplete-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-material-type-filter-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-material-type-filter-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-work-item-form-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-work-item-form-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-item-focus-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-item-focus-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-item-header-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-item-header-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-bundle-floor-sort-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-bundle-floor-sort-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-floor-sort-queue-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-floor-sort-queue-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-main-floor-card-sort-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-main-floor-card-sort-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-rebuild-floor-order-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-rebuild-floor-order-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-sort-additional-items-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-sort-additional-items-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-main-taxonomy-footer-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-main-taxonomy-footer-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-taxonomy-footer-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-taxonomy-footer-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-inline-layout-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-inline-layout-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-row-kind-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-row-kind-engine.js')) }}"></script>
+<script src="{{ asset('js/vue/material-calculation-create-additional-field-engine.js') }}?v={{ @filemtime(public_path('js/vue/material-calculation-create-additional-field-engine.js')) }}"></script>
 <script src="{{ asset('js/material-calculation-form.js') }}?v={{ @filemtime(public_path('js/material-calculation-form.js')) }}"></script>
 <script>
     (function() {
@@ -4132,631 +4207,35 @@
         }
 
         function initWorkTaxonomyFilters(formPayload) {
-            const workFloorRows = document.getElementById('workFloorRows');
-            const workAreaRows = document.getElementById('workAreaRows');
-            const workFieldRows = document.getElementById('workFieldRows');
-            const workFloorExtraRows = document.getElementById('workFloorExtraRows');
-            const workAreaExtraRows = document.getElementById('workAreaExtraRows');
-            const workFieldExtraRows = document.getElementById('workFieldExtraRows');
-            const workFloorExtraSection = document.getElementById('workFloorExtraSection');
-            const workAreaExtraSection = document.getElementById('workAreaExtraSection');
-            const workFieldExtraSection = document.getElementById('workFieldExtraSection');
-            const rightColumn = document.querySelector('#calculationForm .right-column');
-            const emptyApi = {
+            if (typeof window.materialCalcCreateWorkTaxonomyFilterEngine === 'function') {
+                try {
+                    const bridgeWorkTaxonomyFilterApi = window.materialCalcCreateWorkTaxonomyFilterEngine({
+                        deps: {
+                            sortFloors,
+                            uniqueFilterTokens,
+                            sortAlphabetic,
+                        },
+                        formPayload,
+                    });
+                    if (
+                        bridgeWorkTaxonomyFilterApi &&
+                        typeof bridgeWorkTaxonomyFilterApi.setValues === 'function' &&
+                        typeof bridgeWorkTaxonomyFilterApi.getValues === 'function' &&
+                        typeof bridgeWorkTaxonomyFilterApi.subscribe === 'function' &&
+                        typeof bridgeWorkTaxonomyFilterApi.refresh === 'function'
+                    ) {
+                        return bridgeWorkTaxonomyFilterApi;
+                    }
+                } catch (error) {
+                    console.error('work taxonomy filter engine failed:', error);
+                }
+            }
+
+            return {
                 setValues() {},
                 getValues() { return []; },
                 subscribe() { return function() {}; },
                 refresh() {},
-            };
-
-            if (
-                !workFloorRows ||
-                !workAreaRows ||
-                !workFieldRows ||
-                !workFloorExtraRows ||
-                !workAreaExtraRows ||
-                !workFieldExtraRows
-            ) {
-                return emptyApi;
-            }
-
-            // Keep taxonomy-extra rows as a dedicated grouping section at the bottom.
-            if (
-                rightColumn instanceof HTMLElement &&
-                workFloorExtraSection instanceof HTMLElement &&
-                workAreaExtraSection instanceof HTMLElement &&
-                workFieldExtraSection instanceof HTMLElement
-            ) {
-                rightColumn.appendChild(workFloorExtraSection);
-                rightColumn.appendChild(workAreaExtraSection);
-                rightColumn.appendChild(workFieldExtraSection);
-            }
-
-            const normalizeOption = value => String(value ?? '').trim().toLowerCase();
-            const baseFloorOptions = sortFloors(
-                uniqueFilterTokens((formPayload?.workFloors || []).map(item => item?.name || '')),
-            );
-            const baseAreaOptions = sortAlphabetic(
-                uniqueFilterTokens((formPayload?.workAreas || []).map(item => item?.name || '')),
-            );
-            const baseFieldOptions = sortAlphabetic(
-                uniqueFilterTokens((formPayload?.workFields || []).map(item => item?.name || '')),
-            );
-            const normalizedGroupings = Array.isArray(formPayload?.workItemGroupings)
-                ? formPayload.workItemGroupings
-                    .map(item => ({
-                        work_floor: String(item?.work_floor || '').trim(),
-                        work_floor_norm: normalizeOption(item?.work_floor || ''),
-                        work_area: String(item?.work_area || '').trim(),
-                        work_area_norm: normalizeOption(item?.work_area || ''),
-                        work_field: String(item?.work_field || '').trim(),
-                        work_field_norm: normalizeOption(item?.work_field || ''),
-                        formula_code: String(item?.formula_code || '').trim(),
-                    }))
-                    .filter(item => item.formula_code !== '')
-                : [];
-            const listeners = new Set();
-            let taxonomyRowListSequence = 0;
-            let floorController = null;
-            let areaController = null;
-            let fieldController = null;
-
-            const parseInitialValues = rowsContainer => {
-                if (!rowsContainer) return [];
-                try {
-                    const raw = rowsContainer.dataset.initialValues || '[]';
-                    const parsed = JSON.parse(raw);
-                    return uniqueFilterTokens(Array.isArray(parsed) ? parsed : [parsed]);
-                } catch (error) {
-                    return [];
-                }
-            };
-
-            const notifyChanged = () => {
-                listeners.forEach(callback => {
-                    try {
-                        callback();
-                    } catch (error) {
-                        console.warn('work taxonomy callback failed', error);
-                    }
-                });
-            };
-
-            const initKind = ({ kind, rowsContainer, extraRowsContainer, inputName, placeholder, initialOptions, onRowsChanged, sortFn }) => {
-                const baseRow = rowsContainer.querySelector('.material-type-row-base');
-                const baseDisplay = baseRow?.querySelector('input[data-taxonomy-display="1"]');
-                const baseHidden = baseRow?.querySelector('input[data-taxonomy-hidden="1"]');
-                const baseList = baseRow?.querySelector('.autocomplete-list');
-                const baseDeleteBtn = baseRow?.querySelector('[data-taxonomy-action="remove"]');
-                const baseAddBtn = baseRow?.querySelector('[data-taxonomy-action="add"]');
-                const extraSectionEl = document.getElementById(
-                    kind === 'floor'
-                        ? 'workFloorExtraSection'
-                        : kind === 'area'
-                          ? 'workAreaExtraSection'
-                          : 'workFieldExtraSection',
-                );
-
-                if (
-                    !baseRow ||
-                    !baseDisplay ||
-                    !baseHidden ||
-                    !baseList ||
-                    !baseDeleteBtn ||
-                    !baseAddBtn ||
-                    !extraRowsContainer
-                ) {
-                    return null;
-                }
-
-                baseHidden.name = inputName;
-                const effectiveSortFn = typeof sortFn === 'function' ? sortFn : sortAlphabetic;
-                const shouldAutoScrollBottomOnOpen = kind === 'floor';
-                let currentOptions = effectiveSortFn(uniqueFilterTokens(initialOptions));
-                let isSyncing = false;
-                let isSorting = false;
-
-                const getRowStates = () => {
-                    const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
-                    return rows.map(row => row.__taxonomyRowState).filter(Boolean);
-                };
-
-                const getHiddenInputs = () => getRowStates().map(state => state.hiddenEl).filter(Boolean);
-
-                const updateRowButtons = () => {
-                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
-                    const hasExtra = extraRows.length > 0;
-                    baseRow.classList.toggle('has-multiple', hasExtra);
-                    baseDeleteBtn.classList.toggle('is-visible', hasExtra);
-                    if (extraSectionEl) {
-                        extraSectionEl.hidden = !hasExtra;
-                    }
-                    extraRows.forEach(row => {
-                        const btn = row.querySelector('[data-taxonomy-action="remove"]');
-                        if (btn) {
-                            btn.classList.add('is-visible');
-                        }
-                    });
-                };
-
-                const getAvailableOptions = (term = '', currentHiddenEl = null, includeCurrentSelection = false) => {
-                    const query = normalizeOption(term);
-                    const selectedSet = new Set();
-                    getHiddenInputs().forEach(hiddenEl => {
-                        if (!hiddenEl) return;
-                        if (includeCurrentSelection && hiddenEl === currentHiddenEl) return;
-                        const normalizedValue = normalizeOption(hiddenEl.value);
-                        if (normalizedValue) {
-                            selectedSet.add(normalizedValue);
-                        }
-                    });
-
-                    const options = uniqueFilterTokens(currentOptions);
-                    const filtered = options.filter(option => {
-                        const normalized = normalizeOption(option);
-                        if (!normalized) return false;
-                        if (selectedSet.has(normalized)) return false;
-                        if (!query) return true;
-                        return normalized.includes(query);
-                    });
-
-                    return effectiveSortFn(filtered);
-                };
-
-                const refreshOpenLists = () => {
-                    getRowStates().forEach(state => {
-                        if (state.listEl && state.listEl.style.display === 'block') {
-                            state.renderList(state.displayEl.value || '');
-                        }
-                    });
-                };
-
-                const enforceUniqueSelections = () => {
-                    if (isSyncing) return;
-                    isSyncing = true;
-                    try {
-                        const seen = new Set();
-                        getRowStates().forEach(state => {
-                            const currentValue = String(state.hiddenEl.value || '').trim();
-                            if (!currentValue) {
-                                return;
-                            }
-                            const normalized = normalizeOption(currentValue);
-                            if (!normalized) {
-                                return;
-                            }
-
-                            if (seen.has(normalized)) {
-                                state.hiddenEl.value = '';
-                                state.displayEl.value = '';
-                                state.hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                                return;
-                            }
-
-                            seen.add(normalized);
-                        });
-                    } finally {
-                        isSyncing = false;
-                    }
-                };
-
-                const sortRows = () => {
-                    if (isSorting) return;
-                    isSorting = true;
-                    try {
-                        const currentValues = getHiddenInputs()
-                            .map(input => String(input.value || '').trim())
-                            .filter(Boolean);
-                        if (currentValues.length <= 1) return;
-                        const sorted = effectiveSortFn([...currentValues]);
-                        const isSameOrder = currentValues.every((v, i) => v === sorted[i]);
-                        if (!isSameOrder) {
-                            setValues(sorted);
-                        }
-                    } finally {
-                        isSorting = false;
-                    }
-                };
-
-                const syncRows = () => {
-                    enforceUniqueSelections();
-                    sortRows();
-                    refreshOpenLists();
-                    if (typeof onRowsChanged === 'function') {
-                        onRowsChanged();
-                    }
-                };
-
-                const createRowState = (rowEl, displayEl, hiddenEl, listEl) => {
-                    const closeList = () => {
-                        listEl.style.display = 'none';
-                    };
-
-                    const applySelection = optionValue => {
-                        const finalValue = String(optionValue || '').trim();
-                        displayEl.value = finalValue;
-                        if (hiddenEl.value !== finalValue) {
-                            hiddenEl.value = finalValue;
-                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                        closeList();
-                        syncRows();
-                    };
-
-                    const renderList = (term = '') => {
-                        listEl.innerHTML = '';
-
-                        const emptyItem = document.createElement('div');
-                        emptyItem.className = 'autocomplete-item';
-                        emptyItem.textContent = '- Tidak Pilih -';
-                        emptyItem.addEventListener('click', function() {
-                            applySelection('');
-                        });
-                        listEl.appendChild(emptyItem);
-
-                        getAvailableOptions(term, hiddenEl).forEach(option => {
-                            const item = document.createElement('div');
-                            item.className = 'autocomplete-item';
-                            item.textContent = option;
-                            item.addEventListener('click', function() {
-                                applySelection(option);
-                            });
-                            listEl.appendChild(item);
-                        });
-
-                        listEl.style.display = 'block';
-                        if (shouldAutoScrollBottomOnOpen && !normalizeOption(term)) {
-                            requestAnimationFrame(() => {
-                                listEl.scrollTop = listEl.scrollHeight;
-                            });
-                        }
-                    };
-
-                    const findExactOption = term => {
-                        const query = normalizeOption(term);
-                        if (!query) return null;
-                        const available = getAvailableOptions(term, hiddenEl, true);
-                        return available.find(option => normalizeOption(option) === query) || null;
-                    };
-
-                    const rowState = {
-                        rowEl,
-                        displayEl,
-                        hiddenEl,
-                        listEl,
-                        closeList,
-                        renderList,
-                    };
-                    rowEl.__taxonomyRowState = rowState;
-
-                    displayEl.addEventListener('focus', function() {
-                        if (displayEl.readOnly || displayEl.disabled) return;
-                        renderList('');
-                    });
-
-                    displayEl.addEventListener('input', function() {
-                        if (displayEl.readOnly || displayEl.disabled) return;
-                        const typed = String(this.value || '');
-                        hiddenEl.value = typed;
-                        renderList(this.value || '');
-                        syncRows();
-                    });
-
-                    displayEl.addEventListener('keydown', function(event) {
-                        if (event.key === 'Enter') {
-                            const exactMatch = findExactOption(displayEl.value || '');
-                            if (exactMatch) {
-                                applySelection(exactMatch);
-                            } else {
-                                applySelection(displayEl.value || '');
-                            }
-                            event.preventDefault();
-                            return;
-                        }
-                        if (event.key === 'Escape') {
-                            closeList();
-                        }
-                    });
-
-                    displayEl.addEventListener('blur', function() {
-                        setTimeout(() => {
-                            const normalizedValue = String(hiddenEl.value || '').trim();
-                            hiddenEl.value = normalizedValue;
-                            displayEl.value = normalizedValue;
-                            closeList();
-                            syncRows();
-                        }, 150);
-                    });
-
-                    document.addEventListener('click', function(event) {
-                        if (event.target === displayEl || listEl.contains(event.target)) return;
-                        closeList();
-                    });
-
-                    hiddenEl.addEventListener('change', function() {
-                        const value = String(hiddenEl.value || '');
-                        if (displayEl.value !== value) {
-                            displayEl.value = value;
-                        }
-                    });
-
-                    return rowState;
-                };
-
-                const createExtraRow = (value = '') => {
-                    const rowEl = document.createElement('div');
-                    rowEl.className = 'material-type-row material-type-row-extra';
-                    rowEl.dataset.taxonomyKind = kind;
-
-                    const inputWrapper = document.createElement('div');
-                    inputWrapper.className = 'input-wrapper';
-
-                    const autocompleteWrap = document.createElement('div');
-                    autocompleteWrap.className = 'work-type-autocomplete';
-
-                    const inputShell = document.createElement('div');
-                    inputShell.className = 'work-type-input';
-
-                    const displayEl = document.createElement('input');
-                    displayEl.type = 'text';
-                    displayEl.className = 'autocomplete-input';
-                    displayEl.placeholder = placeholder;
-                    displayEl.autocomplete = 'off';
-                    displayEl.dataset.taxonomyDisplay = '1';
-                    displayEl.value = String(value || '');
-
-                    const listEl = document.createElement('div');
-                    listEl.className = 'autocomplete-list';
-                    listEl.id = `workTaxonomy-${kind}-list-${++taxonomyRowListSequence}`;
-
-                    const hiddenEl = document.createElement('input');
-                    hiddenEl.type = 'hidden';
-                    hiddenEl.name = inputName;
-                    hiddenEl.value = String(value || '').trim();
-                    hiddenEl.dataset.taxonomyHidden = '1';
-
-                    inputShell.appendChild(displayEl);
-                    autocompleteWrap.appendChild(inputShell);
-                    autocompleteWrap.appendChild(listEl);
-                    inputWrapper.appendChild(autocompleteWrap);
-                    inputWrapper.appendChild(hiddenEl);
-
-                    const actions = document.createElement('div');
-                    actions.className = 'material-type-row-actions';
-                    actions.innerHTML = `
-                        <button type="button"
-                            class="material-type-row-btn material-type-row-btn-delete is-visible"
-                            data-taxonomy-action="remove"
-                            data-taxonomy-kind="${kind}"
-                            title="Hapus baris">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                        <button type="button"
-                            class="material-type-row-btn material-type-row-btn-add"
-                            data-taxonomy-action="add"
-                            data-taxonomy-kind="${kind}"
-                            title="Tambah baris">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                    `;
-
-                    rowEl.appendChild(inputWrapper);
-                    rowEl.appendChild(actions);
-                    extraRowsContainer.appendChild(rowEl);
-                    createRowState(rowEl, displayEl, hiddenEl, listEl);
-                    updateRowButtons();
-                    return rowEl;
-                };
-
-                const setValues = values => {
-                    const tokens = uniqueFilterTokens(Array.isArray(values) ? values : [values]);
-                    while (extraRowsContainer.firstChild) {
-                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
-                    }
-
-                    baseDisplay.value = '';
-                    baseHidden.value = '';
-
-                    const firstValue = tokens[0] || '';
-                    baseDisplay.value = firstValue;
-                    baseHidden.value = firstValue;
-
-                    tokens.slice(1).forEach(token => {
-                        createExtraRow(token);
-                    });
-
-                    updateRowButtons();
-                    syncRows();
-                };
-
-                const removeBaseRow = () => {
-                    const extraRows = Array.from(extraRowsContainer.querySelectorAll('.material-type-row-extra'));
-                    if (extraRows.length > 0) {
-                        const firstExtra = extraRows[0];
-                        const state = firstExtra.__taxonomyRowState;
-                        const promoted = String(state?.hiddenEl?.value ?? '').trim();
-                        baseDisplay.value = promoted;
-                        baseHidden.value = promoted;
-                        firstExtra.remove();
-                        updateRowButtons();
-                        syncRows();
-                        return;
-                    }
-
-                    baseDisplay.value = '';
-                    baseHidden.value = '';
-                    syncRows();
-                };
-
-                const handleRowActionClick = function(event) {
-                    const target = event?.target;
-                    if (!(target instanceof HTMLElement)) return;
-                    const actionBtn = target.closest('[data-taxonomy-action]');
-                    if (!actionBtn) return;
-
-                    const action = String(actionBtn.dataset.taxonomyAction || '').trim();
-                    if (!action) return;
-
-                    if (action === 'add') {
-                        event.preventDefault();
-                        createExtraRow('');
-                        syncRows();
-                        return;
-                    }
-
-                    if (action === 'remove') {
-                        event.preventDefault();
-                        const row = actionBtn.closest('.material-type-row');
-                        if (!row) return;
-                        if (row.classList.contains('material-type-row-base')) {
-                            removeBaseRow();
-                            return;
-                        }
-                        row.remove();
-                        updateRowButtons();
-                        syncRows();
-                    }
-                };
-
-                rowsContainer.addEventListener('click', handleRowActionClick);
-                extraRowsContainer.addEventListener('click', handleRowActionClick);
-
-                createRowState(baseRow, baseDisplay, baseHidden, baseList);
-                baseHidden.value = String(baseHidden.value || '').trim();
-                baseDisplay.value = baseHidden.value;
-                updateRowButtons();
-
-                return {
-                    setValues,
-                    setOptions(nextOptions) {
-                        currentOptions = effectiveSortFn(uniqueFilterTokens(nextOptions || []));
-                        refreshOpenLists();
-                    },
-                    getValues() {
-                        return uniqueFilterTokens(getHiddenInputs().map(input => input.value));
-                    },
-                };
-            };
-
-            const computeAreaOptions = floorApi => {
-                let scopedOptions = [...baseAreaOptions];
-
-                if (areaController) {
-                    scopedOptions = uniqueFilterTokens([...scopedOptions, ...areaController.getValues()]);
-                }
-
-                return sortAlphabetic(scopedOptions);
-            };
-
-            const computeFieldOptions = (floorApi, areaApi) => {
-                let scopedOptions = [...baseFieldOptions];
-
-                if (fieldController) {
-                    scopedOptions = uniqueFilterTokens([...scopedOptions, ...fieldController.getValues()]);
-                }
-
-                return sortAlphabetic(scopedOptions);
-            };
-
-            floorController = initKind({
-                kind: 'floor',
-                rowsContainer: workFloorRows,
-                extraRowsContainer: workFloorExtraRows,
-                inputName: 'work_floors[]',
-                placeholder: 'Pilih atau ketik lantai...',
-                initialOptions: baseFloorOptions,
-                sortFn: sortFloors,
-                onRowsChanged() {
-                    if (areaController) {
-                        areaController.setOptions(computeAreaOptions(floorController));
-                    }
-                    if (fieldController) {
-                        fieldController.setOptions(computeFieldOptions(floorController, areaController));
-                    }
-                    notifyChanged();
-                    markFloorSortPending();
-                },
-            });
-
-            areaController = initKind({
-                kind: 'area',
-                rowsContainer: workAreaRows,
-                extraRowsContainer: workAreaExtraRows,
-                inputName: 'work_areas[]',
-                placeholder: 'Pilih atau ketik area...',
-                initialOptions: baseAreaOptions,
-                onRowsChanged() {
-                    if (fieldController) {
-                        fieldController.setOptions(computeFieldOptions(floorController, areaController));
-                    }
-                    notifyChanged();
-                },
-            });
-
-            fieldController = initKind({
-                kind: 'field',
-                rowsContainer: workFieldRows,
-                extraRowsContainer: workFieldExtraRows,
-                inputName: 'work_fields[]',
-                placeholder: 'Pilih atau ketik bidang...',
-                initialOptions: baseFieldOptions,
-                onRowsChanged() {
-                    notifyChanged();
-                },
-            });
-
-            if (!floorController || !areaController || !fieldController) {
-                return emptyApi;
-            }
-
-            floorController.setValues(parseInitialValues(workFloorRows));
-            areaController.setValues(parseInitialValues(workAreaRows));
-            fieldController.setValues(parseInitialValues(workFieldRows));
-            areaController.setOptions(computeAreaOptions(floorController));
-            fieldController.setOptions(computeFieldOptions(floorController, areaController));
-
-            return {
-                setValues(kind, values) {
-                    const type = String(kind || '').trim();
-                    if (type === 'floor') {
-                        floorController.setValues(values);
-                        return;
-                    }
-                    if (type === 'area') {
-                        areaController.setValues(values);
-                        return;
-                    }
-                    if (type === 'field') {
-                        fieldController.setValues(values);
-                    }
-                },
-                getValues(kind) {
-                    const type = String(kind || '').trim();
-                    if (type === 'floor') {
-                        return floorController.getValues();
-                    }
-                    if (type === 'area') {
-                        return areaController.getValues();
-                    }
-                    if (type === 'field') {
-                        return fieldController.getValues();
-                    }
-                    return [];
-                },
-                subscribe(callback) {
-                    if (typeof callback !== 'function') {
-                        return function() {};
-                    }
-                    listeners.add(callback);
-                    return function unsubscribe() {
-                        listeners.delete(callback);
-                    };
-                },
-                refresh() {
-                    areaController.setOptions(computeAreaOptions(floorController));
-                    fieldController.setOptions(computeFieldOptions(floorController, areaController));
-                    notifyChanged();
-                },
             };
         }
 
@@ -4804,491 +4283,37 @@
         let bundleRowPanelSyncSeq = 0;
 
         function initMultiMaterialTypeFilters(formPayload) {
-            const optionsByType = buildMaterialTypeOptionMap(formPayload);
-            const itemElements = document.querySelectorAll('.material-type-filter-item[data-material-type]');
-            const api = {
+            if (typeof window.materialCalcCreateMultiMaterialTypeFilterEngine === 'function') {
+                try {
+                    const bridgeMultiMaterialTypeApi = window.materialCalcCreateMultiMaterialTypeFilterEngine({
+                        deps: {
+                            sortAlphabetic,
+                            uniqueFilterTokens,
+                            syncSharedBundleMaterialTypeAcrossItems,
+                            linkBundleRowWithCustomizePanel,
+                            materialTypeLabels,
+                        },
+                        formPayload,
+                        optionsByType: buildMaterialTypeOptionMap(formPayload),
+                    });
+                    if (
+                        bridgeMultiMaterialTypeApi &&
+                        typeof bridgeMultiMaterialTypeApi.setValues === 'function' &&
+                        typeof bridgeMultiMaterialTypeApi.clearHiddenRows === 'function' &&
+                        typeof bridgeMultiMaterialTypeApi.clearAll === 'function'
+                    ) {
+                        return bridgeMultiMaterialTypeApi;
+                    }
+                } catch (error) {
+                    console.error('multi material type filter engine failed:', error);
+                }
+            }
+
+            return {
                 setValues(type, values) {},
                 clearHiddenRows() {},
                 clearAll() {},
             };
-            const typeControllers = {};
-            let extraRowSequence = 0;
-            let customizePanelSequence = 0;
-
-            function createActionButton(type, action) {
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = `material-type-row-btn ${action === 'add' ? 'material-type-row-btn-add' : 'material-type-row-btn-delete'}`;
-                btn.dataset.materialTypeAction = action;
-                btn.dataset.materialType = type;
-                btn.title = action === 'add' ? 'Tambah baris' : 'Hapus baris';
-                btn.innerHTML = action === 'add'
-                    ? '<i class="bi bi-plus-lg"></i>'
-                    : '<i class="bi bi-trash"></i>';
-                return btn;
-            }
-
-            function normalizeOption(value) {
-                return String(value ?? '').trim().toLowerCase();
-            }
-
-            itemElements.forEach(itemEl => {
-                const type = itemEl.dataset.materialType;
-                const baseRow = itemEl.querySelector('.material-type-row-base');
-                const baseDisplay = itemEl.querySelector(`#materialTypeDisplay-${type}`);
-                const baseHidden = itemEl.querySelector(`#materialTypeSelector-${type}`);
-                const baseList = itemEl.querySelector(`#materialType-list-${type}`);
-                const extraRowsContainer = itemEl.querySelector('.material-type-extra-rows');
-                const baseDeleteBtn = baseRow?.querySelector('[data-material-type-action="remove"]');
-                const baseAddBtn = baseRow?.querySelector('[data-material-type-action="add"]');
-                const basePlaceholder = baseDisplay?.getAttribute('placeholder') || 'Pilih atau ketik...';
-                const options = optionsByType[type] || [];
-                let isSyncing = false;
-
-                if (
-                    !type ||
-                    !baseRow ||
-                    !baseDisplay ||
-                    !baseHidden ||
-                    !baseList ||
-                    !extraRowsContainer ||
-                    !baseAddBtn ||
-                    !baseDeleteBtn
-                ) {
-                    return;
-                }
-
-                baseHidden.dataset.materialTypeHidden = '1';
-
-                const updateRowButtons = () => {
-                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
-                    const hasExtra = extraRows.length > 0;
-                    baseRow.classList.toggle('has-multiple', hasExtra);
-                    itemEl.classList.toggle('has-extra-rows', hasExtra);
-                    baseDeleteBtn.classList.toggle('is-visible', hasExtra);
-                    extraRows.forEach(row => {
-                        const deleteBtn = row.querySelector('[data-material-type-action="remove"]');
-                        if (deleteBtn) {
-                            deleteBtn.classList.toggle('is-visible', true);
-                        }
-                    });
-                };
-
-                const getRowStates = () => {
-                    const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
-                    return rows.map(row => row.__materialTypeRowState).filter(Boolean);
-                };
-
-                const getHiddenInputs = () => getRowStates().map(row => row.hiddenEl).filter(Boolean);
-
-                const getAvailableOptions = (term = '', currentHiddenEl = null, includeCurrentSelection = false) => {
-                    const query = normalizeOption(term);
-                    const selectedSet = new Set();
-                    getHiddenInputs().forEach(hiddenEl => {
-                        if (!hiddenEl) return;
-                        if (includeCurrentSelection && hiddenEl === currentHiddenEl) return;
-                        const normalized = normalizeOption(hiddenEl.value);
-                        if (normalized) {
-                            selectedSet.add(normalized);
-                        }
-                    });
-                    const available = options.filter(option => {
-                        const normalized = normalizeOption(option);
-                        if (!normalized || selectedSet.has(normalized)) return false;
-                        if (!query) return true;
-                        return normalized.includes(query);
-                    });
-                    return sortAlphabetic(available);
-                };
-
-                const refreshOpenLists = () => {
-                    getRowStates().forEach(rowState => {
-                        if (rowState.listEl && rowState.listEl.style.display === 'block') {
-                            rowState.renderList(rowState.displayEl.value || '');
-                        }
-                    });
-                };
-
-                const enforceUniqueSelection = () => {
-                    if (isSyncing) return;
-                    isSyncing = true;
-                    try {
-                        const seen = new Set();
-                        getRowStates().forEach(rowState => {
-                            const currentValue = String(rowState.hiddenEl.value || '').trim();
-                            const normalized = normalizeOption(currentValue);
-                            if (!normalized) return;
-
-                            if (seen.has(normalized)) {
-                                rowState.displayEl.value = '';
-                                rowState.hiddenEl.value = '';
-                                rowState.hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                                return;
-                            }
-                            seen.add(normalized);
-                        });
-                    } finally {
-                        isSyncing = false;
-                    }
-                };
-
-                const syncRows = () => {
-                    enforceUniqueSelection();
-                    refreshOpenLists();
-                };
-
-                const setupAutocomplete = rowState => {
-                    const { rowEl, displayEl, hiddenEl, listEl } = rowState;
-
-                    const closeList = () => {
-                        listEl.style.display = 'none';
-                    };
-
-                    const applySelection = optionValue => {
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
-                        const finalValue = String(optionValue || '').trim();
-                        displayEl.value = finalValue;
-                        if (hiddenEl.value !== finalValue) {
-                            hiddenEl.value = finalValue;
-                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                        syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
-                        closeList();
-                    };
-
-                    const renderList = (term = '') => {
-                        listEl.innerHTML = '';
-
-                        const emptyItem = document.createElement('div');
-                        emptyItem.className = 'autocomplete-item';
-                        emptyItem.textContent = '- Tidak Pilih -';
-                        emptyItem.addEventListener('click', function() {
-                            applySelection('');
-                        });
-                        listEl.appendChild(emptyItem);
-
-                        getAvailableOptions(term, hiddenEl).forEach(option => {
-                            const item = document.createElement('div');
-                            item.className = 'autocomplete-item';
-                            item.textContent = option;
-                            item.addEventListener('click', function() {
-                                applySelection(option);
-                            });
-                            listEl.appendChild(item);
-                        });
-
-                        listEl.style.display = 'block';
-                    };
-
-                    const findExactAvailableOption = term => {
-                        const query = normalizeOption(term);
-                        if (!query) return null;
-                        // Allow the current row's selected value to remain valid while typing.
-                        const available = getAvailableOptions(term, hiddenEl, true);
-                        return available.find(option => normalizeOption(option) === query) || null;
-                    };
-
-                    rowState.closeList = closeList;
-                    rowState.renderList = renderList;
-                    rowState.__lastSharedTypeValue = String(hiddenEl.value || '').trim();
-                    rowEl.__materialTypeRowState = rowState;
-                    linkBundleRowWithCustomizePanel(rowEl, type);
-
-                    displayEl.addEventListener('focus', function() {
-                        if (displayEl.readOnly || displayEl.disabled) return;
-                        // On focus, show full available options (not filtered by current selected value).
-                        renderList('');
-                    });
-
-                    displayEl.addEventListener('input', function() {
-                        if (displayEl.readOnly || displayEl.disabled) return;
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
-                        const term = this.value || '';
-                        renderList(term);
-
-                        if (!term.trim()) {
-                            if (hiddenEl.value) {
-                                hiddenEl.value = '';
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                            syncRows();
-                            syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
-                            return;
-                        }
-
-                        const exactMatch = findExactAvailableOption(term);
-                        if (exactMatch) {
-                            if (hiddenEl.value !== exactMatch) {
-                                hiddenEl.value = exactMatch;
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                        } else if (hiddenEl.value) {
-                            hiddenEl.value = '';
-                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                        syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
-                    });
-
-                    displayEl.addEventListener('keydown', function(event) {
-                        if (event.key !== 'Enter') return;
-                        const exactMatch = findExactAvailableOption(displayEl.value || '');
-                        if (exactMatch) {
-                            applySelection(exactMatch);
-                            event.preventDefault();
-                        }
-                    });
-
-                    displayEl.addEventListener('blur', function() {
-                        setTimeout(closeList, 150);
-                    });
-
-                    document.addEventListener('click', function(event) {
-                        if (event.target === displayEl || listEl.contains(event.target)) return;
-                        closeList();
-                    });
-
-                    hiddenEl.addEventListener('change', function() {
-                        if (displayEl.value !== hiddenEl.value) {
-                            displayEl.value = hiddenEl.value;
-                        }
-                        if (!isSyncing) {
-                            syncRows();
-                        }
-                    });
-
-                    if (options.length === 0) {
-                        displayEl.disabled = true;
-                        displayEl.placeholder = `Tidak ada data untuk ${type}`;
-                    }
-                };
-
-                const buildExtraRow = (value = '') => {
-                    const rowEl = document.createElement('div');
-                    rowEl.className = 'material-type-row material-type-row-extra';
-                    rowEl.dataset.materialType = type;
-                    const supportsCustomize = ['brick', 'cement', 'sand', 'cat', 'ceramic_type', 'nat'].includes(type);
-
-                    const inputWrapperEl = document.createElement('div');
-                    inputWrapperEl.className = 'input-wrapper';
-                    const autocompleteEl = document.createElement('div');
-                    autocompleteEl.className = 'work-type-autocomplete';
-                    const inputShellEl = document.createElement('div');
-                    inputShellEl.className = 'work-type-input';
-
-                    const displayEl = document.createElement('input');
-                    displayEl.type = 'text';
-                    displayEl.className = 'autocomplete-input';
-                    displayEl.placeholder = basePlaceholder;
-                    displayEl.autocomplete = 'off';
-                    displayEl.value = String(value || '');
-
-                    const listEl = document.createElement('div');
-                    listEl.className = 'autocomplete-list';
-                    listEl.id = `materialType-list-${type}-extra-${++extraRowSequence}`;
-
-                    const hiddenEl = document.createElement('input');
-                    hiddenEl.type = 'hidden';
-                    hiddenEl.name = `material_type_filters_extra[${type}][]`;
-                    hiddenEl.value = String(value || '');
-                    hiddenEl.dataset.materialTypeHidden = '1';
-                    hiddenEl.dataset.materialTypeExtra = '1';
-
-                    inputShellEl.appendChild(displayEl);
-                    autocompleteEl.appendChild(inputShellEl);
-                    autocompleteEl.appendChild(listEl);
-                    inputWrapperEl.appendChild(autocompleteEl);
-                    inputWrapperEl.appendChild(hiddenEl);
-
-                    const actionEl = document.createElement('div');
-                    actionEl.className = 'material-type-row-actions';
-                    const deleteBtn = createActionButton(type, 'remove');
-                    const addBtn = createActionButton(type, 'add');
-                    actionEl.appendChild(deleteBtn);
-                    actionEl.appendChild(addBtn);
-
-                    rowEl.appendChild(inputWrapperEl);
-                    rowEl.appendChild(actionEl);
-                    let rowCustomizePanelEl = null;
-                    if (supportsCustomize) {
-                        const customizeBtn = document.createElement('button');
-                        customizeBtn.type = 'button';
-                        customizeBtn.className = 'material-type-row-btn material-type-row-btn-customize';
-                        customizeBtn.dataset.customizeToggle = type;
-                        customizeBtn.title = `Custom ${materialTypeLabels[type] || type}`;
-                        customizeBtn.textContent = 'Custom';
-
-                        const templatePanel = itemEl.querySelector(`[data-customize-panel="${type}"]`) ||
-                            document.getElementById(`customizePanel-${type}`);
-                        if (templatePanel) {
-                            const panelId = `customizePanel-${type}-extra-${++customizePanelSequence}`;
-                            rowCustomizePanelEl = templatePanel.cloneNode(true);
-                            rowCustomizePanelEl.hidden = true;
-                            rowCustomizePanelEl.id = panelId;
-                            rowCustomizePanelEl.dataset.customizePanel = type;
-                            rowCustomizePanelEl.querySelectorAll('.customize-filter-autocomplete').forEach(el => el.remove());
-                            rowCustomizePanelEl.querySelectorAll('select[data-customize-filter]').forEach((selectEl, index) => {
-                                selectEl.value = '';
-                                selectEl.style.display = '';
-                                selectEl.tabIndex = 0;
-                                delete selectEl.dataset.customizeAutocompleteBound;
-                                if (selectEl.id) {
-                                    selectEl.id = `${selectEl.id}-extra-${customizePanelSequence}-${index}`;
-                                }
-                            });
-                            customizeBtn.dataset.customizePanelId = panelId;
-                        }
-
-                        rowEl.appendChild(customizeBtn);
-                    }
-                    extraRowsContainer.appendChild(rowEl);
-                    if (rowCustomizePanelEl) {
-                        extraRowsContainer.appendChild(rowCustomizePanelEl);
-                        rowEl.__customizePanelEl = rowCustomizePanelEl;
-                    }
-                    updateRowButtons();
-
-                    setupAutocomplete({
-                        rowEl,
-                        displayEl,
-                        hiddenEl,
-                        listEl,
-                        renderList() {},
-                        closeList() {},
-                    });
-                    syncRows();
-
-                    deleteBtn.addEventListener('click', function() {
-                        if (rowEl.__customizePanelEl) {
-                            rowEl.__customizePanelEl.remove();
-                        }
-                        rowEl.remove();
-                        updateRowButtons();
-                        syncRows();
-                    });
-                    addBtn.addEventListener('click', function() {
-                        buildExtraRow('');
-                    });
-
-                    return rowEl;
-                };
-
-                const removeBaseRow = () => {
-                    const extraRows = Array.from(extraRowsContainer.querySelectorAll('.material-type-row-extra'));
-
-                    // If there are extra rows, promote the first extra row value to base
-                    // so deleting on base behaves like deleting the clicked (first) row.
-                    if (extraRows.length > 0) {
-                        const firstExtraRow = extraRows[0];
-                        const firstState = firstExtraRow.__materialTypeRowState;
-                        const promotedValue = String(
-                            firstState?.hiddenEl?.value ??
-                            firstState?.displayEl?.value ??
-                            '',
-                        ).trim();
-
-                        baseDisplay.value = promotedValue;
-                        if (baseHidden.value !== promotedValue) {
-                            baseHidden.value = promotedValue;
-                            baseHidden.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-
-                        firstExtraRow.remove();
-                        if (firstExtraRow.__customizePanelEl) {
-                            firstExtraRow.__customizePanelEl.remove();
-                        }
-                        updateRowButtons();
-                        syncRows();
-                        return;
-                    }
-
-                    // If this is the only row, clear its value.
-                    if (baseDisplay.value || baseHidden.value) {
-                        baseDisplay.value = '';
-                        baseHidden.value = '';
-                        baseHidden.dispatchEvent(new Event('change', { bubbles: true }));
-                    } else {
-                        syncRows();
-                    }
-                };
-
-                baseAddBtn.addEventListener('click', function() {
-                    buildExtraRow('');
-                });
-
-                baseDeleteBtn.addEventListener('click', function() {
-                    removeBaseRow();
-                });
-
-                setupAutocomplete({
-                    rowEl: baseRow,
-                    displayEl: baseDisplay,
-                    hiddenEl: baseHidden,
-                    listEl: baseList,
-                    renderList() {},
-                    closeList() {},
-                });
-
-                itemEl.__setMaterialTypeValues = function(values) {
-                    const tokens = uniqueFilterTokens(Array.isArray(values) ? values : [values]);
-                    while (extraRowsContainer.firstChild) {
-                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
-                    }
-
-                    const first = tokens[0] || '';
-                    baseDisplay.value = first;
-                    baseHidden.value = first;
-                    baseHidden.dispatchEvent(new Event('change', { bubbles: true }));
-
-                    tokens.slice(1).forEach(token => buildExtraRow(token));
-                    updateRowButtons();
-                    syncRows();
-                };
-
-                itemEl.__clearExtraRows = function() {
-                    while (extraRowsContainer.firstChild) {
-                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
-                    }
-                    updateRowButtons();
-                    syncRows();
-                };
-
-                typeControllers[type] = {
-                    setValues: itemEl.__setMaterialTypeValues,
-                    clearExtraRows: itemEl.__clearExtraRows,
-                };
-
-                updateRowButtons();
-                syncRows();
-            });
-
-            api.setValues = function(type, values) {
-                const controller = typeControllers[type];
-                if (!controller || typeof controller.setValues !== 'function') return;
-                controller.setValues(values);
-            };
-
-            api.clearHiddenRows = function() {
-                itemElements.forEach(itemEl => {
-                    if (itemEl.style.display !== 'none') return;
-                    const type = itemEl.dataset.materialType;
-                    const controller = typeControllers[type];
-                    if (controller && typeof controller.clearExtraRows === 'function') {
-                        controller.clearExtraRows();
-                    }
-                });
-            };
-
-            api.clearAll = function() {
-                itemElements.forEach(itemEl => {
-                    if (typeof itemEl.__setMaterialTypeValues === 'function') {
-                        itemEl.__setMaterialTypeValues([]);
-                    }
-                });
-            };
-
-            return api;
         }
 
         let isRebuildingFloorCardOrder = false;
@@ -5319,141 +4344,21 @@
         }
 
         function initCeramicTypeFilterAutocomplete() {
-            const displayEl = document.getElementById('ceramicTypeDisplay');
-            const hiddenEl = document.getElementById('ceramicTypeSelector');
-            const listEl = document.getElementById('ceramicType-list');
-            const options = sortAlphabetic(uniqueFilterTokens(@json(isset($ceramicTypes) ? $ceramicTypes->values()->all() : [])));
-
-            const emptyApi = {
-                clear() {},
-            };
-
-            if (!displayEl || !hiddenEl || !listEl) {
-                return emptyApi;
-            }
-
-            const normalizeOption = value => String(value ?? '').trim().toLowerCase();
-
-            const closeList = () => {
-                listEl.style.display = 'none';
-            };
-
-            const applySelection = optionValue => {
-                const finalValue = String(optionValue || '').trim();
-                displayEl.value = finalValue;
-                if (hiddenEl.value !== finalValue) {
-                    hiddenEl.value = finalValue;
-                    hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                closeList();
-            };
-
-            const getAvailableOptions = term => {
-                const query = normalizeOption(term);
-                const selected = normalizeOption(hiddenEl.value);
-                const available = options.filter(option => {
-                    const normalized = normalizeOption(option);
-                    if (!normalized) return false;
-                    if (selected && normalized === selected) return false;
-                    if (!query) return true;
-                    return normalized.includes(query);
+            if (typeof window.materialCalcCreateCeramicTypeEngine === 'function') {
+                const bridgeCeramicTypeApi = window.materialCalcCreateCeramicTypeEngine({
+                    deps: {
+                        sortAlphabetic,
+                        uniqueFilterTokens,
+                    },
+                    ceramicTypeOptions: @json(isset($ceramicTypes) ? $ceramicTypes->values()->all() : []),
                 });
-                return sortAlphabetic(available);
-            };
-
-            const renderList = (term = '') => {
-                listEl.innerHTML = '';
-
-                const emptyItem = document.createElement('div');
-                emptyItem.className = 'autocomplete-item';
-                emptyItem.textContent = '- Tidak Pilih -';
-                emptyItem.addEventListener('click', function() {
-                    applySelection('');
-                });
-                listEl.appendChild(emptyItem);
-
-                getAvailableOptions(term).forEach(option => {
-                    const item = document.createElement('div');
-                    item.className = 'autocomplete-item';
-                    item.textContent = option;
-                    item.addEventListener('click', function() {
-                        applySelection(option);
-                    });
-                    listEl.appendChild(item);
-                });
-
-                listEl.style.display = 'block';
-            };
-
-            const findExactOption = term => {
-                const query = normalizeOption(term);
-                if (!query) return null;
-                return options.find(option => normalizeOption(option) === query) || null;
-            };
-
-            displayEl.addEventListener('focus', function() {
-                if (displayEl.readOnly || displayEl.disabled) return;
-                renderList('');
-            });
-
-            displayEl.addEventListener('input', function() {
-                if (displayEl.readOnly || displayEl.disabled) return;
-                const term = this.value || '';
-                renderList(term);
-
-                if (!term.trim()) {
-                    if (hiddenEl.value) {
-                        hiddenEl.value = '';
-                        hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                    return;
+                if (bridgeCeramicTypeApi && typeof bridgeCeramicTypeApi.clear === 'function') {
+                    return bridgeCeramicTypeApi;
                 }
-
-                const exactMatch = findExactOption(term);
-                if (exactMatch) {
-                    if (hiddenEl.value !== exactMatch) {
-                        hiddenEl.value = exactMatch;
-                        hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                } else if (hiddenEl.value) {
-                    hiddenEl.value = '';
-                    hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            });
-
-            displayEl.addEventListener('keydown', function(event) {
-                if (event.key !== 'Enter') return;
-                const exactMatch = findExactOption(displayEl.value || '');
-                if (exactMatch) {
-                    applySelection(exactMatch);
-                    event.preventDefault();
-                }
-            });
-
-            displayEl.addEventListener('blur', function() {
-                setTimeout(closeList, 150);
-            });
-
-            document.addEventListener('click', function(event) {
-                if (event.target === displayEl || listEl.contains(event.target)) return;
-                closeList();
-            });
-
-            hiddenEl.addEventListener('change', function() {
-                if (displayEl.value !== hiddenEl.value) {
-                    displayEl.value = hiddenEl.value;
-                }
-            });
-
-            if (options.length === 0) {
-                displayEl.disabled = true;
-                displayEl.placeholder = 'Tidak ada data jenis keramik';
             }
 
             return {
-                clear() {
-                    applySelection('');
-                },
+                clear() {},
             };
         }
 
@@ -5463,9 +4368,18 @@
         const filterCheckboxes = document.querySelectorAll('input[name="price_filters[]"]');
         const customForm = document.getElementById('customMaterialForm');
         const filterAll = document.getElementById('filter_all');
+        const filterSelectionEngineApi = typeof window.materialCalcCreateFilterSelectionEngine === 'function'
+            ? window.materialCalcCreateFilterSelectionEngine({
+                availableBestRecommendations,
+            })
+            : null;
 
         // Legacy custom form stays hidden (custom UI lives in material type section)
         function ensureCustomFormVisible() {
+            if (filterSelectionEngineApi && typeof filterSelectionEngineApi.ensureCustomFormVisible === 'function') {
+                filterSelectionEngineApi.ensureCustomFormVisible();
+                return;
+            }
             if (customForm) {
                 customForm.style.display = 'none';
             }
@@ -5473,6 +4387,10 @@
 
         // Function to handle "Semua" checkbox
         function shouldIncludeBest() {
+            if (filterSelectionEngineApi && typeof filterSelectionEngineApi.shouldIncludeBest === 'function') {
+                return Boolean(filterSelectionEngineApi.shouldIncludeBest());
+            }
+
             if (!Array.isArray(availableBestRecommendations) || availableBestRecommendations.length === 0) {
                 return false;
             }
@@ -5500,6 +4418,10 @@
         }
 
         function handleAllCheckbox() {
+            if (filterSelectionEngineApi && typeof filterSelectionEngineApi.handleAllCheckbox === 'function') {
+                filterSelectionEngineApi.handleAllCheckbox();
+                return;
+            }
             if (filterAll) {
                 if (filterAll.checked) {
                     const includeBest = shouldIncludeBest();
@@ -5527,6 +4449,10 @@
 
         // Function to uncheck "Semua" if any other checkbox is unchecked
         function handleOtherCheckboxes() {
+            if (filterSelectionEngineApi && typeof filterSelectionEngineApi.handleOtherCheckboxes === 'function') {
+                filterSelectionEngineApi.handleOtherCheckboxes();
+                return;
+            }
             const includeBest = shouldIncludeBest();
             const allOthersChecked = Array.from(filterCheckboxes).every(checkbox => {
                 if (checkbox === filterAll) return true;
@@ -5559,660 +4485,137 @@
         const mortarThicknessLabel = document.getElementById('mortarThicknessLabel');
         const wallHeightDefaultDisplay = wallHeightGroup ? getComputedStyle(wallHeightGroup).display : 'flex';
 
+        const dimensionExpressionEngineApi = (() => {
+            if (typeof window.materialCalcCreateDimensionExpressionEngine === 'function') {
+                try {
+                    return window.materialCalcCreateDimensionExpressionEngine({
+                        deps: {
+                            getAllAdditionalWorkRows: () => (typeof getAllAdditionalWorkRows === 'function' ? getAllAdditionalWorkRows() : []),
+                            getMainWallLengthInput: () => mainWallLengthInput,
+                            getMainWallHeightInput: () => mainWallHeightInput,
+                            getCalcExpressionStateKey: () => calcExpressionStateKey,
+                        },
+                    });
+                } catch (error) {
+                    console.error('dimension expression engine failed:', error);
+                }
+            }
+            return null;
+        })();
+
+        function callDimensionExpressionEngine(methodName, args, fallback) {
+            if (dimensionExpressionEngineApi && typeof dimensionExpressionEngineApi[methodName] === 'function') {
+                return dimensionExpressionEngineApi[methodName](...(Array.isArray(args) ? args : []));
+            }
+            return typeof fallback === 'function' ? fallback() : undefined;
+        }
+
         function formatFixedPlain(value, decimals = 2) {
-            const num = Number(value);
-            if (!isFinite(num)) return '';
-            if (num === 0) return '0';
-
-            const absValue = Math.abs(num);
-            const epsilon = Math.min(absValue * 1e-12, 1e-6);
-            const adjusted = num + (num >= 0 ? epsilon : -epsilon);
-            const sign = adjusted < 0 ? '-' : '';
-            const abs = Math.abs(adjusted);
-            const intPart = Math.trunc(abs);
-
-            if (intPart > 0) {
-                const scaled = Math.trunc(abs * 100);
-                const intDisplay = Math.trunc(scaled / 100).toString();
-                let decPart = String(scaled % 100).padStart(2, '0');
-                decPart = decPart.replace(/0+$/, '');
-                return decPart ? `${sign}${intDisplay}.${decPart}` : `${sign}${intDisplay}`;
-            }
-
-            let fraction = abs;
-            let digits = '';
-            let firstNonZeroIndex = null;
-            const maxDigits = 30;
-
-            for (let i = 0; i < maxDigits; i++) {
-                fraction *= 10;
-                const digit = Math.floor(fraction + 1e-12);
-                fraction -= digit;
-                digits += String(digit);
-
-                if (digit !== 0 && firstNonZeroIndex === null) {
-                    firstNonZeroIndex = i;
-                }
-
-                if (firstNonZeroIndex !== null && i >= firstNonZeroIndex + 1) {
-                    break;
-                }
-            }
-
-            digits = digits.replace(/0+$/, '');
-            if (!digits) return '0';
-            return `${sign}0.${digits}`;
+            return callDimensionExpressionEngine('formatFixedPlain', [value, decimals], () => "");
         }
 
         function formatThicknessValue(value) {
-            return formatFixedPlain(value, 2);
+            return callDimensionExpressionEngine('formatThicknessValue', [value], () => formatFixedPlain(value, 2));
         }
 
-        const dimensionExpressionFieldKeys = new Set(['wall_length', 'wall_height']);
-
         function getDimensionExpressionFieldKey(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement)) {
-                return '';
-            }
-            if (inputEl.id === 'wallLength') {
-                return 'wall_length';
-            }
-            if (inputEl.id === 'wallHeight') {
-                return 'wall_height';
-            }
-            const fieldKey = String(inputEl.getAttribute('data-field') || inputEl.name || '').trim().toLowerCase();
-            return dimensionExpressionFieldKeys.has(fieldKey) ? fieldKey : '';
+            return callDimensionExpressionEngine('getDimensionExpressionFieldKey', [inputEl], () => "");
         }
 
         function isDimensionExpressionInput(inputEl) {
-            return Boolean(getDimensionExpressionFieldKey(inputEl));
+            return callDimensionExpressionEngine('isDimensionExpressionInput', [inputEl], () => Boolean(getDimensionExpressionFieldKey(inputEl)));
         }
 
         function hasArithmeticOperator(rawValue) {
-            return /[+\-*/xX×÷:]/.test(String(rawValue || ''));
+            return callDimensionExpressionEngine('hasArithmeticOperator', [rawValue], () => /[+\-*/xX]/.test(String(rawValue || "")));
         }
 
         function sanitizeDimensionExpression(rawValue) {
-            return String(rawValue || '')
-                .trim()
-                .replace(/\s+/g, '')
-                .replace(/,/g, '.')
-                .replace(/[xX×]/g, '*')
-                .replace(/[÷:]/g, '/');
+            return callDimensionExpressionEngine('sanitizeDimensionExpression', [rawValue], () => String(rawValue || "").trim().replace(/\s+/g, "").replace(/,/g, "."));
         }
 
         function formatDimensionExpressionPreview(rawValue) {
-            return String(rawValue || '')
-                .trim()
-                .replace(/[xX×*]/g, ' x ')
-                .replace(/[÷:/]/g, ' / ')
-                .replace(/\+/g, ' + ')
-                .replace(/-/g, ' - ')
-                .replace(/\s+/g, ' ')
-                .replace(/\(\s+/g, '(')
-                .replace(/\s+\)/g, ')')
-                .trim();
+            return callDimensionExpressionEngine('formatDimensionExpressionPreview', [rawValue], () => String(rawValue || "").trim());
         }
 
         function tokenizeDimensionExpression(expression) {
-            const tokens = [];
-            let index = 0;
-            while (index < expression.length) {
-                const char = expression[index];
-                if ('+-*/()'.includes(char)) {
-                    tokens.push({ type: 'op', value: char });
-                    index += 1;
-                    continue;
-                }
-                if (/[0-9.]/.test(char)) {
-                    let number = '';
-                    let dotCount = 0;
-                    while (index < expression.length && /[0-9.]/.test(expression[index])) {
-                        if (expression[index] === '.') {
-                            dotCount += 1;
-                        }
-                        number += expression[index];
-                        index += 1;
-                    }
-                    if (dotCount > 1 || !/^\d+(\.\d+)?$/.test(number)) {
-                        return null;
-                    }
-                    tokens.push({ type: 'number', value: Number(number) });
-                    continue;
-                }
-                return null;
-            }
-            return tokens;
+            return callDimensionExpressionEngine('tokenizeDimensionExpression', [expression], () => []);
         }
 
         function parseDimensionExpression(rawValue) {
-            const normalized = sanitizeDimensionExpression(rawValue);
-            if (!normalized) {
-                return { ok: false, error: 'empty' };
-            }
-            if (!/^[0-9+\-*/().]+$/.test(normalized)) {
-                return { ok: false, error: 'invalid_chars' };
-            }
-            const tokens = tokenizeDimensionExpression(normalized);
-            if (!Array.isArray(tokens)) {
-                return { ok: false, error: 'invalid_tokens' };
-            }
-            let cursor = 0;
-
-            const parseExpression = () => {
-                let value = parseTerm();
-                while (cursor < tokens.length && ['+', '-'].includes(tokens[cursor].value)) {
-                    const operator = tokens[cursor].value;
-                    cursor += 1;
-                    const right = parseTerm();
-                    value = operator === '+' ? value + right : value - right;
-                }
-                return value;
-            };
-
-            const parseTerm = () => {
-                let value = parseFactor();
-                while (cursor < tokens.length && ['*', '/'].includes(tokens[cursor].value)) {
-                    const operator = tokens[cursor].value;
-                    cursor += 1;
-                    const right = parseFactor();
-                    if (operator === '/') {
-                        if (right === 0) {
-                            throw new Error('division_by_zero');
-                        }
-                        value /= right;
-                    } else {
-                        value *= right;
-                    }
-                }
-                return value;
-            };
-
-            const parseFactor = () => {
-                const token = tokens[cursor];
-                if (!token) {
-                    throw new Error('unexpected_end');
-                }
-                if (token.type === 'op' && token.value === '(') {
-                    cursor += 1;
-                    const value = parseExpression();
-                    const closeToken = tokens[cursor];
-                    if (!closeToken || closeToken.type !== 'op' || closeToken.value !== ')') {
-                        throw new Error('missing_closing_paren');
-                    }
-                    cursor += 1;
-                    return value;
-                }
-                if (token.type === 'op' && (token.value === '+' || token.value === '-')) {
-                    cursor += 1;
-                    const value = parseFactor();
-                    return token.value === '-' ? -value : value;
-                }
-                if (token.type === 'number') {
-                    cursor += 1;
-                    return token.value;
-                }
-                throw new Error('unexpected_token');
-            };
-
-            try {
-                const result = parseExpression();
-                if (cursor !== tokens.length || !Number.isFinite(result)) {
-                    return { ok: false, error: 'parse_incomplete' };
-                }
-                return { ok: true, value: result, normalized };
-            } catch (error) {
-                return { ok: false, error: String(error?.message || 'parse_error') };
-            }
+            return callDimensionExpressionEngine('parseDimensionExpression', [rawValue], () => ({ ok: false, error: "engine_unavailable" }));
         }
 
         function formatDimensionNumericValue(value, decimals = 6) {
-            const parsed = Number(value);
-            if (!Number.isFinite(parsed)) return '';
-            return parsed
-                .toFixed(decimals)
-                .replace(/(\.\d*?[1-9])0+$/, '$1')
-                .replace(/\.0+$/, '');
+            return callDimensionExpressionEngine('formatDimensionNumericValue', [value, decimals], () => "");
         }
 
         function getDimensionExpressionHint(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement)) {
-                return null;
-            }
-            const wrap = inputEl.closest('.input-with-unit');
-            if (!(wrap instanceof HTMLElement)) {
-                return null;
-            }
-            const hint = wrap.querySelector('[data-expression-hint]');
-            return hint instanceof HTMLElement ? hint : null;
+            return callDimensionExpressionEngine('getDimensionExpressionHint', [inputEl], () => null);
         }
 
         function showDimensionExpressionHint(inputEl, expressionText) {
-            const hintEl = getDimensionExpressionHint(inputEl);
-            if (!(hintEl instanceof HTMLElement)) {
-                return;
-            }
-            const cleaned = String(expressionText || '').trim();
-            if (!cleaned) {
-                hideDimensionExpressionHint(inputEl);
-                return;
-            }
-            hintEl.textContent = `(= ${cleaned})`;
-            hintEl.hidden = false;
+            return callDimensionExpressionEngine('showDimensionExpressionHint', [inputEl, expressionText], () => undefined);
         }
 
         function hideDimensionExpressionHint(inputEl) {
-            const hintEl = getDimensionExpressionHint(inputEl);
-            if (!(hintEl instanceof HTMLElement)) {
-                return;
-            }
-            hintEl.hidden = true;
-            hintEl.textContent = '';
+            return callDimensionExpressionEngine('hideDimensionExpressionHint', [inputEl], () => undefined);
         }
 
         function evaluateDimensionInputRawValue(rawValue) {
-            const raw = String(rawValue || '').trim();
-            if (!raw) {
-                return { ok: true, empty: true, value: '', expression: '' };
-            }
-
-            if (hasArithmeticOperator(raw)) {
-                const parsedExpression = parseDimensionExpression(raw);
-                if (!parsedExpression.ok) {
-                    return { ok: false, error: parsedExpression.error || 'invalid_expression' };
-                }
-                return {
-                    ok: true,
-                    empty: false,
-                    value: formatDimensionNumericValue(parsedExpression.value),
-                    expression: formatDimensionExpressionPreview(raw),
-                };
-            }
-
-            const numeric = Number(raw.replace(',', '.'));
-            if (!Number.isFinite(numeric)) {
-                return { ok: false, error: 'invalid_number' };
-            }
-
-            return {
-                ok: true,
-                empty: false,
-                value: formatDimensionNumericValue(numeric),
-                expression: '',
-            };
+            return callDimensionExpressionEngine('evaluateDimensionInputRawValue', [rawValue], () => ({ ok: false, error: "engine_unavailable" }));
         }
 
         function parseDimensionNumericFromInput(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement)) {
-                return { ok: false };
-            }
-            const evaluated = evaluateDimensionInputRawValue(inputEl.value);
-            if (!evaluated.ok || evaluated.empty) {
-                return { ok: false };
-            }
-            const numeric = Number(String(evaluated.value || '').replace(',', '.'));
-            if (!Number.isFinite(numeric)) {
-                return { ok: false };
-            }
-            return { ok: true, value: numeric, text: formatDimensionNumericValue(numeric, 3) };
+            return callDimensionExpressionEngine('parseDimensionNumericFromInput', [inputEl], () => ({ ok: false }));
         }
 
         function isDimensionInputCurrentlyVisible(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement)) {
-                return false;
-            }
-            if (inputEl.disabled) {
-                return false;
-            }
-            const wrapEl = inputEl.closest('.dimension-item');
-            if (!(wrapEl instanceof HTMLElement)) {
-                return true;
-            }
-            return getComputedStyle(wrapEl).display !== 'none';
+            return callDimensionExpressionEngine('isDimensionInputCurrentlyVisible', [inputEl], () => false);
         }
 
         function resolveDimensionAreaSummaryContainer(layoutEl) {
-            if (!(layoutEl instanceof HTMLElement)) {
-                return null;
-            }
-
-            const additionalRow = layoutEl.closest('.additional-work-item[data-additional-work-item="true"]');
-            if (additionalRow instanceof HTMLElement) {
-                const additionalSummary = additionalRow.querySelector(
-                    '.additional-worktype-group [data-dimension-area-summary]',
-                );
-                return additionalSummary instanceof HTMLElement ? additionalSummary : null;
-            }
-
-            if (layoutEl.id === 'mainDimensionAreaLayout') {
-                const mainInlineSummary = document.getElementById('mainDimensionAreaSummary');
-                return mainInlineSummary instanceof HTMLElement ? mainInlineSummary : null;
-            }
-
-            const mainWorkTypeForm = layoutEl.closest('.work-type-form');
-            if (mainWorkTypeForm instanceof HTMLElement) {
-                const mainSummary = mainWorkTypeForm.querySelector('#mainDimensionAreaSummary');
-                return mainSummary instanceof HTMLElement ? mainSummary : null;
-            }
-
-            const fallback = layoutEl.querySelector('#mainDimensionAreaSummary, [data-dimension-area-summary]');
-            return fallback instanceof HTMLElement ? fallback : null;
+            return callDimensionExpressionEngine('resolveDimensionAreaSummaryContainer', [layoutEl], () => null);
         }
 
         function setDimensionAreaSummary(summaryEl, formulaText = '-', valueText = '-') {
-            if (!(summaryEl instanceof HTMLElement)) {
-                return;
-            }
-            const formulaEl = summaryEl.querySelector('#mainDimensionAreaFormula, [data-dimension-area-formula]');
-            const valueEl = summaryEl.querySelector('#mainDimensionAreaValue, [data-dimension-area-value]');
-            const cleanedValue = String(valueText || '-').trim();
-            const displayValue = cleanedValue && cleanedValue !== '-' ? `${cleanedValue} M2` : '-';
-            if (formulaEl instanceof HTMLElement) {
-                formulaEl.textContent = String(formulaText || '-');
-            }
-            if (valueEl instanceof HTMLElement) {
-                valueEl.textContent = displayValue;
-            }
+            return callDimensionExpressionEngine('setDimensionAreaSummary', [summaryEl, formulaText, valueText], () => undefined);
         }
 
         function updateDimensionAreaSummary(layoutEl) {
-            if (!(layoutEl instanceof HTMLElement)) {
-                return;
-            }
-            const summaryEl = resolveDimensionAreaSummaryContainer(layoutEl);
-            if (!(summaryEl instanceof HTMLElement)) {
-                return;
-            }
-
-            const lengthInput = layoutEl.querySelector('#wallLength, [data-field="wall_length"]');
-            const heightInput = layoutEl.querySelector('#wallHeight, [data-field="wall_height"]');
-
-            if (!(lengthInput instanceof HTMLInputElement) || !(heightInput instanceof HTMLInputElement)) {
-                setDimensionAreaSummary(summaryEl, '-', '-');
-                return;
-            }
-
-            if (!isDimensionInputCurrentlyVisible(heightInput)) {
-                setDimensionAreaSummary(summaryEl, '-', '-');
-                return;
-            }
-
-            const lengthValue = parseDimensionNumericFromInput(lengthInput);
-            const heightValue = parseDimensionNumericFromInput(heightInput);
-
-            if (!lengthValue.ok || !heightValue.ok) {
-                setDimensionAreaSummary(summaryEl, '-', '-');
-                return;
-            }
-
-            const areaValue = lengthValue.value * heightValue.value;
-            const areaText = formatDimensionNumericValue(areaValue, 3);
-            setDimensionAreaSummary(summaryEl, `${lengthValue.text} x ${heightValue.text}`, areaText);
+            return callDimensionExpressionEngine('updateDimensionAreaSummary', [layoutEl], () => undefined);
         }
 
         function refreshDimensionAreaSummaries() {
-            updateDimensionAreaSummary(document.getElementById('mainDimensionAreaLayout'));
-            document
-                .querySelectorAll('.additional-dimension-area-layout[data-dimension-area-layout]')
-                .forEach(layoutEl => updateDimensionAreaSummary(layoutEl));
+            return callDimensionExpressionEngine('refreshDimensionAreaSummaries', [], () => undefined);
         }
 
         function evaluateDimensionExpressionInput(inputEl, options = {}) {
-            if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
-                return { ok: true, skipped: true };
-            }
-            const commitValue = options.commitValue === true;
-            const strictMode = options.strictMode === true;
-            const evaluated = evaluateDimensionInputRawValue(inputEl.value);
-
-            if (!evaluated.ok) {
-                if (strictMode) {
-                    return { ok: false, error: evaluated.error || 'invalid_expression', inputEl };
-                }
-                return { ok: true, unresolved: true };
-            }
-
-            if (evaluated.empty) {
-                inputEl.dataset.dimensionExpressionRaw = '';
-                inputEl.dataset.dimensionExpressionValue = '';
-                hideDimensionExpressionHint(inputEl);
-                return { ok: true, empty: true, value: '' };
-            }
-
-            const previousExpression = String(inputEl.dataset.dimensionExpressionRaw || '').trim();
-            const previousExpressionValue = String(inputEl.dataset.dimensionExpressionValue || '').trim();
-
-            if (evaluated.expression) {
-                inputEl.dataset.dimensionExpressionRaw = evaluated.expression;
-                inputEl.dataset.dimensionExpressionValue = evaluated.value;
-                showDimensionExpressionHint(inputEl, evaluated.expression);
-            } else {
-                const keepPreviousHint = previousExpression
-                    && previousExpressionValue
-                    && evaluated.value === previousExpressionValue;
-                if (keepPreviousHint) {
-                    inputEl.dataset.dimensionExpressionRaw = previousExpression;
-                    inputEl.dataset.dimensionExpressionValue = previousExpressionValue;
-                    showDimensionExpressionHint(inputEl, previousExpression);
-                } else {
-                    inputEl.dataset.dimensionExpressionRaw = '';
-                    inputEl.dataset.dimensionExpressionValue = '';
-                    hideDimensionExpressionHint(inputEl);
-                }
-            }
-
-            if (commitValue) {
-                inputEl.value = evaluated.value;
-            }
-
-            return { ok: true, value: evaluated.value, expression: evaluated.expression };
+            return callDimensionExpressionEngine('evaluateDimensionExpressionInput', [inputEl, options], () => ({ ok: false, error: "engine_unavailable", inputEl }));
         }
 
         function bindDimensionExpressionInput(inputEl) {
-            if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
-                return;
-            }
-            if (inputEl.__dimensionExpressionBound) {
-                return;
-            }
-            inputEl.__dimensionExpressionBound = true;
-
-            const commitEvaluation = (strictMode = false) => {
-                if (inputEl.__dimensionExpressionSyncing) {
-                    return { ok: true };
-                }
-                inputEl.__dimensionExpressionSyncing = true;
-                try {
-                    return evaluateDimensionExpressionInput(inputEl, { commitValue: true, strictMode });
-                } finally {
-                    inputEl.__dimensionExpressionSyncing = false;
-                }
-            };
-
-            const evaluateWithoutCommit = (strictMode = false) => {
-                if (inputEl.__dimensionExpressionSyncing) {
-                    return { ok: true };
-                }
-                inputEl.__dimensionExpressionSyncing = true;
-                try {
-                    return evaluateDimensionExpressionInput(inputEl, { commitValue: false, strictMode });
-                } finally {
-                    inputEl.__dimensionExpressionSyncing = false;
-                }
-            };
-
-            inputEl.addEventListener('input', function() {
-                if (inputEl.__dimensionExpressionSyncing) {
-                    return;
-                }
-                evaluateWithoutCommit(false);
-                refreshDimensionAreaSummaries();
-            });
-
-            inputEl.addEventListener('change', function() {
-                commitEvaluation(false);
-                refreshDimensionAreaSummaries();
-            });
-
-            inputEl.addEventListener('blur', function() {
-                commitEvaluation(false);
-                refreshDimensionAreaSummaries();
-            });
-
-            inputEl.addEventListener('keydown', function(event) {
-                if (event.key !== 'Enter') {
-                    return;
-                }
-                const result = commitEvaluation(true);
-                if (!result.ok) {
-                    event.preventDefault();
-                }
-                refreshDimensionAreaSummaries();
-            });
-
-            evaluateWithoutCommit(false);
-            refreshDimensionAreaSummaries();
+            return callDimensionExpressionEngine('bindDimensionExpressionInput', [inputEl], () => undefined);
         }
 
         function bindDimensionExpressionInputs(scope = document) {
-            if (!(scope instanceof HTMLElement) && scope !== document) {
-                return;
-            }
-            const root = scope === document ? document : scope;
-            root.querySelectorAll('input[type="text"], input:not([type])').forEach(inputEl => {
-                if (inputEl instanceof HTMLInputElement) {
-                    bindDimensionExpressionInput(inputEl);
-                }
-            });
+            return callDimensionExpressionEngine('bindDimensionExpressionInputs', [scope], () => undefined);
         }
 
         function normalizeDimensionExpressionInputsForSubmit(scope = document, options = {}) {
-            if (!(scope instanceof HTMLElement) && scope !== document) {
-                return { ok: true };
-            }
-            const root = scope === document ? document : scope;
-            const commitValue = options.commitValue === true;
-            const candidateInputs = Array.from(root.querySelectorAll('input[type="text"], input:not([type])'))
-                .filter(inputEl => inputEl instanceof HTMLInputElement && isDimensionExpressionInput(inputEl));
-            const normalizedValues = [];
-
-            for (const inputEl of candidateInputs) {
-                if (inputEl.disabled) {
-                    continue;
-                }
-                const result = evaluateDimensionExpressionInput(inputEl, { commitValue, strictMode: true });
-                if (!result.ok) {
-                    const fieldName = getDimensionExpressionFieldKey(inputEl) === 'wall_height'
-                        ? 'Tinggi/Lebar'
-                        : 'Panjang';
-                    return {
-                        ok: false,
-                        message: `Format ${fieldName} tidak valid. Gunakan angka atau ekspresi seperti 6,2 x 2.`,
-                        focusEl: inputEl,
-                    };
-                }
-                normalizedValues.push({ inputEl, value: String(result.value || '') });
-            }
-            return { ok: true, values: normalizedValues };
+            return callDimensionExpressionEngine('normalizeDimensionExpressionInputsForSubmit', [scope, options], () => ({ ok: true }));
         }
 
         function collectDimensionExpressionState() {
-            const mainState = {};
-            const mainLengthExpression = String(mainWallLengthInput?.dataset?.dimensionExpressionRaw || '').trim();
-            const mainHeightExpression = String(mainWallHeightInput?.dataset?.dimensionExpressionRaw || '').trim();
-            if (mainLengthExpression) {
-                mainState.wall_length = mainLengthExpression;
-            }
-            if (mainHeightExpression) {
-                mainState.wall_height = mainHeightExpression;
-            }
-
-            const additionalState = {};
-            const additionalRows = getAllAdditionalWorkRows();
-            additionalRows.forEach((rowEl, index) => {
-                if (!(rowEl instanceof HTMLElement)) {
-                    return;
-                }
-                const rowState = {};
-                const lengthInput = rowEl.querySelector('[data-field="wall_length"]');
-                const heightInput = rowEl.querySelector('[data-field="wall_height"]');
-                const rowLengthExpression = String(lengthInput?.dataset?.dimensionExpressionRaw || '').trim();
-                const rowHeightExpression = String(heightInput?.dataset?.dimensionExpressionRaw || '').trim();
-                if (rowLengthExpression) {
-                    rowState.wall_length = rowLengthExpression;
-                }
-                if (rowHeightExpression) {
-                    rowState.wall_height = rowHeightExpression;
-                }
-                if (Object.keys(rowState).length > 0) {
-                    additionalState[String(index)] = rowState;
-                }
-            });
-
-            if (!Object.keys(mainState).length && !Object.keys(additionalState).length) {
-                return null;
-            }
-
-            return {
-                main: mainState,
-                additional: additionalState,
-            };
+            return callDimensionExpressionEngine('collectDimensionExpressionState', [], () => null);
         }
 
         function applyDimensionExpressionState(state) {
-            const expressionState = state && typeof state === 'object' ? state : {};
-            const mainState = expressionState.main && typeof expressionState.main === 'object'
-                ? expressionState.main
-                : {};
-            const additionalState = expressionState.additional && typeof expressionState.additional === 'object'
-                ? expressionState.additional
-                : {};
-
-            const applyExpressionToInput = (inputEl, expressionRaw) => {
-                if (!(inputEl instanceof HTMLInputElement) || !isDimensionExpressionInput(inputEl)) {
-                    return;
-                }
-                const expression = String(expressionRaw || '').trim();
-                if (!expression) {
-                    inputEl.dataset.dimensionExpressionRaw = '';
-                    inputEl.dataset.dimensionExpressionValue = '';
-                    hideDimensionExpressionHint(inputEl);
-                    return;
-                }
-                inputEl.dataset.dimensionExpressionRaw = expression;
-                inputEl.dataset.dimensionExpressionValue = String(inputEl.value || '').trim();
-                showDimensionExpressionHint(inputEl, expression);
-            };
-
-            applyExpressionToInput(mainWallLengthInput, mainState.wall_length || '');
-            applyExpressionToInput(mainWallHeightInput, mainState.wall_height || '');
-
-            const additionalRows = getAllAdditionalWorkRows();
-            additionalRows.forEach((rowEl, index) => {
-                if (!(rowEl instanceof HTMLElement)) {
-                    return;
-                }
-                const rowState = additionalState[String(index)] && typeof additionalState[String(index)] === 'object'
-                    ? additionalState[String(index)]
-                    : {};
-                const lengthInput = rowEl.querySelector('[data-field="wall_length"]');
-                const heightInput = rowEl.querySelector('[data-field="wall_height"]');
-                applyExpressionToInput(lengthInput, rowState.wall_length || '');
-                applyExpressionToInput(heightInput, rowState.wall_height || '');
-            });
+            return callDimensionExpressionEngine('applyDimensionExpressionState', [state], () => undefined);
         }
 
         function getStoredDimensionExpressionState() {
-            try {
-                const expressionStateRaw = localStorage.getItem(calcExpressionStateKey);
-                const expressionStateParsed = expressionStateRaw ? JSON.parse(expressionStateRaw) : null;
-                const expressionStateData = expressionStateParsed && typeof expressionStateParsed === 'object'
-                    ? expressionStateParsed.data
-                    : null;
-                return expressionStateData && typeof expressionStateData === 'object' ? expressionStateData : null;
-            } catch (error) {
-                return null;
-            }
+            return callDimensionExpressionEngine('getStoredDimensionExpressionState', [], () => null);
         }
 
         function setMortarThicknessUnit(unit) {
@@ -7945,6 +6348,28 @@
             });
         }
 
+        function openBundleCustomizePanel(panelEl) {
+            if (!(panelEl instanceof HTMLElement)) {
+                return false;
+            }
+            if (!panelEl.hidden) {
+                return true;
+            }
+
+            const panelId = String(panelEl.id || '').trim();
+            if (panelId) {
+                const openBtn = document.querySelector(`[data-customize-panel-id="${panelId}"]`);
+                if (openBtn instanceof HTMLElement) {
+                    openBtn.click();
+                }
+            }
+
+            if (panelEl.hidden) {
+                panelEl.hidden = false;
+            }
+            return !panelEl.hidden;
+        }
+
         function syncBundleCustomizeSelectDisplay(selectEl) {
             if (!(selectEl instanceof HTMLSelectElement)) {
                 return;
@@ -8009,6 +6434,9 @@
                 hasChanged = true;
             });
             syncBundleCustomizePanelToggleState(panelEl);
+            if (hasChanged && panelEl.hidden && panelHasActiveCustomizeValues(panelEl)) {
+                openBundleCustomizePanel(panelEl);
+            }
             return hasChanged;
         }
 
@@ -8750,6 +7178,61 @@
             return hasAnyChanged;
         }
 
+        function openSyncedBundleCustomizePanelsForSelection(sourcePanelEl, materialType) {
+            if (!(sourcePanelEl instanceof HTMLElement)) {
+                return false;
+            }
+            const type = String(materialType || '').trim();
+            if (!type) {
+                return false;
+            }
+
+            const sourceWrap = resolveBundleMaterialWrapByPanel(sourcePanelEl, type);
+            if (!(sourceWrap instanceof HTMLElement)) {
+                return false;
+            }
+
+            const sourceTokenSet = new Set(
+                collectBundleMaterialTokensFromWrap(sourceWrap, type)
+                    .map(token => normalizeBundleMaterialNoticeToken(token))
+                    .filter(Boolean),
+            );
+            if (!sourceTokenSet.size) {
+                return false;
+            }
+
+            let openedAny = false;
+            document.querySelectorAll(`.customize-panel[data-customize-panel="${type}"]`).forEach(panelEl => {
+                if (!(panelEl instanceof HTMLElement) || panelEl === sourcePanelEl) {
+                    return;
+                }
+                if (isBundleCustomizePanelDetached(panelEl)) {
+                    return;
+                }
+                if (!panelHasActiveCustomizeValues(panelEl)) {
+                    return;
+                }
+                const wrapEl = resolveBundleMaterialWrapByPanel(panelEl, type);
+                if (!(wrapEl instanceof HTMLElement)) {
+                    return;
+                }
+                const targetTokens = collectBundleMaterialTokensFromWrap(wrapEl, type)
+                    .map(token => normalizeBundleMaterialNoticeToken(token))
+                    .filter(Boolean);
+                const hasIntersection = targetTokens.some(token => sourceTokenSet.has(token));
+                if (!hasIntersection) {
+                    return;
+                }
+                if (panelEl.hidden) {
+                    openBundleCustomizePanel(panelEl);
+                    openedAny = true;
+                }
+                syncBundleCustomizePanelToggleState(panelEl);
+            });
+
+            return openedAny;
+        }
+
         function bindBundleSharedCustomizeSyncListener() {
             if (document.__bundleSharedCustomizeSyncBound) {
                 return;
@@ -8827,12 +7310,13 @@
                     return hasAnyChanged;
                 };
 
-                const syncedNow = runSyncPass();
+                runSyncPass();
+                const openedNow = openSyncedBundleCustomizePanelsForSelection(panelEl, materialType);
                 if (typeof syncBundleFromForms === 'function') {
                     syncBundleFromForms();
                 }
                 queueBundlePayloadSync();
-                if (syncedNow) {
+                if (openedNow) {
                     return;
                 }
 
@@ -8843,11 +7327,12 @@
                         return;
                     }
                     const syncedRetry = runSyncPass();
-                    if (syncedRetry && typeof syncBundleFromForms === 'function') {
+                    const openedRetry = openSyncedBundleCustomizePanelsForSelection(panelEl, materialType);
+                    if ((syncedRetry || openedRetry) && typeof syncBundleFromForms === 'function') {
                         syncBundleFromForms();
                     }
                     queueBundlePayloadSync();
-                    if (!syncedRetry && retryCount < 2) {
+                    if (!openedRetry && retryCount < 2) {
                         setTimeout(retrySync, 80);
                     }
                 };
@@ -9700,6 +8185,9 @@
                 active_fields: normalizeActiveFieldList(entry.active_fields),
                 material_type_filters: normalizeBundleMaterialTypeFilters(entry.material_type_filters || {}),
                 material_customize_filters: normalizeBundleMaterialCustomizeFilters(entry.material_customize_filters || {}),
+                restore_scope: String(entry.restore_scope || '').trim().toLowerCase(),
+                restore_parent_area_key: String(entry.restore_parent_area_key || '').trim().toLowerCase(),
+                restore_parent_field_key: String(entry.restore_parent_field_key || '').trim().toLowerCase(),
             };
         }
 
@@ -9814,1119 +8302,112 @@
         }
 
         function initAdditionalWorkTaxonomyAutocomplete(itemEl, initial = {}) {
-            if (!itemEl) {
-                return;
-            }
-            let enableDuplicateAutoMerge = false;
-
-            const floorDisplayInput = itemEl.querySelector('[data-field-display="work_floor"]');
-            const floorHiddenInput = itemEl.querySelector('[data-field="work_floor"]');
-            const floorListEl = itemEl.querySelector('[data-field-list="work_floor"]');
-            const areaDisplayInput = itemEl.querySelector('[data-field-display="work_area"]');
-            const areaHiddenInput = itemEl.querySelector('[data-field="work_area"]');
-            const areaListEl = itemEl.querySelector('[data-field-list="work_area"]');
-            const fieldDisplayInput = itemEl.querySelector('[data-field-display="work_field"]');
-            const fieldHiddenInput = itemEl.querySelector('[data-field="work_field"]');
-            const fieldListEl = itemEl.querySelector('[data-field-list="work_field"]');
-
-            if (
-                !floorDisplayInput ||
-                !floorHiddenInput ||
-                !floorListEl ||
-                !areaDisplayInput ||
-                !areaHiddenInput ||
-                !areaListEl ||
-                !fieldDisplayInput ||
-                !fieldHiddenInput ||
-                !fieldListEl
-            ) {
-                return;
-            }
-
-            bindAutocompleteScrollLock(floorListEl);
-            bindAutocompleteScrollLock(areaListEl);
-            bindAutocompleteScrollLock(fieldListEl);
-
-            const normalize = text =>
-                String(text || '')
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/gi, '')
-                    .trim();
-
-            const setupAutocomplete = ({ displayInput, hiddenInput, listEl, getOptions, onChanged, openToBottomOnEmpty = false }) => {
-                const closeList = () => {
-                    listEl.style.display = 'none';
-                };
-
-                const getFilteredOptions = term => {
-                    const options = uniqueFilterTokens(getOptions() || []);
-                    const query = normalize(term);
-                    if (!query) return options;
-                    return options.filter(option => normalize(option).includes(query));
-                };
-
-                const applyRawValue = (value, options = {}) => {
-                    const shouldTrim = options.trim !== false;
-                    const finalValue = shouldTrim ? String(value || '').trim() : String(value || '');
-                    displayInput.value = finalValue;
-                    if (hiddenInput.value !== finalValue) {
-                        hiddenInput.value = finalValue;
-                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-                    } else if (typeof onChanged === 'function') {
-                        onChanged();
-                    }
-                };
-
-                const renderList = term => {
-                    listEl.innerHTML = '';
-
-                    const emptyItem = document.createElement('div');
-                    emptyItem.className = 'autocomplete-item';
-                    emptyItem.textContent = '- Tidak Pilih -';
-                    emptyItem.addEventListener('click', function() {
-                        applyRawValue('');
-                        closeList();
+            if (typeof window.materialCalcCreateAdditionalTaxonomyAutocompleteEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalTaxonomyAutocompleteEngine({
+                        deps: {
+                            bindAutocompleteScrollLock,
+                            uniqueFilterTokens,
+                            sortFloors,
+                            workFloorOptionValues,
+                            resolveScopedWorkAreaOptionsByFloor,
+                            resolveScopedWorkFieldOptionsByArea,
+                            markFloorSortPending,
+                            autoMergeDuplicateAdditionalTaxonomyRow,
+                        },
+                        itemEl,
+                        initial,
                     });
-                    listEl.appendChild(emptyItem);
-
-                    getFilteredOptions(term).forEach(option => {
-                        const item = document.createElement('div');
-                        item.className = 'autocomplete-item';
-                        item.textContent = option;
-                        item.addEventListener('click', function() {
-                            applyRawValue(option);
-                            closeList();
-                        });
-                        listEl.appendChild(item);
-                    });
-
-                    listEl.style.display = 'block';
-                    if (openToBottomOnEmpty && !normalize(term)) {
-                        requestAnimationFrame(() => {
-                            listEl.scrollTop = listEl.scrollHeight;
-                        });
-                    }
-                };
-
-                const findExactMatch = term => {
-                    const query = normalize(term);
-                    if (!query) return null;
-                    return getFilteredOptions('').find(option => normalize(option) === query) || null;
-                };
-
-                displayInput.addEventListener('focus', function() {
-                    renderList('');
-                });
-
-                displayInput.addEventListener('input', function() {
-                    const term = String(displayInput.value || '');
-                    applyRawValue(term, { trim: false });
-                    renderList(term);
-                });
-
-                displayInput.addEventListener('keydown', function(event) {
-                    if (event.key === 'Enter') {
-                        const exact = findExactMatch(displayInput.value || '');
-                        if (exact) {
-                            applyRawValue(exact);
-                        } else {
-                            applyRawValue(displayInput.value || '', { trim: true });
-                        }
-                        closeList();
-                        event.preventDefault();
-                    } else if (event.key === 'Escape') {
-                        closeList();
-                    }
-                });
-
-                displayInput.addEventListener('blur', function() {
-                    setTimeout(() => {
-                        const normalizedValue = String(hiddenInput.value || '').trim();
-                        hiddenInput.value = normalizedValue;
-                        displayInput.value = normalizedValue;
-                        closeList();
-                        if (typeof onChanged === 'function') {
-                            onChanged();
-                        }
-                    }, 150);
-                });
-
-                document.addEventListener('click', function(event) {
-                    if (event.target === displayInput || listEl.contains(event.target)) return;
-                    closeList();
-                });
-
-                hiddenInput.addEventListener('change', function() {
-                    const value = String(hiddenInput.value || '');
-                    if (displayInput.value !== value) {
-                        displayInput.value = value;
-                    }
-                    if (typeof onChanged === 'function') {
-                        onChanged();
-                    }
-                });
-
-                return {
-                    setValue(value) {
-                        applyRawValue(value);
-                    },
-                    openList() {
-                        renderList(String(displayInput.value || ''));
-                    },
-                };
-            };
-
-            const floorAutocomplete = setupAutocomplete({
-                displayInput: floorDisplayInput,
-                hiddenInput: floorHiddenInput,
-                listEl: floorListEl,
-                getOptions: () => sortFloors(uniqueFilterTokens([...workFloorOptionValues, floorHiddenInput.value])),
-                openToBottomOnEmpty: true,
-                onChanged: () => {
-                    if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
-                        itemEl.__refreshWorkTypeOptions();
-                    }
-                    markFloorSortPending();
-                    if (enableDuplicateAutoMerge) {
-                        autoMergeDuplicateAdditionalTaxonomyRow(itemEl, 'work_floor');
-                    }
-                },
-            });
-
-            const areaAutocomplete = setupAutocomplete({
-                displayInput: areaDisplayInput,
-                hiddenInput: areaHiddenInput,
-                listEl: areaListEl,
-                getOptions: () => resolveScopedWorkAreaOptionsByFloor(floorHiddenInput.value, areaHiddenInput.value),
-                onChanged: () => {
-                    if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
-                        itemEl.__refreshWorkTypeOptions();
-                    }
-                    if (enableDuplicateAutoMerge) {
-                        autoMergeDuplicateAdditionalTaxonomyRow(itemEl, 'work_area');
-                    }
-                },
-            });
-
-            const fieldAutocomplete = setupAutocomplete({
-                displayInput: fieldDisplayInput,
-                hiddenInput: fieldHiddenInput,
-                listEl: fieldListEl,
-                getOptions: () =>
-                    resolveScopedWorkFieldOptionsByArea(floorHiddenInput.value, areaHiddenInput.value, fieldHiddenInput.value),
-                onChanged: () => {
-                    if (typeof itemEl.__refreshWorkTypeOptions === 'function') {
-                        itemEl.__refreshWorkTypeOptions();
-                    }
-                    if (enableDuplicateAutoMerge) {
-                        autoMergeDuplicateAdditionalTaxonomyRow(itemEl, 'work_field');
-                    }
-                },
-            });
-
-            const initialFloor = String(initial.work_floor || '').trim();
-            const initialArea = String(initial.work_area || '').trim();
-            const initialField = String(initial.work_field || '').trim();
-            if (initialFloor) {
-                floorAutocomplete.setValue(initialFloor);
+                } catch (error) {
+                    console.error('additional taxonomy autocomplete engine failed:', error);
+                }
             }
-            if (initialArea) {
-                areaAutocomplete.setValue(initialArea);
-            }
-            if (initialField) {
-                fieldAutocomplete.setValue(initialField);
-            }
-            enableDuplicateAutoMerge = true;
-
-            floorDisplayInput.__openAdditionalTaxonomyList = () => floorAutocomplete.openList();
-            areaDisplayInput.__openAdditionalTaxonomyList = () => areaAutocomplete.openList();
-            fieldDisplayInput.__openAdditionalTaxonomyList = () => fieldAutocomplete.openList();
         }
 
         function initAdditionalWorkTypeAutocomplete(itemEl, initial = {}) {
-            if (!itemEl) {
-                return;
-            }
-
-            const displayInput = itemEl.querySelector('[data-field-display="work_type"]');
-            const hiddenInput = itemEl.querySelector('[data-field="work_type"]');
-            const listEl = itemEl.querySelector('[data-field-list="work_type"]');
-
-            if (!displayInput || !hiddenInput || !listEl || bundleFormulaOptions.length === 0) {
-                return;
-            }
-
-            bindAutocompleteScrollLock(listEl);
-
-            const baseOptions = bundleFormulaOptions
-                .filter(option => option && option.code && option.name)
-                .map(option => ({
-                    code: String(option.code),
-                    name: String(option.name),
-                }));
-
-            const getScopedOptions = () => {
-                const rowKind = normalizeBundleRowKind(
-                    getAdditionalFieldValue(itemEl, 'row_kind') || itemEl.dataset.rowKind || 'area',
-                );
-                if (rowKind === 'item') {
-                    return baseOptions;
-                }
-
-                const selectedFloor = getAdditionalFieldValue(itemEl, 'work_floor');
-                const selectedArea = getAdditionalFieldValue(itemEl, 'work_area');
-                const selectedField = getAdditionalFieldValue(itemEl, 'work_field');
-                const scoped = resolveScopedWorkTypeOptionsByTaxonomy(selectedFloor, selectedArea, selectedField);
-                if (!Array.isArray(scoped) || scoped.length === 0) {
-                    return baseOptions;
-                }
-                return scoped
-                    .filter(option => option && option.code && option.name)
-                    .map(option => ({
-                        code: String(option.code),
-                        name: String(option.name),
-                    }));
-            };
-
-            const normalize = text =>
-                String(text || '')
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/gi, '')
-                    .trim();
-
-            const filterOptions = term => {
-                const options = getScopedOptions();
-                const query = normalize(term);
-                if (!query) return options;
-                return options.filter(option => {
-                    const name = normalize(option.name);
-                    const code = normalize(option.code);
-                    return name.includes(query) || code.includes(query);
-                });
-            };
-
-            const findExactMatch = term => {
-                const options = getScopedOptions();
-                const query = normalize(term);
-                if (!query) return null;
-                return options.find(option => normalize(option.name) === query || normalize(option.code) === query) || null;
-            };
-
-            const closeList = () => {
-                listEl.style.display = 'none';
-            };
-
-            const openList = () => {
-                renderList(filterOptions(''));
-            };
-
-            const applySelection = option => {
-                if (!option) return;
-                displayInput.value = option.name;
-                if (hiddenInput.value !== option.code) {
-                    hiddenInput.value = option.code;
-                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-                const titleInput = itemEl.querySelector('[data-field="title"]');
-                if (titleInput && !String(titleInput.value || '').trim()) {
-                    titleInput.value = option.name;
-                }
-                closeList();
-            };
-
-            const renderList = items => {
-                listEl.innerHTML = '';
-                items.forEach(option => {
-                    const row = document.createElement('div');
-                    row.className = 'autocomplete-item';
-                    row.textContent = option.name;
-                    row.addEventListener('click', function() {
-                        applySelection(option);
+            if (typeof window.materialCalcCreateAdditionalWorkTypeAutocompleteEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalWorkTypeAutocompleteEngine({
+                        deps: {
+                            bundleFormulaOptions,
+                            bindAutocompleteScrollLock,
+                            normalizeBundleRowKind,
+                            getAdditionalFieldValue,
+                            resolveScopedWorkTypeOptionsByTaxonomy,
+                        },
+                        itemEl,
+                        initial,
                     });
-                    listEl.appendChild(row);
-                });
-                listEl.style.display = items.length > 0 ? 'block' : 'none';
-            };
-
-            displayInput.addEventListener('focus', function() {
-                if (displayInput.readOnly || displayInput.disabled) return;
-                openList();
-            });
-
-            displayInput.addEventListener('input', function() {
-                if (displayInput.readOnly || displayInput.disabled) return;
-                const term = this.value || '';
-                renderList(filterOptions(term));
-
-                if (!term.trim()) {
-                    if (hiddenInput.value) {
-                        hiddenInput.value = '';
-                        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                    return;
+                } catch (error) {
+                    console.error('additional worktype autocomplete engine failed:', error);
                 }
-
-                const exactMatch = findExactMatch(term);
-                if (exactMatch && hiddenInput.value !== exactMatch.code) {
-                    hiddenInput.value = exactMatch.code;
-                    hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            });
-
-            displayInput.addEventListener('keydown', function(event) {
-                if (event.key !== 'Enter') return;
-                const exactMatch = findExactMatch(displayInput.value);
-                if (exactMatch) {
-                    applySelection(exactMatch);
-                    event.preventDefault();
-                }
-            });
-
-            displayInput.addEventListener('blur', function() {
-                setTimeout(closeList, 150);
-            });
-
-            document.addEventListener('click', function(event) {
-                if (event.target === displayInput || listEl.contains(event.target)) return;
-                closeList();
-            });
-
-            hiddenInput.addEventListener('change', function() {
-                const options = getScopedOptions();
-                const selected = options.find(option => option.code === hiddenInput.value);
-                if (selected) {
-                    if (displayInput.value !== selected.name) {
-                        displayInput.value = selected.name;
-                    }
-                    return;
-                }
-                if (!hiddenInput.value) {
-                    displayInput.value = '';
-                }
-            });
-
-            const refreshOptions = () => {
-                const options = getScopedOptions();
-                const selected = options.find(option => option.code === hiddenInput.value);
-                if (selected) {
-                    if (displayInput.value !== selected.name) {
-                        displayInput.value = selected.name;
-                    }
-                } else if (listEl.style.display === 'block') {
-                    renderList(filterOptions(displayInput.value || ''));
-                }
-            };
-
-            const initialWorkType = String(initial.work_type || '').trim();
-            if (initialWorkType) {
-                hiddenInput.value = initialWorkType;
-                hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
-            } else {
-                displayInput.value = '';
-                hiddenInput.value = '';
             }
-
-            // Expose helper so newly added rows can reliably auto-open the dropdown.
-            displayInput.__openAdditionalWorkTypeList = openList;
-            itemEl.__refreshWorkTypeOptions = refreshOptions;
         }
 
         function initAdditionalMaterialTypeFilters(itemEl, initialFilters = {}) {
-            if (!itemEl) {
-                return;
-            }
-
-            const normalizeOption = value => String(value ?? '').trim().toLowerCase();
-
-            bundleMaterialTypeOrder.forEach(type => {
-                const wrap = itemEl.querySelector(`[data-material-wrap="${type}"]`);
-                const baseRow = wrap?.querySelector('.material-type-row-base');
-                const baseDisplay = baseRow?.querySelector('.autocomplete-input[data-material-display="1"]');
-                const baseHidden = baseRow?.querySelector('input[data-material-type-hidden="1"]');
-                const baseList = baseRow?.querySelector('.autocomplete-list');
-                const extraRowsContainer = wrap?.querySelector('.material-type-extra-rows');
-                const baseDeleteBtn = baseRow?.querySelector('[data-material-type-action="remove"]');
-                const baseAddBtn = baseRow?.querySelector('[data-material-type-action="add"]');
-                const options = sortAlphabetic(uniqueFilterTokens(bundleMaterialTypeOptions[type] || []));
-                let isSyncing = false;
-
-                if (
-                    !wrap ||
-                    !baseRow ||
-                    !baseDisplay ||
-                    !baseHidden ||
-                    !baseList ||
-                    !extraRowsContainer ||
-                    !baseDeleteBtn ||
-                    !baseAddBtn
-                ) {
-                    return;
+            if (typeof window.materialCalcCreateAdditionalMaterialTypeFilterEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalMaterialTypeFilterEngine({
+                        deps: {
+                            bundleMaterialTypeOrder,
+                            sortAlphabetic,
+                            uniqueFilterTokens,
+                            bundleMaterialTypeOptions,
+                            syncBundleFromForms,
+                            syncSharedBundleMaterialTypeAcrossItems,
+                            linkBundleRowWithCustomizePanel,
+                            bundleCustomizeSupportedTypes,
+                            getBundleMaterialTypePlaceholder,
+                            bundleMaterialTypeLabels,
+                            getBundleMaterialTypeValues,
+                            nextBundleAdditionalAutocompleteSeq: () => ++bundleAdditionalAutocompleteSeq,
+                            nextBundleCustomizePanelSeq: () => ++bundleCustomizePanelSeq,
+                        },
+                        itemEl,
+                        initialFilters,
+                    });
+                } catch (error) {
+                    console.error('additional material type filter engine failed:', error);
                 }
-
-                const updateRowButtons = () => {
-                    const extraRows = extraRowsContainer.querySelectorAll('.material-type-row-extra');
-                    const hasExtra = extraRows.length > 0;
-                    baseRow.classList.toggle('has-multiple', hasExtra);
-                    wrap.classList.toggle('has-extra-rows', hasExtra);
-                    baseDeleteBtn.classList.toggle('is-visible', hasExtra);
-                    extraRows.forEach(row => {
-                        const deleteBtn = row.querySelector('[data-material-type-action="remove"]');
-                        if (deleteBtn) {
-                            deleteBtn.classList.add('is-visible');
-                        }
-                    });
-                };
-
-                const getRowStates = () => {
-                    const rows = [baseRow, ...extraRowsContainer.querySelectorAll('.material-type-row-extra')];
-                    return rows.map(row => row.__bundleMaterialRowState).filter(Boolean);
-                };
-
-                const getHiddenInputs = () => getRowStates().map(row => row.hiddenEl).filter(Boolean);
-
-                const getAvailableOptions = (term = '', currentHiddenEl = null, includeCurrentSelection = false) => {
-                    const query = normalizeOption(term);
-                    const selectedSet = new Set();
-                    getHiddenInputs().forEach(hiddenEl => {
-                        if (!hiddenEl) return;
-                        if (includeCurrentSelection && hiddenEl === currentHiddenEl) return;
-                        const normalized = normalizeOption(hiddenEl.value);
-                        if (normalized) {
-                            selectedSet.add(normalized);
-                        }
-                    });
-                    const available = options.filter(option => {
-                        const normalized = normalizeOption(option);
-                        if (!normalized || selectedSet.has(normalized)) return false;
-                        if (!query) return true;
-                        return normalized.includes(query);
-                    });
-                    return sortAlphabetic(available);
-                };
-
-                const refreshOpenLists = () => {
-                    getRowStates().forEach(rowState => {
-                        if (rowState.listEl && rowState.listEl.style.display === 'block') {
-                            rowState.renderList(rowState.displayEl.value || '');
-                        }
-                    });
-                };
-
-                const enforceUniqueSelection = () => {
-                    if (isSyncing) return;
-                    isSyncing = true;
-                    try {
-                        const seen = new Set();
-                        getRowStates().forEach(rowState => {
-                            const currentValue = String(rowState.hiddenEl.value || '').trim();
-                            const normalized = normalizeOption(currentValue);
-                            if (!normalized) return;
-
-                            if (seen.has(normalized)) {
-                                rowState.displayEl.value = '';
-                                rowState.hiddenEl.value = '';
-                                return;
-                            }
-                            seen.add(normalized);
-                        });
-                    } finally {
-                        isSyncing = false;
-                    }
-                };
-
-                const syncRows = () => {
-                    enforceUniqueSelection();
-                    refreshOpenLists();
-                    syncBundleFromForms();
-                };
-
-                const setupAutocomplete = rowState => {
-                    const { rowEl, displayEl, hiddenEl, listEl } = rowState;
-
-                    const closeList = () => {
-                        listEl.style.display = 'none';
-                    };
-
-                    const applySelection = optionValue => {
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
-                        const finalValue = String(optionValue || '').trim();
-                        displayEl.value = finalValue;
-                        if (hiddenEl.value !== finalValue) {
-                            hiddenEl.value = finalValue;
-                            hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                        } else {
-                            hiddenEl.value = finalValue;
-                        }
-                        closeList();
-                        syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
-                    };
-
-                    const renderList = (term = '') => {
-                        listEl.innerHTML = '';
-
-                        const emptyItem = document.createElement('div');
-                        emptyItem.className = 'autocomplete-item';
-                        emptyItem.textContent = '- Tidak Pilih -';
-                        emptyItem.addEventListener('click', function() {
-                            applySelection('');
-                        });
-                        listEl.appendChild(emptyItem);
-
-                        getAvailableOptions(term, hiddenEl).forEach(option => {
-                            const item = document.createElement('div');
-                            item.className = 'autocomplete-item';
-                            item.textContent = option;
-                            item.addEventListener('click', function() {
-                                applySelection(option);
-                            });
-                            listEl.appendChild(item);
-                        });
-
-                        listEl.style.display = 'block';
-                    };
-
-                    const findExactAvailableOption = term => {
-                        const query = normalizeOption(term);
-                        if (!query) return null;
-                        const available = getAvailableOptions(term, hiddenEl, true);
-                        return available.find(option => normalizeOption(option) === query) || null;
-                    };
-
-                    rowState.closeList = closeList;
-                    rowState.renderList = renderList;
-                    rowState.__lastSharedTypeValue = String(hiddenEl.value || '').trim();
-                    rowEl.__bundleMaterialRowState = rowState;
-                    linkBundleRowWithCustomizePanel(rowEl, type);
-
-                    displayEl.addEventListener('focus', function() {
-                        if (displayEl.readOnly || displayEl.disabled) return;
-                        renderList('');
-                    });
-
-                    displayEl.addEventListener('input', function() {
-                        if (displayEl.readOnly || displayEl.disabled) return;
-                        const previousValue = String(rowState.__lastSharedTypeValue ?? hiddenEl.value ?? '').trim();
-                        const term = this.value || '';
-                        renderList(term);
-
-                        if (!term.trim()) {
-                            if (hiddenEl.value !== '') {
-                                hiddenEl.value = '';
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else {
-                                hiddenEl.value = '';
-                            }
-                            syncRows();
-                            syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
-                            return;
-                        }
-
-                        const exactMatch = findExactAvailableOption(term);
-                        if (exactMatch) {
-                            if (hiddenEl.value !== exactMatch) {
-                                hiddenEl.value = exactMatch;
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else {
-                                hiddenEl.value = exactMatch;
-                            }
-                        } else {
-                            if (hiddenEl.value !== '') {
-                                hiddenEl.value = '';
-                                hiddenEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else {
-                                hiddenEl.value = '';
-                            }
-                        }
-                        syncRows();
-                        syncSharedBundleMaterialTypeAcrossItems(type, rowState, previousValue);
-                    });
-
-                    displayEl.addEventListener('keydown', function(event) {
-                        if (event.key !== 'Enter') return;
-                        const exactMatch = findExactAvailableOption(displayEl.value || '');
-                        if (exactMatch) {
-                            applySelection(exactMatch);
-                            event.preventDefault();
-                        }
-                    });
-
-                    displayEl.addEventListener('blur', function() {
-                        setTimeout(closeList, 150);
-                    });
-
-                    document.addEventListener('click', function(event) {
-                        if (event.target === displayEl || listEl.contains(event.target)) return;
-                        closeList();
-                    });
-                };
-
-                const createExtraRow = (value = '') => {
-                    const rowEl = document.createElement('div');
-                    rowEl.className = 'material-type-row material-type-row-extra';
-                    rowEl.dataset.materialType = type;
-                    const supportsCustomize = bundleCustomizeSupportedTypes.has(String(type || '').trim());
-
-                    const inputWrapperEl = document.createElement('div');
-                    inputWrapperEl.className = 'input-wrapper';
-
-                    const autocompleteEl = document.createElement('div');
-                    autocompleteEl.className = 'work-type-autocomplete';
-
-                    const inputShellEl = document.createElement('div');
-                    inputShellEl.className = 'work-type-input';
-
-                    const displayEl = document.createElement('input');
-                    displayEl.type = 'text';
-                    displayEl.className = 'autocomplete-input';
-                    displayEl.dataset.materialDisplay = '1';
-                    displayEl.placeholder = getBundleMaterialTypePlaceholder(type);
-                    displayEl.autocomplete = 'off';
-                    displayEl.value = String(value || '');
-
-                    const listEl = document.createElement('div');
-                    listEl.className = 'autocomplete-list';
-                    listEl.id = `bundleMaterial-list-${type}-${++bundleAdditionalAutocompleteSeq}`;
-
-                    const hiddenEl = document.createElement('input');
-                    hiddenEl.type = 'hidden';
-                    hiddenEl.dataset.materialTypeHidden = '1';
-                    hiddenEl.dataset.field = `material_type_${type}`;
-                    hiddenEl.setAttribute('data-field', `material_type_${type}`);
-                    hiddenEl.value = String(value || '');
-
-                    inputShellEl.appendChild(displayEl);
-                    autocompleteEl.appendChild(inputShellEl);
-                    autocompleteEl.appendChild(listEl);
-                    inputWrapperEl.appendChild(autocompleteEl);
-                    inputWrapperEl.appendChild(hiddenEl);
-
-                    const actionEl = document.createElement('div');
-                    actionEl.className = 'material-type-row-actions';
-                    actionEl.innerHTML = `
-                        <button type="button" class="material-type-row-btn material-type-row-btn-delete is-visible"
-                            data-material-type-action="remove" title="Hapus baris">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                        <button type="button" class="material-type-row-btn material-type-row-btn-add"
-                            data-material-type-action="add" title="Tambah baris">
-                            <i class="bi bi-plus-lg"></i>
-                        </button>
-                    `;
-
-                    rowEl.appendChild(inputWrapperEl);
-                    rowEl.appendChild(actionEl);
-                    let rowCustomizePanelEl = null;
-                    if (supportsCustomize) {
-                        const customizeBtn = document.createElement('button');
-                        customizeBtn.type = 'button';
-                        customizeBtn.className = 'material-type-row-btn material-type-row-btn-customize';
-                        customizeBtn.dataset.customizeToggle = type;
-                        customizeBtn.title = `Custom ${bundleMaterialTypeLabels[type] || type}`;
-                        customizeBtn.textContent = 'Custom';
-
-                        const templatePanel = wrap.querySelector(`[data-customize-panel="${type}"]`);
-                        if (templatePanel) {
-                            const panelSeq = ++bundleCustomizePanelSeq;
-                            const panelId = `bundleCustomizePanel-${type}-extra-${panelSeq}`;
-                            rowCustomizePanelEl = templatePanel.cloneNode(true);
-                            rowCustomizePanelEl.hidden = true;
-                            rowCustomizePanelEl.id = panelId;
-                            rowCustomizePanelEl.dataset.customizePanel = type;
-                            rowCustomizePanelEl.querySelectorAll('.customize-filter-autocomplete').forEach(el => el.remove());
-                            rowCustomizePanelEl.querySelectorAll('select[data-customize-filter]').forEach((selectEl, index) => {
-                                selectEl.value = '';
-                                selectEl.style.display = '';
-                                selectEl.tabIndex = 0;
-                                delete selectEl.dataset.customizeAutocompleteBound;
-                                if (selectEl.id) {
-                                    selectEl.id = `${selectEl.id}-extra-${panelSeq}-${index}`;
-                                }
-                            });
-                            customizeBtn.dataset.customizePanelId = panelId;
-                        }
-
-                        rowEl.appendChild(customizeBtn);
-                    }
-                    extraRowsContainer.appendChild(rowEl);
-                    if (rowCustomizePanelEl) {
-                        extraRowsContainer.appendChild(rowCustomizePanelEl);
-                        rowEl.__customizePanelEl = rowCustomizePanelEl;
-                    }
-
-                    setupAutocomplete({
-                        rowEl,
-                        displayEl,
-                        hiddenEl,
-                        listEl,
-                        renderList() {},
-                        closeList() {},
-                    });
-
-                    updateRowButtons();
-                    return rowEl;
-                };
-
-                const setValues = values => {
-                    const tokens = uniqueFilterTokens(Array.isArray(values) ? values : [values]);
-                    while (extraRowsContainer.firstChild) {
-                        extraRowsContainer.removeChild(extraRowsContainer.firstChild);
-                    }
-                    baseDisplay.value = '';
-                    baseHidden.value = '';
-
-                    const firstValue = tokens[0] || '';
-                    baseDisplay.value = firstValue;
-                    baseHidden.value = firstValue;
-
-                    tokens.slice(1).forEach(token => {
-                        createExtraRow(token);
-                    });
-                    updateRowButtons();
-                    syncRows();
-                };
-
-                const removeBaseRow = () => {
-                    const extraRows = Array.from(extraRowsContainer.querySelectorAll('.material-type-row-extra'));
-                    if (extraRows.length > 0) {
-                        const firstExtra = extraRows[0];
-                        const state = firstExtra.__bundleMaterialRowState;
-                        const promoted = String(state?.hiddenEl?.value ?? state?.displayEl?.value ?? '').trim();
-                        baseDisplay.value = promoted;
-                        baseHidden.value = promoted;
-                        if (firstExtra.__customizePanelEl) {
-                            firstExtra.__customizePanelEl.remove();
-                        }
-                        firstExtra.remove();
-                        updateRowButtons();
-                        syncRows();
-                        return;
-                    }
-
-                    baseDisplay.value = '';
-                    baseHidden.value = '';
-                    syncRows();
-                };
-
-                wrap.addEventListener('click', function(event) {
-                    const target = event?.target;
-                    if (!(target instanceof HTMLElement)) return;
-                    const actionBtn = target.closest('[data-material-type-action]');
-                    if (!actionBtn || !wrap.contains(actionBtn)) return;
-
-                    const action = String(actionBtn.dataset.materialTypeAction || '').trim();
-                    if (!action) return;
-
-                    if (action === 'add') {
-                        event.preventDefault();
-                        createExtraRow('');
-                        updateRowButtons();
-                        syncRows();
-                        return;
-                    }
-
-                    if (action === 'remove') {
-                        event.preventDefault();
-                        const row = actionBtn.closest('.material-type-row');
-                        if (!row) return;
-
-                        if (row.classList.contains('material-type-row-base')) {
-                            removeBaseRow();
-                            return;
-                        }
-
-                        if (row.__customizePanelEl) {
-                            row.__customizePanelEl.remove();
-                        }
-                        row.remove();
-                        updateRowButtons();
-                        syncRows();
-                    }
-                });
-
-                setupAutocomplete({
-                    rowEl: baseRow,
-                    displayEl: baseDisplay,
-                    hiddenEl: baseHidden,
-                    listEl: baseList,
-                    renderList() {},
-                    closeList() {},
-                });
-
-                baseHidden.dataset.materialTypeHidden = '1';
-                baseHidden.setAttribute('data-field', `material_type_${type}`);
-
-                const initialValues = getBundleMaterialTypeValues(initialFilters, type);
-                setValues(initialValues);
-
-                wrap.__setBundleMaterialTypeValues = setValues;
-                wrap.__clearBundleMaterialTypeValues = function() {
-                    setValues([]);
-                };
-            });
+            }
         }
 
         function createAdditionalWorkItemForm(initial = {}, afterElement = null, options = {}) {
-            if (!additionalWorkItemsList) {
-                return null;
-            }
-
-            const requestedRowKind = normalizeBundleRowKind(options.rowKind || initial.row_kind);
-            const item = normalizeBundleItem(
-                {
-                    ...initial,
-                    row_kind: requestedRowKind,
-                },
-                getAllAdditionalWorkRows().length + 1,
-            );
-            const wrapper = document.createElement('div');
-            wrapper.className = 'additional-work-item';
-            wrapper.setAttribute('data-additional-work-item', 'true');
-            wrapper.setAttribute('data-row-kind', item.row_kind);
-            wrapper.innerHTML = `
-                <div class="additional-work-item-grid">
-                    <input type="hidden" data-field="title" value="${escapeHtml(item.title)}">
-                    <input type="hidden" data-field="row_kind" value="${escapeHtml(item.row_kind)}">
-                    <div class="additional-taxonomy-header">
-                        <div class="additional-taxonomy-cell" data-taxonomy-cell="floor">
-                            <label class="additional-taxonomy-cell-label">Lantai</label>
-                            <div class="additional-taxonomy-cell-body">
-                                <div class="work-type-autocomplete">
-                                    <div class="work-type-input">
-                                        <input type="text"
-                                               class="autocomplete-input"
-                                               data-field-display="work_floor"
-                                               placeholder="Pilih lantai..."
-                                               autocomplete="off"
-                                               value="">
-                                    </div>
-                                    <div class="autocomplete-list" data-field-list="work_floor" id="additionalWorkFloor-list-${++bundleAdditionalAutocompleteSeq}"></div>
-                                </div>
-                            </div>
-                            <input type="hidden" data-field="work_floor" value="${escapeHtml(item.work_floor)}">
-                        </div>
-                        <div class="additional-taxonomy-cell" data-taxonomy-cell="area">
-                            <label class="additional-taxonomy-cell-label">Area</label>
-                            <div class="additional-taxonomy-cell-body">
-                                <div class="work-type-autocomplete">
-                                    <div class="work-type-input">
-                                        <input type="text"
-                                               class="autocomplete-input"
-                                               data-field-display="work_area"
-                                               placeholder="Pilih area..."
-                                               autocomplete="off"
-                                               value="">
-                                    </div>
-                                    <div class="autocomplete-list" data-field-list="work_area" id="additionalWorkArea-list-${++bundleAdditionalAutocompleteSeq}"></div>
-                                </div>
-                            </div>
-                            <input type="hidden" data-field="work_area" value="${escapeHtml(item.work_area)}">
-                        </div>
-                        <div class="additional-taxonomy-cell" data-taxonomy-cell="field">
-                            <label class="additional-taxonomy-cell-label">Bidang</label>
-                            <div class="additional-taxonomy-cell-body">
-                                <div class="work-type-autocomplete">
-                                    <div class="work-type-input">
-                                        <input type="text"
-                                               class="autocomplete-input"
-                                               data-field-display="work_field"
-                                               placeholder="Pilih bidang..."
-                                               autocomplete="off"
-                                               value="">
-                                    </div>
-                                    <div class="autocomplete-list" data-field-list="work_field" id="additionalWorkField-list-${++bundleAdditionalAutocompleteSeq}"></div>
-                                </div>
-                                <button type="button"
-                                        class="taxonomy-level-btn taxonomy-toggle-item-btn"
-                                        data-action="toggle-item-visibility"
-                                        title="Sembunyikan Item Pekerjaan pada bidang ini"
-                                        aria-label="Sembunyikan Item Pekerjaan pada bidang ini"
-                                        aria-pressed="false">
-                                    <i class="bi bi-chevron-up" aria-hidden="true"></i>
-                                </button>
-                            </div>
-                            <input type="hidden" data-field="work_field" value="${escapeHtml(item.work_field)}">
-                        </div>
-                    </div>
-                    <div class="form-group work-type-group additional-worktype-group taxonomy-inline-item">
-                        <label data-additional-worktype-label>Item Pekerjaan</label>
-                        <div class="input-wrapper">
-                            <div class="work-type-autocomplete">
-                                <div class="work-type-input additional-worktype-input">
-                                    <input type="text"
-                                           class="autocomplete-input"
-                                           data-field-display="work_type"
-                                           placeholder="Pilih atau ketik item pekerjaan..."
-                                           autocomplete="off"
-                                           value="">
-                                    <button type="button"
-                                            class="additional-worktype-suffix-btn"
-                                            data-action="remove"
-                                            title="Hapus item pekerjaan ini">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </div>
-                                <div class="autocomplete-list" data-field-list="work_type" id="additionalWorkType-list-${++bundleAdditionalAutocompleteSeq}"></div>
-                            </div>
-                            <input type="hidden" data-field="work_type" value="${escapeHtml(item.work_type)}">
-                            <div class="dimension-area-summary worktype-inline-summary" data-dimension-area-summary>
-                                <div class="dimension-area-summary-value" data-dimension-area-value>-</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dimensions-container-vertical additional-dimensions-container">
-                        <div class="additional-parameter-split">
-                        <div class="additional-parameter-size-col">
-                        <div class="dimension-area-layout additional-dimension-area-layout" data-dimension-area-layout>
-                            <div class="dimension-area-inputs">
-                                <div class="dimension-item" data-wrap="wall_length">
-                                    <label>Panjang</label>
-                                    <div class="input-with-unit">
-                                        <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_length" value="${escapeHtml(item.wall_length)}">
-                                        <span class="unit">M</span>
-                                        <span class="dimension-expression-hint" data-expression-hint hidden></span>
-                                    </div>
-                                </div>
-                                <div class="dimension-item" data-wrap="wall_height">
-                                    <label data-wall-height-label>Tinggi</label>
-                                    <div class="input-with-unit">
-                                        <input type="text" inputmode="text" data-allow-expression="1" step="0.01" min="0.01" data-field="wall_height" value="${escapeHtml(item.wall_height)}">
-                                        <span class="unit">M</span>
-                                        <span class="dimension-expression-hint" data-expression-hint hidden></span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="mortar_thickness">
-                            <label>Tebal Adukan</label>
-                            <div class="input-with-unit">
-                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="mortar_thickness" value="${escapeHtml(item.mortar_thickness || '2')}">
-                                <span class="unit">cm</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="layer_count">
-                            <label>Lapis / Tingkat</label>
-                            <div class="input-with-unit" style="background-color: #fffbeb; border-color: #fcd34d;">
-                                <input type="text" inputmode="decimal" step="1" min="0" data-field="layer_count" value="${escapeHtml(item.layer_count || '1')}">
-                                <span class="unit" style="background-color: #fef3c7;">Lapis</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="plaster_sides">
-                            <label>Sisi Plesteran</label>
-                            <div class="input-with-unit" style="background-color: #e0f2fe; border-color: #7dd3fc;">
-                                <input type="text" inputmode="decimal" step="1" min="0" data-field="plaster_sides" value="${escapeHtml(item.plaster_sides || '1')}">
-                                <span class="unit" style="background-color: #bae6fd;">Sisi</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="skim_sides">
-                            <label>Sisi Acian</label>
-                            <div class="input-with-unit" style="background-color: #e0e7ff; border-color: #a5b4fc;">
-                                <input type="text" inputmode="decimal" step="1" min="0" data-field="skim_sides" value="${escapeHtml(item.skim_sides || '1')}">
-                                <span class="unit" style="background-color: #c7d2fe;">Sisi</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="grout_thickness">
-                            <label>Tebal Nat</label>
-                            <div class="input-with-unit" style="background-color: #f1f5f9; border-color: #cbd5e1;">
-                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="grout_thickness" value="${escapeHtml(item.grout_thickness || '2')}">
-                                <span class="unit" style="background-color: #e2e8f0;">mm</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="ceramic_length">
-                            <label>Panjang Keramik</label>
-                            <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="ceramic_length" value="${escapeHtml(item.ceramic_length || '30')}">
-                                <span class="unit" style="background-color: #fef08a;">cm</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="ceramic_width">
-                            <label>Lebar Keramik</label>
-                            <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="ceramic_width" value="${escapeHtml(item.ceramic_width || '30')}">
-                                <span class="unit" style="background-color: #fef08a;">cm</span>
-                            </div>
-                        </div>
-                        <div class="dimension-item" data-wrap="ceramic_thickness">
-                            <label>Tebal Keramik</label>
-                            <div class="input-with-unit" style="background-color: #fef3c7; border-color: #fde047;">
-                                <input type="text" inputmode="decimal" step="0.01" min="0" data-field="ceramic_thickness" value="${escapeHtml(item.ceramic_thickness || '8')}">
-                                <span class="unit" style="background-color: #fef08a;">mm</span>
-                            </div>
-                        </div>
-                        </div>
-                        <div class="additional-parameter-material-col">
-                        ${buildBundleMaterialFilterSectionHtml(item)}
-                        </div>
-                        </div>
-                    </div>
-                    <div class="additional-taxonomy-actions-row">
-                        <button type="button" class="taxonomy-level-btn" data-action="add-item">
-                            + Item Pekerjaan
-                        </button>
-                        <button type="button" class="taxonomy-level-btn" data-action="add-area">
-                            + Area
-                        </button>
-                        <button type="button" class="taxonomy-level-btn" data-action="add-field">
-                            + Bidang
-                        </button>
-                    </div>
-                    <div class="additional-area-children" data-area-children></div>
-                    <div class="additional-floor-children" data-floor-children></div>
-                </div>
-            `;
-
-            const initialModeWorkType = String(item.work_type || '').trim();
-            const initialMortarInput = wrapper.querySelector('[data-field="mortar_thickness"]');
-            const hasInitialMortarValue = String(item.mortar_thickness || '').trim() !== '';
-            const isInitialAci = ['skim_coating', 'coating_floor'].includes(initialModeWorkType);
-            if (initialMortarInput && initialModeWorkType) {
-                // Preserve the original unit context on restored rows so unit conversion
-                // does not run with a wrong assumption (which could append an extra zero).
-                initialMortarInput.dataset.unit = isInitialAci ? 'mm' : 'cm';
-            }
-            if (initialMortarInput && initialModeWorkType && hasInitialMortarValue) {
-                initialMortarInput.dataset.mode = isInitialAci ? 'acian' : 'adukan';
-            }
-
-            const target = resolveAdditionalInsertionTarget(item, afterElement, options);
-            if (target.referenceNode && target.referenceNode.parentNode === target.parent) {
-                target.parent.insertBefore(wrapper, target.referenceNode);
-            } else {
-                target.parent.appendChild(wrapper);
-            }
-            bindDimensionExpressionInputs(wrapper);
-
-            setAdditionalWorkItemRowKind(wrapper, item.row_kind);
-            refreshAdditionalTaxonomyActionFooters(wrapper);
-            initAdditionalWorkTaxonomyAutocomplete(wrapper, item);
-            initAdditionalWorkTypeAutocomplete(wrapper, item);
-            if (typeof wrapper.__refreshWorkTypeOptions === 'function') {
-                wrapper.__refreshWorkTypeOptions();
-            }
-            initAdditionalMaterialTypeFilters(wrapper, item.material_type_filters || {});
-            applyMaterialCustomizeFiltersToPanels(wrapper, item.material_customize_filters || {});
-            attachAdditionalWorkItemEvents(wrapper);
-            applyAdditionalWorkItemVisibility(wrapper);
-            refreshAdditionalWorkItemHeader();
-            syncBundleFromForms();
-
-            const hasInitialWorkType = String(item.work_type || '').trim() !== '';
-            const shouldAutoFocusWorkType = normalizeBundleRowKind(item.row_kind) === 'item';
-            if (shouldAutoFocusWorkType && !hasInitialWorkType) {
-                const workTypeDisplay = wrapper.querySelector('[data-field-display="work_type"]');
-                if (workTypeDisplay) {
-                    setTimeout(() => {
-                        workTypeDisplay.focus();
-                        if (typeof workTypeDisplay.__openAdditionalWorkTypeList === 'function') {
-                            workTypeDisplay.__openAdditionalWorkTypeList();
-                        }
-                    }, 0);
+            if (typeof window.materialCalcCreateAdditionalWorkItemFormEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalWorkItemFormEngine({
+                        deps: {
+                            additionalWorkItemsList,
+                            normalizeBundleRowKind,
+                            normalizeBundleItem,
+                            getAllAdditionalWorkRows,
+                            escapeHtml,
+                            buildBundleMaterialFilterSectionHtml,
+                            resolveAdditionalInsertionTarget,
+                            bindDimensionExpressionInputs,
+                            setAdditionalWorkItemRowKind,
+                            refreshAdditionalTaxonomyActionFooters,
+                            initAdditionalWorkTaxonomyAutocomplete,
+                            initAdditionalWorkTypeAutocomplete,
+                            initAdditionalMaterialTypeFilters,
+                            applyMaterialCustomizeFiltersToPanels,
+                            attachAdditionalWorkItemEvents,
+                            applyAdditionalWorkItemVisibility,
+                            refreshAdditionalWorkItemHeader,
+                            syncBundleFromForms,
+                            nextBundleAdditionalAutocompleteSeq: () => ++bundleAdditionalAutocompleteSeq,
+                        },
+                        initial,
+                        afterElement,
+                        options,
+                    });
+                } catch (error) {
+                    console.error('additional work item form engine failed:', error);
                 }
             }
 
-            return wrapper;
+            return null;
         }
-
         function getMainTaxonomyContext() {
             return {
                 work_floor: getMainTaxonomyValue('floor'),
@@ -11005,6 +8486,22 @@
         }
 
         function relocateMainTaxonomyActionButtonsToFooter() {
+            if (typeof window.materialCalcCreateMainTaxonomyFooterEngine === 'function') {
+                try {
+                    return window.materialCalcCreateMainTaxonomyFooterEngine({
+                        deps: {
+                            getMainAreaChildrenHost,
+                            getDirectChildMatching,
+                            getDirectAdditionalChildRows,
+                            normalizeBundleRowKind,
+                            getAdditionalFieldValue,
+                        },
+                    });
+                } catch (error) {
+                    console.error('main taxonomy footer engine failed:', error);
+                }
+            }
+
             const inputFormContainer = document.getElementById('inputFormContainer');
             if (!(inputFormContainer instanceof HTMLElement)) {
                 return null;
@@ -11120,6 +8617,22 @@
         }
 
         function ensureAdditionalTaxonomyActionsFooter(itemEl) {
+            if (typeof window.materialCalcCreateAdditionalTaxonomyFooterEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalTaxonomyFooterEngine({
+                        deps: {
+                            getDirectChildMatching,
+                            normalizeBundleRowKind,
+                            getAdditionalFieldValue,
+                            getDirectAdditionalChildRows,
+                        },
+                        itemEl,
+                    });
+                } catch (error) {
+                    console.error('additional taxonomy footer engine failed:', error);
+                }
+            }
+
             if (!(itemEl instanceof HTMLElement)) {
                 return null;
             }
@@ -11258,6 +8771,20 @@
         }
 
         function getDirectAdditionalRowHost(rowEl, hostSelector) {
+            if (typeof window.materialCalcCreateInlineLayoutEngine === 'function') {
+                try {
+                    return window.materialCalcCreateInlineLayoutEngine({
+                        deps: {
+                            getDirectChildMatching,
+                        },
+                        methodName: 'getDirectAdditionalRowHost',
+                        args: [rowEl, hostSelector],
+                    });
+                } catch (error) {
+                    console.error('inline layout engine (get row host) failed:', error);
+                }
+            }
+
             if (!(rowEl instanceof HTMLElement)) {
                 return null;
             }
@@ -11269,6 +8796,20 @@
         }
 
         function getAdditionalRowLayoutParts(itemEl) {
+            if (typeof window.materialCalcCreateInlineLayoutEngine === 'function') {
+                try {
+                    return window.materialCalcCreateInlineLayoutEngine({
+                        deps: {
+                            getDirectChildMatching,
+                        },
+                        methodName: 'getAdditionalRowLayoutParts',
+                        args: [itemEl],
+                    });
+                } catch (error) {
+                    console.error('inline layout engine (get parts) failed:', error);
+                }
+            }
+
             const grid = getDirectChildMatching(itemEl, '.additional-work-item-grid');
             const floorNode = getDirectChildMatching(grid, '.taxonomy-node-floor');
             const floorCard = getDirectChildMatching(floorNode, '.additional-work-floor-group');
@@ -11304,6 +8845,22 @@
         }
 
         function applyAdditionalInlineTaxonomyRowLayout(itemEl, mode = 'none') {
+            if (typeof window.materialCalcCreateInlineLayoutEngine === 'function') {
+                try {
+                    return window.materialCalcCreateInlineLayoutEngine({
+                        deps: {
+                            getDirectChildMatching,
+                            clearInlineStyles,
+                            setInlineStylesImportant,
+                        },
+                        methodName: 'applyAdditionalInlineTaxonomyRowLayout',
+                        args: [itemEl, mode],
+                    });
+                } catch (error) {
+                    console.error('inline layout engine (apply) failed:', error);
+                }
+            }
+
             const parts = getAdditionalRowLayoutParts(itemEl);
             if (!parts.grid) {
                 return;
@@ -11510,6 +9067,25 @@
         }
 
         function setAdditionalWorkItemRowKind(itemEl, rowKind = 'area') {
+            if (typeof window.materialCalcCreateAdditionalRowKindEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalRowKindEngine({
+                        deps: {
+                            normalizeBundleRowKind,
+                            ensureAdditionalTaxonomyActionsFooter,
+                            getDirectChildMatching,
+                            setAdditionalItemContentCollapsed,
+                            syncDirectChildItemRowVisibilityForCollapsedParent,
+                            getAdditionalFieldValue,
+                        },
+                        itemEl,
+                        rowKind,
+                    });
+                } catch (error) {
+                    console.error('additional row kind engine failed:', error);
+                }
+            }
+
             if (!(itemEl instanceof HTMLElement)) {
                 return;
             }
@@ -11605,6 +9181,22 @@
         }
 
         function createAndFocusAdditionalWorkItem(initial = {}, afterElement = null, focusField = 'work_type', options = {}) {
+            if (typeof window.materialCalcCreateAndFocusAdditionalWorkItemEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAndFocusAdditionalWorkItemEngine({
+                        deps: {
+                            createAdditionalWorkItemForm,
+                        },
+                        initial,
+                        afterElement,
+                        focusField,
+                        options,
+                    });
+                } catch (error) {
+                    console.error('additional item focus engine failed:', error);
+                }
+            }
+
             const newForm = createAdditionalWorkItemForm(initial, afterElement, options);
             if (!newForm) {
                 return null;
@@ -11650,6 +9242,17 @@
         }
 
         function showTaxonomyActionError(message, focusEl = null) {
+            if (typeof window.materialCalcShowTaxonomyActionErrorEngine === 'function') {
+                try {
+                    return window.materialCalcShowTaxonomyActionErrorEngine({
+                        message,
+                        focusEl,
+                    });
+                } catch (error) {
+                    console.error('taxonomy action error engine failed:', error);
+                }
+            }
+
             if (typeof window.showToast === 'function') {
                 window.showToast(message, 'error');
             } else {
@@ -11671,6 +9274,21 @@
         }
 
         function markFloorSortPending() {
+            if (typeof window.materialCalcMarkFloorSortPendingEngine === 'function') {
+                try {
+                    return window.materialCalcMarkFloorSortPendingEngine({
+                        deps: {
+                            getIsRebuildingFloorCardOrder: () => isRebuildingFloorCardOrder,
+                            setHasPendingFloorSort: value => {
+                                hasPendingFloorSort = Boolean(value);
+                            },
+                        },
+                    });
+                } catch (error) {
+                    console.error('floor sort queue engine (mark) failed:', error);
+                }
+            }
+
             if (isRebuildingFloorCardOrder) {
                 return;
             }
@@ -11678,6 +9296,23 @@
         }
 
         function flushPendingFloorSort() {
+            if (typeof window.materialCalcFlushPendingFloorSortEngine === 'function') {
+                try {
+                    return window.materialCalcFlushPendingFloorSortEngine({
+                        deps: {
+                            getIsRebuildingFloorCardOrder: () => isRebuildingFloorCardOrder,
+                            getHasPendingFloorSort: () => hasPendingFloorSort,
+                            setHasPendingFloorSort: value => {
+                                hasPendingFloorSort = Boolean(value);
+                            },
+                            sortAdditionalWorkItems,
+                        },
+                    });
+                } catch (error) {
+                    console.error('floor sort queue engine (flush) failed:', error);
+                }
+            }
+
             if (isRebuildingFloorCardOrder || !hasPendingFloorSort) {
                 return;
             }
@@ -11686,6 +9321,22 @@
         }
 
         function flushFloorSortWhenFocusLeaves(scopeEl) {
+            if (typeof window.materialCalcFlushFloorSortWhenFocusLeavesEngine === 'function') {
+                try {
+                    return window.materialCalcFlushFloorSortWhenFocusLeavesEngine({
+                        deps: {
+                            getHasPendingFloorSort: () => hasPendingFloorSort,
+                            getLastPointerDownTarget: () => lastPointerDownTarget,
+                            getLastPointerDownAt: () => lastPointerDownAt,
+                            flushPendingFloorSort,
+                        },
+                        scopeEl,
+                    });
+                } catch (error) {
+                    console.error('floor sort queue engine (focus-leave) failed:', error);
+                }
+            }
+
             if (!(scopeEl instanceof HTMLElement) || !hasPendingFloorSort) {
                 return;
             }
@@ -11706,6 +9357,22 @@
         }
 
         function sortMainFloorCards() {
+            if (typeof window.materialCalcCreateMainFloorCardSortEngine === 'function') {
+                try {
+                    return window.materialCalcCreateMainFloorCardSortEngine({
+                        deps: {
+                            mainTaxonomyGroupCard,
+                            getDirectAdditionalChildRows,
+                            normalizeBundleRowKind,
+                            getAdditionalFieldValue,
+                            sortFloors,
+                        },
+                    });
+                } catch (error) {
+                    console.error('main floor card sort engine failed:', error);
+                }
+            }
+
             const mainAreaHost =
                 mainTaxonomyGroupCard instanceof HTMLElement
                     ? mainTaxonomyGroupCard.querySelector('[data-main-area-children]')
@@ -11759,6 +9426,19 @@
         }
 
         function sortBundleItemsByFloorStable(items) {
+            if (typeof window.materialCalcCreateBundleFloorSortEngine === 'function') {
+                try {
+                    return window.materialCalcCreateBundleFloorSortEngine({
+                        deps: {
+                            sortFloors,
+                        },
+                        items,
+                    });
+                } catch (error) {
+                    console.error('bundle floor sort engine failed:', error);
+                }
+            }
+
             const list = Array.isArray(items) ? [...items] : [];
             if (list.length <= 1) {
                 return list;
@@ -11787,6 +9467,35 @@
         }
 
         function rebuildBundleUiFromSortedFloorOrder() {
+            if (typeof window.materialCalcCreateRebuildFloorOrderEngine === 'function') {
+                try {
+                    return window.materialCalcCreateRebuildFloorOrderEngine({
+                        deps: {
+                            getIsRebuildingFloorCardOrder: () => isRebuildingFloorCardOrder,
+                            setIsRebuildingFloorCardOrder: value => {
+                                isRebuildingFloorCardOrder = Boolean(value);
+                            },
+                            getTopLevelAdditionalRows,
+                            collectMainWorkItemDraft,
+                            collectAdditionalWorkItemData,
+                            sortBundleItemsByFloorStable,
+                            getMainAreaChildrenHost,
+                            getDirectAdditionalRowHost,
+                            swapDirectAdditionalChildRows,
+                            setAdditionalFloorValueForRowsInScope,
+                            applyMainWorkItemFromBundleItem,
+                            applyAdditionalWorkItemFromBundleItem,
+                            syncBundleFromForms,
+                            relocateFilterSectionToRightGrid,
+                            relocateMainTaxonomyActionButtonsToFooter,
+                            refreshAdditionalTaxonomyActionFooters,
+                        },
+                    });
+                } catch (error) {
+                    console.error('rebuild floor order engine failed:', error);
+                }
+            }
+
             if (isRebuildingFloorCardOrder) {
                 return false;
             }
@@ -11860,6 +9569,28 @@
         }
 
         function sortAdditionalWorkItems() {
+            if (typeof window.materialCalcCreateSortAdditionalItemsEngine === 'function') {
+                try {
+                    return window.materialCalcCreateSortAdditionalItemsEngine({
+                        deps: {
+                            getIsRebuildingFloorCardOrder: () => isRebuildingFloorCardOrder,
+                            setHasPendingFloorSort: value => {
+                                hasPendingFloorSort = Boolean(value);
+                            },
+                            rebuildBundleUiFromSortedFloorOrder,
+                            sortMainFloorCards,
+                            additionalWorkItemsList,
+                            getTopLevelAdditionalRows,
+                            getAdditionalFieldValue,
+                            sortFloors,
+                            refreshAdditionalWorkItemHeader,
+                        },
+                    });
+                } catch (error) {
+                    console.error('sort additional items engine failed:', error);
+                }
+            }
+
             if (isRebuildingFloorCardOrder) {
                 return;
             }
@@ -11911,6 +9642,22 @@
         }
 
         function refreshAdditionalWorkItemHeader() {
+            if (typeof window.materialCalcCreateAdditionalItemHeaderEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalItemHeaderEngine({
+                        deps: {
+                            additionalWorkItemsList,
+                            getAllAdditionalWorkRows,
+                            mainWorkTypeLabel,
+                            normalizeBundleRowKind,
+                            getAdditionalFieldValue,
+                        },
+                    });
+                } catch (error) {
+                    console.error('additional item header engine failed:', error);
+                }
+            }
+
             if (!additionalWorkItemsList) {
                 return;
             }
@@ -11952,6 +9699,17 @@
         }
 
         function getAdditionalFieldValue(itemEl, key) {
+            if (typeof window.materialCalcCreateAdditionalFieldEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalFieldEngine({
+                        methodName: 'getAdditionalFieldValue',
+                        args: [itemEl, key],
+                    });
+                } catch (error) {
+                    console.error('additional field engine (get) failed:', error);
+                }
+            }
+
             const el = itemEl.querySelector(`[data-field="${key}"]`);
             const hiddenValue = el ? String(el.value || '').trim() : '';
             if (hiddenValue) {
@@ -11967,6 +9725,17 @@
         }
 
         function setAdditionalFieldValue(itemEl, key, value) {
+            if (typeof window.materialCalcCreateAdditionalFieldEngine === 'function') {
+                try {
+                    return window.materialCalcCreateAdditionalFieldEngine({
+                        methodName: 'setAdditionalFieldValue',
+                        args: [itemEl, key, value],
+                    });
+                } catch (error) {
+                    console.error('additional field engine (set) failed:', error);
+                }
+            }
+
             if (!(itemEl instanceof HTMLElement)) {
                 return;
             }
@@ -12444,1439 +10213,65 @@
         }
 
         function initCalculationPageSearch() {
-            const scopeEl = document.getElementById('calcCreateSearchScope');
-            const searchInput = document.getElementById('calcPageSearchInput');
-            const clearBtn = document.getElementById('calcPageSearchClear');
-            const countEl = document.getElementById('calcPageSearchCount');
-            const prevBtn = document.getElementById('calcPageSearchPrev');
-            const nextBtn = document.getElementById('calcPageSearchNext');
-            const searchWrapEl = document.getElementById('calcInlineSearch');
-            const headerRowEl = searchWrapEl instanceof HTMLElement ? searchWrapEl.closest('.calc-header-row') : null;
-
-            if (
-                !(scopeEl instanceof HTMLElement) ||
-                !(searchInput instanceof HTMLInputElement) ||
-                !(clearBtn instanceof HTMLButtonElement) ||
-                !(countEl instanceof HTMLElement) ||
-                !(prevBtn instanceof HTMLButtonElement) ||
-                !(nextBtn instanceof HTMLButtonElement)
-            ) {
-                return {
-                    refresh() {},
-                };
+            if (typeof window.materialCalcCreateSearchEngine === 'function') {
+                const bridgeEngineApi = window.materialCalcCreateSearchEngine({
+                    getBridge: getMaterialCalcVueBridge,
+                });
+                if (bridgeEngineApi && typeof bridgeEngineApi.refresh === 'function') {
+                    return bridgeEngineApi;
+                }
             }
 
-            let results = [];
-            let activeIndex = -1;
-            let refreshTimer = null;
-            let mutationObserver = null;
-            let isObserverConnected = false;
-            let isApplyingSearchDecorations = false;
-            let textHighlightMap = new Map();
-            let stickyOffsetRaf = null;
-            let stickyPinRaf = null;
-            let isSearchPinned = false;
-            let searchNaturalWidth = 0;
-            let searchObjectIdSeq = 1;
-            const searchObjectIds = new WeakMap();
-
-            const normalizeText = value => String(value || '').toLowerCase().trim();
-            const prefersReducedMotion = () =>
-                !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-            const getSearchObjectId = value => {
-                if (!value || (typeof value !== 'object' && typeof value !== 'function')) {
-                    return 'na';
-                }
-                if (!searchObjectIds.has(value)) {
-                    searchObjectIds.set(value, searchObjectIdSeq++);
-                }
-                return searchObjectIds.get(value);
-            };
-            const isSearchExcludedElement = el => {
-                if (!(el instanceof Element)) return false;
-                return !!el.closest(
-                    '.calc-inline-search, .calc-scroll-fab, .calc-search-mark, script, style, noscript, template, #projectLocationMap, .project-location-map, .gm-style, .gm-style-cc, .leaflet-container, .leaflet-pane, .leaflet-control-container',
-                );
-            };
-
-            const isElementVisible = el => {
-                if (!(el instanceof HTMLElement)) return false;
-                if (el.hidden) return false;
-                const style = window.getComputedStyle(el);
-                if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
-                return el.getClientRects().length > 0;
-            };
-
-            const refreshStickySearchTopOffset = () => {
-                let maxBottom = 0;
-                const headerCandidates = document.querySelectorAll(
-                    'body > header, body > nav, #globalTopbar, .global-topbar, .navbar, .topbar, .top-bar, .main-header, .app-header',
-                );
-                headerCandidates.forEach(el => {
-                    if (!(el instanceof HTMLElement)) return;
-                    if (!isElementVisible(el)) return;
-                    const style = window.getComputedStyle(el);
-                    if (style.position !== 'fixed' && style.position !== 'sticky') return;
-                    const rect = el.getBoundingClientRect();
-                    if (rect.bottom <= 0) return;
-                    if (rect.top > Math.max(20, window.innerHeight * 0.05)) return;
-                    maxBottom = Math.max(maxBottom, rect.bottom);
-                });
-                scopeEl.style.setProperty('--calc-search-sticky-top', `${Math.max(0, Math.ceil(maxBottom))}px`);
-            };
-
-            const scheduleStickySearchTopOffsetRefresh = () => {
-                if (stickyOffsetRaf !== null) {
-                    cancelAnimationFrame(stickyOffsetRaf);
-                }
-                stickyOffsetRaf = requestAnimationFrame(() => {
-                    stickyOffsetRaf = null;
-                    refreshStickySearchTopOffset();
-                });
-            };
-
-            const getStickySearchTopPx = () => {
-                refreshStickySearchTopOffset();
-                const raw = scopeEl.style.getPropertyValue('--calc-search-sticky-top')
-                    || getComputedStyle(scopeEl).getPropertyValue('--calc-search-sticky-top');
-                const base = Number.parseFloat(String(raw || '').replace('px', '')) || 0;
-                return base;
-            };
-
-            const syncStickySearchPinState = () => {
-                if (!(searchWrapEl instanceof HTMLElement) || !(headerRowEl instanceof HTMLElement)) {
-                    return;
-                }
-
-                const headerRect = headerRowEl.getBoundingClientRect();
-                const stickyTop = getStickySearchTopPx();
-                const scopeRect = scopeEl.getBoundingClientRect();
-                const searchCurrentHeight = Math.max(searchWrapEl.getBoundingClientRect().height || 0, 44);
-                const shouldPin =
-                    headerRect.top <= stickyTop &&
-                    scopeRect.bottom > stickyTop + searchCurrentHeight + 8;
-
-                if (!isSearchPinned) {
-                    const rect = searchWrapEl.getBoundingClientRect();
-                    if (rect.width > 0) {
-                        searchNaturalWidth = rect.width;
-                    }
-                }
-
-                if (!shouldPin) {
-                    if (isSearchPinned) {
-                        searchWrapEl.classList.remove('is-sticky-fixed');
-                        searchWrapEl.style.removeProperty('--calc-inline-search-fixed-left');
-                        searchWrapEl.style.removeProperty('--calc-inline-search-fixed-width');
-                        isSearchPinned = false;
-                    }
-                    scopeEl.style.setProperty('--calc-search-sticky-height', '0px');
-                    return;
-                }
-
-                const isMobile = window.innerWidth <= 768;
-                const pinLeftAligned = headerRowEl.classList.contains('calc-left-search-row');
-                const rowLeft = Math.max(6, Math.round(headerRect.left));
-                const rowRight = Math.min(window.innerWidth - 6, Math.round(headerRect.right));
-                const availableWidth = Math.max(220, rowRight - rowLeft);
-
-                let width;
-                let left;
-                if (isMobile) {
-                    width = availableWidth;
-                    left = rowLeft;
-                } else {
-                    width = Math.min(Math.max(280, Math.round(searchNaturalWidth || 520)), availableWidth);
-                    left = pinLeftAligned ? rowLeft : Math.max(rowLeft, rowRight - width);
-                }
-
-                searchWrapEl.style.setProperty('--calc-inline-search-fixed-left', `${Math.round(left)}px`);
-                searchWrapEl.style.setProperty('--calc-inline-search-fixed-width', `${Math.round(width)}px`);
-                searchWrapEl.classList.add('is-sticky-fixed');
-                isSearchPinned = true;
-                const pinnedHeight = Math.max(0, Math.round(searchWrapEl.getBoundingClientRect().height || 0));
-                scopeEl.style.setProperty('--calc-search-sticky-height', `${pinnedHeight}px`);
-            };
-
-            const scheduleStickySearchPinStateRefresh = () => {
-                if (stickyPinRaf !== null) {
-                    cancelAnimationFrame(stickyPinRaf);
-                }
-                stickyPinRaf = requestAnimationFrame(() => {
-                    stickyPinRaf = null;
-                    syncStickySearchPinState();
-                });
-            };
-
-            const getSearchTargetFromNode = node => {
-                if (!(node instanceof Node)) return null;
-                const baseEl = node instanceof HTMLElement ? node : node.parentElement;
-                if (!(baseEl instanceof HTMLElement)) return null;
-                if (isSearchExcludedElement(baseEl)) return null;
-                const target =
-                    baseEl.closest(
-                        '.additional-taxonomy-cell, .taxonomy-card-floor, .taxonomy-card-area, .taxonomy-card-field, .work-type-group, .dimension-item, .material-type-filter-item, .form-group, .additional-work-item, .tickbox-item, .ssm-row, .alert, .project-location-group, .work-item-bottom-bar',
-                    ) || baseEl;
-                return target instanceof HTMLElement ? target : null;
-            };
-
-            const buildCandidates = () => {
-                const candidates = [];
-
-                const pushCandidate = (text, targetEl, sourceEl, kind = 'text') => {
-                    const raw = String(text || '').replace(/\s+/g, ' ').trim();
-                    if (!raw) return;
-                    if (!(targetEl instanceof HTMLElement) || !isElementVisible(targetEl)) return;
-                    candidates.push({
-                        kind,
-                        text: raw,
-                        norm: normalizeText(raw),
-                        targetEl,
-                        sourceEl: sourceEl instanceof HTMLElement ? sourceEl : targetEl,
-                    });
-                };
-
-                const walker = document.createTreeWalker(scopeEl, NodeFilter.SHOW_TEXT, {
-                    acceptNode(textNode) {
-                        const text = String(textNode.nodeValue || '').replace(/\s+/g, ' ').trim();
-                        if (!text) return NodeFilter.FILTER_REJECT;
-                        const parent = textNode.parentElement;
-                        if (!(parent instanceof HTMLElement)) return NodeFilter.FILTER_REJECT;
-                        if (isSearchExcludedElement(parent)) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        return NodeFilter.FILTER_ACCEPT;
-                    },
-                });
-
-                let currentTextNode = walker.nextNode();
-                while (currentTextNode) {
-                    const targetEl = getSearchTargetFromNode(currentTextNode);
-                    pushCandidate(currentTextNode.nodeValue, targetEl, currentTextNode.parentElement, 'text');
-                    currentTextNode = walker.nextNode();
-                }
-
-                scopeEl.querySelectorAll('input, textarea, select').forEach(field => {
-                    if (!(field instanceof HTMLElement)) return;
-                    if (isSearchExcludedElement(field)) return;
-                    if (field instanceof HTMLInputElement && field.type === 'hidden') return;
-                    if (!isElementVisible(field)) return;
-
-                    const targetEl = getSearchTargetFromNode(field);
-                    if (!(targetEl instanceof HTMLElement)) return;
-
-                    let valueText = '';
-                    if (field instanceof HTMLSelectElement) {
-                        const selected = field.selectedOptions && field.selectedOptions[0];
-                        valueText = String(selected?.textContent || field.value || '').trim();
-                    } else if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
-                        valueText = String(field.value || '').trim();
-                    }
-
-                    if (valueText) {
-                        pushCandidate(valueText, targetEl, field, 'field');
-                    }
-                });
-
-                return candidates;
-            };
-
-            const clearActiveSearchState = () => {
-                scopeEl.querySelectorAll('.calc-search-mark.is-active, .calc-search-hit-field.is-active').forEach(el => {
-                    el.classList.remove('is-active');
-                });
-                scopeEl.querySelectorAll('.calc-search-hit-field').forEach(el => {
-                    el.classList.remove('calc-search-hit-field');
-                });
-            };
-
-            const removeHitClasses = () => {
-                clearActiveSearchState();
-                textHighlightMap = new Map();
-                isApplyingSearchDecorations = true;
-                try {
-                    scopeEl.querySelectorAll('mark.calc-search-mark').forEach(mark => {
-                        const parent = mark.parentNode;
-                        if (!parent) {
-                            return;
-                        }
-                        parent.replaceChild(document.createTextNode(mark.textContent || ''), mark);
-                        if (parent instanceof HTMLElement || parent instanceof DocumentFragment) {
-                            try {
-                                parent.normalize();
-                            } catch (error) {
-                                // ignore normalize issues in unsupported nodes
-                            }
-                        }
-                    });
-                } finally {
-                    isApplyingSearchDecorations = false;
-                }
-            };
-
-            const getResultIdentityKey = result => {
-                if (!result || typeof result !== 'object') {
-                    return '';
-                }
-                const sourceId = getSearchObjectId(result.sourceEl || null);
-                const targetId = getSearchObjectId(result.targetEl || null);
-                const markIndexInSource = Number.isInteger(result.markIndexInSource) ? result.markIndexInSource : -1;
-                return `${result.kind || 'unk'}::${sourceId}::${targetId}::${markIndexInSource}`;
-            };
-
-            const applyTextHighlights = query => {
-                textHighlightMap = new Map();
-                if (!query) {
-                    return;
-                }
-
-                const textNodes = [];
-                const walker = document.createTreeWalker(scopeEl, NodeFilter.SHOW_TEXT, {
-                    acceptNode(textNode) {
-                        const parent = textNode.parentElement;
-                        if (!(parent instanceof HTMLElement)) return NodeFilter.FILTER_REJECT;
-                        if (isSearchExcludedElement(parent)) return NodeFilter.FILTER_REJECT;
-                        const value = String(textNode.nodeValue || '');
-                        if (!value.trim()) return NodeFilter.FILTER_REJECT;
-                        return NodeFilter.FILTER_ACCEPT;
-                    },
-                });
-
-                let currentTextNode = walker.nextNode();
-                while (currentTextNode) {
-                    textNodes.push(currentTextNode);
-                    currentTextNode = walker.nextNode();
-                }
-
-                isApplyingSearchDecorations = true;
-                try {
-                    textNodes.forEach(textNode => {
-                        if (!(textNode instanceof Text)) return;
-                        const parentEl = textNode.parentElement;
-                        const parentNode = textNode.parentNode;
-                        if (!(parentEl instanceof HTMLElement) || !(parentNode instanceof Node)) return;
-                        if (isSearchExcludedElement(parentEl)) return;
-
-                        const rawText = String(textNode.nodeValue || '');
-                        const lowerText = rawText.toLowerCase();
-                        if (!lowerText || !lowerText.includes(query)) return;
-
-                        const targetEl = getSearchTargetFromNode(textNode);
-                        if (!(targetEl instanceof HTMLElement) || !isElementVisible(targetEl)) return;
-
-                        const fragment = document.createDocumentFragment();
-                        const marks = [];
-                        let cursor = 0;
-                        let matchIndex = lowerText.indexOf(query, cursor);
-
-                        while (matchIndex !== -1) {
-                            if (matchIndex > cursor) {
-                                fragment.appendChild(document.createTextNode(rawText.slice(cursor, matchIndex)));
-                            }
-                            const mark = document.createElement('mark');
-                            mark.className = 'calc-search-mark';
-                            mark.textContent = rawText.slice(matchIndex, matchIndex + query.length);
-                            fragment.appendChild(mark);
-                            marks.push(mark);
-                            cursor = matchIndex + query.length;
-                            matchIndex = lowerText.indexOf(query, cursor);
-                        }
-
-                        if (!marks.length) return;
-
-                        if (cursor < rawText.length) {
-                            fragment.appendChild(document.createTextNode(rawText.slice(cursor)));
-                        }
-
-                        parentNode.replaceChild(fragment, textNode);
-
-                        if (!textHighlightMap.has(parentEl)) {
-                            textHighlightMap.set(parentEl, []);
-                        }
-                        textHighlightMap.get(parentEl).push(...marks);
-                    });
-                } finally {
-                    isApplyingSearchDecorations = false;
-                }
-            };
-
-            const updateCounter = () => {
-                const total = results.length;
-                const current = total > 0 && activeIndex >= 0 ? activeIndex + 1 : 0;
-                countEl.textContent = `${current} / ${total}`;
-                prevBtn.disabled = total === 0;
-                nextBtn.disabled = total === 0;
-                clearBtn.style.visibility = searchInput.value.trim() ? 'visible' : 'hidden';
-            };
-
-            const setMutationObserverEnabled = shouldEnable => {
-                if (!mutationObserver) {
-                    mutationObserver = new MutationObserver(function(mutationList) {
-                        if (!searchInput.value.trim()) return;
-                        if (isApplyingSearchDecorations) return;
-                        const hasRelevantMutation = mutationList.some(mutation => {
-                            const target = mutation.target;
-                            if (!(target instanceof Node)) return false;
-                            const el = target instanceof Element ? target : target.parentElement;
-                            if (!(el instanceof Element)) return false;
-                            return !isSearchExcludedElement(el);
-                        });
-                        if (!hasRelevantMutation) return;
-                        scheduleRefresh({ scroll: false });
-                    });
-                }
-
-                if (shouldEnable && !isObserverConnected) {
-                    mutationObserver.observe(scopeEl, {
-                        childList: true,
-                        subtree: true,
-                    });
-                    isObserverConnected = true;
-                    return;
-                }
-
-                if (!shouldEnable && isObserverConnected) {
-                    mutationObserver.disconnect();
-                    isObserverConnected = false;
-                }
-            };
-
-            const navigateToResult = (index, options = {}) => {
-                if (!results.length) {
-                    activeIndex = -1;
-                    clearActiveSearchState();
-                    updateCounter();
-                    return;
-                }
-                const total = results.length;
-                const safeIndex = ((index % total) + total) % total;
-                activeIndex = safeIndex;
-                clearActiveSearchState();
-                const result = results[safeIndex];
-                const targetEl = result?.targetEl;
-                if (targetEl instanceof HTMLElement) {
-                    let activeHighlightEl = null;
-                    if (result.kind === 'text' && result.sourceEl instanceof HTMLElement) {
-                        const marks = textHighlightMap.get(result.sourceEl) || [];
-                        if (marks.length) {
-                            const desiredMarkIndex = Number.isInteger(result.markIndexInSource) ? result.markIndexInSource : 0;
-                            activeHighlightEl = marks[desiredMarkIndex] || marks[0];
-                            activeHighlightEl.classList.add('is-active');
-                        }
-                    }
-                    if (!(activeHighlightEl instanceof HTMLElement)) {
-                        const fieldSourceEl =
-                            result.kind === 'field' && result.sourceEl instanceof HTMLElement && isElementVisible(result.sourceEl)
-                                ? result.sourceEl
-                                : null;
-                        const fieldHighlightEl =
-                            fieldSourceEl?.closest(
-                                '.input-wrapper, .material-type-filter-body, .work-type-selector-wrapper, .taxonomy-card-floor, .taxonomy-card-area, .taxonomy-card-field',
-                            ) || fieldSourceEl || targetEl;
-
-                        fieldHighlightEl.classList.add('calc-search-hit-field', 'is-active');
-                        activeHighlightEl = fieldHighlightEl;
-                    }
-                    if (options.scroll !== false) {
-                        const scrollTarget =
-                            activeHighlightEl.closest('.additional-taxonomy-cell') ||
-                            activeHighlightEl.closest('.taxonomy-card-floor') ||
-                            activeHighlightEl.closest('.taxonomy-card-area') ||
-                            activeHighlightEl.closest('.taxonomy-card-field') ||
-                            activeHighlightEl;
-                        try {
-                            scrollTarget.scrollIntoView({
-                                behavior: prefersReducedMotion() ? 'auto' : 'smooth',
-                                block: 'center',
-                                inline: 'nearest',
-                            });
-                        } catch (error) {
-                            const rect = scrollTarget.getBoundingClientRect();
-                            const absoluteTop = rect.top + (window.scrollY || document.documentElement.scrollTop || 0);
-                            window.scrollTo({
-                                top: Math.max(0, absoluteTop - Math.max(120, window.innerHeight * 0.24)),
-                                behavior: prefersReducedMotion() ? 'auto' : 'smooth',
-                            });
-                        }
-                    }
-                    if (
-                        result.kind === 'field' &&
-                        result.sourceEl instanceof HTMLElement &&
-                        isElementVisible(result.sourceEl)
-                    ) {
-                        result.sourceEl.classList.add('calc-search-hit-field', 'is-active');
-                    }
-                }
-                updateCounter();
-            };
-
-            const runSearch = options => {
-                const query = normalizeText(searchInput.value);
-                const prevActiveTarget = activeIndex >= 0 ? results[activeIndex]?.targetEl : null;
-                const prevActiveResultKey = activeIndex >= 0 ? getResultIdentityKey(results[activeIndex]) : '';
-                removeHitClasses();
-
-                if (!query) {
-                    setMutationObserverEnabled(false);
-                    results = [];
-                    activeIndex = -1;
-                    removeHitClasses();
-                    updateCounter();
-                    return;
-                }
-                setMutationObserverEnabled(true);
-
-                const candidates = buildCandidates();
-                applyTextHighlights(query);
-                const expandedResults = [];
-                const markCursorBySource = new Map();
-                candidates.forEach(item => {
-                    if (!item || !item.norm.includes(query)) {
-                        return;
-                    }
-                    if (item.kind !== 'text') {
-                        expandedResults.push(item);
-                        return;
-                    }
-
-                    const sourceEl = item.sourceEl instanceof HTMLElement ? item.sourceEl : item.targetEl;
-                    const currentCursor = sourceEl instanceof HTMLElement ? (markCursorBySource.get(sourceEl) || 0) : 0;
-                    let localMatchCount = 0;
-                    let fromIndex = 0;
-                    while (fromIndex <= item.norm.length) {
-                        const foundAt = item.norm.indexOf(query, fromIndex);
-                        if (foundAt === -1) {
-                            break;
-                        }
-                        expandedResults.push({
-                            ...item,
-                            markIndexInSource: currentCursor + localMatchCount,
-                        });
-                        localMatchCount += 1;
-                        fromIndex = foundAt + Math.max(1, query.length);
-                    }
-
-                    if (sourceEl instanceof HTMLElement) {
-                        markCursorBySource.set(sourceEl, currentCursor + localMatchCount);
-                    }
-                });
-                results = expandedResults;
-
-                if (!results.length) {
-                    activeIndex = -1;
-                    clearActiveSearchState();
-                    updateCounter();
-                    return;
-                }
-
-                const matchedPrevIndexByKey = prevActiveResultKey
-                    ? results.findIndex(item => getResultIdentityKey(item) === prevActiveResultKey)
-                    : -1;
-                const matchedPrevIndex =
-                    matchedPrevIndexByKey >= 0
-                        ? matchedPrevIndexByKey
-                        : prevActiveTarget instanceof HTMLElement
-                            ? results.findIndex(item => item.targetEl === prevActiveTarget)
-                            : -1;
-                const nextIndex = matchedPrevIndex >= 0 ? matchedPrevIndex : 0;
-                navigateToResult(nextIndex, options || {});
-            };
-
-            const scheduleRefresh = (options = {}) => {
-                if (refreshTimer) {
-                    clearTimeout(refreshTimer);
-                }
-                refreshTimer = setTimeout(() => {
-                    refreshTimer = null;
-                    runSearch(options);
-                }, 90);
-            };
-
-            searchInput.addEventListener('input', function() {
-                scheduleRefresh({ scroll: false });
-            });
-
-            searchInput.addEventListener('keydown', function(event) {
-                if (event.key === 'Enter') {
-                    event.preventDefault();
-                    if (!results.length) {
-                        runSearch({ scroll: true });
-                        return;
-                    }
-                    navigateToResult(activeIndex + (event.shiftKey ? -1 : 1), { scroll: true });
-                } else if (event.key === 'Escape') {
-                    searchInput.value = '';
-                    runSearch({ scroll: false });
-                }
-            });
-
-            clearBtn.addEventListener('click', function() {
-                searchInput.value = '';
-                searchInput.focus();
-                runSearch({ scroll: false });
-            });
-
-            prevBtn.addEventListener('click', function() {
-                navigateToResult(activeIndex - 1, { scroll: true });
-            });
-
-            nextBtn.addEventListener('click', function() {
-                navigateToResult(activeIndex + 1, { scroll: true });
-            });
-
-            scopeEl.addEventListener('input', function() {
-                if (!searchInput.value.trim()) return;
-                scheduleRefresh({ scroll: false });
-            });
-
-            scopeEl.addEventListener('change', function() {
-                if (!searchInput.value.trim()) return;
-                scheduleRefresh({ scroll: false });
-            });
-
-            scheduleStickySearchTopOffsetRefresh();
-            scheduleStickySearchPinStateRefresh();
-            window.addEventListener('resize', function() {
-                scheduleStickySearchTopOffsetRefresh();
-                scheduleStickySearchPinStateRefresh();
-            }, { passive: true });
-            window.addEventListener('scroll', function() {
-                scheduleStickySearchTopOffsetRefresh();
-                scheduleStickySearchPinStateRefresh();
-            }, { passive: true });
-
-            runSearch({ scroll: false });
-
             return {
-                refresh() {
-                    if (!searchInput.value.trim()) return;
-                    scheduleRefresh({ scroll: false });
-                },
+                refresh() {},
             };
         }
-
         function initTaxonomyScrollTracker() {
-            const trackerWrap = document.getElementById('calcTaxonomyScrollTracker');
-            if (!(trackerWrap instanceof HTMLElement)) {
-                return {
-                    refresh() {},
-                };
-            }
-
-            const floorValueEl = trackerWrap.querySelector('[data-scroll-active-floor]');
-            const areaValueEl = trackerWrap.querySelector('[data-scroll-active-area]');
-            const fieldValueEl = trackerWrap.querySelector('[data-scroll-active-field]');
-            const addAreaMirrorBtn = trackerWrap.querySelector('[data-scroll-action="add-area"]');
-            const addFieldMirrorBtn = trackerWrap.querySelector('[data-scroll-action="add-field"]');
-            if (
-                !(floorValueEl instanceof HTMLElement) ||
-                !(areaValueEl instanceof HTMLElement) ||
-                !(fieldValueEl instanceof HTMLElement)
-            ) {
-                return {
-                    refresh() {},
-                };
-            }
-
-            const emptyToken = '-';
-            let stepItems = [];
-            let animationFrameId = null;
-            let hasAnyTrackerValue = false;
-            let lockedStepIndex = -1;
-            let lastThresholdTop = 0;
-            let activeTrackerContext = { floor: '', area: '', field: '' };
-            const calcFormEl = document.getElementById('calculationForm');
-            const STEP_SWITCH_MARGIN_PX = 24;
-
-            const readPxCssVar = (hostEl, propertyName, fallback = 0) => {
-                if (!(hostEl instanceof HTMLElement) || !propertyName) {
-                    return fallback;
-                }
-                const inlineValue = hostEl.style.getPropertyValue(propertyName);
-                const computedValue = window.getComputedStyle(hostEl).getPropertyValue(propertyName);
-                const parsed = Number.parseFloat(String(inlineValue || computedValue || '').replace('px', '').trim());
-                return Number.isFinite(parsed) ? parsed : fallback;
-            };
-
-            const getStickyTopOffset = () => {
-                const fallback = window.innerWidth <= 768 ? 64 : 72;
-                return readPxCssVar(calcFormEl, '--calc-search-sticky-top', fallback);
-            };
-
-            const getStickySearchHeight = () => {
-                return readPxCssVar(calcFormEl, '--calc-search-sticky-height', 0);
-            };
-
-            const syncMirrorActionButtonState = (mirrorBtn, sourceButtonId, contextAllowed = true) => {
-                if (!(mirrorBtn instanceof HTMLButtonElement)) {
-                    return;
-                }
-                const sourceBtn = document.getElementById(sourceButtonId);
-                if (!(sourceBtn instanceof HTMLButtonElement)) {
-                    mirrorBtn.hidden = true;
-                    mirrorBtn.disabled = true;
-                    return;
-                }
-                mirrorBtn.hidden = false;
-                mirrorBtn.disabled = !!sourceBtn.disabled || !contextAllowed;
-            };
-
-            const findLastAreaRowByFloorContext = workFloor => {
-                const targetFloor = normalizeTaxonomyValue(workFloor);
-                if (!targetFloor) {
-                    return null;
-                }
-
-                let floorRootMatch = null;
-                let anyAreaMatch = null;
-                getAllAdditionalWorkRows().forEach(row => {
-                    const rowKind = normalizeBundleRowKind(
-                        row.getAttribute('data-row-kind') || getAdditionalFieldValue(row, 'row_kind') || 'area',
-                    );
-                    if (rowKind !== 'area') {
-                        return;
-                    }
-                    const rowFloor = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_floor'));
-                    if (rowFloor !== targetFloor) {
-                        return;
-                    }
-                    anyAreaMatch = row;
-                    const rowArea = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_area'));
-                    if (!rowArea) {
-                        floorRootMatch = row;
-                    }
-                });
-
-                return floorRootMatch || anyAreaMatch;
-            };
-
-            const findLastAreaRowByFloorAndAreaContext = (workFloor, workArea) => {
-                const targetFloor = normalizeTaxonomyValue(workFloor);
-                const targetArea = normalizeTaxonomyValue(workArea);
-                if (!targetArea) {
-                    return null;
-                }
-
-                let matched = null;
-                getAllAdditionalWorkRows().forEach(row => {
-                    const rowKind = normalizeBundleRowKind(
-                        row.getAttribute('data-row-kind') || getAdditionalFieldValue(row, 'row_kind') || 'area',
-                    );
-                    if (rowKind !== 'area') {
-                        return;
-                    }
-                    const rowFloor = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_floor'));
-                    const rowArea = normalizeTaxonomyValue(getAdditionalFieldValue(row, 'work_area'));
-                    if (targetFloor && rowFloor !== targetFloor) {
-                        return;
-                    }
-                    if (rowArea !== targetArea) {
-                        return;
-                    }
-                    matched = row;
-                });
-                return matched;
-            };
-
-            const addAreaFromTrackerContext = () => {
-                const contextFloor = String(activeTrackerContext.floor || '').trim();
-                if (!contextFloor) {
-                    showTaxonomyActionError(
-                        'Isi Lantai terlebih dahulu sebelum menambah Area.',
-                        document.getElementById('workFloorDisplay'),
-                    );
-                    return;
-                }
-
-                const mainFloor = normalizeTaxonomyValue(getMainTaxonomyValue('floor'));
-                const contextFloorNorm = normalizeTaxonomyValue(contextFloor);
-                if (contextFloorNorm && contextFloorNorm === mainFloor) {
-                    createAndFocusAdditionalWorkItem(
-                        {
-                            work_floor: contextFloor,
-                            work_area: '',
-                            work_field: '',
-                            work_type: '',
-                            row_kind: 'area',
-                        },
-                        null,
-                        'work_area',
-                        { rowKind: 'area', targetMainArea: true },
-                    );
-                    return;
-                }
-
-                const targetFloorHost = findLastAreaRowByFloorContext(contextFloor);
-                createAndFocusAdditionalWorkItem(
-                    {
-                        work_floor: contextFloor,
-                        work_area: '',
-                        work_field: '',
-                        work_type: '',
-                        row_kind: 'area',
+            if (typeof window.materialCalcCreateTaxonomyTrackerEngine === 'function') {
+                const bridgeTrackerApi = window.materialCalcCreateTaxonomyTrackerEngine({
+                    deps: {
+                        normalizeTaxonomyValue,
+                        getAllAdditionalWorkRows,
+                        normalizeBundleRowKind,
+                        getAdditionalFieldValue,
+                        showTaxonomyActionError,
+                        getMainTaxonomyValue,
+                        createAndFocusAdditionalWorkItem,
+                        findLastAdditionalRowByTaxonomy,
+                        getMainAreaChildrenHost,
+                        mainTaxonomyGroupCard,
                     },
-                    null,
-                    'work_area',
-                    targetFloorHost instanceof HTMLElement
-                        ? { rowKind: 'area', targetFloorHost }
-                        : { rowKind: 'area' },
-                );
-            };
-
-            const addFieldFromTrackerContext = () => {
-                const contextFloor = String(activeTrackerContext.floor || '').trim();
-                const contextArea = String(activeTrackerContext.area || '').trim();
-                if (!contextFloor) {
-                    showTaxonomyActionError(
-                        'Isi Lantai terlebih dahulu sebelum menambah Bidang.',
-                        document.getElementById('workFloorDisplay'),
-                    );
-                    return;
-                }
-                if (!contextArea) {
-                    showTaxonomyActionError(
-                        'Isi Area terlebih dahulu sebelum menambah Bidang.',
-                        document.getElementById('workAreaDisplay'),
-                    );
-                    return;
-                }
-
-                const targetAreaRow = findLastAreaRowByFloorAndAreaContext(contextFloor, contextArea);
-                if (targetAreaRow instanceof HTMLElement) {
-                    createAndFocusAdditionalWorkItem(
-                        {
-                            work_floor: contextFloor,
-                            work_area: contextArea,
-                            work_field: '',
-                            work_type: '',
-                            row_kind: 'field',
-                        },
-                        null,
-                        'work_field',
-                        { rowKind: 'field', targetAreaHost: targetAreaRow },
-                    );
-                    return;
-                }
-
-                const mainFloorNorm = normalizeTaxonomyValue(getMainTaxonomyValue('floor'));
-                const mainAreaNorm = normalizeTaxonomyValue(getMainTaxonomyValue('area'));
-                const contextFloorNorm = normalizeTaxonomyValue(contextFloor);
-                const contextAreaNorm = normalizeTaxonomyValue(contextArea);
-                if (contextFloorNorm && contextFloorNorm === mainFloorNorm && contextAreaNorm === mainAreaNorm) {
-                    const afterTarget = findLastAdditionalRowByTaxonomy(contextFloor, contextArea, '', false);
-                    const mainAreaHost = getMainAreaChildrenHost();
-                    const firstMainAreaRow =
-                        mainAreaHost instanceof HTMLElement
-                            ? Array.from(mainAreaHost.children).find(el =>
-                                  el instanceof HTMLElement && el.matches('[data-additional-work-item="true"]'),
-                              ) || null
-                            : null;
-                    createAndFocusAdditionalWorkItem(
-                        {
-                            work_floor: contextFloor,
-                            work_area: contextArea,
-                            work_field: '',
-                            work_type: '',
-                            row_kind: 'field',
-                        },
-                        afterTarget,
-                        'work_field',
-                        { rowKind: 'field', beforeElement: afterTarget ? null : firstMainAreaRow, targetMainArea: true },
-                    );
-                    return;
-                }
-
-                showTaxonomyActionError(
-                    'Area aktif tidak ditemukan. Pilih Area yang benar lalu coba tambah Bidang lagi.',
-                    document.getElementById('workAreaDisplay'),
-                );
-            };
-
-            if (addAreaMirrorBtn instanceof HTMLButtonElement) {
-                addAreaMirrorBtn.addEventListener('click', function() {
-                    addAreaFromTrackerContext();
                 });
+                if (bridgeTrackerApi && typeof bridgeTrackerApi.refresh === 'function') {
+                    return bridgeTrackerApi;
+                }
             }
-
-            if (addFieldMirrorBtn instanceof HTMLButtonElement) {
-                addFieldMirrorBtn.addEventListener('click', function() {
-                    addFieldFromTrackerContext();
-                });
-            }
-
-            const getAbsoluteTop = el => {
-                const rect = el.getBoundingClientRect();
-                const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-                return rect.top + scrollTop;
-            };
-
-            const isTrackableElement = el => {
-                if (!(el instanceof HTMLElement)) {
-                    return false;
-                }
-                if (el.hidden || el.getAttribute('aria-hidden') === 'true') {
-                    return false;
-                }
-                if (el.getClientRects().length === 0) {
-                    return false;
-                }
-                const style = window.getComputedStyle(el);
-                return style.display !== 'none' && style.visibility !== 'hidden';
-            };
-
-            const getMainAnchorElement = () => {
-                if (!(mainTaxonomyGroupCard instanceof HTMLElement)) {
-                    return null;
-                }
-                const node = mainTaxonomyGroupCard.querySelector('.taxonomy-card-floor');
-                return node instanceof HTMLElement ? node : null;
-            };
-
-            const getAdditionalRowAnchorElement = row => {
-                if (!(row instanceof HTMLElement)) {
-                    return null;
-                }
-                const cells = row.querySelectorAll('.additional-taxonomy-cell[data-taxonomy-cell]:not(.is-inherited)');
-                for (const cell of cells) {
-                    if (cell instanceof HTMLElement && isTrackableElement(cell)) {
-                        return cell;
-                    }
-                }
-                return row;
-            };
-
-            const buildNextContext = (previous, rawFloor, rawArea, rawField) => {
-                const priorFloor = String(previous?.floor || '').trim();
-                const priorArea = String(previous?.area || '').trim();
-                const priorField = String(previous?.field || '').trim();
-                const nextFloorRaw = String(rawFloor || '').trim();
-                const nextAreaRaw = String(rawArea || '').trim();
-                const nextFieldRaw = String(rawField || '').trim();
-
-                const nextFloor = nextFloorRaw || priorFloor;
-                const nextArea = nextAreaRaw || (nextFloorRaw ? '' : priorArea);
-                const nextField = nextFieldRaw || (nextAreaRaw || nextFloorRaw ? '' : priorField);
-
-                return {
-                    floor: nextFloor,
-                    area: nextArea,
-                    field: nextField,
-                };
-            };
-
-            const rebuildSteps = () => {
-                stepItems = [];
-
-                let context = buildNextContext(
-                    { floor: '', area: '', field: '' },
-                    getMainTaxonomyValue('floor'),
-                    getMainTaxonomyValue('area'),
-                    getMainTaxonomyValue('field'),
-                );
-                const mainAnchorEl = getMainAnchorElement();
-                if ((context.floor || context.area || context.field) && mainAnchorEl instanceof HTMLElement) {
-                    stepItems.push({
-                        ...context,
-                        el: mainAnchorEl,
-                    });
-                }
-
-                getAllAdditionalWorkRows().forEach(row => {
-                    const nextContext = buildNextContext(
-                        context,
-                        getAdditionalFieldValue(row, 'work_floor'),
-                        getAdditionalFieldValue(row, 'work_area'),
-                        getAdditionalFieldValue(row, 'work_field'),
-                    );
-                    context = nextContext;
-                    const rowAnchorEl = getAdditionalRowAnchorElement(row);
-                    if (!(rowAnchorEl instanceof HTMLElement)) {
-                        return;
-                    }
-                    if (!(nextContext.floor || nextContext.area || nextContext.field)) {
-                        return;
-                    }
-                    stepItems.push({
-                        ...nextContext,
-                        el: rowAnchorEl,
-                    });
-                });
-            };
-
-            const setTrackerValues = (floorValue, areaValue, fieldValue) => {
-                floorValueEl.textContent = floorValue || emptyToken;
-                areaValueEl.textContent = areaValue || emptyToken;
-                fieldValueEl.textContent = fieldValue || emptyToken;
-                hasAnyTrackerValue = !!(floorValue || areaValue || fieldValue);
-            };
-
-            const syncTrackerVisibility = () => {
-                if (!hasAnyTrackerValue) {
-                    trackerWrap.hidden = true;
-                    return;
-                }
-                if (!(mainTaxonomyGroupCard instanceof HTMLElement)) {
-                    trackerWrap.hidden = true;
-                    return;
-                }
-
-                const stickyThreshold = getStickyTopOffset() + getStickySearchHeight() + 10;
-                const cardRect = mainTaxonomyGroupCard.getBoundingClientRect();
-                const formRect = calcFormEl instanceof HTMLElement ? calcFormEl.getBoundingClientRect() : null;
-                const isWithinFormViewport = !(formRect && formRect.bottom <= stickyThreshold + 24);
-                const shouldShow = isWithinFormViewport && cardRect.top <= stickyThreshold;
-                trackerWrap.hidden = !shouldShow;
-            };
-
-            const computeAndRender = () => {
-                const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-                const stickyTop = getStickyTopOffset();
-                const stickySearchHeight = getStickySearchHeight();
-                const thresholdTop = scrollTop + stickyTop + stickySearchHeight + 18;
-
-                let activeFloor = '';
-                let activeArea = '';
-                let activeField = '';
-                const orderedSteps = stepItems
-                    .filter(step => step && step.el instanceof HTMLElement && isTrackableElement(step.el))
-                    .map(step => ({
-                        ...step,
-                        __top: getAbsoluteTop(step.el),
-                    }))
-                    .sort((left, right) => left.__top - right.__top);
-
-                if (!orderedSteps.length) {
-                    lockedStepIndex = -1;
-                } else {
-                    if (lockedStepIndex < 0 || lockedStepIndex >= orderedSteps.length) {
-                        const initialIndex = orderedSteps.findIndex(step => step.__top > thresholdTop);
-                        lockedStepIndex = initialIndex <= 0 ? 0 : initialIndex - 1;
-                    }
-
-                    const scrollingDown = thresholdTop >= lastThresholdTop;
-                    if (scrollingDown) {
-                        while (
-                            lockedStepIndex + 1 < orderedSteps.length &&
-                            thresholdTop >= orderedSteps[lockedStepIndex + 1].__top + STEP_SWITCH_MARGIN_PX
-                        ) {
-                            lockedStepIndex += 1;
-                        }
-                    } else {
-                        while (
-                            lockedStepIndex > 0 &&
-                            thresholdTop < orderedSteps[lockedStepIndex].__top - STEP_SWITCH_MARGIN_PX
-                        ) {
-                            lockedStepIndex -= 1;
-                        }
-                    }
-
-                    if (lockedStepIndex < 0) {
-                        lockedStepIndex = 0;
-                    } else if (lockedStepIndex >= orderedSteps.length) {
-                        lockedStepIndex = orderedSteps.length - 1;
-                    }
-                }
-
-                const activeStep =
-                    lockedStepIndex >= 0 && lockedStepIndex < orderedSteps.length ? orderedSteps[lockedStepIndex] : null;
-                if (activeStep && typeof activeStep === 'object') {
-                    activeFloor = String(activeStep.floor || '').trim();
-                    activeArea = String(activeStep.area || '').trim();
-                    activeField = String(activeStep.field || '').trim();
-                }
-                activeTrackerContext = {
-                    floor: activeFloor,
-                    area: activeArea,
-                    field: activeField,
-                };
-
-                setTrackerValues(activeFloor, activeArea, activeField);
-                syncTrackerVisibility();
-                syncMirrorActionButtonState(addAreaMirrorBtn, 'addAreaFromMainBtn', !!activeFloor);
-                syncMirrorActionButtonState(addFieldMirrorBtn, 'addFieldFromMainBtn', !!activeFloor && !!activeArea);
-                lastThresholdTop = thresholdTop;
-            };
-
-            const scheduleRender = () => {
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId);
-                }
-                animationFrameId = window.requestAnimationFrame(() => {
-                    animationFrameId = null;
-                    computeAndRender();
-                });
-            };
-
-            const refresh = () => {
-                rebuildSteps();
-                computeAndRender();
-            };
-
-            const formEl = document.getElementById('calculationForm');
-            if (formEl instanceof HTMLElement) {
-                formEl.addEventListener('input', function(event) {
-                    const target = event?.target;
-                    if (!(target instanceof HTMLElement)) {
-                        return;
-                    }
-                    if (
-                        target.matches('#workFloorDisplay, #workAreaDisplay, #workFieldDisplay') ||
-                        target.matches('[data-field-display="work_floor"], [data-field-display="work_area"], [data-field-display="work_field"]') ||
-                        target.matches('[data-field="work_floor"], [data-field="work_area"], [data-field="work_field"]')
-                    ) {
-                        refresh();
-                    }
-                });
-                formEl.addEventListener('change', function(event) {
-                    const target = event?.target;
-                    if (!(target instanceof HTMLElement)) {
-                        return;
-                    }
-                    if (
-                        target.matches('#workFloorDisplay, #workAreaDisplay, #workFieldDisplay') ||
-                        target.matches('[data-field-display="work_floor"], [data-field-display="work_area"], [data-field-display="work_field"]') ||
-                        target.matches('[data-field="work_floor"], [data-field="work_area"], [data-field="work_field"]')
-                    ) {
-                        refresh();
-                    }
-                });
-            }
-
-            window.addEventListener('scroll', scheduleRender, { passive: true });
-            window.addEventListener('resize', scheduleRender);
-
-            refresh();
 
             return {
-                refresh,
+                refresh() {},
             };
         }
-
         function initCalculationScrollFab() {
-            const fabWrap = document.getElementById('calcScrollFabWrap');
-            const fabBtn = document.getElementById('calcScrollFabBtn');
-            const fabIcon = document.getElementById('calcScrollFabIcon');
-            if (!(fabWrap instanceof HTMLElement) || !(fabBtn instanceof HTMLButtonElement) || !(fabIcon instanceof HTMLElement)) {
-                return {
-                    refresh() {},
-                };
+            if (typeof window.materialCalcCreateScrollFabEngine === 'function') {
+                const bridgeScrollFabApi = window.materialCalcCreateScrollFabEngine({
+                    deps: {
+                        getMainTaxonomyValue,
+                        getAllAdditionalWorkRows,
+                        getAdditionalFieldValue,
+                        sortFloors,
+                        uniqueFilterTokens,
+                        sortAlphabetic,
+                    },
+                });
+                if (bridgeScrollFabApi && typeof bridgeScrollFabApi.refresh === 'function') {
+                    return bridgeScrollFabApi;
+                }
             }
-
-            const treeHost = fabWrap.querySelector('[data-scroll-summary-tree]');
-
-            const setFabMode = mode => {
-                const normalized = mode === 'up' ? 'up' : 'down';
-                fabWrap.dataset.scrollMode = normalized;
-                fabIcon.classList.remove('bi-arrow-up', 'bi-arrow-down');
-                fabIcon.classList.add(normalized === 'up' ? 'bi-arrow-up' : 'bi-arrow-down');
-                const label = normalized === 'up' ? 'Kembali ke atas' : 'Scroll ke bawah';
-                fabBtn.setAttribute('aria-label', label);
-                fabBtn.setAttribute('title', label);
-            };
-
-            const navigateToTarget = targetEl => {
-                if (!(targetEl instanceof HTMLElement)) {
-                    return;
-                }
-                const scrollTarget =
-                    targetEl.closest('.additional-taxonomy-cell') ||
-                    targetEl.closest('.taxonomy-card-floor') ||
-                    targetEl.closest('.taxonomy-card-area') ||
-                    targetEl.closest('.taxonomy-card-field') ||
-                    targetEl;
-                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                try {
-                    scrollTarget.scrollIntoView({
-                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-                        block: 'center',
-                        inline: 'nearest',
-                    });
-                } catch (error) {
-                    const rect = scrollTarget.getBoundingClientRect();
-                    const absoluteTop = rect.top + (window.scrollY || document.documentElement.scrollTop || 0);
-                    window.scrollTo({
-                        top: Math.max(0, absoluteTop - Math.max(120, window.innerHeight * 0.25)),
-                        behavior: prefersReducedMotion ? 'auto' : 'smooth',
-                    });
-                }
-            };
-
-            const collectSummaryTree = () => {
-                const combos = [];
-                const pushCombo = (floor, area, field, targets = {}) => {
-                    const work_floor = String(floor || '').trim();
-                    const work_area = String(area || '').trim();
-                    const work_field = String(field || '').trim();
-                    if (!work_floor && !work_area && !work_field) {
-                        return;
-                    }
-                    combos.push({
-                        work_floor,
-                        work_area,
-                        work_field,
-                        floorTargetEl: targets.floorTargetEl instanceof HTMLElement ? targets.floorTargetEl : null,
-                        areaTargetEl: targets.areaTargetEl instanceof HTMLElement ? targets.areaTargetEl : null,
-                        fieldTargetEl: targets.fieldTargetEl instanceof HTMLElement ? targets.fieldTargetEl : null,
-                    });
-                };
-
-                pushCombo(getMainTaxonomyValue('floor'), getMainTaxonomyValue('area'), getMainTaxonomyValue('field'), {
-                    floorTargetEl: document.getElementById('workFloorDisplay'),
-                    areaTargetEl: document.getElementById('workAreaDisplay'),
-                    fieldTargetEl: document.getElementById('workFieldDisplay'),
-                });
-                getAllAdditionalWorkRows().forEach(row => {
-                    pushCombo(
-                        getAdditionalFieldValue(row, 'work_floor'),
-                        getAdditionalFieldValue(row, 'work_area'),
-                        getAdditionalFieldValue(row, 'work_field'),
-                        {
-                            floorTargetEl: row.querySelector('[data-field-display="work_floor"]'),
-                            areaTargetEl: row.querySelector('[data-field-display="work_area"]'),
-                            fieldTargetEl: row.querySelector('[data-field-display="work_field"]'),
-                        },
-                    );
-                });
-
-                const normalized = combos.filter(item => item.work_floor);
-                const floorNames = sortFloors(uniqueFilterTokens(normalized.map(item => item.work_floor)));
-
-                const floorMap = new Map();
-                floorNames.forEach(name => {
-                    floorMap.set(name, { label: name, targetEl: null, areas: new Map() });
-                });
-
-                normalized.forEach(item => {
-                    const floorNode = floorMap.get(item.work_floor);
-                    if (!floorNode) {
-                        return;
-                    }
-                    if (!(floorNode.targetEl instanceof HTMLElement) && item.floorTargetEl instanceof HTMLElement) {
-                        floorNode.targetEl = item.floorTargetEl;
-                    }
-                    const areaLabel = item.work_area || '(Tanpa Area)';
-                    if (!floorNode.areas.has(areaLabel)) {
-                        floorNode.areas.set(areaLabel, {
-                            label: areaLabel,
-                            targetEl: item.areaTargetEl || item.floorTargetEl || null,
-                            fields: new Map(),
-                        });
-                    }
-                    const areaNode = floorNode.areas.get(areaLabel);
-                    if (!(areaNode.targetEl instanceof HTMLElement)) {
-                        areaNode.targetEl = item.areaTargetEl || item.floorTargetEl || null;
-                    }
-                    if (item.work_field) {
-                        if (!areaNode.fields.has(item.work_field)) {
-                            areaNode.fields.set(item.work_field, {
-                                label: item.work_field,
-                                targetEl: item.fieldTargetEl || item.areaTargetEl || item.floorTargetEl || null,
-                            });
-                        }
-                    }
-                });
-
-                return floorNames.map(floorName => {
-                    const floorNode = floorMap.get(floorName);
-                    const areaNames = sortAlphabetic(Array.from(floorNode && floorNode.areas ? floorNode.areas.keys() : []));
-                    return {
-                        label: floorName,
-                        targetEl: floorNode?.targetEl || null,
-                        children: areaNames.map(areaName => {
-                            const areaNode = floorNode.areas.get(areaName);
-                            const fieldNames = sortAlphabetic(Array.from(areaNode && areaNode.fields ? areaNode.fields.keys() : []));
-                            return {
-                                label: areaName,
-                                targetEl: areaNode?.targetEl || null,
-                                children: fieldNames.map(fieldName => ({
-                                    ...(areaNode.fields.get(fieldName) || { label: fieldName, targetEl: null }),
-                                    children: [],
-                                })),
-                            };
-                        }),
-                    };
-                });
-            };
-
-            const createMenuNode = (node, level = 0) => {
-                const li = document.createElement('li');
-                li.className = 'calc-scroll-fab-menu-item';
-                if (Array.isArray(node.children) && node.children.length > 0) {
-                    li.classList.add('has-children');
-                }
-
-                const label = document.createElement('button');
-                label.type = 'button';
-                label.className = 'calc-scroll-fab-menu-item-label';
-                if (node.targetEl instanceof HTMLElement) {
-                    label.classList.add('is-clickable');
-                    label.setAttribute('title', `Buka ${String(node.label || '')}`);
-                    const handleNavActivate = event => {
-                        if (event) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        navigateToTarget(node.targetEl);
-                    };
-                    label.addEventListener('pointerdown', function(event) {
-                        if (event.pointerType === 'mouse' && event.button !== 0) {
-                            return;
-                        }
-                        handleNavActivate(event);
-                    });
-                    label.addEventListener('click', function(event) {
-                        handleNavActivate(event);
-                    });
-                    label.addEventListener('keydown', function(event) {
-                        if (event.key !== 'Enter' && event.key !== ' ') {
-                            return;
-                        }
-                        handleNavActivate(event);
-                    });
-                }
-                const textEl = document.createElement('span');
-                textEl.className = 'calc-scroll-fab-menu-text';
-                textEl.textContent = String(node.label || '');
-                label.appendChild(textEl);
-                li.appendChild(label);
-
-                if (Array.isArray(node.children) && node.children.length > 0) {
-                    const ul = document.createElement('ul');
-                    ul.className = level === 0 ? 'calc-scroll-fab-submenu' : 'calc-scroll-fab-submenu';
-                    const submenuTitle =
-                        level === 0
-                            ? 'Area'
-                            : level === 1
-                              ? 'Bidang'
-                              : '';
-                    if (submenuTitle) {
-                        const titleEl = document.createElement('li');
-                        titleEl.className = 'calc-scroll-fab-submenu-title';
-                        if (level === 0) {
-                            titleEl.classList.add('is-area');
-                        } else if (level === 1) {
-                            titleEl.classList.add('is-field');
-                        }
-                        titleEl.textContent = submenuTitle;
-                        ul.appendChild(titleEl);
-                    }
-                    node.children.forEach(child => ul.appendChild(createMenuNode(child, level + 1)));
-                    li.appendChild(ul);
-                }
-
-                return li;
-            };
-
-            const renderTree = tree => {
-                if (!(treeHost instanceof HTMLElement)) {
-                    return;
-                }
-                treeHost.innerHTML = '';
-
-                const items = Array.isArray(tree) ? tree : [];
-                if (!items.length) {
-                    const emptyEl = document.createElement('div');
-                    emptyEl.className = 'calc-scroll-fab-menu-empty';
-                    emptyEl.textContent = 'Belum ada lantai terinput';
-                    treeHost.appendChild(emptyEl);
-                    return;
-                }
-
-                const rootMenu = document.createElement('ul');
-                rootMenu.className = 'calc-scroll-fab-menu';
-                items.forEach(node => rootMenu.appendChild(createMenuNode(node, 0)));
-                treeHost.appendChild(rootMenu);
-            };
-
-            const refreshSummary = () => {
-                renderTree(collectSummaryTree());
-            };
-
-            const updateVisibilityAndIcon = () => {
-                const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
-                const docHeight = Math.max(
-                    document.body.scrollHeight || 0,
-                    document.documentElement.scrollHeight || 0,
-                );
-                const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-                const scrollable = docHeight - viewportHeight;
-                const hasScroll = scrollable > 64;
-
-                fabWrap.hidden = !hasScroll;
-                if (!hasScroll) {
-                    return;
-                }
-
-                const upThreshold = Math.max(120, scrollable * 0.75);
-                const showUp = scrollTop >= upThreshold;
-                setFabMode(showUp ? 'up' : 'down');
-            };
-
-            let refreshTimer = null;
-            const scheduleRefreshSummary = () => {
-                if (refreshTimer) {
-                    clearTimeout(refreshTimer);
-                }
-                refreshTimer = setTimeout(() => {
-                    refreshTimer = null;
-                    refreshSummary();
-                }, 100);
-            };
-
-            fabBtn.addEventListener('click', function() {
-                const mode = fabWrap.dataset.scrollMode === 'up' ? 'up' : 'down';
-                const targetTop =
-                    mode === 'up'
-                        ? 0
-                        : Math.max(
-                              0,
-                              Math.max(document.body.scrollHeight || 0, document.documentElement.scrollHeight || 0) -
-                                  (window.innerHeight || document.documentElement.clientHeight || 0),
-                          );
-                const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                window.scrollTo({
-                    top: targetTop,
-                    behavior: prefersReducedMotion ? 'auto' : 'smooth',
-                });
-                fabBtn.blur();
-            });
-
-            ['mouseenter', 'focusin', 'touchstart'].forEach(eventName => {
-                fabWrap.addEventListener(eventName, refreshSummary, { passive: true });
-            });
-
-            const calculationForm = document.getElementById('calculationForm');
-            if (calculationForm instanceof HTMLElement) {
-                calculationForm.addEventListener('change', scheduleRefreshSummary);
-                calculationForm.addEventListener('input', function(event) {
-                    const target = event?.target;
-                    if (!(target instanceof HTMLElement)) {
-                        return;
-                    }
-                    if (
-                        target.matches('#workFloorDisplay, #workAreaDisplay, #workFieldDisplay') ||
-                        target.matches('[data-field="work_floor"], [data-field="work_area"], [data-field="work_field"]') ||
-                        target.matches('[data-field-display="work_floor"], [data-field-display="work_area"], [data-field-display="work_field"]')
-                    ) {
-                        scheduleRefreshSummary();
-                    }
-                });
-            }
-
-            window.addEventListener('scroll', updateVisibilityAndIcon, { passive: true });
-            window.addEventListener('resize', updateVisibilityAndIcon);
-
-            refreshSummary();
-            updateVisibilityAndIcon();
 
             return {
-                refresh() {
-                    refreshSummary();
-                    updateVisibilityAndIcon();
-                },
+                refresh() {},
             };
         }
-
         function findLastAdditionalAreaCardByWorkArea(workFloor = '', workArea = '') {
             const targetFloor = normalizeTaxonomyValue(workFloor);
             const targetArea = normalizeTaxonomyValue(workArea);
@@ -14213,6 +10608,81 @@
             return collectCustomizeFiltersFromRoot(itemEl);
         }
 
+        function collectAdditionalRestoreMetadata(itemEl) {
+            if (!(itemEl instanceof HTMLElement)) {
+                return {
+                    restore_scope: '',
+                    restore_parent_area_key: '',
+                    restore_parent_field_key: '',
+                };
+            }
+
+            const parentHost = itemEl.parentElement instanceof HTMLElement ? itemEl.parentElement : null;
+            if (!(parentHost instanceof HTMLElement)) {
+                return {
+                    restore_scope: '',
+                    restore_parent_area_key: '',
+                    restore_parent_field_key: '',
+                };
+            }
+
+            if (parentHost.matches('[data-main-area-children]')) {
+                return {
+                    restore_scope: 'main_area',
+                    restore_parent_area_key: '',
+                    restore_parent_field_key: '',
+                };
+            }
+
+            const ownerRow = parentHost.closest('.additional-work-item[data-additional-work-item="true"]');
+            if (!(ownerRow instanceof HTMLElement)) {
+                return {
+                    restore_scope: '',
+                    restore_parent_area_key: '',
+                    restore_parent_field_key: '',
+                };
+            }
+
+            const ownerData = {
+                work_floor: getAdditionalFieldValue(ownerRow, 'work_floor'),
+                work_area: getAdditionalFieldValue(ownerRow, 'work_area'),
+                work_field: getAdditionalFieldValue(ownerRow, 'work_field'),
+            };
+            const ownerRowKind = normalizeBundleRowKind(
+                ownerRow.getAttribute('data-row-kind') || getAdditionalFieldValue(ownerRow, 'row_kind') || 'area',
+            );
+
+            if (parentHost.matches('[data-floor-children]')) {
+                return {
+                    restore_scope: 'floor_children',
+                    restore_parent_area_key: buildAdditionalRestoreAreaKey(ownerData),
+                    restore_parent_field_key: '',
+                };
+            }
+
+            if (parentHost.matches('[data-area-children]')) {
+                if (ownerRowKind === 'field') {
+                    return {
+                        restore_scope: 'field_children',
+                        restore_parent_area_key: buildAdditionalRestoreAreaKey(ownerData),
+                        restore_parent_field_key: buildAdditionalRestoreFieldKey(ownerData),
+                    };
+                }
+
+                return {
+                    restore_scope: 'area_children',
+                    restore_parent_area_key: buildAdditionalRestoreAreaKey(ownerData),
+                    restore_parent_field_key: '',
+                };
+            }
+
+            return {
+                restore_scope: '',
+                restore_parent_area_key: '',
+                restore_parent_field_key: '',
+            };
+        }
+
         function collectAdditionalWorkItemData(itemEl, index = 0) {
             if (!(itemEl instanceof HTMLElement)) {
                 return null;
@@ -14222,6 +10692,7 @@
             const displayWorkTypeTitle = displayWorkTypeEl instanceof HTMLInputElement
                 ? String(displayWorkTypeEl.value || '').trim()
                 : '';
+            const restoreMetadata = collectAdditionalRestoreMetadata(itemEl);
 
             return normalizeBundleItem(
                 {
@@ -14246,6 +10717,9 @@
                     active_fields: getAdditionalActiveParameterFields(itemEl),
                     material_type_filters: collectAdditionalMaterialTypeFilters(itemEl),
                     material_customize_filters: collectAdditionalMaterialCustomizeFilters(itemEl),
+                    restore_scope: restoreMetadata.restore_scope,
+                    restore_parent_area_key: restoreMetadata.restore_parent_area_key,
+                    restore_parent_field_key: restoreMetadata.restore_parent_field_key,
                 },
                 index,
             );
@@ -15029,6 +11503,151 @@
             }
         }
 
+        function buildAdditionalRestoreAreaKey(itemData) {
+            const item = itemData && typeof itemData === 'object' ? itemData : {};
+            return [
+                String(item.work_floor || '').trim().toLowerCase(),
+                String(item.work_area || '').trim().toLowerCase(),
+            ].join('::');
+        }
+
+        function buildAdditionalRestoreFieldKey(itemData) {
+            const item = itemData && typeof itemData === 'object' ? itemData : {};
+            return [
+                String(item.work_floor || '').trim().toLowerCase(),
+                String(item.work_area || '').trim().toLowerCase(),
+                String(item.work_field || '').trim().toLowerCase(),
+            ].join('::');
+        }
+
+        function shouldRestoreAdditionalItemInMainTaxonomy(itemData, mainItemData = null) {
+            const item = itemData && typeof itemData === 'object' ? itemData : {};
+            const mainItem = mainItemData && typeof mainItemData === 'object' ? mainItemData : {};
+            const rowKind = normalizeBundleRowKind(item.row_kind || 'area');
+            const workFloor = String(item.work_floor || '').trim();
+            const workArea = String(item.work_area || '').trim();
+            const mainWorkFloor = String(mainItem.work_floor || '').trim();
+            const mainWorkArea = String(mainItem.work_area || '').trim();
+
+            if (!mainWorkFloor || workFloor !== mainWorkFloor) {
+                return false;
+            }
+
+            if (rowKind === 'area') {
+                return true;
+            }
+
+            if (!mainWorkArea || workArea !== mainWorkArea) {
+                return false;
+            }
+
+            return rowKind === 'field' || rowKind === 'item';
+        }
+
+        function getRestoreOptionsForAdditionalBundleItem(itemData, mainItemData = null, restoredContext = null) {
+            const item = itemData && typeof itemData === 'object' ? itemData : {};
+            const rowKind = normalizeBundleRowKind(item.row_kind || 'area');
+            const options = { rowKind };
+            const context = restoredContext && typeof restoredContext === 'object' ? restoredContext : {};
+            const restoredAreaRows = context.restoredAreaRows instanceof Map ? context.restoredAreaRows : new Map();
+            const restoredFieldRows = context.restoredFieldRows instanceof Map ? context.restoredFieldRows : new Map();
+            const restoreScope = String(item.restore_scope || '').trim().toLowerCase();
+            const restoreParentAreaKey = String(item.restore_parent_area_key || '').trim().toLowerCase();
+            const restoreParentFieldKey = String(item.restore_parent_field_key || '').trim().toLowerCase();
+
+            if (restoreScope === 'main_area') {
+                options.targetMainArea = true;
+                return options;
+            }
+
+            if (restoreScope === 'floor_children') {
+                const parentAreaRow = restoredAreaRows.get(restoreParentAreaKey || buildAdditionalRestoreAreaKey(item));
+                if (parentAreaRow instanceof HTMLElement) {
+                    options.targetFloorHost = parentAreaRow;
+                    return options;
+                }
+            }
+
+            if (restoreScope === 'area_children') {
+                const parentAreaRow = restoredAreaRows.get(restoreParentAreaKey || buildAdditionalRestoreAreaKey(item));
+                if (parentAreaRow instanceof HTMLElement) {
+                    options.targetAreaHost = parentAreaRow;
+                    return options;
+                }
+            }
+
+            if (restoreScope === 'field_children') {
+                const parentFieldRow = restoredFieldRows.get(restoreParentFieldKey || buildAdditionalRestoreFieldKey(item));
+                if (parentFieldRow instanceof HTMLElement) {
+                    options.targetFieldHost = parentFieldRow;
+                    return options;
+                }
+            }
+
+            if (rowKind === 'field') {
+                const areaRow = restoredAreaRows.get(buildAdditionalRestoreAreaKey(item));
+                if (areaRow instanceof HTMLElement) {
+                    options.targetAreaHost = areaRow;
+                    return options;
+                }
+            }
+
+            if (rowKind === 'item') {
+                const fieldRow = restoredFieldRows.get(buildAdditionalRestoreFieldKey(item));
+                if (fieldRow instanceof HTMLElement) {
+                    options.targetFieldHost = fieldRow;
+                    return options;
+                }
+
+                const areaRow = restoredAreaRows.get(buildAdditionalRestoreAreaKey(item));
+                if (areaRow instanceof HTMLElement) {
+                    options.targetFieldHost = areaRow;
+                    return options;
+                }
+            }
+
+            if (shouldRestoreAdditionalItemInMainTaxonomy(item, mainItemData)) {
+                options.targetMainArea = true;
+            }
+
+            return options;
+        }
+
+        function restoreAdditionalWorkItemsFromBundle(restoredBundleItems = []) {
+            if (!additionalWorkItemsList || !Array.isArray(restoredBundleItems) || restoredBundleItems.length <= 1) {
+                return;
+            }
+
+            const mainItem = restoredBundleItems[0] && typeof restoredBundleItems[0] === 'object'
+                ? restoredBundleItems[0]
+                : null;
+            const restoredAreaRows = new Map();
+            const restoredFieldRows = new Map();
+
+            for (let i = 1; i < restoredBundleItems.length; i += 1) {
+                const item = restoredBundleItems[i];
+                const restoredRow = createAdditionalWorkItemForm(
+                    item,
+                    null,
+                    getRestoreOptionsForAdditionalBundleItem(item, mainItem, {
+                        restoredAreaRows,
+                        restoredFieldRows,
+                    }),
+                );
+                const rowKind = normalizeBundleRowKind(item?.row_kind || 'area');
+                if (!(restoredRow instanceof HTMLElement)) {
+                    continue;
+                }
+                if (rowKind === 'area') {
+                    restoredAreaRows.set(buildAdditionalRestoreAreaKey(item), restoredRow);
+                    continue;
+                }
+                if (rowKind === 'field') {
+                    restoredFieldRows.set(buildAdditionalRestoreFieldKey(item), restoredRow);
+                }
+            }
+        }
+
         const addAreaFromMainBtn = document.getElementById('addAreaFromMainBtn');
         const addFieldFromMainBtn = document.getElementById('addFieldFromMainBtn');
         const addItemFromMainBtn = document.getElementById('addItemFromMainBtn');
@@ -15250,11 +11869,7 @@
         }
 
         const restoredBundleItems = parseBundleItemsFromHidden();
-        if (restoredBundleItems.length > 1) {
-            for (let i = 1; i < restoredBundleItems.length; i += 1) {
-                createAdditionalWorkItemForm(restoredBundleItems[i]);
-            }
-        }
+        restoreAdditionalWorkItemsFromBundle(restoredBundleItems);
         bindDimensionExpressionInputs(document);
         syncBundleFromForms();
         if (initialMaterialCustomizeFiltersPayloadRaw) {
@@ -15372,152 +11987,18 @@
         }
 
         function initStoreSearchModeControls() {
-            const box = document.getElementById('storeSearchModeBox');
-            if (!(box instanceof HTMLElement)) {
-                return;
-            }
-
-            const useStoreFilterHidden = box.querySelector('input[type="hidden"][name="use_store_filter"]');
-            const allowMixedStoreHidden = box.querySelector('input[type="hidden"][name="allow_mixed_store"]');
-            const storeRadiusScopeHidden = document.getElementById('storeRadiusScopeValue');
-            const modeValueHidden = document.getElementById('storeSearchModeValue');
-            const primaryRadiusInput = document.getElementById('projectStoreRadiusKm');
-            const finalRadiusInput = document.getElementById('projectStoreRadiusFinalKm');
-            const completeWithinCheck = document.getElementById('storeModeCompleteWithinCheck');
-            const completeOutsideCheck = document.getElementById('storeModeCompleteOutsideCheck');
-            const incompleteCheck = document.getElementById('storeModeIncompleteCheck');
-            const completeWithinDesc = document.getElementById('storeModeCompleteWithinDesc');
-            const completeOutsideDesc = document.getElementById('storeModeCompleteOutsideDesc');
-            const incompleteDesc = document.getElementById('storeModeIncompleteDesc');
-
-            if (
-                !(useStoreFilterHidden instanceof HTMLInputElement) ||
-                !(allowMixedStoreHidden instanceof HTMLInputElement) ||
-                !(storeRadiusScopeHidden instanceof HTMLInputElement) ||
-                !(modeValueHidden instanceof HTMLInputElement) ||
-                !(completeWithinCheck instanceof HTMLInputElement) ||
-                !(completeOutsideCheck instanceof HTMLInputElement) ||
-                !(incompleteCheck instanceof HTMLInputElement)
-            ) {
-                return;
-            }
-
-            const formatRadiusLabel = (rawValue, fallbackText = '-') => {
-                const parsed = Number.parseFloat(String(rawValue ?? '').replace(',', '.').trim());
-                if (!Number.isFinite(parsed) || parsed <= 0) {
-                    return fallbackText;
-                }
-                const normalized = Number.isInteger(parsed)
-                    ? String(parsed)
-                    : String(parsed).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '');
-                return `${normalized} km`;
-            };
-
-            const syncDescriptions = () => {
-                const primaryLabel = formatRadiusLabel(primaryRadiusInput?.value ?? '');
-                const finalLabel = formatRadiusLabel(finalRadiusInput?.value ?? '');
-
-                if (completeWithinDesc instanceof HTMLElement) {
-                    completeWithinDesc.textContent = `Mencari toko dengan material lengkap didalam radius ${primaryLabel} proyek.`;
-                }
-                if (completeOutsideDesc instanceof HTMLElement) {
-                    completeOutsideDesc.textContent = `Mencari toko dengan material lengkap didalam radius ${finalLabel} proyek.`;
-                }
-                if (incompleteDesc instanceof HTMLElement) {
-                    incompleteDesc.textContent = 'Mencari material sedapatnya dari toko terdekat.';
-                }
-            };
-
-            const syncState = source => {
-                const checks = [completeWithinCheck, completeOutsideCheck, incompleteCheck];
-                if (source && source.checked) {
-                    checks.forEach(checkEl => {
-                        if (checkEl !== source) {
-                            checkEl.checked = false;
-                        }
-                    });
-                }
-
-                // Keep exactly one mode active by default.
-                if (!checks.some(checkEl => checkEl.checked)) {
-                    completeWithinCheck.checked = true;
-                }
-
-                let activeMode = 'complete_within';
-                if (incompleteCheck.checked) {
-                    activeMode = 'incomplete';
-                } else if (completeOutsideCheck.checked) {
-                    activeMode = 'complete_outside';
-                } else {
-                    activeMode = 'complete_within';
-                }
-
-                if (activeMode === 'incomplete') {
-                    useStoreFilterHidden.value = '1';
-                    allowMixedStoreHidden.value = '1';
-                    storeRadiusScopeHidden.value = 'outside';
-                } else if (activeMode === 'complete_outside') {
-                    useStoreFilterHidden.value = '1';
-                    allowMixedStoreHidden.value = '0';
-                    storeRadiusScopeHidden.value = 'outside';
-                } else {
-                    useStoreFilterHidden.value = '1';
-                    allowMixedStoreHidden.value = '0';
-                    storeRadiusScopeHidden.value = 'within';
-                }
-
-                modeValueHidden.value = activeMode;
-                box.dataset.storeSearchMode = activeMode;
-                box.dataset.storeRadiusScope = storeRadiusScopeHidden.value || 'off';
-                box.dataset.allowMixedStore = allowMixedStoreHidden.value === '1' ? '1' : '0';
-            };
-
-            const syncFromHiddenState = () => {
-                const scope = String(storeRadiusScopeHidden.value || '').trim().toLowerCase();
-                const useStoreFilterEnabled = String(useStoreFilterHidden.value || '0') === '1';
-                const allowMixedEnabled = String(allowMixedStoreHidden.value || '0') === '1';
-                let activeMode = 'complete_within';
-                if (!useStoreFilterEnabled) {
-                    activeMode = 'complete_within';
-                } else if (allowMixedEnabled) {
-                    activeMode = 'incomplete';
-                } else if (scope === 'outside') {
-                    activeMode = 'complete_outside';
-                } else {
-                    activeMode = 'complete_within';
-                }
-
-                completeWithinCheck.checked = activeMode === 'complete_within';
-                completeOutsideCheck.checked = activeMode === 'complete_outside';
-                incompleteCheck.checked = activeMode === 'incomplete';
-                modeValueHidden.value = activeMode;
-
-                syncState(null);
-            };
-
-            [completeWithinCheck, completeOutsideCheck, incompleteCheck].forEach(checkEl => {
-                checkEl.addEventListener('change', (event) => {
-                    syncState(checkEl);
-                    if (event?.isTrusted && !isRestoringCalculationSessionState) {
-                        hasUserChangedSincePreviewResume = true;
-                    }
+            if (typeof window.materialCalcCreateStoreModeEngine === 'function') {
+                window.materialCalcCreateStoreModeEngine({
+                    deps: {
+                        isRestoringCalculationSessionState: () => !!isRestoringCalculationSessionState,
+                        markUserChangedSincePreviewResume: () => {
+                            hasUserChangedSincePreviewResume = true;
+                        },
+                    },
                 });
-            });
-
-            [primaryRadiusInput, finalRadiusInput].forEach(inputEl => {
-                if (!(inputEl instanceof HTMLInputElement)) {
-                    return;
-                }
-                inputEl.addEventListener('input', syncDescriptions);
-                inputEl.addEventListener('change', syncDescriptions);
-            });
-
-            box.__syncStoreSearchModeControls = syncFromHiddenState;
-            box.__commitStoreSearchModeControls = () => syncState(null);
-            syncFromHiddenState();
-            syncDescriptions();
+                return;
+            }
         }
-
         initStoreSearchModeControls();
 
         if (resetButton) {
@@ -16208,11 +12689,7 @@
                     clearDirectAdditionalChildRows(mainAreaChildrenHost);
                 }
                 const restoredBundleItems = parseBundleItemsFromHidden();
-                if (restoredBundleItems.length > 1) {
-                    for (let i = 1; i < restoredBundleItems.length; i += 1) {
-                        createAdditionalWorkItemForm(restoredBundleItems[i]);
-                    }
-                }
+                restoreAdditionalWorkItemsFromBundle(restoredBundleItems);
                 refreshAdditionalTaxonomyActionFooters(mainAreaChildrenHost instanceof HTMLElement ? mainAreaChildrenHost : null);
             }
             syncBundleFromForms();
@@ -16360,36 +12837,170 @@
             }
         }
 
+        function getMaterialCalcVueBridge() {
+            return window.materialCalcVueBridge && typeof window.materialCalcVueBridge === 'object'
+                ? window.materialCalcVueBridge
+                : null;
+        }
+
+        function getMaterialCalculationSubmitButton() {
+            return form ? form.querySelector('button[type="submit"]') : null;
+        }
+
+        function startLoadingState(isFastCachePath, submitButton) {
+            const bridge = getMaterialCalcVueBridge();
+            const safeButton = submitButton instanceof HTMLButtonElement ? submitButton : null;
+            if (
+                bridge &&
+                bridge.loading &&
+                typeof bridge.loading.start === 'function'
+            ) {
+                bridge.loading.start({
+                    isFastCachePath: !!isFastCachePath,
+                    submitButton: safeButton,
+                });
+                return;
+            }
+
+            if (safeButton && !safeButton.getAttribute('data-original-text')) {
+                safeButton.setAttribute('data-original-text', safeButton.innerHTML);
+            }
+
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            if (safeButton) {
+                safeButton.disabled = true;
+                safeButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Memproses...';
+            }
+
+            const bar = document.getElementById('loadingProgressBar');
+            const title = document.getElementById('loadingTitle');
+            const subtitle = document.getElementById('loadingSubtitle');
+            const percent = document.getElementById('loadingPercent');
+
+            let progress = 0;
+            const messages = isFastCachePath ? [
+                { p: 10, t: 'Memuat hasil tersimpan...', s: 'Mengambil data perhitungan sebelumnya.' },
+                { p: 55, t: 'Menyiapkan tampilan...', s: 'Merapikan tabel dan ringkasan hasil.' },
+                { p: 90, t: 'Finalisasi...', s: 'Sedang mengalihkan ke halaman hasil...' },
+            ] : [
+                { p: 5, t: 'Menganalisis Permintaan...', s: 'Memvalidasi input dan preferensi filter.' },
+                { p: 20, t: 'Mengambil Data Material...', s: 'Memuat database harga bata, semen, dan pasir terbaru.' },
+                { p: 40, t: 'Menjalankan Algoritma...', s: 'Menghitung volume dan kebutuhan material presisi.' },
+                { p: 60, t: 'Komparasi Harga...', s: 'Membandingkan efisiensi biaya antar merek material.' },
+                { p: 80, t: 'Menyusun Laporan...', s: 'Membuat ringkasan rekomendasi terbaik untuk Anda.' },
+                { p: 95, t: 'Finalisasi...', s: 'Sedang mengalihkan ke halaman hasil...' },
+            ];
+
+            if (loadingInterval) clearInterval(loadingInterval);
+
+            const intervalMs = isFastCachePath ? 35 : 50;
+            loadingInterval = setInterval(() => {
+                let increment = 0;
+
+                if (progress < 60) {
+                    increment = isFastCachePath
+                        ? Math.random() * 6 + 4
+                        : Math.random() * 4 + 1;
+                } else if (progress < 85) {
+                    increment = isFastCachePath
+                        ? Math.random() * 2.5 + 0.5
+                        : Math.random() * 1.5 + 0.2;
+                } else if (progress < 98) {
+                    increment = isFastCachePath ? 0.12 : 0.05;
+                }
+
+                progress = Math.min(progress + increment, 98);
+
+                const percentText = (() => {
+                    const scaled = Math.floor(progress * 100);
+                    const intPart = Math.floor(scaled / 100);
+                    const decPart = (scaled % 100).toString().padStart(2, '0');
+                    return `${intPart}.${decPart}%`;
+                })();
+
+                bar.style.width = `${progress}%`;
+                percent.textContent = percentText;
+
+                let currentMsg = null;
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    if (progress >= messages[i].p) {
+                        currentMsg = messages[i];
+                        break;
+                    }
+                }
+
+                if (currentMsg && title.textContent !== currentMsg.t) {
+                    title.textContent = currentMsg.t;
+                    subtitle.textContent = currentMsg.s;
+                }
+            }, intervalMs);
+        }
+
+        function completeLoadingStateForNavigation() {
+            const bridge = getMaterialCalcVueBridge();
+            if (
+                bridge &&
+                bridge.loading &&
+                typeof bridge.loading.completeForNavigation === 'function'
+            ) {
+                bridge.loading.completeForNavigation();
+                return;
+            }
+
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay && overlay.style.display !== 'none') {
+                const bar = document.getElementById('loadingProgressBar');
+                const percent = document.getElementById('loadingPercent');
+                const title = document.getElementById('loadingTitle');
+                const subtitle = document.getElementById('loadingSubtitle');
+
+                if (bar) {
+                    bar.style.width = '100%';
+                    bar.classList.remove('progress-bar-animated');
+                }
+                if (percent) percent.textContent = '100.00%';
+                if (title) title.textContent = 'Selesai!';
+                if (subtitle) subtitle.textContent = 'Memuat hasil perhitungan...';
+            }
+        }
+
         // Function to Reset UI
         function resetLoadingState() {
-            // Hide overlay
+            const bridge = getMaterialCalcVueBridge();
+            const submitButton = getMaterialCalculationSubmitButton();
+            if (
+                bridge &&
+                bridge.loading &&
+                typeof bridge.loading.reset === 'function'
+            ) {
+                bridge.loading.reset(submitButton);
+                return;
+            }
+
             const overlay = document.getElementById('loadingOverlay');
             if (overlay) overlay.style.display = 'none';
-            
-            // Stop Interval
+
             if (loadingInterval) {
                 clearInterval(loadingInterval);
                 loadingInterval = null;
             }
 
-            // Reset Button
-            const btn = form ? form.querySelector('button[type="submit"]') : null;
-            if (btn) {
-                btn.disabled = false;
-                const originalText = btn.getAttribute('data-original-text');
+            if (submitButton) {
+                submitButton.disabled = false;
+                const originalText = submitButton.getAttribute('data-original-text');
                 if (originalText) {
-                    btn.innerHTML = originalText;
+                    submitButton.innerHTML = originalText;
                 } else {
-                    btn.innerHTML = '<i class="bi bi-search"></i> Hitung';
+                    submitButton.innerHTML = '<i class="bi bi-search"></i> Hitung';
                 }
             }
-            
-            // Reset Progress Bar Elements
+
             const bar = document.getElementById('loadingProgressBar');
             const percent = document.getElementById('loadingPercent');
             const title = document.getElementById('loadingTitle');
             const subtitle = document.getElementById('loadingSubtitle');
-            
+
             if (bar) bar.style.width = '0%';
             if (percent) percent.textContent = '0%';
             if (title) title.textContent = 'Memulai Perhitungan...';
@@ -16431,29 +13042,38 @@
             });
         }
 
+        let useVueBridgeForSessionTracking = false;
+
+        const trackFormMutationForSession = function(isTrustedMutation) {
+            if (isTrustedMutation && !isRestoringCalculationSessionState && Date.now() >= ignoreFormChangeTrackingUntil) {
+                hasUserChangedSincePreviewResume = true;
+                skipSessionSaveOnBeforeUnload = false;
+            }
+            if (isRestoringCalculationSessionState || Date.now() < ignoreFormChangeTrackingUntil) {
+                return;
+            }
+            if (saveSessionTimer) clearTimeout(saveSessionTimer);
+            saveSessionTimer = setTimeout(saveCalculationSession, 250);
+        };
+
         if (form) {
-            form.addEventListener('input', function(event) {
-                if (event?.isTrusted && !isRestoringCalculationSessionState && Date.now() >= ignoreFormChangeTrackingUntil) {
-                    hasUserChangedSincePreviewResume = true;
-                    skipSessionSaveOnBeforeUnload = false;
-                }
-                if (isRestoringCalculationSessionState || Date.now() < ignoreFormChangeTrackingUntil) {
+            const nativeFormMutationListener = function(event) {
+                if (useVueBridgeForSessionTracking) {
                     return;
                 }
-                if (saveSessionTimer) clearTimeout(saveSessionTimer);
-                saveSessionTimer = setTimeout(saveCalculationSession, 250);
+                trackFormMutationForSession(!!(event && event.isTrusted));
+            };
+
+            form.addEventListener('input', nativeFormMutationListener);
+            form.addEventListener('change', nativeFormMutationListener);
+
+            window.addEventListener('material-calc-vue-bridge:ready', function() {
+                useVueBridgeForSessionTracking = true;
             });
 
-            form.addEventListener('change', function(event) {
-                if (event?.isTrusted && !isRestoringCalculationSessionState && Date.now() >= ignoreFormChangeTrackingUntil) {
-                    hasUserChangedSincePreviewResume = true;
-                    skipSessionSaveOnBeforeUnload = false;
-                }
-                if (isRestoringCalculationSessionState || Date.now() < ignoreFormChangeTrackingUntil) {
-                    return;
-                }
-                if (saveSessionTimer) clearTimeout(saveSessionTimer);
-                saveSessionTimer = setTimeout(saveCalculationSession, 250);
+            window.addEventListener('material-calc-vue-bridge:change', function(event) {
+                const detail = event && event.detail ? event.detail : null;
+                trackFormMutationForSession(!!(detail && detail.isTrusted));
             });
 
             form.addEventListener('submit', function(e) {
@@ -16617,95 +13237,8 @@
                         mortarThicknessInput.min = '0.1';
                     }
 
-                    // Save original button text if not saved
                     const btn = this.querySelector('button[type="submit"]');
-                    if (btn && !btn.getAttribute('data-original-text')) {
-                         btn.setAttribute('data-original-text', btn.innerHTML);
-                    }
-
-                    // Show Overlay
-                    document.getElementById('loadingOverlay').style.display = 'flex';
-                    
-                    // Update Button State
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Memproses...';
-                    }
-
-                    // Progress Simulation Data
-                    const bar = document.getElementById('loadingProgressBar');
-                    const title = document.getElementById('loadingTitle');
-                    const subtitle = document.getElementById('loadingSubtitle');
-                    const percent = document.getElementById('loadingPercent');
-                    
-                    let progress = 0;
-                    const messages = isFastCachePath ? [
-                        { p: 10, t: 'Memuat hasil tersimpan...', s: 'Mengambil data perhitungan sebelumnya.' },
-                        { p: 55, t: 'Menyiapkan tampilan...', s: 'Merapikan tabel dan ringkasan hasil.' },
-                        { p: 90, t: 'Finalisasi...', s: 'Sedang mengalihkan ke halaman hasil...' },
-                    ] : [
-                        { p: 5, t: 'Menganalisis Permintaan...', s: 'Memvalidasi input dan preferensi filter.' },
-                        { p: 20, t: 'Mengambil Data Material...', s: 'Memuat database harga bata, semen, dan pasir terbaru.' },
-                        { p: 40, t: 'Menjalankan Algoritma...', s: 'Menghitung volume dan kebutuhan material presisi.' },
-                        { p: 60, t: 'Komparasi Harga...', s: 'Membandingkan efisiensi biaya antar merek material.' },
-                        { p: 80, t: 'Menyusun Laporan...', s: 'Membuat ringkasan rekomendasi terbaik untuk Anda.' },
-                        { p: 95, t: 'Finalisasi...', s: 'Sedang mengalihkan ke halaman hasil...' }
-                    ];
-
-                    // Clear previous interval if any
-                    if (loadingInterval) clearInterval(loadingInterval);
-
-                    // Start Animation Loop
-                    const intervalMs = isFastCachePath ? 35 : 50;
-                    loadingInterval = setInterval(() => {
-                        // REVISED LOGIC: Aggressive start for "Realtime" feel
-                        let increment = 0;
-                        
-                        // Phase 1: Rapid Acceleration (0-60% in ~0.8s)
-                        if (progress < 60) {
-                            increment = isFastCachePath
-                                ? Math.random() * 6 + 4
-                                : Math.random() * 4 + 1;
-                        } 
-                        // Phase 2: Moderate Pace (60-85% in ~1s)
-                        else if (progress < 85) {
-                            increment = isFastCachePath
-                                ? Math.random() * 2.5 + 0.5
-                                : Math.random() * 1.5 + 0.2;
-                        } 
-                        // Phase 3: Zeno's Paradox (85-98%) - crawl to wait for server
-                        else if (progress < 98) {
-                            increment = isFastCachePath ? 0.12 : 0.05;
-                        }
-                        
-                        progress = Math.min(progress + increment, 98); // Cap at 98, jump to 100 on unload
-                        
-                        const percentText = (() => {
-                            const scaled = Math.floor(progress * 100);
-                            const intPart = Math.floor(scaled / 100);
-                            const decPart = (scaled % 100).toString().padStart(2, '0');
-                            return `${intPart}.${decPart}%`;
-                        })();
-
-                        // Update UI
-                        bar.style.width = `${progress}%`;
-                        percent.textContent = percentText;
-
-                        // Update Text
-                        let currentMsg = null;
-                        for (let i = messages.length - 1; i >= 0; i--) {
-                            if (progress >= messages[i].p) {
-                                currentMsg = messages[i];
-                                break;
-                            }
-                        }
-
-                        if (currentMsg && title.textContent !== currentMsg.t) {
-                            title.textContent = currentMsg.t;
-                            subtitle.textContent = currentMsg.s;
-                        }
-
-                    }, intervalMs);
+                    startLoadingState(isFastCachePath, btn);
                 }
             });
         }
@@ -16715,23 +13248,6 @@
             // Persist latest values so browser refresh keeps dynamic filters as well.
             if (!skipSessionSaveOnBeforeUnload) {
                 saveCalculationSession();
-            }
-
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay && overlay.style.display !== 'none') {
-                // If overlay is visible, it means we are in a calculation that just finished
-                const bar = document.getElementById('loadingProgressBar');
-                const percent = document.getElementById('loadingPercent');
-                const title = document.getElementById('loadingTitle');
-                const subtitle = document.getElementById('loadingSubtitle');
-                
-                if (bar) {
-                    bar.style.width = '100%';
-                    bar.classList.remove('progress-bar-animated'); // Stop stripe animation
-                }
-                if (percent) percent.textContent = '100.00%';
-                if (title) title.textContent = 'Selesai!';
-                if (subtitle) subtitle.textContent = 'Memuat hasil perhitungan...';
             }
         });
 

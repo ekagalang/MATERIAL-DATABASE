@@ -9,6 +9,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            AccessControlSeeder::class,
             UnitSeeder::class,
             MaterialSettingSeeder::class, // HARUS DI AWAL sebelum material seeders
             CatSeeder::class,

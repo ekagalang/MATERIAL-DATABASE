@@ -425,6 +425,7 @@ class SandController extends Controller
 
         // Ambil nilai unik, dibatasi
         $values = $query->select($field)->groupBy($field)->orderBy($field)->limit($limit)->pluck($field);
+        $values = \App\Support\Material\MaterialAutocompleteValueFormatter::formatValues('sand', $field, $values);
 
         return response()->json($values);
     }

@@ -237,6 +237,7 @@ class CeramicController extends Controller
         }
 
         $values = $this->service->getFieldValues($field, $filters, $search, $limit);
+        $values = \App\Support\Material\MaterialAutocompleteValueFormatter::formatValues('ceramic', $field, $values);
 
         return response()->json($values);
     }

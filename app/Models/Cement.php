@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMaterialChangeHistory;
 use App\Models\Concerns\SyncsStoreLocationSnapshot;
 use App\Support\Material\MaterialKindResolver;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,6 +17,7 @@ use Illuminate\Support\Str;
 class Cement extends Model
 {
     use HasFactory;
+    use HasMaterialChangeHistory;
     use SyncsStoreLocationSnapshot;
 
     public const MATERIAL_KIND = 'cement';
