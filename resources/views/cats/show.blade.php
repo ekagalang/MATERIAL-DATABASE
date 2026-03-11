@@ -1,8 +1,8 @@
 <div class="card">
-    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 0.9fr); gap: 32px; align-items: start;">
+    <div data-material-detail-layout style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 0.9fr); gap: 32px; align-items: stretch;">
         <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
-            <div style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
+            <div data-material-detail-info style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
                         border: 1px solid #f1f5f9; 
                         border-radius: 12px; 
                         overflow: hidden;">
@@ -263,9 +263,9 @@
         </div>
 
         <!-- Kolom Kanan - Foto Produk -->
-        <div style="display: grid;">
+        <div data-material-detail-aside style="display: flex; flex-direction: column; min-height: 0; height: 100%;">
         @if($cat->photo_url)
-        <div style="width: 100%;">
+        <div data-material-detail-photo style="width: 100%; flex-shrink: 0;">
             <div style="border: 2px solid #f1f5f9; 
                         border-radius: 16px; 
                         padding: 8px; 
@@ -296,7 +296,7 @@
             </div>
         </div>
         @else
-        <div style="width: 100%;">
+        <div data-material-detail-photo style="width: 100%; flex-shrink: 0;">
             <div style="border: 2px dashed #e2e8f0; 
                         border-radius: 16px; 
                         padding: 8px; 

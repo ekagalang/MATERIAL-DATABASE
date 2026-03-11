@@ -1,8 +1,8 @@
 <div class="card">
-    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 0.9fr); gap: 32px; align-items: start;">
+    <div data-material-detail-layout style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(400px, 0.9fr); gap: 32px; align-items: stretch;">
         <!-- Kolom Kiri - Detail Informasi -->
         <div style="flex: 1;">
-            <div style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
+            <div data-material-detail-info style="background: linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%); 
                         border: 1px solid #f1f5f9; 
                         border-radius: 12px; 
                         overflow: hidden;">
@@ -292,8 +292,8 @@
         </div>
 
         <!-- Kolom Kanan - Foto Produk -->
-        <div style="display: grid;">
-        <div style="width: 100%;">
+        <div data-material-detail-aside style="display: flex; flex-direction: column; min-height: 0; height: 100%;">
+        <div data-material-detail-photo style="width: 100%; flex-shrink: 0;">
             @php
                 $photoUrl = $ceramic->photo ? Storage::url($ceramic->photo) : null;
             @endphp

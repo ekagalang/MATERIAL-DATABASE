@@ -76,13 +76,15 @@ class MaterialChangeRecorder
             return;
         }
 
+        $requestedFields = $this->requestedAuditableFields($material, 'updated');
+
         $beforeValues = self::$originalSnapshots[$key] ?? $this->extractAuditableAttributes(
             $material,
-            $this->requestedAuditableFields($material, 'updated'),
+            $requestedFields,
         );
-        $afterValues = $this->extractAuditableAttributes(
+        $afterValues = $this->extractRequestedAuditableAttributes(
             $material,
-            $this->requestedAuditableFields($material, 'updated'),
+            $requestedFields,
         );
         $changes = $this->buildChanges($beforeValues, $afterValues);
 
@@ -244,14 +246,43 @@ class MaterialChangeRecorder
         $snapshot = [];
         $fillable = $fields ?? $material->getFillable();
         $excluded = ['created_at', 'updated_at', 'material_kind'];
-        $attributes = $material->getAttributes();
 
         foreach ($fillable as $field) {
             if (in_array($field, $excluded, true)) {
                 continue;
             }
 
-            $snapshot[$field] = $this->normalizeValue($field, $attributes[$field] ?? null);
+            $snapshot[$field] = $this->normalizeValue($field, $material->getAttribute($field));
+        }
+
+        return $snapshot;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function extractRequestedAuditableAttributes(Model $material, array $fields): array
+    {
+        if (!app()->bound('request')) {
+            return $this->extractCurrentAuditableAttributes($material, $fields);
+        }
+
+        /** @var Request $request */
+        $request = request();
+        $snapshot = [];
+
+        foreach ($fields as $field) {
+            if ($request->hasFile($field)) {
+                $snapshot[$field] = $this->normalizeValue($field, $material->getAttribute($field));
+                continue;
+            }
+
+            if ($request->exists($field)) {
+                $snapshot[$field] = $this->normalizeValue($field, $request->input($field));
+                continue;
+            }
+
+            $snapshot[$field] = $this->normalizeValue($field, $material->getAttribute($field));
         }
 
         return $snapshot;
@@ -297,7 +328,7 @@ class MaterialChangeRecorder
             $before = $beforeValues[$field] ?? null;
             $after = $afterValues[$field] ?? null;
 
-            if ($before === $after) {
+            if ($this->valuesAreEquivalent($before, $after)) {
                 continue;
             }
 
@@ -308,6 +339,19 @@ class MaterialChangeRecorder
         }
 
         return $changes;
+    }
+
+    protected function valuesAreEquivalent(mixed $before, mixed $after): bool
+    {
+        if ($before === $after) {
+            return true;
+        }
+
+        if (is_numeric($before) && is_numeric($after)) {
+            return (float) $before === (float) $after;
+        }
+
+        return false;
     }
 
     protected function normalizeValue(string $field, mixed $value): mixed

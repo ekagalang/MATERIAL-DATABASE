@@ -1539,10 +1539,10 @@ html.materials-booting .page-content {
             <button class="floating-modal-close" id="floatingCloseModal">&times;</button>
         </div>
         <div class="floating-modal-body" id="modalBody">
-            <div style="text-align: center; padding: 60px; color: #94a3b8;">
-                <div style="font-size: 48px; margin-bottom: 16px;">â³</div>
-                <div style="font-weight: 500;">Loading...</div>
-            </div>
+            @include('partials.artifact-loading', [
+                'message' => 'Memuat form material...',
+                'detail' => 'Menyiapkan editor data.',
+            ])
         </div>
     </div>
 </div>
@@ -3460,6 +3460,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             nextButton.style.cursor = activeIndex === 0 ? 'not-allowed' : 'pointer';
                         }
                     });
+
+                    window.requestAnimationFrame(() => syncMaterialHistoryHeights(root));
                 };
 
                 navs.forEach(nav => {
@@ -3485,6 +3487,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 stage.dataset.historyBound = 'true';
                 sync();
+            });
+        }
+
+        function syncMaterialHistoryHeights(root = document) {
+            const isCompactViewport = window.matchMedia('(max-width: 1100px)').matches;
+
+            root.querySelectorAll('[data-material-detail-layout]').forEach(layout => {
+                const infoPanel = layout.querySelector('[data-material-detail-info]');
+                const asidePanel = layout.querySelector('[data-material-detail-aside]');
+                const photoPanel = layout.querySelector('[data-material-detail-photo]');
+                const historyPanel = layout.querySelector('[data-material-history-panel]');
+
+                if (!infoPanel || !asidePanel || !photoPanel || !historyPanel) {
+                    return;
+                }
+
+                if (isCompactViewport) {
+                    historyPanel.style.height = '';
+                    historyPanel.style.maxHeight = '';
+                    return;
+                }
+
+                const infoHeight = infoPanel.getBoundingClientRect().height;
+                const photoHeight = photoPanel.getBoundingClientRect().height;
+                const spacing = 24;
+                const availableHeight = Math.floor(infoHeight - photoHeight - spacing);
+
+                if (availableHeight > 160) {
+                    historyPanel.style.height = `${availableHeight}px`;
+                    historyPanel.style.maxHeight = `${availableHeight}px`;
+                } else {
+                    historyPanel.style.height = '';
+                    historyPanel.style.maxHeight = '';
+                }
             });
         }
 
@@ -3540,6 +3576,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 modalBody.innerHTML = content ? content.outerHTML : html;
                 initMaterialHistoryNavigators(modalBody);
+                syncMaterialHistoryHeights(modalBody);
 
                 // Track dirty state
                 const loadedForm = modalBody.querySelector('form');
@@ -3577,7 +3614,10 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.remove('active');
         document.body.style.overflow = '';
         setTimeout(() => {
-            modalBody.innerHTML = '<div style="text-align: center; padding: 60px; color: #94a3b8;"><div style="font-size: 48px; margin-bottom: 16px;">â³</div><div style="font-weight: 500;">Loading...</div></div>';
+            modalBody.innerHTML = window.getArtifactLoadingMarkup({
+                message: 'Memuat form material...',
+                detail: 'Menyiapkan editor data.'
+            });
             isFormDirty = false;
         }, 300);
     }
@@ -3611,6 +3651,12 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.classList.contains('active')) {
             closeModal();
+        }
+    });
+
+    window.addEventListener('resize', function() {
+        if (modal.classList.contains('active')) {
+            syncMaterialHistoryHeights(modalBody);
         }
     });
     }
