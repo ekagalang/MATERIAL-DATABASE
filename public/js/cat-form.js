@@ -258,21 +258,6 @@ function initCatForm() {
                 return;
             }
 
-            // Saat user mengetik salah satu field warna, kosongkan pasangannya dulu
-            // agar sugesti untuk field aktif tidak terkunci oleh nilai pasangan lama.
-            if (field === 'color_code' || field === 'color_name') {
-                const oppositeInput = field === 'color_code' ? colorNameInput : colorCodeInput;
-                const oppositeField = field === 'color_code' ? 'color_name' : 'color_code';
-                if (oppositeInput && oppositeInput.value !== '') {
-                    oppositeInput.value = '';
-                    const oppositeList = document.getElementById(`${oppositeField}-list`);
-                    if (oppositeList) {
-                        oppositeList.innerHTML = '';
-                        oppositeList.style.display = 'none';
-                    }
-                }
-            }
-
             clearTimeout(debounceTimer);
             const term = this.value || '';
             debounceTimer = setTimeout(() => loadSuggestions(term), 200);
