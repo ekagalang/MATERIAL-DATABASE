@@ -30,7 +30,9 @@ class ApiHelper {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                }
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin'
             });
 
             return await response.json();
@@ -53,9 +55,11 @@ class ApiHelper {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': this.getCsrfToken()
+                    'X-CSRF-TOKEN': this.getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
+                credentials: 'same-origin'
             });
 
             return await response.json();
@@ -78,9 +82,11 @@ class ApiHelper {
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': this.getCsrfToken()
+                    'X-CSRF-TOKEN': this.getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
+                credentials: 'same-origin'
             });
 
             return await response.json();
@@ -101,8 +107,10 @@ class ApiHelper {
                 method: 'DELETE',
                 headers: {
                     'Accept': 'application/json',
-                    'X-CSRF-TOKEN': this.getCsrfToken()
-                }
+                    'X-CSRF-TOKEN': this.getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
             });
 
             return await response.json();
@@ -118,11 +126,17 @@ class ApiHelper {
      */
     getCsrfToken() {
         const token = document.querySelector('meta[name="csrf-token"]');
-        if (!token) {
-            console.warn('CSRF token not found. Make sure <meta name="csrf-token"> exists in layout.');
-            return '';
+        if (token) {
+            return token.getAttribute('content');
         }
-        return token.getAttribute('content');
+
+        const fallbackToken = document.querySelector('input[name="_token"]');
+        if (fallbackToken) {
+            return fallbackToken.value;
+        }
+
+        console.warn('CSRF token not found. Make sure <meta name="csrf-token"> exists in layout.');
+        return '';
     }
 
     /**
@@ -132,7 +146,11 @@ class ApiHelper {
     showLoading(elementId) {
         const element = document.getElementById(elementId);
         if (element) {
-            element.innerHTML = '<tr><td colspan="10" class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</td></tr>';
+            element.innerHTML = window.getArtifactLoadingTableRow(10, {
+                message: 'Memuat data...',
+                detail: 'Menyiapkan hasil permintaan.',
+                compact: true,
+            });
         }
     }
 

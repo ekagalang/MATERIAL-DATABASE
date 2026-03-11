@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @php
         $explicitTitle = trim($__env->yieldContent('title', ''));
         $topbarTitle = $explicitTitle !== '' ? $explicitTitle : 'Database Material';
@@ -241,6 +242,65 @@
             border: none;
             background: transparent;
             text-align: left;
+        }
+
+        .artifact-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 24px;
+            width: 100%;
+            min-height: 160px;
+        }
+
+        .artifact-loading--compact {
+            padding: 28px 18px;
+            min-height: 120px;
+        }
+
+        .artifact-loading__spinner {
+            width: 48px;
+            height: 48px;
+            position: relative;
+            border-radius: 50%;
+            animation: artifact-spin 3s linear infinite;
+        }
+
+        .artifact-loading--compact .artifact-loading__spinner {
+            width: 38px;
+            height: 38px;
+        }
+
+        .artifact-loading__spinner::before,
+        .artifact-loading__spinner::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 4px solid transparent;
+        }
+
+        .artifact-loading__spinner::before {
+            border-top-color: #f59e0b;
+            border-right-color: rgba(245, 158, 11, 0.3);
+            animation: artifact-spin-reverse 1.6s linear infinite;
+        }
+
+        .artifact-loading__spinner::after {
+            inset: 6px;
+            border-bottom-color: #0ea5e9;
+            border-left-color: rgba(14, 165, 233, 0.28);
+            animation: artifact-spin 1.15s linear infinite;
+        }
+
+        @keyframes artifact-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes artifact-spin-reverse {
+            0% { transform: rotate(360deg); }
+            100% { transform: rotate(0deg); }
         }
     </style>
 
@@ -711,10 +771,10 @@
                 <button class="floating-modal-close" id="globalCloseModal">&times;</button>
             </div>
             <div class="floating-modal-body" id="globalModalBody">
-                <div style="text-align: center; padding: 60px; color: #94a3b8;">
-                    <div style="font-size: 48px; margin-bottom: 16px;">?</div>
-                    <div style="font-weight: 500;">Loading...</div>
-                </div>
+                @include('partials.artifact-loading', [
+                    'message' => 'Memuat form...',
+                    'detail' => 'Menyiapkan tampilan modal.',
+                ])
             </div>
         </div>
     </div>
@@ -730,10 +790,159 @@
     <script src="{{ asset('js/google-maps-picker.js') }}?v={{ @filemtime(public_path('js/google-maps-picker.js')) }}"></script>
 
     <!-- Custom scripts per halaman -->
+    <script>
+        (function() {
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            window.getArtifactLoadingMarkup = function(options = {}) {
+                const message = escapeHtml(options.message || 'Memuat data...');
+                const compactClass = options.compact ? ' artifact-loading--compact' : '';
+
+                return `
+                    <div class="artifact-loading${compactClass}" role="status" aria-live="polite">
+                        <div class="artifact-loading__spinner" aria-hidden="true"></div>
+                        <span class="visually-hidden">${message}</span>
+                    </div>
+                `;
+            };
+
+            window.getArtifactLoadingTableRow = function(colspan, options = {}) {
+                const safeColspan = Number(colspan) > 0 ? Number(colspan) : 1;
+
+                return `
+                    <tr>
+                        <td colspan="${safeColspan}" style="padding: 0;">
+                            ${window.getArtifactLoadingMarkup(options)}
+                        </td>
+                    </tr>
+                `;
+            };
+
+            function shouldSkipLoadingUpgrade(element) {
+                return !!element.closest(
+                    'button, .btn, [type="submit"], .toast, .confirm-dialog, .progress, #loadingOverlay'
+                );
+            }
+
+            function canReplaceContainer(container) {
+                if (!container) {
+                    return false;
+                }
+
+                if (container.querySelector('.artifact-loading')) {
+                    return false;
+                }
+
+                if (
+                    container.querySelector(
+                        'form, input, select, textarea, .list-group-item, .table-container table:not(.material-skeleton-table)'
+                    )
+                ) {
+                    return false;
+                }
+
+                const text = (container.textContent || '').trim();
+                return /loading|memuat|calculating|menghitung/i.test(text);
+            }
+
+            function buildLoadingOptions(container) {
+                const text = (container.textContent || '').replace(/\s+/g, ' ').trim();
+
+                if (/form/i.test(text)) {
+                    return {
+                        message: 'Memuat form...',
+                        detail: 'Menyiapkan tampilan editor.',
+                    };
+                }
+
+                if (/calculating|menghitung/i.test(text)) {
+                    return {
+                        message: 'Memproses data...',
+                        detail: 'Menjalankan perhitungan yang dibutuhkan.',
+                    };
+                }
+
+                return {
+                    message: 'Memuat data...',
+                    detail: 'Mohon tunggu sebentar.',
+                    compact: !!container.closest('td, .loading-placeholder'),
+                };
+            }
+
+            window.upgradeLegacyLoadingStates = function(root = document) {
+                const scope =
+                    root instanceof Element || root instanceof DocumentFragment || root instanceof Document
+                        ? root
+                        : document;
+
+                const indicatorNodes = scope.querySelectorAll(
+                    '.spinner-border, .fa-spinner, .fa-spin'
+                );
+
+                indicatorNodes.forEach((indicator) => {
+                    if (!(indicator instanceof Element) || shouldSkipLoadingUpgrade(indicator)) {
+                        return;
+                    }
+
+                    const container =
+                        indicator.closest('.floating-modal-body, .loading-placeholder, td[colspan], #traceContent') ||
+                        indicator.parentElement;
+
+                    if (!canReplaceContainer(container)) {
+                        return;
+                    }
+
+                    container.innerHTML = window.getArtifactLoadingMarkup(buildLoadingOptions(container));
+                });
+
+                const textOnlyContainers = scope.querySelectorAll(
+                    '.floating-modal-body, #globalModalBody, #modalBody, #traceContent'
+                );
+
+                textOnlyContainers.forEach((container) => {
+                    if (!(container instanceof Element) || !canReplaceContainer(container)) {
+                        return;
+                    }
+
+                    container.innerHTML = window.getArtifactLoadingMarkup(buildLoadingOptions(container));
+                });
+            };
+        })();
+    </script>
+
     @stack('scripts')
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            if (typeof window.upgradeLegacyLoadingStates === 'function') {
+                window.upgradeLegacyLoadingStates(document);
+
+                const observer = new MutationObserver((mutations) => {
+                    mutations.forEach((mutation) => {
+                        mutation.addedNodes.forEach((node) => {
+                            if (node instanceof Element) {
+                                window.upgradeLegacyLoadingStates(node);
+                                if (node.parentElement) {
+                                    window.upgradeLegacyLoadingStates(node.parentElement);
+                                }
+                            }
+                        });
+                    });
+                });
+
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true,
+                });
+            }
+
             function insertAtCursor(input, text) {
                 try {
                     if (typeof input.setRangeText === 'function') {
