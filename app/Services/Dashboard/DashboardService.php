@@ -6,6 +6,7 @@ use App\Models\Brick;
 use App\Models\Cat;
 use App\Models\Cement;
 use App\Models\Ceramic;
+use App\Models\Nat;
 use App\Models\Sand;
 use App\Models\Store;
 use App\Models\Unit;
@@ -38,6 +39,7 @@ class DashboardService
             'brick' => Brick::count(),
             'cat' => Cat::count(),
             'cement' => Cement::count(),
+            'nat' => Nat::count(),
             'sand' => Sand::count(),
             'ceramic' => Ceramic::count(),
         ];
@@ -65,7 +67,7 @@ class DashboardService
     }
 
     /**
-     * Get work item (formula) count
+     * Get actual work item count from registered formulas
      *
      * @return int
      */
@@ -92,6 +94,9 @@ class DashboardService
 
         // Get recent cements
         $recents = $recents->concat($this->getRecentCements(3));
+
+        // Get recent nats
+        $recents = $recents->concat($this->getRecentNats(3));
 
         // Get recent sands
         $recents = $recents->concat($this->getRecentSands(3));
@@ -180,6 +185,25 @@ class DashboardService
     }
 
     /**
+     * Get recent nats
+     *
+     * @param int $limit
+     * @return Collection
+     */
+    protected function getRecentNats(int $limit = 3): Collection
+    {
+        return Nat::latest()
+            ->take($limit)
+            ->get()
+            ->map(function ($item) {
+                $item->category = 'Nat';
+                $item->category_color = 'dark';
+                $item->name = trim("{$item->brand} {$item->nat_name}");
+                return $item;
+            });
+    }
+
+    /**
      * Get recent ceramics
      *
      * @param int $limit
@@ -208,8 +232,8 @@ class DashboardService
         $counts = $this->getMaterialCounts();
 
         return [
-            'labels' => ['Bata', 'Cat', 'Semen', 'Pasir', 'Keramik'],
-            'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['sand'], $counts['ceramic']],
+            'labels' => ['Bata', 'Cat', 'Semen', 'Nat', 'Pasir', 'Keramik'],
+            'data' => [$counts['brick'], $counts['cat'], $counts['cement'], $counts['nat'], $counts['sand'], $counts['ceramic']],
         ];
     }
 
@@ -234,11 +258,12 @@ class DashboardService
                 'skillCount' => null, // Under development
                 'recentActivities' => $this->getRecentActivities(),
                 'chartData' => [
-                    'labels' => ['Bata', 'Cat', 'Semen', 'Pasir', 'Keramik'],
+                    'labels' => ['Bata', 'Cat', 'Semen', 'Nat', 'Pasir', 'Keramik'],
                     'data' => [
                         $counts['brick'],
                         $counts['cat'],
                         $counts['cement'],
+                        $counts['nat'],
                         $counts['sand'],
                         $counts['ceramic'],
                     ],

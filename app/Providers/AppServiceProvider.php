@@ -6,8 +6,13 @@ use App\Models\Brick;
 use App\Models\BrickCalculation;
 use App\Models\Cat;
 use App\Models\Cement;
+use App\Models\Ceramic;
+use App\Models\Nat;
 use App\Models\Sand;
+use App\Models\Store;
+use App\Models\Unit;
 use App\Observers\BrickCalculationObserver;
+use App\Observers\DashboardCountObserver;
 use App\Observers\MaterialObserver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
@@ -36,6 +41,12 @@ class AppServiceProvider extends ServiceProvider
         Cement::observe(MaterialObserver::class);
         Sand::observe(MaterialObserver::class);
         Cat::observe(MaterialObserver::class);
+        Ceramic::observe(MaterialObserver::class);
+        Nat::observe(MaterialObserver::class);
+
+        // Register observers for dashboard count cards
+        Store::observe(DashboardCountObserver::class);
+        Unit::observe(DashboardCountObserver::class);
 
         // Register BrickCalculation Observer for analytics cache invalidation
         BrickCalculation::observe(BrickCalculationObserver::class);

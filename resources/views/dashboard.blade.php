@@ -268,9 +268,10 @@
                                 <i class="bi bi-{{ 
                                     $activity->category == 'Bata' ? 'bricks' : 
                                     ($activity->category == 'Cat' ? 'palette' : 
+                                    ($activity->category == 'Nat' ? 'grid-1x2-fill' : 
                                     ($activity->category == 'Pasir' ? 'bucket' : 
                                     ($activity->category == 'Keramik' ? 'grid-3x3' : 
-                                    ($activity->category == 'Semen' ? 'box-seam' : 'box')))) 
+                                    ($activity->category == 'Semen' ? 'box-seam' : 'box'))))) 
                                 }}"></i>
                             </div>
                             <div class="flex-grow-1 min-width-0">
@@ -378,6 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     '#891313', // Bata
                     '#0dcaf0', // Cat (Info)
                     '#6c757d', // Semen (Secondary)
+                    '#7c3aed', // Nat
                     '#ffc107', // Pasir (Warning)
                     '#0d6efd'  // Keramik (Primary)
                 ],
