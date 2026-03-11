@@ -69,6 +69,7 @@ RUN composer install \
     --no-dev \
     --no-interaction \
     --no-progress \
+    --no-scripts \
     --prefer-dist \
     --optimize-autoloader
 
@@ -91,6 +92,8 @@ FROM php-base AS app
 COPY . .
 COPY --from=vendor /var/www/html/vendor ./vendor
 COPY --from=frontend /app/public/build ./public/build
+
+RUN composer dump-autoload --optimize --no-scripts
 
 RUN set -eux; \
     mkdir -p \
