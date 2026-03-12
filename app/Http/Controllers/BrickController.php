@@ -390,6 +390,8 @@ class BrickController extends Controller
     private function prepareBrickData(Request $request): array
     {
         $data = $request->all();
+        $packageType = strtolower(trim((string) ($data['package_type'] ?? '')));
+        $data['package_type'] = in_array($packageType, ['eceran', 'kubik'], true) ? $packageType : 'eceran';
         $data['material_name'] = 'Bata';
 
         return $data;

@@ -2361,7 +2361,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!window[scriptProperty]) {
             console.log('[Modal] Script not loaded yet, loading:', `/js/${materialType}-form.js`);
             const script = document.createElement('script');
-            script.src = `/js/${materialType}-form.js`;
+            script.src = `/js/${materialType}-form.js?v=${Date.now()}`;
             script.onload = () => {
                 console.log('[Modal] Script loaded successfully');
                 window[scriptProperty] = true;
@@ -2706,6 +2706,174 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function setInlineSubmittingState(row, loading) {
+        if (!row) return;
+        const submitButton = row.querySelector('button[type="submit"][form]');
+        if (!submitButton) return;
+
+        if (loading) {
+            if (!submitButton.dataset.originalHtml) {
+                submitButton.dataset.originalHtml = submitButton.innerHTML;
+            }
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="bi bi-hourglass-split"></i>';
+            return;
+        }
+
+        submitButton.disabled = false;
+        if (submitButton.dataset.originalHtml) {
+            submitButton.innerHTML = submitButton.dataset.originalHtml;
+            delete submitButton.dataset.originalHtml;
+        }
+    }
+
+    function appendAssociatedControlToInlinePayload(formData, control) {
+        if (!control || !(control instanceof HTMLElement)) return;
+
+        const name = control.getAttribute('name');
+        if (!name || control.disabled) return;
+
+        formData.delete(name);
+
+        if (control instanceof HTMLInputElement) {
+            if (control.type === 'file') {
+                const files = control.files ? Array.from(control.files) : [];
+                files.forEach(file => formData.append(name, file));
+                return;
+            }
+
+            if ((control.type === 'checkbox' || control.type === 'radio') && !control.checked) {
+                return;
+            }
+
+            formData.append(name, control.value ?? '');
+            return;
+        }
+
+        if (control instanceof HTMLSelectElement) {
+            if (control.multiple) {
+                Array.from(control.selectedOptions).forEach(option => {
+                    formData.append(name, option.value);
+                });
+                return;
+            }
+
+            formData.append(name, control.value ?? '');
+            return;
+        }
+
+        if (control instanceof HTMLTextAreaElement) {
+            formData.append(name, control.value ?? '');
+        }
+    }
+
+    function buildInlineFormData(form, row) {
+        const formData = new FormData(form);
+        if (!row || !form?.id) {
+            return formData;
+        }
+
+        row.querySelectorAll(`[form="${form.id}"]`).forEach(control => {
+            appendAssociatedControlToInlinePayload(formData, control);
+        });
+
+        return formData;
+    }
+
+    async function submitInlineFormViaAjax(form, row) {
+        if (!form || form.__inlineSubmittingAjax) return;
+
+        form.__inlineSubmittingAjax = true;
+        setInlineSubmittingState(row, true);
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: buildInlineFormData(form, row),
+                credentials: 'same-origin'
+            });
+
+            const contentType = (response.headers.get('content-type') || '').toLowerCase();
+            const isJsonResponse = contentType.includes('application/json');
+            const payload = isJsonResponse ? await response.json().catch(() => ({})) : null;
+
+            if (response.status === 422) {
+                const errors = payload && payload.errors ? payload.errors : {};
+                const firstMessage = Object.values(errors).flat()[0] || payload?.message || 'Data tidak valid.';
+                if (typeof window.showToast === 'function') {
+                    window.showToast(firstMessage, 'error');
+                }
+                return;
+            }
+
+            if (!response.ok && isJsonResponse) {
+                const message = payload?.message || 'Gagal menyimpan data.';
+                if (typeof window.showToast === 'function') {
+                    window.showToast(message, 'error');
+                }
+                throw new Error(message);
+            }
+
+            if (!response.ok) {
+                throw new Error('Gagal menyimpan data.');
+            }
+
+            if (isJsonResponse) {
+                const focusMaterial = payload?.new_material || payload?.updated_material || null;
+                let redirectUrl = payload?.redirect_url || null;
+
+                if (focusMaterial && focusMaterial.type && focusMaterial.id) {
+                    try {
+                        sessionStorage.setItem('pendingMaterialFocus', JSON.stringify(focusMaterial));
+                    } catch (e) {
+                        // Ignore storage errors
+                    }
+
+                    if (redirectUrl) {
+                        try {
+                            const focusUrl = new URL(redirectUrl, window.location.origin);
+                            focusUrl.searchParams.set('tab', String(focusMaterial.type));
+                            focusUrl.searchParams.set('_focus_type', String(focusMaterial.type));
+                            focusUrl.searchParams.set('_focus_id', String(focusMaterial.id));
+                            redirectUrl = focusUrl.toString();
+                        } catch (e) {
+                            // Keep original redirect URL
+                        }
+                    }
+                }
+
+                if (redirectUrl) {
+                    window.location.href = redirectUrl;
+                    return;
+                }
+
+                if (payload?.success) {
+                    window.location.reload();
+                    return;
+                }
+            }
+
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+
+            window.location.reload();
+        } catch (error) {
+            console.error('Inline form submit error:', error);
+            if (typeof window.showToast === 'function') {
+                window.showToast(error?.message || 'Gagal menyimpan data.', 'error');
+            }
+        } finally {
+            setInlineSubmittingState(row, false);
+            form.__inlineSubmittingAjax = false;
+        }
+    }
+
     function bindInlineForm(form, row) {
         if (!form) return;
 
@@ -2729,11 +2897,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     type: 'primary'
                 });
                 if (!confirmed) return;
-                showLoadingState(form);
                 normalizeInlinePriceFieldsForSubmit(row);
                 row.__inlineInitialValues = captureInlineRowValues(row);
                 row.dataset.inlineMode = '';
-                HTMLFormElement.prototype.submit.call(form);
+                await submitInlineFormViaAjax(form, row);
             });
         }
 

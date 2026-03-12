@@ -264,6 +264,8 @@ class MaterialCalculationController extends Controller
                 $request->merge(['work_type' => $request->work_type_select]);
             }
 
+            $this->normalizeStoreSearchModeRequest($request);
+
             // DEBUG: Store request data to session (AFTER conversion)
             session()->put('debug_last_request', [
                 'work_type' => $request->work_type,
@@ -271,6 +273,13 @@ class MaterialCalculationController extends Controller
                 'price_filters' => $request->price_filters,
                 'ceramic_types' => $request->ceramic_types,
                 'ceramic_sizes' => $request->ceramic_sizes,
+                'use_store_filter' => $request->input('use_store_filter'),
+                'allow_mixed_store' => $request->input('allow_mixed_store'),
+                'store_radius_scope' => $request->input('store_radius_scope'),
+                'store_search_mode' => $request->input('store_search_mode'),
+                'store_mode_complete_within' => $request->input('store_mode_complete_within'),
+                'store_mode_complete_outside' => $request->input('store_mode_complete_outside'),
+                'store_mode_incomplete' => $request->input('store_mode_incomplete'),
                 'timestamp' => now()->toDateTimeString(),
             ]);
 
@@ -1798,6 +1807,7 @@ class MaterialCalculationController extends Controller
         // Increase execution time for complex calculations
         set_time_limit(300); // 5 minutes
 
+        $this->normalizeStoreSearchModeRequest($request);
         $request->validate($this->calculateValidationRules());
 
         try {
@@ -1813,6 +1823,7 @@ class MaterialCalculationController extends Controller
 
     public function compare(Request $request)
     {
+        $this->normalizeStoreSearchModeRequest($request);
         $request->validate($this->compareValidationRules());
 
         try {
@@ -1902,6 +1913,54 @@ class MaterialCalculationController extends Controller
     {
         if ($request->filled('nat_id')) {
             $request->merge(['nat_id' => (int) $request->input('nat_id')]);
+        }
+    }
+
+    protected function normalizeStoreSearchModeRequest(Request $request): void
+    {
+        $modeFromHidden = strtolower(trim((string) $request->input('store_search_mode', '')));
+        if (!in_array($modeFromHidden, ['complete_within', 'complete_outside', 'incomplete'], true)) {
+            $modeFromHidden = '';
+        }
+
+        $modeFromToggles = '';
+        if ($request->boolean('store_mode_incomplete', false)) {
+            $modeFromToggles = 'incomplete';
+        } elseif ($request->boolean('store_mode_complete_outside', false)) {
+            $modeFromToggles = 'complete_outside';
+        } elseif ($request->boolean('store_mode_complete_within', false)) {
+            $modeFromToggles = 'complete_within';
+        }
+
+        // Hidden mode is the authoritative single-source value from UI state.
+        // Toggle flags are kept only as legacy fallback for older payloads.
+        $resolvedMode = $modeFromHidden !== '' ? $modeFromHidden : $modeFromToggles;
+        if ($resolvedMode !== '') {
+            $normalized = match ($resolvedMode) {
+                'incomplete' => [
+                    'use_store_filter' => 1,
+                    'allow_mixed_store' => 1,
+                    'store_radius_scope' => 'outside',
+                ],
+                'complete_outside' => [
+                    'use_store_filter' => 1,
+                    'allow_mixed_store' => 0,
+                    'store_radius_scope' => 'outside',
+                ],
+                default => [
+                    'use_store_filter' => 1,
+                    'allow_mixed_store' => 0,
+                    'store_radius_scope' => 'within',
+                ],
+            };
+
+            $request->merge(array_merge($normalized, ['store_search_mode' => $resolvedMode]));
+
+            return;
+        }
+
+        if ($request->boolean('allow_mixed_store', false) && !$request->boolean('use_store_filter', false)) {
+            $request->merge(['use_store_filter' => 1]);
         }
     }
 

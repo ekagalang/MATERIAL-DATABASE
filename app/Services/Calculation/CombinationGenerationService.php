@@ -565,13 +565,18 @@ class CombinationGenerationService
             return $items;
         }
 
-        return (function () use ($items, $materialKey, $materialCustomizeFilters) {
-            foreach ($items as $item) {
-                if ($this->matchesMaterialCustomizeFilters($materialKey, $item, $materialCustomizeFilters)) {
-                    yield $item;
-                }
+        // Important: return a rewindable iterable.
+        // Nested combination loops may traverse the same material list multiple times
+        // (e.g. cement x sand). Returning a one-shot Generator here would trigger
+        // "Cannot traverse an already closed generator" on subsequent traversals.
+        $filtered = [];
+        foreach ($items as $item) {
+            if ($this->matchesMaterialCustomizeFilters($materialKey, $item, $materialCustomizeFilters)) {
+                $filtered[] = $item;
             }
-        })();
+        }
+
+        return $filtered;
     }
 
     protected function normalizeNatTypeFilterValues($value): array
@@ -975,6 +980,36 @@ class CombinationGenerationService
                 false,
             );
 
+            if ($allowMixedStore) {
+                $rankedLocationIds = array_values(
+                    array_unique(
+                        array_map(
+                            static fn(array $row): int => (int) ($row['location']->id ?? 0),
+                            $rankedLocations->all(),
+                        ),
+                    ),
+                );
+
+                $nonGeocodedLocations = $locations
+                    ->filter(function ($location) {
+                        return !is_numeric($location->latitude ?? null) || !is_numeric($location->longitude ?? null);
+                    })
+                    ->filter(function ($location) use ($rankedLocationIds) {
+                        return !in_array((int) ($location->id ?? 0), $rankedLocationIds, true);
+                    })
+                    ->map(function ($location) {
+                        return [
+                            'location' => $location,
+                            'distance_km' => null,
+                        ];
+                    })
+                    ->values();
+
+                if ($nonGeocodedLocations->isNotEmpty()) {
+                    $rankedLocations = $rankedLocations->concat($nonGeocodedLocations)->values();
+                }
+            }
+
             // Radius cap only applies to complete/single-store mode.
             // In mixed/incomplete mode we must keep nearest-first search across all stores
             // until missing materials are covered.
@@ -1305,7 +1340,7 @@ class CombinationGenerationService
             }
         }
 
-        if (empty($allStoreCombinations) && $hasProjectCoordinates) {
+        if (empty($allStoreCombinations) && $hasProjectCoordinates && !$allowMixedStore) {
             return [];
         }
 

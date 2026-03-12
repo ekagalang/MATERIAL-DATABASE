@@ -24,7 +24,11 @@ test('execution controller supports bundle mode payload parsing and bundle previ
         ->and($content)
         ->toContain('protected function generateBundleCombinations(Request $request, array $bundleItems)')
         ->and($content)
-        ->toContain("\$itemRequestData['material_customize_filters'] = \$itemMaterialCustomizeFilters;")
+        ->toContain("\$baseMaterialTypeFilters = \$this->normalizeBundleMaterialTypeFilters(")
+        ->and($content)
+        ->toContain("\$effectiveItemMaterialTypeFilters = !empty(\$itemMaterialTypeFilters)")
+        ->and($content)
+        ->toContain("\$itemRequestData['material_customize_filters'] = \$effectiveItemMaterialCustomizeFilters;")
         ->and($content)
         ->toContain(
             'protected function buildBundleSummaryCombinations(array $bundleItemPayloads, array $priceFilters): array',

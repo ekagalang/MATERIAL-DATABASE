@@ -1805,6 +1805,10 @@
                 setModalSubmitLoading(form, true);
 
                 try {
+                    if (typeof form.__beforeModalAjaxSubmit === 'function') {
+                        await Promise.resolve(form.__beforeModalAjaxSubmit());
+                    }
+
                     const response = await fetch(form.action, {
                         method: 'POST',
                         headers: {
@@ -1815,21 +1819,36 @@
                         credentials: 'same-origin'
                     });
 
+                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+                    const isJsonResponse = contentType.includes('application/json');
+                    const payload = isJsonResponse ? await response.json().catch(() => ({})) : null;
+
                     if (response.status === 422) {
-                        const payload = await response.json().catch(() => ({}));
-                        const errors = payload && payload.errors ? payload.errors : {};
+                        const errorPayload = payload || {};
+                        const errors = errorPayload && errorPayload.errors ? errorPayload.errors : {};
                         renderModalValidationErrors(form, errors);
 
-                        const firstMessage = Object.values(errors).flat()[0];
+                        const firstMessage = Object.values(errors).flat()[0] || errorPayload.message;
                         if (firstMessage && typeof window.showToast === 'function') {
                             window.showToast(firstMessage, 'error');
                         }
                         return;
                     }
 
-                    const contentType = (response.headers.get('content-type') || '').toLowerCase();
-                    if (contentType.includes('application/json')) {
-                        const payload = await response.json().catch(() => ({}));
+                    if (!response.ok && isJsonResponse) {
+                        if (payload && typeof payload.message === 'string' && typeof window.showToast === 'function') {
+                            window.showToast(payload.message, 'error');
+                        }
+
+                        throw new Error(payload && payload.message ? payload.message : 'Gagal menyimpan data.');
+                    }
+
+                    if (!response.ok) {
+                        throw new Error('Gagal menyimpan data.');
+                    }
+
+                    if (isJsonResponse) {
+                        const errors = payload && payload.errors ? payload.errors : {};
                         const focusMaterial = payload.new_material || payload.updated_material || null;
                         let redirectUrl = payload.redirect_url || null;
                         if (focusMaterial && focusMaterial.type && focusMaterial.id) {

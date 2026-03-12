@@ -90,6 +90,12 @@
 
             const candidateRow = candidateEntry.row;
             const candidateData = candidateEntry.data;
+            const hasMainWorkType = String(mainDraft?.work_type || '').trim() !== '';
+            const hasCandidateWorkType = String(candidateData?.work_type || '').trim() !== '';
+            const hasCandidateFloor = String(candidateData?.work_floor || '').trim() !== '';
+            if (!hasMainWorkType || !hasCandidateWorkType || !hasCandidateFloor) {
+                return false;
+            }
             const oldMainFloor = String(mainDraft.work_floor || '').trim();
             const nextMainFloor = String(candidateData.work_floor || '').trim();
 

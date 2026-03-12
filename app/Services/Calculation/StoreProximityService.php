@@ -131,7 +131,9 @@ class StoreProximityService
         foreach ($preparedLocations as $row) {
             $location = $row['location'] ?? null;
             $materials = $row['materials'] ?? [];
-            $distanceKm = (float) ($row['distance_km'] ?? 0);
+            $distanceKm = is_numeric($row['distance_km'] ?? null)
+                ? (float) ($row['distance_km'] ?? null)
+                : null;
 
             $provided = [];
 
@@ -164,7 +166,7 @@ class StoreProximityService
                     'store_name' => $location->store->name ?? 'Unknown',
                     'city' => $location->city ?? null,
                     'address' => $this->resolveLocationAddress($location),
-                    'distance_km' => round($distanceKm, 3),
+                    'distance_km' => $distanceKm !== null ? round($distanceKm, 3) : null,
                     'service_radius_km' => $location->service_radius_km ?? null,
                     'provided_materials' => array_values(array_unique($provided)),
                 ];

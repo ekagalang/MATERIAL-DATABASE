@@ -156,6 +156,7 @@
             const createPageUrl = baseCreateUrl.includes('?') ?
                 `${baseCreateUrl}&resume=1` :
                 `${baseCreateUrl}?resume=1`;
+            const calcSessionSchemaVersion = 2;
 
             const sessionPayload = @json($requestData ?? []);
             if (sessionPayload && Object.keys(sessionPayload).length) {
@@ -196,6 +197,7 @@
                         data: sessionPayload,
                         autoSubmit: false,
                         normalized: true,
+                        schemaVersion: calcSessionSchemaVersion,
                     }));
                     localStorage.setItem('materialCalculationPreview', JSON.stringify({
                         updatedAt: Date.now(),

@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Brick;
+use App\Models\Ceramic;
 use App\Models\Cement;
+use App\Models\Nat;
 use App\Models\Sand;
 use App\Models\Store;
 use App\Models\StoreLocation;
@@ -313,4 +315,181 @@ test('mixed store mode keeps searching nearest stores outside radius until missi
     expect(count($storePlan))->toBe(2);
     expect(($storePlan[0]['store_location_id'] ?? null))->toBe($nearLocation->id);
     expect(($storePlan[1]['store_location_id'] ?? null))->toBe($farLocation->id);
+});
+
+test('mixed store mode can fallback to store-name engine when distance-scoped stores have no complete coverage', function () {
+    $store = Store::create(['name' => 'Toko Geo']);
+
+    StoreLocation::create([
+        'store_id' => $store->id,
+        'city' => 'Geo',
+        'latitude' => -6.2000,
+        'longitude' => 106.8000,
+        'service_radius_km' => 10,
+    ]);
+
+    $repository = new CalculationRepository();
+    $materialSelection = new MaterialSelectionService($repository);
+    $storeProximity = new StoreProximityService();
+
+    $service = new class($repository, $materialSelection, $storeProximity) extends CombinationGenerationService
+    {
+        public bool $fallbackCalled = false;
+
+        public function calculateCombinationsFromMaterials(
+            Brick $brick,
+            array $request,
+            iterable $cements,
+            iterable $sands,
+            ?iterable $cats = null,
+            ?iterable $ceramics = null,
+            ?iterable $nats = null,
+            string $groupLabel = 'Kombinasi',
+            ?int $limit = null,
+        ): array {
+            return [];
+        }
+
+        protected function getStoreBasedCombinationsByStoreName(Request $request, array $constraints = []): array
+        {
+            $this->fallbackCalled = true;
+
+            return [
+                'Ekonomis 1' => [[
+                    'result' => [
+                        'grand_total' => 99000,
+                    ],
+                    'total_cost' => 99000,
+                    'filter_label' => 'Ekonomis 1',
+                    'filter_type' => 'cheapest',
+                ]],
+            ];
+        }
+    };
+
+    $request = new Request([
+        'work_type' => 'tile_installation',
+        'use_store_filter' => 1,
+        'allow_mixed_store' => 1,
+        'project_latitude' => -6.1980,
+        'project_longitude' => 106.8000,
+        'wall_length' => 3,
+        'wall_height' => 3,
+        'mortar_thickness' => 1,
+        'grout_thickness' => 3,
+        'price_filters' => ['cheapest'],
+    ]);
+
+    $result = $service->calculateCombinations($request, []);
+
+    expect($service->fallbackCalled)->toBeTrue();
+    expect($result['Ekonomis 1'][0]['result']['grand_total'] ?? null)->toBe(99000);
+});
+
+test('mixed store mode can complete tile installation coverage using non-geocoded fallback stores', function () {
+    $storeNear = Store::create(['name' => 'Toko Near']);
+    $storeNat = Store::create(['name' => 'Toko Nat']);
+
+    $nearLocation = StoreLocation::create([
+        'store_id' => $storeNear->id,
+        'city' => 'Near',
+        'latitude' => -6.2000,
+        'longitude' => 106.8000,
+        'service_radius_km' => 10,
+    ]);
+
+    $natOnlyLocation = StoreLocation::create([
+        'store_id' => $storeNat->id,
+        'city' => 'Nat',
+        'latitude' => null,
+        'longitude' => null,
+        'service_radius_km' => 10,
+    ]);
+
+    Cement::factory()->create([
+        'store' => $storeNear->name,
+        'store_location_id' => $nearLocation->id,
+    ]);
+
+    Sand::factory()->create([
+        'store' => $storeNear->name,
+        'store_location_id' => $nearLocation->id,
+    ]);
+
+    Ceramic::factory()->create([
+        'store' => $storeNear->name,
+        'store_location_id' => $nearLocation->id,
+    ]);
+
+    Nat::factory()->create([
+        'store' => $storeNat->name,
+        'store_location_id' => $natOnlyLocation->id,
+    ]);
+
+    $repository = new CalculationRepository();
+    $materialSelection = new MaterialSelectionService($repository);
+    $storeProximity = new StoreProximityService();
+
+    $service = new class($repository, $materialSelection, $storeProximity) extends CombinationGenerationService
+    {
+        public function calculateCombinationsFromMaterials(
+            Brick $brick,
+            array $request,
+            iterable $cements,
+            iterable $sands,
+            ?iterable $cats = null,
+            ?iterable $ceramics = null,
+            ?iterable $nats = null,
+            string $groupLabel = 'Kombinasi',
+            ?int $limit = null,
+        ): array {
+            if (
+                collect($cements)->isEmpty() ||
+                collect($sands)->isEmpty() ||
+                collect($ceramics ?? [])->isEmpty() ||
+                collect($nats ?? [])->isEmpty()
+            ) {
+                return [];
+            }
+
+            return [[
+                'result' => [
+                    'grand_total' => 250000,
+                    'total_cement_price' => 60000,
+                    'total_sand_price' => 50000,
+                    'total_ceramic_price' => 110000,
+                    'total_grout_price' => 30000,
+                ],
+                'total_cost' => 250000,
+                'filter_type' => $groupLabel,
+            ]];
+        }
+    };
+
+    $request = new Request([
+        'work_type' => 'tile_installation',
+        'use_store_filter' => 1,
+        'allow_mixed_store' => 1,
+        'project_latitude' => -6.1980,
+        'project_longitude' => 106.8000,
+        'store_radius_scope' => 'within',
+        'project_store_radius_km' => 5,
+        'project_store_radius_final_km' => 5,
+        'wall_length' => 3,
+        'wall_height' => 3,
+        'mortar_thickness' => 1,
+        'grout_thickness' => 3,
+        'installation_type_id' => 1,
+        'mortar_formula_id' => 1,
+    ]);
+
+    $result = $service->calculateCombinations($request, []);
+
+    expect($result)->not->toBeEmpty();
+    expect($result['Ekonomis 1'][0]['store_coverage_mode'] ?? null)->toBe('nearest_radius_chain');
+    $storePlan = $result['Ekonomis 1'][0]['store_plan'] ?? [];
+    expect(is_array($storePlan))->toBeTrue();
+    expect(count($storePlan))->toBe(2);
+    expect(($storePlan[0]['store_location_id'] ?? null))->toBe($nearLocation->id);
+    expect(($storePlan[1]['store_location_id'] ?? null))->toBe($natOnlyLocation->id);
 });

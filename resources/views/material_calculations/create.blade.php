@@ -41,13 +41,21 @@
     }
     $projectStoreRadiusDefaultKm = (float) ($projectStoreRadiusDefaultKm ?? 10);
     $projectStoreRadiusFinalKm = (float) ($projectStoreRadiusFinalKm ?? max(15, $projectStoreRadiusDefaultKm));
-    $initialStoreSearchMode = 'complete_within';
-    if ($initialAllowMixedStore) {
-        $initialStoreSearchMode = 'incomplete';
-    } elseif ($initialUseStoreFilter && $initialStoreRadiusScope === 'outside') {
-        $initialStoreSearchMode = 'complete_outside';
-    } elseif ($initialUseStoreFilter && $initialStoreRadiusScope === 'within') {
-        $initialStoreSearchMode = 'complete_within';
+    $initialStoreSearchMode = strtolower(trim((string) old('store_search_mode', '')));
+    if (!in_array($initialStoreSearchMode, ['complete_within', 'complete_outside', 'incomplete'], true)) {
+        if (old('store_mode_incomplete') == '1') {
+            $initialStoreSearchMode = 'incomplete';
+        } elseif (old('store_mode_complete_outside') == '1') {
+            $initialStoreSearchMode = 'complete_outside';
+        } elseif (old('store_mode_complete_within') == '1') {
+            $initialStoreSearchMode = 'complete_within';
+        } elseif ($initialAllowMixedStore) {
+            $initialStoreSearchMode = 'incomplete';
+        } elseif ($initialUseStoreFilter && $initialStoreRadiusScope === 'outside') {
+            $initialStoreSearchMode = 'complete_outside';
+        } else {
+            $initialStoreSearchMode = 'complete_within';
+        }
     }
     $selectedProjectStoreRadiusKm = old('project_store_radius_km', request('project_store_radius_km', $projectStoreRadiusDefaultKm));
     $selectedProjectStoreRadiusFinalKm = old(
@@ -178,7 +186,7 @@
                     <input type="hidden" name="use_store_filter" value="0">
                     <input type="hidden" name="allow_mixed_store" value="0">
                     <input type="hidden" name="store_radius_scope" id="storeRadiusScopeValue" value="{{ $initialStoreRadiusScope }}">
-                    <input type="hidden" id="storeSearchModeValue" value="{{ $initialStoreSearchMode }}">
+                    <input type="hidden" id="storeSearchModeValue" name="store_search_mode" value="{{ $initialStoreSearchMode }}">
                     <div class="ssm-complete-layout">
                         <div class="ssm-row ssm-row-group">
                             <input type="checkbox" id="storeModeCompleteGroupCheck"
@@ -187,7 +195,7 @@
                         </div>
                         <div class="ssm-complete-children">
                             <div class="ssm-row ssm-row-sub">
-                                <input type="checkbox" id="storeModeCompleteWithinCheck"
+                                <input type="checkbox" id="storeModeCompleteWithinCheck" name="store_mode_complete_within" value="1"
                                     {{ $initialStoreSearchMode === 'complete_within' ? 'checked' : '' }}>
                                 <label for="storeModeCompleteWithinCheck" class="ssm-label">Dalam Radius 1</label>
                                 <small class="ssm-desc" id="storeModeCompleteWithinDesc">
@@ -195,7 +203,7 @@
                                 </small>
                             </div>
                             <div class="ssm-row ssm-row-sub">
-                                <input type="checkbox" id="storeModeCompleteOutsideCheck"
+                                <input type="checkbox" id="storeModeCompleteOutsideCheck" name="store_mode_complete_outside" value="1"
                                     {{ $initialStoreSearchMode === 'complete_outside' ? 'checked' : '' }}>
                                 <label for="storeModeCompleteOutsideCheck" class="ssm-label">Sampai Radius 2</label>
                                 <small class="ssm-desc" id="storeModeCompleteOutsideDesc">
@@ -205,7 +213,7 @@
                         </div>
                     </div>
                     <div class="ssm-row">
-                        <input type="checkbox" id="storeModeIncompleteCheck"
+                        <input type="checkbox" id="storeModeIncompleteCheck" name="store_mode_incomplete" value="1"
                             {{ $initialStoreSearchMode === 'incomplete' ? 'checked' : '' }}>
                         <label for="storeModeIncompleteCheck" class="ssm-label">Tidak Lengkap</label>
                         <small class="ssm-desc" id="storeModeIncompleteDesc">
@@ -1052,14 +1060,24 @@
     </form>
 </div>
 
-    <div class="calc-scroll-fab" id="calcScrollFabWrap" aria-live="polite">
-        <div class="calc-scroll-fab-dropdown" id="calcScrollFabDropdown" role="dialog" aria-label="Ringkasan Lantai Area Bidang">
-            <div class="calc-scroll-fab-dropdown-title">Navigasi Input</div>
-            <div class="calc-scroll-fab-menu-root" data-scroll-summary-tree></div>
-        </div>
-        <button type="button" class="calc-scroll-fab-btn" id="calcScrollFabBtn" aria-label="Scroll ke bawah" title="Scroll ke bawah">
-            <i class="bi bi-arrow-down" id="calcScrollFabIcon" aria-hidden="true"></i>
+    <div class="calc-floating-fab-stack" aria-live="polite">
+        <button
+            type="button"
+            class="calc-scroll-fab-btn calc-scroll-fab-btn-secondary"
+            id="toggleAllFieldItemVisibilityFabBtn"
+            aria-label="Sembunyikan semua Item Pekerjaan per bidang"
+            title="Sembunyikan semua Item Pekerjaan per bidang">
+            <i class="bi bi-eye-slash" id="toggleAllFieldItemVisibilityFabIcon" aria-hidden="true"></i>
         </button>
+        <div class="calc-scroll-fab" id="calcScrollFabWrap">
+            <div class="calc-scroll-fab-dropdown" id="calcScrollFabDropdown" role="dialog" aria-label="Ringkasan Lantai Area Bidang">
+                <div class="calc-scroll-fab-dropdown-title">Navigasi Input</div>
+                <div class="calc-scroll-fab-menu-root" data-scroll-summary-tree></div>
+            </div>
+            <button type="button" class="calc-scroll-fab-btn" id="calcScrollFabBtn" aria-label="Scroll ke bawah" title="Scroll ke bawah">
+                <i class="bi bi-arrow-down" id="calcScrollFabIcon" aria-hidden="true"></i>
+            </button>
+        </div>
     </div>
 @endsection
 
@@ -1073,6 +1091,9 @@
             grid-column: 1;
             grid-row: 1;
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-self: stretch;
         }
 
         #calculationForm .two-column-layout > .filter-right-column {
@@ -1445,13 +1466,20 @@
         box-shadow: none;
     }
 
-    .calc-scroll-fab {
+    .calc-floating-fab-stack {
         position: fixed;
         right: 18px;
         bottom: 18px;
         z-index: 1050;
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+    }
+
+    .calc-scroll-fab {
         width: 45px;
         height: 45px;
+        position: relative;
     }
 
     .calc-scroll-fab-btn {
@@ -1466,6 +1494,29 @@
         align-items: center;
         justify-content: center;
         transition: transform 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+    }
+
+    .calc-scroll-fab-btn.calc-scroll-fab-btn-secondary {
+        border-color: #bbf7d0;
+        background: linear-gradient(180deg, #f0fdf4 0%, #dcfce7 100%);
+        color: #15803d;
+        flex-shrink: 0;
+    }
+
+    .calc-scroll-fab-btn.calc-scroll-fab-btn-secondary:hover {
+        box-shadow: 0 14px 28px rgba(21, 128, 61, 0.2), 0 4px 10px rgba(15, 23, 42, 0.1);
+    }
+
+    .calc-scroll-fab-btn.calc-scroll-fab-btn-secondary.is-all-collapsed {
+        border-color: #bfdbfe;
+        background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
+        color: #1d4ed8;
+    }
+
+    .calc-scroll-fab-btn.calc-scroll-fab-btn-secondary:disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+        box-shadow: none;
     }
 
     .calc-scroll-fab-btn:hover {
@@ -1728,9 +1779,13 @@
             font-size: 11px;
         }
 
-        .calc-scroll-fab {
+        .calc-floating-fab-stack {
             right: 12px;
             bottom: 12px;
+            gap: 8px;
+        }
+
+        .calc-scroll-fab {
             width: 45px;
             height: 45px;
         }
@@ -1774,6 +1829,10 @@
     }
 
     #calculationForm .filter-right-column .filter-section {
+        margin-bottom: 12px;
+    }
+
+    #calculationForm .filter-right-column #storeSearchModeBox {
         margin-bottom: 12px;
     }
 
@@ -3686,6 +3745,8 @@
         display: block;
         width: 100%;
         margin-bottom: 12px;
+        flex: 1 1 auto;
+        min-height: 260px;
     }
 
     .project-map-content {
@@ -3695,6 +3756,7 @@
         display: flex;
         flex-direction: column;
         gap: 6px;
+        height: 100%;
     }
 
     .project-location-group {
@@ -3867,7 +3929,9 @@
 
     .project-location-map {
         width: 100%;
-        height: 260px;
+        height: 100%;
+        min-height: 260px;
+        flex: 1 1 auto;
         border-radius: 10px;
         border: 1px solid #e2e8f0;
         background: #f8fafc;
@@ -4214,6 +4278,7 @@
                             sortFloors,
                             uniqueFilterTokens,
                             sortAlphabetic,
+                            markFloorSortPending,
                         },
                         formPayload,
                     });
@@ -4240,15 +4305,30 @@
         }
 
         function relocateFilterSectionToRightGrid() {
-            const filterSection = document.querySelector('#calculationForm .left-column .filter-section');
+            const storeSearchModeBox = document.getElementById('storeSearchModeBox');
+            const filterSection = document.querySelector('#calculationForm .filter-section');
             const filterRightSlot = document.getElementById('filterByRightColumn');
-            if (!(filterSection instanceof HTMLElement) || !(filterRightSlot instanceof HTMLElement)) {
+            if (!(filterRightSlot instanceof HTMLElement)) {
                 return;
             }
-            if (filterSection.parentElement === filterRightSlot) {
-                return;
+
+            if (storeSearchModeBox instanceof HTMLElement && storeSearchModeBox.parentElement !== filterRightSlot) {
+                filterRightSlot.appendChild(storeSearchModeBox);
             }
-            filterRightSlot.appendChild(filterSection);
+
+            if (filterSection instanceof HTMLElement && filterSection.parentElement !== filterRightSlot) {
+                filterRightSlot.appendChild(filterSection);
+            }
+
+            if (
+                storeSearchModeBox instanceof HTMLElement &&
+                filterSection instanceof HTMLElement &&
+                storeSearchModeBox.parentElement === filterRightSlot &&
+                filterSection.parentElement === filterRightSlot &&
+                storeSearchModeBox.nextElementSibling !== filterSection
+            ) {
+                filterRightSlot.insertBefore(storeSearchModeBox, filterSection);
+            }
         }
 
         function buildMaterialTypeOptionMap(formPayload) {
@@ -5189,6 +5269,8 @@
             if (toggleBtn instanceof HTMLElement) {
                 setToggleItemVisibilityButtonState(toggleBtn, !!collapsed);
             }
+
+            refreshToggleAllFieldItemVisibilityFab();
         }
 
         function toggleMainFieldItemContentCollapsed() {
@@ -5198,6 +5280,53 @@
             }
             const nextCollapsed = !fieldNode.classList.contains('is-item-content-collapsed');
             setMainFieldItemContentCollapsed(nextCollapsed);
+        }
+
+        function getAdditionalFieldItemVisibilityTargets() {
+            return Array.from(document.querySelectorAll('.additional-work-item[data-row-kind="field"]')).filter(
+                row => row instanceof HTMLElement,
+            );
+        }
+
+        function refreshToggleAllFieldItemVisibilityFab() {
+            const toggleAllBtn = document.getElementById('toggleAllFieldItemVisibilityFabBtn');
+            if (!(toggleAllBtn instanceof HTMLElement)) {
+                return;
+            }
+
+            const targets = [];
+            const mainFieldNode = getMainFieldNode();
+            if (mainFieldNode instanceof HTMLElement) {
+                targets.push(mainFieldNode);
+            }
+
+            getAdditionalFieldItemVisibilityTargets().forEach(row => targets.push(row));
+
+            const hasTargets = targets.length > 0;
+            const allCollapsed = hasTargets && targets.every(target => target.classList.contains('is-item-content-collapsed'));
+            const nextActionLabel = allCollapsed
+                ? 'Tampilkan semua Item Pekerjaan per bidang'
+                : 'Sembunyikan semua Item Pekerjaan per bidang';
+
+            toggleAllBtn.disabled = !hasTargets;
+            toggleAllBtn.classList.toggle('is-all-collapsed', allCollapsed);
+            toggleAllBtn.setAttribute('aria-pressed', allCollapsed ? 'true' : 'false');
+            toggleAllBtn.setAttribute('aria-label', nextActionLabel);
+            toggleAllBtn.setAttribute('title', nextActionLabel);
+
+            const iconEl = toggleAllBtn.querySelector('i');
+            if (iconEl instanceof HTMLElement) {
+                iconEl.classList.remove('bi-eye', 'bi-eye-slash');
+                iconEl.classList.add(allCollapsed ? 'bi-eye' : 'bi-eye-slash');
+            }
+        }
+
+        function setAllFieldItemContentCollapsed(collapsed) {
+            setMainFieldItemContentCollapsed(collapsed);
+            getAdditionalFieldItemVisibilityTargets().forEach(row => {
+                setAdditionalItemContentCollapsed(row, !!collapsed);
+            });
+            refreshToggleAllFieldItemVisibilityFab();
         }
 
         function resolveScopedWorkTypeOptionsByTaxonomy(
@@ -9533,6 +9662,12 @@
 
             const candidateRow = candidateEntry.row;
             const candidateData = candidateEntry.data;
+            const hasMainWorkType = String(mainDraft?.work_type || '').trim() !== '';
+            const hasCandidateWorkType = String(candidateData?.work_type || '').trim() !== '';
+            const hasCandidateFloor = String(candidateData?.work_floor || '').trim() !== '';
+            if (!hasMainWorkType || !hasCandidateWorkType || !hasCandidateFloor) {
+                return false;
+            }
             const oldMainFloor = String(mainDraft.work_floor || '').trim();
             const nextMainFloor = String(candidateData.work_floor || '').trim();
 
@@ -9795,6 +9930,7 @@
             itemEl.dataset.itemContentCollapsed = collapsed ? '1' : '0';
             syncDirectChildItemRowVisibilityForCollapsedParent(itemEl);
             refreshAdditionalItemVisibilityToggleButton(itemEl);
+            refreshToggleAllFieldItemVisibilityFab();
         }
 
         function getDirectAdditionalChildRows(hostEl) {
@@ -10744,14 +10880,29 @@
             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
-        function applyMainWorkItemFromBundleItem(itemData) {
+        function applyMainWorkItemFromBundleItem(itemData, options = {}) {
             const item = normalizeBundleItem(itemData || {}, 0);
+            const safeOptions = options && typeof options === 'object' ? options : {};
+            const preserveExistingTaxonomy = safeOptions.preserveExistingTaxonomy === true;
+            const fallbackTaxonomy =
+                safeOptions.fallbackTaxonomy && typeof safeOptions.fallbackTaxonomy === 'object'
+                    ? safeOptions.fallbackTaxonomy
+                    : {};
+            const fallbackBundleFloor = String(fallbackTaxonomy.work_floor || '').trim();
+            const fallbackBundleArea = String(fallbackTaxonomy.work_area || '').trim();
+            const fallbackBundleField = String(fallbackTaxonomy.work_field || '').trim();
+            const currentMainFloor = preserveExistingTaxonomy ? getMainTaxonomyValue('floor') : '';
+            const currentMainArea = preserveExistingTaxonomy ? getMainTaxonomyValue('area') : '';
+            const currentMainField = preserveExistingTaxonomy ? getMainTaxonomyValue('field') : '';
+            const effectiveWorkFloor = String(item.work_floor || fallbackBundleFloor || currentMainFloor || '').trim();
+            const effectiveWorkArea = String(item.work_area || fallbackBundleArea || currentMainArea || '').trim();
+            const effectiveWorkField = String(item.work_field || fallbackBundleField || currentMainField || '').trim();
             const mainRoot = document.getElementById('inputFormContainer') || document;
 
             if (workTaxonomyFilterApi && typeof workTaxonomyFilterApi.setValues === 'function') {
-                workTaxonomyFilterApi.setValues('floor', item.work_floor ? [item.work_floor] : []);
-                workTaxonomyFilterApi.setValues('area', item.work_area ? [item.work_area] : []);
-                workTaxonomyFilterApi.setValues('field', item.work_field ? [item.work_field] : []);
+                workTaxonomyFilterApi.setValues('floor', effectiveWorkFloor ? [effectiveWorkFloor] : []);
+                workTaxonomyFilterApi.setValues('area', effectiveWorkArea ? [effectiveWorkArea] : []);
+                workTaxonomyFilterApi.setValues('field', effectiveWorkField ? [effectiveWorkField] : []);
             }
 
             if (mainWorkTypeHiddenInput instanceof HTMLInputElement) {
@@ -10961,32 +11112,22 @@
                     };
                 }
 
-                items.push(
-                    normalizeBundleItem(
-                        {
-                            title: getAdditionalFieldValue(row, 'title'),
-                            row_kind: rowKind,
-                            work_floor: workFloor,
-                            work_area: workArea,
-                            work_field: workField,
-                            work_type: workType,
-                            wall_length: wallLength,
-                            wall_height: wallHeight,
-                            mortar_thickness: getAdditionalFieldValue(row, 'mortar_thickness'),
-                            layer_count: getAdditionalFieldValue(row, 'layer_count'),
-                            plaster_sides: getAdditionalFieldValue(row, 'plaster_sides'),
-                            skim_sides: getAdditionalFieldValue(row, 'skim_sides'),
-                            grout_thickness: getAdditionalFieldValue(row, 'grout_thickness'),
-                            ceramic_length: getAdditionalFieldValue(row, 'ceramic_length'),
-                            ceramic_width: getAdditionalFieldValue(row, 'ceramic_width'),
-                            ceramic_thickness: getAdditionalFieldValue(row, 'ceramic_thickness'),
-                            active_fields: getAdditionalActiveParameterFields(row),
-                            material_type_filters: collectAdditionalMaterialTypeFilters(row),
-                            material_customize_filters: collectAdditionalMaterialCustomizeFilters(row),
-                        },
-                        i + 1,
-                    ),
-                );
+                const collectedRowData = collectAdditionalWorkItemData(row, i + 1);
+                if (!collectedRowData) {
+                    continue;
+                }
+
+                // Keep live edits as source of truth while preserving restore metadata
+                // (restore_scope + parent keys) from the row collector.
+                collectedRowData.title = getAdditionalFieldValue(row, 'title');
+                collectedRowData.row_kind = rowKind;
+                collectedRowData.work_floor = workFloor;
+                collectedRowData.work_area = workArea;
+                collectedRowData.work_field = workField;
+                collectedRowData.work_type = workType;
+                collectedRowData.wall_length = wallLength;
+                collectedRowData.wall_height = wallHeight;
+                items.push(collectedRowData);
             }
 
             return { items, error: null };
@@ -11346,6 +11487,7 @@
                         refreshAdditionalTaxonomyActionFooters(parentBeforeRemoval);
                     }
                     refreshAdditionalWorkItemHeader();
+                    refreshToggleAllFieldItemVisibilityFab();
                     syncBundleFromForms();
                 });
             }
@@ -11475,6 +11617,8 @@
                 refreshAdditionalItemVisibilityToggleButton(itemEl);
             }
 
+            refreshToggleAllFieldItemVisibilityFab();
+
             if (workTypeSelect) {
                 workTypeSelect.addEventListener('change', function() {
                     applyAdditionalWorkItemVisibility(itemEl);
@@ -11526,8 +11670,8 @@
             const rowKind = normalizeBundleRowKind(item.row_kind || 'area');
             const workFloor = String(item.work_floor || '').trim();
             const workArea = String(item.work_area || '').trim();
-            const mainWorkFloor = String(mainItem.work_floor || '').trim();
-            const mainWorkArea = String(mainItem.work_area || '').trim();
+            const mainWorkFloor = String(mainItem.work_floor || getMainTaxonomyValue('floor') || '').trim();
+            const mainWorkArea = String(mainItem.work_area || getMainTaxonomyValue('area') || '').trim();
 
             if (!mainWorkFloor || workFloor !== mainWorkFloor) {
                 return false;
@@ -11614,13 +11758,44 @@
         }
 
         function restoreAdditionalWorkItemsFromBundle(restoredBundleItems = []) {
-            if (!additionalWorkItemsList || !Array.isArray(restoredBundleItems) || restoredBundleItems.length <= 1) {
+            if (!additionalWorkItemsList || !Array.isArray(restoredBundleItems) || restoredBundleItems.length === 0) {
                 return;
             }
 
             const mainItem = restoredBundleItems[0] && typeof restoredBundleItems[0] === 'object'
                 ? restoredBundleItems[0]
                 : null;
+            const fallbackBundleTaxonomySource =
+                restoredBundleItems
+                    .slice(1)
+                    .find(candidate => {
+                        if (!candidate || typeof candidate !== 'object') {
+                            return false;
+                        }
+                        return (
+                            String(candidate.work_floor || '').trim() !== '' ||
+                            String(candidate.work_area || '').trim() !== '' ||
+                            String(candidate.work_field || '').trim() !== ''
+                        );
+                    }) || null;
+            if (mainItem) {
+                const shouldApplyMainItemFromBundle =
+                    String(mainItem.work_type || '').trim() !== '' ||
+                    String(mainItem.work_floor || '').trim() !== '' ||
+                    String(mainItem.work_area || '').trim() !== '' ||
+                    String(mainItem.work_field || '').trim() !== '';
+                if (shouldApplyMainItemFromBundle || fallbackBundleTaxonomySource) {
+                    applyMainWorkItemFromBundleItem(mainItem, {
+                        preserveExistingTaxonomy: true,
+                        fallbackTaxonomy: fallbackBundleTaxonomySource,
+                    });
+                }
+            }
+
+            if (restoredBundleItems.length <= 1) {
+                return;
+            }
+
             const restoredAreaRows = new Map();
             const restoredFieldRows = new Map();
 
@@ -11652,6 +11827,7 @@
         const addFieldFromMainBtn = document.getElementById('addFieldFromMainBtn');
         const addItemFromMainBtn = document.getElementById('addItemFromMainBtn');
         const toggleMainFieldItemVisibilityBtn = document.getElementById('toggleMainFieldItemVisibilityBtn');
+        const toggleAllFieldItemVisibilityFabBtn = document.getElementById('toggleAllFieldItemVisibilityFabBtn');
 
         if (toggleMainFieldItemVisibilityBtn) {
             toggleMainFieldItemVisibilityBtn.addEventListener('click', function() {
@@ -11659,6 +11835,29 @@
             });
             setMainFieldItemContentCollapsed(false);
         }
+
+        if (toggleAllFieldItemVisibilityFabBtn) {
+            toggleAllFieldItemVisibilityFabBtn.addEventListener('click', function() {
+                const targets = [];
+                const mainFieldNode = getMainFieldNode();
+
+                if (mainFieldNode instanceof HTMLElement) {
+                    targets.push(mainFieldNode);
+                }
+
+                getAdditionalFieldItemVisibilityTargets().forEach(row => targets.push(row));
+
+                if (targets.length === 0) {
+                    refreshToggleAllFieldItemVisibilityFab();
+                    return;
+                }
+
+                const shouldExpandAll = targets.every(target => target.classList.contains('is-item-content-collapsed'));
+                setAllFieldItemContentCollapsed(!shouldExpandAll);
+            });
+        }
+
+        refreshToggleAllFieldItemVisibilityFab();
 
         if (addAreaFromMainBtn) {
             addAreaFromMainBtn.addEventListener('click', function() {
@@ -11890,6 +12089,7 @@
         const calcSessionKey = 'materialCalculationSession';
         const calcExpressionStateKey = 'materialCalculationExpressionState';
         const calcPreviewPendingKey = 'materialCalculationPreviewPending';
+        const calcSessionSchemaVersion = 2;
         let saveSessionTimer = null;
         let isRestoringCalculationSessionState = false;
         let ignoreFormChangeTrackingUntil = 0;
@@ -12086,8 +12286,28 @@
             });
         }
 
+        function syncWorkTaxonomyHiddenInputsFromDisplay() {
+            document.querySelectorAll('#calculationForm .material-type-row[data-taxonomy-kind]').forEach(rowEl => {
+                if (!(rowEl instanceof HTMLElement)) {
+                    return;
+                }
+                const displayEl = rowEl.querySelector('input[data-taxonomy-display="1"]');
+                const hiddenEl = rowEl.querySelector('input[data-taxonomy-hidden="1"]');
+                if (!(displayEl instanceof HTMLInputElement) || !(hiddenEl instanceof HTMLInputElement)) {
+                    return;
+                }
+
+                const nextValue = String(displayEl.value || '').trim();
+                if (displayEl.value !== nextValue) {
+                    displayEl.value = nextValue;
+                }
+                hiddenEl.value = nextValue;
+            });
+        }
+
         function serializeCalculationSession(formEl) {
             if (!formEl) return null;
+            syncWorkTaxonomyHiddenInputsFromDisplay();
             const data = {};
             const formData = new FormData(formEl);
             formData.forEach((value, key) => {
@@ -12155,6 +12375,7 @@
                     updatedAt: Date.now(),
                     data: sessionPayload,
                     autoSubmit: false,
+                    schemaVersion: calcSessionSchemaVersion,
                 }));
             } catch (error) {
                 console.warn('Failed to save calculation session', error);
@@ -12520,10 +12741,29 @@
             const workTypeValue = state.work_type_select || state.work_type || '';
             const expectsMm = ['skim_coating', 'coating_floor'].includes(workTypeValue);
             const sessionMortarUnit = String(state.mortar_thickness_unit || '').trim().toLowerCase();
+            const stateHasStoreSearchMode = Object.prototype.hasOwnProperty.call(state, 'store_search_mode');
+            const stateHasUseStoreFilter = Object.prototype.hasOwnProperty.call(state, 'use_store_filter');
+            const stateHasAllowMixedStore = Object.prototype.hasOwnProperty.call(state, 'allow_mixed_store');
+            const stateHasStoreRadiusScope = Object.prototype.hasOwnProperty.call(state, 'store_radius_scope');
+            const stateStoreSearchModeValue = String(
+                Array.isArray(state.store_search_mode)
+                    ? state.store_search_mode[state.store_search_mode.length - 1]
+                    : state.store_search_mode ?? '',
+            )
+                .trim()
+                .toLowerCase();
+            const storeSearchModeValueValid = ['complete_within', 'complete_outside', 'incomplete'].includes(
+                stateStoreSearchModeValue,
+            );
             let pendingMortarThickness = null;
             let pendingCustomizePanelState = null;
             let pendingMaterialCustomizeFilters = null;
             let pendingDimensionExpressionState = null;
+            const parseSessionBoolean = value => {
+                const raw = Array.isArray(value) ? value[value.length - 1] : value;
+                const normalized = String(raw ?? '').trim().toLowerCase();
+                return ['1', 'true', 'on', 'yes'].includes(normalized);
+            };
             if (workTypeInput && workTypeValue) {
                 workTypeInput.value = workTypeValue;
                 workTypeInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -12653,6 +12893,30 @@
                 });
             });
 
+            if (!storeSearchModeValueValid && (stateHasUseStoreFilter || stateHasAllowMixedStore || stateHasStoreRadiusScope)) {
+                const useStoreFilterEnabled = parseSessionBoolean(state.use_store_filter);
+                const allowMixedStoreEnabled = parseSessionBoolean(state.allow_mixed_store);
+                const storeRadiusScope = String(
+                    Array.isArray(state.store_radius_scope)
+                        ? state.store_radius_scope[state.store_radius_scope.length - 1]
+                        : state.store_radius_scope ?? '',
+                )
+                    .trim()
+                    .toLowerCase();
+                let derivedStoreSearchMode = 'complete_within';
+                if (useStoreFilterEnabled && allowMixedStoreEnabled) {
+                    derivedStoreSearchMode = 'incomplete';
+                } else if (useStoreFilterEnabled && storeRadiusScope === 'outside') {
+                    derivedStoreSearchMode = 'complete_outside';
+                }
+
+                const modeHiddenInput = document.getElementById('storeSearchModeValue');
+                if (modeHiddenInput instanceof HTMLInputElement) {
+                    modeHiddenInput.value = derivedStoreSearchMode;
+                    modeHiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+
             if (expectsMm && pendingMortarThickness !== null && mortarThicknessInput) {
                 const rawValue = Array.isArray(pendingMortarThickness)
                     ? parseFloat(pendingMortarThickness[0])
@@ -12773,6 +13037,19 @@
             try {
                 parsed = JSON.parse(raw);
             } catch (error) {
+                localStorage.removeItem(calcSessionKey);
+                localStorage.removeItem(calcExpressionStateKey);
+                return;
+            }
+
+            const hasSchemaVersion = Object.prototype.hasOwnProperty.call(parsed || {}, 'schemaVersion');
+            const parsedSchemaVersion = hasSchemaVersion ? Number(parsed?.schemaVersion) : calcSessionSchemaVersion;
+            const isLegacyCompatibleSession = !hasSchemaVersion
+                && parsed
+                && typeof parsed === 'object'
+                && parsed.data
+                && typeof parsed.data === 'object';
+            if (!isLegacyCompatibleSession && parsedSchemaVersion !== calcSessionSchemaVersion) {
                 localStorage.removeItem(calcSessionKey);
                 localStorage.removeItem(calcExpressionStateKey);
                 return;
@@ -13099,6 +13376,7 @@
                 if (storeSearchModeBoxEl && typeof storeSearchModeBoxEl.__commitStoreSearchModeControls === 'function') {
                     storeSearchModeBoxEl.__commitStoreSearchModeControls();
                 }
+                syncWorkTaxonomyHiddenInputsFromDisplay();
                 syncMaterialCustomizeFiltersPayload();
                 const bundleBuild = buildBundleItems(true);
                 if (bundleBuild.error) {

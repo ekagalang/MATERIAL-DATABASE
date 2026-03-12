@@ -11,21 +11,14 @@ class DatabaseSeeder extends Seeder
         $this->call([
             AccessControlSeeder::class,
             UnitSeeder::class,
-            MaterialSettingSeeder::class, // HARUS DI AWAL sebelum material seeders
-            CatSeeder::class,
-            BrickSeeder::class,
-            CementSeeder::class,
-            SandSeeder::class,
-            CeramicSeeder::class,
+            MaterialSettingSeeder::class,
             BrickInstallationTypeSeeder::class,
             MortarFormulaSeeder::class,
-            NatTableSeeder::class,
             WorkTaxonomySeeder::class,
-
-            // Uncomment untuk create sample calculation (opsional)
-            // $this->call([
-            //     BrickCalculationDataSeeder::class,
-            // ]);
         ]);
+
+        // Seeder dummy / sample dijalankan manual jika dibutuhkan:
+        // $this->call(MassDataSeeder::class);
+        // $this->call(BrickCalculationDataSeeder::class);
     }
 }

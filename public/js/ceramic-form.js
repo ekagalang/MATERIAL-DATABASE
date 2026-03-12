@@ -517,20 +517,25 @@ function initCeramicForm(root) {
     }
 
     const ceramicForm = marker.matches && marker.matches('form') ? marker : marker.querySelector('#ceramicForm');
-    if (ceramicForm) {
-        ceramicForm.addEventListener('submit', function() {
-            syncDimensionHidden('dimension_length_input', 'dimension_length_unit', 'dimension_length');
-            syncDimensionHidden('dimension_width_input', 'dimension_width_unit', 'dimension_width');
-            syncDimensionHidden('dimension_thickness_input', 'dimension_thickness_unit', 'dimension_thickness');
-            calculateCoverage();
+    function prepareCeramicFormForSubmit() {
+        syncDimensionHidden('dimension_length_input', 'dimension_length_unit', 'dimension_length');
+        syncDimensionHidden('dimension_width_input', 'dimension_width_unit', 'dimension_width');
+        syncDimensionHidden('dimension_thickness_input', 'dimension_thickness_unit', 'dimension_thickness');
+        calculateCoverage();
 
-            const priceDisplayValue = (pricePerPackageDisplay?.value || '').trim();
-            const comparisonDisplayValue = (comparisonPriceDisplay?.value || '').trim();
-            if (!priceDisplayValue && comparisonDisplayValue) {
-                syncComparisonFromDisplay();
-            } else {
-                syncPriceFromDisplay();
-            }
+        const priceDisplayValue = (pricePerPackageDisplay?.value || '').trim();
+        const comparisonDisplayValue = (comparisonPriceDisplay?.value || '').trim();
+        if (!priceDisplayValue && comparisonDisplayValue) {
+            syncComparisonFromDisplay();
+        } else {
+            syncPriceFromDisplay();
+        }
+    }
+
+    if (ceramicForm) {
+        ceramicForm.__beforeModalAjaxSubmit = prepareCeramicFormForSubmit;
+        ceramicForm.addEventListener('submit', function() {
+            prepareCeramicFormForSubmit();
         });
     }
 

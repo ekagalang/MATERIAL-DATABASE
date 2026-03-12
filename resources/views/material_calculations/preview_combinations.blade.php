@@ -8322,6 +8322,7 @@ $paramValue = $isGroutTile
             const createPageUrl = baseCreateUrl.includes('?') ?
                 `${baseCreateUrl}&resume=1` :
                 `${baseCreateUrl}?resume=1`;
+            const calcSessionSchemaVersion = 2;
 
             const sessionPayload = @json($requestData ?? []);
             if (sessionPayload && Object.keys(sessionPayload).length) {
@@ -8341,6 +8342,7 @@ $paramValue = $isGroutTile
                         data: sessionPayload,
                         autoSubmit: false,
                         normalized: true,
+                        schemaVersion: calcSessionSchemaVersion,
                     }));
                 } catch (error) {
                     console.warn('Failed to cache calculation session', error);
@@ -8508,6 +8510,7 @@ $paramValue = $isGroutTile
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            const calcSessionSchemaVersion = 2;
             function initBundleParamDropdown() {
                 const defaultBundleCols = {
                     work: 340,
@@ -8840,6 +8843,7 @@ $paramValue = $isGroutTile
                     updatedAt: Date.now(),
                     data: sessionData,
                     autoSubmit: true,
+                    schemaVersion: calcSessionSchemaVersion,
                 }));
                 localStorage.setItem('materialCalculationPreview', JSON.stringify({
                     updatedAt: Date.now(),

@@ -25,6 +25,9 @@
                     })
                     : [];
             };
+        const markFloorSortPending = typeof deps.markFloorSortPending === 'function'
+            ? deps.markFloorSortPending
+            : function () {};
 
 function initWorkTaxonomyFilters(formPayload) {
     const workFloorRows = document.getElementById('workFloorRows');

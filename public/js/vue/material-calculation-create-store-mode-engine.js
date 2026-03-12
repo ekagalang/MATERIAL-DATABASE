@@ -134,18 +134,23 @@
             };
 
             const syncFromHiddenState = () => {
+                const modeFromHiddenValue = String(modeValueHidden.value || '').trim().toLowerCase();
                 const scope = String(storeRadiusScopeHidden.value || '').trim().toLowerCase();
                 const useStoreFilterEnabled = String(useStoreFilterHidden.value || '0') === '1';
                 const allowMixedEnabled = String(allowMixedStoreHidden.value || '0') === '1';
                 let activeMode = 'complete_within';
-                if (!useStoreFilterEnabled) {
+                if (modeFromHiddenValue === 'incomplete') {
+                    activeMode = 'incomplete';
+                } else if (modeFromHiddenValue === 'complete_outside') {
+                    activeMode = 'complete_outside';
+                } else if (modeFromHiddenValue === 'complete_within') {
+                    activeMode = 'complete_within';
+                } else if (!useStoreFilterEnabled) {
                     activeMode = 'complete_within';
                 } else if (allowMixedEnabled) {
                     activeMode = 'incomplete';
                 } else if (scope === 'outside') {
                     activeMode = 'complete_outside';
-                } else {
-                    activeMode = 'complete_within';
                 }
 
                 completeWithinCheck.checked = activeMode === 'complete_within';

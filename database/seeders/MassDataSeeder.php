@@ -9,6 +9,7 @@ use App\Models\Cement;
 use App\Models\Sand;
 use App\Models\Cat;
 use App\Models\Ceramic;
+use App\Models\Nat;
 
 class MassDataSeeder extends Seeder
 {
@@ -132,6 +133,7 @@ class MassDataSeeder extends Seeder
         // --- CEMENT (Semen Biasa) - 8 Variasi ---
         $cementBlueprints = [
             [
+                'type' => 'PCC',
                 'brand' => 'Tiga Roda',
                 'sub' => 'PCC',
                 'code' => 'PCC-50',
@@ -141,6 +143,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 65000,
             ],
             [
+                'type' => 'PCC',
                 'brand' => 'Tiga Roda',
                 'sub' => 'PCC',
                 'code' => 'PCC-40',
@@ -150,6 +153,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 54000,
             ],
             [
+                'type' => 'PCC',
                 'brand' => 'Semen Gresik',
                 'sub' => 'PPC',
                 'code' => 'SG-40',
@@ -159,6 +163,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 52000,
             ],
             [
+                'type' => 'PCC',
                 'brand' => 'Semen Gresik',
                 'sub' => 'PPC',
                 'code' => 'SG-50',
@@ -168,6 +173,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 64000,
             ],
             [
+                'type' => 'OPC',
                 'brand' => 'Holcim',
                 'sub' => 'Dynamix',
                 'code' => 'Serbaguna',
@@ -177,6 +183,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 53000,
             ],
             [
+                'type' => 'OPC',
                 'brand' => 'Holcim',
                 'sub' => 'Dynamix',
                 'code' => 'Extra Kuat',
@@ -186,6 +193,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 66000,
             ],
             [
+                'type' => 'OPC',
                 'brand' => 'Semen Padang',
                 'sub' => 'PCC',
                 'code' => 'SP-50',
@@ -195,6 +203,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 63000,
             ],
             [
+                'type' => 'OPC',
                 'brand' => 'Semen Jakarta',
                 'sub' => 'Eco',
                 'code' => 'SJ-40',
@@ -224,42 +233,42 @@ class MassDataSeeder extends Seeder
         // --- SAND (Pasir) - 6 Variasi ---
         $sandBlueprints = [
             [
-                'type' => 'Pasir Bangka',
+                'type' => 'Bangka',
                 'brand' => 'Putih Super',
                 'unit' => 'Kijang',
                 'vol' => 0.8,
                 'base_price' => 350000,
             ],
             [
-                'type' => 'Pasir Bangka',
+                'type' => 'Bangka',
                 'brand' => 'Putih Super',
                 'unit' => 'Truk (6m3)',
                 'vol' => 6,
                 'base_price' => 2400000,
             ],
             [
-                'type' => 'Pasir Mundu',
+                'type' => 'Pasang',
                 'brand' => 'Coklat Halus',
                 'unit' => 'Kijang',
                 'vol' => 0.8,
                 'base_price' => 280000,
             ],
             [
-                'type' => 'Pasir Mundu',
+                'type' => 'Pasang',
                 'brand' => 'Coklat Halus',
                 'unit' => 'Truk (6m3)',
                 'vol' => 6,
                 'base_price' => 1900000,
             ],
             [
-                'type' => 'Pasir Cileungsi',
+                'type' => 'Urug',
                 'brand' => 'Hitam Kasar',
                 'unit' => 'Kijang',
                 'vol' => 0.8,
                 'base_price' => 250000,
             ],
             [
-                'type' => 'Pasir Lampung',
+                'type' => 'Urug',
                 'brand' => 'Halus',
                 'unit' => 'Karung (50kg)',
                 'vol' => 0.035,
@@ -294,7 +303,7 @@ class MassDataSeeder extends Seeder
             [
                 'brand' => 'Dulux',
                 'sub' => 'Pentalite',
-                'type' => 'Interior',
+                'type' => 'Dasar Interior',
                 'color' => 'Morning Dew',
                 'code' => '55555',
                 'unit' => 'Galon',
@@ -327,7 +336,7 @@ class MassDataSeeder extends Seeder
             [
                 'brand' => 'Nippon Paint',
                 'sub' => 'Spot-less',
-                'type' => 'Interior',
+                'type' => 'Dasar Interior',
                 'color' => 'Lily White',
                 'code' => '1001',
                 'unit' => 'Galon',
@@ -360,7 +369,7 @@ class MassDataSeeder extends Seeder
             [
                 'brand' => 'Jotun',
                 'sub' => 'Jotaplast',
-                'type' => 'Interior',
+                'type' => 'Dasar Interior',
                 'color' => 'Majestic White',
                 'code' => '001',
                 'unit' => 'Pail',
@@ -382,7 +391,7 @@ class MassDataSeeder extends Seeder
             [
                 'brand' => 'Jotun',
                 'sub' => 'Tough Shield',
-                'type' => 'Exterior',
+                'type' => 'Dasar Exterior',
                 'color' => 'Classic White',
                 'code' => '9918',
                 'unit' => 'Pail',
@@ -404,7 +413,7 @@ class MassDataSeeder extends Seeder
             [
                 'brand' => 'No Drop',
                 'sub' => 'Waterproof',
-                'type' => 'Exterior',
+                'type' => 'Dasar Exterior',
                 'color' => 'Transparan',
                 'code' => '001',
                 'unit' => 'Galon',
@@ -426,7 +435,7 @@ class MassDataSeeder extends Seeder
             [
                 'brand' => 'Mowilex',
                 'sub' => 'Emulsion',
-                'type' => 'Interior',
+                'type' => 'Dasar Interior',
                 'color' => 'Putih',
                 'code' => 'E-100',
                 'unit' => 'Pail',
@@ -439,6 +448,7 @@ class MassDataSeeder extends Seeder
         // --- CERAMIC (Keramik) - 15 Variasi ---
         $ceramicBlueprints = [
             [
+                'type' => 'HT',
                 'brand' => 'Roman',
                 'sub' => 'dModesto',
                 'code' => 'G334',
@@ -450,6 +460,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 110000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Roman',
                 'sub' => 'dCatania',
                 'code' => 'W445',
@@ -461,6 +472,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 125000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Roman',
                 'sub' => 'Interlok',
                 'code' => 'dLimboto',
@@ -472,6 +484,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 115000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Mulia',
                 'sub' => 'Signature',
                 'code' => 'Beige Polos',
@@ -483,6 +496,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 65000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Mulia',
                 'sub' => 'Accura',
                 'code' => 'White Marble',
@@ -494,6 +508,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 68000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Platinum',
                 'sub' => 'Alaska',
                 'code' => 'Basic White',
@@ -505,6 +520,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 140000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Platinum',
                 'sub' => 'Amazon',
                 'code' => 'Brown Wood',
@@ -516,6 +532,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 155000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Asia Tile',
                 'sub' => 'Oscar',
                 'code' => 'Grey',
@@ -527,6 +544,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 55000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Asia Tile',
                 'sub' => 'Alpha',
                 'code' => 'White',
@@ -538,6 +556,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 52000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Milan',
                 'sub' => 'Habitat',
                 'code' => 'Cream',
@@ -549,6 +568,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 95000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Milan',
                 'sub' => 'Centro',
                 'code' => 'Dark Grey',
@@ -560,6 +580,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 98000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Arwana',
                 'sub' => 'Uno',
                 'code' => 'Blue',
@@ -571,6 +592,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 60000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Arwana',
                 'sub' => 'Citra',
                 'code' => 'Pink',
@@ -582,6 +604,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 60000,
             ],
             [
+                'type' => 'HT',
                 'brand' => 'Kia',
                 'sub' => 'Spectrum',
                 'code' => 'Green',
@@ -593,6 +616,7 @@ class MassDataSeeder extends Seeder
                 'base_price' => 62000,
             ],
             [
+                'type' => 'Biasa',
                 'brand' => 'Kia',
                 'sub' => 'Terra',
                 'code' => 'Terracotta',
@@ -636,7 +660,7 @@ class MassDataSeeder extends Seeder
                 $price = $this->randomizePrice($item['base_price']);
 
                 Cement::create([
-                    'type' => 'Semen',
+                    'type' => $item['type'],
                     'cement_name' => "Semen {$item['brand']} {$item['code']}",
                     'brand' => $item['brand'],
                     'sub_brand' => $item['sub'],
@@ -656,10 +680,12 @@ class MassDataSeeder extends Seeder
             foreach ($natBlueprints as $item) {
                 $price = $this->randomizePrice($item['base_price']);
                 $weight = 1.0;
+                $natName = "Nat {$item['brand']} {$item['color']}";
 
-                Cement::create([
-                    'type' => 'Indoor',
-                    'cement_name' => "Nat {$item['brand']} {$item['color']}",
+                Nat::create([
+                    'type' => 'Nat',
+                    'cement_name' => $natName,
+                    'nat_name' => $natName,
                     'brand' => $item['brand'],
                     'sub_brand' => $item['sub'],
                     'code' => $item['code'],
@@ -680,7 +706,7 @@ class MassDataSeeder extends Seeder
 
                 Sand::create([
                     'sand_name' => $item['type'] . ' ' . $item['brand'],
-                    'type' => 'Pasir',
+                    'type' => $item['type'],
                     'brand' => $item['brand'],
                     'package_unit' => $item['unit'],
                     'package_volume' => $item['vol'],
@@ -718,7 +744,7 @@ class MassDataSeeder extends Seeder
 
                 Ceramic::create([
                     'material_name' => "Keramik {$item['brand']} {$item['code']}",
-                    'type' => 'Lantai',
+                    'type' => $item['type'],
                     'brand' => $item['brand'],
                     'sub_brand' => $item['sub'],
                     'code' => $item['code'],

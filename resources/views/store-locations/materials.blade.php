@@ -68,6 +68,58 @@ document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.add('materials-lock');
 });
 
+// Keep page scroll locked and delegate scrolling to the active table container.
+(function() {
+    let preventingScroll = false;
+    const isEditableTarget = (el) => {
+        if (!el || typeof el.closest !== 'function') return false;
+        if (el.isContentEditable) return true;
+        return !!el.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""]');
+    };
+
+    const forceWindowTop = () => {
+        if (preventingScroll) return;
+        preventingScroll = true;
+        if (window.scrollY !== 0 || document.documentElement.scrollTop !== 0 || document.body.scrollTop !== 0) {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+        }
+        preventingScroll = false;
+    };
+
+    window.addEventListener('scroll', forceWindowTop, { passive: true });
+    document.addEventListener('scroll', forceWindowTop, { passive: true });
+
+    ['wheel', 'touchmove', 'keydown'].forEach(eventType => {
+        window.addEventListener(eventType, (e) => {
+            const target = e.target;
+            const container = target && typeof target.closest === 'function'
+                ? target.closest('.table-container')
+                : null;
+            if (container) return;
+
+            const activeElement = document.activeElement;
+            if (isEditableTarget(target) || isEditableTarget(activeElement)) {
+                return;
+            }
+
+            if (eventType === 'keydown') {
+                const key = e.key;
+                if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', ' ', 'Home', 'End'].includes(key)) {
+                    const inContainer = activeElement && activeElement.closest('.table-container');
+                    if (!inContainer) {
+                        e.preventDefault();
+                    }
+                }
+            }
+        }, { passive: false });
+    });
+
+    forceWindowTop();
+    setInterval(forceWindowTop, 100);
+})();
+
 (function() {
     function updateCeramicScrollIndicators() {
         const cells = document.querySelectorAll('#section-ceramic .ceramic-scroll-td, #section-cement .cement-scroll-td, #section-sand .sand-scroll-td, #section-cat .cat-scroll-td, #section-brick .brick-scroll-td');
@@ -925,11 +977,50 @@ html.materials-booting .page-content {
   }
 
   /* Override wrapper height for store view to accommodate the card */
+  html.materials-lock .store-location-materials-shell,
+  body.materials-lock .store-location-materials-shell {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+  }
   html.materials-lock .material-tab-wrapper,
   body.materials-lock .material-tab-wrapper {
       height: auto;
-      flex: 1;
-      min-height: 0; /* Important for nested scroll */
+      flex: 1 1 0;
+      min-height: 0;
+      overflow: hidden;
+  }
+  html.materials-lock .store-location-materials-shell .material-tab-panel.active,
+  body.materials-lock .store-location-materials-shell .material-tab-panel.active {
+      display: flex;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+  }
+  html.materials-lock .store-location-materials-shell .material-tab-card,
+  body.materials-lock .store-location-materials-shell .material-tab-card {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+  }
+  html.materials-lock .store-location-materials-shell .material-tab-card > .material-table-frame,
+  body.materials-lock .store-location-materials-shell .material-tab-card > .material-table-frame {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+  }
+  html.materials-lock .store-location-materials-shell .material-tab-card > .material-table-frame > .table-container,
+  body.materials-lock .store-location-materials-shell .material-tab-card > .material-table-frame > .table-container {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
   }
 
   /* Hexagon Navigation Styles - Simple & Clean */
@@ -948,7 +1039,7 @@ html.materials-booting .page-content {
   }
 </style>
 
-<div class="d-flex flex-column h-100">
+<div class="d-flex flex-column h-100 store-location-materials-shell">
     <!-- Location Info Card -->
     <div class="card border-0 shadow-sm rounded-4 mb-2 bg-white flex-shrink-0">
             <div class="card-body p-3" style="display: flex; justify-content: space-between; align-items: center;">

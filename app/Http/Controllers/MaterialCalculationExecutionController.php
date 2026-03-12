@@ -31,6 +31,8 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 $request->merge(['work_type' => $request->work_type_select]);
             }
 
+            $this->normalizeStoreSearchModeRequest($request);
+
             // DEBUG: Store request data to session (AFTER conversion)
             session()->put('debug_last_request', [
                 'work_type' => $request->work_type,
@@ -40,6 +42,13 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
                 'ceramic_sizes' => $request->ceramic_sizes,
                 'enable_bundle_mode' => $request->input('enable_bundle_mode'),
                 'work_items_payload' => $request->input('work_items_payload'),
+                'use_store_filter' => $request->input('use_store_filter'),
+                'allow_mixed_store' => $request->input('allow_mixed_store'),
+                'store_radius_scope' => $request->input('store_radius_scope'),
+                'store_search_mode' => $request->input('store_search_mode'),
+                'store_mode_complete_within' => $request->input('store_mode_complete_within'),
+                'store_mode_complete_outside' => $request->input('store_mode_complete_outside'),
+                'store_mode_incomplete' => $request->input('store_mode_incomplete'),
                 'timestamp' => now()->toDateTimeString(),
             ]);
 
@@ -657,6 +666,12 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             'ceramic_id',
             'nat_id',
         ]);
+        $baseMaterialTypeFilters = $this->normalizeBundleMaterialTypeFilters(
+            $baseRequestData['material_type_filters'] ?? [],
+        );
+        $baseMaterialCustomizeFilters = $this->normalizeBundleMaterialCustomizeFilters(
+            $baseRequestData['material_customize_filters'] ?? [],
+        );
 
         $defaultInstallationType = BrickInstallationType::where('is_active', true)->orderBy('id')->first();
         $defaultMortarFormula = MortarFormula::where('is_active', true)
@@ -724,8 +739,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $itemMaterialTypeFilters = $this->normalizeBundleMaterialTypeFilters(
                 $bundleItem['material_type_filters'] ?? [],
             );
-            if (!empty($itemMaterialTypeFilters)) {
-                $itemRequestData['material_type_filters'] = $itemMaterialTypeFilters;
+            $effectiveItemMaterialTypeFilters = !empty($itemMaterialTypeFilters)
+                ? $itemMaterialTypeFilters
+                : $baseMaterialTypeFilters;
+            if (!empty($effectiveItemMaterialTypeFilters)) {
+                $itemRequestData['material_type_filters'] = $effectiveItemMaterialTypeFilters;
                 $itemRequestData['material_type_filters_extra'] = [];
             } else {
                 unset($itemRequestData['material_type_filters'], $itemRequestData['material_type_filters_extra']);
@@ -733,8 +751,11 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
             $itemMaterialCustomizeFilters = $this->normalizeBundleMaterialCustomizeFilters(
                 $bundleItem['material_customize_filters'] ?? [],
             );
-            if (!empty($itemMaterialCustomizeFilters)) {
-                $itemRequestData['material_customize_filters'] = $itemMaterialCustomizeFilters;
+            $effectiveItemMaterialCustomizeFilters = !empty($itemMaterialCustomizeFilters)
+                ? $itemMaterialCustomizeFilters
+                : $baseMaterialCustomizeFilters;
+            if (!empty($effectiveItemMaterialCustomizeFilters)) {
+                $itemRequestData['material_customize_filters'] = $effectiveItemMaterialCustomizeFilters;
             } else {
                 unset($itemRequestData['material_customize_filters'], $itemRequestData['material_customize_filters_payload']);
             }
@@ -3834,6 +3855,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
         // Increase execution time for complex calculations
         set_time_limit(300); // 5 minutes
 
+        $this->normalizeStoreSearchModeRequest($request);
         $request->validate($this->calculateValidationRules());
 
         try {
@@ -3849,6 +3871,7 @@ class MaterialCalculationExecutionController extends MaterialCalculationControll
 
     public function compare(Request $request)
     {
+        $this->normalizeStoreSearchModeRequest($request);
         $request->validate($this->compareValidationRules());
 
         try {

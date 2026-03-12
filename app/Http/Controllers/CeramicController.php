@@ -88,10 +88,25 @@ class CeramicController extends Controller
                     ->with('new_material', $newMaterial);
             }
 
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Data berhasil disimpan')
+                    ->with('new_material', $newMaterial);
+            }
+
             return redirect()->route('ceramics.index')->with('success', 'Data berhasil disimpan');
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to create ceramic: ' . $e->getMessage());
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan data: ' . $e->getMessage(),
+                ], 500);
+            }
+
             return back()
                 ->with('error', 'Gagal menyimpan data: ' . $e->getMessage())
                 ->withInput();
@@ -154,6 +169,13 @@ class CeramicController extends Controller
                     ->with('updated_material', $updatedMaterial);
             }
 
+            if ($request->input('_redirect_to_materials')) {
+                return redirect()
+                    ->route('materials.index')
+                    ->with('success', 'Data berhasil diperbarui')
+                    ->with('updated_material', $updatedMaterial);
+            }
+
             return redirect()
                 ->route('ceramics.index')
                 ->with('success', 'Data berhasil diperbarui')
@@ -161,6 +183,14 @@ class CeramicController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Failed to update ceramic: ' . $e->getMessage());
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal update data: ' . $e->getMessage(),
+                ], 500);
+            }
+
             return back()
                 ->with('error', 'Gagal update data: ' . $e->getMessage())
                 ->withInput();
